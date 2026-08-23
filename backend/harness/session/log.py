@@ -1,0 +1,66 @@
+"""The append-only log, and the session that owns one.
+
+In memory in phase 1 — durability is phase 3, and it changes nothing here
+because a backend's job is to persist exactly what `append` recorded. That is
+the point of keeping this class free of storage concerns.
+
+Two properties everything downstream leans on:
+
+- **Append-only.** Nothing rewrites or removes an event. Compaction, when it
+  arrives, appends a boundary rather than editing history; a UI's undo would be
+  a new event too. It is what makes a sequence number a stable cursor.
+- **Contiguous sequence numbers**, starting at 0, with no gaps. A consumer that
+  has seen through `n` can ask for everything after `n` and know it missed
+  nothing — which is how the phase-4 run subscription works.
+
+`next_turn()` rather than a caller-supplied number: the log is the only thing
+that knows how many turns it has, and letting a caller pass one invites two
+concurrent turns to share an index and interleave.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+from harness.session.events import SessionEvent, TurnStart
+
+
+class Session:
+    """One agent interaction, as an append-only event log."""
+
+    def __init__(self, session_id: str) -> None:
+        self.id = session_id
+        self._events: list[SessionEvent] = []
+
+    def append(self, event: SessionEvent) -> int:
+        """Record one event.
+
+        @returns its sequence number — the index, which is also a stable cursor.
+        """
+        self._events.append(event)
+        return len(self._events) - 1
+
+    def events(self) -> Sequence[SessionEvent]:
+        """Every event, oldest first.
+
+        A view rather than a copy: callers read, and copying the whole log on
+        each of the loop's per-step reads would make history derivation
+        quadratic in a long conversation.
+        """
+        return self._events
+
+    def after(self, cursor: int) -> Sequence[SessionEvent]:
+        """Events with a sequence number strictly greater than `cursor`.
+
+        `-1` means "everything". Contiguity is what makes this a complete answer
+        rather than a best effort.
+        """
+        return self._events[cursor + 1 :]
+
+    def next_turn(self) -> int:
+        """The index the next turn should open with.
+
+        Derived from the log rather than a counter, so a session rehydrated from
+        storage (phase 3) resumes its numbering with no state to restore.
+        """
+        return sum(1 for event in self._events if isinstance(event, TurnStart))
