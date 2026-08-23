@@ -15,7 +15,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from harness.llm.messages import Message
+from harness.llm.messages import Message, ToolSpec
 from harness.llm.stream import StreamEvent
 
 
@@ -23,13 +23,20 @@ class LLMClient(ABC):
     """Streams a completion event by event."""
 
     @abstractmethod
-    def stream_completion(self, messages: list[Message], model: str) -> AsyncIterator[StreamEvent]:
+    def stream_completion(
+        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+    ) -> AsyncIterator[StreamEvent]:
         """Stream one model call.
 
         Implementations MUST yield exactly one terminal event (`Completed` or
         `Failed`) at the end of the stream, including on transport failure. A
         stream that ends without one hangs the caller, which is why the loop
         treats a missing terminal as a failure of its own rather than waiting.
+
+        `tools` offers the model a set of calls it may request. An adapter is
+        free to omit the field entirely when it is empty or `None` — an empty
+        list says something different from "no tools available", and some
+        providers reject it.
 
         Not `async def`: the return type is the async iterator itself, so an
         implementation is an `async def` generator and a caller may `aclose()`

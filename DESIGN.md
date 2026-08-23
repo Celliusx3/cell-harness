@@ -278,8 +278,11 @@ From dsh:
   points.
 - **Design notes referenced by path from code comments.** `notes/` — decisions
   stay findable from the code that embodies them.
-- **`AGENTS.md`, with `CLAUDE.md` a symlink to it.**
 - **A prompt-cache impact note on every change that touches prompt assembly.**
+
+Not adopted: dsh's `AGENTS.md` name, with `CLAUDE.md` symlinked to it. One rules
+file is right; two names for it is a cross-tool convenience we do not need yet.
+`CLAUDE.md` is the real file.
 
 From cell-bot:
 

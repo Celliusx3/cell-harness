@@ -11,7 +11,14 @@ import pytest
 
 from harness import cli
 from harness.llm.stream import Failed, TextChunk
-from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.fakes import (
+    ScriptedClient,
+    SteppedClient,
+    calls_tool,
+    completed,
+    echo_tool,
+    reporting_tool,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -57,6 +64,39 @@ async def test_a_stream_with_no_terminal_is_reported_not_silently_ok(monkeypatch
 
     assert code == 1
     assert "half" in capsys.readouterr().out
+
+
+async def test_tool_activity_goes_to_stderr_so_stdout_is_the_answer(monkeypatch, capsys) -> None:
+    """Piping stdout should give the reply alone — the tool trace is for a human
+    watching, not for whatever consumes the output."""
+    client = SteppedClient(
+        calls_tool("echo", '{"value": "42"}', text="Checking. "),
+        completed("It is 42."),
+    )
+    monkeypatch.setattr(cli, "OpenAIClient", lambda settings: client)
+    monkeypatch.setattr(cli, "clock_tool", echo_tool)
+
+    code = await cli._run("what is it?")
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.out == "Checking. It is 42.\n"
+    assert "→ echo" in captured.err
+    assert "← 42" in captured.err
+
+
+async def test_progress_is_rendered_with_and_without_a_percentage(monkeypatch, capsys) -> None:
+    client = SteppedClient(calls_tool("slow", '{"value": "done"}'), completed("ok"))
+    monkeypatch.setattr(cli, "OpenAIClient", lambda settings: client)
+    monkeypatch.setattr(
+        cli, "clock_tool", lambda: reporting_tool([(40.0, "working"), (None, "almost")])
+    )
+
+    await cli._run("q")
+
+    err = capsys.readouterr().err
+    assert "… 40% working" in err
+    assert "… almost" in err
 
 
 def test_run_requires_a_prompt(monkeypatch) -> None:

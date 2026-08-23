@@ -49,14 +49,6 @@ class Session:
         """
         return self._events
 
-    def after(self, cursor: int) -> Sequence[SessionEvent]:
-        """Events with a sequence number strictly greater than `cursor`.
-
-        `-1` means "everything". Contiguity is what makes this a complete answer
-        rather than a best effort.
-        """
-        return self._events[cursor + 1 :]
-
     def next_turn(self) -> int:
         """The index the next turn should open with.
 

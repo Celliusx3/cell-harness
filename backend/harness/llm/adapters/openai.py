@@ -25,14 +25,61 @@ import httpx
 
 from harness.config.settings import LLMSettings
 from harness.llm.client import LLMClient
-from harness.llm.messages import Message
-from harness.llm.stream import Completed, Failed, StreamEvent, TextChunk, Usage
+from harness.llm.messages import AssistantMessage, Message, ToolCall, ToolSpec
+from harness.llm.stream import (
+    Completed,
+    Failed,
+    StreamEvent,
+    TextChunk,
+    ToolCallChunk,
+    Usage,
+)
 
 logger = logging.getLogger("harness.llm.openai")
 
 # The frame the SSE stream ends with. It is not JSON, so it must be recognized
 # before parsing rather than after failing to parse.
 _DONE = "[DONE]"
+
+
+def _wire_message(message: Message) -> dict:
+    """One message in the provider's shape.
+
+    Our `AssistantMessage.tool_calls` is flat (`id`, `name`, `arguments`); the
+    wire nests the last two under `function` and adds a redundant `type`. The
+    translation lives here rather than on the model because it is this
+    provider's dialect, not something the loop or the log should know.
+    """
+    if isinstance(message, AssistantMessage) and message.tool_calls:
+        return {
+            "role": "assistant",
+            "content": message.content,
+            "tool_calls": [
+                {
+                    "id": call.id,
+                    "type": "function",
+                    "function": {"name": call.name, "arguments": call.arguments},
+                }
+                for call in message.tool_calls
+            ],
+        }
+    if isinstance(message, AssistantMessage):
+        # `tool_calls: []` is not the same as absent to every provider, and an
+        # assistant message without calls should not claim to have an empty set.
+        return {"role": "assistant", "content": message.content}
+    return message.model_dump()
+
+
+def _wire_tool(spec: ToolSpec) -> dict:
+    """One tool declaration in the provider's shape."""
+    return {
+        "type": "function",
+        "function": {
+            "name": spec.name,
+            "description": spec.description,
+            "parameters": spec.input_schema,
+        },
+    }
 
 
 def _usage(payload: dict) -> Usage | None:
@@ -52,22 +99,92 @@ def _usage(payload: dict) -> Usage | None:
     return Usage(input_tokens=prompt, output_tokens=completion)
 
 
-def _text(payload: dict) -> str:
-    """The text this chunk adds, or `""`.
+def _delta(payload: dict) -> dict:
+    """The `delta` object of this frame, or `{}`.
 
-    Tolerant by construction. A chunk with no choices, an empty delta, or a
+    Tolerant by construction. A frame with no choices, an empty delta, or a
     `null` content is normal — it is how a provider signals a role header, a
     finish reason, or a usage-only final frame — so none of those is an error
     worth failing a turn over.
     """
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
-        return ""
+        return {}
     delta = choices[0].get("delta")
-    if not isinstance(delta, dict):
-        return ""
+    return delta if isinstance(delta, dict) else {}
+
+
+def _text(delta: dict) -> str:
+    """The text this frame adds, or `""`."""
     content = delta.get("content")
     return content if isinstance(content, str) else ""
+
+
+class _ToolCallAccumulator:
+    """Reassembles tool calls that arrive in fragments.
+
+    A provider streams one call across many frames: the id and name usually
+    arrive once, the `arguments` JSON string a few characters at a time. Frames
+    carry an `index` rather than the id, because the id itself may not have
+    arrived yet — so the index is the only thing that can group them.
+
+    A call is *complete* when its `finish_reason` says so, which is a frame that
+    carries no delta at all. Providers do not mark individual calls finished, so
+    completion is a property of the whole response: `drain()` at the end. The
+    `arguments` string is passed through untouched, never parsed — invalid JSON
+    from the model is a tool failure it can recover from, and parsing here would
+    turn it into a stream failure it cannot.
+    """
+
+    def __init__(self) -> None:
+        self._by_index: dict[int, dict[str, str]] = {}
+
+    def add(self, delta: dict) -> None:
+        fragments = delta.get("tool_calls")
+        if not isinstance(fragments, list):
+            return
+        for fragment in fragments:
+            if not isinstance(fragment, dict):
+                continue
+            index = fragment.get("index")
+            if not isinstance(index, int):
+                # Without an index there is nothing to group this onto. Dropping
+                # it loses a fragment; guessing would corrupt a sibling call.
+                logger.warning("tool call fragment with no index: %r", fragment)
+                continue
+            call = self._by_index.setdefault(index, {"id": "", "name": "", "arguments": ""})
+            if isinstance(fragment.get("id"), str):
+                call["id"] = fragment["id"]
+            function = fragment.get("function")
+            if isinstance(function, dict):
+                if isinstance(function.get("name"), str):
+                    call["name"] = function["name"]
+                if isinstance(function.get("arguments"), str):
+                    call["arguments"] += function["arguments"]
+
+    def drain(self) -> list[ToolCall]:
+        """Every assembled call, in the index order the provider used.
+
+        A call with no name is dropped: it cannot be dispatched, and inventing a
+        name would send the model a result for something it never asked for. One
+        with no id gets a synthetic one — the id only has to pair a call with its
+        result within this turn, and refusing to run an otherwise valid call
+        because the provider omitted an identifier helps nobody.
+        """
+        calls = []
+        for index in sorted(self._by_index):
+            call = self._by_index[index]
+            if not call["name"]:
+                logger.warning("dropping tool call fragment with no name: %r", call)
+                continue
+            calls.append(
+                ToolCall(
+                    id=call["id"] or f"call_{index}",
+                    name=call["name"],
+                    arguments=call["arguments"],
+                )
+            )
+        return calls
 
 
 class OpenAIClient(LLMClient):
@@ -77,20 +194,26 @@ class OpenAIClient(LLMClient):
         self._settings = settings
 
     async def stream_completion(
-        self, messages: list[Message], model: str
+        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         settings = self._settings
-        body = {
+        body: dict = {
             "model": model,
-            "messages": [m.model_dump() for m in messages],
+            "messages": [_wire_message(m) for m in messages],
             "temperature": settings.temperature,
             "stream": True,
             # Without this, a streamed response reports no usage at all.
             "stream_options": {"include_usage": True},
         }
+        if tools:
+            # Omitted entirely rather than sent empty: some providers reject
+            # `"tools": []`, and an empty list says something different from
+            # "this call has no tools available".
+            body["tools"] = [_wire_tool(t) for t in tools]
 
         accumulated = ""
         usage: Usage | None = None
+        calls = _ToolCallAccumulator()
         try:
             async with (
                 httpx.AsyncClient(timeout=settings.timeout_seconds) as http,
@@ -123,7 +246,9 @@ class OpenAIClient(LLMClient):
                         logger.warning("skipping unparseable SSE frame: %r", data)
                         continue
                     usage = _usage(payload) or usage
-                    text = _text(payload)
+                    delta = _delta(payload)
+                    calls.add(delta)
+                    text = _text(delta)
                     if text:
                         accumulated += text
                         yield TextChunk(text=text)
@@ -136,4 +261,10 @@ class OpenAIClient(LLMClient):
             yield Failed(reason=f"{type(err).__name__}: {err}")
             return
 
-        yield Completed(full_text=accumulated, usage=usage)
+        # Calls are announced only once the whole response is in — a fragment is
+        # not something a consumer can act on, and the provider never says which
+        # individual call is finished.
+        assembled = calls.drain()
+        for call in assembled:
+            yield ToolCallChunk(call=call)
+        yield Completed(full_text=accumulated, tool_calls=tuple(assembled), usage=usage)

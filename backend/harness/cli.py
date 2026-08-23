@@ -17,25 +17,43 @@ import asyncio
 import sys
 from uuid import uuid4
 
-from harness.agent.events import AgentCompleted, AgentFailed
+from harness.agent.events import AgentCompleted, AgentFailed, ToolProgress, ToolResult
 from harness.agent.loop import LoopAgent
 from harness.config.settings import LLMSettings
 from harness.llm.adapters.openai import OpenAIClient
-from harness.llm.stream import TextChunk
+from harness.llm.stream import TextChunk, ToolCallChunk
 from harness.session.log import Session
+from harness.tools.native.clock import clock_tool
+from harness.tools.pipeline import ToolPipeline
+from harness.tools.registry import ToolRegistry
 
-SYSTEM_PROMPT = "You are a helpful assistant."
+SYSTEM_PROMPT = (
+    "You are a helpful assistant. When a tool can answer the user's question, "
+    "call it instead of guessing."
+)
+
+
+def build_agent(settings: LLMSettings) -> LoopAgent:
+    """The composition root: everything wired in one place, in a known order.
+
+    This is what stands in for dsh's config-driven plugin tree. A missing
+    dependency is a TypeError here rather than a runtime surprise, which is the
+    whole reason we do not need an injection framework.
+    """
+    registry = ToolRegistry([clock_tool()])
+    return LoopAgent(
+        name="default",
+        model=settings.model,
+        client=OpenAIClient(settings),
+        tools=ToolPipeline(registry),
+        system_prompt=SYSTEM_PROMPT,
+    )
 
 
 async def _run(prompt: str) -> int:
     """Stream one turn to stdout. Returns the process exit code."""
     settings = LLMSettings()  # type: ignore[call-arg]  # required fields come from env
-    agent = LoopAgent(
-        name="default",
-        model=settings.model,
-        client=OpenAIClient(settings),
-        system_prompt=SYSTEM_PROMPT,
-    )
+    agent = build_agent(settings)
     session = Session(session_id=str(uuid4()))
 
     async for event in agent.run(prompt, session=session):
@@ -43,6 +61,16 @@ async def _run(prompt: str) -> int:
             # flush per chunk: the point of this command is watching it arrive,
             # and stdout to a pipe is block-buffered by default.
             print(event.text, end="", flush=True)
+        elif isinstance(event, ToolCallChunk):
+            # stderr, so piping stdout gives the answer alone.
+            print(f"\n  → {event.call.name}({event.call.arguments})", file=sys.stderr, flush=True)
+        elif isinstance(event, ToolProgress):
+            # `percent` is None when the total is not knowable, which is the
+            # common case — so the label has to read correctly without it.
+            percent = f"{event.percent:.0f}% " if event.percent is not None else ""
+            print(f"    … {percent}{event.message or ''}".rstrip(), file=sys.stderr, flush=True)
+        elif isinstance(event, ToolResult):
+            print(f"  ← {event.content}", file=sys.stderr, flush=True)
         elif isinstance(event, AgentCompleted):
             print()
             return 0

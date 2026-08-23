@@ -1,11 +1,15 @@
 """The event vocabulary — the durable facts an interaction is made of.
 
-Five types in phase 1. Tool calls, results, and step boundaries join them in
-phase 2; compaction adds its own pair later. The union is closed and every
-member is a Pydantic model with concrete field types, which is what makes the log
-losslessly serializable without a runtime check on every append. When an event
-first carries an open JSON value (phase 2's tool-result `meta`), that guarantee
-ends and `Session.append` gains a validation step.
+Nine types: turn and step boundaries, the messages on the model-visible surface,
+the raw stream, and the tool calls a step made. Compaction adds its own trio
+later. The union is closed and every member is a Pydantic model with concrete
+field types, which is what makes the log losslessly serializable without a
+runtime check on every append.
+
+A **step** is one model request plus the tools it asked for; a **turn** is one or
+more steps. Phase 1 had no steps because a turn without tools is exactly one
+request; now that a tool result can force another request, the distinction is
+what the loop iterates over and what a UI groups by.
 
 Why chunks are events at all: a durable `assistant/chunk` is what makes replay
 token-faithful. A UI reattaching to a running turn, or rendering a finished one,
@@ -23,7 +27,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.llm.messages import AssistantMessage, UserMessage
+from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import StreamEvent, Usage
 
 
@@ -52,14 +56,6 @@ class TurnEnd(BaseModel):
     reason: TurnEndReason
 
 
-# Where a user-role message came from. Only `human` exists now; injected context
-# (skill catalogs, file-change notices, job completions) arrives later wearing the
-# same role on the wire, and this is what tells them apart in the log. Declared
-# now because it is one word and the alternative is a schema change on the most
-# frequently written event.
-MessageSource = Literal["human"]
-
-
 class UserMessageEvent(BaseModel):
     """A user-role message entering the model-visible surface."""
 
@@ -68,7 +64,26 @@ class UserMessageEvent(BaseModel):
     type: Literal["user/message"] = "user/message"
     turn: int
     message: UserMessage
-    source: MessageSource = "human"
+
+
+class StepStart(BaseModel):
+    """Opens step `step` of turn `turn` — one model request and its tools."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["step/start"] = "step/start"
+    turn: int
+    step: int
+
+
+class StepEnd(BaseModel):
+    """Closes step `step` of turn `turn`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["step/end"] = "step/end"
+    turn: int
+    step: int
 
 
 class AssistantChunk(BaseModel):
@@ -78,7 +93,46 @@ class AssistantChunk(BaseModel):
 
     type: Literal["assistant/chunk"] = "assistant/chunk"
     turn: int
+    step: int
     chunk: StreamEvent
+
+
+class ToolCallEvent(BaseModel):
+    """The model asked for one tool invocation.
+
+    Recorded before the tool runs, so the log shows what was attempted even if
+    the process dies mid-call. `call.arguments` is the model's raw JSON string,
+    unparsed — arguments that fail to parse are a normal failure the model
+    recovers from, and a log that could not hold them could not replay the turn
+    that produced one.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["tool/call"] = "tool/call"
+    turn: int
+    step: int
+    call: ToolCall
+
+
+class ToolResultEvent(BaseModel):
+    """What one tool call returned.
+
+    `message` is the model-facing result, already rendered — a `Failure` wears
+    its `error: ` prefix here. `error` keeps the typed identity beside it, which
+    is what the phase-8 guardrail counts rather than re-deriving intent from a
+    string prefix.
+
+    Phase 4 adds tool-private presentation data here once a UI renders cards.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["tool/result"] = "tool/result"
+    turn: int
+    step: int
+    message: ToolMessage
+    error: str | None = None
 
 
 class AssistantMessageEvent(BaseModel):
@@ -97,9 +151,20 @@ class AssistantMessageEvent(BaseModel):
 
     type: Literal["assistant/message"] = "assistant/message"
     turn: int
+    step: int
     message: AssistantMessage
     usage: Usage | None = None
     interrupted: bool = False
 
 
-SessionEvent = TurnStart | TurnEnd | UserMessageEvent | AssistantChunk | AssistantMessageEvent
+SessionEvent = (
+    TurnStart
+    | TurnEnd
+    | StepStart
+    | StepEnd
+    | UserMessageEvent
+    | AssistantChunk
+    | AssistantMessageEvent
+    | ToolCallEvent
+    | ToolResultEvent
+)

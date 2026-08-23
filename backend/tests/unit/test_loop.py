@@ -18,6 +18,8 @@ from harness.llm.stream import Completed, Failed, TextChunk
 from harness.session.events import (
     AssistantChunk,
     AssistantMessageEvent,
+    StepEnd,
+    StepStart,
     TurnEnd,
     TurnStart,
     UserMessageEvent,
@@ -45,9 +47,11 @@ async def test_streams_a_reply_and_records_the_turn() -> None:
     assert types == [
         TurnStart,
         UserMessageEvent,
+        StepStart,
         AssistantChunk,  # the text
         AssistantChunk,  # the Completed terminal, logged verbatim
         AssistantMessageEvent,
+        StepEnd,
         TurnEnd,
     ]
     assert session.events()[-1].reason == "completed"
@@ -119,8 +123,7 @@ async def test_cancelled_turn_finalizes_the_prefix_the_user_saw() -> None:
     # Leaving the block closes the generator, which is what a disconnected
     # consumer does.
 
-    message = session.events()[-2]
-    assert isinstance(message, AssistantMessageEvent)
+    message = next(e for e in session.events() if isinstance(e, AssistantMessageEvent))
     assert message.interrupted is True
     assert message.message.content == "partial answer"
     assert session.events()[-1] == TurnEnd(turn=0, reason="cancelled")

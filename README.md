@@ -36,17 +36,18 @@ backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the append-only event log + derive_messages
   agent/        the turn loop and its events
+  tools/        definition, registry, pipeline, progress, native/
   config/       settings, read at the composition root
   cli.py        `harness run "<prompt>"`
 backend/tests/  unit/ and integration/
 docs/           source teardowns + long-form rules
 notes/          design notes, referenced by path from code comments
-AGENTS.md       project rules (CLAUDE.md is a symlink to it)
+CLAUDE.md       project rules, loaded into every session
 ```
 
 Subpackages arrive with the phase that needs them; the full intended layout is in
 [DESIGN.md §3](./DESIGN.md).
 
-Status: **phase 1 — "it answers" — implemented, awaiting review.** Every phase in
-[PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 2, "it uses
-tools".
+Status: **phase 2 — "it uses tools" — implemented, awaiting review.** Every phase
+in [PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 3, "it
+remembers".

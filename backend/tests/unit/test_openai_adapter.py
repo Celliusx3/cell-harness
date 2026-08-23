@@ -46,10 +46,10 @@ def client_over(handler) -> OpenAIClient:
     return factory, OpenAIClient(settings())
 
 
-async def collect(monkeypatch, handler, messages=None) -> list:
+async def collect(monkeypatch, handler, messages=None, tools=None) -> list:
     factory, client = client_over(handler)
     monkeypatch.setattr(adapter_module.httpx, "AsyncClient", factory)
-    stream = client.stream_completion(messages or [UserMessage(content="hi")], "m")
+    stream = client.stream_completion(messages or [UserMessage(content="hi")], "m", tools=tools)
     return [event async for event in stream]
 
 

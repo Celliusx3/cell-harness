@@ -25,16 +25,6 @@ def test_sequence_numbers_are_contiguous_from_zero() -> None:
     assert seqs == [0, 1, 2, 3, 4]
 
 
-def test_after_returns_everything_past_a_cursor() -> None:
-    session = Session("s")
-    for n in range(4):
-        session.append(TurnStart(turn=n))
-
-    assert [e.turn for e in session.after(1)] == [2, 3]
-    assert len(session.after(-1)) == 4
-    assert session.after(3) == []
-
-
 def test_next_turn_is_derived_not_counted() -> None:
     """No counter to restore when a session is rehydrated in phase 3."""
     session = Session("s")
@@ -51,9 +41,9 @@ def test_every_event_round_trips_as_json() -> None:
     session = Session("s")
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
-    session.append(AssistantChunk(turn=0, chunk=TextChunk(text="he")))
-    session.append(AssistantChunk(turn=0, chunk=Completed(full_text="hello")))
-    session.append(AssistantMessageEvent(turn=0, message=AssistantMessage(content="hello")))
+    session.append(AssistantChunk(turn=0, step=0, chunk=TextChunk(text="he")))
+    session.append(AssistantChunk(turn=0, step=0, chunk=Completed(full_text="hello")))
+    session.append(AssistantMessageEvent(turn=0, step=0, message=AssistantMessage(content="hello")))
     session.append(TurnEnd(turn=0, reason="completed"))
 
     for event in session.events():
@@ -64,9 +54,9 @@ def test_derive_skips_chunks_and_turn_boundaries() -> None:
     session = Session("s")
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
-    session.append(AssistantChunk(turn=0, chunk=TextChunk(text="he")))
-    session.append(AssistantChunk(turn=0, chunk=TextChunk(text="llo")))
-    session.append(AssistantMessageEvent(turn=0, message=AssistantMessage(content="hello")))
+    session.append(AssistantChunk(turn=0, step=0, chunk=TextChunk(text="he")))
+    session.append(AssistantChunk(turn=0, step=0, chunk=TextChunk(text="llo")))
+    session.append(AssistantMessageEvent(turn=0, step=0, message=AssistantMessage(content="hello")))
     session.append(TurnEnd(turn=0, reason="completed"))
 
     assert derive_messages(session.events()) == [
@@ -86,8 +76,8 @@ def test_chunks_reassemble_to_the_logged_message() -> None:
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     for piece in ("he", "ll", "o"):
-        session.append(AssistantChunk(turn=0, chunk=TextChunk(text=piece)))
-    session.append(AssistantMessageEvent(turn=0, message=AssistantMessage(content="hello")))
+        session.append(AssistantChunk(turn=0, step=0, chunk=TextChunk(text=piece)))
+    session.append(AssistantMessageEvent(turn=0, step=0, message=AssistantMessage(content="hello")))
 
     replayed = "".join(
         e.chunk.text
@@ -113,7 +103,9 @@ def test_an_interrupted_reply_stays_in_history() -> None:
     session = Session("s")
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     session.append(
-        AssistantMessageEvent(turn=0, message=AssistantMessage(content="par"), interrupted=True)
+        AssistantMessageEvent(
+            turn=0, step=0, message=AssistantMessage(content="par"), interrupted=True
+        )
     )
 
     assert derive_messages(session.events())[-1] == AssistantMessage(content="par")

@@ -59,16 +59,26 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Mechanism | Born in | Why then |
 |---|---|---|
 | Session event log | 1 | The loop derives history from it — retrofitting means rewriting the loop |
-| `Events` (waterfall) | 2 | The tool pipeline is the first thing that needs interception |
 | Persistence + the model-visible invariant | 3 | Resume is what makes the invariant testable |
 | `Scope` (reversible teardown) | 4 | First time an agent is created and destroyed at runtime |
 | Runs, cursors, heartbeat | 4 | A turn must outlive the tab that started it |
+| `Session.after(cursor)` | 4 | The run subscription is the first thing that needs a cursor |
+| Tool result `meta` (UI cards) | 4 | Nothing renders a card until there is a UI |
 | Prompt sections | 6 | Skills are the first thing that contributes to the prompt |
+| **Around-middleware on tool execution** | 8 | The timeout and guardrail are its first listeners |
+| `ToolDefinition.timeout_s` | 8 | Nothing enforces a deadline until the timeout policy exists |
 | Typed hooks | 8 | The guardrail is its first real consumer |
 | Seams (`FileSystem`, `Subprocess`) | 11 | Two providers is when an interface earns its keep |
 | `Layered` (scoped registries) | 13 | The first time a plugin registers into *one agent's* world |
+| `user/message` `source` field | when injected context exists (6 or 7) | Only `human` produces one until then |
 
-On that last row: per-agent **tool selection** (phase 9) does not need layered
+**Phase 2 built four of these early and they were cut.** An event bus with no
+listener, a `timeout_s` nothing enforced, a `meta` nothing rendered, and a cursor
+nothing subscribed to. Each was justified by a docstring describing a *future*
+caller — which is the tell. The check is `grep`: a definition whose only callers
+are in `tests/` either belongs in `tests/` or does not exist yet.
+
+On `Layered`: per-agent **tool selection** (phase 9) does not need layered
 registries. cell-bot does it by filtering the provider at compose time
 (`narrow(mode, patterns, provider)`), which is simpler and correct. `Layered` is
 only needed when a plugin registers into one agent's world — which is subagents.
@@ -139,17 +149,17 @@ the result.
 **Depends on.** 1.
 
 **Ships.**
-- `core/events.py` — `Events` with `emit` / `waterfall` / `serial`
 - `tools/definition.py` — `ToolDefinition`, `from_model()`, `ToolOutcome`
-- `tools/registry.py` — flat dict + live providers + three-mode filter
-- `tools/pipeline.py` — `pre_execute` → `execute` → `post_execute` waterfalls
+- `tools/registry.py` — flat dict + live providers
+- `tools/pipeline.py` — resolve the named tool and run it
 - `tools/progress.py` — the queue fan-in pattern
-- `tools/native/clock.py`, `tools/native/todo.py`
+- `tools/native/clock.py`
 - `session/events.py` — add `step/start`, `step/end`, `tool/call`, `tool/result`
 
-**Why `Events` is here.** The tool pipeline is the first thing needing
-interception. A timeout policy, an approval gate, and the guardrail each become
-one listener wrapping `next()` — that's what keeps them out of the loop.
+**Not here, though an earlier draft said so.** The interception chain (phase 8,
+when the timeout and guardrail need it), a per-agent tool filter (phase 5's MCP
+wildcards or phase 9's selection), and `todo_write` (phase 4, when a UI renders a
+checklist). Each would have been a mechanism with no user.
 
 **Why live providers now.** Phase 5's MCP servers connect mid-conversation. A
 registry that resolves its providers on every turn makes that free; one that
@@ -161,9 +171,9 @@ materializes a list at compose time freezes each agent's tools forever.
   directly only when the schema comes from elsewhere (MCP).
 - `ToolOutcome` is typed: `Ok(content, meta) | Failure(code, message)`, rendered
   as `"error: …"` so the model recovers. Never raises.
-- Tool selection is `all` / `selected` / `except`. An unknown mode allows **nothing**.
 - Serial dispatch. `concurrency_safe` arrives in phase 11 when reads can overlap.
-- `waterfall` does **not** isolate listener failures; `emit` does.
+- A provider that raises is logged and contributes nothing — one broken source
+  must not cost the model every other tool.
 
 **Acceptance.**
 - A `timeout_s` or `execute` field never appears in `schemas()` output.
@@ -231,6 +241,7 @@ back, it's still running.
 - `runs/store.py`, `runs/subscribe.py`, `runs/heartbeat.py`
 - `web/server.py`, `web/sse.py`, `web/routes/`
 - `frontend/` — Next.js chat: message list, composer, stop button, reconnect
+- `guard/repeat_reminder.py` — advisory nudge on consecutive identical calls
 
 **Why `Scope` is here.** First time an agent is created and destroyed at runtime
 rather than living for the process. Disposing one must unwind its tools,
@@ -240,6 +251,14 @@ listeners, and watchers.
 download, a generated deck. Tying a turn to the connection that asked for it
 means a closed tab kills four minutes of work. This is a product requirement, not
 an optimization, and it is why phase 1 shipped no HTTP.
+
+**Why a loop nudge is here too.** Until now a runaway turn was a human hitting
+Ctrl-C. Once a turn outlives the tab that started it, nobody is watching and it
+just spends money. dsh's `repeat-tool-reminder` is the minimum: count consecutive
+calls with identical canonicalized arguments, and at 3/5/8 inject an escalating
+advisory telling the model to stop repeating itself. It never blocks — a
+legitimately repeated call is delayed by nothing — so it cannot break real work.
+The full blocking guardrail stays at phase 8.
 
 **Key contracts.**
 - `start()` spawns a task the store holds. A client **subscribes**; it does not
@@ -419,6 +438,9 @@ step instead of restarting.
   `warn` appends guidance and still runs; `block` is pre-execution. `before_call`
   only reads; only `after_call` mutates.
 - The guardrail keys on the typed `Failure` code, never a string prefix.
+- **`LoopAgent.max_steps` can drop here.** It exists only as a backstop against a
+  bug in the loop itself; once a detector enforces a real bound, counting steps
+  and hoping is no longer the protection. dsh has no step cap at all.
 
 **Acceptance.**
 - A raising decision hook refuses nothing and suppresses nothing.
@@ -552,7 +574,7 @@ Not phases. They start immediately and run throughout.
 
 | Practice | From |
 |---|---|
-| `AGENTS.md`, `CLAUDE.md` a symlink to it | dsh |
+| `CLAUDE.md` — project rules, loaded into every session | cell-bot |
 | cell-bot's house rules verbatim | cell-bot |
 | Comment discipline: non-obvious lines carry the *reason*; bug-driven lines carry the bug | cell-bot |
 | `notes/` — design notes referenced by path from code comments | dsh |

@@ -27,6 +27,43 @@ class AgentEvent(Protocol):
     def model_dump_json(self) -> str: ...
 
 
+class ToolProgress(BaseModel):
+    """A running tool reporting how far along it is.
+
+    Zero or more of these precede the single `ToolResult` carrying the same
+    `tool_call_id`, which is what lets a consumer attach the reading to the call
+    it belongs to. `percent` is `None` when the total is not knowable.
+
+    Not logged: the session records durable facts, and a progress reading is
+    neither durable nor a fact about the conversation. A replayed turn therefore
+    has no progress at all, so anything rendering these must tolerate absence.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["tool_progress"] = "tool_progress"
+    tool_call_id: str
+    name: str
+    percent: float | None
+    message: str | None
+
+
+class ToolResult(BaseModel):
+    """A settled tool call, as the model will see it.
+
+    `content` is already rendered — a failure wears its `error: ` prefix — so a
+    consumer never has to know the outcome was typed. The typed code lives on the
+    `tool/result` session event beside it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["tool_result"] = "tool_result"
+    tool_call_id: str
+    name: str
+    content: str
+
+
 class AgentCompleted(BaseModel):
     """Terminal: the turn finished. `text` is the final reply."""
 

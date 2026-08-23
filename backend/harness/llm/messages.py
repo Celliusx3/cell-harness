@@ -19,6 +19,37 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 
+class ToolCall(BaseModel):
+    """One invocation the model asked for.
+
+    `arguments` is the model's raw JSON **string**, kept unparsed. Two reasons:
+    replay has to reproduce exactly what the model emitted, and arguments that
+    fail to parse are a normal tool failure the model can recover from — storing
+    a parsed dict would mean the log could not hold the call that caused it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+    arguments: str
+
+
+class ToolSpec(BaseModel):
+    """What the model is told about one tool.
+
+    Exactly the three fields that go on the wire. `ToolDefinition` holds more —
+    an executor, a timeout, a parser — and `ToolDefinition.spec()` is the
+    allowlist that keeps them out of a request.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    description: str
+    input_schema: dict
+
+
 class SystemMessage(BaseModel):
     """The instructions prepended to a request.
 
@@ -49,12 +80,37 @@ class UserMessage(BaseModel):
 
 
 class AssistantMessage(BaseModel):
-    """One assembled model reply."""
+    """One assembled model reply, and any tool calls it asked for.
+
+    A reply may carry text, tool calls, or both — a model often narrates ("Let
+    me check the time…") before calling something.
+
+    A tuple rather than a list because the model is frozen, and a mutable default
+    on a shared frozen value is the classic way for two messages to end up
+    sharing one list.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     role: Literal["assistant"] = "assistant"
     content: str
+    tool_calls: tuple[ToolCall, ...] = ()
 
 
-Message = SystemMessage | UserMessage | AssistantMessage
+class ToolMessage(BaseModel):
+    """What one tool call returned, addressed back to it by `tool_call_id`.
+
+    Providers require **exactly one** of these per tool call in the preceding
+    assistant message — a call with no result makes the next request invalid, not
+    merely incomplete. That is why the loop writes one on every path, including
+    refusals and interruptions.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    role: Literal["tool"] = "tool"
+    tool_call_id: str
+    content: str
+
+
+Message = SystemMessage | UserMessage | AssistantMessage | ToolMessage
