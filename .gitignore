@@ -1,0 +1,30 @@
+.DS_Store
+*.log
+
+# Every .env variant, not just the bare name: a `.env.local` or a `.env.backup`
+# holds the same secrets and was one `git add -A` away from being committed.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Session logs — the harness's own JSONL output. Durable, machine-local, and
+# they contain whatever was said to the model.
+sessions/
+*.jsonl
+
+# Node (phase 16)
+node_modules/
+dist/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
