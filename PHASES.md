@@ -187,40 +187,121 @@ materializes a list at compose time freezes each agent's tools forever.
 # Phase 3 — It remembers
 
 **Demo.** `harness list` shows past conversations; `harness resume <id>` continues
-one after a restart.
+one after a restart — including one killed mid-tool.
 
 **Depends on.** 2.
 
+Modelled on dsh's [session-persistence seam](../deepseek-harness/docs/subsystems/persistence.md),
+scaled down. Their design decisions we adopt are marked **[dsh]**.
+
 **Ships.**
-- `session/persist.py` — `Persistence` Protocol + SQLite backend
-- `session/store.py` — load, resume, fork
+- `session/persist.py` — `Persistence` Protocol + JSONL backend
+- `session/header.py` — `SessionHeader`, the metadata that is not an event
+- `session/repair.py` — crash recovery: close what a dead process left open
+- `session/store.py` — `create` / `load` / `list` / `resume`
 - `session/invariant.py` — `assert_derivable(request, log)`
-- `conversations/` — conversation catalog: id, title, created/updated, status
-- `db/` — engine, migrations (alembic)
 - `cli.py` — `list`, `resume`
 
-**SQLite, not JSONL.** Revised from [DESIGN.md](./DESIGN.md)'s original default: a
-chat product lists and searches conversations, and a directory of JSONL files
-answers neither. Both stay behind `Persistence`; Postgres is a backend swap if we
-ever need multi-instance. The event log is still the source of truth — SQLite is
-where its rows live, not a second model of the conversation.
+## Storage layout
 
-**Titles.** First user message, stored in full (the UI truncates for display) —
-cell-bot's rule, because whichever of create/update runs first must agree.
+```
+<root>/<session-id>.jsonl
+   line 1   {"type":"session","version":1,"id":...,"created_at":...,"title":...}
+   line 2+  one SessionEvent per line, seq == line number - 1
+```
 
-**Key contracts.**
-- **Model-visible means logged.** Anything reaching a model request must be
-  reconstructable from the log. On in dev and test, sampled in production.
-- `tool/call.arguments` stores the model's raw JSON string, unparsed.
-- A crash mid-turn must leave a history the provider accepts: every dispatched
-  `tool/call` needs a `tool/result`, even if it's `"error: interrupted"`.
-- Fork is a log prefix. No special machinery.
+**JSONL, not SQLite** — reversing DESIGN.md's earlier default. dsh ships JSONL and
+keeps SQLite opt-in, and the reason my SQLite argument was wrong is that listing
+never needs the log: the header is line 1, so `list()` reads one line per file.
+Search across message *content* is the real SQLite case, and that is not phase 3.
 
-**Acceptance.**
+Flat files rather than dsh's `<project>/<id>/` directories: their nesting exists
+for per-project navigation and session-owned artifacts, and we have neither yet.
+
+No zstd and no chunk packing. Both are dsh optimizations (~60% smaller logs);
+neither changes the contract, and `load` in either system is layout-blind.
+
+## `SessionHeader` — metadata is not an event **[dsh]**
+
+> Per-session metadata travels **separately** from the event log: format version,
+> cwd, lineage, and the seed boundary are storage concerns, not conversation
+> events, so they stay out of `SessionEventMap` and never reach `deriveMessages()`.
+
+So: `version`, `id`, `created_at`, `title`. Never a `conversation/renamed` event —
+that would put storage concerns into the model's history.
+
+**Title** is stamped at first append, when the first user message is known. This
+falls out of lazy materialization below and costs nothing. Renaming is phase 4's
+problem, and the answer is probably a sidecar, not a log rewrite.
+
+## Key contracts
+
+- **Lazy materialization [dsh].** `create()` writes nothing. The first `append`
+  writes header + first batch. A created-but-never-appended session leaves no file
+  and is absent from `list`.
+- **Append-only, fsync per batch [dsh].** Flushed events are never rewritten. A
+  failed write rolls the file back to its prior byte length.
+- **Contiguous seq [dsh].** `append` rejects a batch whose first `seq` does not
+  continue the stored log. Cheap, and it catches a whole class of loop bug.
+- **Format version, no migration [dsh].** An unknown `version` refuses loudly and
+  names the file. Migration is a real feature; pretending by best-effort parsing
+  is how a log becomes unreadable quietly.
+- **Torn tail vs corruption [dsh].** A structurally incomplete *last* line is
+  dropped. A defect at or before the last committed `turn/end` is corruption and
+  **rejects** — silently skipping it would hand the model a history with a hole.
+- **Checkpoint before each model request.** Durability where it matters: never
+  send a prompt that is not yet durable. `assert_derivable` runs at the same
+  boundary, which is what finally gives "model-visible means logged" teeth.
+
+## Crash repair — close, do not truncate **[dsh]**
+
+Our loop's `finally` handles graceful abandonment. `kill -9` never runs it, so a
+log can end with an open `turn/start` and dispatched calls with no results.
+
+> It does **not** truncate — a single turn can be huge in a long-horizon task…
+> Instead it closes the orphaned turn with a synthetic `turn/end { reason:
+> interrupted }`… `interrupted` is the one `TurnEndReason` no loop emits.
+
+Adopt that exactly, including the marker no loop can produce, so "this was
+repaired" stays unambiguous forever. Add `interrupted` to `TurnEndReason` and
+never emit it from `agent/loop.py`.
+
+**Two repair outcomes, not one [dsh]** — and this is better than our blunt
+`error: interrupted`:
+
+| On disk | Synthetic result | Why it differs |
+|---|---|---|
+| assistant asked, no `tool/call` logged | `TOOL_NOT_STARTED` | the tool provably never ran; safe to retry |
+| `tool/call` logged, no `tool/result` | `TOOL_OUTCOME_UNKNOWN` | it may have completed a side effect |
+
+dsh's wording for the second tells the model to *"retry only read-only or
+idempotent work and to verify possible side effects or ask the user."* That is a
+real safety difference once phase 12 has `bash`.
+
+## Acceptance
+
 - Append 1,000 events, reload, get identical events back.
-- Kill mid-tool, resume, and `derive_messages()` yields a history the provider accepts.
-- The invariant fires when a test deliberately injects an unlogged message.
-- Fork at turn 5, diverge, and both branches replay correctly.
+- `kill -9` mid-tool, resume, and the loaded log is balanced: every dispatched
+  call has a result, every turn is closed.
+- A repaired turn ends with `interrupted`, which no loop emits.
+- A call that was logged but unfinished repairs to `TOOL_OUTCOME_UNKNOWN`; one
+  never logged repairs to `TOOL_NOT_STARTED`.
+- A half-written last line is dropped; a corrupted line before the last
+  `turn/end` rejects.
+- An unknown format version refuses and names the file.
+- `append` rejects a batch that does not continue the stored seq.
+- `list()` reads only line 1 per file — proven by a test that corrupts line 2 and
+  still lists.
+- The invariant fires when a test injects an unlogged message.
+
+## Deliberately skipped from dsh
+
+Their seam has 11 methods; we need 4. Skipped: `inspect` (non-committing view),
+`prepare` (reservation + LRU), `readFrom` (suffix reads), `listSnapshots`
+(revision identity), `locate`, `readRaw`, packed chunk rows, zstd frames, the
+prepared-session cache, and write batching. Each solves a problem at their scale —
+concurrent resume, HMR adopting a live session, hundreds of MB of logs — that we
+do not have. Revisit when we do.
 
 ---
 
@@ -590,7 +671,7 @@ Not phases. They start immediately and run throughout.
 |---|---|---|
 | Phase 1 | Python vs TypeScript | **Python** — settled |
 | Phase 1 | Product shape | **Chat product** — settled, drives this ordering |
-| Phase 3 | SQLite vs Postgres | **SQLite**, both behind `Persistence` |
+| Phase 3 | JSONL vs SQLite | **JSONL**, header on line 1 (dsh's design) |
 | Phase 4 | Frontend stack | **Next.js**, matching cell-bot's `frontend/` |
 | Phase 6 | Skills from DB, filesystem, or both | **Both** — that's what makes it a seam |
 | Phase 11 | Build the optional track at all | **Defer** until the product asks |

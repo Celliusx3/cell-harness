@@ -314,9 +314,12 @@ From cell-bot:
 3. **The router ships** (phase 9). A multi-agent catalog is exactly what a chat
    product wants, and routing answers a different question from delegation —
    "who should answer this?" rather than "run these parts in parallel."
-4. **SQLite before JSONL** — revised. A chat product lists and searches
-   conversations, which a directory of JSONL files answers poorly. Both stay
-   behind `Persistence`; Postgres is a backend swap if multi-instance arrives.
+4. **JSONL, not SQLite** — reverted after reading how dsh actually does it. My
+   SQLite argument was that a chat product must list conversations and a
+   directory of files answers that poorly. It doesn't: dsh puts the
+   `SessionHeader` on **line 1 of the log**, so listing reads one line per file
+   and never parses a log. SQLite stays the answer for searching message
+   *content*, which is not phase 3. Both remain behind `Persistence`.
 
 ### Still open
 
