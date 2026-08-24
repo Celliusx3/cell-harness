@@ -1,0 +1,86 @@
+/**
+ * The wire types, mirroring `backend/harness/session/models.py`.
+ *
+ * These are hand-written rather than generated, and that is a deliberate trade:
+ * a generator would be a build step and a toolchain for nine small types. The
+ * cost is that this file can fall behind, so a backend test asserts that every
+ * `SessionEvent` discriminator appears here — see
+ * `tests/unit/test_frontend_types.py`. Add an event type without a renderer and
+ * the Python suite fails, not the browser.
+ */
+
+/** `assistant/chunk` payloads — the raw stream, kept for replay fidelity. */
+export type StreamEvent =
+  | { kind: "text"; text: string }
+  | { kind: "tool_call"; call: ToolCall }
+  | { kind: "completed"; full_text: string; tool_calls: ToolCall[]; usage: Usage | null }
+  | { kind: "failed"; reason: string };
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  /** The model's raw JSON string, unparsed — it may not even be valid JSON. */
+  arguments: string;
+}
+
+export interface Usage {
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface UserMessage {
+  role: "user";
+  content: string;
+}
+
+export interface AssistantMessage {
+  role: "assistant";
+  content: string;
+  tool_calls: ToolCall[];
+}
+
+export interface ToolMessage {
+  role: "tool";
+  tool_call_id: string;
+  content: string;
+}
+
+export type TurnEndReason = "completed" | "failed" | "cancelled";
+
+export type SessionEvent =
+  | { type: "turn/start"; turn: number }
+  | { type: "turn/end"; turn: number; reason: TurnEndReason }
+  | { type: "user/message"; turn: number; message: UserMessage }
+  | { type: "step/start"; turn: number; step: number }
+  | { type: "step/end"; turn: number; step: number }
+  | { type: "assistant/chunk"; turn: number; step: number; chunk: StreamEvent }
+  | {
+      type: "assistant/message";
+      turn: number;
+      step: number;
+      message: AssistantMessage;
+      usage: Usage | null;
+      interrupted: boolean;
+    }
+  | { type: "tool/call"; turn: number; step: number; call: ToolCall }
+  | {
+      type: "tool/result";
+      turn: number;
+      step: number;
+      message: ToolMessage;
+      /** The typed failure code, or null on success. Not the rendered string. */
+      error: string | null;
+    };
+
+export interface ConversationSummary {
+  id: string;
+  created_at: string;
+  /** Empty until the opening turn's first flush stamps it. Needs a fallback. */
+  title: string;
+}
+
+export interface ConversationDetail extends ConversationSummary {
+  events: SessionEvent[];
+  next_cursor: number;
+  running: boolean;
+}

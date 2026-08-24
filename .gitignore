@@ -27,10 +27,13 @@ htmlcov/
 sessions/
 *.jsonl
 
-# Node (phase 16)
+# Node — the frontend, from phase 4
 node_modules/
 dist/
 .next/
 out/
 next-env.d.ts
 *.tsbuildinfo
+
+# Browser-automation artifacts from manual verification runs.
+.playwright-mcp/

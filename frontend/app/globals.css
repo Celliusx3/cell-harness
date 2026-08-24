@@ -1,0 +1,81 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-surface: oklch(99% 0 0);
+  --color-surface-sunken: oklch(96.5% 0.002 250);
+  --color-line: oklch(91% 0.004 250);
+  --color-ink: oklch(23% 0.01 250);
+  --color-ink-soft: oklch(52% 0.012 250);
+  --color-accent: oklch(55% 0.16 258);
+  --color-accent-soft: oklch(96% 0.02 258);
+  --color-danger: oklch(56% 0.18 22);
+  --color-danger-soft: oklch(96% 0.03 22);
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-surface: oklch(19% 0.008 250);
+    --color-surface-sunken: oklch(23% 0.01 250);
+    --color-line: oklch(31% 0.012 250);
+    --color-ink: oklch(94% 0.004 250);
+    --color-ink-soft: oklch(68% 0.012 250);
+    --color-accent: oklch(72% 0.14 258);
+    --color-accent-soft: oklch(28% 0.04 258);
+    --color-danger: oklch(70% 0.15 22);
+    --color-danger-soft: oklch(28% 0.05 22);
+  }
+}
+
+/* Drive the typography plugin from our own tokens instead of `prose-invert`.
+   Those tokens already flip with `prefers-color-scheme`, so one declaration
+   covers both themes — and `dark:prose-invert` was leaving body text at the
+   plugin's default grey, which is genuinely hard to read on our dark surface. */
+.prose {
+  --tw-prose-body: var(--color-ink);
+  --tw-prose-headings: var(--color-ink);
+  --tw-prose-bold: var(--color-ink);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-code: var(--color-ink);
+  --tw-prose-quotes: var(--color-ink-soft);
+  --tw-prose-bullets: var(--color-ink-soft);
+  --tw-prose-counters: var(--color-ink-soft);
+  --tw-prose-hr: var(--color-line);
+  --tw-prose-th-borders: var(--color-line);
+  --tw-prose-td-borders: var(--color-line);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The streaming caret: a block that blinks at the end of an unfinished reply.
+   It is the only signal that text is still arriving, since there is no spinner. */
+@keyframes caret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.1em;
+  vertical-align: text-bottom;
+  background: var(--color-accent);
+  animation: caret 1s step-end infinite;
+}

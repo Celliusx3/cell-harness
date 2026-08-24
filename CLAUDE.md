@@ -14,15 +14,15 @@ MCP — not a terminal coding harness). Synthesized from two studied sources:
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for what phase we are in and what it must satisfy.
 
-**Status: phase 3 — "it remembers" — implemented, awaiting review.** Next is
-phase 4, "you can chat with it".
+**Status: phase 4 — "you can chat with it" — implemented, awaiting review.** Next
+is phase 5, "it uses your tools" (MCP).
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
 # everything else — model, endpoint, sessions root — is in backend/config.json (committed)
 make install && make test
-cd backend && uv run harness run "what time is it in Tokyo?"
-cd backend && uv run harness list
+make dev                                # backend :4896 + frontend :4897
+# open http://localhost:4897 — there is no CLI, the API is the only surface
 ```
 
 ## Layout
@@ -30,24 +30,23 @@ cd backend && uv run harness list
 ```
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
-  session/      the event log, its header, persistence, repair, the store
+  session/      the event log, its models, repository/, service, repair
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
+  runs/         a turn that outlives its connection — store, subscribe
+  web/          schemas, sse, routes/, server — the HTTP surface + composition root
   config/       one Settings: config.json + config.local.json + env
-  cli.py        `harness run "<prompt>"` — a driver, not an interface
 backend/tests/  unit/ and integration/
+frontend/       Next.js chat — app/, components/, lib/
 docs/           source teardowns + long-form rules
-notes/          design notes, referenced by path from code comments
 ```
 
 Subpackages arrive with the phase that needs them — and so does infrastructure.
-`Scope` in phase 4, `Layered` in phase 13, tool-execution middleware in phase 8.
+`Scope` in phase 5, `Layered` in phase 13, tool-execution middleware in phase 8.
 A registry is a flat dict until a plugin needs to register into one agent's
 world. Building any of them earlier is the speculative structure the KISS/YAGNI
-rule below forbids — phase 2 did it four times and had to cut them back out.
-
-**No HTTP before phase 4.** A quick endpoint in phases 1–3 would stream on the
-request connection, which is exactly the design phase 4 exists to undo.
+rule below forbids — phase 2 cut four such things, phase 3 five, and phase 4
+deferred six more before writing a line.
 
 The full intended layout is in [DESIGN.md §3](./DESIGN.md); paths in PHASES.md
 are relative to `backend/harness/`.
@@ -101,6 +100,14 @@ style disagreement.
   nothing. "Registered" must never be read as "enforcing" — say so where it matters.
 - **Prompt text is code.** When wording changes because a model got it wrong,
   record the observed failure in a comment next to the wording that fixes it.
+- **A watcher owns nothing.** A turn belongs to the run store, never to a
+  connection. Anything reading a run — an SSE response, a future WebSocket —
+  only reads, so a client hanging up has no ownership to propagate through. The
+  moment a reader can cancel, "close the tab and come back" stops being true.
+- **One cursor.** A session sequence number means the same thing to a stored
+  snapshot and a live stream. Don't add a second numbering for a subscriber, and
+  don't let the UI derive one — that is what makes a replayed conversation and a
+  live one the same code path.
 
 ## When the plan and the principles disagree
 
@@ -119,7 +126,7 @@ comment that says why this and not the obvious alternative is the point.
 
 - `make lint` and `make test` are green (coverage gate is 80%).
 - The phase's acceptance criteria in [PHASES.md](./PHASES.md) are met, as tests.
-- Anything non-obvious you decided is either a comment or a note in `notes/`.
+- Anything non-obvious you decided is a comment next to the code it explains.
 - **Every new definition has a caller outside `tests/`.** `grep -rn '\bname\b'
   harness/` — if the only hits are the definition and test files, it belongs in
   `tests/` or does not exist yet. A docstring describing a *future* caller is the
@@ -135,4 +142,3 @@ comment that says why this and not the obvious alternative is the point.
 | [docs/deepseek-harness.md](./docs/deepseek-harness.md) | Teardown of DeepSeek Harness and three replication tiers |
 | [docs/cell-bot.md](./docs/cell-bot.md) | Teardown of cell-bot, its feature inventory, and its gaps |
 | [docs/without-cordis.md](./docs/without-cordis.md) | Scope / Layered / Events in ~250 lines, and what we give up — built when first needed, not now |
-| [notes/](./notes/) | Design notes, referenced by path from code comments |

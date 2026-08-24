@@ -247,6 +247,41 @@ async def test_a_repaired_session_can_take_another_turn(store, tmp_path) -> None
     assert unanswered_calls(next_client.seen) == []
 
 
+# ── read is the display path, resume is the write path ────────────────────────
+
+
+async def test_read_shows_a_crashed_log_unrepaired(store, tmp_path) -> None:
+    """A page view renders what happened, not synthetic closers.
+
+    `resume` exists to make a history a provider will accept; `read` exists to
+    show a human what the log holds. After a crash those differ, and this is the
+    test that pins which one does which.
+    """
+    session = await store.create()
+    agent_ = agent(
+        SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
+    )
+
+    reopened = await crash_during_tool(agent_, session, store, tmp_path)
+    displayed = await reopened.read("s0")
+
+    assert unanswered_calls(derive_messages(displayed.events())) != []
+
+
+async def test_read_writes_nothing(store, tmp_path) -> None:
+    """A GET must not mutate the log. `resume` appends its repair; `read` cannot."""
+    session = await store.create()
+    agent_ = agent(
+        SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
+    )
+    reopened = await crash_during_tool(agent_, session, store, tmp_path)
+    before = len((await reopened.read("s0")).events())
+
+    await reopened.read("s0")
+
+    assert len((await reopened.read("s0")).events()) == before
+
+
 async def test_the_service_keeps_no_cursor_of_its_own(store, tmp_path) -> None:
     """One cursor, owned by the repository.
 

@@ -8,17 +8,17 @@ dependencies = [
     "pydantic>=2",
     "pydantic-settings>=2",
     "jinja2>=3.1",
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.52.4",
 ]
 
-# Phase-gated, added when the phase that needs them starts (PHASES.md):
-#   phase 7  fastapi, uvicorn      — runs + SSE
-#   phase 9  ripgrep binary        — glob/grep
-#   phase 12 mcp                   — MCP client
-#   phase 16 (frontend/ is npm)    — web UI
+# Phase-gated, added when the phase that needs them starts (PHASES.md). The
+# numbers below are the current 13-phase plan; an earlier 16-phase draft left
+# stale ones here, which is why they carry the capability and not just a number.
+#   phase 5   mcp              — MCP client
+#   phase 11  ripgrep binary   — glob/grep
+# `frontend/` is npm and carries its own package.json.
 # Listing them here early would install weight nothing imports yet.
-
-[project.scripts]
-harness = "harness.cli:main"
 
 [dependency-groups]
 dev = [

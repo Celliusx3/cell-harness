@@ -26,9 +26,28 @@ cp backend/config.local.example.json backend/config.local.json   # add your API 
 make install                           # uv sync the backend package + dev deps
 make test                              # pytest, 80% coverage gate
 make lint                              # ruff check + format check
+```
 
-cd backend && uv run harness run "what time is it in Tokyo?"
-cd backend && uv run harness list
+Then:
+
+```sh
+make dev            # backend :4896 + frontend :4897 together (Ctrl-C stops both)
+make dev-backend    # or just one of them
+make dev-web
+```
+
+Open <http://localhost:4897>.
+
+There is no command-line interface. `harness run` / `list` / `resume` existed to
+demo the harness before there was a UI; the API does all three, so keeping them
+would be a second surface to hold in step with the first. To smoke-test a
+provider without the browser:
+
+```sh
+curl -sN -X POST localhost:4896/api/conversations \
+  -H 'content-type: application/json' \
+  -d '{"prompt":"what time is it in Tokyo?"}'
+curl -s localhost:4896/api/conversations
 ```
 
 ## Layout
@@ -36,20 +55,21 @@ cd backend && uv run harness list
 ```
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
-  session/      the event log, its header, persistence, repair, the store
+  session/      the event log, its models, repository/, service, repair
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
+  runs/         a turn that outlives its connection — store, subscribe
+  web/          schemas, sse, routes/, server — the HTTP surface + composition root
   config/       one Settings: config.json + config.local.json + env
-  cli.py        `harness run "<prompt>"`
 backend/tests/  unit/ and integration/
+frontend/       Next.js chat — app/, components/, lib/
 docs/           source teardowns + long-form rules
-notes/          design notes, referenced by path from code comments
 CLAUDE.md       project rules, loaded into every session
 ```
 
 Subpackages arrive with the phase that needs them; the full intended layout is in
 [DESIGN.md §3](./DESIGN.md).
 
-Status: **phase 3 — "it remembers" — implemented, awaiting review.** Every phase
-in [PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 4, "you
-can chat with it".
+Status: **phase 4 — "you can chat with it" — implemented, awaiting review.** Every
+phase in [PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 5,
+"it uses your tools" (MCP).

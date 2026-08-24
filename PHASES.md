@@ -22,7 +22,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 | 1 | **It answers** | `harness run "explain X"` streams a reply | 900 |
 | 2 | **It uses tools** | Calls a tool, uses the result, answers | 800 |
 | 3 | **It remembers** | Conversations persist; resume one after a restart | 600 |
-| 4 | **You can chat with it** ⭐ | Browser UI. Send, stream, stop. Refresh mid-turn and keep watching | 1400 |
+| 4 | **You can chat with it** ⭐ | Browser UI. Send, stream, stop. Refresh mid-turn and keep watching | 2000 |
 | 5 | **It uses your tools** | Add an MCP server in settings; its tools work next turn | 900 |
 | 6 | **It follows instructions** | Attach a skill; it loads and applies it | 1000 |
 | 7 | **You can steer it** | Correct it mid-turn without restarting | 450 |
@@ -60,10 +60,11 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 |---|---|---|
 | Session event log | 1 | The loop derives history from it — retrofitting means rewriting the loop |
 | Persistence + the model-visible invariant | 3 | Resume is what makes the invariant testable |
-| `Scope` (reversible teardown) | 4 | First time an agent is created and destroyed at runtime |
-| Runs, cursors, heartbeat | 4 | A turn must outlive the tab that started it |
-| `Session.after(cursor)` | 4 | The run subscription is the first thing that needs a cursor |
-| Tool result `meta` (UI cards) | 4 | Nothing renders a card until there is a UI |
+| Runs and cursors | 4 | A turn must outlive the tab that started it |
+| `Scope` (reversible teardown) | ~~4~~ **5** | Phase 4 registers nothing; stopping a run is `task.cancel()`. An MCP connection is the first real connect/disconnect lifecycle |
+| Tool result `meta` (UI cards) | ~~4~~ **5** | A UI exists now and still has nothing to put there — the only tool is a clock. The first MCP tool returning an image is the caller |
+| Heartbeat, lease, reclaim | ~~4~~ **when a 2nd process exists** | Reclaiming a *process's* runs is a multi-process problem. One server, and phase 3's repair-on-resume already covers the single-process crash |
+| `Session.after(cursor)` | ~~4~~ **never** | `session.events()[n:]` already is it. Proposed and cut twice |
 | Prompt sections | 6 | Skills are the first thing that contributes to the prompt |
 | **Around-middleware on tool execution** | 8 | The timeout and guardrail are its first listeners |
 | `ToolDefinition.timeout_s` | 8 | Nothing enforces a deadline until the timeout policy exists |
@@ -307,64 +308,88 @@ do not have. Revisit when we do.
 
 # Phase 4 — You can chat with it ⭐
 
-**Demo.** Browser at `localhost:4896`. Send a message, watch it stream, press
-stop. Start a long turn, **refresh the page**, keep watching. Close the tab, come
-back, it's still running.
+**Demo.** Browser at `localhost:4897` (the API is on `4896`). Send a message,
+watch it stream, press stop. Start a long turn, **refresh the page**, keep
+watching. Close the tab, come back, it's still running.
 
 **Depends on.** 3.
 
 **This is the product moment and the biggest phase.** Budget for it.
 
 **Ships.**
-- `core/scope.py` — `Scope`, `Disposer`, nested reverse-order disposal
-- `agent/handle.py`, `agent/registry.py` — `create()` / `resume()` returning an
-  owning handle; `cancel()`
-- `runs/store.py`, `runs/subscribe.py`, `runs/heartbeat.py`
-- `web/server.py`, `web/sse.py`, `web/routes/`
-- `frontend/` — Next.js chat: message list, composer, stop button, reconnect
-- `guard/repeat_reminder.py` — advisory nudge on consecutive identical calls
+- `session/service.py` — `read()`, the display path beside `resume()`'s write path
+- `runs/store.py`, `runs/subscribe.py`
+- `web/schemas.py`, `web/sse.py`, `web/routes/conversations.py`, `web/server.py`
+- `Makefile` — `make dev`, running uvicorn against the factory as cell-bot does
+- **`cli.py` is deleted.** `run`/`list`/`resume` were drivers to demo the harness
+  before a UI existed; the API does all three, and a second surface is one more
+  thing to hold in step. Composition moved into `web/server.py`, where cell-bot
+  keeps its own. Phases 1–3 below still describe the CLI because that is what
+  they shipped — the record is not rewritten.
+- `frontend/` — Next.js chat: timeline, composer, stop button, reconnect
 
-**Why `Scope` is here.** First time an agent is created and destroyed at runtime
-rather than living for the process. Disposing one must unwind its tools,
-listeners, and watchers.
+**Cut before building, each deferred to the phase with a first caller:**
+`core/scope.py`, `agent/handle.py` + `agent/registry.py`, `runs/heartbeat.py`,
+`guard/repeat_reminder.py`, tool-result `meta`, `Session.after()`. See "Where the
+infrastructure lands". Also cut *during* building, for the same reason: run ids
+(nothing addressed a run — a client subscribes and stops by *conversation*), a
+`RunStatus` vocabulary (how a turn ended is the `reason` on its `turn/end`, which
+is already on the wire), `FINISHED_RUN_TTL` (the flush before settling means disk
+serves the same events), and the SSE keepalive (nothing in this phase goes silent
+for 15s; it lands with phase 5's slow MCP tools).
 
 **Why runs are here and not later.** A chat product's turns are long — a
 download, a generated deck. Tying a turn to the connection that asked for it
 means a closed tab kills four minutes of work. This is a product requirement, not
 an optimization, and it is why phase 1 shipped no HTTP.
 
-**Why a loop nudge is here too.** Until now a runaway turn was a human hitting
-Ctrl-C. Once a turn outlives the tab that started it, nobody is watching and it
-just spends money. dsh's `repeat-tool-reminder` is the minimum: count consecutive
-calls with identical canonicalized arguments, and at 3/5/8 inject an escalating
-advisory telling the model to stop repeating itself. It never blocks — a
-legitimately repeated call is delayed by nothing — so it cannot break real work.
-The full blocking guardrail stays at phase 8.
+**No event buffer — the session log is the buffer.** It is already append-only
+with its index as a stable cursor, and the loop appends *before* it yields, so a
+subscriber reads `session.events()[after:]` directly. One cursor then means the
+same thing to the disk snapshot and the live stream, which is what makes "renders
+identically" true by construction rather than by keeping two paths in step.
+
+**Where we leave dsh, deliberately.** Their web transport is unary RPC at
+`POST /api/<namespace>/<method>` plus two WebSocket downlinks
+(`packages/client/connection/src/api-path.ts`), and `docs/api-gateway.md` insists
+actions and event streams stay separate protocols. We keep that split and reject
+both shapes: their RPC gateway exists to serve compile-time TypeScript codegen we
+do not have, and their mux socket exists because they have many concurrent stream
+types where we have one. Revisit SSE at 3+ stream types — phases 5 and 6 add MCP
+status and skills changes, which are their "host frames".
 
 **Key contracts.**
-- `start()` spawns a task the store holds. A client **subscribes**; it does not
-  drive. Disconnect drops a subscription; `cancel` is the only thing that ends a run.
-- The event buffer is append-only and **the index is the cursor**.
-- One `asyncio.Condition` guards `events` and `status` **together** — read
-  separately, a subscriber can park forever on a run that finished between reads.
-- `FINISHED_RUN_TTL = 300s`, `HEARTBEAT = 20s` **on a timer not at checkpoints**
-  (a turn spends its time inside tools), `RECLAIM = 30s` periodic not startup-only.
+- `start()` spawns a task the store holds, and is **synchronous** so its busy
+  check and registration cannot be split by an await. A client **subscribes**; it
+  does not drive. Disconnect drops a subscription; `stop` is the only thing that
+  ends a run.
+- One `asyncio.Condition` guards the log's growth and `settled` **together** —
+  read separately, a subscriber can park forever on a run that finished between
+  the two reads.
 - A second run on one conversation is **refused, not queued** — telling the user
-  "still working" is honest where silently ordering their turns is not.
-- `sse_frames()` is deliberately **not** wrapped in `aclosing` — closing it would
-  propagate a browser hang-up into a four-minute download.
+  "still working" is honest where silently ordering their turns is not. The check
+  runs *before* the session load too, because loading for writing calls `resume`,
+  which would commit crash repair over a tool that is still executing.
+- A subscriber **owns nothing**, so a browser hang-up has no ownership to
+  propagate through. This is stronger than remembering not to wrap `sse_frames`
+  in `aclosing`.
+- An idle conversation streams its **stored tail** before `end`, so a turn
+  settling between a client's snapshot and its subscribe cannot strand events.
 - The UI renders from session events, not a bespoke API shape. A new event type is
-  a new renderer, not a new endpoint.
+  a new renderer, not a new endpoint — enforced by `test_frontend_types.py`.
 
 **Acceptance.**
 - Start a run, disconnect, reconnect with a cursor, receive every missed event.
-- Closing the SSE response does not cancel the run.
+- Closing the SSE response does not cancel the run. *(Needs a real server:
+  `httpx.ASGITransport` buffers the whole body, so it can never hang up midway.)*
 - The stop button ends the run and leaves a `tool/result` for every dispatched call.
-- Kill the process mid-run; another instance reclaims the lease within 30s.
 - A reloaded conversation renders identically to the live stream.
-- Disposing an agent unwinds every registration it made.
+- Two simultaneous messages start exactly one turn.
+- ~~Kill the process mid-run; another instance reclaims the lease within 30s.~~
+  Deferred with the heartbeat — needs a second process.
+- ~~Disposing an agent unwinds every registration it made.~~ Deferred with `Scope`.
 
-**Milestone.** Phases 1–4 are a working chat product. ~3,700 lines.
+**Milestone.** Phases 1–4 are a working chat product. ~4,300 lines.
 
 ---
 
@@ -658,7 +683,6 @@ Not phases. They start immediately and run throughout.
 | `CLAUDE.md` — project rules, loaded into every session | cell-bot |
 | cell-bot's house rules verbatim | cell-bot |
 | Comment discipline: non-obvious lines carry the *reason*; bug-driven lines carry the bug | cell-bot |
-| `notes/` — design notes referenced by path from code comments | dsh |
 | Generated `tool-catalog.md` by **booting** each tool, with a completeness guard | dsh |
 | A "where new behavior goes" table, updated whenever the loop changes | dsh |
 | Tests that assert two things stay in step (templates ↔ enum, tools ↔ manifest) | cell-bot |

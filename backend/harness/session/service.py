@@ -64,6 +64,24 @@ class SessionService:
         await self._repository.create(header)
         return Session(header)
 
+    async def read(self, session_id: str) -> Session:
+        """Load a stored session **as it is**, repairing nothing.
+
+        The display path, next to `resume`'s write path. Two reasons they differ:
+
+        - A `GET` must not mutate the log. `resume` appends its repair, so serving
+          a page view through it would make every page view a write.
+        - After a crash the honest thing to show is what happened — an assistant
+          message whose tool never answered — not the synthetic result that exists
+          to make a *provider* accept the history.
+
+        The repair is not hidden from a UI by this: it lands on the log when the
+        next turn starts, and reaches the browser as ordinary events on the
+        stream.
+        """
+        header, events = await self._repository.load(session_id)
+        return Session(header, events)
+
     async def resume(self, session_id: str) -> Session:
         """Load a stored session, repairing whatever a dead process left open.
 
