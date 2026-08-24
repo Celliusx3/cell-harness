@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass, field
 
@@ -40,7 +40,8 @@ from harness.llm.messages import (
 )
 from harness.llm.stream import Completed, Failed, TextChunk, ToolCallChunk
 from harness.session.derive import derive_messages
-from harness.session.events import (
+from harness.session.log import Session
+from harness.session.models import (
     AssistantChunk,
     AssistantMessageEvent,
     StepEnd,
@@ -51,7 +52,7 @@ from harness.session.events import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
+from harness.session.repair import REPAIRED, TOOL_OUTCOME_UNKNOWN
 from harness.tools.definition import Ok, ToolOutcome, render_outcome
 from harness.tools.pipeline import ToolPipeline
 
@@ -62,9 +63,14 @@ NO_TERMINAL = "stream ended without a terminal event"
 
 # What a tool call that never finished leaves behind. A provider requires exactly
 # one result per call, so an abandoned turn must still answer every call it made
-# or the next request is rejected outright. `error: ` so it reads like every
-# other tolerant failure and the model can recover from it.
-INTERRUPTED_RESULT = "error: interrupted"
+# or the next request is rejected outright.
+#
+# The loop only ever owes results for calls it *dispatched* — `tool/call` is
+# logged immediately before the tool runs — so the outcome is genuinely unknown
+# and never "not started". Same words as `session.repair` uses for a crash,
+# because it is the same situation from the model's side: the tab closed or the
+# process died, and either way it must not assume the work did not happen.
+INTERRUPTED_RESULT = TOOL_OUTCOME_UNKNOWN
 
 # A backstop against a bug in THIS loop, not a convergence strategy.
 #
@@ -92,6 +98,14 @@ class LoopAgent:
     tools: ToolPipeline | None = None
     system_prompt: str = ""
     max_steps: int = field(default=DEFAULT_MAX_STEPS)
+    # Called immediately before each model request, to make everything logged so
+    # far durable. A prompt that is not yet on disk is a reply to a question the
+    # log cannot show, so this is the one moment durability must not lag.
+    #
+    # A callable rather than the store itself: the loop depends on "make this
+    # durable", not on how. `None` is a session that is never written down —
+    # every test that does not care about storage.
+    checkpoint: Callable[[Session], Awaitable[None]] | None = None
 
     def _request_messages(self, session: Session) -> list[Message]:
         """What this request sees: the system prompt, then the conversation.
@@ -146,6 +160,8 @@ class LoopAgent:
                 # by a source that connected mid-turn is offered immediately.
                 specs = self.tools.specs() if self.tools else None
                 messages = self._request_messages(session)
+                if self.checkpoint is not None:
+                    await self.checkpoint(session)
 
                 completed: Completed | None = None
                 failed: Failed | None = None
@@ -215,6 +231,14 @@ class LoopAgent:
                 # meaningful and testable.
                 for call in completed.tool_calls:
                     session.append(ToolCallEvent(turn=turn, step=step, call=call))
+                    # The second durability checkpoint, and the reason
+                    # `tool/call` is written before the tool runs: if the process
+                    # dies inside a side effect, the log must show we were about
+                    # to cause one. Without this, recovery could not tell "never
+                    # started" from "may have completed" — and would have to
+                    # assume the safer, more useless of the two.
+                    if self.checkpoint is not None:
+                        await self.checkpoint(session)
                     async with aclosing(
                         self._tool_events(call, session=session, turn=turn, step=step)
                     ) as events:
@@ -255,7 +279,7 @@ class LoopAgent:
                             turn=turn,
                             step=step,
                             message=ToolMessage(tool_call_id=call.id, content=INTERRUPTED_RESULT),
-                            error="INTERRUPTED",
+                            error=REPAIRED,
                         )
                     )
                 session.append(StepEnd(turn=turn, step=step))

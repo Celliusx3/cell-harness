@@ -1,10 +1,10 @@
-"""The event vocabulary — the durable facts an interaction is made of.
+"""The data types a session deals in — events, and the header beside them.
 
-Nine types: turn and step boundaries, the messages on the model-visible surface,
-the raw stream, and the tool calls a step made. Compaction adds its own trio
-later. The union is closed and every member is a Pydantic model with concrete
-field types, which is what makes the log losslessly serializable without a
-runtime check on every append.
+Two kinds of thing, both plain frozen Pydantic models with no behaviour:
+
+**Events** are the durable facts an interaction is made of. The union is closed
+and every member has concrete field types, which is what makes the log losslessly
+serializable without a runtime check on every append.
 
 A **step** is one model request plus the tools it asked for; a **turn** is one or
 more steps. Phase 1 had no steps because a turn without tools is exactly one
@@ -16,19 +16,52 @@ token-faithful. A UI reattaching to a running turn, or rendering a finished one,
 draws from the same stream the live client saw. Without them, replay reproduces
 the answer but not the experience of receiving it.
 
-`turn/end` is recorded even for a turn that produced nothing. A rejected or
-failed attempt is a fact about the conversation, and a log that omits it cannot
+`turn/end` is recorded even for a turn that produced nothing. A rejected or failed
+attempt is a fact about the conversation, and a log that omits it cannot
 distinguish "never asked" from "asked and got nothing".
+
+**The header** is the other kind: a format version, an id, a creation time and a
+title are *storage* concerns, not things that happened in the conversation. They
+are deliberately not events, so they never reach `derive_messages` and can never
+leak into a model request. The practical consequence: there is no
+`conversation/renamed` event, ever.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import StreamEvent, Usage
+
+# Stamped into every header written. A backend refuses any other version on load
+# rather than guessing: migration is a real feature, and best-effort parsing of a
+# format we do not understand is how a log becomes quietly unreadable.
+SESSION_FORMAT_VERSION = 1
+
+
+class SessionHeader(BaseModel):
+    """Immutable storage metadata for one session.
+
+    `type: "session"` is deliberately slash-less. Every event type contains a `/`
+    (`turn/start`, `tool/call`, …), so a header line and an event line can never
+    be confused — even by a reader that lost track of which line it was on.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["session"] = "session"
+    version: int = SESSION_FORMAT_VERSION
+    id: str = Field(min_length=1)
+    created_at: datetime
+    # Stamped once, at first append, from the conversation's first user message —
+    # see `persist.py`. Empty until then, and empty forever for a session that
+    # never had one. Renaming is a later phase and will need a mutable sidecar,
+    # because this line is written exactly once and the file is append-only.
+    title: str = ""
 
 
 class TurnStart(BaseModel):

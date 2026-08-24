@@ -20,7 +20,7 @@ from harness.llm.stream import Completed, Failed, TextChunk
 
 
 def settings() -> LLMSettings:
-    return LLMSettings(api_key="k", model="m", base_url="https://x/v1")
+    return LLMSettings(_env_file=None, api_key="k", model="m", base_url="https://x/v1")
 
 
 def sse(*frames: str) -> bytes:

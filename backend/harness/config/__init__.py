@@ -1,11 +1,23 @@
-"""Settings, read from the environment at the composition root — phase 1.
+"""Settings, loaded once at the composition root.
 
-Nothing below the composition root reads settings: a component is handed the
-values it needs. That is what keeps "which model is actually in use?" answerable
-by looking at one call site rather than tracing a settings object through the
-graph.
+Committed defaults live in `backend/config.json`; secrets and local overrides in
+`.env` or the environment. Nothing below the composition root reads settings — a
+component is handed the values it needs, which is what keeps "which model is
+actually in use?" answerable at one call site.
 """
 
-from harness.config.settings import LLMSettings
+from harness.config.settings import (
+    LLMSettings,
+    MissingConfigError,
+    SessionSettings,
+    Settings,
+    load,
+)
 
-__all__ = ["LLMSettings"]
+__all__ = [
+    "LLMSettings",
+    "MissingConfigError",
+    "SessionSettings",
+    "Settings",
+    "load",
+]

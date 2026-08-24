@@ -12,8 +12,11 @@ and belongs with `resume`, which is the code that would act on it.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
+from harness.session.log import Session
+from harness.session.models import SessionHeader
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -47,3 +50,12 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
     one is a type error, not progress that silently never arrives.
     """
     return None
+
+
+def new_session(session_id: str = "s") -> Session:
+    """A session with a throwaway header, for tests that only care about the log.
+
+    `created_at` is fixed rather than `now()` so a header that leaks into an
+    assertion compares equal across runs.
+    """
+    return Session(SessionHeader(id=session_id, created_at=datetime(2026, 1, 1, tzinfo=UTC)))

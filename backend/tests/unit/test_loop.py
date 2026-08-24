@@ -15,7 +15,7 @@ from harness.agent.events import AgentCompleted, AgentFailed
 from harness.agent.loop import NO_TERMINAL, LoopAgent
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk
-from harness.session.events import (
+from harness.session.models import (
     AssistantChunk,
     AssistantMessageEvent,
     StepEnd,
@@ -24,8 +24,8 @@ from harness.session.events import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
 from tests.unit.fakes import HangingClient, ScriptedClient, completed
+from tests.unit.helpers import new_session
 
 
 def agent(client, *, system_prompt: str = "") -> LoopAgent:
@@ -38,7 +38,7 @@ async def drain(gen) -> list:
 
 async def test_streams_a_reply_and_records_the_turn() -> None:
     client = ScriptedClient(completed("hello"))
-    session = Session("s")
+    session = new_session()
 
     events = await drain(agent(client).run("hi", session=session))
 
@@ -64,7 +64,7 @@ async def test_history_comes_from_the_log_not_an_accumulated_list() -> None:
     log, because the agent is frozen and holds nothing.
     """
     client = ScriptedClient(completed("one"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client).run("first", session=session))
     client._script = completed("two")
@@ -79,7 +79,7 @@ async def test_history_comes_from_the_log_not_an_accumulated_list() -> None:
 
 async def test_system_prompt_is_prepended_and_never_logged() -> None:
     client = ScriptedClient(completed("ok"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client, system_prompt="be brief").run("hi", session=session))
 
@@ -91,7 +91,7 @@ async def test_system_prompt_is_prepended_and_never_logged() -> None:
 
 async def test_provider_failure_ends_the_turn_without_hanging() -> None:
     client = ScriptedClient([TextChunk(text="par"), Failed(reason="502 upstream")])
-    session = Session("s")
+    session = new_session()
 
     events = await asyncio.wait_for(drain(agent(client).run("hi", session=session)), timeout=1)
 
@@ -104,7 +104,7 @@ async def test_provider_failure_ends_the_turn_without_hanging() -> None:
 
 async def test_stream_without_a_terminal_is_a_failure_not_a_success() -> None:
     client = ScriptedClient([TextChunk(text="half")])
-    session = Session("s")
+    session = new_session()
 
     events = await drain(agent(client).run("hi", session=session))
 
@@ -115,7 +115,7 @@ async def test_stream_without_a_terminal_is_a_failure_not_a_success() -> None:
 async def test_cancelled_turn_finalizes_the_prefix_the_user_saw() -> None:
     """Acceptance: a cancelled turn records `interrupted: true`."""
     client = HangingClient("partial answer")
-    session = Session("s")
+    session = new_session()
 
     async with aclosing(agent(client).run("hi", session=session)) as run:
         first = await run.__anext__()
@@ -133,7 +133,7 @@ async def test_cancelled_turn_finalizes_the_prefix_the_user_saw() -> None:
 
 async def test_cancelled_before_any_text_records_no_assistant_message() -> None:
     client = HangingClient("")
-    session = Session("s")
+    session = new_session()
 
     async with aclosing(agent(client).run("hi", session=session)) as run:
         await run.__anext__()
@@ -144,7 +144,7 @@ async def test_cancelled_before_any_text_records_no_assistant_message() -> None:
 
 async def test_a_turn_is_closed_exactly_once() -> None:
     client = ScriptedClient(completed("ok"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client).run("hi", session=session))
 
@@ -154,7 +154,7 @@ async def test_a_turn_is_closed_exactly_once() -> None:
 @pytest.mark.parametrize("turns", [1, 2, 3])
 async def test_turn_numbers_are_derived_from_the_log(turns: int) -> None:
     client = ScriptedClient(completed("ok"))
-    session = Session("s")
+    session = new_session()
 
     for _ in range(turns):
         await drain(agent(client).run("hi", session=session))
@@ -168,7 +168,7 @@ async def test_usage_travels_with_the_assistant_message() -> None:
 
     usage = Usage(input_tokens=11, output_tokens=3)
     client = ScriptedClient([TextChunk(text="ok"), Completed(full_text="ok", usage=usage)])
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client).run("hi", session=session))
 

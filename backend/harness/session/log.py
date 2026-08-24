@@ -1,8 +1,8 @@
 """The append-only log, and the session that owns one.
 
-In memory in phase 1 — durability is phase 3, and it changes nothing here
-because a backend's job is to persist exactly what `append` recorded. That is
-the point of keeping this class free of storage concerns.
+This class stays free of storage concerns: a backend's job is to persist exactly
+what `append` recorded, and `SessionService` owns the cursor of how much of it is
+durable. Nothing here knows whether anything is written down.
 
 Two properties everything downstream leans on:
 
@@ -22,15 +22,24 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from harness.session.events import SessionEvent, TurnStart
+from harness.session.models import SessionEvent, SessionHeader, TurnStart
 
 
 class Session:
-    """One agent interaction, as an append-only event log."""
+    """One agent interaction: an append-only event log plus its header."""
 
-    def __init__(self, session_id: str) -> None:
-        self.id = session_id
-        self._events: list[SessionEvent] = []
+    def __init__(self, header: SessionHeader, events: Sequence[SessionEvent] = ()) -> None:
+        self.header = header
+        self._events: list[SessionEvent] = list(events)
+
+    @property
+    def id(self) -> str:
+        """The session's identity, read from the header.
+
+        A property rather than a second field, so a session and its stored
+        metadata cannot disagree about which session this is.
+        """
+        return self.header.id
 
     def append(self, event: SessionEvent) -> int:
         """Record one event.

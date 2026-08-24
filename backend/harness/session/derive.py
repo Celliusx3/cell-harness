@@ -32,7 +32,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from harness.llm.messages import Message
-from harness.session.events import (
+from harness.session.models import (
     AssistantMessageEvent,
     SessionEvent,
     ToolResultEvent,

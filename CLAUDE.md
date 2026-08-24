@@ -14,13 +14,15 @@ MCP — not a terminal coding harness). Synthesized from two studied sources:
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for what phase we are in and what it must satisfy.
 
-**Status: phase 2 — "it uses tools" — implemented on `phase-2-tools`, awaiting
-review.** Next is phase 3, "it remembers".
+**Status: phase 3 — "it remembers" — implemented, awaiting review.** Next is
+phase 4, "you can chat with it".
 
 ```sh
-cp backend/.env.example backend/.env   # fill in API key + model
+cp backend/config.local.example.json backend/config.local.json   # add your API key
+# everything else — model, endpoint, sessions root — is in backend/config.json (committed)
 make install && make test
-cd backend && uv run harness run "explain async generators"
+cd backend && uv run harness run "what time is it in Tokyo?"
+cd backend && uv run harness list
 ```
 
 ## Layout
@@ -28,10 +30,10 @@ cd backend && uv run harness run "explain async generators"
 ```
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
-  session/      the append-only event log + derive_messages
+  session/      the event log, its header, persistence, repair, the store
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
-  config/       settings, read at the composition root
+  config/       one Settings: config.json + config.local.json + env
   cli.py        `harness run "<prompt>"` — a driver, not an interface
 backend/tests/  unit/ and integration/
 docs/           source teardowns + long-form rules

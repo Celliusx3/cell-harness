@@ -12,14 +12,14 @@ from harness.agent.loop import INTERRUPTED_RESULT, LoopAgent
 from harness.llm.messages import AssistantMessage, ToolMessage
 from harness.llm.stream import Completed, TextChunk, ToolCallChunk
 from harness.session.derive import derive_messages
-from harness.session.events import (
+from harness.session.log import Session
+from harness.session.models import (
     StepEnd,
     StepStart,
     ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
 )
-from harness.session.log import Session
 from harness.tools.definition import Ok
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
@@ -32,7 +32,7 @@ from tests.unit.fakes import (
     hanging_tool,
     reporting_tool,
 )
-from tests.unit.helpers import unanswered_calls
+from tests.unit.helpers import new_session, unanswered_calls
 
 
 def agent(client, *tools, system_prompt: str = "", max_steps: int = 60) -> LoopAgent:
@@ -57,7 +57,7 @@ async def test_prompt_to_tool_to_answer() -> None:
         calls_tool("echo", '{"value": "42"}', text="Let me check. "),
         completed("The answer is 42."),
     )
-    session = Session("s")
+    session = new_session()
 
     events = await drain(agent(client, echo_tool()).run("what is it?", session=session))
 
@@ -97,7 +97,7 @@ async def test_the_tool_result_reaches_the_model_via_the_log() -> None:
     """The discipline: step 1's request is derived, so the result got there by
     being logged rather than by the loop threading it."""
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client, echo_tool()).run("q", session=session))
 
@@ -112,7 +112,7 @@ async def test_the_tool_result_reaches_the_model_via_the_log() -> None:
 
 async def test_tool_schemas_reach_the_wire_each_step() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client, echo_tool()).run("q", session=session))
 
@@ -126,7 +126,7 @@ async def test_an_agent_with_no_tools_sends_none_not_an_empty_list() -> None:
     client = SteppedClient(completed("hi"))
     bare = LoopAgent(name="t", model="m", client=client)
 
-    await drain(bare.run("q", session=Session("s")))
+    await drain(bare.run("q", session=new_session()))
 
     assert client.seen_tools is None
 
@@ -134,7 +134,7 @@ async def test_an_agent_with_no_tools_sends_none_not_an_empty_list() -> None:
 async def test_progress_interleaves_and_the_result_always_comes_last() -> None:
     """Acceptance: progress arrives during the call, never after the result."""
     client = SteppedClient(calls_tool("slow", '{"value": "done"}'), completed("ok"))
-    session = Session("s")
+    session = new_session()
     tool = reporting_tool([(10.0, "starting"), (90.0, "nearly")])
 
     events = await drain(agent(client, tool).run("q", session=session))
@@ -150,7 +150,7 @@ async def test_progress_is_not_logged() -> None:
     """A progress reading is neither durable nor a fact about the conversation,
     so a replayed turn has none and consumers must tolerate that."""
     client = SteppedClient(calls_tool("slow", '{"value": "done"}'), completed("ok"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client, reporting_tool([(50.0, "half")])).run("q", session=session))
 
@@ -161,7 +161,7 @@ async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:
     """The guardrail counts by identity in phase 8; a string prefix would make a
     tool that phrased its error differently invisible to it."""
     client = SteppedClient(calls_tool("echo", "{bad json"), completed("recovered"))
-    session = Session("s")
+    session = new_session()
 
     events = await drain(agent(client, echo_tool()).run("q", session=session))
 
@@ -196,7 +196,7 @@ async def test_every_dispatched_call_gets_a_result_even_when_interrupted() -> No
     """A provider rejects a history with an unanswered call outright, so an
     abandoned turn must still answer everything it asked for."""
     client = SteppedClient(calls_tool("hang", '{"value": "a"}'))
-    session = Session("s")
+    session = new_session()
 
     await interrupt_during_tool(agent(client, hanging_tool()), session)
 
@@ -210,20 +210,20 @@ async def test_every_dispatched_call_gets_a_result_even_when_interrupted() -> No
 
 async def test_an_interrupted_call_records_a_recoverable_error() -> None:
     client = SteppedClient(calls_tool("hang", '{"value": "a"}'))
-    session = Session("s")
+    session = new_session()
 
     await interrupt_during_tool(agent(client, hanging_tool()), session)
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.message.content == INTERRUPTED_RESULT
-    assert result.error == "INTERRUPTED"
+    assert result.error == "INTERRUPTED_BY_CRASH"
 
 
 async def test_stopping_before_any_call_exists_owes_nothing() -> None:
     """Interrupting during the model stream is not the repair path: no call has
     been made, so there is nothing to answer."""
     client = SteppedClient(calls_tool("echo", '{"value": "a"}'))
-    session = Session("s")
+    session = new_session()
 
     async with aclosing(agent(client, echo_tool()).run("q", session=session)) as events:
         async for event in events:
@@ -238,7 +238,7 @@ async def test_stopping_before_any_call_exists_owes_nothing() -> None:
 async def test_the_step_budget_stops_a_loop_that_never_converges() -> None:
     """A guard against non-convergence, not a cost budget."""
     client = SteppedClient(calls_tool("echo", '{"value": "again"}'))
-    session = Session("s")
+    session = new_session()
 
     events = await drain(agent(client, echo_tool(), max_steps=3).run("q", session=session))
 
@@ -249,7 +249,7 @@ async def test_the_step_budget_stops_a_loop_that_never_converges() -> None:
 
 async def test_steps_are_numbered_within_their_turn() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client, echo_tool()).run("q", session=session))
 
@@ -262,7 +262,7 @@ async def test_steps_are_numbered_within_their_turn() -> None:
 async def test_assistant_message_carries_the_calls_it_requested() -> None:
     """Derived history must reproduce the pairing, or the provider rejects it."""
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
-    session = Session("s")
+    session = new_session()
 
     await drain(agent(client, echo_tool()).run("q", session=session))
 
@@ -285,7 +285,7 @@ async def test_two_calls_in_one_step_both_settle() -> None:
         ],
         completed("done"),
     )
-    session = Session("s")
+    session = new_session()
 
     events = await drain(agent(client, echo_tool()).run("q", session=session))
 
@@ -307,7 +307,7 @@ async def test_the_executor_receives_a_parsed_model_not_a_raw_dict() -> None:
     typed = replace(tool, execute=execute)
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
 
-    await drain(agent(client, typed).run("q", session=Session("s")))
+    await drain(agent(client, typed).run("q", session=new_session()))
 
     assert isinstance(seen[0], EchoArgs)
     assert seen[0].value == "42"
@@ -325,7 +325,7 @@ async def test_arguments_the_schema_rejects_never_reach_the_executor() -> None:
     typed = replace(echo_tool(), execute=execute)
     client = SteppedClient(calls_tool("echo", '{"value": 42}'), completed("recovered"))
 
-    events = await drain(agent(client, typed).run("q", session=Session("s")))
+    events = await drain(agent(client, typed).run("q", session=new_session()))
 
     assert seen == []
     assert isinstance(events[-1], AgentCompleted)  # the model gets to try again
@@ -354,7 +354,7 @@ def test_the_unanswered_calls_assertion_actually_detects_a_gap() -> None:
 async def test_text_only_turns_still_work() -> None:
     """Phase 1's behaviour must survive phase 2."""
     client = SteppedClient(completed("just talking"))
-    session = Session("s")
+    session = new_session()
 
     events = await drain(agent(client, echo_tool()).run("hi", session=session))
 

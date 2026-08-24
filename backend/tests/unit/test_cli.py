@@ -23,8 +23,9 @@ from tests.unit.fakes import (
 
 @pytest.fixture(autouse=True)
 def env(monkeypatch) -> None:
-    monkeypatch.setenv("HARNESS_LLM_API_KEY", "k")
-    monkeypatch.setenv("HARNESS_LLM_MODEL", "m")
+    monkeypatch.setenv("HARNESS_LLM__API_KEY", "k")
+    monkeypatch.setenv("HARNESS_LLM__MODEL", "m")
+    # Session storage is redirected for the whole suite — see tests/conftest.py.
 
 
 def with_script(monkeypatch, script) -> ScriptedClient:
@@ -111,3 +112,80 @@ def test_a_command_is_required(monkeypatch) -> None:
     with pytest.raises(SystemExit) as exc:
         cli.main()
     assert exc.value.code != 0
+
+
+async def test_run_reports_the_session_id_on_stderr(monkeypatch, capsys) -> None:
+    """It is the id `resume` needs, so it must be visible — but on stderr, so a
+    piped answer stays clean."""
+    with_script(monkeypatch, completed("hi"))
+
+    await cli._run("hello")
+
+    assert "session " in capsys.readouterr().err
+
+
+async def test_list_shows_stored_conversations_newest_first(monkeypatch, capsys) -> None:
+    with_script(monkeypatch, completed("one"))
+    await cli._run("first question")
+    with_script(monkeypatch, completed("two"))
+    await cli._run("second question")
+    capsys.readouterr()
+
+    await cli._list()
+
+    rows = capsys.readouterr().out.strip().splitlines()
+    assert len(rows) == 2
+    assert "second question" in rows[0]
+    assert "first question" in rows[1]
+
+
+async def test_resume_continues_a_stored_conversation(monkeypatch, capsys) -> None:
+    client = with_script(monkeypatch, completed("blue"))
+    await cli._run("what colour is the sky?")
+    session_id = capsys.readouterr().err.split("session ")[1].strip()
+
+    client._script = completed("I said blue")
+    code = await cli._resume(session_id, "what did you just say?")
+
+    assert code == 0
+    # The resumed turn saw the whole prior exchange, derived from the log.
+    assert [(m.role, m.content) for m in client.seen][1:] == [
+        ("user", "what colour is the sky?"),
+        ("assistant", "blue"),
+        ("user", "what did you just say?"),
+    ]
+
+
+async def test_resuming_an_unknown_session_reports_and_exits_nonzero(monkeypatch, capsys) -> None:
+    with_script(monkeypatch, completed("x"))
+
+    code = await cli._resume("no-such-session", "hi")
+
+    assert code == 1
+    assert "no stored session" in capsys.readouterr().err
+
+
+async def test_a_finished_turn_is_durable_without_another_request(monkeypatch, capsys) -> None:
+    """The loop checkpoints before work, so the final answer needs the flush in
+    `_drive`'s `finally` or it would sit unwritten."""
+    with_script(monkeypatch, completed("the answer"))
+    await cli._run("a question")
+    session_id = capsys.readouterr().err.split("session ")[1].strip()
+
+    session = await cli.build_store(cli.Settings()).resume(session_id)
+
+    from harness.session.derive import derive_messages
+
+    assert [m.content for m in derive_messages(session.events())] == ["a question", "the answer"]
+
+
+async def test_the_suite_never_writes_to_the_real_sessions_directory(monkeypatch) -> None:
+    """A regression test for a bug that shipped: an earlier version of the CLI
+    fixture set the pre-`config.json` variable name, the override silently
+    missed, and a test run left real conversation files in a developer's home.
+    """
+    from harness.config.settings import Settings
+
+    root = str(Settings().sessions.root)
+
+    assert ".harness/sessions" not in root, f"tests would write to {root}"

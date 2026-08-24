@@ -1,16 +1,24 @@
-"""The append-only session log — phase 1.
+"""Sessions — the append-only log, and everything around it.
 
-The single source of truth for an agent's interaction history. Model message
-history is *derived* from this log (`derive_messages`), never stored beside it;
-replay is re-derivation from the same events.
+Named by role, the way cell-bot names its features, rather than by architectural
+layer:
 
-The invariant this subpackage exists to uphold: **model-visible means logged.**
-Anything that reaches a model request must be reconstructable from the log. A new
-model-visible input therefore requires a new event type, never a side channel.
-`invariant.assert_derivable` enforces it from phase 3, when resume makes it
-testable — but the loop must be written against the log from phase 1, because
-retrofitting that is a rewrite of `agent/`.
+    models.py            the data: events, and the header beside them
+    log.py               `Session` — the append-only log itself
+    derive.py            log -> the messages a model is sent
+    repair.py            results for calls a dead process never answered
 
-Everything downstream follows from it: fork is a log prefix, resume is replay,
-compaction is an appended event pair, telemetry is a projection.
+    repository.py        the storage port (Protocol) + its failures
+    repositories/        one file per backend — `jsonl.py` today
+    service.py           `SessionService` — when to write, repair on resume
+
+`SessionService` depends on the `SessionRepository` Protocol, never on a concrete
+backend, so a SQLite store is a new file in `repositories/` plus one line in
+`cli.py`. `test_layering.py` enforces the other half: the first four modules know
+nothing about storage, so what a conversation *is* cannot come to depend on where
+it happens to be kept.
+
+The invariant the whole design upholds: **model history is derived from the log**
+(`derive_messages`), never stored beside it. Resume, fork, and compaction are
+consequences of that rather than features to build and keep in sync.
 """

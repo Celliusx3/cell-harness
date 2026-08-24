@@ -1,0 +1,11 @@
+{
+  "llm": {
+    "base_url": "https://api.ilmu.ai/v1",
+    "model": "ilmu-glm-5.1",
+    "temperature": 1.0,
+    "timeout_seconds": 600
+  },
+  "sessions": {
+    "root": "~/.harness/sessions"
+  }
+}

@@ -1,11 +1,17 @@
 .DS_Store
 *.log
 
-# Every .env variant, not just the bare name: a `.env.local` or a `.env.backup`
-# holds the same secrets and was one `git add -A` away from being committed.
+# Local settings: same shape as the committed config.json, but holding the API
+# key and any machine-specific overrides. The glob covers a `config.local.bak`
+# for the same reason the .env one below does.
+config.local.json
+config.local.*.json
+!config.local.example.json
+
+# No .env is used any more (settings are JSON), but keep these ignored: an
+# exported key that lands in one should never be one `git add -A` from a commit.
 .env
 .env.*
-!.env.example
 
 # Python
 __pycache__/

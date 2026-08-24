@@ -21,12 +21,14 @@ phase ordering.
 ## Getting started
 
 ```sh
-cp backend/.env.example backend/.env   # fill in HARNESS_LLM_API_KEY + _MODEL
+cp backend/config.local.example.json backend/config.local.json   # add your API key
+# everything else — model, endpoint, sessions root — is in backend/config.json (committed)
 make install                           # uv sync the backend package + dev deps
 make test                              # pytest, 80% coverage gate
 make lint                              # ruff check + format check
 
-cd backend && uv run harness run "explain async generators"
+cd backend && uv run harness run "what time is it in Tokyo?"
+cd backend && uv run harness list
 ```
 
 ## Layout
@@ -34,10 +36,10 @@ cd backend && uv run harness run "explain async generators"
 ```
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
-  session/      the append-only event log + derive_messages
+  session/      the event log, its header, persistence, repair, the store
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
-  config/       settings, read at the composition root
+  config/       one Settings: config.json + config.local.json + env
   cli.py        `harness run "<prompt>"`
 backend/tests/  unit/ and integration/
 docs/           source teardowns + long-form rules
@@ -48,6 +50,6 @@ CLAUDE.md       project rules, loaded into every session
 Subpackages arrive with the phase that needs them; the full intended layout is in
 [DESIGN.md §3](./DESIGN.md).
 
-Status: **phase 2 — "it uses tools" — implemented, awaiting review.** Every phase
-in [PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 3, "it
-remembers".
+Status: **phase 3 — "it remembers" — implemented, awaiting review.** Every phase
+in [PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 4, "you
+can chat with it".

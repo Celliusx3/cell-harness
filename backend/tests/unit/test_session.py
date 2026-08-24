@@ -5,14 +5,14 @@ from __future__ import annotations
 from harness.llm.messages import AssistantMessage, UserMessage
 from harness.llm.stream import Completed, TextChunk
 from harness.session.derive import derive_messages
-from harness.session.events import (
+from harness.session.models import (
     AssistantChunk,
     AssistantMessageEvent,
     TurnEnd,
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
+from tests.unit.helpers import new_session
 
 
 def test_sequence_numbers_are_contiguous_from_zero() -> None:
@@ -20,14 +20,14 @@ def test_sequence_numbers_are_contiguous_from_zero() -> None:
 
     Phase 4's run subscription depends on it.
     """
-    session = Session("s")
+    session = new_session()
     seqs = [session.append(TurnStart(turn=n)) for n in range(5)]
     assert seqs == [0, 1, 2, 3, 4]
 
 
 def test_next_turn_is_derived_not_counted() -> None:
     """No counter to restore when a session is rehydrated in phase 3."""
-    session = Session("s")
+    session = new_session()
     assert session.next_turn() == 0
 
     session.append(TurnStart(turn=0))
@@ -38,7 +38,7 @@ def test_next_turn_is_derived_not_counted() -> None:
 def test_every_event_round_trips_as_json() -> None:
     """The closed union of concretely-typed models is what makes the log
     losslessly persistable in phase 3 without a runtime check on every append."""
-    session = Session("s")
+    session = new_session()
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     session.append(AssistantChunk(turn=0, step=0, chunk=TextChunk(text="he")))
@@ -51,7 +51,7 @@ def test_every_event_round_trips_as_json() -> None:
 
 
 def test_derive_skips_chunks_and_turn_boundaries() -> None:
-    session = Session("s")
+    session = new_session()
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     session.append(AssistantChunk(turn=0, step=0, chunk=TextChunk(text="he")))
@@ -72,7 +72,7 @@ def test_chunks_reassemble_to_the_logged_message() -> None:
     what the model is shown. If they can disagree, a reattached client sees
     something the next turn's context denies.
     """
-    session = Session("s")
+    session = new_session()
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     for piece in ("he", "ll", "o"):
@@ -91,7 +91,7 @@ def test_chunks_reassemble_to_the_logged_message() -> None:
 def test_no_system_message_is_ever_derived() -> None:
     """It is prepended per request, so it must not arrive from history too —
     otherwise a routed turn would carry the previous agent's prompt."""
-    session = Session("s")
+    session = new_session()
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
 
     assert all(m.role != "system" for m in derive_messages(session.events()))
@@ -100,7 +100,7 @@ def test_no_system_message_is_ever_derived() -> None:
 def test_an_interrupted_reply_stays_in_history() -> None:
     """The user read it; hiding it would make the next turn's context disagree
     with what is on screen."""
-    session = Session("s")
+    session = new_session()
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     session.append(
         AssistantMessageEvent(
