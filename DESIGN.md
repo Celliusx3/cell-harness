@@ -41,6 +41,13 @@ one repo, no plugin framework, every load-bearing idea intact.
 | Prompts as Jinja + `StrictUndefined` + enum-addressed | cell-bot | **Take.** |
 | One implementation, two surfaces (native tool + MCP) | cell-bot | **Take.** |
 | Satellite MCP servers | cell-bot | **Take** as the capability-packaging default. |
+| Adaptive inbound batching (a client-split paste is one turn) | hermes-agent | **Take**, with its tuned delays. |
+| Busy-input policy: queue \| steer \| interrupt | hermes-agent | **Take `queue` only.** The other two need a durable inbox. |
+| `/new` and `/stop`, bypassing the queue | hermes-agent | **Take.** A chat window has no buttons. |
+| Long polling in dev, feeding the webhook's path | duta-ilmu | **Take.** No tunnel, and a webhook is additive later. |
+| Offset committed after processing + id dedupe | duta-ilmu | **Take.** At-least-once, made effectively once. |
+| Per-conversation FIFO ordering | duta-ilmu | **Take.** |
+| The HTTP API as one platform adapter among many | hermes-agent | **Take at phase 6**, once there are two implementations to generalise from. |
 
 ## 2. Language and shape
 
@@ -340,7 +347,20 @@ From cell-bot:
    in-process by `httpx.ASGITransport` where a WebSocket needs its own harness.
    **Revisit at three or more concurrent stream types** — phase 5's MCP status and
    phase 6's skills changes are their host frames, and that is the trigger.
-7. **The session log is the run's event buffer** (phase 4). It is already
+7. **A messenger queues; it never refuses** (phase 5). cell-bot's `409` is
+   right for a browser, which can grey out its composer, and wrong for a phone,
+   which cannot stop someone typing. hermes-agent makes this a three-way policy
+   (`queue` | `steer` | `interrupt`) and defaults text to `queue`; duta-ilmu
+   enforces per-conversation FIFO by construction. We ship `queue` alone —
+   `steer` mutates a turn already running and needs dsh's durable inbox, which
+   is phase 9.
+8. **The channel seam is extracted, not designed** (phase 6). hermes-agent runs
+   twenty platforms behind one `BasePlatformAdapter` and models its own HTTP API
+   as one of them; duta-ilmu keeps its widget on a separate path entirely. We
+   follow Hermes, but only after Telegram exists — the browser streams
+   token-by-token from the raw event log while Telegram gets one finished
+   message, and a contract spanning both is not guessable before writing both.
+9. **The session log is the run's event buffer** (phase 4). It is already
    append-only with its index as a stable cursor, and the loop appends before it
    yields. So one cursor means the same thing to a disk snapshot and a live
    stream, the UI has one renderer, and there is no second copy to keep in step —
@@ -349,14 +369,14 @@ From cell-bot:
 
 ### Still open
 
-8. **Serial vs parallel tool dispatch.** Ship serial. `concurrency_safe` has no
+10. **Serial vs parallel tool dispatch.** Ship serial. `concurrency_safe` has no
    reason to exist until the fs seam (phase 11) makes overlap meaningful and
    testable — and phase 11 is optional.
-9. **How much of the run layer survives a multi-process future.** Phase 4 ships
+11. **How much of the run layer survives a multi-process future.** Phase 4 ships
    one process and no lease: reclaiming a *process's* runs cannot be exercised,
    and phase 3's repair-on-resume already covers a single-process crash. When a
    second process exists, the heartbeat + reclaim design is cell-bot's.
-10. **Whether the optional track (11–13) is ever built.** Decide before phase 11,
+12. **Whether the optional track (13–15) is ever built.** Decide before phase 11,
     not during. cell-bot ships a real product without any of it; every capability
     arrives through an MCP server.
 

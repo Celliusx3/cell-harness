@@ -1,0 +1,195 @@
+"""The channel wired into the app, end to end.
+
+A message reaches the gateway, becomes a turn through the real `RunStore`, and
+its reply goes back out — with the conversation visible over HTTP the whole time,
+because a Telegram conversation is an ordinary conversation.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import UTC, datetime
+
+import httpx
+
+from harness.agent.loop import LoopAgent
+from harness.channels.gateway import ChannelGateway
+from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.transport import InboundMessage
+from harness.config.settings import Settings
+from harness.runs.store import RunStore
+from harness.session.repositories.jsonl import JsonlSessionRepository
+from harness.session.service import SessionService
+from harness.web.server import build_channels, create_app
+from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.telegram_fakes import telegram_channel
+
+CHAT = "909"
+
+
+def build(tmp_path):
+    ids = iter(f"c{n}" for n in range(100))
+    sessions = SessionService(
+        JsonlSessionRepository(tmp_path / "sessions"),
+        now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
+        new_id=lambda: next(ids),
+    )
+    agent = LoopAgent(
+        name="t",
+        model="m",
+        client=ScriptedClient(completed("the answer")),
+        checkpoint=sessions.flush,
+    )
+    runs = RunStore(sessions, agent)
+    chats = JsonlChatRepository(tmp_path / "chats")
+    gateway = ChannelGateway(chats, runs, sessions)
+    channel, bot = telegram_channel(gateway)
+    gateway.register(channel)
+    app = create_app(sessions, runs, gateway=gateway)
+    return bot, app, gateway, runs, sessions
+
+
+async def settle(runs: RunStore, gateway: ChannelGateway) -> None:
+    """Wait for the turn and its delivery to finish."""
+    for _ in range(300):
+        task = gateway._deliveries.get(("telegram", CHAT))
+        busy = task is not None and not task.done()
+        if not busy and not any(runs._runs.values()):
+            return
+        await asyncio.sleep(0.01)
+    raise AssertionError("channel never went idle")
+
+
+async def until(predicate, *, what: str) -> None:
+    """Wait for something to *start* happening.
+
+    Distinct from `settle`, which waits for it to stop — and returns immediately
+    when nothing has begun yet, which is exactly the wrong answer for a poller
+    that has not had a chance to poll.
+    """
+    for _ in range(400):
+        if predicate():
+            return
+        await asyncio.sleep(0.01)
+    raise AssertionError(f"timed out waiting for {what}")
+
+
+class RecordingChannel:
+    """A channel-shaped stub, to assert the app's wiring rather than PTB's.
+
+    Starting a real `TelegramChannel` here would have PTB dial api.telegram.org.
+    What is *ours* at this level is that the lifespan starts and stops the
+    gateway — the poll loop belongs to the library, and the handler around it is
+    covered in `test_telegram_receiving.py`.
+    """
+
+    channel = "recording"
+
+    def __init__(self) -> None:
+        self.running = False
+
+    async def run(self) -> None:
+        self.running = True
+        await asyncio.Event().wait()
+
+    async def send_message(self, chat_id: str, text: str) -> None: ...
+
+    async def send_typing(self, chat_id: str) -> None: ...
+
+
+async def test_the_lifespan_starts_and_stops_the_gateway(tmp_path) -> None:
+    """One object to start, one to stop — the reason supervision moved inside."""
+    bot, app, gateway, runs, sessions = build(tmp_path)
+    recording = RecordingChannel()
+    gateway.register(recording)
+    wired = create_app(sessions, runs, gateway=gateway)
+
+    async with wired.router.lifespan_context(wired):
+        await until(lambda: recording.running, what="the channel to start")
+
+    assert gateway.channels == ["telegram", "recording"]
+
+
+async def test_an_app_with_no_gateway_still_serves(tmp_path) -> None:
+    """The browser is the whole product without a bot token."""
+    bot, app, gateway, runs, sessions = build(tmp_path)
+    wired = create_app(sessions, runs)
+
+    async with wired.router.lifespan_context(wired):
+        pass  # must not raise
+
+
+async def test_a_message_becomes_a_conversation_visible_over_http(tmp_path) -> None:
+    bot, app, gateway, runs, sessions = build(tmp_path)
+
+    await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="hello there"))
+    await settle(runs, gateway)
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://harness.test"
+    ) as http:
+        listed = (await http.get("/api/conversations")).json()
+        assert len(listed) == 1
+        detail = (await http.get(f"/api/conversations/{listed[0]['id']}")).json()
+
+    prompts = [e["message"]["content"] for e in detail["events"] if e["type"] == "user/message"]
+    assert prompts == ["hello there"]
+    assert bot.sent == [(CHAT, "the answer")]
+
+
+async def test_a_browser_reply_lands_in_the_same_conversation(tmp_path) -> None:
+    """Two ways in, one log. The browser can continue a Telegram thread."""
+    bot, app, gateway, runs, sessions = build(tmp_path)
+    await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone"))
+    await settle(runs, gateway)
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://harness.test"
+    ) as http:
+        conversation_id = (await http.get("/api/conversations")).json()[0]["id"]
+        sent = await http.post(
+            f"/api/conversations/{conversation_id}/messages",
+            json={"prompt": "from the browser"},
+        )
+        assert sent.status_code == 202
+        await settle(runs, gateway)
+        detail = (await http.get(f"/api/conversations/{conversation_id}")).json()
+
+    prompts = [e["message"]["content"] for e in detail["events"] if e["type"] == "user/message"]
+    assert prompts == ["from my phone", "from the browser"]
+
+
+async def test_no_token_means_no_channel(tmp_path) -> None:
+    """The browser is a complete product without a bot, so an absent token is a
+    configuration, not an error.
+
+    The token is passed **explicitly empty** rather than relying on a bare
+    `Settings()`: that reads the developer's real `config.local.json`, so this
+    test would pass only on a machine with no bot configured — the same failure
+    the settings tests hit in phase 3, where a test was green until someone
+    actually configured the thing it was testing.
+    """
+    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
+    runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
+    settings = Settings(telegram={"bot_token": ""})
+
+    assert build_channels(settings, sessions, runs).channels == []
+
+
+async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
+    """A blank string in JSON is a paste that went wrong."""
+    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
+    runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
+
+    assert build_channels(Settings(telegram={"bot_token": "   "}), sessions, runs).channels == []
+
+
+async def test_a_token_builds_a_channel(tmp_path) -> None:
+    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
+    runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
+    settings = Settings(telegram={"bot_token": "123:abc"})
+
+    built = build_channels(settings, sessions, runs)
+
+    assert built.channels == ["telegram"]
+    await built.aclose()

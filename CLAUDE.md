@@ -14,8 +14,9 @@ MCP — not a terminal coding harness). Synthesized from two studied sources:
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for what phase we are in and what it must satisfy.
 
-**Status: phase 4 — "you can chat with it" — implemented, awaiting review.** Next
-is phase 5, "it uses your tools" (MCP).
+**Status: phase 5 — "it answers on Telegram" — implemented, awaiting review.**
+Next is phase 6, "one seam for every channel" — the API and Telegram behind one
+adapter contract.
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
@@ -34,6 +35,7 @@ backend/harness/
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
   runs/         a turn that outlives its connection — store, subscribe
+  channels/     telegram/, and the per-chat state a messenger needs
   web/          schemas, sse, routes/, server — the HTTP surface + composition root
   config/       one Settings: config.json + config.local.json + env
 backend/tests/  unit/ and integration/
@@ -42,7 +44,7 @@ docs/           source teardowns + long-form rules
 ```
 
 Subpackages arrive with the phase that needs them — and so does infrastructure.
-`Scope` in phase 5, `Layered` in phase 13, tool-execution middleware in phase 8.
+`Scope` in phase 7, `Layered` in phase 15, tool-execution middleware in phase 10.
 A registry is a flat dict until a plugin needs to register into one agent's
 world. Building any of them earlier is the speculative structure the KISS/YAGNI
 rule below forbids — phase 2 cut four such things, phase 3 five, and phase 4

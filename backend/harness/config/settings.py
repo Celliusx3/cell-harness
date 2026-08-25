@@ -82,6 +82,15 @@ class SessionSettings(BaseModel):
         return value.expanduser()
 
 
+class TelegramSettings(BaseModel):
+    """The bot to answer as, if any."""
+
+    # Empty means the channel is off, which is the only sensible default: a token
+    # cannot be guessed, and a harness that refused to start without one would be
+    # unusable for everyone running it in a browser.
+    bot_token: str = ""
+
+
 class Settings(BaseSettings):
     """Everything the harness is configured with, loaded once."""
 
@@ -94,6 +103,7 @@ class Settings(BaseSettings):
 
     llm: LLMSettings = Field(default_factory=LLMSettings)
     sessions: SessionSettings = Field(default_factory=SessionSettings)
+    telegram: TelegramSettings = Field(default_factory=TelegramSettings)
 
     @classmethod
     def settings_customise_sources(

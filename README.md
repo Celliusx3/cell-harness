@@ -50,6 +50,25 @@ curl -sN -X POST localhost:4896/api/conversations \
 curl -s localhost:4896/api/conversations
 ```
 
+## Telegram
+
+Optional. Message [@BotFather](https://t.me/BotFather), send `/newbot`, and put
+the token in `backend/config.local.json`:
+
+```json
+{ "telegram": { "bot_token": "123456:AA…" } }
+```
+
+`make dev` then polls for messages alongside the web server — no public URL and no
+tunnel, because it long-polls rather than taking a webhook. Text the bot and the
+conversation shows up in the browser sidebar like any other.
+
+`/new` starts a fresh conversation, `/stop` cancels the current reply. A message
+sent while it is working is answered next rather than refused — a phone cannot
+grey out its composer.
+
+With no token the channel simply does not start.
+
 ## Layout
 
 ```
@@ -59,6 +78,7 @@ backend/harness/
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
   runs/         a turn that outlives its connection — store, subscribe
+  channels/     telegram/, and the per-chat state a messenger needs
   web/          schemas, sse, routes/, server — the HTTP surface + composition root
   config/       one Settings: config.json + config.local.json + env
 backend/tests/  unit/ and integration/
@@ -70,6 +90,6 @@ CLAUDE.md       project rules, loaded into every session
 Subpackages arrive with the phase that needs them; the full intended layout is in
 [DESIGN.md §3](./DESIGN.md).
 
-Status: **phase 4 — "you can chat with it" — implemented, awaiting review.** Every
-phase in [PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 5,
-"it uses your tools" (MCP).
+Status: **phase 5 — "it answers on Telegram" — implemented, awaiting review.**
+Every phase in [PHASES.md](./PHASES.md) is a capability you can demo. Next is
+phase 6, "one seam for every channel".

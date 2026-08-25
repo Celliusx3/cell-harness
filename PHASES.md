@@ -23,18 +23,20 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 | 2 | **It uses tools** | Calls a tool, uses the result, answers | 800 |
 | 3 | **It remembers** | Conversations persist; resume one after a restart | 600 |
 | 4 | **You can chat with it** ⭐ | Browser UI. Send, stream, stop. Refresh mid-turn and keep watching | 2000 |
-| 5 | **It uses your tools** | Add an MCP server in settings; its tools work next turn | 900 |
-| 6 | **It follows instructions** | Attach a skill; it loads and applies it | 1000 |
-| 7 | **You can steer it** | Correct it mid-turn without restarting | 450 |
-| 8 | **It doesn't get stuck** | A runaway tool loop is stopped | 450 |
-| 9 | **It picks the right specialist** | Multiple agents; the right one answers each turn | 700 |
-| 10 | **It handles long conversations** | 200 turns without hitting the context window | 450 |
-| 11 | **It reads and writes files** *(opt)* | File tools without going through MCP | 800 |
-| 12 | **It runs commands** *(opt)* | `bash`, confined | 800 |
-| 13 | **It delegates** *(opt)* | Subagents working in parallel | 800 |
+| 5 | **It answers on Telegram** ⭐ | Text the bot from your phone; it replies, and keeps working while you're away | 1100 |
+| 6 | **One seam for every channel** | Browser and Telegram behind one adapter contract; a third is a file | 400 |
+| 7 | **It uses your tools** | Add an MCP server in settings; its tools work next turn | 900 |
+| 8 | **It follows instructions** | Attach a skill; it loads and applies it | 1000 |
+| 9 | **You can steer it** | Correct it mid-turn without restarting | 450 |
+| 10 | **It doesn't get stuck** | A runaway tool loop is stopped | 450 |
+| 11 | **It picks the right specialist** | Multiple agents; the right one answers each turn | 700 |
+| 12 | **It handles long conversations** | 200 turns without hitting the context window | 450 |
+| 13 | **It reads and writes files** *(opt)* | File tools without going through MCP | 800 |
+| 14 | **It runs commands** *(opt)* | `bash`, confined | 800 |
+| 15 | **It delegates** *(opt)* | Subagents working in parallel | 800 |
 
-**Phases 1–4 are the product.** 5–8 make it capable and safe. 9–10 make it
-better than cell-bot. 11–13 are agentic capabilities to add only if the product
+**Phases 1–6 are the product.** 7–10 make it capable and safe. 11–12 make it
+better than cell-bot. 13–15 are agentic capabilities to add only if the product
 turns out to want them.
 
 ### Why this order
@@ -44,12 +46,12 @@ A chat product's constraints differ from a coding harness's:
 | | Chat product (us) | Coding harness |
 |---|---|---|
 | The UI is | the product — pull it to phase 4 | optional |
-| Capabilities arrive via | **MCP** (phase 5) | built-in fs/shell tools |
+| Capabilities arrive via | **MCP** (phase 7) | built-in fs/shell tools |
 | A turn is | often long (a download, a deck) — runs must outlive connections | usually short |
-| Multiple agents means | **routing** to a specialist (phase 9) | delegating to subagents |
+| Multiple agents means | **routing** to a specialist (phase 11) | delegating to subagents |
 | `bash`/fs tools are | optional, late | phase 2 material |
 
-This is why phases 11–13 are marked optional. cell-bot ships a real product with
+This is why phases 13–15 are marked optional. cell-bot ships a real product with
 none of them — every capability arrives through an MCP server.
 
 ### Where the infrastructure lands
@@ -61,17 +63,18 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Session event log | 1 | The loop derives history from it — retrofitting means rewriting the loop |
 | Persistence + the model-visible invariant | 3 | Resume is what makes the invariant testable |
 | Runs and cursors | 4 | A turn must outlive the tab that started it |
-| `Scope` (reversible teardown) | ~~4~~ **5** | Phase 4 registers nothing; stopping a run is `task.cancel()`. An MCP connection is the first real connect/disconnect lifecycle |
-| Tool result `meta` (UI cards) | ~~4~~ **5** | A UI exists now and still has nothing to put there — the only tool is a clock. The first MCP tool returning an image is the caller |
+| `Scope` (reversible teardown) | ~~4~~ **7** | Phase 4 registers nothing; stopping a run is `task.cancel()`. An MCP connection is the first real connect/disconnect lifecycle |
+| Tool result `meta` (UI cards) | ~~4~~ **7** | A UI exists now and still has nothing to put there — the only tool is a clock. The first MCP tool returning an image is the caller |
 | Heartbeat, lease, reclaim | ~~4~~ **when a 2nd process exists** | Reclaiming a *process's* runs is a multi-process problem. One server, and phase 3's repair-on-resume already covers the single-process crash |
 | `Session.after(cursor)` | ~~4~~ **never** | `session.events()[n:]` already is it. Proposed and cut twice |
-| Prompt sections | 6 | Skills are the first thing that contributes to the prompt |
-| **Around-middleware on tool execution** | 8 | The timeout and guardrail are its first listeners |
-| `ToolDefinition.timeout_s` | 8 | Nothing enforces a deadline until the timeout policy exists |
-| Typed hooks | 8 | The guardrail is its first real consumer |
-| Seams (`FileSystem`, `Subprocess`) | 11 | Two providers is when an interface earns its keep |
-| `Layered` (scoped registries) | 13 | The first time a plugin registers into *one agent's* world |
-| `user/message` `source` field | when injected context exists (6 or 7) | Only `human` produces one until then |
+| Prompt sections | 8 | Skills are the first thing that contributes to the prompt |
+| **Around-middleware on tool execution** | 10 | The timeout and guardrail are its first listeners |
+| `ToolDefinition.timeout_s` | 10 | Nothing enforces a deadline until the timeout policy exists |
+| Typed hooks | 10 | The guardrail is its first real consumer |
+| Seams (`FileSystem`, `Subprocess`) | 13 | Two providers is when an interface earns its keep |
+| `Layered` (scoped registries) | 15 | The first time a plugin registers into *one agent's* world |
+| Durable inbox (`followup`/`steer`/`inject`) | 9 | Phase 5 queues at the channel, which is enough while a correction can wait for the next turn. `steer` mutates a turn already running, so it needs dsh's session-event inbox |
+| `user/message` `source` field | when injected context exists (8 or 9) | Only `human` produces one until then |
 
 **Phase 2 built four of these early and they were cut.** An event bus with no
 listener, a `timeout_s` nothing enforced, a `meta` nothing rendered, and a cursor
@@ -79,7 +82,7 @@ nothing subscribed to. Each was justified by a docstring describing a *future*
 caller — which is the tell. The check is `grep`: a definition whose only callers
 are in `tests/` either belongs in `tests/` or does not exist yet.
 
-On `Layered`: per-agent **tool selection** (phase 9) does not need layered
+On `Layered`: per-agent **tool selection** (phase 11) does not need layered
 registries. cell-bot does it by filtering the provider at compose time
 (`narrow(mode, patterns, provider)`), which is simpler and correct. `Layered` is
 only needed when a plugin registers into one agent's world — which is subagents.
@@ -87,12 +90,12 @@ only needed when a plugin registers into one agent's world — which is subagent
 **Dependency graph:**
 
 ```
-1 ── 2 ── 3 ── 4 ─┬─ 5 ─┬─ 6 ── 9
-                  ├─ 7  │
-                  ├─ 8 ─┘
-                  └─ 10
-                  
-                  11 ── 12 ── 13     (optional track, needs 4)
+1 ── 2 ── 3 ── 4 ── 5 ── 6 ─┬─ 7 ─┬─ 8 ── 11
+                            ├─ 9  │
+                            ├─ 10 ┘
+                            └─ 12
+
+                            13 ── 14 ── 15   (optional track, needs 4)
 ```
 
 ---
@@ -157,12 +160,12 @@ the result.
 - `tools/native/clock.py`
 - `session/events.py` — add `step/start`, `step/end`, `tool/call`, `tool/result`
 
-**Not here, though an earlier draft said so.** The interception chain (phase 8,
-when the timeout and guardrail need it), a per-agent tool filter (phase 5's MCP
-wildcards or phase 9's selection), and `todo_write` (phase 4, when a UI renders a
+**Not here, though an earlier draft said so.** The interception chain (phase 10,
+when the timeout and guardrail need it), a per-agent tool filter (phase 7's MCP
+wildcards or phase 11's selection), and `todo_write` (phase 4, when a UI renders a
 checklist). Each would have been a mechanism with no user.
 
-**Why live providers now.** Phase 5's MCP servers connect mid-conversation. A
+**Why live providers now.** Phase 7's MCP servers connect mid-conversation. A
 registry that resolves its providers on every turn makes that free; one that
 materializes a list at compose time freezes each agent's tools forever.
 
@@ -172,7 +175,7 @@ materializes a list at compose time freezes each agent's tools forever.
   directly only when the schema comes from elsewhere (MCP).
 - `ToolOutcome` is typed: `Ok(content, meta) | Failure(code, message)`, rendered
   as `"error: …"` so the model recovers. Never raises.
-- Serial dispatch. `concurrency_safe` arrives in phase 11 when reads can overlap.
+- Serial dispatch. `concurrency_safe` arrives in phase 13 when reads can overlap.
 - A provider that raises is logged and contributes nothing — one broken source
   must not cost the model every other tool.
 
@@ -277,7 +280,7 @@ never emit it from `agent/loop.py`.
 
 dsh's wording for the second tells the model to *"retry only read-only or
 idempotent work and to verify possible side effects or ask the user."* That is a
-real safety difference once phase 12 has `bash`.
+real safety difference once phase 14 has `bash`.
 
 ## Acceptance
 
@@ -336,7 +339,7 @@ infrastructure lands". Also cut *during* building, for the same reason: run ids
 `RunStatus` vocabulary (how a turn ended is the `reason` on its `turn/end`, which
 is already on the wire), `FINISHED_RUN_TTL` (the flush before settling means disk
 serves the same events), and the SSE keepalive (nothing in this phase goes silent
-for 15s; it lands with phase 5's slow MCP tools).
+for 15s; it lands with phase 7's slow MCP tools).
 
 **Why runs are here and not later.** A chat product's turns are long — a
 download, a generated deck. Tying a turn to the connection that asked for it
@@ -389,11 +392,149 @@ status and skills changes, which are their "host frames".
   Deferred with the heartbeat — needs a second process.
 - ~~Disposing an agent unwinds every registration it made.~~ Deferred with `Scope`.
 
-**Milestone.** Phases 1–4 are a working chat product. ~4,300 lines.
+**Milestone.** Phases 1–4 are a working chat product in a browser. ~4,300 lines.
 
 ---
 
-# Phase 5 — It uses your tools
+# Phase 5 — It answers on Telegram ⭐
+
+**Demo.** Text your bot from your phone. It replies. Put your phone away
+mid-answer and it still arrives. Send a follow-up while it works and it is
+answered next, in order. Paste something long — Telegram's client splits it into
+three messages and you still get **one** answer. The conversation appears in the
+browser sidebar, live.
+
+**Depends on.** 4.
+
+**Why here.** Phase 4's run store made a turn survive the tab that started it, and
+the honest answer to "what for?" was *not much yet* — a clock tool finishes in a
+second. A messenger is where it stops being insurance: there is no connection to
+outlive because there never was one, so a design that tied a turn to the request
+that asked for it would have nowhere to put the answer.
+
+**Ships.**
+- `channels/transport.py` — `Channel`, one Protocol per platform, and `InboundMessage`
+- `channels/gateway.py` — inbound → run, log → outbound, and supervision of every channel
+- `channels/telegram/channel.py` — one platform: polling, batching, splitting, typing
+- `channels/commands.py` — what `/new` and `/stop` *do*, shared by every platform
+- `channels/telegram/commands.py` — recognising them, which is Telegram's convention alone
+- `channels/repository.py`, `channels/repositories/jsonl.py` — per-chat state
+
+**Polling is `python-telegram-bot`'s**, not ours. A hand-rolled `getUpdates` loop
+was written first and replaced: it busy-looped on an empty response, died
+permanently on the 409 that `--reload` causes on every save, and did so silently.
+PTB is what `hermes-agent` uses, and its `Application` brings backoff, the rate
+limiter and offset handling — so `client.py` and `poller.py` were deleted rather
+than debugged.
+
+**No frontend.** The token lives in `config.local.json` beside the LLM key, and a
+Telegram conversation renders through the timeline phase 4 already built.
+
+## Where the answers came from
+
+Three references, and they disagree usefully.
+
+**`hermes-agent`** (`gateway/platforms/telegram.py`, 5,861 lines) corrected this
+plan twice. **Batching is required**, and not for burst typing: *"Buffer rapid
+text messages so Telegram **client-side splits of long messages** are aggregated
+into a single MessageEvent."* Paste 5,000 characters and the client splits it —
+without a buffer that is two turns for one paste. Its tuned delays are adopted
+(0.18s ≤320 codepoints, 0.24s ≤1024, 0.30s beyond, 1.0s when a split is
+suspected). And **busy behaviour is a three-way policy** — `queue` | `steer` |
+`interrupt` — with text defaulting to `queue`, `steer` falling back to queue "so
+nothing is lost", and `interrupt` **demoted to queue while subagents are running**
+so a conversational aside cannot destroy minutes of work.
+
+**`duta-ilmu`** (`services/channel-gateway`), a production Telegram/WhatsApp
+platform, settles transport: long polling in dev — *"no public URL needed"* —
+feeding the same path a webhook would; the offset committed *after* publishing
+with `(channel, provider_message_id)` dedupe absorbing replays; and
+per-conversation FIFO, *"consumers MUST keep entries with the same partition_key
+on one worker to preserve per-conversation ordering."*
+
+**`dsh`**'s durable inbox — `agent/inbox/spliced` events projected into
+`next-turn` and `next-step` lists — is the richest answer and belongs to phase 9,
+because `steer` mutates a turn already running.
+
+## Key contracts
+
+- **Queue, and only queue.** A phone cannot grey out its composer, so a message
+  during a turn is held and answered next — never refused (cell-bot's `409` is
+  right for a browser and useless here), never merged into the running turn.
+- **The queue drains as one turn.** Three lines typed in a burst were one thought.
+- **The queue is channel state, not session events.** A *queued* message has not
+  reached a model request yet, so "model-visible means logged" does not bind it;
+  it becomes an ordinary `user/message` the moment its turn starts.
+- **Outbound is a cursor over the session log** — the same numbering the browser
+  uses for `?after=N`. It is what stops a restart re-texting a delivered reply.
+- **Dedupe by consequence, not by default.** A redelivered message is answered
+  again — annoying, not damaging. `hermes-agent` guards exactly one thing across
+  5,861 lines of Telegram, `/restart`, because a repeated `/restart` perpetuates
+  itself. Nothing here has that shape, so the `update_id` set planned for this
+  phase was cut before it was written.
+- **A conversation is created by the first message, not first contact.** Phase 3's
+  `create()` writes nothing, so a chat that only ever sent `/stop` would otherwise
+  hold an id `resume()` cannot find.
+- **Split outbound at 4096 on a paragraph boundary**; never truncate. **Plain
+  text, not MarkdownV2** — one unescaped character rejects the whole message.
+- **Registering a platform twice is refused.** Two pollers on one bot token is a
+  409 from Telegram, and it was reachable: a dict of transports silently replaced
+  while a list of pollers silently appended.
+- **A channel that stops listening says so.** `create_task` holds an exception
+  until something awaits the task, and nothing does until shutdown — so a dead
+  poller and a working one look identical from the outside.
+
+## Acceptance
+
+- A message becomes a turn and a reply.
+- A message during a turn is queued and answered next, in order.
+- Several queued messages drain as **one** turn.
+- A client-split paste is **one** turn — both when the halves arrive together and
+  when the second lands on the next poll.
+- A restart re-sends nothing already delivered.
+- `/new` starts fresh; `/stop` cancels and clears the queue.
+- Registering one platform twice is refused.
+- A second platform needs no change to `gateway.py`, `commands.py` or
+  `repository.py` — proven by a `FakeDiscord` that implements `Channel` and
+  nothing else.
+- The conversation is listed and replayable over HTTP like any other.
+
+---
+
+# Phase 6 — One seam for every channel
+
+**Demo.** Nothing changes on screen — that *is* the acceptance criterion. The
+browser and Telegram run through one adapter contract, the frontend is untouched,
+and a third channel becomes a file rather than an integration.
+
+**Depends on.** 5, deliberately: the seam is extracted from two working
+implementations rather than guessed.
+
+**Why the API becomes a channel.** `hermes-agent` models its HTTP API as a
+platform adapter — `gateway/platforms/api_server.py` sits alongside `telegram.py`
+and `slack.py`, exposing `POST /v1/runs` (202), `GET /v1/runs/{id}/events` (SSE)
+and `POST /v1/runs/{id}/stop`; its web UI is just a client of it, and twenty
+platforms live behind one `BasePlatformAdapter`. `duta-ilmu` does **not** — its
+`Channel` enum is `telegram | whatsapp` and the widget takes a separate path. The
+sources genuinely disagree, and Hermes's answer is the one that scales.
+
+**What stays per-channel, because it genuinely differs:** the browser streams
+token-by-token from the raw event log and holds its own cursor; Telegram gets one
+finished message, server-side cursor, a 4096 limit and slash commands. That first
+difference is why this is phase 6 and not part of 5.
+
+**What does not change: the HTTP endpoints.** They stay conversation-keyed.
+Hermes keys on run id and therefore needs a fourth endpoint,
+`GET /chats/{id}/turns/in_flight`, for a reconnecting client to find what to
+attach to; `ilmuchat-enterprise` carries the same probe for the same reason.
+Keying on the conversation removed that round trip in phase 4.
+
+**Acceptance.** The frontend needs no changes — which is the test that the
+refactor was a refactor.
+
+---
+
+# Phase 7 — It uses your tools
 
 **Demo.** Add an MCP server in settings; its tools are callable on the next turn,
 in the same conversation.
@@ -433,7 +574,7 @@ is a separate process with its own README and tests, not backend growth.
 
 ---
 
-# Phase 6 — It follows instructions
+# Phase 8 — It follows instructions
 
 **Demo.** Attach a skill to an agent; ask something matching it — it loads and
 follows it.
@@ -482,12 +623,12 @@ with one implementation.
 - An I/O error preserves the last-good catalog (incomplete ≠ empty).
 
 **Security note.** A skill shipping executable scripts is code running with
-whatever authority the harness has. Until phase 12 there is no sandbox — either
+whatever authority the harness has. Until phase 14 there is no sandbox — either
 keep skills instruction-only, or accept the risk explicitly.
 
 ---
 
-# Phase 7 — You can steer it
+# Phase 9 — You can steer it
 
 **Demo.** It's going the wrong way; type a correction and it adjusts at the next
 step instead of restarting.
@@ -518,7 +659,7 @@ step instead of restarting.
 
 ---
 
-# Phase 8 — It doesn't get stuck
+# Phase 10 — It doesn't get stuck
 
 **Demo.** An MCP tool keeps failing; it stops instead of burning 60 turns.
 
@@ -556,7 +697,7 @@ step instead of restarting.
 
 ---
 
-# Phase 9 — It picks the right specialist
+# Phase 11 — It picks the right specialist
 
 **Demo.** Several agents in the catalog; each turn is answered by the right one,
 with its own prompt, skills, and tool subset.
@@ -601,7 +742,7 @@ not frozen at compose time. Scoped registries are a phase-13 concern.
 
 ---
 
-# Phase 10 — It handles long conversations
+# Phase 12 — It handles long conversations
 
 **Demo.** A 200-turn session stays coherent instead of hitting the context window.
 
@@ -630,10 +771,10 @@ not frozen at compose time. Scoped registries are a phase-13 concern.
 
 # Optional track — agentic capabilities
 
-Phases 11–13 are worth building only if the product wants them. cell-bot ships
-without all three. **Decide before starting 11**, not during.
+Phases 13–15 are worth building only if the product wants them. cell-bot ships
+without all three. **Decide before starting 13**, not during.
 
-## Phase 11 — It reads and writes files *(optional)*
+## Phase 13 — It reads and writes files *(optional)*
 
 **Ships.** `seams/fs.py`, `seams/subprocess.py`, local providers,
 `read`/`write`/`edit`, `glob`/`grep` via packaged ripgrep,
@@ -646,7 +787,7 @@ tools. Reads overlap; writes don't.
 **Acceptance.** Pointing `FileSystem` + `Subprocess` at the test suite's in-memory
 provider moves all five tools with **zero tool changes**. ~800 lines.
 
-## Phase 12 — It runs commands *(optional)*
+## Phase 14 — It runs commands *(optional)*
 
 **Ships.** `seams/shell.py`, `seams/sandbox.py`, local providers,
 `tools/native/bash.py`, `jobs/` + `job_*` tools, `interaction/approval.py`.
@@ -658,7 +799,7 @@ registers with the generic `Jobs` runtime; completion arrives via `inject()`.
 **Risk.** Platform-specific and the most likely phase to overrun. POSIX only;
 defer Windows. ~800 lines.
 
-## Phase 13 — It delegates *(optional)*
+## Phase 15 — It delegates *(optional)*
 
 **Ships.** `core/layered.py` (converting the registries), `seams/subagent.py`,
 `providers/subagent_fork.py`, `providers/subagent_spawn.py`, the `subagent` /
@@ -698,7 +839,7 @@ Not phases. They start immediately and run throughout.
 | Phase 3 | JSONL vs SQLite | **JSONL**, header on line 1 (dsh's design) |
 | Phase 4 | Frontend stack | **Next.js**, matching cell-bot's `frontend/` |
 | Phase 6 | Skills from DB, filesystem, or both | **Both** — that's what makes it a seam |
-| Phase 11 | Build the optional track at all | **Defer** until the product asks |
+| Phase 13 | Build the optional track at all | **Defer** until the product asks |
 
 ---
 

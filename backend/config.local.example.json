@@ -1,5 +1,8 @@
 {
   "llm": {
-    "api_key": "sk-\u2026"
+    "api_key": "sk-…"
+  },
+  "telegram": {
+    "bot_token": ""
   }
 }

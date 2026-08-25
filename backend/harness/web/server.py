@@ -31,12 +31,16 @@ State lives on `app.state`, read through the accessors in
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from harness.agent.loop import LoopAgent
+from harness.channels.gateway import ChannelGateway
+from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.telegram.channel import TelegramChannel
 from harness.config.settings import Settings, load
 from harness.llm.adapters.openai import OpenAIClient
 from harness.runs.store import RunStore
@@ -82,6 +86,58 @@ def build_agent(settings: Settings, store: SessionService) -> LoopAgent:
     )
 
 
+def build_channels(settings: Settings, sessions: SessionService, runs: RunStore) -> ChannelGateway:
+    """The gateway, and a runtime per configured platform.
+
+    **Where a new platform is added**, and the only place: a block like
+    Telegram's below, and nothing else in the codebase moves. Everything between
+    "a message arrived" and "a reply is ready" is already shared.
+
+    Wiring is deliberately linear — build the gateway, build the channel with
+    it, register the channel back. An earlier version had the platform build the
+    gateway through a factory callback, which was a circular dependency wearing a
+    disguise.
+
+    @returns the gateway, which also supervises every channel it was given, so
+    the server has one thing to start and one thing to stop.
+    """
+    # Chat state lives beside the sessions it points at, so one directory is the
+    # whole of this harness's durable state, and every platform shares it — the
+    # channel name is part of a chat's identity, so they cannot collide.
+    chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
+    gateway = ChannelGateway(chats, runs, sessions)
+
+    # Absent by default rather than failing: a token cannot be guessed, and the
+    # browser is a complete product without one. The guard is load-bearing —
+    # building the channel anyway hands PTB an empty token. `.strip()` because a
+    # blank string in JSON is a paste that went wrong, not a deliberate value.
+    if settings.telegram.bot_token.strip():
+        gateway.register(TelegramChannel(settings.telegram.bot_token, gateway))
+
+    return gateway
+
+
+def _configure_logging() -> None:
+    """Make `harness.*` log lines visible when running under uvicorn.
+
+    Uvicorn configures only its own loggers, so without this everything this
+    codebase logs — a tool provider that raised, a run that failed, a channel
+    that stopped polling — is written to a logger with no handler and vanishes.
+    That is how a dead Telegram poller came to look like a working one.
+
+    Done **here and not at import**: configuring logging is the application's
+    business, and a library that did it on import would fight whatever imported
+    it.
+    """
+    harness = logging.getLogger("harness")
+    if harness.handlers:
+        return
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
+    harness.addHandler(handler)
+    harness.setLevel(logging.INFO)
+
+
 def create_web_app() -> FastAPI:
     """The application uvicorn starts.
 
@@ -89,17 +145,38 @@ def create_web_app() -> FastAPI:
     here rather than at import, so a missing API key is a `MissingConfigError`
     naming the file to edit instead of an import-time traceback.
     """
+    _configure_logging()
     settings = load()
     service = build_store(settings)
-    return create_app(service, RunStore(service, build_agent(settings, service)))
+    runs = RunStore(service, build_agent(settings, service))
+    gateway = build_channels(settings, service, runs)
+    return create_app(service, runs, gateway=gateway)
 
 
-def create_app(service: SessionService, runs: RunStore) -> FastAPI:
-    """The HTTP surface over one service and one run store."""
+def create_app(
+    service: SessionService,
+    runs: RunStore,
+    *,
+    gateway: ChannelGateway | None = None,
+) -> FastAPI:
+    """The HTTP surface over one service and one run store.
+
+    `gateway` is optional because the browser is the whole product without one —
+    a harness with no bot token still serves the UI, and every phase-4 test
+    builds an app without one.
+    """
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        if gateway is not None:
+            await gateway.start()
         yield
+        # Before `runs.aclose()`: the gateway stops listening and then stops
+        # delivering, so nothing is still trying to send a message for a turn
+        # being cancelled underneath it. The ordering *within* that is the
+        # gateway's own — see its `aclose`.
+        if gateway is not None:
+            await gateway.aclose()
         # Turns still in flight when the server stops are cancelled *and
         # flushed*, so an interrupted conversation stays resumable. Exiting
         # underneath them would leave exactly the unanswered tool calls phase 3's
