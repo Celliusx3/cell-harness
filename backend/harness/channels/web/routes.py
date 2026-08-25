@@ -17,6 +17,8 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 
+from harness.channels.web.schemas import ConversationDetail, ConversationSummary, SendMessage
+from harness.channels.web.sse import MEDIA_TYPE, sse_frames
 from harness.runs.store import RunAlreadyActive, RunStore
 from harness.session.log import Session
 from harness.session.repository import (
@@ -25,8 +27,6 @@ from harness.session.repository import (
     SessionNotFoundError,
 )
 from harness.session.service import SessionService
-from harness.web.schemas import ConversationDetail, ConversationSummary, SendMessage
-from harness.web.sse import MEDIA_TYPE, sse_frames
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 

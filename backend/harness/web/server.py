@@ -41,6 +41,7 @@ from harness.agent.loop import LoopAgent
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.channel import TelegramChannel
+from harness.channels.web import routes
 from harness.config.settings import Settings, load
 from harness.llm.adapters.openai import OpenAIClient
 from harness.runs.store import RunStore
@@ -49,7 +50,6 @@ from harness.session.service import SessionService
 from harness.tools.native.clock import clock_tool
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
-from harness.web.routes import conversations
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant. When a tool can answer the user's question, "
@@ -187,5 +187,5 @@ def create_app(
     app = FastAPI(title="cell-harness", lifespan=lifespan)
     app.state.service = service
     app.state.runs = runs
-    app.include_router(conversations.router)
+    app.include_router(routes.router)
     return app

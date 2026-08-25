@@ -1,9 +1,11 @@
-"""The HTTP surface — the first one, and the reason phases 1–3 shipped none.
+"""The composition root — what assembles a server, not what it serves.
 
-    schemas.py              request and response bodies, typed
-    sse.py                  framing for the event stream
-    routes/conversations.py the endpoints
-    server.py               `create_app` — the composition root for the server
+    server.py   `create_app` and the builders behind it
+
+The HTTP surface itself moved to `channels/web/`, because it is one channel's wire
+in the same way `channels/telegram/` is Telegram's. What is left here is the part
+that belongs to no channel: reading settings, building the store, the agent and the
+gateway, and mounting whatever routers the channels bring.
 
 **What the browser gets is `SessionEvent`s and a cursor**, from both the snapshot
 and the stream. Not a bespoke API shape: a new event type becomes a new renderer
