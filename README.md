@@ -64,8 +64,9 @@ tunnel, because it long-polls rather than taking a webhook. Text the bot and the
 conversation shows up in the browser sidebar like any other.
 
 `/new` starts a fresh conversation, `/stop` cancels the current reply. A message
-sent while it is working is answered next rather than refused — a phone cannot
-grey out its composer.
+sent while it is working is answered next rather than refused — and since phase 6
+the browser behaves the same way, because being able to *show* a refusal is not a
+reason to make someone retype what they wrote.
 
 With no token the channel simply does not start.
 
@@ -78,8 +79,8 @@ backend/harness/
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
   runs/         a turn that outlives its connection — store, subscribe
-  channels/     telegram/, and the per-chat state a messenger needs
-  web/          schemas, sse, routes/, server — the HTTP surface + composition root
+  channels/     every way in and out — telegram/, web/, and per-chat state
+  web/          server — the composition root (the HTTP surface is channels/web/)
   config/       one Settings: config.json + config.local.json + env
 backend/tests/  unit/ and integration/
 frontend/       Next.js chat — app/, components/, lib/
@@ -90,6 +91,6 @@ CLAUDE.md       project rules, loaded into every session
 Subpackages arrive with the phase that needs them; the full intended layout is in
 [DESIGN.md §3](./DESIGN.md).
 
-Status: **phase 5 — "it answers on Telegram" — implemented, awaiting review.**
-Every phase in [PHASES.md](./PHASES.md) is a capability you can demo. Next is
-phase 6, "one seam for every channel".
+Status: **phase 6 — "one seam for every channel" — implemented, awaiting review.**
+The browser is a channel now, so one gateway serves it and Telegram. Every phase
+in [PHASES.md](./PHASES.md) is a capability you can demo. Next is phase 7, MCP.

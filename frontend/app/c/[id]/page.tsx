@@ -3,6 +3,7 @@
 import { use } from "react";
 
 import { Composer } from "@/components/Composer";
+import { QueuedBubble } from "@/components/Message";
 import { Timeline } from "@/components/Timeline";
 import { useConversation, useTimeline } from "@/lib/useConversation";
 
@@ -40,7 +41,20 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
         {conversation.loading ? (
           <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
         ) : (
-          <Timeline items={items} />
+          <>
+            <Timeline items={items} />
+            {/* Below the timeline rather than inside it: the timeline renders the
+                session log, and these are precisely the messages that are not in
+                it yet. Mixing them in would blur the one thing that makes a
+                replayed conversation and a live one identical. */}
+            {conversation.queued.length > 0 && (
+              <div className="flex flex-col gap-3 px-6 pb-4">
+                {conversation.queued.map((text, index) => (
+                  <QueuedBubble key={index} content={text} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 

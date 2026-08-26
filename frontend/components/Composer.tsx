@@ -11,11 +11,13 @@ interface Props {
 }
 
 /**
- * The composer, and the stop button in its place while a turn runs.
+ * The composer, and the stop button beside it while a turn runs.
  *
- * One control, two states, because "send" and "stop" are never both useful: a
- * second message during a turn is refused with a 409, so offering it would be
- * offering a button that errors.
+ * **Typing during a turn is allowed.** It used to be blocked, because a second
+ * message was refused with a `409` and offering a button that errors is worse
+ * than offering none. The server queues now — the same thing it always did for
+ * Telegram, where a phone cannot grey out its composer — so the reason for the
+ * block is gone. What is sent mid-turn is answered next.
  */
 export function Composer({ running, onSend, onStop, autoFocus }: Props) {
   const [draft, setDraft] = useState("");
@@ -26,7 +28,7 @@ export function Composer({ running, onSend, onStop, autoFocus }: Props) {
     // whitespace-only prompt with a 422, and a UI that can produce one is a UI
     // that shows the user an error it could have prevented.
     const prompt = draft.trim();
-    if (!prompt || running) return;
+    if (!prompt) return;
     onSend(prompt);
     setDraft("");
     box.current?.focus();
@@ -40,7 +42,6 @@ export function Composer({ running, onSend, onStop, autoFocus }: Props) {
           autoFocus={autoFocus}
           rows={1}
           value={draft}
-          disabled={running}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             // Enter sends, Shift+Enter breaks the line — and `isComposing`
@@ -51,10 +52,12 @@ export function Composer({ running, onSend, onStop, autoFocus }: Props) {
               submit();
             }
           }}
-          placeholder={running ? "Working…" : "Send a message"}
+          placeholder={running ? "Reply — it will be answered next" : "Send a message"}
           className="max-h-48 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-ink-soft disabled:opacity-60"
         />
-        {running ? (
+        {/* Both, now that they are both useful: stop what is running, or queue
+            the next message. Only "stop" is hidden when nothing is running. */}
+        {running && (
           <button
             onClick={onStop}
             aria-label="Stop"
@@ -62,16 +65,15 @@ export function Composer({ running, onSend, onStop, autoFocus }: Props) {
           >
             <Square size={14} fill="currentColor" />
           </button>
-        ) : (
-          <button
-            onClick={submit}
-            disabled={!draft.trim()}
-            aria-label="Send"
-            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition hover:opacity-90 disabled:opacity-35"
-          >
-            <ArrowUp size={16} />
-          </button>
         )}
+        <button
+          onClick={submit}
+          disabled={!draft.trim()}
+          aria-label="Send"
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition hover:opacity-90 disabled:opacity-35"
+        >
+          <ArrowUp size={16} />
+        </button>
       </div>
     </div>
   );

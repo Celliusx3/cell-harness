@@ -53,7 +53,7 @@ async def settle(gateway, runs) -> None:
     """Let the batch timer fire, then the turn and its delivery finish."""
     await asyncio.sleep(SPLIT_DELAY_SECONDS + 0.2)
     for _ in range(300):
-        deliveries = gateway._deliveries
+        deliveries = gateway._following
         busy = any(not task.done() for task in deliveries.values())
         if not busy and not any(runs._runs.values()):
             return

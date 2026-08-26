@@ -50,6 +50,22 @@ class ConversationDetail(ConversationSummary):
     running: bool
 
 
+class MessageAccepted(ConversationSummary):
+    """What `POST /{id}/messages` answers with.
+
+    Separate from `ConversationSummary` so `queued` appears only where it means
+    something — listing conversations would otherwise carry a field that is always
+    false.
+    """
+
+    # True when the message is held behind a turn already running and will be
+    # answered next. The client needs telling because a queued message is *not in
+    # the log yet* — it becomes a `user/message` only when its turn starts — and
+    # the browser draws the conversation from the log. Without this flag the text
+    # someone just sent would vanish until the current answer finished.
+    queued: bool
+
+
 class SendMessage(BaseModel):
     """A message starting a turn."""
 

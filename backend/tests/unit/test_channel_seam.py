@@ -43,6 +43,7 @@ class FakeDiscord:
     """
 
     channel = DISCORD
+    on_missing = "recreate"
 
     def __init__(self) -> None:
         self.sent: list[tuple[str, str]] = []
@@ -79,7 +80,7 @@ def build(tmp_path):
 
 async def settle(runs, gateway, key) -> None:
     for _ in range(300):
-        task = gateway._deliveries.get(key)
+        task = gateway._following.get(key)
         busy = task is not None and not task.done()
         if not busy and not any(runs._runs.values()):
             return
@@ -219,4 +220,4 @@ async def test_a_finished_delivery_is_forgotten(tmp_path) -> None:
     # The callback runs on the loop's next pass, not inline with the task ending.
     await asyncio.sleep(0)
 
-    assert gateway._deliveries == {}
+    assert gateway._following == {}

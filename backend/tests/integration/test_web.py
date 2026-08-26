@@ -29,7 +29,6 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
-from harness.web.server import create_app
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -38,6 +37,7 @@ from tests.unit.fakes import (
     echo_tool,
     hanging_tool,
 )
+from tests.webapp import web_app
 
 
 def build(tmp_path, client, *tools) -> tuple[SessionService, RunStore]:
@@ -57,8 +57,8 @@ def build(tmp_path, client, *tools) -> tuple[SessionService, RunStore]:
     return service, RunStore(service, agent)
 
 
-def api(service: SessionService, runs: RunStore) -> httpx.AsyncClient:
-    app = create_app(service, runs)
+def api(tmp_path, service: SessionService, runs: RunStore) -> httpx.AsyncClient:
+    app = web_app(tmp_path, service, runs)
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://harness.test")
 
 
@@ -66,7 +66,7 @@ def api(service: SessionService, runs: RunStore) -> httpx.AsyncClient:
 async def simple(tmp_path):
     """An app whose model answers in one step."""
     service, runs = build(tmp_path, ScriptedClient(completed("hello")))
-    async with api(service, runs) as client:
+    async with api(tmp_path, service, runs) as client:
         yield client, service, runs
 
 
@@ -76,7 +76,7 @@ async def slow(tmp_path):
     service, runs = build(
         tmp_path, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool()
     )
-    async with api(service, runs) as client:
+    async with api(tmp_path, service, runs) as client:
         yield client, service, runs
 
 
@@ -264,7 +264,10 @@ async def test_a_negative_cursor_is_refused(simple) -> None:
 # ── one turn at a time ────────────────────────────────────────────────────────
 
 
-async def test_a_second_message_while_running_is_refused(slow) -> None:
+async def test_a_second_message_while_running_is_queued(slow) -> None:
+    """It used to be a `409`. Refusing makes someone retype what they wrote, and
+    Telegram never could refuse — a phone has no composer to grey out — so the two
+    channels answered this differently until the browser became a channel too."""
     client, _, runs = slow
     conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
 
@@ -272,11 +275,12 @@ async def test_a_second_message_while_running_is_refused(slow) -> None:
         f"/api/conversations/{conversation_id}/messages", json={"prompt": "again"}
     )
 
-    assert second.status_code == 409
+    assert second.status_code == 202
+    assert second.json()["queued"] is True
     await client.delete(f"/api/conversations/{conversation_id}/run")
 
 
-async def test_a_refused_message_does_not_repair_the_running_turn(slow) -> None:
+async def test_a_queued_message_does_not_repair_the_running_turn(slow) -> None:
     """Why the busy check happens *before* the load, not only after.
 
     Loading for writing calls `resume`, which commits crash repair — and a running
@@ -336,12 +340,15 @@ async def test_two_simultaneous_messages_start_exactly_one_turn(simple, monkeypa
 
     responses = await asyncio.gather(first, second)
 
-    assert sorted(r.status_code for r in responses) == [202, 409]
+    # Both are accepted now; exactly one starts a turn and the other is queued.
+    assert [r.status_code for r in responses] == [202, 202]
+    assert sorted(r.json()["queued"] for r in responses) == [False, True]
     await settle(runs, conversation_id)
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
-    # The opening message plus whichever of the two won — never both.
+    # The opening message, the one that won the race, and the queued one drained
+    # after it — nothing is lost, which is the point of queueing over refusing.
     prompts = [e["message"]["content"] for e in detail["events"] if e["type"] == "user/message"]
-    assert len(prompts) == 2
+    assert prompts == ["hi", "a", "b"] or prompts == ["hi", "b", "a"]
 
 
 async def test_a_corrupt_log_reports_the_file_it_could_not_read(simple, tmp_path) -> None:
@@ -443,7 +450,7 @@ async def test_a_tool_using_turn_reaches_the_client(tmp_path) -> None:
         SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
         echo_tool(),
     )
-    async with api(service, runs) as client:
+    async with api(tmp_path, service, runs) as client:
         conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()[
             "id"
         ]
@@ -460,7 +467,7 @@ async def test_shutdown_stops_a_running_turn_durably(tmp_path) -> None:
     service, runs = build(
         tmp_path, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool()
     )
-    app = create_app(service, runs)
+    app = web_app(tmp_path, service, runs)
     transport = httpx.ASGITransport(app=app)
     conversation_id = ""
 

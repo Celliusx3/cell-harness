@@ -46,7 +46,7 @@ from telegram.ext import Application, ApplicationBuilder, MessageHandler, filter
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
 from harness.channels.telegram import commands
-from harness.channels.transport import InboundMessage
+from harness.channels.transport import InboundMessage, OnMissing
 
 logger = logging.getLogger("harness.channels.telegram")
 
@@ -124,13 +124,17 @@ class _Batch:
 
 
 class TelegramChannel:
-    """`Channel` for Telegram: receive, send, show typing.
+    """`Channel` and `Pushing` for Telegram: receive, send, show typing.
 
-    Satisfies the Protocol structurally — no base class, because that is what
+    Satisfies both Protocols structurally — no base class, because that is what
     lets a platform live entirely in its own package.
     """
 
     channel = CHANNEL
+    # A chat whose conversation vanished must keep working: the person holding the
+    # phone has no address bar to correct and no way to start over except `/new`.
+    # The browser is the opposite — it names the id it wants, so a miss is a 404.
+    on_missing: OnMissing = "recreate"
 
     def __init__(self, token: str, gateway: ChannelGateway) -> None:
         self._gateway = gateway

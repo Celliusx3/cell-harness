@@ -32,8 +32,8 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
-from harness.web.server import create_app
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
+from tests.webapp import web_app
 
 # Generous, because a failure here should read as "the contract broke" rather
 # than "CI was busy". Nothing in these tests waits on wall-clock time on purpose.
@@ -86,7 +86,7 @@ async def live(tmp_path):
     )
     runs = RunStore(service, agent)
     async with (
-        serving(create_app(service, runs)) as base_url,
+        serving(web_app(tmp_path, service, runs)) as base_url,
         httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as client,
     ):
         yield client, service, runs

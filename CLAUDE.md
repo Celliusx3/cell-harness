@@ -14,9 +14,9 @@ MCP — not a terminal coding harness). Synthesized from two studied sources:
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for what phase we are in and what it must satisfy.
 
-**Status: phase 5 — "it answers on Telegram" — implemented, awaiting review.**
-Next is phase 6, "one seam for every channel" — the API and Telegram behind one
-adapter contract.
+**Status: phase 6 — "one seam for every channel" — implemented, awaiting review.**
+The browser is a channel now: one gateway for both, and a mid-turn message is
+queued rather than refused. Next is phase 7, MCP.
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
@@ -35,8 +35,8 @@ backend/harness/
   agent/        the turn loop and its events
   tools/        definition, registry, pipeline, progress, native/
   runs/         a turn that outlives its connection — store, subscribe
-  channels/     telegram/, and the per-chat state a messenger needs
-  web/          schemas, sse, routes/, server — the HTTP surface + composition root
+  channels/     every way in and out — telegram/, web/, and per-chat state
+  web/          server — the composition root (the HTTP surface is channels/web/)
   config/       one Settings: config.json + config.local.json + env
 backend/tests/  unit/ and integration/
 frontend/       Next.js chat — app/, components/, lib/

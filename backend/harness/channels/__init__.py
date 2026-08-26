@@ -1,12 +1,18 @@
-"""Channels — ways in and out other than the browser.
+"""Channels — every way in and out, the browser included.
 
-    transport.py    `Channel` — the one Protocol a platform implements
+    transport.py    `Channel`, and `Pushing` for platforms that can be sent to
     gateway.py      **one** gateway: inbound -> a run, the log -> outbound, and
                     supervision of every channel's background task
     commands.py     `/new` and `/stop`, shared by every text platform
     repository.py   the storage port for per-chat state
     repositories/   one file per backend — `jsonl.py` today
-    telegram/       the first platform: `TelegramChannel`, and its command syntax
+    telegram/       `TelegramChannel`, and its command syntax
+    web/            `WebChannel`, and the HTTP surface it owns
+
+**The browser is a channel too**, as of phase 6. It was not, and the cost was two
+implementations of one sequence — resolve the conversation, is a turn running?,
+start one, catch the race — that answered every question differently. Now the
+browser is a client of `web/`, the way the Telegram app is a client of `telegram/`.
 
 **Why a messenger is where the run store pays off.** On Telegram there is no
 connection to outlive, because there never was one: a message arrives over a poll
@@ -14,11 +20,15 @@ or a webhook, and the reply goes out over the API minutes later. A design that
 tied a turn to the connection that asked for it would have nowhere to put the
 answer.
 
-**One conversation at a time, and a queue behind it.** A browser can grey out its
-composer; a phone cannot stop someone typing. So a message arriving mid-turn is
-held and answered next — never refused, never merged into the running turn.
+**One conversation at a time, and a queue behind it.** A message arriving mid-turn
+is held and answered next — never refused, never merged into the running turn.
 Folding a correction into a turn already in flight is `steer`, and doing it
 honestly needs a durable inbox; that is a later phase.
+
+That used to be a Telegram rule, with the browser answering `409` because it
+*could* grey out its composer. Phase 6 made it universal: being able to show a
+refusal is not a reason to refuse, and the cost was making someone retype what
+they had already written.
 
 Prior art, and it disagrees usefully. `hermes-agent` makes busy-behaviour a
 three-way policy (`queue` | `steer` | `interrupt`) and defaults **text to queue**;
@@ -60,14 +70,21 @@ not the transport.
 Everything between "a message arrived" and "a reply is ready" is already shared,
 so a new platform is two small objects and one block of wiring:
 
-1. **One class implementing `Channel`** — `run()`, `send_message()`,
-   `send_typing()`, and a `channel` name. It owns its own limits, the way
-   `TelegramChannel` owns the 4096-character split and the decision to send
-   plain text rather than risk MarkdownV2 rejecting a whole message.
-   `send_typing` is a no-op where the platform has no such idea, and `run()` is
-   the part that genuinely differs — Telegram long-polls, WhatsApp serves a
-   webhook, Discord holds a websocket. A redelivery is answered again rather
-   than guarded; see "dedupe by consequence" above before adding a guard.
+1. **One class implementing `Channel`** — a `channel` name, an `on_missing`, and
+   `run()`. It owns its own limits, the way `TelegramChannel` owns the
+   4096-character split and the decision to send plain text rather than risk
+   MarkdownV2 rejecting a whole message. `run()` is the part that genuinely
+   differs — Telegram long-polls, WhatsApp serves a webhook, Discord holds a
+   websocket, and a channel whose receiving is driven by something else waits.
+   A redelivery is answered again rather than guarded; see "dedupe by
+   consequence" above before adding a guard.
+
+   **Then decide whether it can be sent to.** A platform the gateway delivers
+   into also implements `Pushing` — `send_message()` and `send_typing()`, the
+   latter a no-op where the platform has no such idea. A platform whose client
+   *reads* instead, as a browser does, implements neither and is never asked.
+   The registration log line says which mode it resolved to, so a typo in
+   `send_message` shows up at startup rather than as a bot that answers nothing.
 2. **One line in `build_channels`** (`web/server.py`) —
    `gateway.register(YourChannel(token, gateway))`. Registering both teaches the
    gateway how to reply and hands it the task to supervise. That function is the

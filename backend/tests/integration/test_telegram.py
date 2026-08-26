@@ -14,7 +14,6 @@ import httpx
 
 from harness.agent.loop import LoopAgent
 from harness.channels.gateway import ChannelGateway
-from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.transport import InboundMessage
 from harness.config.settings import Settings
 from harness.runs.store import RunStore
@@ -23,6 +22,7 @@ from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.telegram_fakes import telegram_channel
+from tests.webapp import web_gateway
 
 CHAT = "909"
 
@@ -41,18 +41,19 @@ def build(tmp_path):
         checkpoint=sessions.flush,
     )
     runs = RunStore(sessions, agent)
-    chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions)
+    # Both channels on one gateway, which is the arrangement the server ships:
+    # the browser is a channel now, so an app always has at least one.
+    gateway, web = web_gateway(tmp_path, sessions, runs)
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
-    app = create_app(sessions, runs, gateway=gateway)
+    app = create_app(runs, gateway, web)
     return bot, app, gateway, runs, sessions
 
 
 async def settle(runs: RunStore, gateway: ChannelGateway) -> None:
     """Wait for the turn and its delivery to finish."""
     for _ in range(300):
-        task = gateway._deliveries.get(("telegram", CHAT))
+        task = gateway._following.get(("telegram", CHAT))
         busy = task is not None and not task.done()
         if not busy and not any(runs._runs.values()):
             return
@@ -102,19 +103,26 @@ async def test_the_lifespan_starts_and_stops_the_gateway(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
     recording = RecordingChannel()
     gateway.register(recording)
-    wired = create_app(sessions, runs, gateway=gateway)
 
-    async with wired.router.lifespan_context(wired):
+    async with app.router.lifespan_context(app):
         await until(lambda: recording.running, what="the channel to start")
 
-    assert gateway.channels == ["telegram", "recording"]
+    assert gateway.channels == ["web", "telegram", "recording"]
 
 
-async def test_an_app_with_no_gateway_still_serves(tmp_path) -> None:
-    """The browser is the whole product without a bot token."""
-    bot, app, gateway, runs, sessions = build(tmp_path)
-    wired = create_app(sessions, runs)
+async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
+    """The browser is the whole product without a bot token.
 
+    It used to be an app with *no* gateway. There is no such thing now — the
+    browser is a channel, so the gateway is what holds the routes — and the claim
+    worth keeping is that nothing needs a bot token to work.
+    """
+    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
+    runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
+    gateway, web = web_gateway(tmp_path, sessions, runs)
+    wired = create_app(runs, gateway, web)
+
+    assert gateway.channels == ["web"]
     async with wired.router.lifespan_context(wired):
         pass  # must not raise
 
@@ -160,8 +168,7 @@ async def test_a_browser_reply_lands_in_the_same_conversation(tmp_path) -> None:
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    """The browser is a complete product without a bot, so an absent token is a
-    configuration, not an error.
+    """A bot is optional; the browser channel is always there.
 
     The token is passed **explicitly empty** rather than relying on a bare
     `Settings()`: that reads the developer's real `config.local.json`, so this
@@ -173,7 +180,7 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
     settings = Settings(telegram={"bot_token": ""})
 
-    assert build_channels(settings, sessions, runs).channels == []
+    assert build_channels(settings, sessions, runs)[0].channels == ["web"]
 
 
 async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
@@ -181,7 +188,9 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
 
-    assert build_channels(Settings(telegram={"bot_token": "   "}), sessions, runs).channels == []
+    assert build_channels(Settings(telegram={"bot_token": "   "}), sessions, runs)[0].channels == [
+        "web"
+    ]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
@@ -189,7 +198,7 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
     settings = Settings(telegram={"bot_token": "123:abc"})
 
-    built = build_channels(settings, sessions, runs)
+    built, _ = build_channels(settings, sessions, runs)
 
-    assert built.channels == ["telegram"]
+    assert built.channels == ["web", "telegram"]
     await built.aclose()

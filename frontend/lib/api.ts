@@ -1,4 +1,4 @@
-import type { ConversationDetail, ConversationSummary } from "./types";
+import type { ConversationDetail, ConversationSummary, MessageAccepted } from "./types";
 
 /** Thrown for any non-2xx, carrying the backend's `detail` so the UI can show it. */
 export class ApiError extends Error {
@@ -55,7 +55,7 @@ export const createConversation = (prompt: string) =>
   });
 
 export const sendMessage = (id: string, prompt: string) =>
-  request<ConversationSummary>(`/conversations/${id}/messages`, {
+  request<MessageAccepted>(`/conversations/${id}/messages`, {
     method: "POST",
     body: JSON.stringify({ prompt }),
   });

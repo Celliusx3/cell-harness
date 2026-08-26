@@ -14,12 +14,19 @@ tail when no turn is running, the handoff is safe however the timing falls — s
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response, status
+from typing import TYPE_CHECKING
+
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.responses import StreamingResponse
 
-from harness.channels.web.schemas import ConversationDetail, ConversationSummary, SendMessage
+from harness.channels.transport import InboundMessage
+from harness.channels.web.schemas import (
+    ConversationDetail,
+    ConversationSummary,
+    MessageAccepted,
+    SendMessage,
+)
 from harness.channels.web.sse import MEDIA_TYPE, sse_frames
-from harness.runs.store import RunAlreadyActive, RunStore
 from harness.session.log import Session
 from harness.session.repository import (
     SessionCorruptionError,
@@ -28,17 +35,8 @@ from harness.session.repository import (
 )
 from harness.session.service import SessionService
 
-router = APIRouter(prefix="/api/conversations", tags=["conversations"])
-
-BUSY = "this conversation is already working on a turn"
-
-
-def _service(request: Request) -> SessionService:
-    return request.app.state.service
-
-
-def _runs(request: Request) -> RunStore:
-    return request.app.state.runs
+if TYPE_CHECKING:
+    from harness.channels.web.channel import WebChannel
 
 
 def _summary(session: Session) -> ConversationSummary:
@@ -67,130 +65,151 @@ async def _load(service: SessionService, conversation_id: str, *, for_writing: b
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(err)) from err
 
 
-@router.get("", response_model=list[ConversationSummary])
-async def list_conversations(request: Request) -> list[ConversationSummary]:
-    """Every stored conversation, newest first."""
-    return [
-        ConversationSummary(id=h.id, created_at=h.created_at, title=h.title)
-        for h in await _service(request).list()
-    ]
+def build_router(web: WebChannel) -> APIRouter:
+    """The browser's endpoints, bound to one channel.
 
-
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=ConversationSummary)
-async def create_conversation(request: Request, body: SendMessage) -> ConversationSummary:
-    """Start a new conversation with its first message.
-
-    Creating and sending are one call because phase 3's `create()` is lazily
-    materialized: it writes nothing, so a bodyless create would hand back an id
-    that is absent from the list and gone on refresh. The first message is what
-    makes a conversation exist.
-
-    `title` is empty in this response. It is stamped from the first user message
-    at the first flush, which happens inside the turn that has only just started —
-    so a client shows the text it just sent and lets the next list correct it.
+    A factory rather than a module-level router so the handlers close over the
+    channel that owns them. They used to read `request.app.state`, which made
+    every route depend on how the app happened to be assembled; now what a route
+    needs is passed to it.
     """
-    service = _service(request)
-    session = await service.create()
-    _runs(request).start(session, body.prompt)
-    return _summary(session)
+    router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
+    @router.get("", response_model=list[ConversationSummary])
+    async def list_conversations() -> list[ConversationSummary]:
+        """Every stored conversation, newest first."""
+        return [
+            ConversationSummary(id=h.id, created_at=h.created_at, title=h.title)
+            for h in await web.sessions.list()
+        ]
 
-@router.get("/{conversation_id}", response_model=ConversationDetail)
-async def get_conversation(request: Request, conversation_id: str) -> ConversationDetail:
-    """The whole log, and the cursor to start streaming from.
+    @router.post("", status_code=status.HTTP_201_CREATED, response_model=ConversationSummary)
+    async def create_conversation(body: SendMessage) -> ConversationSummary:
+        """Start a new conversation with its first message.
 
-    Reads the **live** session when a turn is running. Going to disk instead would
-    return fewer events than the log holds — flushes happen at checkpoints, not
-    per event — which is harmless for the cursor but shows a client a conversation
-    that is mysteriously behind.
-    """
-    run = _runs(request).active(conversation_id)
-    session = (
-        run.session
-        if run is not None
-        else await _load(_service(request), conversation_id, for_writing=False)
+        Creating and sending are one call because phase 3's `create()` is lazily
+        materialized: it writes nothing, so a bodyless create would hand back an id
+        that is absent from the list and gone on refresh. The first message is what
+        makes a conversation exist.
+
+        `title` is empty in this response. It is stamped from the first user message
+        at the first flush, which happens inside the turn that has only just started —
+        so a client shows the text it just sent and lets the next list correct it.
+        """
+        session = await web.sessions.create()
+        # Through the gateway, so a browser conversation gets the same `ChatState`
+        # a Telegram one has and can therefore queue. Not `receive()`, though:
+        # `create()` has written nothing yet, so this conversation is absent from
+        # disk and `on_missing="raise"` would 404 the id we just made.
+        await web.gateway.start_turn(session, body.prompt, channel=web.channel)
+        return _summary(session)
+
+    @router.get("/{conversation_id}", response_model=ConversationDetail)
+    async def get_conversation(conversation_id: str) -> ConversationDetail:
+        """The whole log, and the cursor to start streaming from.
+
+        Reads the **live** session when a turn is running. Going to disk instead would
+        return fewer events than the log holds — flushes happen at checkpoints, not
+        per event — which is harmless for the cursor but shows a client a conversation
+        that is mysteriously behind.
+        """
+        run = web.runs.active(conversation_id)
+        session = (
+            run.session
+            if run is not None
+            else await _load(web.sessions, conversation_id, for_writing=False)
+        )
+        events = list(session.events())
+        header = session.header
+        return ConversationDetail(
+            id=header.id,
+            created_at=header.created_at,
+            title=header.title,
+            events=events,
+            next_cursor=len(events),
+            running=run is not None,
+        )
+
+    @router.post(
+        "/{conversation_id}/messages",
+        status_code=status.HTTP_202_ACCEPTED,
+        response_model=MessageAccepted,
     )
-    events = list(session.events())
-    header = session.header
-    return ConversationDetail(
-        id=header.id,
-        created_at=header.created_at,
-        title=header.title,
-        events=events,
-        next_cursor=len(events),
-        running=run is not None,
-    )
+    async def send_message(conversation_id: str, body: SendMessage) -> MessageAccepted:
+        """Continue a conversation. Queued if it is already working.
 
+        **This used to be a `409`.** Refusing is the one thing a chat product can
+        afford least: it makes someone retype what they already wrote. Telegram
+        could never refuse — a phone cannot grey out its composer — so the two
+        channels answered the same question differently until this phase, and the
+        queue is the answer that was already proven.
 
-@router.post(
-    "/{conversation_id}/messages",
-    status_code=status.HTTP_202_ACCEPTED,
-    response_model=ConversationSummary,
-)
-async def send_message(
-    request: Request, conversation_id: str, body: SendMessage
-) -> ConversationSummary:
-    """Continue a conversation. `409` if it is already working.
+        The busy check itself lives in the gateway now, including the reason it
+        happens *before* the load: loading for writing calls `resume`, which
+        commits crash repair, and a running turn legitimately has a dispatched
+        call with no result yet. Resuming underneath it would append a synthetic
+        "outcome unknown" for a tool still executing, and the real result would
+        land beside it — two answers to one call in an append-only log.
+        """
+        try:
+            run = await web.gateway.receive(
+                InboundMessage(channel=web.channel, chat_id=conversation_id, text=body.prompt)
+            )
+        except SessionNotFoundError as err:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
 
-    **The busy check happens twice, and the first one is not redundant.** Loading
-    for writing calls `resume`, which *commits crash repair* — and a running turn
-    legitimately has a dispatched call with no result yet. Resuming underneath it
-    would append a synthetic "outcome unknown" result for a tool that is still
-    executing, and the real result would land beside it: two answers to one call,
-    written to an append-only log. So the check before the load prevents
-    corruption, and the one after it catches two requests that raced past the
-    first.
-    """
-    runs = _runs(request)
-    if runs.active(conversation_id) is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, detail=BUSY)
-    session = await _load(_service(request), conversation_id, for_writing=True)
-    try:
-        runs.start(session, body.prompt)
-    except RunAlreadyActive as err:
-        raise HTTPException(status.HTTP_409_CONFLICT, detail=BUSY) from err
-    return _summary(session)
+        if run is not None:
+            return MessageAccepted(**_summary(run.session).model_dump(), queued=False)
+        # Queued, so no run came back and the session belongs to the turn already
+        # running. Read it live rather than from disk: a flush happens at
+        # checkpoints, so disk can be behind on `title`. It can also have settled
+        # in the meantime, hence the fallback.
+        active = web.runs.active(conversation_id)
+        session = (
+            active.session
+            if active is not None
+            else await _load(web.sessions, conversation_id, for_writing=False)
+        )
+        return MessageAccepted(**_summary(session).model_dump(), queued=True)
 
+    @router.get("/{conversation_id}/events")
+    async def stream_events(conversation_id: str, after: int = Query(0, ge=0)) -> StreamingResponse:
+        """Events from `after` onward as SSE, live if a turn is running.
 
-@router.get("/{conversation_id}/events")
-async def stream_events(
-    request: Request, conversation_id: str, after: int = Query(0, ge=0)
-) -> StreamingResponse:
-    """Events from `after` onward as SSE, live if a turn is running.
+        **An idle conversation streams its stored tail, not just `end`.** Without
+        that, a turn settling between a client's snapshot and its subscribe would
+        leave those events unreachable: the client's cursor says `n`, the log holds
+        `n + 5`, and a bare `end` frame would tell it that it was up to date. Serving
+        the tail makes the handoff correct however the timing falls.
 
-    **An idle conversation streams its stored tail, not just `end`.** Without
-    that, a turn settling between a client's snapshot and its subscribe would
-    leave those events unreachable: the client's cursor says `n`, the log holds
-    `n + 5`, and a bare `end` frame would tell it that it was up to date. Serving
-    the tail makes the handoff correct however the timing falls.
+        Closing this response does **not** cancel the run. Nothing here owns the run
+        to begin with — the subscription only reads.
+        """
+        run = web.runs.active(conversation_id)
+        session = (
+            run.session
+            if run is not None
+            else await _load(web.sessions, conversation_id, for_writing=False)
+        )
+        return StreamingResponse(
+            sse_frames(run, session, after=after),
+            media_type=MEDIA_TYPE,
+            # Proxies and browsers buffer by default, which for a token stream means
+            # it arrives all at once at the end — the one thing this endpoint exists
+            # to avoid.
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
-    Closing this response does **not** cancel the run. Nothing here owns the run
-    to begin with — the subscription only reads.
-    """
-    run = _runs(request).active(conversation_id)
-    session = (
-        run.session
-        if run is not None
-        else await _load(_service(request), conversation_id, for_writing=False)
-    )
-    return StreamingResponse(
-        sse_frames(run, session, after=after),
-        media_type=MEDIA_TYPE,
-        # Proxies and browsers buffer by default, which for a token stream means
-        # it arrives all at once at the end — the one thing this endpoint exists
-        # to avoid.
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    @router.delete("/{conversation_id}/run", status_code=status.HTTP_204_NO_CONTENT)
+    async def stop_run(conversation_id: str) -> Response:
+        """Stop the turn in flight. `404` if there is nothing running.
 
+        Returns once the stop is **durable**: `RunStore.stop` awaits settling, so a
+        client that got a `204` can re-read the conversation and see the cancelled
+        turn rather than racing it.
+        """
+        if not await web.runs.stop(conversation_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no turn is running")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@router.delete("/{conversation_id}/run", status_code=status.HTTP_204_NO_CONTENT)
-async def stop_run(request: Request, conversation_id: str) -> Response:
-    """Stop the turn in flight. `404` if there is nothing running.
-
-    Returns once the stop is **durable**: `RunStore.stop` awaits settling, so a
-    client that got a `204` can re-read the conversation and see the cancelled
-    turn rather than racing it.
-    """
-    if not await _runs(request).stop(conversation_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no turn is running")
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return router

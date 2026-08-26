@@ -110,7 +110,7 @@ cell_harness/
   mcp/          manager.py tool.py auth.py    command-loop connection manager
   runs/         store.py subscribe.py heartbeat.py    outlive-the-connection
   compose/      composition.py config.py     the typed composition root
-  web/          server.py sse.py routes/
+  web/          server.py            (the HTTP surface is channels/web/)
 ```
 
 ## 4. Core contracts
@@ -347,19 +347,39 @@ From cell-bot:
    in-process by `httpx.ASGITransport` where a WebSocket needs its own harness.
    **Revisit at three or more concurrent stream types** — phase 5's MCP status and
    phase 6's skills changes are their host frames, and that is the trigger.
-7. **A messenger queues; it never refuses** (phase 5). cell-bot's `409` is
-   right for a browser, which can grey out its composer, and wrong for a phone,
-   which cannot stop someone typing. hermes-agent makes this a three-way policy
+7. **Nothing refuses; everything queues** (phases 5–6). Shipped for Telegram
+   first, on the grounds that cell-bot's `409` was right for a browser and wrong
+   for a phone that cannot stop someone typing. Phase 6 retired the `409` too:
+   being able to *show* a refusal is not a reason to refuse, and the cost was
+   making someone retype what they had already written. hermes-agent makes this
+   a three-way policy
    (`queue` | `steer` | `interrupt`) and defaults text to `queue`; duta-ilmu
    enforces per-conversation FIFO by construction. We ship `queue` alone —
    `steer` mutates a turn already running and needs dsh's durable inbox, which
    is phase 9.
-8. **The channel seam is extracted, not designed** (phase 6). hermes-agent runs
-   twenty platforms behind one `BasePlatformAdapter` and models its own HTTP API
-   as one of them; duta-ilmu keeps its widget on a separate path entirely. We
-   follow Hermes, but only after Telegram exists — the browser streams
-   token-by-token from the raw event log while Telegram gets one finished
-   message, and a contract spanning both is not guessable before writing both.
+8. **The channel seam splits by capability, not by platform** (phase 6). The
+   browser is a channel — one gateway serves it and Telegram, so "resolve the
+   conversation, is a turn running?, start one" is one implementation instead of
+   two that answered oppositely. But `send_message` is on a separate `Pushing`
+   Protocol that `WebChannel` does not implement, because **a browser has no
+   address to send to**: it comes and reads the log through `subscribe()`.
+
+   This is the *opposite* of what this document said before building it. The
+   plan was to follow hermes-agent, which "models its own HTTP API as a platform
+   adapter" — read off their file listing. Their implementation says otherwise:
+   `APIServerAdapter.send()` returns `SendResult(success=False, error="API
+   server uses HTTP request/response, not send()")` permanently, never calls
+   `build_source()`, never invokes the message handler the runner wires into it,
+   and is special-cased back out in four modules. Their `webhook.py` *is* a real
+   adapter, because it is genuinely push-based. One wide interface every
+   platform must satisfy forces the member that cannot to lie, and the lying
+   member then has to be routed around everywhere.
+
+   What genuinely varies came out at two, not the four first planned: `Pushing`,
+   and `on_missing` (`recreate` for a chat that must survive anything, `raise`
+   for an API where a mistyped id must be a `404` rather than a new
+   conversation). `busy` and `mapping` were dropped when both channels started
+   queueing — being able to *show* a refusal is not a reason to refuse.
 9. **The session log is the run's event buffer** (phase 4). It is already
    append-only with its index as a stable cursor, and the loop appends before it
    yields. So one cursor means the same thing to a disk snapshot and a live

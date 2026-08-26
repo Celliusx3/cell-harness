@@ -79,6 +79,17 @@ export interface ConversationSummary {
   title: string;
 }
 
+export interface MessageAccepted extends ConversationSummary {
+  /**
+   * True when the message was held behind a turn already running.
+   *
+   * It is *not in the log yet* — a queued message becomes a `user/message` only
+   * when its turn starts — and this screen draws the conversation from the log.
+   * So the client shows it itself until then; see `useConversation`.
+   */
+  queued: boolean;
+}
+
 export interface ConversationDetail extends ConversationSummary {
   events: SessionEvent[];
   next_cursor: number;

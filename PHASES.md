@@ -503,25 +503,54 @@ because `steer` mutates a turn already running.
 
 # Phase 6 — One seam for every channel
 
-**Demo.** Nothing changes on screen — that *is* the acceptance criterion. The
-browser and Telegram run through one adapter contract, the frontend is untouched,
-and a third channel becomes a file rather than an integration.
+**Demo.** The browser and Telegram run through one gateway. Type a second message
+while the assistant is still answering: it is accepted, shown as queued, and
+answered next — the behaviour Telegram always had. Reply from the browser to a
+conversation that started on your phone.
 
-**Depends on.** 5, deliberately: the seam is extracted from two working
+**Depends on.** 5, deliberately: the seam was extracted from two working
 implementations rather than guessed.
 
-**Why the API becomes a channel.** `hermes-agent` models its HTTP API as a
-platform adapter — `gateway/platforms/api_server.py` sits alongside `telegram.py`
-and `slack.py`, exposing `POST /v1/runs` (202), `GET /v1/runs/{id}/events` (SSE)
-and `POST /v1/runs/{id}/stop`; its web UI is just a client of it, and twenty
-platforms live behind one `BasePlatformAdapter`. `duta-ilmu` does **not** — its
-`Channel` enum is `telegram | whatsapp` and the widget takes a separate path. The
-sources genuinely disagree, and Hermes's answer is the one that scales.
+**Why the API becomes a channel.** Because the same ten lines existed twice and
+answered every question oppositely — busy meant `409` in `web/routes/` and *queue*
+in `gateway.py`; a missing conversation meant `404` in one and *recreate* in the
+other. One of those pairs was a real difference and the other was an accident.
 
-**What stays per-channel, because it genuinely differs:** the browser streams
-token-by-token from the raw event log and holds its own cursor; Telegram gets one
-finished message, server-side cursor, a 4096 limit and slash commands. That first
-difference is why this is phase 6 and not part of 5.
+**Not the reason this phase was first planned.** The original justification was
+that `hermes-agent` models its HTTP API as a platform adapter, "the answer that
+scales". **That was false**, and it came from reading their file listing rather
+than their implementation. `APIServerAdapter.send()` — the method their entire
+outbound system calls — is a permanent stub:
+
+    # gateway/platforms/api_server.py:4174
+    return SendResult(success=False, error="API server uses ... not send()")
+
+It never calls `build_source()`, never invokes the message handler the runner
+wires into it, and four modules special-case it back out. Their `webhook.py` *is*
+a real adapter, because it is genuinely push-based. The lesson kept is the
+opposite of the one planned: one wide interface every platform must satisfy forces
+the member that cannot to lie.
+
+**So the split is by capability.** `Channel` is a name, an `on_missing` and
+`run()`. `Pushing` — `send_message`, `send_typing` — is separate, and `WebChannel`
+implements it not at all, because **a browser has no address to send to**. It
+comes and reads, holding a `GET` open and following the log through `subscribe()`.
+The gateway asks `isinstance(channel, Pushing)` before delivering, so a pull
+channel is never asked and there is nothing to stub.
+
+**What stays per-channel**, and it is two things, not four. `busy` and `mapping`
+were planned and dropped: both channels queue now, so there was nothing left to
+vary.
+
+| | browser | Telegram |
+|---|---|---|
+| `Pushing` | no — the client reads the log | yes |
+| `on_missing` | `raise` — a named id that is absent is a `404` | `recreate` — a chat cannot be left broken |
+
+**The `409` is retired.** Being able to show a refusal is not a reason to refuse;
+it makes someone retype what they wrote. `POST /{id}/messages` stays `202` and its
+body gains `queued: bool`, because a queued message is *not in the log yet* and
+the browser draws from the log — so the client renders it until its turn starts.
 
 **What does not change: the HTTP endpoints.** They stay conversation-keyed.
 Hermes keys on run id and therefore needs a fourth endpoint,
@@ -529,8 +558,20 @@ Hermes keys on run id and therefore needs a fourth endpoint,
 attach to; `ilmuchat-enterprise` carries the same probe for the same reason.
 Keying on the conversation removed that round trip in phase 4.
 
-**Acceptance.** The frontend needs no changes — which is the test that the
-refactor was a refactor.
+**Ships.**
+- `channels/transport.py` — `Pushing` split off `Channel`; `on_missing`
+- `channels/web/` — `WebChannel` and the HTTP surface moved from `web/`
+- `channels/gateway.py` — one inbound path for every channel; `start_turn()`
+- `web/server.py` — the composition root alone; `app.state` retired
+
+**Acceptance.**
+- A browser message mid-turn is queued and answered next, in order.
+- Several queued browser messages drain as **one** turn.
+- The browser can continue a conversation that started on Telegram.
+- A bogus conversation id is a `404` and creates nothing.
+- A `pull` channel is never asked to send, and its `run()` returning is not
+  reported as "it will not answer".
+- The browser still streams token by token.
 
 ---
 

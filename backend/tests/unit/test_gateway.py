@@ -65,7 +65,7 @@ def msg(text: str, _seq: int = 0) -> InboundMessage:
 async def settle(runs: RunStore, gateway: ChannelGateway, chat_id: int = CHAT) -> None:
     """Let the turn, its delivery, and any drained follow-on finish."""
     for _ in range(200):
-        task = gateway._deliveries.get(("telegram", chat_id))
+        task = gateway._following.get(("telegram", chat_id))
         busy = task is not None and not task.done()
         if not busy and not any(runs._runs.values()):
             return
