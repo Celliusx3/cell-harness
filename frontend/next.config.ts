@@ -13,6 +13,11 @@ import type { NextConfig } from "next";
  * value. Both copies live next to the command that uses them instead.
  */
 const nextConfig: NextConfig = {
+  // Off because the rewrite below gzips the event stream, and gzip holds the
+  // whole body until we close — a turn arrived as one read at the end. The
+  // backend cannot opt out: `X-Accel-Buffering` is ignored and a
+  // `Content-Encoding: identity` is overwritten. This flag is the only seam.
+  compress: false,
   async rewrites() {
     return [{ source: "/api/:path*", destination: "http://127.0.0.1:4896/api/:path*" }];
   },

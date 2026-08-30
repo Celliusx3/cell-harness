@@ -59,6 +59,12 @@ export function useConversation(conversationId: string): Conversation {
    */
   const cursor = useRef(0);
 
+  /**
+   * Wakes the follow loop when it is parked between turns. Null while a turn
+   * runs — the stream is open then, so there is nothing to wake.
+   */
+  const resume = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     const controller = new AbortController();
     let cancelled = false;
@@ -86,9 +92,9 @@ export function useConversation(conversationId: string): Conversation {
         return;
       }
 
-      // Reconnect until the server says `end`. A `dropped` ending — a sleeping
-      // laptop, a dying wifi link — resumes at the cursor, which is what makes
-      // "close the tab, come back, it's still running" work.
+      // Follow the conversation for as long as it is on screen. A `dropped`
+      // ending — a sleeping laptop, a dying link — resumes at the cursor, which
+      // is what makes "close the tab, come back, it's still running" work.
       for (;;) {
         let ended = false;
         await streamEvents(conversationId, cursor.current, controller.signal, {
@@ -107,7 +113,20 @@ export function useConversation(conversationId: string): Conversation {
             if (end.kind === "end") setRunning(false);
           },
         });
-        if (ended || cancelled || controller.signal.aborted) break;
+        if (cancelled || controller.signal.aborted) break;
+
+        if (ended) {
+          // Park rather than break or reconnect. Breaking left every turn after
+          // the first invisible — the effect only re-runs on `conversationId`.
+          // Reconnecting would spin: an idle conversation answers `end` at once.
+          await new Promise<void>((resolve) => {
+            resume.current = resolve;
+          });
+          resume.current = null;
+          if (cancelled || controller.signal.aborted) break;
+          continue; // no delay — a wake means a turn started, not a flaky link
+        }
+
         await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
         if (cancelled || controller.signal.aborted) break;
       }
@@ -117,6 +136,9 @@ export function useConversation(conversationId: string): Conversation {
     return () => {
       cancelled = true;
       controller.abort();
+      // A parked loop is in no fetch, so `abort` alone would leave it waiting
+      // forever. It re-checks `cancelled` the moment it wakes.
+      resume.current?.();
     };
   }, [conversationId]);
 
@@ -131,6 +153,9 @@ export function useConversation(conversationId: string): Conversation {
         // one case the client has to render for itself.
         if (accepted.queued) setQueued((previous) => [...previous, prompt]);
         setRunning(true);
+        // Wake the loop if the last turn left it parked. Safe after the await:
+        // the run is registered before the `202`, so the subscribe cannot miss it.
+        resume.current?.();
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "could not send that message");
       }

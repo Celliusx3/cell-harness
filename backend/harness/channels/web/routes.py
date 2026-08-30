@@ -194,9 +194,9 @@ def build_router(web: WebChannel) -> APIRouter:
         return StreamingResponse(
             sse_frames(run, session, after=after),
             media_type=MEDIA_TYPE,
-            # Proxies and browsers buffer by default, which for a token stream means
-            # it arrives all at once at the end — the one thing this endpoint exists
-            # to avoid.
+            # Buffering a token stream delivers it all at once at the end. This
+            # header only covers nginx-shaped proxies; the dev one needs
+            # `compress: false` — see frontend/next.config.ts.
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
