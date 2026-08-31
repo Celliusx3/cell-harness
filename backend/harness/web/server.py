@@ -44,6 +44,7 @@ from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.llm.adapters.openai import OpenAIClient
+from harness.mcp.store import McpServerStore
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -66,7 +67,12 @@ def build_store(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root))
 
 
-def build_agent(settings: Settings, store: SessionService) -> LoopAgent:
+def build_mcp(settings: Settings) -> McpServerStore:
+    """Connections to whatever `config.json` declares under `mcp.servers`."""
+    return McpServerStore(settings.mcp.servers)
+
+
+def build_agent(settings: Settings, store: SessionService, mcp: McpServerStore) -> LoopAgent:
     """The default agent: a model, the native tools, and a durability checkpoint.
 
     This is what stands in for dsh's config-driven plugin tree. A missing
@@ -74,6 +80,11 @@ def build_agent(settings: Settings, store: SessionService) -> LoopAgent:
     whole reason we do not need an injection framework.
     """
     registry = ToolRegistry([clock_tool()])
+    # Registered once and never again — the disposer is deliberately dropped.
+    # Connecting and disconnecting change what this *yields*, not whether it is
+    # here, which is what makes a server added mid-conversation callable on the
+    # next turn without rebuilding the agent.
+    registry.add_provider(mcp.tools)
     return LoopAgent(
         name="default",
         model=settings.llm.model,
@@ -159,12 +170,15 @@ def create_web_app() -> FastAPI:
     _configure_logging()
     settings = load()
     service = build_store(settings)
-    runs = RunStore(service, build_agent(settings, service))
+    mcp = build_mcp(settings)
+    runs = RunStore(service, build_agent(settings, service, mcp))
     gateway, web = build_channels(settings, service, runs)
-    return create_app(runs, gateway, web)
+    return create_app(runs, gateway, web, mcp)
 
 
-def create_app(runs: RunStore, gateway: ChannelGateway, web: WebChannel) -> FastAPI:
+def create_app(
+    runs: RunStore, gateway: ChannelGateway, web: WebChannel, mcp: McpServerStore
+) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it.
 
     The gateway is no longer optional. It was, while the browser bypassed it and a
@@ -178,6 +192,9 @@ def create_app(runs: RunStore, gateway: ChannelGateway, web: WebChannel) -> Fast
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # Before the gateway: a message arriving the instant a channel starts
+        # would otherwise be answered by an agent whose MCP tools are still absent.
+        await mcp.start()
         await gateway.start()
         yield
         # Before `runs.aclose()`: the gateway stops listening and then stops
@@ -191,6 +208,9 @@ def create_app(runs: RunStore, gateway: ChannelGateway, web: WebChannel) -> Fast
         # repair exists to clean up — recoverable, but there is no reason to
         # create the damage on an orderly shutdown.
         await runs.aclose()
+        # After `runs.aclose()`: a turn still settling may be inside a tool call,
+        # and closing its server first would answer that call with a disconnect.
+        await mcp.aclose()
 
     app = FastAPI(title="cell-harness", lifespan=lifespan)
     app.include_router(web.router)

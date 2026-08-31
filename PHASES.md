@@ -586,32 +586,52 @@ in the same conversation.
 servers (yt-dlp, whisper, pptx, tradingagents, charts) are the model: a capability
 is a separate process with its own README and tests, not backend growth.
 
-**Ships.**
-- `mcp/manager.py` — command-loop connection manager
+**Ships.** Narrowed before building — stdio only, and four things cut. Each was
+a mechanism with no caller in this phase, which is what phase 2 was burned by.
+
+- `mcp/store.py` — `McpServerStore`, one owning task per connection
 - `mcp/tool.py` — namespaced `{server}__{tool}`
-- `mcp/auth.py`, `credentials/` — encrypted credential store
-- `control/` — one implementation, two surfaces (native tool + MCP endpoint)
-- `web/routes/mcp.py`, `frontend/` settings — server catalog, connect/disconnect
+- `mcp/repository.py` + `repositories/jsonl.py` — the catalog, `0600`
+- `mcp/web/` — server catalog, connect/disconnect — and `frontend/` settings
+
+**Cut, and why.** `control/` (a model-callable connect tool is not in the demo,
+and it lets the model spawn processes); `credentials/` encryption (the provider
+key is plaintext in `config.local.json`, so encrypting only this is not a threat
+model); `Scope` (a server plugs in as *one* provider and unplugs as *one*
+disposer, so there is nothing to group); tool-result `meta` (no tool returns an
+image yet); remote HTTP transport (stdio is what all five cell-bot satellites
+are).
+
+**Servers are configuration, not a runtime catalog.** `mcp.servers` in
+`config.json`, keyed by the id that is also the `{id}__{tool}` namespace. A
+second, runtime store would give "which servers are configured?" two answers —
+the fallback-chain problem the house rules forbid — and `config.local.json` is
+already where secrets live, so the two files deep-merge *per server*: the shape
+is committed, the `env` is not. This removed the settings UI, its five routes,
+the repository and its JSONL backend.
 
 **Key contracts.**
 - The **command loop** is mandatory, not a style choice: MCP transports are anyio
-  context managers bound to the entering task, so a connection cannot be opened in
-  one request task and closed in another. One long-lived `_serve` task hosts the
-  group; `connect`/`disconnect` submit commands and await replies.
-- `COMMAND_TIMEOUT = 60s` bounds the whole round trip so a wedged loop surfaces as
-  a failed request, not a hang.
+  context managers bound to the entering task, and anyio *raises* on an exit from
+  the wrong task. One owning task per connection, fed by a queue. A supervisor
+  hosting a task group is the shape anyio forces and pure asyncio does not need.
+- `COMMAND_TIMEOUT = 60s` bounds one call. Applied with `asyncio.timeout_at` on
+  the owner, which — verified against the real SDK — leaves the session open, so
+  a slow tool costs one call rather than the connection.
 - MCP tools relay the **server's** schema verbatim. Never validate against our copy
   — that would silently drop arguments the server accepts.
-- Credentials are encrypted at rest and referenced by name; a server definition
-  carries no secret.
-- Auth validation lives in the schema's `model_validator`, so it guards the HTTP
-  surface and the control tool at once.
+- A tool name that no provider would accept is **dropped, not relayed**: one bad
+  name fails the whole request, and with it every other tool in it.
+- A server that fails to connect is logged and contributes nothing. One broken
+  source must not cost the model every other server's tools.
 
 **Acceptance.**
-- Connect mid-conversation; tools callable next turn without rebuilding the agent.
-- Disconnect; tools vanish, no orphaned subprocess.
-- A server that accepts connections but stops answering fails within the timeout.
-- An auth combination that could never connect is rejected on both surfaces.
+- A server declared in `config.json` is connected at startup and its tools are
+  callable, namespaced, without the agent being rebuilt.
+- Shutdown reaps every subprocess — proved by pid, not assumed.
+- A server that accepts connections but stops answering fails within the timeout,
+  and the connection survives it.
+- A definition that could never spawn is rejected when the config loads.
 
 ---
 

@@ -19,11 +19,24 @@ Next is phase 7, MCP.
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
-# everything else — model, endpoint, sessions root — is in backend/config.json (committed)
+# everything else — model, endpoint, sessions root, MCP servers — is in
+# backend/config.json (committed); secrets go in config.local.json (gitignored)
 make install && make test
 make dev                                # backend :4896 + frontend :4897
 # open http://localhost:4897 — there is no CLI, the API is the only surface
 ```
+
+Capabilities are MCP servers, declared under `mcp.servers` and connected at
+startup. The key is the tool namespace — `fs` gives the model `fs__read_file`:
+
+```json
+{ "mcp": { "servers": {
+    "fs": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"] }
+} } }
+```
+
+The two config files **deep-merge per server**, so a server's shape is committed
+and only its `env` secrets go in `config.local.json`.
 
 ## Layout
 

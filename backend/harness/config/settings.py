@@ -28,9 +28,10 @@ value come from?" two answers — the failure mode the house rules name.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_settings import (
     BaseSettings,
     JsonConfigSettingsSource,
@@ -91,6 +92,67 @@ class TelegramSettings(BaseModel):
     bot_token: str = ""
 
 
+class McpServer(BaseModel):
+    """One stdio MCP server, keyed in `McpSettings.servers` by its id.
+
+    The key is also the `{id}__{tool}` namespace the model sees, so it is
+    validated as a name rather than left free-form.
+
+    `env` carries the satellite's own credentials, which is why the two config
+    files deep-merge *per server*: the shape belongs in the committed
+    `config.json` and only the secret in the gitignored `config.local.json`.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    command: str
+    args: tuple[str, ...] = ()
+    env: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("command")
+    @classmethod
+    def _spawnable(cls, value: str) -> str:
+        """A config that cannot work is a startup failure, not a silent no-op.
+
+        `.strip()` because a blank string in JSON is a paste that went wrong —
+        the same reasoning as the Telegram token guard in `web/server.py`.
+        """
+        if not value.strip():
+            raise ValueError("command must not be blank")
+        return value
+
+
+class McpSettings(BaseModel):
+    """Which MCP servers to connect at startup.
+
+    Empty means no capabilities beyond the native tools, which is the only
+    sensible default: a server is a command on *this* machine and cannot be
+    guessed.
+    """
+
+    servers: dict[str, McpServer] = Field(default_factory=dict)
+
+    @field_validator("servers")
+    @classmethod
+    def _usable_ids(cls, value: dict[str, McpServer]) -> dict[str, McpServer]:
+        """Ids must survive being half of a tool name.
+
+        No underscore, so the `{server}__{tool}` split stays unambiguous, and
+        nothing outside `[a-z0-9-]`, so a provider cannot reject the whole
+        request — one bad name fails *every* tool in it, not just this server's.
+        """
+        for name in value:
+            if not _SERVER_ID.match(name):
+                raise ValueError(
+                    f"{name!r} is not a usable MCP server id: lowercase letters, "
+                    "digits and hyphens, no underscore"
+                )
+        return value
+
+
+_SERVER_ID = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$")
+
+
 class Settings(BaseSettings):
     """Everything the harness is configured with, loaded once."""
 
@@ -104,6 +166,7 @@ class Settings(BaseSettings):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
+    mcp: McpSettings = Field(default_factory=McpSettings)
 
     @classmethod
     def settings_customise_sources(

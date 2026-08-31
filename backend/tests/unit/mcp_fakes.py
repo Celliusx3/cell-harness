@@ -1,0 +1,93 @@
+"""Doubles for the MCP command loop.
+
+A fake session rather than a subprocess: the loop's contracts — task affinity,
+timeouts, concurrent callers — are testable in milliseconds this way. The real
+SDK is exercised once, in `tests/integration/test_mcp_stdio.py`.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+
+from mcp.types import CallToolResult, ListToolsResult, TextContent, Tool
+
+from harness.config.settings import McpServer
+
+
+def tool(name: str, *, description: str = "", schema: dict | None = None) -> Tool:
+    return Tool(
+        name=name,
+        description=description,
+        inputSchema=schema if schema is not None else {"type": "object", "properties": {}},
+    )
+
+
+def text_result(body: str, *, is_error: bool = False) -> CallToolResult:
+    return CallToolResult(content=[TextContent(type="text", text=body)], isError=is_error)
+
+
+def servers(*ids: str, **overrides) -> dict[str, McpServer]:
+    """A `settings.mcp.servers` mapping, for a store under test."""
+    return {name: McpServer(command="does-not-run", **overrides) for name in (ids or ("stub",))}
+
+
+@dataclass
+class FakeClient:
+    """A scripted session that records which task owns it."""
+
+    tools: list[Tool] = field(default_factory=lambda: [tool("echo")])
+    # tool name -> what calling it does. A float sleeps that long first.
+    behaviour: dict[str, object] = field(default_factory=dict)
+    entered_in: asyncio.Task | None = None
+    exited_in: asyncio.Task | None = None
+    calls: list[tuple[str, dict]] = field(default_factory=list)
+    pages: int = 1
+
+    async def list_tools(self, *, cursor: str | None = None) -> ListToolsResult:
+        # Split the tool list across `pages` responses so pagination is covered.
+        index = int(cursor) if cursor else 0
+        size = max(1, len(self.tools) // self.pages) if self.pages > 1 else len(self.tools)
+        chunk = self.tools[index : index + size]
+        nxt = index + size
+        return ListToolsResult(tools=chunk, nextCursor=str(nxt) if nxt < len(self.tools) else None)
+
+    async def call_tool(self, name: str, arguments: dict) -> CallToolResult:
+        self.calls.append((name, arguments))
+        outcome = self.behaviour.get(name, f"{name} ok")
+        if isinstance(outcome, float):
+            await asyncio.sleep(outcome)
+            return text_result(f"{name} finally")
+        if isinstance(outcome, BaseException):
+            raise outcome
+        if isinstance(outcome, CallToolResult):
+            return outcome
+        return text_result(str(outcome))
+
+
+@dataclass
+class FakeFactory:
+    """Hands out `FakeClient`s and counts how often it was asked."""
+
+    client: FakeClient = field(default_factory=FakeClient)
+    opens: int = 0
+    # Seconds to stall inside `__aenter__`, for the never-connects case.
+    connect_delay: float = 0.0
+    connect_error: BaseException | None = None
+
+    def __call__(self, _server: McpServer):
+        @asynccontextmanager
+        async def session():
+            self.opens += 1
+            if self.connect_delay:
+                await asyncio.sleep(self.connect_delay)
+            if self.connect_error is not None:
+                raise self.connect_error
+            self.client.entered_in = asyncio.current_task()
+            try:
+                yield self.client
+            finally:
+                self.client.exited_in = asyncio.current_task()
+
+        return session()

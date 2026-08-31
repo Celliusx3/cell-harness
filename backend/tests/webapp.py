@@ -17,6 +17,8 @@ from fastapi import FastAPI
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
+from harness.config.settings import McpServer
+from harness.mcp.store import ClientFactory, McpServerStore, open_client
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
 from harness.web.server import create_app
@@ -32,7 +34,26 @@ def web_gateway(
     return gateway, web
 
 
-def web_app(tmp_path: Path, service: SessionService, runs: RunStore) -> FastAPI:
+def web_mcp(
+    servers: dict[str, McpServer] | None = None,
+    *,
+    client_factory: ClientFactory = open_client,
+) -> McpServerStore:
+    """A store over whatever servers a test declares — none, by default.
+
+    The factory is injectable so a test can connect to a fake in milliseconds
+    instead of spawning a process.
+    """
+    return McpServerStore(servers or {}, client_factory=client_factory)
+
+
+def web_app(
+    tmp_path: Path,
+    service: SessionService,
+    runs: RunStore,
+    *,
+    mcp: McpServerStore | None = None,
+) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     gateway, web = web_gateway(tmp_path, service, runs)
-    return create_app(runs, gateway, web)
+    return create_app(runs, gateway, web, mcp or web_mcp())

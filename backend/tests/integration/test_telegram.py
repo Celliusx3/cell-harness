@@ -22,7 +22,7 @@ from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import web_gateway
+from tests.webapp import web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -46,7 +46,7 @@ def build(tmp_path):
     gateway, web = web_gateway(tmp_path, sessions, runs)
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
-    app = create_app(runs, gateway, web)
+    app = create_app(runs, gateway, web, web_mcp())
     return bot, app, gateway, runs, sessions
 
 
@@ -120,7 +120,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
     gateway, web = web_gateway(tmp_path, sessions, runs)
-    wired = create_app(runs, gateway, web)
+    wired = create_app(runs, gateway, web, web_mcp())
 
     assert gateway.channels == ["web"]
     async with wired.router.lifespan_context(wired):

@@ -107,7 +107,7 @@ cell_harness/
   providers/    fs_local.py subprocess_local.py shell_local.py
                 sandbox_local.py subagent_fork.py ...
   skills/       catalog.py tool.py     progressive disclosure
-  mcp/          manager.py tool.py auth.py    command-loop connection manager
+  mcp/          store.py tool.py repository.py web/   command-loop connections
   runs/         store.py subscribe.py heartbeat.py    outlive-the-connection
   compose/      composition.py config.py     the typed composition root
   web/          server.py            (the HTTP surface is channels/web/)
