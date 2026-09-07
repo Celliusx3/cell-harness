@@ -350,6 +350,32 @@ Cheaper than reversing: trim what `list_functions` emits, and re-measure. The
 catalog prints every function with its one-line description; most of a turn's
 13K characters is capability the model was never going to call.
 
+### Re-measured at 17 tools (the Instagram/POI servers)
+
+The first real growth in server count since the decision above — which is the
+thing the bet was placed on. Two servers added under `mcp-servers/`, `instagram` (2 tools) and `places`
+(2 tools), joining the clock, `jobs` (2) and `yt` (10).
+
+| | tools | `list_functions` catalog |
+|---|---|---|
+| §6's measurement | 13 | 12,830 chars |
+| now | **17** | **17,161 chars** |
+
+So +4 tools cost +4,331 characters of catalog, or ~1,080 chars per tool — and
+`get_function_details` over everything is 18,585, barely more than the catalog
+itself. That ratio is what makes the two-stage disclosure look thin at this
+scale: the summaries are nearly as expensive as the schemas they defer.
+
+**The reversal trigger is not met and is now visibly closer.** At ~1,080 chars
+per tool the 30K catalog named above arrives at roughly 28 tools, so one more
+ten-tool server would reach it. The decision stands unchanged; the next server is
+the one to re-measure at.
+
+Worth noting separately, because it is not a cost: the newer `mcp` client sends
+`server/discover` on connect, and servers that predate it log a wall of
+`ClientRequest` validation errors before connecting normally. Cosmetic, and
+upstream — but it makes a healthy startup look broken.
+
 ### Follow-ups, with their triggers
 
 - **Inner-call visibility.** A script is one `execute_typescript` card that says
