@@ -10,9 +10,43 @@
   },
   "code": {
     "deno_path": "deno",
-    "timeout_seconds": 60
+    "timeout_seconds": 600
   },
   "mcp": {
-    "servers": {}
+    "servers": {
+      "instagram": {
+        "command": "uv",
+        "args": [
+          "run",
+          "--quiet",
+          "--project",
+          "../mcp-servers/instagram",
+          "instagram"
+        ],
+        "env": {
+          "AI_PROVIDER_BASE_URL": "https://api.ilmu.ai/v1",
+          "INSTAGRAM_MEDIA_BACKEND": "instaloader",
+          "AI_VISION_MODEL": "glm-5.3-flash",
+          "AI_ASR_MODEL": "ilmu-asr-v4.2",
+          "INSTAGRAM_WORK_DIR": "~/.harness/instagram",
+          "INSTAGRAM_MAX_FRAMES": "8",
+          "INSTAGRAM_MAX_SPEECH_SECONDS": "180",
+          "INSTAGRAM_CALL_BUDGET_SECONDS": "45"
+        }
+      },
+      "places": {
+        "command": "uv",
+        "args": [
+          "run",
+          "--quiet",
+          "--project",
+          "../mcp-servers/places",
+          "places"
+        ],
+        "env": {
+          "PLACES_MAX_RESULTS": "3"
+        }
+      }
+    }
   }
 }

@@ -1,4 +1,5 @@
-.PHONY: help install dev dev-backend dev-web test test-unit test-integration lint fmt cov build
+.PHONY: help install dev dev-backend dev-web test test-unit test-integration \
+        test-mcp-servers lint lint-mcp-servers fmt cov build
 
 BACKEND = cd backend && uv run
 
@@ -21,7 +22,9 @@ help:
 	@echo "  make test              all tests with the 80% coverage gate (pytest)"
 	@echo "  make test-unit         unit tests only, no coverage gate"
 	@echo "  make test-integration  integration tests only, no coverage gate"
+	@echo "  make test-mcp-servers   each MCP server's own suite and its own gate"
 	@echo "  make lint              ruff check + format check"
+	@echo "  make lint-mcp-servers   ruff check + format check in each MCP server"
 	@echo "  make fmt               ruff format + fix"
 	@echo "  make cov               tests with an HTML coverage report"
 	@echo "  make build             frontend production build"
@@ -57,12 +60,26 @@ test-unit:
 test-integration:
 	$(BACKEND) pytest tests/integration --no-cov
 
+# Deliberately NOT part of `test`: each server under mcp-servers/ is a separate
+# uv project with its own 80% gate, and folding a second --cov source into one
+# pytest run makes the gate mean nothing about either. One server's flake must
+# not fail the harness's suite. `uv run` syncs on demand, so no install target.
+MCP_SERVERS = mcp-servers/instagram mcp-servers/places
+
+test-mcp-servers:
+	@for s in $(MCP_SERVERS); do (cd $$s && uv run pytest) || exit 1; done
+
 # The sandbox shim is real code the model's programs run inside, so it gets the
 # same treatment as the Python. Deno is already required to start the harness.
 lint:
 	$(BACKEND) ruff check .
 	$(BACKEND) ruff format --check .
 	cd backend/harness/sandbox/js && deno check shim.ts && deno lint && deno fmt --check
+
+lint-mcp-servers:
+	@for s in $(MCP_SERVERS); do \
+		(cd $$s && uv run ruff check . && uv run ruff format --check .) || exit 1; \
+	done
 
 fmt:
 	$(BACKEND) ruff format .
