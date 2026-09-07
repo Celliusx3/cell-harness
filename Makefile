@@ -57,12 +57,16 @@ test-unit:
 test-integration:
 	$(BACKEND) pytest tests/integration --no-cov
 
+# The sandbox shim is real code the model's programs run inside, so it gets the
+# same treatment as the Python. Deno is already required to start the harness.
 lint:
 	$(BACKEND) ruff check .
 	$(BACKEND) ruff format --check .
+	cd backend/harness/sandbox/js && deno check shim.ts && deno lint && deno fmt --check
 
 fmt:
 	$(BACKEND) ruff format .
+	cd backend/harness/sandbox/js && deno fmt
 	$(BACKEND) ruff check --fix .
 
 cov:

@@ -56,6 +56,10 @@ class SteppedClient(LLMClient):
         self.seen: list[Message] = []
         self.seen_per_call: list[list[Message]] = []
         self.seen_tools: list[ToolSpec] | None = None
+        # Per step, not just the last: what the model is *offered* now changes
+        # between steps of one turn, so a test about deferred tools has to see
+        # each request rather than the final one.
+        self.seen_tools_per_call: list[list[ToolSpec] | None] = []
         self.calls = 0
 
     async def stream_completion(
@@ -64,6 +68,7 @@ class SteppedClient(LLMClient):
         self.seen = list(messages)
         self.seen_per_call.append(list(messages))
         self.seen_tools = tools
+        self.seen_tools_per_call.append(list(tools) if tools is not None else None)
         script = self._scripts[min(self.calls, len(self._scripts) - 1)]
         self.calls += 1
         for event in script:

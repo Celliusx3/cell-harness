@@ -17,8 +17,6 @@ from harness.session.models import ToolCallEvent, TurnEnd, TurnStart, UserMessag
 from harness.session.repair import TOOL_OUTCOME_UNKNOWN
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -26,7 +24,7 @@ from tests.unit.fakes import (
     completed,
     hanging_tool,
 )
-from tests.unit.helpers import unanswered_calls
+from tests.unit.helpers import pipeline_for, unanswered_calls
 
 
 @pytest.fixture
@@ -44,7 +42,7 @@ def agent(client, *tools, checkpoint=None) -> LoopAgent:
         name="t",
         model="m",
         client=client,
-        tools=ToolPipeline(ToolRegistry(tools)) if tools else None,
+        tools=pipeline_for(*tools) if tools else None,
         checkpoint=checkpoint,
     )
 

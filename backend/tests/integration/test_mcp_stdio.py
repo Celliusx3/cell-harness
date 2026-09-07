@@ -57,7 +57,7 @@ async def live():
 async def test_a_real_server_contributes_callable_tools(live) -> None:
     _, registry = await live(stub())
 
-    assert "stub__echo" in [spec.name for spec in registry.specs()]
+    assert "stub__echo" in [t.name for t in registry.all()]
 
     # Through the registry, the way the agent loop reaches a tool.
     echo = registry.get("stub__echo")
@@ -90,7 +90,7 @@ async def test_closing_reaps_the_subprocess(live) -> None:
 
     await store.aclose()
 
-    assert registry.specs() == []
+    assert registry.all() == []
     for _ in range(100):
         try:
             os.kill(pid, 0)

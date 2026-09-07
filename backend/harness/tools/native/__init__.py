@@ -1,6 +1,6 @@
-"""Tools implemented in this process.
+"""Tools implemented in this process, one folder each.
 
-Two in phase 2, chosen to exercise opposite ends of the contract: `clock` takes
-no arguments and is a pure read, `todo_write` takes a structured list and is
-session-owned state. Files, search, and shell arrive with their seams later.
+`clock` is the whole set today. Files, search, and shell arrive with their seams
+later; the folder-per-tool shape is here first so the convention does not have to
+change when they do.
 """

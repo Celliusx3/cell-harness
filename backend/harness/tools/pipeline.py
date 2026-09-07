@@ -1,54 +1,62 @@
-"""Dispatch: find the tool a call names, and run it.
+"""What the model is offered, and nothing else.
 
-A thin layer, but not a pointless one — the registry lookup and the unknown-tool
-failure need a home that is not the loop, so the loop can stay about turns and
-steps.
-
-Unknown tools are a `Failure`, not an exception: a model that hallucinates a name
-should be told so and given another step, not have the turn die.
-
-**Where interception will go.** Phase 8 needs a timeout and the loop guardrail to
-wrap every call, and phase 12 needs an approval gate. Those become an
-around-middleware chain here — a listener that awaits the inner call can time it,
-and one that returns without awaiting refuses it. That chain does not exist yet
-because nothing registers into it; adding it changes this method's body and
-nothing else, so there is no reason to build it before its first listener.
+Deciding the tool list and running a tool are two jobs that change for different
+reasons, so they are two objects. `ToolDispatcher` runs things; this decides what
+the model is told about. `execute` stays here as a delegation so the loop keeps
+one collaborator — see its docstring.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from harness.llm.messages import ToolCall, ToolSpec
-from harness.tools.definition import UNKNOWN_TOOL, Failure, ToolOutcome
+from harness.tools.definition import ToolOutcome
+from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.progress import ToolProgressReporter
 from harness.tools.registry import ToolRegistry
 
 
 class ToolPipeline:
-    """Resolves and runs the tool a call names."""
+    """The tool list one step is built from."""
 
-    def __init__(self, registry: ToolRegistry) -> None:
+    def __init__(
+        self,
+        registry: ToolRegistry,
+        dispatcher: ToolDispatcher,
+        default_tools: Sequence[str],
+    ) -> None:
         self._registry = registry
+        self._dispatcher = dispatcher
+        self._default = tuple(default_tools)
 
     def specs(self) -> list[ToolSpec]:
-        """What the model is offered this step.
+        """What the model is offered this step — the only place visibility is decided.
 
-        Delegated rather than reached through a `registry` attribute, so the loop
-        depends on the pipeline alone — a composition that swaps in a different
-        dispatcher (a remote one) does not have to expose a registry it may not
-        have.
+        `default_tools` names what the model is given up front. Everything else
+        stays registered and callable — it is simply not described in the
+        request, which is what keeps that description from being re-uploaded
+        with every message. Empty offers everything, which is the composition
+        most tests build; it is passed rather than defaulted, because "offer
+        everything" is a decision and not an absence.
+
+        Today the harness passes code mode's three, so the model reaches its
+        capabilities by writing a program. Adding a name here is how a tool
+        earns a place in every request instead — a clock, or an MCP tool used so
+        often that a discovery step for it is waste.
         """
-        return self._registry.specs()
+        by_name = {t.name: t for t in self._registry.all()}
+        if not self._default:
+            return [tool.spec() for tool in by_name.values()]
+        # Skipping the absent rather than raising: a name here may belong to a
+        # server that has not connected yet, or has gone away.
+        return [by_name[n].spec() for n in self._default if n in by_name]
 
     async def execute(self, call: ToolCall, *, progress: ToolProgressReporter) -> ToolOutcome:
-        """Run one call."""
-        tool = self._registry.get(call.name)
-        if tool is None:
-            # Naming what *is* available turns a dead end into a correction the
-            # model can act on next step, which is the whole reason an unknown
-            # tool is a Failure rather than an exception.
-            available = ", ".join(sorted(t.name for t in self._registry.all())) or "none"
-            return Failure(
-                UNKNOWN_TOOL,
-                f"tool {call.name!r} is not available. Available tools: {available}",
-            )
-        return await tool.invoke(call.arguments, progress=progress)
+        """Run one call, by handing it to the dispatcher.
+
+        A pass-through on purpose: it keeps `LoopAgent` depending on one
+        collaborator rather than two. Moving it onto the loop is a later change
+        that does not undo this split.
+        """
+        return await self._dispatcher.dispatch(call, progress=progress)

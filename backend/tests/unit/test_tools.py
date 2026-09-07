@@ -8,7 +8,6 @@ from harness.llm.messages import ToolCall
 from harness.tools.definition import (
     EXECUTION_ERROR,
     INVALID_ARGUMENTS,
-    UNKNOWN_TOOL,
     Failure,
     Ok,
     render_outcome,
@@ -16,11 +15,11 @@ from harness.tools.definition import (
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import DuplicateToolError, ToolRegistry
 from tests.unit.fakes import echo_tool, raising_tool
-from tests.unit.helpers import no_progress
+from tests.unit.helpers import no_progress, pipeline_for
 
 
 def pipeline(*tools, providers=()) -> ToolPipeline:
-    return ToolPipeline(ToolRegistry(tools, providers=providers))
+    return pipeline_for(*tools, providers=providers)
 
 
 def call(name: str, arguments: str = '{"value": "hi"}') -> ToolCall:
@@ -53,19 +52,6 @@ def test_from_model_derives_schema_and_parser_from_one_source() -> None:
 
 
 # ── tolerant failures ─────────────────────────────────────────────────────────
-
-
-async def test_unknown_tool_is_a_failure_that_names_the_alternatives() -> None:
-    """Acceptance: an unknown tool returns a Failure, not an exception.
-
-    Naming what *is* available is what turns a dead end into a correction the
-    model can act on next step.
-    """
-    outcome = await pipeline(echo_tool()).execute(call("nope"), progress=no_progress)
-
-    assert isinstance(outcome, Failure)
-    assert outcome.code == UNKNOWN_TOOL
-    assert "echo" in outcome.message
 
 
 @pytest.mark.parametrize(
@@ -103,6 +89,19 @@ async def test_empty_arguments_mean_no_arguments() -> None:
     assert isinstance(outcome, Failure)
     assert outcome.code == INVALID_ARGUMENTS
     assert "not valid JSON" not in outcome.message
+
+
+def test_data_never_reaches_the_model() -> None:
+    """`Ok` has two readers with two formats: the model reads `content`, a program
+    reads `data`. `render_outcome` is the boundary, and it only knows the first."""
+    assert render_outcome(Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]})) == "Found 3 jobs."
+
+
+def test_ok_still_compares_by_value_with_data_defaulted() -> None:
+    """Half the suite asserts `== Ok(content="hi")`. A defaulted field keeps that
+    true, and this is what stops it drifting."""
+    assert Ok(content="hi") == Ok(content="hi", data=None)
+    assert Ok(content="hi") != Ok(content="hi", data={})
 
 
 def test_failures_wear_one_wire_shape() -> None:
@@ -143,7 +142,7 @@ def test_a_broken_provider_does_not_take_down_the_tool_set() -> None:
 
     registry = ToolRegistry([echo_tool()], providers=[broken])
 
-    assert [s.name for s in registry.specs()] == ["echo"]
+    assert [t.name for t in registry.all()] == ["echo"]
 
 
 def test_duplicate_static_registration_fails_loudly() -> None:
@@ -172,3 +171,16 @@ def test_static_tools_win_a_name_collision_with_a_provider() -> None:
 
     assert len(registry.all()) == 1
     assert registry.get("echo") is not None
+
+
+def test_a_provider_disposer_removes_exactly_its_source() -> None:
+    """`add_provider` owes a disposer like `register` does — the invariant has no
+    exceptions, and a source that cannot be unplugged outlives its owner."""
+    registry = ToolRegistry()
+    dispose = registry.add_provider(lambda: [echo_tool()])
+    registry.add_provider(lambda: [raising_tool("boom")])
+
+    assert sorted(t.name for t in registry.all()) == ["boom", "echo"]
+    dispose()
+    assert [t.name for t in registry.all()] == ["boom"]
+    dispose()  # idempotent

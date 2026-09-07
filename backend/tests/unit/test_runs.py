@@ -26,8 +26,6 @@ from harness.session.models import (
 )
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -36,7 +34,7 @@ from tests.unit.fakes import (
     echo_tool,
     hanging_tool,
 )
-from tests.unit.helpers import unanswered_calls
+from tests.unit.helpers import pipeline_for, unanswered_calls
 
 
 @pytest.fixture
@@ -54,7 +52,7 @@ def store(service: SessionService, client, *tools) -> RunStore:
         name="t",
         model="m",
         client=client,
-        tools=ToolPipeline(ToolRegistry(tools)) if tools else None,
+        tools=pipeline_for(*tools) if tools else None,
         checkpoint=service.flush,
     )
     return RunStore(service, agent)

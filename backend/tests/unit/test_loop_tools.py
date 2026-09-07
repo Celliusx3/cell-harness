@@ -21,8 +21,6 @@ from harness.session.models import (
     TurnEnd,
 )
 from harness.tools.definition import Ok
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.fakes import (
     EchoArgs,
     SteppedClient,
@@ -32,7 +30,7 @@ from tests.unit.fakes import (
     hanging_tool,
     reporting_tool,
 )
-from tests.unit.helpers import new_session, unanswered_calls
+from tests.unit.helpers import new_session, pipeline_for, unanswered_calls
 
 
 def agent(client, *tools, system_prompt: str = "", max_steps: int = 60) -> LoopAgent:
@@ -40,7 +38,7 @@ def agent(client, *tools, system_prompt: str = "", max_steps: int = 60) -> LoopA
         name="t",
         model="m",
         client=client,
-        tools=ToolPipeline(ToolRegistry(tools)),
+        tools=pipeline_for(*tools),
         system_prompt=system_prompt,
         max_steps=max_steps,
     )

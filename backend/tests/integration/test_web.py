@@ -27,8 +27,6 @@ from harness.agent.loop import LoopAgent
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -37,6 +35,7 @@ from tests.unit.fakes import (
     echo_tool,
     hanging_tool,
 )
+from tests.unit.helpers import pipeline_for
 from tests.webapp import web_app
 
 
@@ -51,7 +50,7 @@ def build(tmp_path, client, *tools) -> tuple[SessionService, RunStore]:
         name="t",
         model="m",
         client=client,
-        tools=ToolPipeline(ToolRegistry(tools)) if tools else None,
+        tools=pipeline_for(*tools) if tools else None,
         checkpoint=service.flush,
     )
     return service, RunStore(service, agent)

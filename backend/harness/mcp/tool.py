@@ -18,6 +18,7 @@ from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent, T
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
 from harness.tools.definition import (
     EXECUTION_ERROR,
+    NAMESPACE,
     UNKNOWN_TOOL,
     Failure,
     Ok,
@@ -27,10 +28,6 @@ from harness.tools.definition import (
 from harness.tools.progress import ToolProgressReporter
 
 logger = logging.getLogger("harness.mcp")
-
-# The server id and the tool are joined by `__`; `SERVER_ID_PATTERN` forbids an
-# underscore in the id, so the split back is unambiguous.
-NAMESPACE = "__"
 
 # What every provider accepts for a tool name. A violation is not this tool's
 # problem alone: the request carries *every* tool, so one unusable name from one
@@ -45,6 +42,8 @@ CallTool = Callable[[str, dict], Awaitable[CallToolResult]]
 
 
 def namespaced(server: str, tool: str) -> str:
+    """`yt` + `get_subtitles` -> `yt__get_subtitles`. `_SERVER_ID` forbids an
+    underscore in the id, so the split back is unambiguous."""
     return f"{server}{NAMESPACE}{tool}"
 
 
@@ -99,7 +98,11 @@ def outcome_of(result: CallToolResult, *, name: str) -> ToolOutcome:
         rendered = json.dumps(result.structured_content)
     if result.is_error:
         return Failure(EXECUTION_ERROR, rendered or f"{name} reported an error with no message")
-    return Ok(content=rendered)
+    # `structured_content` rides alongside rather than only standing in for empty
+    # text. A server that sends both a summary and the rows means both, and
+    # keeping only the summary threw the rows away with nothing able to ask for
+    # them back.
+    return Ok(content=rendered, data=result.structured_content)
 
 
 def render_content(blocks: Sequence[ContentBlock]) -> str:

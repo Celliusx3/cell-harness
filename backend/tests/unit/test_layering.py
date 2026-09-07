@@ -10,6 +10,10 @@ was decorative.
     repository ─────────┘
 
 Arrows never point the other way.
+
+`harness/sandbox` has the same shape as a rule with no arrows at all: it runs a
+script and calls back, and the moment it learns what a `ToolOutcome` is, the next
+thing that wants a sandbox has to bring the tool domain with it.
 """
 
 from __future__ import annotations
@@ -19,7 +23,9 @@ import pathlib
 
 import pytest
 
-SESSION = pathlib.Path(__file__).resolve().parents[2] / "harness" / "session"
+HARNESS = pathlib.Path(__file__).resolve().parents[2] / "harness"
+SESSION = HARNESS / "session"
+SANDBOX = HARNESS / "sandbox"
 
 # Modules that describe a conversation. None may know about storage.
 PURE = ("models", "log", "derive", "repair")
@@ -92,3 +98,31 @@ def test_at_least_one_backend_exists() -> None:
     implementation and every swap claim is untested."""
     backends = [p for p in (SESSION / "repositories").glob("*.py") if p.stem != "__init__"]
     assert backends, "session/repositories/ holds no backend"
+
+
+# ── the sandbox knows nothing ─────────────────────────────────────────────────
+
+
+def test_the_sandbox_imports_nothing_from_the_harness() -> None:
+    """It takes code, some names, and a callback. Anything more — a `ToolOutcome`,
+    a registry, a session — makes it code mode's private runtime rather than a
+    sandbox, and the coupling grows back the first time someone finds it handy.
+    """
+    leaks: list[str] = []
+    for path in sorted(SANDBOX.rglob("*.py")):
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            imported = (
+                [node.module]
+                if isinstance(node, ast.ImportFrom) and node.module
+                else [alias.name for alias in node.names]
+                if isinstance(node, ast.Import)
+                else []
+            )
+            leaks += [
+                f"{path.name} imports {m}"
+                for m in imported
+                if m.startswith("harness.") and not m.startswith("harness.sandbox")
+            ]
+
+    assert leaks == [], leaks

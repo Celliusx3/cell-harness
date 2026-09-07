@@ -30,9 +30,8 @@ from harness.agent.loop import LoopAgent
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
+from tests.unit.helpers import pipeline_for
 from tests.webapp import web_app
 
 # Generous, because a failure here should read as "the contract broke" rather
@@ -81,7 +80,7 @@ async def live(tmp_path):
         name="t",
         model="m",
         client=SteppedClient(calls_tool("hang", '{"value": "x"}')),
-        tools=ToolPipeline(ToolRegistry([hanging_tool()])),
+        tools=pipeline_for(hanging_tool()),
         checkpoint=service.flush,
     )
     runs = RunStore(service, agent)

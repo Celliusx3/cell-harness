@@ -28,6 +28,11 @@ from pydantic import BaseModel, ValidationError
 from harness.llm.messages import ToolSpec
 from harness.tools.progress import ToolProgressReporter
 
+# Joins a source to the tool it published — `yt` + `get_subtitles`. Here rather
+# than in `mcp/` because it is the tool-name convention, and putting it there
+# made every reader of a tool name import the MCP package.
+NAMESPACE = "__"
+
 # Failure codes. Stable identifiers the guardrail and UI switch on, distinct from
 # the human-readable message beside them.
 INVALID_ARGUMENTS = "INVALID_ARGUMENTS"
@@ -44,11 +49,18 @@ ERROR_PREFIX = "error: "
 class Ok:
     """A call that produced a result.
 
+    `content` is what the model reads. `data` is the same result as a structured
+    value, when the tool has one — an MCP server's `structuredContent`, say. Two
+    fields rather than one because they have different readers: the model gets
+    prose, a *program* gets the object. Until code mode there is no such program,
+    and `data` is simply not destroyed on the way past.
+
     Phase 4 adds tool-private presentation data here (a diff, a row count) once
     there is a UI to render a card from it.
     """
 
     content: str
+    data: object | None = None
 
 
 @dataclass(frozen=True)

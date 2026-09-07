@@ -1,0 +1,4 @@
+{
+  "lint": { "rules": { "tags": ["recommended"] } },
+  "fmt": { "lineWidth": 100 }
+}

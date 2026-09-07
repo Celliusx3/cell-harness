@@ -17,6 +17,10 @@ from datetime import UTC, datetime
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.session.log import Session
 from harness.session.models import SessionHeader
+from harness.tools.definition import ToolDefinition
+from harness.tools.dispatcher import ToolDispatcher
+from harness.tools.pipeline import ToolPipeline
+from harness.tools.registry import ToolProvider, ToolRegistry
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -59,3 +63,14 @@ def new_session(session_id: str = "s") -> Session:
     assertion compares equal across runs.
     """
     return Session(SessionHeader(id=session_id, created_at=datetime(2026, 1, 1, tzinfo=UTC)))
+
+
+def pipeline_for(*tools: ToolDefinition, providers: Sequence[ToolProvider] = ()) -> ToolPipeline:
+    """A registry, a dispatcher and a pipeline over `tools`, offering all of them.
+
+    The three arguments are required in the product so nobody inherits a tool
+    list or a second dispatcher by accident. Tests that do not care about either
+    say so once, here, rather than at every construction.
+    """
+    registry = ToolRegistry(tools, providers=providers)
+    return ToolPipeline(registry, ToolDispatcher(registry), default_tools=())

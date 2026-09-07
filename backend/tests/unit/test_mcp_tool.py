@@ -95,13 +95,42 @@ async def test_a_timeout_is_an_execution_error_carrying_the_reason() -> None:
 
 
 async def test_structured_content_is_used_when_there_are_no_blocks() -> None:
+    """With nothing to render, the structured value stands in as the text too."""
+
     async def call(name: str, arguments: dict) -> CallToolResult:
         return CallToolResult(content=[], structuredContent={"rows": 3})
 
     built = one("db", tool("count"), call)
     outcome = await built.invoke("{}", progress=no_progress)
 
-    assert outcome == Ok('{"rows": 3}')
+    assert outcome == Ok('{"rows": 3}', data={"rows": 3})
+
+
+async def test_structured_content_survives_alongside_text() -> None:
+    """A server that sends a summary *and* the rows means both. Keeping only the
+    summary destroyed the rows, and nothing downstream could ask for them back."""
+
+    async def call(name: str, arguments: dict) -> CallToolResult:
+        return CallToolResult(
+            content=[TextContent(type="text", text="Found 3 jobs.")],
+            structuredContent={"jobs": [{"title": "Senior Python Engineer"}]},
+        )
+
+    built = one("jobs", tool("search"), call)
+    outcome = await built.invoke("{}", progress=no_progress)
+
+    assert isinstance(outcome, Ok)
+    assert outcome.content == "Found 3 jobs."
+    assert outcome.data == {"jobs": [{"title": "Senior Python Engineer"}]}
+
+
+async def test_a_tool_with_no_structured_content_has_none() -> None:
+    async def call(name: str, arguments: dict) -> CallToolResult:
+        return CallToolResult(content=[TextContent(type="text", text="hi")])
+
+    built = one("stub", tool("echo"), call)
+
+    assert await built.invoke("{}", progress=no_progress) == Ok("hi")
 
 
 def test_text_blocks_are_joined_in_order() -> None:

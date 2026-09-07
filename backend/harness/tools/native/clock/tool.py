@@ -32,6 +32,12 @@ class ClockArgs(BaseModel):
     )
 
 
+# Beside the tool it names, so `DEFAULT_TOOLS` can reference it instead of
+# repeating the string — a name in two places is a rename that half-happens, and
+# `specs()` skips a name it cannot find without complaining.
+CLOCK = "get_current_time"
+
+
 def clock_tool(now: Now = lambda: datetime.now(UTC)) -> ToolDefinition[ClockArgs]:
     async def execute(args: ClockArgs, progress: ToolProgressReporter) -> ToolOutcome:
         try:
@@ -44,7 +50,7 @@ def clock_tool(now: Now = lambda: datetime.now(UTC)) -> ToolDefinition[ClockArgs
         return Ok(content=now().astimezone(zone).isoformat(timespec="seconds"))
 
     return ToolDefinition.from_model(
-        name="get_current_time",
+        name=CLOCK,
         description="Get the current date and time in a given timezone.",
         args_model=ClockArgs,
         execute=execute,

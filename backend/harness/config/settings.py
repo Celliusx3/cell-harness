@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -90,6 +91,23 @@ class TelegramSettings(BaseModel):
     # cannot be guessed, and a harness that refused to start without one would be
     # unusable for everyone running it in a browser.
     bot_token: str = ""
+
+
+class CodeModeSettings(BaseModel):
+    """The sandbox the model's programs run in.
+
+    There is no `enabled`. Code mode is how this harness reaches its tools — the
+    model writes a program rather than calling one tool at a time — so a switch
+    would offer a second way to do the only thing there is, and `load()` refuses
+    to start without the runtime rather than failing on the first script.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    deno_path: str = "deno"
+    # Bounds one script. The tool pipeline has no timeout of its own, so without
+    # this a program that loops holds the turn open until the user gives up.
+    timeout_seconds: float = Field(default=60.0, gt=0)
 
 
 class McpServer(BaseModel):
@@ -166,6 +184,7 @@ class Settings(BaseSettings):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
+    code: CodeModeSettings = Field(default_factory=CodeModeSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
 
     @classmethod
@@ -205,6 +224,12 @@ def load() -> Settings:
     pydantic field path.
     """
     settings = Settings()
+    if shutil.which(settings.code.deno_path) is None:
+        raise MissingConfigError(
+            f"{settings.code.deno_path!r} is not on PATH, and the harness runs "
+            "every tool call through a Deno sandbox. Install Deno "
+            f"(https://deno.com) or set code.deno_path in {_CONFIG_JSON}."
+        )
     missing = [
         name
         for name, value in (("model", settings.llm.model), ("api_key", settings.llm.api_key))

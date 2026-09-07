@@ -1,35 +1,7 @@
-"""Tools the model can call — phase 2.
+"""Tools, and the machinery that offers and runs them.
 
-Its own subpackage rather than living under `agent/`, because it imports nothing
-from there and nearly everything will import it: MCP (phase 5), skills (phase 6),
-and the control plane each build tools without being about agents.
-
-- `definition` — what a tool *is*: a schema the model is told, a parser, and an
-  executor. `ToolDefinition.spec()` is the allowlist that keeps everything else
-  off the wire.
-- `registry` — the set an agent can call, resolved live so a source that
-  connects mid-conversation is usable on the next turn.
-- `pipeline` — guarded execution: one interceptable waterfall around the call.
-- `progress` — how a running tool reports partway.
+**Where a tool lives.** A leaf capability — one that does a thing and has nothing
+behind it — goes in `native/<name>/`. A tool that is the *door* to a subsystem
+goes with that subsystem: MCP's are built in `mcp/tool.py`, and code mode's live
+beside the codegen they need. The registry is the one place they meet.
 """
-
-from harness.tools.definition import (
-    Failure,
-    Ok,
-    ToolDefinition,
-    ToolOutcome,
-    render_outcome,
-)
-from harness.tools.progress import ToolProgressReporter
-from harness.tools.registry import ToolProvider, ToolRegistry
-
-__all__ = [
-    "Failure",
-    "Ok",
-    "ToolDefinition",
-    "ToolOutcome",
-    "ToolProgressReporter",
-    "ToolProvider",
-    "ToolRegistry",
-    "render_outcome",
-]

@@ -19,8 +19,6 @@ from harness.channels.transport import InboundMessage
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -29,6 +27,7 @@ from tests.unit.fakes import (
     echo_tool,
     hanging_tool,
 )
+from tests.unit.helpers import pipeline_for
 from tests.unit.telegram_fakes import telegram_channel
 
 CHAT = "4242"
@@ -45,7 +44,7 @@ def build(tmp_path: Path, model, *tools):
         name="t",
         model="m",
         client=model,
-        tools=ToolPipeline(ToolRegistry(tools)) if tools else None,
+        tools=pipeline_for(*tools) if tools else None,
         checkpoint=sessions.flush,
     )
     runs = RunStore(sessions, agent)

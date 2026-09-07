@@ -46,9 +46,12 @@ from harness.config.settings import Settings, load
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.store import McpServerStore
 from harness.runs.store import RunStore
+from harness.sandbox import DenoRunner
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.clock import clock_tool
+from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
 
@@ -56,6 +59,21 @@ SYSTEM_PROMPT = (
     "You are a helpful assistant. When a tool can answer the user's question, "
     "call it instead of guessing."
 )
+
+# What the model is offered on every request, whatever else is registered.
+# Everything not named here is still callable — the model reaches it by writing a
+# program — it is simply not described in the request, which is what stops that
+# description being re-uploaded with every message.
+#
+# **This is the list to edit.** To stop the model writing a program just to read
+# the clock, import `CLOCK` from `tools.native.clock` and add it. The cost is
+# that tool's schema in every request, forever.
+#
+# Prefer a constant over a literal. A name spelled here and defined elsewhere is
+# a rename that half-happens, and `specs()` skips a name it cannot find without
+# complaining. MCP tools have no constant to import — `"jobs__search"` is a
+# literal by necessity, and unchecked until that server connects.
+DEFAULT_TOOLS = (LIST, DETAILS, EXECUTE)
 
 
 def build_store(settings: Settings) -> SessionService:
@@ -85,12 +103,34 @@ def build_agent(settings: Settings, store: SessionService, mcp: McpServerStore) 
     # here, which is what makes a server added mid-conversation callable on the
     # next turn without rebuilding the agent.
     registry.add_provider(mcp.tools)
+
+    # One dispatcher, shared. Two would let a future approval gate be installed
+    # on the model's path and not on a script's, with nothing to say which.
+    dispatcher = ToolDispatcher(registry)
+    # The disposer is dropped for the same reason MCP's is: these live as long as
+    # the process.
+    for tool in code_mode_tools(
+        registry=registry,
+        dispatcher=dispatcher,
+        runtime=DenoRunner(
+            deno_path=settings.code.deno_path,
+            timeout_seconds=settings.code.timeout_seconds,
+        ),
+    ):
+        registry.register(tool)
+    # Last, because nothing else needs it — three schemas however many servers
+    # are connected. See `DEFAULT_TOOLS`.
+    pipeline = ToolPipeline(registry, dispatcher, DEFAULT_TOOLS)
+
     return LoopAgent(
         name="default",
         model=settings.llm.model,
         client=OpenAIClient(settings.llm),
-        tools=ToolPipeline(registry),
-        system_prompt=SYSTEM_PROMPT,
+        tools=pipeline,
+        # The prompt travels with the tools: a model shown three unfamiliar tools
+        # and not told what they are for will answer "I can't do that" rather
+        # than discover its own capabilities.
+        system_prompt=SYSTEM_PROMPT + CODE_PROMPT,
         # Durability where it matters: before every model request, and before
         # every tool that might have a side effect.
         checkpoint=store.flush,

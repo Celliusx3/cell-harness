@@ -20,7 +20,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Iterable
 
-from harness.llm.messages import ToolSpec
 from harness.tools.definition import ToolDefinition
 
 logger = logging.getLogger("harness.tools")
@@ -111,10 +110,6 @@ class ToolRegistry:
                     continue
                 resolved[tool.name] = tool
         return list(resolved.values())
-
-    def specs(self) -> list[ToolSpec]:
-        """What the model is offered this turn — read fresh, never cached."""
-        return [tool.spec() for tool in self.all()]
 
     def get(self, name: str) -> ToolDefinition | None:
         """The tool called `name`, or `None`.

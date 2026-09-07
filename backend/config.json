@@ -8,6 +8,10 @@
   "sessions": {
     "root": "~/.harness/sessions"
   },
+  "code": {
+    "deno_path": "deno",
+    "timeout_seconds": 60
+  },
   "mcp": {
     "servers": {}
   }

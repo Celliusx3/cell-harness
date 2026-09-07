@@ -14,20 +14,27 @@ MCP — not a terminal coding harness). Synthesized from
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current phase and what it must satisfy.
 
-**Status: phase 6 — "one seam for every channel" — implemented, awaiting review.**
-Next is phase 7, MCP.
+**Status: phase 7 — "it uses your tools" — implemented.** Since then, one
+insertion not in PHASES.md: **code mode**. The model is offered three tools and
+reaches every capability by writing a TypeScript program that runs in a Deno
+sandbox, so the request carries three schemas however many servers are connected.
+**Deno is a startup requirement.** Reasoning, evidence, and the tool-search
+attempt it replaced, in
+[docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md). Next is phase 8, skills.
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
 # everything else — model, endpoint, sessions root, MCP servers — is in
 # backend/config.json (committed); secrets go in config.local.json (gitignored)
-make install && make test
+make install && make test          # needs Deno on PATH — https://deno.com
 make dev                                # backend :4896 + frontend :4897
 # open http://localhost:4897 — there is no CLI, the API is the only surface
 ```
 
 Capabilities are MCP servers, declared under `mcp.servers` and connected at
-startup. The key is the tool namespace — `fs` gives the model `fs__read_file`:
+startup. The key is the tool namespace — `fs` gives the model `fs__read_file`.
+The model never sees them as tools: it calls `list_functions`, then writes one
+TypeScript program that calls `fs__read_file(...)` inside a Deno sandbox.
 
 ```json
 { "mcp": { "servers": {
@@ -45,7 +52,8 @@ backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the event log, its models, repository/, service, repair
   agent/        the turn loop and its events
-  tools/        definition, registry, pipeline, progress, native/
+  tools/        definition, registry, dispatcher, pipeline, progress, native/<tool>/
+  sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   runs/         a turn that outlives its connection — store, subscribe
   channels/     every way in and out — telegram/, web/, and per-chat state
   web/          server — the composition root (the HTTP surface is channels/web/)
@@ -81,6 +89,15 @@ Breaking one is not a style disagreement.
 - **Prompt text is code.** Wording that fixes a model failure carries that failure.
 - **A watcher owns nothing.** A reader hanging up cannot cancel a turn.
 - **One cursor.** One sequence number for snapshot and live stream alike.
+- **Every tool call goes through the dispatcher** — a script's calls included, and
+  there is exactly one, which is what makes one timeout and one gate cover both.
+- **The sandbox is granted nothing.** No `--allow-*`; the bridge is the only way
+  out, and code mode never reaches itself.
+- **`harness/sandbox/` imports nothing from `harness`.** It runs a script; it does
+  not know what a tool is.
+- **We reap what we spawn.** No SDK owns the Deno child; a `finally` kills it.
+- **Prompt assembly cannot raise.** The schema printer degrades to `unknown`
+  rather than costing the turn every tool.
 
 ## Before marking work complete
 
@@ -103,3 +120,4 @@ Breaking one is not a style disagreement.
 | [docs/deepseek-harness.md](./docs/deepseek-harness.md) | Teardown of DeepSeek Harness and three replication tiers |
 | [docs/cell-bot.md](./docs/cell-bot.md) | Teardown of cell-bot, its feature inventory, and its gaps |
 | [docs/without-cordis.md](./docs/without-cordis.md) | Scope / Layered / Events in ~250 lines, and what we give up — built when first needed, not now |
+| [docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md) | Why MCP schemas load on demand, how code mode works and who else ships it, and what the evidence actually says |
