@@ -11,6 +11,11 @@ carries a fixed three schemas however many servers are connected
 ([§6](#6-code-mode)). There is no setting: this is how the harness reaches its
 tools, and Deno is a startup requirement.
 
+**Read [§6 "Measured on this deployment"](#the-evidence-honestly) before quoting
+the paragraph above.** At the thirteen tools we actually run, code mode costs
+*more* than offering every tool directly, on every axis. Keeping it is a bet on
+server count growing, taken with that result in hand.
+
 ---
 
 ## 1. Neither source project helps
@@ -253,11 +258,12 @@ Goose *deleted* its earlier LLM tool router (1,270 lines, Dec 2025) and replaced
 it with this. Sandboxes converged on **JS engines, not containers** — startup cost
 dominates when every turn spawns one.
 
-Worth knowing, and worth holding against our own choice: DeepSeek ships code mode
-in **one preset of four**, the one named `code`, and it is an opt-in
-specialisation everywhere else it exists too. We made it the only mode. That is a
-deliberate bet that one way of reaching tools beats two, and the measurement below
-is what would falsify it.
+Worth knowing, and worth holding against our own choice: **every implementation
+ships this opt-in.** DeepSeek puts it in one preset of four, the one named
+`code`. Goose goes further — `pctx_code_mode` is a Cargo feature and
+`crates/goose/Cargo.toml` has `default = []`, so it is not compiled into a stock
+build at all. We made it the only mode. That was a bet before it was measured;
+the measurement is below, and it is kept.
 
 ### The evidence, honestly
 
@@ -274,11 +280,75 @@ running. Anthropic's "98.7%" is one illustrative example in a design doc. pctx's
 instead of a JSON blob — and debugging failed code costs extra turns. Every
 published number is the one metric code mode trivially wins.
 
-**Measured on this deployment:** _not yet recorded._ Run a multi-tool task and
-record `prompt_tokens`, `output_tokens` and step count, against a build with
-`ToolPipeline(registry)` — the no-code branch, kept precisely so the comparison
-stays available. Expect fewer input tokens and steps, and **more output tokens**.
-If total cost does not improve, write that here; it is the result.
+**Measured on this deployment.** Thirteen capabilities — a clock plus twelve
+from two MCP servers — against `ToolPipeline(registry, dispatcher, ())`, whose
+empty `default_tools` offers every registered spec. Two tasks, each run both
+ways. The result did not improve, so per the instruction that used to sit here,
+it is written down.
+
+*Task A, deterministic — the current time in three cities:*
+
+| | steps | prompt tokens | output tokens | tool-result chars |
+|---|---|---|---|---|
+| code mode | 4 | 11,946 | 171 | 13,111 |
+| every tool offered | **2** | **12,123** | **95** | **75** |
+
+*Task B, two remote Python jobs — result volume varies per run, so only steps and
+tokens compare:*
+
+| | steps | prompt tokens | output tokens |
+|---|---|---|---|
+| code mode | 4 | 19,991 | 155 |
+| every tool offered | **2** | **15,586** | **136** |
+
+**Code mode lost on every axis, both times.** Four findings, and only the last
+was a bug:
+
+1. **The input-token saving did not appear.** 11,946 against 12,123 — under 2%,
+   and the wrong way on task B. `list_functions` does not avoid the cost of
+   thirteen schemas, it *moves* it: the catalog is 12,830 characters, and it goes
+   into the conversation rather than the request. That is 98% of code mode's
+   entire tool-result volume on task A, spent to avoid schemas that cost about
+   the same.
+2. **Models batch tool calls.** The direct path made all three clock calls in a
+   single assistant message — two steps, 75 characters of results. Code mode's
+   round-trip argument assumes a model calls tools one at a time. Current ones
+   do not.
+3. **Output tokens went up** — 171 against 95, and 155 against 136. Exactly the
+   metric noted above as the one nobody publishes.
+4. **Wrong scripts cost turns.** Most MCP servers publish JSON as *text* rather
+   than `structuredContent`, so a script reading `results.jobs` got `undefined`.
+   Observed live: five failing scripts and a cancelled turn. Fixing it (parse
+   text that is JSON, pass everything else through — the same rule Goose's
+   `callback_result_to_value` applies) took task B from six steps to four and
+   output from 552 tokens to 155. It improved code mode materially and changed
+   no verdict.
+
+None of this says code mode is wrong. It says **thirteen tools is not its use
+case** — which is what Goose encodes by shipping it behind a Cargo feature that
+`default = []` leaves off, and DeepSeek by making it one preset of four.
+
+### The decision, and what would reverse it
+
+**Code mode stays the only mode.** Taken with the numbers above in hand, so it is
+a bet rather than an assumption: that server count only grows, and that one way
+of reaching tools is worth more than a second one that is cheaper today. The
+crossover is real but unmeasured — somewhere past thirteen tools the catalog
+stops being the expensive half.
+
+What would reverse it, concretely:
+
+- The catalog exceeding what it saves by more than it does now — measure again at
+  ~30 tools, when `list_functions` is 30K characters and the schemas it replaces
+  are still roughly the same size.
+- Scripts routinely needing a repair round. Before the JSON fix, task B took six
+  steps rather than four and one live conversation burned five failing scripts
+  before being cancelled; after it, both code-mode runs above wrote one script
+  and stopped. If that regresses, the extra turns cost more than the catalog.
+
+Cheaper than reversing: trim what `list_functions` emits, and re-measure. The
+catalog prints every function with its one-line description; most of a turn's
+13K characters is capability the model was never going to call.
 
 ### Follow-ups, with their triggers
 
