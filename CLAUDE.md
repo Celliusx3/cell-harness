@@ -14,13 +14,24 @@ MCP — not a terminal coding harness). Synthesized from
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current phase and what it must satisfy.
 
-**Status: phase 7 — "it uses your tools" — implemented.** Since then, one
-insertion not in PHASES.md: **code mode**. The model is offered three tools and
+**Status: phase 7 — "it uses your tools" — implemented.** Since then, two
+insertions not in PHASES.md.
+
+**1. Code mode.** The model is offered three tools and
 reaches every capability by writing a TypeScript program that runs in a Deno
 sandbox, so the request carries three schemas however many servers are connected.
 **Deno is a startup requirement.** Reasoning, evidence, and the tool-search
 attempt it replaced, in
-[docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md). Next is phase 8, skills.
+[docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md).
+
+**2. It finds places from Instagram reels** — the first real capability, and the
+first test of phase 7's claim. Two MCP servers under
+[mcp-servers/](./mcp-servers/): `instagram` reads a shared reel into text
+observations, `places` resolves them to a POI with a Maps link. The model
+composes them in one program, and `backend/harness/` gained nothing. Instagram
+needs no credentials; Google Places needs a key in `config.local.json`.
+
+Next is phase 8, skills.
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
@@ -59,9 +70,16 @@ backend/harness/
   web/          server — the composition root (the HTTP surface is channels/web/)
   config/       one Settings: config.json + config.local.json + env
 backend/tests/  unit/ and integration/
+mcp-servers/    the capabilities we build — one uv project each, own tests
 frontend/       Next.js chat — app/, components/, lib/
 docs/           source teardowns + long-form rules
 ```
+
+`mcp-servers/` is where a capability goes, not `backend/harness/`. Each is a
+separate process with its own dependencies and its own 80% gate, reached only by
+being declared in `mcp.servers` — `backend/harness/` imports nothing from it. See
+[mcp-servers/README.md](./mcp-servers/README.md) for the layout every one
+follows and the four things the harness makes non-negotiable.
 
 Subpackages and infrastructure arrive with the phase that needs them, never
 earlier. Full intended layout in [DESIGN.md §3](./DESIGN.md); paths in PHASES.md
@@ -101,7 +119,9 @@ Breaking one is not a style disagreement.
 
 ## Before marking work complete
 
-- `make lint` and `make test` are green (coverage gate is 80%).
+- `make lint` and `make test` are green (coverage gate is 80%). If you touched
+  `mcp-servers/`, so are `make lint-mcp-servers` and `make test-mcp-servers` —
+  deliberately separate, so one server's flake cannot fail the harness's suite.
 - The phase's acceptance criteria in [PHASES.md](./PHASES.md) are met, as tests.
 - **Every new definition has a caller outside `tests/`.** `grep -rn '\bname\b'
   harness/` — if the only hits are the definition and test files, it belongs in
