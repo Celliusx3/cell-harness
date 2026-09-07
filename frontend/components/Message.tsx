@@ -1,8 +1,10 @@
 "use client";
 
-import Markdown from "react-markdown";
+import type { Element } from "hast";
+import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { CodeBlock } from "@/components/CodeBlock";
 import type { AssistantItem, UserItem } from "@/lib/timeline";
 
 export function UserBubble({ item }: { item: UserItem }) {
@@ -34,6 +36,51 @@ export function QueuedBubble({ content }: { content: string }) {
   );
 }
 
+/**
+ * A fenced block, read off the hast node markdown hands the `pre` override.
+ *
+ * Returns null for a fence with no language, which then renders as an ordinary
+ * `<pre>` — highlighting a stack trace as TypeScript is worse than not trying.
+ */
+function fenced(node: Element | undefined): { code: string; language: string } | null {
+  const child = node?.children[0];
+  if (child?.type !== "element" || child.tagName !== "code") return null;
+  const names = child.properties?.className;
+  const tag = Array.isArray(names)
+    ? names.map(String).find((name) => name.startsWith("language-"))
+    : undefined;
+  const text = child.children[0];
+  if (tag === undefined || text?.type !== "text") return null;
+  // Markdown appends exactly one newline to a fence. `.trim()` would also eat
+  // the first line's indentation, which for a program is content.
+  return { code: text.value.replace(/\n$/, ""), language: tag.slice("language-".length) };
+}
+
+/**
+ * Module-level so its identity is stable across the re-render every stream chunk
+ * causes.
+ *
+ * `pre` is overridden and `code` deliberately is not: an untagged fence and
+ * inline code reach the `code` component as the same shape, so discriminating
+ * there renders ``` blocks as inline text — whitespace collapsed, bolded, and
+ * wrapped in literal backticks by the typography plugin. Only a fence is ever a
+ * `pre`, so this override cannot catch the wrong thing.
+ *
+ * The weight is worth it now in a way it was not when the only tool was a clock:
+ * in code mode the model writes TypeScript in most replies.
+ */
+const MARKDOWN: Components = {
+  pre({ node, children }) {
+    const block = fenced(node);
+    if (block === null) return <pre>{children}</pre>;
+    return (
+      <div className="not-prose my-4">
+        <CodeBlock code={block.code} language={block.language} className="bg-surface-sunken" />
+      </div>
+    );
+  },
+};
+
 export function AssistantBubble({ item }: { item: AssistantItem }) {
   return (
     <div className="flex flex-col gap-1">
@@ -42,9 +89,9 @@ export function AssistantBubble({ item }: { item: AssistantItem }) {
           item.streaming ? "caret" : ""
         }`}
       >
-        {/* Markdown, but no syntax highlighting: Shiki or Prism is real weight
-            for a phase whose only tool is a clock. */}
-        <Markdown remarkPlugins={[remarkGfm]}>{item.content}</Markdown>
+        <Markdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
+          {item.content}
+        </Markdown>
       </div>
       {item.interrupted && (
         <p className="text-xs italic text-ink-soft">

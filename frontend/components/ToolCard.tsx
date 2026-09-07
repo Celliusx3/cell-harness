@@ -3,7 +3,11 @@
 import { ChevronRight, TriangleAlert, Wrench } from "lucide-react";
 import { useState } from "react";
 
+import { CodeBlock } from "@/components/CodeBlock";
 import type { ToolItem } from "@/lib/timeline";
+
+/** Code mode's runner. Its `code` field is a program; its siblings are prose. */
+const EXECUTE = "execute_typescript";
 
 /**
  * One tool call, collapsed to a line until asked to open.
@@ -45,7 +49,7 @@ export function ToolCard({ item }: { item: ToolItem }) {
 
       {open && (
         <div className="space-y-2 border-t border-line px-3 py-2">
-          <Block label="Arguments" body={item.call.arguments} />
+          <Arguments raw={item.call.arguments} tool={item.call.name} />
           {/* Deliberately shown whole. A tool result is exactly what the model
               was given, and a truncated one would misrepresent the turn. */}
           {item.result !== null && <Block label="Result" body={item.result} />}
@@ -55,13 +59,65 @@ export function ToolCard({ item }: { item: ToolItem }) {
   );
 }
 
-function Block({ label, body }: { label: string; body: string }) {
+/**
+ * The model's argument string, one block per field.
+ *
+ * It arrives as JSON on a single line, so code mode — whose whole argument *is*
+ * a program — renders as `"let i = 0;\nconst results…"`. Splitting the object
+ * lets each string value print as itself, which is what turns an escaped script
+ * back into readable source.
+ *
+ * Anything that is not a JSON object falls back to the raw string, because a
+ * malformed argument string is exactly when you need to see what was really
+ * sent.
+ */
+function Arguments({ raw, tool }: { raw: string; tool: string }) {
+  const fields = parseFields(raw);
+  if (fields === null) return <Block label="Arguments" body={raw} />;
+  return (
+    <>
+      {fields.map(([name, body]) => (
+        // Gated on the tool as well as the field name: `Arguments` splits any
+        // JSON object, so an MCP tool that happens to take a `code` argument
+        // would otherwise be highlighted as TypeScript.
+        <Block key={name} label={name} body={body} script={tool === EXECUTE && name === "code"} />
+      ))}
+    </>
+  );
+}
+
+function parseFields(raw: string): [string, string][] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const entries = Object.entries(parsed);
+  if (entries.length === 0) return null;
+  // Strings print as themselves so newlines survive; everything else is shaped
+  // by the same indented JSON the model's own tool results use.
+  return entries.map(([name, value]) => [
+    name,
+    typeof value === "string" ? value : JSON.stringify(value, null, 2),
+  ]);
+}
+
+function Block({ label, body, script = false }: { label: string; body: string; script?: boolean }) {
   return (
     <div>
       <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink-soft">{label}</p>
-      <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-xs">
-        {body}
-      </pre>
+      {/* Capped and scrolled rather than truncated: a 200-line script would
+          otherwise push the rest of the conversation off screen, and cutting it
+          short would hide the line you opened the card to read. */}
+      {script ? (
+        <CodeBlock code={body} language="tsx" className="bg-surface" />
+      ) : (
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-2 font-mono text-xs">
+          {body}
+        </pre>
+      )}
     </div>
   );
 }

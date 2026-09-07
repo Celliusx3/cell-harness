@@ -13,8 +13,12 @@
   --color-danger-soft: oklch(96% 0.03 22);
 }
 
+/* `:root`, not `@theme`. Tailwind v4 hoists every `@theme` body into
+   `@layer theme` and drops the at-rule around it, so a `@theme` here overwrote
+   the light palette unconditionally — the app was permanently dark. Unlayered
+   rules outrank `@layer theme`, so these apply only when the query matches. */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root {
     --color-surface: oklch(19% 0.008 250);
     --color-surface-sunken: oklch(23% 0.01 250);
     --color-line: oklch(31% 0.012 250);
@@ -28,9 +32,9 @@
 }
 
 /* Drive the typography plugin from our own tokens instead of `prose-invert`.
-   Those tokens already flip with `prefers-color-scheme`, so one declaration
-   covers both themes — and `dark:prose-invert` was leaving body text at the
-   plugin's default grey, which is genuinely hard to read on our dark surface. */
+   One declaration covers both themes — and `dark:prose-invert` was leaving body
+   text at the plugin's default grey, which is genuinely hard to read on our dark
+   surface. */
 .prose {
   --tw-prose-body: var(--color-ink);
   --tw-prose-headings: var(--color-ink);
@@ -43,6 +47,61 @@
   --tw-prose-hr: var(--color-line);
   --tw-prose-th-borders: var(--color-line);
   --tw-prose-td-borders: var(--color-line);
+}
+
+/* Syntax colours live in plain `:root` rather than `@theme` because nothing
+   generates utilities from them — only the `.token` rules below read them. */
+:root {
+  --syntax-comment: oklch(58% 0.02 250);
+  --syntax-keyword: oklch(48% 0.16 300);
+  --syntax-string: oklch(48% 0.13 145);
+  --syntax-number: oklch(52% 0.14 40);
+  --syntax-name: oklch(50% 0.13 230);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --syntax-comment: oklch(62% 0.02 250);
+    --syntax-keyword: oklch(76% 0.13 300);
+    --syntax-string: oklch(78% 0.13 145);
+    --syntax-number: oklch(80% 0.11 60);
+    --syntax-name: oklch(78% 0.11 230);
+  }
+}
+
+/* `CodeBlock` passes Prism an empty theme, so highlighting arrives as bare
+   `token <type>` classes and the palette can live here — which is what lets it
+   flip with the OS theme instead of being frozen into a JS theme object.
+   `.token.number` must precede the regex rule: a quantifier carries both
+   classes, and reading a regex as one colour beats picking out its `+`. */
+.token.comment {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+
+.token.operator,
+.token.punctuation {
+  color: var(--color-ink-soft);
+}
+
+.token.number {
+  color: var(--syntax-number);
+}
+
+.token.keyword,
+.token.boolean {
+  color: var(--syntax-keyword);
+}
+
+.token.string,
+.token.regex {
+  color: var(--syntax-string);
+}
+
+.token.class-name,
+.token.builtin,
+.token.function {
+  color: var(--syntax-name);
 }
 
 html,
