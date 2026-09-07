@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from mcp.types import AudioContent, CallToolResult, ImageContent, TextContent
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
@@ -158,6 +160,33 @@ def test_a_name_no_provider_would_accept_is_dropped_not_relayed() -> None:
     built = build_tools("srv", [tool("a" * 70), tool("fine"), tool("has/slash")], never_called)
 
     assert [t.name for t in built] == ["srv__fine"]
+
+
+def test_a_name_code_mode_could_not_declare_is_dropped_too() -> None:
+    """Narrower than the providers require, deliberately.
+
+    Providers accept a hyphen; `tools/native/code/typescript.py` emits
+    `declare function {name}(...)` **unquoted**, so a hyphenated tool name is
+    unparseable TypeScript — and because the declarations are printed as one
+    block, it would break every *other* tool's declaration in the same catalog.
+    Dropping one tool with a warning is the smaller loss.
+    """
+    built = build_tools("srv", [tool("get-video"), tool("get_video")], never_called)
+
+    assert [t.name for t in built] == ["srv__get_video"]
+    # Note a leading digit in the *tool* name is fine — `srv__9lives` still
+    # starts with the server id. It is the *id* that must start with a letter,
+    # which `_SERVER_ID` now enforces (see test_mcp_settings.py).
+    assert [t.name for t in build_tools("srv", [tool("9lives")], never_called)] == ["srv__9lives"]
+
+
+def test_every_relayed_name_is_a_usable_typescript_identifier() -> None:
+    """The property the two regexes exist to guarantee, asserted directly rather
+    than inferred from them — so a future widening of either is caught here."""
+    published = [tool("fine"), tool("also_fine"), tool("get-video"), tool("has/slash"), tool("_ok")]
+
+    for built in build_tools("srv", published, never_called):
+        assert re.fullmatch(r"[A-Za-z_$][A-Za-z0-9_$]*", built.name), built.name
 
 
 def test_a_server_publishing_no_schema_still_gets_a_usable_one() -> None:

@@ -153,22 +153,38 @@ class McpSettings(BaseModel):
     @field_validator("servers")
     @classmethod
     def _usable_ids(cls, value: dict[str, McpServer]) -> dict[str, McpServer]:
-        """Ids must survive being half of a tool name.
+        """Ids must survive being half of a tool name, and half of an identifier.
 
-        No underscore, so the `{server}__{tool}` split stays unambiguous, and
-        nothing outside `[a-z0-9-]`, so a provider cannot reject the whole
-        request — one bad name fails *every* tool in it, not just this server's.
+        No underscore, so the `{server}__{tool}` split stays unambiguous. And
+        nothing outside `[a-z0-9]`, for two reasons: a provider cannot reject the
+        whole request — one bad name fails *every* tool in it, not just this
+        server's — and code mode prints each tool as `declare function
+        {name}(...)` **unquoted** (`tools/native/code/typescript.py`), so a
+        hyphen produced `declare function my-server__do_thing(...)`, which is not
+        parseable TypeScript. The model would then write a call the sandbox
+        cannot resolve, with nothing pointing at the id as the cause.
+
+        Hyphens were permitted here until that was found. Refusing at load is the
+        only place it can be said clearly, because by the time the printer sees
+        the name there is no id left to blame.
         """
         for name in value:
             if not _SERVER_ID.match(name):
                 raise ValueError(
-                    f"{name!r} is not a usable MCP server id: lowercase letters, "
-                    "digits and hyphens, no underscore"
+                    f"{name!r} is not a usable MCP server id: a lowercase letter followed "
+                    "by lowercase letters or digits, at most 32. No underscore, because it "
+                    "would make the {server}__{tool} split ambiguous; no hyphen and no "
+                    "leading digit, because {server}__{tool} becomes a TypeScript identifier "
+                    "in code mode"
                 )
         return value
 
 
-_SERVER_ID = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$")
+# Must *start* with a letter, not merely consist of letters and digits: the id
+# is the first thing in the printed identifier, so `3d` would emit
+# `declare function 3d__render(...)`. Found by a test asserting the property
+# directly rather than trusting the character class.
+_SERVER_ID = re.compile(r"^[a-z][a-z0-9]{0,31}$")
 
 
 class Settings(BaseSettings):

@@ -43,11 +43,36 @@ def test_a_blank_command_is_refused(blank: str) -> None:
         "trailing-",
         "",
         "a" * 40,
+        # Hyphens were permitted until code mode's printer was checked: it emits
+        # `declare function {name}(...)` unquoted, so `instagram-poi` produced
+        # `declare function instagram-poi__fetch_reels(...)` — unparseable
+        # TypeScript, and the model would write a call the sandbox cannot
+        # resolve with nothing pointing at the id.
+        "has-hyphen",
+        "instagram-poi",
+        # The id is the *first* thing in the printed identifier, so it must start
+        # with a letter — `3d` would emit `declare function 3d__render(...)`.
+        "3d",
+        "9lives",
     ],
 )
 def test_an_id_that_could_not_be_half_a_tool_name_is_refused(bad_id: str) -> None:
     with pytest.raises(ValidationError, match="not a usable MCP server id"):
         McpSettings(servers={bad_id: McpServer(command="npx")})
+
+
+def test_the_refusal_says_why_a_hyphen_is_not_allowed() -> None:
+    """ "Lowercase and digits only" invites re-adding the hyphen. The reason has
+    to travel with the rule, because it is not guessable from the constraint."""
+    with pytest.raises(ValidationError, match="TypeScript identifier"):
+        McpSettings(servers={"my-server": McpServer(command="npx")})
+
+
+@pytest.mark.parametrize(
+    "good_id", ["yt", "igpoi", "instagram", "places", "jobs", "a", "s3", "maps2"]
+)
+def test_a_plain_lowercase_id_is_accepted(good_id: str) -> None:
+    assert good_id in McpSettings(servers={good_id: McpServer(command="npx")}).servers
 
 
 def test_a_server_is_frozen() -> None:

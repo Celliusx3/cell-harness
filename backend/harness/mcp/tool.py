@@ -29,10 +29,18 @@ from harness.tools.progress import ToolProgressReporter
 
 logger = logging.getLogger("harness.mcp")
 
-# What every provider accepts for a tool name. A violation is not this tool's
-# problem alone: the request carries *every* tool, so one unusable name from one
-# server fails the whole turn on every conversation. Such a tool is dropped.
-_VALID_NAME = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+# What every provider accepts for a tool name **and** what code mode can print.
+# A violation is not this tool's problem alone: the request carries *every* tool,
+# so one unusable name from one server fails the whole turn on every
+# conversation. Such a tool is dropped.
+#
+# Deliberately narrower than the providers allow — they accept a hyphen, code
+# mode does not. `tools/native/code/typescript.py` emits `declare function
+# {name}(...)` unquoted, so a hyphenated tool name from a third-party server is
+# unparseable TypeScript and would break the request for every other tool too.
+# Dropping one tool with a warning is the lesser loss, and it is the policy this
+# regex already applied for names providers reject.
+_VALID_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 
 # Sent when a server publishes no schema. A bare `{}` or a null is rejected
 # outright by some providers.
@@ -43,7 +51,8 @@ CallTool = Callable[[str, dict], Awaitable[CallToolResult]]
 
 def namespaced(server: str, tool: str) -> str:
     """`yt` + `get_subtitles` -> `yt__get_subtitles`. `_SERVER_ID` forbids an
-    underscore in the id, so the split back is unambiguous."""
+    underscore in the id, so the split back is unambiguous, and forbids a hyphen
+    so the result is a usable TypeScript identifier."""
     return f"{server}{NAMESPACE}{tool}"
 
 
@@ -53,7 +62,13 @@ def build_tools(server: str, tools: Iterable[Tool], call: CallTool) -> list[Tool
     for tool in tools:
         name = namespaced(server, tool.name)
         if not _VALID_NAME.match(name):
-            logger.warning("dropping MCP tool %r: %r is not a usable tool name", tool.name, name)
+            logger.warning(
+                "dropping MCP tool %r from %r: %r is not a usable tool name — it must be a "
+                "valid identifier, because code mode declares it as a TypeScript function",
+                tool.name,
+                server,
+                name,
+            )
             continue
         built.append(mcp_tool(server=server, tool=tool, call=call))
     return built
