@@ -8,6 +8,7 @@ something that overrides a deliberate choice.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -193,3 +194,32 @@ def test_the_refusal_points_at_the_local_file_for_the_key(config_file) -> None:
 
     with pytest.raises(MissingConfigError, match="config.local.json"):
         load()
+
+
+# ── skills ────────────────────────────────────────────────────────────────────
+
+
+def test_skill_roots_resolve_relative_paths_against_the_project(config_file, tmp_path) -> None:
+    write_committed, _ = config_file
+    (tmp_path / ".git").mkdir()
+    write_committed({"skills": {"roots": [".agents/skills", "~/x"], "editable": "~/x"}})
+
+    settings = Settings()
+
+    assert settings.skills.roots == (tmp_path / ".agents" / "skills", Path.home() / "x")
+    assert settings.skills.editable == Path.home() / "x"
+
+
+def test_the_editable_root_must_be_read_from(config_file) -> None:
+    write_committed, _ = config_file
+    write_committed({"skills": {"roots": ["/a"], "editable": "/b"}})
+
+    with pytest.raises(ValueError, match="must be one of skills.roots"):
+        Settings()
+
+
+def test_skill_roots_can_come_from_the_environment(config_file, monkeypatch) -> None:
+    monkeypatch.setenv("HARNESS_SKILLS__ROOTS", '["/only"]')
+    monkeypatch.setenv("HARNESS_SKILLS__EDITABLE", "/only")
+
+    assert Settings().skills.roots == (Path("/only"),)

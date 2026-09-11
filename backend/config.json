@@ -8,6 +8,10 @@
   "sessions": {
     "root": "~/.harness/sessions"
   },
+  "skills": {
+    "roots": [".agents/skills", "~/.agents/skills"],
+    "editable": "~/.agents/skills"
+  },
   "code": {
     "deno_path": "deno",
     "timeout_seconds": 600

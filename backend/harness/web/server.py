@@ -49,11 +49,13 @@ from harness.runs.store import RunStore
 from harness.sandbox import DenoRunner
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.skills import Catalog, SkillCatalog
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
+from harness.web.routes.skills import build_router as build_skills_router
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant. When a tool can answer the user's question, "
@@ -213,11 +215,15 @@ def create_web_app() -> FastAPI:
     mcp = build_mcp(settings)
     runs = RunStore(service, build_agent(settings, service, mcp))
     gateway, web = build_channels(settings, service, runs)
-    return create_app(runs, gateway, web, mcp)
+    return create_app(runs, gateway, web, mcp, SkillCatalog(settings.skills.roots))
 
 
 def create_app(
-    runs: RunStore, gateway: ChannelGateway, web: WebChannel, mcp: McpServerStore
+    runs: RunStore,
+    gateway: ChannelGateway,
+    web: WebChannel,
+    mcp: McpServerStore,
+    skills: Catalog,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it.
 
@@ -254,4 +260,5 @@ def create_app(
 
     app = FastAPI(title="cell-harness", lifespan=lifespan)
     app.include_router(web.router)
+    app.include_router(build_skills_router(skills))
     return app

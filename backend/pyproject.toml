@@ -16,6 +16,9 @@ dependencies = [
     # brings `httpx2` alongside our `httpx` — a second HTTP stack in the venv,
     # but distinct import names, and only the MCP client uses it.
     "mcp>=2.1.1",
+    # SKILL.md frontmatter (phase 8). Already in the tree transitively; named
+    # here because `harness/skills` imports it directly.
+    "pyyaml>=6",
 ]
 
 # Phase-gated, added when the phase that needs them starts (PHASES.md). The

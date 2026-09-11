@@ -21,6 +21,7 @@ from harness.config.settings import McpServer
 from harness.mcp.store import ClientFactory, McpServerStore, open_client
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
+from harness.skills import Catalog, SkillSnapshot
 from harness.web.server import create_app
 
 
@@ -53,7 +54,11 @@ def web_app(
     runs: RunStore,
     *,
     mcp: McpServerStore | None = None,
+    skills: Catalog = SkillSnapshot,
 ) -> FastAPI:
-    """The application, wired as `create_web_app` wires it."""
+    """The application, wired as `create_web_app` wires it.
+
+    `skills` defaults to an empty catalog — `SkillSnapshot()` with no arguments is one.
+    """
     gateway, web = web_gateway(tmp_path, service, runs)
-    return create_app(runs, gateway, web, mcp or web_mcp())
+    return create_app(runs, gateway, web, mcp or web_mcp(), skills)

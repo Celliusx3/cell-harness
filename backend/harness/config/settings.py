@@ -32,7 +32,7 @@ import re
 import shutil
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     JsonConfigSettingsSource,
@@ -180,6 +180,54 @@ class McpSettings(BaseModel):
         return value
 
 
+class SkillSettings(BaseModel):
+    """Where skills are read from, in rank order, and where the editor writes.
+
+    `.agents/skills` is the cross-client convention (agentskills.io): a skill
+    installed by any other tool is visible here, and one saved from our settings
+    page is visible to them. The project copy outranks the home copy, so a
+    repository can pin its own version of a skill.
+
+    Relative roots resolve against the project: the nearest `.git` ancestor of
+    the config file, or the backend's parent when there is none.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    roots: tuple[Path, ...] = (Path(".agents/skills"), Path("~/.agents/skills"))
+    editable: Path = Path("~/.agents/skills")
+
+    @field_validator("roots", "editable")
+    @classmethod
+    def _resolve(cls, value: Path | tuple[Path, ...]) -> Path | tuple[Path, ...]:
+        if isinstance(value, tuple):
+            return tuple(_project_path(path) for path in value)
+        return _project_path(value)
+
+    @model_validator(mode="after")
+    def _editable_is_read(self) -> SkillSettings:
+        """A root nobody reads from is where 7.5's inert grant came from: the
+        page would write a skill and the model would never see it."""
+        if self.editable not in self.roots:
+            raise ValueError(
+                f"skills.editable {str(self.editable)!r} must be one of skills.roots, "
+                "or what the editor saves is never read"
+            )
+        return self
+
+
+def _project_path(path: Path) -> Path:
+    expanded = path.expanduser()
+    return expanded if expanded.is_absolute() else _project_root() / expanded
+
+
+def _project_root() -> Path:
+    for candidate in (_CONFIG_JSON.parent, *_CONFIG_JSON.parent.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return _BACKEND_ROOT.parent
+
+
 # Must *start* with a letter, not merely consist of letters and digits: the id
 # is the first thing in the printed identifier, so `3d` would emit
 # `declare function 3d__render(...)`. Found by a test asserting the property
@@ -202,6 +250,7 @@ class Settings(BaseSettings):
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
     code: CodeModeSettings = Field(default_factory=CodeModeSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
+    skills: SkillSettings = Field(default_factory=SkillSettings)
 
     @classmethod
     def settings_customise_sources(
