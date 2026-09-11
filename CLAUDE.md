@@ -14,8 +14,8 @@ MCP — not a terminal coding harness). Synthesized from
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current phase and what it must satisfy.
 
-**Status: phase 7 — "it uses your tools" — implemented.** Since then, two
-insertions not in PHASES.md.
+**Status: phase 8 — "it follows instructions" — in progress; 8.1–8.2 done.**
+Since phase 7, three insertions not in PHASES.md.
 
 **1. Code mode.** The model is offered three tools and
 reaches every capability by writing a TypeScript program that runs in a Deno
@@ -31,7 +31,21 @@ observations, `places` resolves them to a POI with a Maps link. The model
 composes them in one program, and `backend/harness/` gained nothing. Instagram
 needs no credentials; Google Places needs a key in `config.local.json`.
 
-Next is phase 8, skills.
+**3. It follows instructions** (8.1–8.2). A skill is a directory with a
+`SKILL.md` — the [Agent Skills](https://agentskills.io) format, so one written
+for Claude Code, Codex or OpenClaw loads here unchanged. `skills/catalog.py`
+reads ranked roots (`.agents/skills` in the project, then `~/.agents/skills`)
+on **every request**, a `(mtime, size)` stamp per file standing in for a
+watcher; `skills/tool.py` is the one tool the model loads one through, rebuilt
+per request so its `name` enum and its `<available_skills>` index are the same
+list. **The catalog is never logged** — it rides on the tool description the
+way the tool list rides on the request, so nothing republishes it and phase 12
+has nothing to re-establish. The body is the tool *result*, read from disk at
+that moment. No skill on disk, no tool in the request. The first committed
+skill, `find-place`, teaches the reel → place composition from insertion 2:
+skills are how the model is told *how* to use tools. Research and the choices
+it forced in [docs/skills.md](./docs/skills.md). Still to come: `/name`
+invocation from a chat (8.3) and the settings page (8.4).
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
@@ -109,6 +123,10 @@ Breaking one is not a style disagreement.
 - **One cursor.** One sequence number for snapshot and live stream alike.
 - **Every tool call goes through the dispatcher** — a script's calls included, and
   there is exactly one, which is what makes one timeout and one gate cover both.
+- **Registered is not offered.** The dispatcher resolves any registered name —
+  scripts need it to — but a call the *model* makes by a name it was not shown
+  is refused by the pipeline, with the route that exists. Not a hook: a hook
+  fails open.
 - **The sandbox is granted nothing.** No `--allow-*`; the bridge is the only way
   out, and code mode never reaches itself.
 - **`harness/sandbox/` imports nothing from `harness`.** It runs a script; it does
@@ -116,6 +134,13 @@ Breaking one is not a style disagreement.
 - **We reap what we spawn.** No SDK owns the Deno child; a `finally` kills it.
 - **Prompt assembly cannot raise.** The schema printer degrades to `unknown`
   rather than costing the turn every tool.
+- **No skills, no tool.** An enum with no members is never offered; the
+  provider yields nothing and the request carries nothing.
+- **A skill's body is context, not data.** The `skill` tool is withheld from
+  scripts: `list_functions` never advertises it and the bridge refuses it.
+- **The catalog is read, never published.** Skills are rebuilt from disk per
+  request like the tool list; a `SKILL.md` edit is visible at the next step
+  with nothing to invalidate.
 
 ## Before marking work complete
 

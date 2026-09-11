@@ -107,19 +107,38 @@ CODE_PROMPT = (
 
 
 def code_mode_tools(
-    *, registry: ToolRegistry, dispatcher: ToolDispatcher, runtime: Runner
+    *,
+    registry: ToolRegistry,
+    dispatcher: ToolDispatcher,
+    runtime: Runner,
+    withheld: frozenset[str] = frozenset(),
 ) -> list[ToolDefinition]:
-    """The three tools, sharing one view of the catalog."""
+    """The three tools, sharing one view of the catalog.
+
+    `withheld` names tools a script may not reach on top of our own three: ones
+    whose result is context for the model rather than data for a program — the
+    `skill` tool's body, today. A script fetching it would only `return` it into
+    the conversation by a slower route, and `list_functions` advertising it as a
+    capability invites exactly that. The composition root decides which, so
+    this module knows nothing about skills.
+    """
+    kept_out = RESERVED | withheld
 
     def available() -> list[ToolDefinition]:
-        """Everything registered, minus ourselves. Read afresh, so a server that
-        connects mid-conversation is findable on the next call."""
-        return [tool for tool in registry.all() if tool.name not in RESERVED]
+        """Everything registered, minus ourselves and the withheld. Read afresh,
+        so a server that connects mid-conversation is findable on the next call.
+
+        **The one chokepoint for what the model can see.** All three tools read
+        it, so a withheld tool is absent from the signatures, from the full
+        types, and from the names the sandbox binds as globals — the third being
+        the one that makes it uncallable rather than merely undocumented.
+        """
+        return [tool for tool in registry.all() if tool.name not in kept_out]
 
     return [
         _list_tool(available),
         _details_tool(available),
-        _execute_tool(available, dispatcher, runtime),
+        _execute_tool(available, dispatcher, runtime, kept_out),
     ]
 
 
@@ -155,12 +174,14 @@ def _details_tool(available: Catalog) -> ToolDefinition[DetailsArgs]:
 
 
 def _execute_tool(
-    available: Catalog, dispatcher: ToolDispatcher, runtime: Runner
+    available: Catalog, dispatcher: ToolDispatcher, runtime: Runner, kept_out: frozenset[str]
 ) -> ToolDefinition[ExecuteArgs]:
     async def execute(args: ExecuteArgs, progress: ToolProgressReporter) -> ToolOutcome:
         names = [tool.name for tool in available()]
         try:
-            script = await runtime.run(args.code, names=names, bridge=_bridge(dispatcher, progress))
+            script = await runtime.run(
+                args.code, names=names, bridge=_bridge(dispatcher, progress, kept_out)
+            )
         except DenoUnavailableError as err:
             # Not recoverable by rewriting the script, so it does not invite one.
             logger.error("the sandbox is unusable: %s", err)
@@ -172,7 +193,7 @@ def _execute_tool(
     )
 
 
-def _bridge(dispatcher: ToolDispatcher, progress: ToolProgressReporter):
+def _bridge(dispatcher: ToolDispatcher, progress: ToolProgressReporter, kept_out: frozenset[str]):
     """One call from inside a script, dispatched as if the model made it.
 
     The sandbox deals in plain values and `BridgeError`; the harness deals in
@@ -182,7 +203,7 @@ def _bridge(dispatcher: ToolDispatcher, progress: ToolProgressReporter):
 
     async def bridge(name: str, arguments: dict) -> object:
         nonlocal counter
-        if name in RESERVED:
+        if name in kept_out:
             raise BridgeError(f"{name} cannot be called from inside a script")
         counter += 1
         # A shape no provider issues, so a later phase can key nested tool cards

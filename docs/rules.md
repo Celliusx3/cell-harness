@@ -82,6 +82,45 @@ snapshot and a live stream. Don't add a second numbering for a subscriber, and
 don't let the UI derive one — that is what makes a replayed conversation and a
 live one the same code path.
 
+**Registered is not offered.** Every MCP tool is registered at startup and the
+dispatcher runs whatever name it is handed, because a script's calls arrive
+there with names that were never in the request. That left a
+gap nobody had walked through until a 4B model did: it copied
+`instagram__fetch_reels` out of a skill body, emitted it as a plain tool call,
+and it ran — correct answer, wrong door. The request is supposed to be the
+record of what the model may call directly; a name hallucinated from context is
+not on it. So `ToolPipeline.execute` checks the model's own calls against the
+same `_offered` that built the request, and refuses with the route that does
+exist (`list_functions`) and *without* listing what else is registered — that
+list is what the direct route would feed on. Scripts never pass through the
+pipeline, so they are untouched. It is not a hook, because a hook fails open
+and a door that must stay shut cannot. The cost was measured: the same model,
+forced through code mode, then guessed a return shape and got the place wrong —
+which is the honest result, and a skill-text fix, not a reason to reopen it.
+
+**No skills, no tool.** The spec's client guide says it outright: an empty
+`<available_skills/>` block or a skill tool with no valid names "would confuse
+the model." So the factory returns `None`, the provider yields nothing, and the
+pipeline's "skip an absent default name" does the rest. The alternative — a
+tool that is always there and sometimes says "nothing to load" — spends a schema
+on every request to describe an absence.
+
+**A skill's body is context, not data.** A script that called `skill(...)`
+would get the instructions as a string and could only `return` them into the
+conversation — the same result by a slower route, with `list_functions` having
+advertised a "capability" that is not one. So the composition root names it
+`withheld` and code mode keeps it out of the catalog, out of the sandbox
+globals, and refused at the bridge. Code mode does not know what a skill is; it
+knows a name it was told not to bind.
+
+**The catalog is read, never published.** Every shipping client rebuilds the
+skill list per request in the system prompt or the tool description; only
+DeepSeek Harness writes it into the conversation as a message, and pays with a
+digest, an "empty envelope" event, an inbox to slip replacements in, and a
+re-injection after compaction. The tool list here was already rebuilt per step
+and never logged; the skill catalog is the same kind of thing. A `SKILL.md`
+edit is seen at the next step because the next step looks.
+
 ## Comment discipline
 
 Comment the *why*, and keep it short. A comment that restates the code is noise;

@@ -145,7 +145,25 @@ Statting the files closes that hole at the same cost class, needs no TTL, no
 fast path for our own writes, and no ancestor polling — it is the primitive
 git's index, `make` and `.pyc` caches rely on. Nobody hashes content.
 
-## 5. Sources
+## 5. Observed failures behind the skill text
+
+Prompt text is code, and a skill body is prompt text. The reasoning lives here
+rather than in the `SKILL.md`, because a comment there reaches the model.
+
+- **`find-place`, "Before writing it, call `get_function_details`…"** — a 4B
+  model (qwen3-4b, local) loaded the skill and wrote its program straight away,
+  reading `reel.caption` off a result that is `{ items: [...] }`. `caption` was
+  `undefined`, the search ran for the literal `"unknown location"`, and it
+  returned two cafés called "Unknown" with confidence. The tool descriptions
+  state the shapes; the model had not read them.
+- **The same run, before the pipeline gate existed** — the 4B model copied
+  `instagram__fetch_reels({ urls })` out of the skill body and emitted it as a
+  *tool call*, not a program. It ran, because the dispatcher resolves any
+  registered name. Correct answer, unmetered route; see "Registered is not
+  offered" in CLAUDE.md. With the gate, the same model goes through code mode
+  and hits the failure above — which is the honest result.
+
+## 6. Sources
 
 - Agent Skills specification — https://agentskills.io/specification
 - Agent Skills, adding skills support to a client — https://agentskills.io/client-implementation/adding-skills-support

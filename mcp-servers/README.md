@@ -127,6 +127,11 @@ connection serves **one call at a time** — so `Promise.all` over several calls
 the same server serializes them. A server that can be slow should batch
 internally and return partial results rather than hoping.
 
+A tool description says what one call does. **How to compose several — across
+servers, in what order, with what judgement — is a skill**: a `SKILL.md` under
+`.agents/skills/` that the model loads when a request matches it.
+`find-place` is the one that teaches the `instagram` → `places` workflow.
+
 ## Targets
 
 ```sh

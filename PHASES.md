@@ -67,7 +67,7 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Tool result `meta` (UI cards) | ~~4~~ **7** | A UI exists now and still has nothing to put there — the only tool is a clock. The first MCP tool returning an image is the caller |
 | Heartbeat, lease, reclaim | ~~4~~ **when a 2nd process exists** | Reclaiming a *process's* runs is a multi-process problem. One server, and phase 3's repair-on-resume already covers the single-process crash |
 | `Session.after(cursor)` | ~~4~~ **never** | `session.events()[n:]` already is it. Proposed and cut twice |
-| Prompt sections | 8 | Skills are the first thing that contributes to the prompt |
+| Prompt sections | ~~8~~ **11** | Skills turned out to contribute nothing to the prompt — the catalog rides on the tool. Personas are the first template with a variable |
 | **Around-middleware on tool execution** | 10 | The timeout and guardrail are its first listeners |
 | `ToolDefinition.timeout_s` | 10 | Nothing enforces a deadline until the timeout policy exists |
 | Typed hooks | 10 | The guardrail is its first real consumer |
@@ -637,55 +637,65 @@ the repository and its JSONL backend.
 
 # Phase 8 — It follows instructions
 
-**Demo.** Attach a skill to an agent; ask something matching it — it loads and
-follows it.
+**Demo.** Drop a skill into a root — or type `/name` — and the model loads it
+and follows it.
 
-**Depends on.** 5.
+**Depends on.** 5 (a request to carry the tool), 7 (something for a skill to
+teach).
 
-**Ships.**
-- `prompt/assembly.py` — ordered named sections, `complete` override
-- `prompt/render.py`, `prompt/templates/`, `prompt/catalog.py`
-- `skills/catalog.py` — `SkillProvider` Protocol
-- `providers/skills_db.py` — the catalog agents attach skills from
-- `providers/skills_fs.py` — ranked roots, `SKILL.md` + flat markdown, watching
-- `skills/tool.py`, `skills/invocation.py`
-- `web/routes/skills.py`, `frontend/` settings — skills editor
+**Format.** [Agent Skills](https://agentskills.io): a directory holding a
+`SKILL.md` whose frontmatter names it and says when to use it. A skill written
+for Claude Code, Codex or OpenClaw loads unchanged — every unknown frontmatter
+field is ignored, not refused. Research and the six clients compared in
+[docs/skills.md](./docs/skills.md).
 
-**Why prompt sections are here.** Skills are the first thing that contributes to
-the system prompt. Before this, one string was enough.
+**Ships, in four demoable insertions.**
 
-**Two providers, deliberately.** A DB catalog (what a chat product's settings UI
-edits) *and* a filesystem provider (ranked roots, `.agents/skills` for cross-tool
-interop). That is what makes `SkillProvider` a real seam rather than an interface
-with one implementation.
+| | Demo | Ships |
+|---|---|---|
+| 8.1 | `GET /api/skills` lists what is on disk, and why anything did not load | `skills/models.py`, `skills/catalog.py`, `skills.roots` / `skills.editable` in `Settings`, `web/routes/skills.py` |
+| 8.2 | Share a reel; the model calls `skill(name="find-place")`, then one program across both servers | `skills/tool.py`, `withheld` in code mode, `SKILL` in `DEFAULT_TOOLS`, `.agents/skills/find-place/` |
+| 8.3 | Type `/find-place <url>` in the browser or on Telegram; the model receives the body without deciding | `skills/invocation.py`, `UserMessageEvent.invoked`, gateway expansion, Telegram passthrough, a chip in the timeline |
+| 8.4 | A `/skills` page: paste a public `SKILL.md`, save, it is used | `PUT`/`DELETE /api/skills/{name}`, `frontend/app/skills/` |
 
 **Key contracts.**
-- Section ordering: `-100` harness identity, `0` persona, `100–199` tool guidance.
-  Duplicate names raise. `StrictUndefined` — a missing variable raises, because a
-  silently half-built prompt is the worst failure mode (the model answers anyway).
-- Ranked roots: `<project>/.agents/skills` and `~/.agents/skills` for cross-tool
-  interop; project root is the nearest `.git` ancestor.
-- Two independent surfaces. `disable-model-invocation: true` hides from the model
-  but not from human commands. Invocation policy **fails closed**.
-- The registry is **policy-neutral**; each consumer enforces its own predicate.
-- Catalog and body have **separate lifecycles**. Body edits need no invalidation.
-  Only frontmatter/membership changes republish, gated by a **digest over
-  `(name, description)`** compared against the last catalog message in the log.
-- Skills are scoped per agent, so the index stays small however large the catalog.
-- Generate the args model with `Literal[names]` so an invented name is a schema
-  violation. Accept the prompt-cache cost.
+- **The catalog is never logged.** It rides on the `skill` tool's description,
+  rebuilt from disk on every request the way the tool list is. Nothing
+  republishes it, nothing digests it, and phase 12 has nothing to re-establish.
+  (An earlier draft of this phase took dsh's logged-catalog design; every other
+  client rebuilds per request, and so does this one.)
+- Ranked roots, first wins: `<project>/.agents/skills` (project = nearest
+  `.git` ancestor of the config file), then `~/.agents/skills`. A shadowed copy
+  is reported, not dropped. A root that fails to list keeps its last-good set.
+- **Change detection is a `(mtime_ns, size)` stamp per file**, not a watcher:
+  nothing here needs to be *told*, everything asks at request time.
+- Generate the args model with `Literal[names]` so an invented name is a
+  schema violation. Accept the prompt-cache cost. **No skills → no tool.**
+- Index and enum are built from the same list in the same call.
+- Catalog and body have **separate lifecycles**: the catalog is metadata cached
+  by stamp; the body is read from disk at activation.
+- **Two surfaces.** `disable-model-invocation: true` hides a skill from the
+  model's enum and index but not from `/name`; `user-invocable: false` the
+  reverse. A skill that failed to parse is invocable by nobody.
+- **The `skill` tool is withheld from scripts** — its result is context for the
+  model, not data for a program.
+- Bundled files are listed with the body and readable by `path`, confined to
+  the skill's directory and capped at 64 KiB. Scripts are listed but cannot run
+  (no shell until phase 14); the tool says so.
+- Skills are global until phase 11 gives agents allowlists.
 
 **Acceptance.**
-- Template directory ↔ prompt enum match **in both directions** (a test).
+- A skill copied from anthropics/skills loads with no problems reported.
 - Index and tool are built from the same subset and cannot disagree.
-- Editing a body changes the next `skill()` result with no catalog republish.
-- Editing a description appends exactly one replacement catalog.
-- Deleting every skill appends an empty envelope, not silence.
-- An I/O error preserves the last-good catalog (incomplete ≠ empty).
+- Editing a body changes the next `skill()` result with the tool spec unchanged.
+- Editing a description changes the next request's tool spec.
+- Deleting the last skill removes the tool from the next request.
+- A root that cannot be listed preserves its last-good set (incomplete ≠ empty).
+- A script calling `skill(...)` is refused; `list_functions` never lists it.
 
-**Security note.** A skill shipping executable scripts is code running with
-whatever authority the harness has. Until phase 14 there is no sandbox — either
-keep skills instruction-only, or accept the risk explicitly.
+**Security note.** A skill's `scripts/` cannot run here — there is no shell —
+so a skill is instructions the model reads. Its instructions can still direct
+the model to call any capability it has; install skills from sources you trust.
 
 ---
 
@@ -709,8 +719,8 @@ step instead of restarting.
 | `steer(msg)` | nearest step boundary | yes (starts a turn if idle) |
 | `inject(msg)` | next pre-step, model-facing context | **no** |
 
-- `inject()` **not waking** the driver is the subtle, valuable bit: skill catalog
-  replacements and background-job completions ride along with the next real message.
+- `inject()` **not waking** the driver is the subtle, valuable bit:
+  background-job completions ride along with the next real message.
 - Cancellation: first cause wins; `keep_inbox` preserves pending work.
 
 **Acceptance.**
@@ -819,12 +829,15 @@ not frozen at compose time. Scoped registries are a phase-13 concern.
   `derive_messages()` honors the boundary. Only possible because of phase 1.
 - Prune tool results before summarizing prose — they're the bulk and the least
   re-readable. A yt-dlp or transcription result is enormous and stale immediately.
-- A hidden skill catalog must be re-established by the next complete observation.
+- `skill` tool results are exempt from pruning: a loaded skill is durable
+  behavioural guidance, and losing it mid-conversation degrades the agent with
+  no visible error (the spec's compaction rule; Claude Code re-attaches the
+  last invocation of each skill, 5k tokens each).
 
 **Acceptance.**
 - A 200-turn conversation compacts and continues coherently.
 - The raw log still replays in full; compaction is additive.
-- The skill catalog reappears after compaction hides it.
+- A skill loaded before compaction is still in context after it.
 
 **This is cell-bot's largest gap.** Worth doing even if 11–13 never ship.
 
@@ -899,7 +912,7 @@ Not phases. They start immediately and run throughout.
 | Phase 1 | Product shape | **Chat product** — settled, drives this ordering |
 | Phase 3 | JSONL vs SQLite | **JSONL**, header on line 1 (dsh's design) |
 | Phase 4 | Frontend stack | **Next.js**, matching cell-bot's `frontend/` |
-| Phase 6 | Skills from DB, filesystem, or both | **Both** — that's what makes it a seam |
+| Phase 8 | Skills from DB, filesystem, or both | ~~Both~~ **Filesystem** — there is no DB, and a managed directory the page writes into is the same feature with one provider |
 | Phase 13 | Build the optional track at all | **Defer** until the product asks |
 
 ---

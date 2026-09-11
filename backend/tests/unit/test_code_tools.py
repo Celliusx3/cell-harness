@@ -100,13 +100,40 @@ class Built:
         return await self.tool(name).invoke(arguments, progress=no_progress)
 
 
-def build(*tools: ToolDefinition, runtime: FakeRunner | None = None) -> Built:
+def build(
+    *tools: ToolDefinition,
+    runtime: FakeRunner | None = None,
+    withheld: frozenset[str] = frozenset(),
+) -> Built:
     registry = ToolRegistry(tools)
     dispatcher = RecordingDispatcher(registry)
     built = code_mode_tools(
-        registry=registry, dispatcher=dispatcher, runtime=runtime or FakeRunner()
+        registry=registry, dispatcher=dispatcher, runtime=runtime or FakeRunner(), withheld=withheld
     )
     return Built(tools=built, registry=registry, dispatcher=dispatcher)
+
+
+async def test_a_withheld_tool_is_unlisted_unbound_and_refused() -> None:
+    """The composition root's list of tools a script may not reach, checked at
+    all three locks: the catalog, the sandbox globals, and the bridge."""
+    raised: list[BridgeError] = []
+
+    async def script(bridge: Bridge) -> None:
+        try:
+            await bridge("skill", {"name": "x"})
+        except BridgeError as err:
+            raised.append(err)
+
+    runtime = FakeRunner(script=script)
+    built = build(tool("skill"), tool("yt__a"), runtime=runtime, withheld=frozenset({"skill"}))
+
+    listed = await built.run(LIST, "{}")
+    assert isinstance(listed, Ok) and "skill" not in listed.content
+
+    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    assert runtime.seen_names == ["yt__a"]
+    assert "cannot be called from inside a script" in str(raised[0])
+    assert built.dispatched == []
 
 
 # ── what the model is offered ─────────────────────────────────────────────────

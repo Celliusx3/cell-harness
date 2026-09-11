@@ -49,7 +49,7 @@ from harness.runs.store import RunStore
 from harness.sandbox import DenoRunner
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.skills import Catalog, SkillCatalog
+from harness.skills import SKILL, Catalog, SkillCatalog, skill_tool
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
@@ -75,7 +75,11 @@ SYSTEM_PROMPT = (
 # a rename that half-happens, and `specs()` skips a name it cannot find without
 # complaining. MCP tools have no constant to import — `"jobs__search"` is a
 # literal by necessity, and unchecked until that server connects.
-DEFAULT_TOOLS = (LIST, DETAILS, EXECUTE)
+#
+# `skill` is here because a skill's body is context for the model, not data for
+# a program — see `withheld` in `build_agent`. Present only while a skill exists:
+# the provider yields nothing otherwise, and `specs()` skips an absent name.
+DEFAULT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL)
 
 
 def build_store(settings: Settings) -> SessionService:
@@ -92,7 +96,9 @@ def build_mcp(settings: Settings) -> McpServerStore:
     return McpServerStore(settings.mcp.servers)
 
 
-def build_agent(settings: Settings, store: SessionService, mcp: McpServerStore) -> LoopAgent:
+def build_agent(
+    settings: Settings, store: SessionService, mcp: McpServerStore, skills: Catalog
+) -> LoopAgent:
     """The default agent: a model, the native tools, and a durability checkpoint.
 
     This is what stands in for dsh's config-driven plugin tree. A missing
@@ -105,6 +111,10 @@ def build_agent(settings: Settings, store: SessionService, mcp: McpServerStore) 
     # here, which is what makes a server added mid-conversation callable on the
     # next turn without rebuilding the agent.
     registry.add_provider(mcp.tools)
+    # Same shape as MCP's: the tool is rebuilt from the catalog every time the
+    # registry is read, so a skill added to a root is in the next request's enum,
+    # and the last one deleted takes the tool with it.
+    registry.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
     # One dispatcher, shared. Two would let a future approval gate be installed
     # on the model's path and not on a script's, with nothing to say which.
@@ -118,6 +128,9 @@ def build_agent(settings: Settings, store: SessionService, mcp: McpServerStore) 
             deno_path=settings.code.deno_path,
             timeout_seconds=settings.code.timeout_seconds,
         ),
+        # A script may not load a skill: the body is for the model to read, and
+        # `list_functions` must not advertise it as a capability.
+        withheld=frozenset({SKILL}),
     ):
         registry.register(tool)
     # Last, because nothing else needs it — three schemas however many servers
@@ -213,9 +226,12 @@ def create_web_app() -> FastAPI:
     settings = load()
     service = build_store(settings)
     mcp = build_mcp(settings)
-    runs = RunStore(service, build_agent(settings, service, mcp))
+    # One catalog for the agent and the settings API, so what the page lists and
+    # what the model is offered are the same read.
+    skills = SkillCatalog(settings.skills.roots)
+    runs = RunStore(service, build_agent(settings, service, mcp, skills))
     gateway, web = build_channels(settings, service, runs)
-    return create_app(runs, gateway, web, mcp, SkillCatalog(settings.skills.roots))
+    return create_app(runs, gateway, web, mcp, skills)
 
 
 def create_app(

@@ -8,10 +8,13 @@ from harness.llm.messages import ToolCall
 from harness.tools.definition import (
     EXECUTION_ERROR,
     INVALID_ARGUMENTS,
+    REFUSED,
     Failure,
     Ok,
+    ToolDefinition,
     render_outcome,
 )
+from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import DuplicateToolError, ToolRegistry
 from tests.unit.fakes import echo_tool, raising_tool
@@ -184,3 +187,48 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
     dispose()
     assert [t.name for t in registry.all()] == ["boom"]
     dispose()  # idempotent
+
+
+# ── the model may only call what it was offered ───────────────────────────────
+
+
+def offering(*tools: ToolDefinition, default: tuple[str, ...]) -> ToolPipeline:
+    """A pipeline with a real `default_tools`, which `pipeline_for` deliberately
+    leaves empty — the gate only means anything against a restricted offer."""
+    registry = ToolRegistry(tools)
+    return ToolPipeline(registry, ToolDispatcher(registry), default)
+
+
+async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:
+    """Registered is not offered. The dispatcher would run it — scripts need
+    that — but a call the *model* makes by a name it was never shown is refused,
+    pointing at the route that exists rather than listing what else does."""
+    pipeline = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
+
+    outcome = await pipeline.execute(
+        ToolCall(id="c1", name="hidden", arguments="{}"), progress=no_progress
+    )
+
+    assert isinstance(outcome, Failure) and outcome.code == REFUSED
+    assert "list_functions" in outcome.message
+    assert "echo" not in outcome.message
+
+
+async def test_an_offered_tool_executes() -> None:
+    pipeline = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
+
+    outcome = await pipeline.execute(
+        ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'), progress=no_progress
+    )
+
+    assert isinstance(outcome, Ok) and outcome.content == "hi"
+
+
+async def test_an_empty_default_offers_and_allows_everything() -> None:
+    pipeline = offering(echo_tool(), echo_tool("other"), default=())
+
+    outcome = await pipeline.execute(
+        ToolCall(id="c1", name="other", arguments='{"value": "hi"}'), progress=no_progress
+    )
+
+    assert isinstance(outcome, Ok)

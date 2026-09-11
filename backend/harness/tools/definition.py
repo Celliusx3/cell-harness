@@ -38,6 +38,10 @@ NAMESPACE = "__"
 INVALID_ARGUMENTS = "INVALID_ARGUMENTS"
 UNKNOWN_TOOL = "UNKNOWN_TOOL"
 EXECUTION_ERROR = "EXECUTION_ERROR"
+# A call that was not permitted to run. Distinct from an execution error because
+# it is not a malfunction: nothing broke, the call was simply not allowed — the
+# pipeline refusing a tool the model was never offered is the first case.
+REFUSED = "REFUSED"
 
 # The prefix every tolerant failure wears on the wire. One constant, because the
 # model learns this shape and a second spelling would read as a different kind of

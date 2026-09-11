@@ -18,12 +18,17 @@ from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.skills import SKILL, SkillSnapshot
 from harness.tools.definition import Ok
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import CODE_PROMPT, LIST
 from harness.web import server
 from harness.web.server import DEFAULT_TOOLS, build_agent
 from tests.unit.helpers import no_progress
+
+# What a request carries when no skill exists: `SKILL` is in `DEFAULT_TOOLS` but
+# its provider yields nothing, and the pipeline skips an absent name.
+WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
 
 
 @pytest.fixture
@@ -35,7 +40,7 @@ def compose(tmp_path: Path):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(settings, sessions, mcp)
+        return build_agent(settings, sessions, mcp, SkillSnapshot)
 
     return build
 
@@ -46,7 +51,7 @@ def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> Non
     agent = compose()
 
     assert agent.tools is not None
-    assert [spec.name for spec in agent.tools.specs()] == list(DEFAULT_TOOLS)
+    assert [spec.name for spec in agent.tools.specs()] == WITHOUT_SKILLS
 
 
 async def test_the_three_tools_actually_dispatch(compose) -> None:

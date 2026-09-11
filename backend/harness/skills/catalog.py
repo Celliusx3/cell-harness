@@ -159,3 +159,12 @@ def _read(root: Path, entry: Path) -> SkillSnapshot:
 
 def _problem(file: Path, problem: str) -> SkillSnapshot:
     return SkillSnapshot(problems=(SkillProblem(path=file, problem=problem),))
+
+
+def read_body(skill: Skill) -> str:
+    """The instructions, read now — not when the catalog was built.
+
+    A body edit therefore shows at the next activation with no catalog change:
+    the "separate lifecycles" contract from PHASES.md.
+    """
+    return parse((skill.dir / SKILL_FILE).read_text(encoding="utf-8")).body
