@@ -15,7 +15,7 @@ Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current phase and what it must satisfy.
 
 **Status: phase 8 — "it follows instructions" — in progress; 8.1–8.2 done.**
-Since phase 7, three insertions not in PHASES.md.
+Since phase 7, four insertions not in PHASES.md.
 
 **1. Code mode.** The model is offered three tools and
 reaches every capability by writing a TypeScript program that runs in a Deno
@@ -46,6 +46,21 @@ skill, `find-place`, teaches the reel → place composition from insertion 2:
 skills are how the model is told *how* to use tools. Research and the choices
 it forced in [docs/skills.md](./docs/skills.md). Still to come: `/name`
 invocation from a chat (8.3) and the settings page (8.4).
+
+**4. It selects, then calls.** The first skill was a sequential workflow, and
+under code mode the model wrote a program per step — every cost of a script,
+none of its saving — while a 4B model could call tools and could not write
+programs. Anthropic's own guidance for programmatic tool calling says the same:
+strong for fan-out, weak for sequential single calls, per tool not per harness.
+So `get_function_details` now has a consequence, in Anthropic's shape: a tool
+result is a list of typed blocks, and its result carries `tool_reference`
+blocks for what it read. The log keeps them; `Session.tools_selected()` folds
+them out of history; the pipeline puts the **eight most recent** into the next
+request; and because this wire has no such block, the adapter renders it as a
+sentence so the model knows its list changed. The pipeline's refusal of an
+unreferenced name says to read it first. Programs remain for many calls or a
+large result. Reasoning and the measurements in
+[docs/mcp-tool-scaling.md §7](./docs/mcp-tool-scaling.md).
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
@@ -123,10 +138,12 @@ Breaking one is not a style disagreement.
 - **One cursor.** One sequence number for snapshot and live stream alike.
 - **Every tool call goes through the dispatcher** — a script's calls included, and
   there is exactly one, which is what makes one timeout and one gate cover both.
-- **Registered is not offered.** The dispatcher resolves any registered name —
-  scripts need it to — but a call the *model* makes by a name it was not shown
-  is refused by the pipeline, with the route that exists. Not a hook: a hook
-  fails open.
+- **Registered is not offered; referenced is.** The dispatcher resolves any
+  registered name — scripts need it to — but a call the *model* makes by a name
+  it was not shown is refused by the pipeline, told to read it first. A result's
+  `tool_reference` blocks (Anthropic's shape) put the tool in the request from
+  the next step on — the most recent eight, so a long conversation never carries
+  the catalog. The harness expands references, since this wire cannot.
 - **The sandbox is granted nothing.** No `--allow-*`; the bridge is the only way
   out, and code mode never reaches itself.
 - **`harness/sandbox/` imports nothing from `harness`.** It runs a script; it does

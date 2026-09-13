@@ -65,12 +65,18 @@ def new_session(session_id: str = "s") -> Session:
     return Session(SessionHeader(id=session_id, created_at=datetime(2026, 1, 1, tzinfo=UTC)))
 
 
-def pipeline_for(*tools: ToolDefinition, providers: Sequence[ToolProvider] = ()) -> ToolPipeline:
+def pipeline_for(
+    *tools: ToolDefinition,
+    providers: Sequence[ToolProvider] = (),
+    offer: Sequence[str] = (),
+) -> ToolPipeline:
     """A registry, a dispatcher and a pipeline over `tools`, offering all of them.
 
     The three arguments are required in the product so nobody inherits a tool
     list or a second dispatcher by accident. Tests that do not care about either
-    say so once, here, rather than at every construction.
+    say so once, here, rather than at every construction. `offer` names tools a
+    provider will contribute later, so they are in the list when they arrive.
     """
     registry = ToolRegistry(tools, providers=providers)
-    return ToolPipeline(registry, ToolDispatcher(registry), default_tools=())
+    names = [*(tool.name for tool in tools), *offer]
+    return ToolPipeline(registry, ToolDispatcher(registry), default_tools=names)

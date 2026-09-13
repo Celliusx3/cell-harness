@@ -72,8 +72,8 @@ async def test_activation_returns_the_body_without_frontmatter(tmp_path) -> None
     outcome = await call(tool, name="pdf")
 
     assert isinstance(outcome, Ok)
-    assert outcome.content == '<skill name="pdf">\n# pdf\n\nSteps for pdf.\n</skill>'
-    assert "description:" not in outcome.content
+    assert outcome.text == '<skill name="pdf">\n# pdf\n\nSteps for pdf.\n</skill>'
+    assert "description:" not in outcome.text
 
 
 async def test_a_body_edit_shows_at_the_next_call_with_the_spec_unchanged(tmp_path) -> None:
@@ -85,7 +85,7 @@ async def test_a_body_edit_shows_at_the_next_call_with_the_spec_unchanged(tmp_pa
 
     after = skill_tool(catalog)
     assert after.spec() == before.spec()
-    assert "New steps." in (await call(after, name="pdf")).content
+    assert "New steps." in (await call(after, name="pdf")).text
 
 
 async def test_bundled_files_are_listed_not_read(tmp_path) -> None:
@@ -99,10 +99,10 @@ async def test_bundled_files_are_listed_not_read(tmp_path) -> None:
 
     outcome = await call(tool, name="pdf")
 
-    assert outcome.content.endswith(
+    assert outcome.text.endswith(
         "Bundled files, readable with `path`: references/forms.md, scripts/fill.py"
     )
-    assert "FORMS" not in outcome.content
+    assert "FORMS" not in outcome.text
 
 
 async def test_the_listing_is_capped(tmp_path) -> None:
@@ -114,8 +114,8 @@ async def test_the_listing_is_capped(tmp_path) -> None:
 
     outcome = await call(tool, name="pdf")
 
-    assert outcome.content.count("assets/") == 20
-    assert outcome.content.endswith(", and 5 more")
+    assert outcome.text.count("assets/") == 20
+    assert outcome.text.endswith(", and 5 more")
 
 
 async def test_a_bundled_file_is_read_by_path(tmp_path) -> None:
@@ -127,7 +127,7 @@ async def test_a_bundled_file_is_read_by_path(tmp_path) -> None:
     outcome = await call(tool, name="pdf", path="references/forms.md")
 
     assert isinstance(outcome, Ok)
-    assert outcome.content == (
+    assert outcome.text == (
         '<skill_file name="pdf" path="references/forms.md">\nFill the form.\n</skill_file>'
     )
 

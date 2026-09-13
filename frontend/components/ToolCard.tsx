@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { CodeBlock } from "@/components/CodeBlock";
 import type { ToolItem } from "@/lib/timeline";
+import type { ContentBlock } from "@/lib/types";
 
 /** Code mode's runner. Its `code` field is a program; its siblings are prose. */
 const EXECUTE = "execute_typescript";
@@ -52,7 +53,7 @@ export function ToolCard({ item }: { item: ToolItem }) {
           <Arguments raw={item.call.arguments} tool={item.call.name} />
           {/* Deliberately shown whole. A tool result is exactly what the model
               was given, and a truncated one would misrepresent the turn. */}
-          {item.result !== null && <Block label="Result" body={item.result} />}
+          {item.result !== null && <Result blocks={item.result} />}
         </div>
       )}
     </div>
@@ -102,6 +103,43 @@ function parseFields(raw: string): [string, string][] | null {
     name,
     typeof value === "string" ? value : JSON.stringify(value, null, 2),
   ]);
+}
+
+/**
+ * A result's blocks: the prose as one block, and each `tool_reference` as a
+ * chip — the tool is in the model's list from the next request on, and the
+ * card is where a person sees that happen.
+ */
+function Result({ blocks }: { blocks: ContentBlock[] }) {
+  const text = blocks
+    .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
+    .map((b) => b.text)
+    .join("\n\n");
+  const referenced = blocks
+    .filter((b): b is Extract<ContentBlock, { type: "tool_reference" }> => b.type === "tool_reference")
+    .map((b) => b.tool_name);
+  return (
+    <>
+      {text !== "" && <Block label="Result" body={text} />}
+      {referenced.length > 0 && (
+        <div>
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+            Now callable
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {referenced.map((name) => (
+              <span
+                key={name}
+                className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-xs"
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 function Block({ label, body, script = false }: { label: string; body: string; script?: boolean }) {

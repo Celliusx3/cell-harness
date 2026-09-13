@@ -16,6 +16,15 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.progress import ToolProgressReporter
 from harness.tools.registry import ToolRegistry
 
+# How many selected tools a request carries at most — the most recently used.
+# Selections would otherwise accumulate for the life of a conversation, and a
+# long one that wandered across every server would end up carrying most of the
+# catalog this pipeline exists to keep out of the request. At ~1K tokens a
+# schema this bounds the addition at ~8K; a real task selects two to four. A
+# tool that fell off is refused like one never selected, and the model selects
+# it again.
+MAX_TOOLS_SELECTED = 8
+
 
 class ToolPipeline:
     """The tool list one step is built from."""
@@ -30,61 +39,79 @@ class ToolPipeline:
         self._dispatcher = dispatcher
         self._default = tuple(default_tools)
 
-    def specs(self) -> list[ToolSpec]:
+    def specs(self, tools_selected: Sequence[str] = ()) -> list[ToolSpec]:
         """What the model is offered this step — the only place visibility is decided.
 
         `default_tools` names what the model is given up front. Everything else
-        stays registered and callable from a program — it is simply not described
-        in the request, which is what keeps that description from being
-        re-uploaded with every message. Empty offers everything, which is the
-        composition most tests build; it is passed rather than defaulted, because
-        "offer everything" is a decision and not an absence.
+        stays registered and reachable — from a program, or by selecting it —
+        but is not described in the request, which is what keeps that
+        description from being re-uploaded with every message. An empty list
+        means what it looks like: nothing offered, every direct call refused.
 
-        Today the harness passes code mode's three plus the skill tool, so the
-        model reaches its capabilities by writing a program. Adding a name here is
-        how a tool earns a place in every request instead — a clock, or an MCP
-        tool used so often that a discovery step for it is waste.
+        `tools_selected` is what this conversation has selected by reading
+        schemas (`Session.tools_selected()`), oldest first; only the last
+        `MAX_TOOLS_SELECTED` are carried. Passed rather than read here because it
+        is session state: this object outlives every conversation, and two of
+        them have selected differently.
         """
-        return [tool.spec() for tool in self._offered()]
+        return [tool.spec() for tool in self._offered(tools_selected)]
 
-    def _offered(self) -> list[ToolDefinition]:
+    def _offered(self, tools_selected: Sequence[str]) -> list[ToolDefinition]:
         by_name = {t.name: t for t in self._registry.all()}
-        if not self._default:
-            return list(by_name.values())
         # Skipping the absent rather than raising: a name here may belong to a
         # server that has not connected yet, or has gone away — or be the skill
         # tool on a day with no skills.
-        return [by_name[n] for n in self._default if n in by_name]
+        offered = [by_name[n] for n in self._default if n in by_name]
+        chosen = {tool.name for tool in offered}
+        # Selected: the model read this tool's schema, so it may call it by
+        # name. The most recent few only, then sorted so the request is the same
+        # whatever order the log was read in — a prompt cache keys on bytes. A
+        # name whose server has since gone is skipped, for the same reason as
+        # above.
+        recent = tuple(tools_selected)[-MAX_TOOLS_SELECTED:]
+        selected = sorted(
+            (by_name[n] for n in recent if n in by_name and n not in chosen),
+            key=lambda tool: tool.name,
+        )
+        return [*offered, *selected]
 
-    async def execute(self, call: ToolCall, *, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(
+        self,
+        call: ToolCall,
+        *,
+        progress: ToolProgressReporter,
+        tools_selected: Sequence[str] = (),
+    ) -> ToolOutcome:
         """Run one of the model's own calls — if it was offered.
 
-        **Registered is not offered.** The dispatcher resolves any registered
-        name, because a script's calls need it to; that is the front door for
-        everything. But a model that names a tool it was never shown has
-        hallucinated it — observed with a 4B model that copied
+        **Registered is not offered; selected is.** The dispatcher resolves any
+        registered name, because a script's calls need it to; that is the front
+        door for everything. But a model that names a tool it was never shown
+        has hallucinated it — observed with a 4B model that copied
         `instagram__fetch_reels` out of a skill body and called it as a tool,
         which ran, because nothing between the loop and the dispatcher asked
-        whether it had been offered. It worked; it was also an unmetered second
-        route around code mode, and the request stopped being the record of what
-        the model could call directly. So the offer is checked here, against the
-        same `_offered` that built the request, and the refusal names the route
-        that does exist. Scripts never pass through this method — the bridge is
-        their route — so they are unaffected.
+        whether it had been offered. So the offer is checked here, against the
+        same `_offered` that built the request, and the refusal is a sequence
+        rather than a wall: select the tool by reading its schema, then call it.
+        That is the step a 4B model skipped when it guessed a return shape and
+        got the answer wrong — here the harness insists on it. Scripts never
+        pass through this method — the bridge is their route — so they are
+        unaffected.
 
         Same computation as `specs()` on purpose, so what was shown and what is
         allowed cannot disagree.
         """
-        if call.name not in {tool.name for tool in self._offered()}:
+        if call.name not in {tool.name for tool in self._offered(tools_selected)}:
             return Failure(REFUSED, _not_offered(call.name))
         return await self._dispatcher.dispatch(call, progress=progress)
 
 
 def _not_offered(name: str) -> str:
     # Prompt text is code. Deliberately does *not* list what exists — that list
-    # is exactly what `list_functions` is for, and naming it here would advertise
-    # the direct route this refusal closes.
+    # is exactly what `list_functions` is for, and naming it here would let the
+    # model skip reading the schema it is about to call against.
     return (
-        f"{name!r} is not in your tool list and cannot be called directly. "
-        "Capabilities are called from a program: see list_functions."
+        f"{name!r} is not in your tool list. Select it by reading its schema with "
+        "get_function_details — then it is, and you can call it directly. "
+        "See list_functions for what exists."
     )

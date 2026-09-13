@@ -69,7 +69,7 @@ async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
         ToolCall(id="c1", name=SKILL, arguments=json.dumps({"name": "pdf"})), progress=no_progress
     )
 
-    assert isinstance(outcome, Ok) and "Do pdf." in outcome.content
+    assert isinstance(outcome, Ok) and "Do pdf." in outcome.text
 
 
 async def test_a_script_cannot_reach_it(compose) -> None:
@@ -83,7 +83,7 @@ async def test_a_script_cannot_reach_it(compose) -> None:
     listed = await agent.tools.execute(
         ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
     )
-    assert isinstance(listed, Ok) and "skill" not in listed.content
+    assert isinstance(listed, Ok) and "skill" not in listed.text
 
     ran = await agent.tools.execute(
         ToolCall(

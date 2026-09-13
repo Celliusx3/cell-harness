@@ -20,6 +20,7 @@ from typing import get_args
 
 import pytest
 
+from harness.llm.messages import Block
 from harness.llm.stream import StreamEvent
 from harness.session.models import SessionEvent, TurnEndReason
 
@@ -63,6 +64,15 @@ def test_every_stream_chunk_kind_is_declared(types_ts: str) -> None:
     ]
 
     assert missing == [], f"frontend/lib/types.ts is missing chunk kinds: {missing}"
+
+
+def test_every_content_block_type_is_declared(types_ts: str) -> None:
+    """A tool result's blocks reach the browser verbatim, so every block kind the
+    backend can log must be a member of `ContentBlock` in `types.ts`."""
+    # `Block` is `Annotated[Union, Field(discriminator=...)]`: the union is arg 0.
+    for block in get_args(get_args(Block)[0]):
+        literal = _literal_of(block, "type")
+        assert f'type: "{literal}"' in types_ts, f"types.ts does not declare block {literal!r}"
 
 
 def test_every_turn_end_reason_is_declared(types_ts: str) -> None:

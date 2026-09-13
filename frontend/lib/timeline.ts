@@ -1,4 +1,4 @@
-import type { SessionEvent, ToolCall, Usage } from "./types";
+import type { ContentBlock, SessionEvent, ToolCall, Usage } from "./types";
 
 /**
  * Session events -> what the screen shows.
@@ -48,8 +48,9 @@ export interface ToolItem {
   turn: number;
   step: number;
   call: ToolCall;
-  /** The rendered result, already carrying its `error: ` prefix if it failed. */
-  result: string | null;
+  /** The result's blocks — text carrying its `error: ` prefix if it failed,
+   *  and any tools it made callable. Null while the call is running. */
+  result: ContentBlock[] | null;
   /** The typed failure code, or null. Non-null means the card shows as failed. */
   error: string | null;
 }

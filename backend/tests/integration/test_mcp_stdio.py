@@ -65,7 +65,7 @@ async def test_a_real_server_contributes_callable_tools(live) -> None:
     outcome = await echo.invoke('{"value": "hello"}', progress=no_progress)
 
     assert isinstance(outcome, Ok)
-    assert "echo: hello" in outcome.content
+    assert "echo: hello" in outcome.text
 
 
 async def test_a_tool_that_raises_comes_back_as_a_failure(live) -> None:
@@ -86,7 +86,7 @@ async def test_closing_reaps_the_subprocess(live) -> None:
     assert whoami is not None
     outcome = await whoami.invoke("{}", progress=no_progress)
     assert isinstance(outcome, Ok)
-    pid = int(outcome.content.strip())
+    pid = int(outcome.text.strip())
 
     await store.aclose()
 

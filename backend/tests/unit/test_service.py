@@ -210,7 +210,7 @@ async def test_a_repaired_call_tells_the_model_it_may_have_run(store, tmp_path) 
     resumed = await reopened.resume("s0")
 
     tool_message = derive_messages(resumed.events())[-1]
-    assert tool_message.content == TOOL_OUTCOME_UNKNOWN
+    assert tool_message.text == TOOL_OUTCOME_UNKNOWN
 
 
 async def test_resuming_twice_does_not_stack_closers(store, tmp_path) -> None:

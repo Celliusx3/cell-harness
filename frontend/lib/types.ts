@@ -39,10 +39,20 @@ export interface AssistantMessage {
   tool_calls: ToolCall[];
 }
 
+/**
+ * One part of a tool result — the Anthropic shape. `text` is prose;
+ * `tool_reference` says the named tool is callable from the next request on.
+ * Mirror of `Block` in `harness/llm/messages.py`; the Python test guards the
+ * `type` literals.
+ */
+export type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_reference"; tool_name: string };
+
 export interface ToolMessage {
   role: "tool";
   tool_call_id: string;
-  content: string;
+  content: ContentBlock[];
 }
 
 export type TurnEndReason = "completed" | "failed" | "cancelled";

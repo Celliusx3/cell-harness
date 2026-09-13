@@ -153,3 +153,26 @@ async def test_cancelling_the_caller_kills_the_process() -> None:
             return
         await asyncio.sleep(0.1)
     raise AssertionError(f"deno pid {seen[0]} survived cancellation")
+
+
+@deno
+async def test_a_script_that_returns_with_a_call_in_flight_is_told_so() -> None:
+    """Observed with a 7.5B model: `main();` without `await`. The script returns
+    at once, the shim exits, and the reply to the call `main` made meets a dead
+    pipe — which used to escape as a `RuntimeError` the model could not act on."""
+
+    async def slow(name: str, args: dict) -> object:
+        await asyncio.sleep(0.3)
+        return "late"
+
+    script = await runner(5).run(
+        'async function main() { console.log("in"); await tool({}); console.log("never"); }\n'
+        "main();\nreturn 1;",
+        names=["tool"],
+        bridge=slow,
+    )
+
+    assert script.error is not None
+    assert "tool was still running" in script.error
+    assert "awaited" in script.error
+    assert script.logs == ("in",)

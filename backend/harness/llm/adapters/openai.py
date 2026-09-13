@@ -25,7 +25,17 @@ import httpx
 
 from harness.config.settings import LLMSettings
 from harness.llm.client import LLMClient
-from harness.llm.messages import AssistantMessage, Message, ToolCall, ToolSpec
+from harness.llm.messages import (
+    AssistantMessage,
+    Block,
+    Message,
+    Text,
+    ToolCall,
+    ToolMessage,
+    ToolReference,
+    ToolSpec,
+    render_text,
+)
 from harness.llm.stream import (
     Completed,
     Failed,
@@ -40,6 +50,18 @@ logger = logging.getLogger("harness.llm.openai")
 # The frame the SSE stream ends with. It is not JSON, so it must be recognized
 # before parsing rather than after failing to parse.
 _DONE = "[DONE]"
+
+# How a `tool_reference` block reads on a wire that has no such block. Anthropic's
+# API expands references into the tool list itself; this endpoint cannot, so the
+# pipeline does the list and this sentence does the telling. Prompt text is
+# code: without it a 7.5B model handed four TypeScript declarations wrote a
+# program to call them, three runs out of three, while the four tools sat in its
+# list unused — nothing had said the list changed.
+REFERENCES_NOTE = (
+    "Now in your tool list, callable directly: {names}. Call each as a tool for "
+    "one step at a time; write a program only to batch many calls or to filter a "
+    "large result before you see it."
+)
 
 
 def _wire_message(message: Message) -> dict:
@@ -67,7 +89,27 @@ def _wire_message(message: Message) -> dict:
         # `tool_calls: []` is not the same as absent to every provider, and an
         # assistant message without calls should not claim to have an empty set.
         return {"role": "assistant", "content": message.content}
+    if isinstance(message, ToolMessage):
+        return {
+            "role": "tool",
+            "tool_call_id": message.tool_call_id,
+            "content": _tool_content(message.content),
+        }
     return message.model_dump()
+
+
+def _tool_content(blocks: tuple[Block, ...]) -> str:
+    """A result's blocks as the one string this wire carries.
+
+    Text is joined; references become the sentence above. The block *is* the
+    fact and lives in the log; this is only how it is spelled to a model that
+    cannot read blocks.
+    """
+    parts = [render_text(blocks)] if any(isinstance(b, Text) for b in blocks) else []
+    referenced = sorted(b.tool_name for b in blocks if isinstance(b, ToolReference))
+    if referenced:
+        parts.append(REFERENCES_NOTE.format(names=", ".join(referenced)))
+    return "\n\n".join(parts)
 
 
 def _wire_tool(spec: ToolSpec) -> dict:

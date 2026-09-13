@@ -37,6 +37,7 @@ from harness.llm.messages import (
     ToolCall,
     ToolMessage,
     UserMessage,
+    render_text,
 )
 from harness.llm.stream import Completed, Failed, TextChunk, ToolCallChunk
 from harness.session.derive import derive_messages
@@ -157,8 +158,10 @@ class LoopAgent:
                 owed = []
 
                 # Read fresh each step, not once up front, so a tool contributed
-                # by a source that connected mid-turn is offered immediately.
-                specs = self.tools.specs() if self.tools else None
+                # by a source that connected mid-turn is offered immediately —
+                # and a schema the model read in the previous step is in this
+                # step's tool list.
+                specs = self.tools.specs(session.tools_selected()) if self.tools else None
                 messages = self._request_messages(session)
                 if self.checkpoint is not None:
                     await self.checkpoint(session)
@@ -315,7 +318,12 @@ class LoopAgent:
         async def run() -> ToolOutcome:
             try:
                 assert self.tools is not None  # a call cannot arrive without a pipeline
-                return await self.tools.execute(call, progress=report)
+                # Folded per *call* rather than per step, like the request's
+                # offer is per step: a schema read by an earlier call of this
+                # step counts for the next one.
+                return await self.tools.execute(
+                    call, progress=report, tools_selected=session.tools_selected()
+                )
             finally:
                 # On success, failure and cancellation alike: this sentinel is
                 # the only thing that releases the drain below, so any path that
@@ -351,4 +359,4 @@ class LoopAgent:
                 error=None if isinstance(outcome, Ok) else outcome.code,
             )
         )
-        yield ToolResult(tool_call_id=call.id, name=call.name, content=content)
+        yield ToolResult(tool_call_id=call.id, name=call.name, content=render_text(content))

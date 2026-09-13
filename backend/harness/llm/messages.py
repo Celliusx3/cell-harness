@@ -6,17 +6,19 @@ is what is durably recorded, and the two diverge as soon as anything is logged
 that the model never sees (or seen that isn't a message — a tool schema, say).
 `session.derive_messages` is the one place that turns the second into the first.
 
-`content` is a plain string rather than a list of content blocks. Blocks arrive
-when something needs them — an image attachment, a tool result with structured
-parts — and adding a union member then is additive. Modelling them now would be
-structure with no second variant to justify it.
+A user or assistant `content` is a plain string. A **tool result's** is a list
+of typed blocks — the Anthropic shape — because a result can carry more than
+prose: a `tool_reference` says "this tool is callable now", and an image will be
+a block when an MCP server returns one. The wire this harness speaks (OpenAI
+`/chat/completions`) has no such blocks, so `adapters/openai.py` renders them to
+the string it expects; what a block *means* is decided once, there.
 """
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ToolCall(BaseModel):
@@ -97,6 +99,35 @@ class AssistantMessage(BaseModel):
     tool_calls: tuple[ToolCall, ...] = ()
 
 
+class Text(BaseModel):
+    """Prose in a tool result — what almost every result is, entirely."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["text"] = "text"
+    text: str
+
+
+class ToolReference(BaseModel):
+    """A tool this result made callable by name.
+
+    Anthropic's `tool_reference`: a discovery tool answers with references, and
+    the platform expands them into the tool list on every request thereafter by
+    reading them out of history. Here the harness is that platform — the
+    pipeline puts the tool in the request, the adapter tells the model in words.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["tool_reference"] = "tool_reference"
+    tool_name: str
+
+
+# Discriminated on `type` like `SessionEvent`, so a stored result decodes with no
+# new code and a new block kind is one union member.
+Block = Annotated[Text | ToolReference, Field(discriminator="type")]
+
+
 class ToolMessage(BaseModel):
     """What one tool call returned, addressed back to it by `tool_call_id`.
 
@@ -110,7 +141,24 @@ class ToolMessage(BaseModel):
 
     role: Literal["tool"] = "tool"
     tool_call_id: str
-    content: str
+    content: tuple[Block, ...]
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def _wrap_text(cls, value: object) -> object:
+        """A plain string is one text block. Every log written before blocks
+        existed holds a string here, and most tools still return one."""
+        return (Text(text=value),) if isinstance(value, str) else value
+
+    @property
+    def text(self) -> str:
+        return render_text(self.content)
+
+
+def render_text(blocks: tuple[Block, ...]) -> str:
+    """The prose of a result: its text blocks, joined. References are not prose
+    — what they say to the model is the adapter's to phrase."""
+    return "\n\n".join(block.text for block in blocks if isinstance(block, Text))
 
 
 Message = SystemMessage | UserMessage | AssistantMessage | ToolMessage

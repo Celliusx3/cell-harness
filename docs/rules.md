@@ -98,6 +98,22 @@ and a door that must stay shut cannot. The cost was measured: the same model,
 forced through code mode, then guessed a return shape and got the place wrong —
 which is the honest result, and a skill-text fix, not a reason to reopen it.
 
+**Selected is offered.** The door above was first shut outright, and a 4B
+model, forced through code mode, guessed a return shape and got the place
+wrong. The right answer was not to reopen the door but to make the refusal a
+sequence: a name the model has read with `get_function_details` is promoted
+into the request from the next step, and the refusal of an unread one says to
+read it. The record is the log, in Anthropic's shape: a tool result is a list
+of typed blocks, the reading tool's result carries `tool_reference` blocks, and
+`Session.tools_selected()` folds them out of history the way `next_turn()`
+folds `turn/start`, knowing nothing about which tool references. The wire this
+harness speaks has no such block, so the adapter renders it as a sentence — the
+expansion Anthropic's API does server-side, done here. It survives resume, and the tools
+array changes once per selection rather than once per step, which is what keeps
+the prompt cache an earlier tool search lost. Only the most recent eight are
+carried, so the request scales with the task rather than the conversation.
+`docs/mcp-tool-scaling.md` §7 has the measurements.
+
 **No skills, no tool.** The spec's client guide says it outright: an empty
 `<available_skills/>` block or a skill tool with no valid names "would confuse
 the model." So the factory returns `None`, the provider yields nothing, and the

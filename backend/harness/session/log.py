@@ -22,7 +22,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from harness.session.models import SessionEvent, SessionHeader, TurnStart
+from harness.llm.messages import ToolReference
+from harness.session.models import SessionEvent, SessionHeader, ToolResultEvent, TurnStart
 
 
 class Session:
@@ -65,3 +66,23 @@ class Session:
         storage (phase 3) resumes its numbering with no state to restore.
         """
         return sum(1 for event in self._events if isinstance(event, TurnStart))
+
+    def tools_selected(self) -> tuple[str, ...]:
+        """The tools this conversation has selected, oldest first, no repeats.
+
+        Folded from the `tool_reference` blocks in results — Anthropic's shape,
+        where a discovery tool answers with references and the platform reads
+        them out of history on every request. Nothing here knows which tool does
+        the selecting, any more than `next_turn()` knows who opened a turn. A
+        re-selection moves a name to the end, so the order is by most recent
+        use — how many of them a request carries is the pipeline's decision, not
+        the log's.
+        """
+        order: dict[str, None] = {}
+        for event in self._events:
+            if isinstance(event, ToolResultEvent):
+                for block in event.message.content:
+                    if isinstance(block, ToolReference):
+                        order.pop(block.tool_name, None)
+                        order[block.tool_name] = None
+        return tuple(order)

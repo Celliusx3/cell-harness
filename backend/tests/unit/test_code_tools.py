@@ -128,7 +128,7 @@ async def test_a_withheld_tool_is_unlisted_unbound_and_refused() -> None:
     built = build(tool("skill"), tool("yt__a"), runtime=runtime, withheld=frozenset({"skill"}))
 
     listed = await built.run(LIST, "{}")
-    assert isinstance(listed, Ok) and "skill" not in listed.content
+    assert isinstance(listed, Ok) and "skill" not in listed.text
 
     await built.run(EXECUTE, '{"code": "…", "description": "d"}')
     assert runtime.seen_names == ["yt__a"]
@@ -149,8 +149,8 @@ async def test_list_functions_renders_the_catalog_without_types() -> None:
     outcome = await built.run(LIST, "{}")
 
     assert isinstance(outcome, Ok)
-    assert "declare function yt__get_subtitles(args)" in outcome.content
-    assert "url" not in outcome.content
+    assert "declare function yt__get_subtitles(args)" in outcome.text
+    assert "url" not in outcome.text
 
 
 async def test_the_catalog_never_contains_code_mode_itself() -> None:
@@ -166,7 +166,7 @@ async def test_the_catalog_never_contains_code_mode_itself() -> None:
 
     assert isinstance(outcome, Ok)
     for reserved in (LIST, DETAILS, EXECUTE):
-        assert reserved not in outcome.content
+        assert reserved not in outcome.text
 
 
 async def test_an_empty_catalog_says_so() -> None:
@@ -181,9 +181,9 @@ async def test_details_types_the_named_functions_and_notes_the_rest() -> None:
     outcome = await built.run(DETAILS, '{"names": ["yt__a", "ghost"]}')
 
     assert isinstance(outcome, Ok)
-    assert "args: { url?: string }" in outcome.content
-    assert "not found: ghost" in outcome.content
-    assert "yt__b" not in outcome.content
+    assert "args: { url?: string }" in outcome.text
+    assert "not found: ghost" in outcome.text
+    assert "yt__b" not in outcome.text
 
 
 async def test_details_for_nothing_real_is_ok_not_a_failure() -> None:
@@ -194,7 +194,7 @@ async def test_details_for_nothing_real_is_ok_not_a_failure() -> None:
     outcome = await built.run(DETAILS, '{"names": ["ghost"]}')
 
     assert isinstance(outcome, Ok)
-    assert LIST in outcome.content
+    assert LIST in outcome.text
 
 
 # ── running a script ──────────────────────────────────────────────────────────
@@ -216,8 +216,8 @@ async def test_logs_and_the_return_value_both_reach_the_model() -> None:
     outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
     assert isinstance(outcome, Ok)
-    assert "first\nsecond" in outcome.content
-    assert '"n": 2' in outcome.content
+    assert "first\nsecond" in outcome.text
+    assert '"n": 2' in outcome.text
     assert outcome.data == {"n": 2}
 
 
@@ -240,7 +240,7 @@ async def test_a_script_that_returns_nothing_says_so() -> None:
     outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
     assert isinstance(outcome, Ok)
-    assert "without returning" in outcome.content
+    assert "without returning" in outcome.text
 
 
 async def test_a_missing_sandbox_is_reported_as_a_failure_not_a_crash() -> None:

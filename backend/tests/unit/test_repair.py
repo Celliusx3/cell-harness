@@ -72,13 +72,13 @@ def test_an_unanswered_call_gets_a_result() -> None:
 
     assert len(additions) == 1
     assert additions[0].message.tool_call_id == "c1"
-    assert additions[0].message.content == TOOL_OUTCOME_UNKNOWN
+    assert additions[0].message.text == TOOL_OUTCOME_UNKNOWN
 
 
 def test_the_result_does_not_claim_the_tool_never_ran() -> None:
     """It was dispatched before the process died and may have finished, so the
     honest answer is that the outcome is unknown."""
-    content = repair(asked_for(call()))[0].message.content
+    content = repair(asked_for(call()))[0].message.text
 
     assert "unknown" in content
     assert "verify" in content

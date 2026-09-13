@@ -151,11 +151,11 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
 
     listed = await run(LIST, "{}")
     assert isinstance(listed, Ok)
-    assert "db__query" in listed.content
+    assert "db__query" in listed.text
 
     typed = await run(DETAILS, json.dumps({"names": ["db__query"]}))
     assert isinstance(typed, Ok)
-    assert "sql: string" in typed.content
+    assert "sql: string" in typed.text
 
     script = (
         "const r = await db__query({ sql: 'select 1' });\n"
@@ -165,7 +165,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
     ran = await run(EXECUTE, json.dumps({"code": script, "description": "count rows"}))
 
     assert isinstance(ran, Ok)
-    assert "fetched 3 rows" in ran.content
+    assert "fetched 3 rows" in ran.text
     # The three fetched rows never entered the conversation; two numbers did.
     assert ran.data == [2, 3]
-    assert '"n"' not in ran.content
+    assert '"n"' not in ran.text

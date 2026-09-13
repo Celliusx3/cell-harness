@@ -752,7 +752,18 @@ step instead of restarting.
   when a hook does blocking I/O. cell-bot's hooks run inline with no timeout, so a
   slow one stalls every other conversation's stream.
 - Detectors: `exact_failure` (2 warn / 5 block), `same_tool_failure` (3 / 8),
-  `idempotent_no_progress` (2 / 5). A repeated **success** is never detected.
+  `idempotent_no_progress` (2 / 5). ~~A repeated **success** is never detected.~~
+  **Observed 2026-09-13, and it needs detecting:** a 12B local model, given the
+  `find-place` skill, ran the identical `instagram__fetch_reels` program twice
+  in a row — same arguments, same successful result — then answered with an
+  invented address instead of calling `places__search_text`. Nothing told it
+  the second call was the first call again. dsh's `repeat-tool-reminder` is the
+  right shape here: an *advisory* line at 3, 5 and 8 consecutive identical
+  calls, regardless of outcome — "this is the same call as the last N; the
+  result was identical" — never a block, the decision left with the model. With
+  tool results now lists of blocks (phase 8's insertion 4), the reminder is a
+  `Text` block appended to the repeated result, the same channel the adapter
+  uses for `tool_reference`, and needs no new plumbing.
   `warn` appends guidance and still runs; `block` is pre-execution. `before_call`
   only reads; only `after_call` mutates.
 - The guardrail keys on the typed `Failure` code, never a string prefix.

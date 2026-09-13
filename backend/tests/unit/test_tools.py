@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harness.llm.messages import ToolCall
+from harness.llm.messages import Text, ToolCall, ToolMessage
 from harness.tools.definition import (
     EXECUTION_ERROR,
     INVALID_ARGUMENTS,
@@ -21,8 +21,8 @@ from tests.unit.fakes import echo_tool, raising_tool
 from tests.unit.helpers import no_progress, pipeline_for
 
 
-def pipeline(*tools, providers=()) -> ToolPipeline:
-    return pipeline_for(*tools, providers=providers)
+def pipeline(*tools, providers=(), offer=()) -> ToolPipeline:
+    return pipeline_for(*tools, providers=providers, offer=offer)
 
 
 def call(name: str, arguments: str = '{"value": "hi"}') -> ToolCall:
@@ -97,7 +97,8 @@ async def test_empty_arguments_mean_no_arguments() -> None:
 def test_data_never_reaches_the_model() -> None:
     """`Ok` has two readers with two formats: the model reads `content`, a program
     reads `data`. `render_outcome` is the boundary, and it only knows the first."""
-    assert render_outcome(Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]})) == "Found 3 jobs."
+    blocks = render_outcome(Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]}))
+    assert blocks == (Text(text="Found 3 jobs."),)
 
 
 def test_ok_still_compares_by_value_with_data_defaulted() -> None:
@@ -110,8 +111,16 @@ def test_ok_still_compares_by_value_with_data_defaulted() -> None:
 def test_failures_wear_one_wire_shape() -> None:
     """The model learns this prefix; a second spelling would read as a different
     kind of thing."""
-    assert render_outcome(Failure("X", "went wrong")) == "error: went wrong"
-    assert render_outcome(Ok(content="fine")) == "fine"
+    assert render_outcome(Failure("X", "went wrong")) == (Text(text="error: went wrong"),)
+    assert render_outcome(Ok(content="fine")) == (Text(text="fine"),)
+
+
+def test_a_plain_string_is_one_text_block() -> None:
+    """Almost every tool returns prose; `Ok("hi")` wraps it, and every log line
+    written before blocks existed decodes the same way."""
+    assert Ok("hi").content == (Text(text="hi"),)
+    assert Ok("hi").text == "hi"
+    assert ToolMessage(tool_call_id="c1", content="hi").content == (Text(text="hi"),)
 
 
 # ── live resolution ───────────────────────────────────────────────────────────
@@ -125,7 +134,7 @@ async def test_a_tool_from_a_provider_is_callable_the_turn_it_appears() -> None:
     the agent.
     """
     connected: list = []
-    tools = pipeline(providers=[lambda: list(connected)])
+    tools = pipeline(providers=[lambda: list(connected)], offer=("echo",))
 
     assert tools.specs() == []
     outcome = await tools.execute(call("echo"), progress=no_progress)
@@ -193,8 +202,9 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
 
 
 def offering(*tools: ToolDefinition, default: tuple[str, ...]) -> ToolPipeline:
-    """A pipeline with a real `default_tools`, which `pipeline_for` deliberately
-    leaves empty — the gate only means anything against a restricted offer."""
+    """A pipeline with a chosen `default_tools`, where `pipeline_for` offers
+    every tool it was given — the gate only means anything against a restricted
+    offer."""
     registry = ToolRegistry(tools)
     return ToolPipeline(registry, ToolDispatcher(registry), default)
 
@@ -221,14 +231,15 @@ async def test_an_offered_tool_executes() -> None:
         ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'), progress=no_progress
     )
 
-    assert isinstance(outcome, Ok) and outcome.content == "hi"
+    assert isinstance(outcome, Ok) and outcome.text == "hi"
 
 
-async def test_an_empty_default_offers_and_allows_everything() -> None:
-    pipeline = offering(echo_tool(), echo_tool("other"), default=())
+async def test_an_empty_default_offers_nothing_and_refuses_everything() -> None:
+    """An empty list means what it looks like."""
+    pipeline = offering(echo_tool(), default=())
 
+    assert pipeline.specs() == []
     outcome = await pipeline.execute(
-        ToolCall(id="c1", name="other", arguments='{"value": "hi"}'), progress=no_progress
+        ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'), progress=no_progress
     )
-
-    assert isinstance(outcome, Ok)
+    assert isinstance(outcome, Failure) and outcome.code == REFUSED

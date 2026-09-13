@@ -165,7 +165,7 @@ async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == "INVALID_ARGUMENTS"
-    assert result.message.content.startswith("error: ")
+    assert result.message.text.startswith("error: ")
     # The turn recovers: the model gets another step and answers.
     assert isinstance(events[-1], AgentCompleted)
 
@@ -213,7 +213,7 @@ async def test_an_interrupted_call_records_a_recoverable_error() -> None:
     await interrupt_during_tool(agent(client, hanging_tool()), session)
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
-    assert result.message.content == INTERRUPTED_RESULT
+    assert result.message.text == INTERRUPTED_RESULT
     assert result.error == "INTERRUPTED_BY_CRASH"
 
 

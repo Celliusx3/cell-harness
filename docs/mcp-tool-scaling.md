@@ -5,16 +5,16 @@ roughly **950 tokens per tool**, a handful of MCP servers costs more context tha
 the conversation does. This file records what the field does about that, what we
 built, and what it costs.
 
-**Our answer is code mode.** The model is offered three tools and reaches every
-capability by writing a program that runs in a Deno sandbox, so the request
-carries a fixed three schemas however many servers are connected
-([§6](#6-code-mode)). There is no setting: this is how the harness reaches its
-tools, and Deno is a startup requirement.
+**Our answer is select, then call** ([§7](#7-select-then-call)). The model
+is offered three tools; it lists what exists, reads the schemas of the few it
+needs, and from then on those are in its tool list and callable directly. A
+program (`execute_typescript`) is for when one saves round trips — many calls,
+or a large result filtered before it is seen. The request carries three schemas
+plus whatever this conversation has read, however many servers are connected.
 
-**Read [§6 "Measured on this deployment"](#the-evidence-honestly) before quoting
-the paragraph above.** At the thirteen tools we actually run, code mode costs
-*more* than offering every tool directly, on every axis. Keeping it is a bet on
-server count growing, taken with that result in hand.
+**How it got here.** Code mode — a program as the *only* route — was the answer
+from §6 until phase 8. Read [§6 "Measured on this deployment"](#the-evidence-honestly)
+for why that was already a loss at thirteen tools, and §7 for what changed it.
 
 ---
 
@@ -232,7 +232,7 @@ That last one matters because there is no SDK here to reap the child — `mcp/st
 never kills anything because the MCP transport does it. Here a `finally` must.
 
 **Every call goes through `ToolDispatcher.dispatch`.** A script reaches exactly what
-the model could have reached directly, by the same route, so phase 12's approval
+the model could have reached directly, by the same route, so a future approval
 gate will cover scripts without knowing code mode exists. DeepSeek confirms the
 seam: its bindings re-enter the full pipeline and denials surface to the script as
 a catchable error. A `Failure` becomes a thrown `Error` at the language boundary,
@@ -375,6 +375,89 @@ Worth noting separately, because it is not a cost: the newer `mcp` client sends
 `server/discover` on connect, and servers that predate it log a wall of
 `ClientRequest` validation errors before connecting normally. Cosmetic, and
 upstream — but it makes a healthy startup look broken.
+
+## 7. Select, then call
+
+**What changed.** Three things landed together during phase 8.
+
+1. **Anthropic's own guidance for programmatic tool calling is per tool, not
+   per harness.** Each tool declares `allowed_callers: ["direct"]` or
+   `["code_execution"]`, with the tip *"choose one rather than enabling both."*
+   Their fit table: strong for fan-out and large results to filter; **weak for
+   "strictly sequential workflows where each call depends on Claude reasoning
+   over the previous result"** and for "a small number of tool calls with small
+   responses." Measured: a 75-tool agent −38 % input tokens; **τ²-bench (one or
+   two sequential calls per turn) unchanged accuracy, +8 % cost.** And Haiku 4.5
+   is excluded from the feature entirely.
+2. **The first real skill is a sequential workflow.** `find-place` is fetch →
+   read the caption → decide → search → details; every step depends on the
+   model looking at the previous result. Under code mode the default model wrote
+   *three programs of one call each* — every cost of a script, none of its
+   saving. That is Anthropic's weak-fit column, verbatim.
+3. **A 4B model showed what small models do.** Given the skill, qwen3-4b copied
+   the function names out of it and called them as plain tools. That ran (see
+   "Registered is not offered" in CLAUDE.md for why it should not have), and got
+   the right place. Forced through code mode, the same model guessed a return
+   shape and got it wrong. Small models can call a tool; they cannot reliably
+   write a program against a schema they have not read.
+
+**The cache argument, re-examined.** §3 and §5 give "every discovery broke the
+prompt cache" as the reason the earlier tool search was deleted. Measured on
+this endpoint (two identical requests: `cached_tokens 0`, then `2624 of 2636`),
+the cache is real — but the cost of a read is *one* miss, after which the
+tools array is constant again. What was wrong with the old search was churning
+the array step after step, not changing it at all. Code mode's "constant array"
+saved nothing over that: its 17K-character catalog lands in the conversation
+and is cached from its second appearance the same way. The `cached` column
+below was read off the provider's `prompt_tokens_details.cached_tokens` by
+hand; the adapter does not record it.
+
+**The mechanism — Anthropic's shape.** Their tool search returns
+`tool_reference` blocks, and *"the API expands `tool_reference` blocks
+throughout the conversation history, so Claude can reuse discovered tools in
+later turns without re-searching"*; a custom search tool participates by
+returning the same blocks in an ordinary `tool_result`. Here,
+`get_function_details` is that tool: its result is
+`[Text(declarations), ToolReference(name)…]` (`llm/messages.py`), the loop logs
+the blocks as they are, and `Session.tools_selected()` folds the references out
+of the whole log — the same "read history, expand references" the docs
+describe. The one thing their API does that ours cannot is the expansion: this
+endpoint is OpenAI-shaped and has no `tool_reference`, so the harness expands —
+the pipeline puts the referenced tools into the next request, and the adapter
+renders the block as a sentence (`REFERENCES_NOTE`) so the model knows its list
+changed. The pipeline's refusal of an unreferenced name says to read it first:
+the gate is a sequence, not a wall, and it is the step the 4B model skipped.
+Scripts never pass through the pipeline and are unaffected;
+`execute_typescript` remains, for the workloads §6 was right about.
+
+**Bounded.** Only the `MAX_TOOLS_SELECTED` (8, in `tools/pipeline.py`) most recently
+selected tools are promoted; a re-read moves a tool back to the front, and one that fell off is
+refused like one never read and re-read at the same one-miss cost. Without
+that, reads accumulate for the life of a conversation and a long one that
+wandered across every server would send most of the catalog this mechanism
+exists to avoid — the request would scale with history rather than with the
+task at hand.
+
+**Measured, the same reel, the same prompt.**
+
+| | steps | input tokens | cached | output | Deno spawns | result |
+|---|---|---|---|---|---|---|
+| ilmu-glm-5.1, code mode (before) | 6 | 28,264 | 20,544 | 463 | 3 | correct |
+| ilmu-glm-5.1, select-then-call | 7 | 26,575 | 20,480 | 404 | **0** | correct |
+| qwen3-4b, code mode (before) | 3 | — | — | — | 2 | **wrong** — guessed a shape |
+| qwen3-4b, select-then-call | 9 | — | — | — | 0 | partial — three refusals before it read the schema; found the venue from the caption, never searched Places |
+
+The two reads in the glm run show as the two dips in `cached` (1,856
+each time the array grew) — the price of a read, visible for the first
+time. Output tokens fell because a JSON call is shorter than a program that
+makes one.
+
+**What this does not change.** `list_functions` is still the catalog and still
+scales as §6 measured; the reversal trigger there (a ~30K catalog at ~28 tools)
+still stands and now argues for trimming what it prints, not for reopening the
+mechanism. The doc's "one route" rule is relaxed: a selected tool is callable
+both directly and from a program, and the model uses whichever the task shape
+wants.
 
 ### Follow-ups, with their triggers
 

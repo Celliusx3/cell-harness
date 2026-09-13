@@ -122,7 +122,7 @@ async def test_structured_content_survives_alongside_text() -> None:
     outcome = await built.invoke("{}", progress=no_progress)
 
     assert isinstance(outcome, Ok)
-    assert outcome.content == "Found 3 jobs."
+    assert outcome.text == "Found 3 jobs."
     assert outcome.data == {"jobs": [{"title": "Senior Python Engineer"}]}
 
 

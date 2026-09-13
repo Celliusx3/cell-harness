@@ -99,7 +99,18 @@ class DenoRunner(Runner):
             frame = json.loads(line)
             match frame.get("kind"):
                 case "call":
-                    await self._send(process, await _reply(frame, bridge))
+                    reply = await _reply(frame, bridge)
+                    try:
+                        await self._send(process, reply)
+                    except (RuntimeError, OSError):
+                        # The child is gone. Observed live: a script that
+                        # called `main();` without `await` returned at once,
+                        # the shim sent `done` and exited, and the reply to the
+                        # call `main` had in flight met a closed pipe. What is
+                        # left on stdout says which; the message names the
+                        # mistake, because "handler is closed" told the model
+                        # nothing and it gave up.
+                        return await self._unanswered(process, frame["name"])
                 case "done":
                     return Script(result=frame.get("result"), logs=tuple(frame.get("logs", ())))
                 case "failed":
@@ -107,6 +118,26 @@ class DenoRunner(Runner):
                         logs=tuple(frame.get("logs", ())),
                         error=frame.get("message", "the script failed"),
                     )
+
+    async def _unanswered(self, process: asyncio.subprocess.Process, name: str) -> Script:
+        """The child exited while a call was being answered — why, from what it
+        wrote before it went."""
+        assert process.stdout is not None
+        rest = (await process.stdout.read()).decode(errors="replace")
+        for line in rest.splitlines():
+            try:
+                frame = json.loads(line)
+            except ValueError:
+                continue
+            if frame.get("kind") in ("done", "failed"):
+                return Script(
+                    logs=tuple(frame.get("logs", ())),
+                    error=(
+                        f"the script returned while {name} was still running — every call "
+                        "must be awaited all the way up to the script's own return"
+                    ),
+                )
+        return Script(error=await self._died(process))
 
     async def _send(self, process: asyncio.subprocess.Process, frame: dict) -> None:
         assert process.stdin is not None
@@ -139,7 +170,11 @@ class DenoRunner(Runner):
 async def _reply(frame: dict, bridge: Bridge) -> dict:
     """One call's answer. A `BridgeError` becomes a throw inside the script;
     anything else the bridge raises is a bug in the caller, not the script, so it
-    propagates and fails the run."""
+    propagates and fails the run.
+
+    This loop answers one call before reading the next frame, so the shim can have
+    several calls outstanding inside the script but never two here.
+    """
     call_id = frame["id"]
     try:
         value = await bridge(frame["name"], frame.get("args") or {})

@@ -11,11 +11,11 @@ description of what the reel contains.
 
 ## Workflow
 
-Write ONE program that does all of this; each step is one capability call.
-Before writing it, call `get_function_details` for the four functions below —
-every result is `{ items: [...] }` or `{ candidates: [...] }`, never a bare
-object, and a program that guesses the shape reads `undefined` and searches for
-nothing.
+Each step is one capability call, and each depends on what the previous one
+returned — so call them directly, one at a time. First read the four functions
+below with `get_function_details`; every result is `{ items: [...] }` or
+`{ candidates: [...] }`, never a bare object. Write a program only if the user
+sent several reels at once.
 
 1. **Fetch first, read only if needed.** `instagram__fetch_reels({ urls })` with
    every link the user sent. Look at `caption`, `author`, `hashtags`,
@@ -36,9 +36,6 @@ nothing.
 4. **Details only for the one you chose.** `places__place_details` costs more
    than searching; call it once, for the single candidate you settled on, and
    not at all if you are showing a shortlist.
-
-Return from the program only what the answer needs: the chosen candidate (or
-the shortlist), and the one or two facts from the reel that justify the pick.
 
 ## Answer
 

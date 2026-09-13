@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ValidationError
 
-from harness.llm.messages import ToolSpec
+from harness.llm.messages import Block, Text, ToolSpec, render_text
 from harness.tools.progress import ToolProgressReporter
 
 # Joins a source to the tool it published — `yt` + `get_subtitles`. Here rather
@@ -53,18 +53,29 @@ ERROR_PREFIX = "error: "
 class Ok:
     """A call that produced a result.
 
-    `content` is what the model reads. `data` is the same result as a structured
-    value, when the tool has one — an MCP server's `structuredContent`, say. Two
-    fields rather than one because they have different readers: the model gets
-    prose, a *program* gets the object. Until code mode there is no such program,
-    and `data` is simply not destroyed on the way past.
+    `content` is what the model reads: blocks, the Anthropic shape. Almost every
+    tool returns one text block and passes a plain string, which `__post_init__`
+    wraps. A tool that made others callable adds `ToolReference` blocks — that is
+    the whole of how selection is stated, and it rides into the log with the
+    result. `data` is the same result as a structured value, when the tool has
+    one — an MCP server's `structuredContent`, say — because a *program* wants
+    the object where the model wants prose.
 
     Phase 4 adds tool-private presentation data here (a diff, a row count) once
     there is a UI to render a card from it.
     """
 
-    content: str
+    content: tuple[Block, ...]
     data: object | None = None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.content, str):
+            object.__setattr__(self, "content", (Text(text=self.content),))
+
+    @property
+    def text(self) -> str:
+        """The prose alone — for a reader that wants a string, like the bridge."""
+        return render_text(self.content)
 
 
 @dataclass(frozen=True)
@@ -83,15 +94,15 @@ class Failure:
 ToolOutcome = Ok | Failure
 
 
-def render_outcome(outcome: ToolOutcome) -> str:
-    """What the model sees.
+def render_outcome(outcome: ToolOutcome) -> tuple[Block, ...]:
+    """What the model sees, as blocks.
 
-    The only place the wire format is decided, so a `Failure` cannot reach the
-    model wearing two different shapes.
+    The only place a `Failure` is given its shape, so it cannot reach the model
+    wearing two different ones: one text block, wearing the prefix.
     """
     if isinstance(outcome, Ok):
         return outcome.content
-    return f"{ERROR_PREFIX}{outcome.message}"
+    return (Text(text=f"{ERROR_PREFIX}{outcome.message}"),)
 
 
 @dataclass(frozen=True)
