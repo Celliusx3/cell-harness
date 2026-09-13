@@ -31,8 +31,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from harness.llm.messages import Message
+from harness.llm.messages import Message, UserMessage
 from harness.session.models import (
+    ApplicationMessageEvent,
     AssistantMessageEvent,
     SessionEvent,
     ToolResultEvent,
@@ -51,6 +52,10 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
     for event in events:
         if isinstance(event, UserMessageEvent):
             messages.append(event.message)
+        elif isinstance(event, ApplicationMessageEvent):
+            # User role on the wire: no provider has another, and the user turn
+            # is where Claude Code puts its reminders too.
+            messages.append(UserMessage(content=event.message.content))
         elif isinstance(event, AssistantMessageEvent):
             # An interrupted reply stays in history. The model said it and the
             # user read it, so hiding it would make the next turn's context

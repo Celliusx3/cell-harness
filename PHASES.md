@@ -74,7 +74,7 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Seams (`FileSystem`, `Subprocess`) | 13 | Two providers is when an interface earns its keep |
 | `Layered` (scoped registries) | 15 | The first time a plugin registers into *one agent's* world |
 | Durable inbox (`followup`/`steer`/`inject`) | 9 | Phase 5 queues at the channel, which is enough while a correction can wait for the next turn. `steer` mutates a turn already running, so it needs dsh's session-event inbox |
-| `user/message` `source` field | ~~when injected context exists (8 or 9)~~ **10** | The guardrail's note to the model is the first injected context — user role on the wire, Claude Code's shape, but not the person's words, so the title and the UI must know |
+| ~~`user/message` `source` field~~ `application/message` event | ~~when injected context exists (8 or 9)~~ **10** | The guardrail's note to the model is the first injected context — user role on the wire, Claude Code's shape, but not the person's words, so the title and the UI must know. Shipped as a `source` flag, then made its own event: everything else discriminates on `type` |
 
 **Phase 2 built four of these early and they were cut.** An event bus with no
 listener, a `timeout_s` nothing enforced, a `meta` nothing rendered, and a cursor
@@ -800,15 +800,17 @@ identical result gets a line saying so — the 2026-09-13 failure below.
   cell-bot's `idempotent_no_progress` counts only read-only tools; ours counts
   every tool, since the identical reply is the tell and the read-only flag was
   cut (above). ~~The note is a `Text` block appended to the repeated
-  result~~ — the note is **its own `user/message`, `source="application"`**,
-  logged once per step after its tool calls settle. Two reasons. A provider
+  result~~ — the note is **its own `application/message`** (first shipped as
+  `user/message` with `source="application"`, then given its own event type
+  since everything else discriminates on `type`), logged once per step after
+  its tool calls settle. Two reasons. A provider
   wants the `tool` messages directly behind the `assistant` that asked, so
   nothing may sit between them; and a note *inside* a result with a changing
   count ("2 times now", "3 times now") would make every result differ and reset
   the very detector that wrote it — `tool/result` stays the tool's words alone.
   This is also where Claude Code puts its reminders: a text block beside the
-  tool results, in the user turn. It is dsh's `source` field, arriving with its
-  first non-human producer; phase 9's `inject()` is the second.
+  tool results, in the user turn. It is dsh's `MessageSource.kind`, arriving
+  with its first non-human producer; phase 9's `inject()` is the second.
 - The guardrail keys on the typed `Failure` code, never a string prefix.
 - ~~**`LoopAgent.max_steps` can drop here.**~~ **Dropped.** The loop runs
   until the model answers, the user stops it, or the guardrail has refused

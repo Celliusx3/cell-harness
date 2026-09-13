@@ -33,6 +33,13 @@ export interface UserMessage {
   content: string;
 }
 
+/** Context the backend injected (the guardrail's note) — sent to the model in
+ *  the user role, but not the person's words. */
+export interface ApplicationMessage {
+  role: "application";
+  content: string;
+}
+
 export interface AssistantMessage {
   role: "assistant";
   content: string;
@@ -60,14 +67,8 @@ export type TurnEndReason = "completed" | "failed" | "cancelled";
 export type SessionEvent =
   | { type: "turn/start"; turn: number }
   | { type: "turn/end"; turn: number; reason: TurnEndReason }
-  | {
-      type: "user/message";
-      turn: number;
-      message: UserMessage;
-      /** `user` typed it; `application` is context the backend injected (the
-       *  guardrail's note) — user role on the wire, but not the person's words. */
-      source: "user" | "application";
-    }
+  | { type: "user/message"; turn: number; message: UserMessage }
+  | { type: "application/message"; turn: number; message: ApplicationMessage }
   | { type: "step/start"; turn: number; step: number }
   | { type: "step/end"; turn: number; step: number }
   | { type: "assistant/chunk"; turn: number; step: number; chunk: StreamEvent }

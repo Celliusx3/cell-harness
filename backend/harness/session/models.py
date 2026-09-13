@@ -34,7 +34,13 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
+from harness.llm.messages import (
+    ApplicationMessage,
+    AssistantMessage,
+    ToolCall,
+    ToolMessage,
+    UserMessage,
+)
 from harness.llm.stream import StreamEvent, Usage
 
 # Stamped into every header written. A backend refuses any other version on load
@@ -89,24 +95,32 @@ class TurnEnd(BaseModel):
     reason: TurnEndReason
 
 
-# Who put a user-role message on the model-visible surface. `user` is the
-# person. `application` is context this process injected — the guardrail
-# telling the model it is repeating itself is the first; phase 9's `inject()`
-# is the next. The same role on the wire, since that is where Claude Code puts
-# its reminders too, but not something the person said, so the title and the
-# UI must know. dsh's `MessageSource.kind` is the precedent.
-UserMessageSource = Literal["user", "application"]
-
-
 class UserMessageEvent(BaseModel):
-    """A user-role message entering the model-visible surface."""
+    """The person's message entering the model-visible surface."""
 
     model_config = ConfigDict(frozen=True)
 
     type: Literal["user/message"] = "user/message"
     turn: int
     message: UserMessage
-    source: UserMessageSource = "user"
+
+
+class ApplicationMessageEvent(BaseModel):
+    """Context this process injected — the guardrail telling the model it is
+    repeating itself is the first; phase 9's `inject()` is the next.
+
+    Its own event, not a flag on `user/message`: it reaches the model in the
+    user role (Claude Code's reminder shape, see `derive_messages`), but it is
+    not something the person said, so the title and the UI must be able to tell
+    without a second field to remember. dsh's `MessageSource.kind` is the
+    precedent.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["application/message"] = "application/message"
+    turn: int
+    message: ApplicationMessage
 
 
 class StepStart(BaseModel):
@@ -163,7 +177,7 @@ class ToolResultEvent(BaseModel):
 
     `message` is the tool's result, already rendered — a `Failure` wears its
     `error: ` prefix here, and nothing the harness adds is ever mixed in: a
-    hook's guidance is its own `user/message`, so "was this result the same as
+    hook's guidance is its own `application/message`, so "was this result the same as
     the last one?" compares the tool's words alone. `error` keeps the typed
     identity beside it, which is what the guardrail counts rather than
     re-deriving intent from a string prefix.
@@ -206,6 +220,7 @@ SessionEvent = (
     | StepStart
     | StepEnd
     | UserMessageEvent
+    | ApplicationMessageEvent
     | AssistantChunk
     | AssistantMessageEvent
     | ToolCallEvent

@@ -97,22 +97,22 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
 
     switch (event.type) {
       case "user/message":
-        if (event.source !== "user") {
-          // The harness's words, not the person's: a notice, never a bubble.
-          items.push({
-            kind: "notice",
-            key: `u${index}`,
-            turn: event.turn,
-            tone: "note",
-            text: event.message.content,
-          });
-          break;
-        }
         items.push({
           kind: "user",
           key: `u${index}`,
           turn: event.turn,
           content: event.message.content,
+        });
+        break;
+
+      case "application/message":
+        // The harness's words, not the person's: a notice, never a bubble.
+        items.push({
+          kind: "notice",
+          key: `n${index}`,
+          turn: event.turn,
+          tone: "note",
+          text: event.message.content,
         });
         break;
 

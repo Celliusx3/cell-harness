@@ -5,7 +5,7 @@ Two points, and their return types say what they may do:
 - `pre -> str | None` — a reason to **refuse**, or `None` to let the call run.
   Refusal is pre-execution: the tool never starts.
 - `post -> str | None` — guidance for the model, or `None`. The loop logs it
-  as a `user/message` from the application once the step's calls settle, so it
+  as an `application/message` once the step's calls settle, so it
   reaches the model beside the tool results, never inside one.
 
 A hook does not see the session. The chain folds it once per call (`calls.py`)

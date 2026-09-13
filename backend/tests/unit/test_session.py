@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import AssistantMessage, UserMessage
+from typing import get_args
+
+from harness.llm.messages import ApplicationMessage, AssistantMessage, Message, UserMessage
 from harness.llm.stream import Completed, TextChunk
 from harness.session.derive import derive_messages
 from harness.session.models import (
+    ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,
     TurnEnd,
@@ -111,16 +114,15 @@ def test_an_interrupted_reply_stays_in_history() -> None:
     assert derive_messages(session.events())[-1] == AssistantMessage(content="par")
 
 
-def test_a_guardrail_message_is_a_user_message_on_the_wire() -> None:
+def test_an_application_message_is_a_user_message_on_the_wire() -> None:
     """Claude Code's shape: a reminder is text beside the tool results, in the
-    user role. The source is a fact about the log, not the message."""
+    user role. Who wrote it is a fact about the log, not the request."""
     session = new_session()
-    session.append(
-        UserMessageEvent(turn=0, message=UserMessage(content="Note: …"), source="application")
-    )
+    session.append(ApplicationMessageEvent(turn=0, message=ApplicationMessage(content="Note: …")))
 
     assert derive_messages(session.events()) == [UserMessage(content="Note: …")]
 
 
-def test_a_user_message_is_from_the_human_unless_said_otherwise() -> None:
-    assert UserMessageEvent(turn=0, message=UserMessage(content="hi")).source == "user"
+def test_an_application_message_is_not_a_wire_message() -> None:
+    """No provider has the role, so the adapter must never be handed one."""
+    assert ApplicationMessage not in get_args(Message)

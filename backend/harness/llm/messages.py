@@ -67,17 +67,27 @@ class SystemMessage(BaseModel):
 
 
 class UserMessage(BaseModel):
-    """A message on the model-visible surface attributed to the user.
-
-    Covers a direct human prompt now; later it also carries synthetic context the
-    harness injects (file-change notices, skill catalogs). Those are the same
-    role on the wire, which is why the distinction lives on the session event's
-    `source` rather than here.
-    """
+    """The person's prompt, as the model sees it."""
 
     model_config = ConfigDict(frozen=True)
 
     role: Literal["user"] = "user"
+    content: str
+
+
+class ApplicationMessage(BaseModel):
+    """Context this process put on the model-visible surface — the guardrail's
+    note first, phase 9's `inject()` next.
+
+    **Not a wire message.** No provider has an `application` role, so
+    `session.derive_messages` sends one as a `UserMessage` — the user turn is
+    where Claude Code puts its reminders too. It is deliberately not a member of
+    `Message`: a value the adapter cannot render must not be able to reach it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    role: Literal["application"] = "application"
     content: str
 
 

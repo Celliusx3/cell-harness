@@ -105,7 +105,7 @@ export function useConversation(conversationId: string): Conversation {
             // newlines — so a single `user/message` accounts for all of it, and
             // clearing the lot is right rather than lazy. Three bubbles becoming
             // one is what the model actually saw.
-            if (event.type === "user/message" && event.source === "user") setQueued([]);
+            if (event.type === "user/message") setQueued([]);
             setRunning(true);
           },
           onEnd(end) {

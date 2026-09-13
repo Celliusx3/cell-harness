@@ -6,9 +6,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harness.llm.messages import AssistantMessage, UserMessage
+from harness.llm.messages import ApplicationMessage, AssistantMessage, UserMessage
 from harness.llm.stream import TextChunk
 from harness.session.models import (
+    ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,
     SessionHeader,
@@ -125,7 +126,7 @@ async def test_a_guardrail_message_never_becomes_the_title(store) -> None:
         "s",
         [
             TurnStart(turn=0),
-            UserMessageEvent(turn=0, message=UserMessage(content="Note: …"), source="application"),
+            ApplicationMessageEvent(turn=0, message=ApplicationMessage(content="Note: …")),
             UserMessageEvent(turn=0, message=UserMessage(content="what the human said")),
         ],
     )

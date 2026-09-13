@@ -13,7 +13,7 @@ Over the tool calls of the **current turn**:
 | `repeated_call` | same tool + arguments called consecutively, results aside | 3, 5, 8 | never |
 
 A warning is a line the model reads beside the step's results (the loop logs
-it as a `user/message` from the application); a refusal is pre-execution — the
+it as an `application/message`); a refusal is pre-execution — the
 call is answered with `error: …` and the tool never runs. The composition root
 puts them in one `HookChain`, which asks them one by one in that order and
 takes the first answer — so the order is precedence, specific before general —

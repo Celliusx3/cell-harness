@@ -27,6 +27,7 @@ from harness.agent.events import AgentCompleted, AgentFailed, ToolProgress, Tool
 from harness.agent.hooks import HookChain
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
+    ApplicationMessage,
     AssistantMessage,
     Message,
     SystemMessage,
@@ -39,6 +40,7 @@ from harness.llm.stream import Completed, Failed, TextChunk, ToolCallChunk
 from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.models import (
+    ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,
     StepEnd,
@@ -181,10 +183,8 @@ class LoopAgent:
 
                 if notes:
                     session.append(
-                        UserMessageEvent(
-                            turn=turn,
-                            message=UserMessage(content="\n\n".join(notes)),
-                            source="application",
+                        ApplicationMessageEvent(
+                            turn=turn, message=ApplicationMessage(content="\n\n".join(notes))
                         )
                     )
                 session.append(StepEnd(turn=turn, step=step))

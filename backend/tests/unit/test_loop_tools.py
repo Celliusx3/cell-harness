@@ -17,12 +17,12 @@ from harness.llm.stream import Completed, TextChunk, ToolCallChunk
 from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.models import (
+    ApplicationMessageEvent,
     StepEnd,
     StepStart,
     ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
-    UserMessageEvent,
 )
 from harness.tools.definition import BLOCKED, Ok, ToolOutcome
 from tests.unit.fakes import (
@@ -433,18 +433,19 @@ async def test_a_note_is_logged_as_a_guardrail_message_after_the_steps_calls() -
     )
 
     kinds = [
-        e.type for e in session.events() if e.type in ("tool/result", "user/message", "step/end")
+        e.type
+        for e in session.events()
+        if e.type in ("tool/result", "user/message", "application/message", "step/end")
     ]
     assert kinds == [
         "user/message",
         "tool/result",
         "tool/result",
-        "user/message",
+        "application/message",
         "step/end",
         "step/end",
     ]
-    note = [e for e in session.events() if isinstance(e, UserMessageEvent)][1]
-    assert note.source == "application"
+    (note,) = [e for e in session.events() if isinstance(e, ApplicationMessageEvent)]
     assert note.message.content == "think again\n\nthink again"
     assert all(
         e.message.content in ((Text(text="a"),), (Text(text="b"),))
@@ -469,7 +470,7 @@ async def test_a_step_without_notes_logs_no_guardrail_message() -> None:
 
     await drain(agent(client, echo_tool(), hooks=HookChain((Stub(),))).run("q", session=session))
 
-    assert [e.source for e in session.events() if isinstance(e, UserMessageEvent)] == ["user"]
+    assert not [e for e in session.events() if isinstance(e, ApplicationMessageEvent)]
 
 
 async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_never() -> None:
@@ -489,7 +490,7 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
     assert [r.error for r in results] == ["EXECUTION_ERROR"] * (EXACT_FAILURE_BLOCK - 1) + [BLOCKED]
     assert len(runs) == EXACT_FAILURE_BLOCK - 1
     # Warned from the second failure on, as a guardrail message on each such step.
-    warned = [e for e in session.events() if isinstance(e, UserMessageEvent) and e.source != "user"]
+    warned = [e for e in session.events() if isinstance(e, ApplicationMessageEvent)]
     assert len(warned) == EXACT_FAILURE_BLOCK - 2
     assert isinstance(events[-1], AgentCompleted)
 

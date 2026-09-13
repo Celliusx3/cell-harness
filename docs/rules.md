@@ -77,14 +77,16 @@ state: every decision is computed from the current turn's `tool/call` and
 dispatcher — the log is what it reads — and why a refusal is logged as an
 ordinary `BLOCKED` result and skipped when counting: the guardrail's own output
 must not feed the count that produced it. What it tells the model is its own
-`user/message`, `source="application"`, logged once per step after the step's
-tool calls settle — never inside a `tool/result`. Two reasons: a provider wants
-the tool messages directly behind the assistant that asked, so nothing may sit
-between them; and a note inside a result with a changing count would make
-every result differ and reset the very detector that wrote it. It is also
-where Claude Code puts its reminders — a text block beside the tool results, in
-the user turn. `source` is what keeps that message out of the conversation's
-title and out of the person's bubbles.
+`application/message`, logged once per step after the step's tool calls settle
+— never inside a `tool/result`. Two reasons: a provider wants the tool messages
+directly behind the assistant that asked, so nothing may sit between them; and
+a note inside a result with a changing count would make every result differ and
+reset the very detector that wrote it. It reaches the model in the user role —
+`derive_messages` sends it as a `UserMessage`, which is also where Claude Code
+puts its reminders — but it is its own event type in the log, not a flag on
+`user/message`: storage, the stream and the UI all discriminate on `type`, and
+a second field is one a reader forgets to check. That is what keeps the note
+out of the conversation's title and out of the person's bubbles.
 
 **No step cap.** The loop had one until phase 10, as a backstop against a bug
 in the loop itself. It was dropped by decision, with the consequence stated:

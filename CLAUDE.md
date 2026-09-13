@@ -147,8 +147,8 @@ Breaking one is not a style disagreement.
 - **The guardrail is a fold, not a counter.** Every decision is computed from
   the turn's `tool/call` + `tool/result`; nothing to restore on resume, and its
   own `BLOCKED` results are skipped so refusing never inflates the count that
-  caused it. What it tells the model is a `user/message` with
-  `source="application"`, after the step's results — a `tool/result` is the
+  caused it. What it tells the model is an `application/message` — user role
+  on the wire, its own event in the log — after the step's results; a `tool/result` is the
   tool's words alone. There is no step cap: repeated failures are the
   guardrail's, and everything else is the stop button's.
 - **Prompt text is code.** Wording that fixes a model failure carries that failure.
