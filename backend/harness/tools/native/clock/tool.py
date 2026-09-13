@@ -2,8 +2,8 @@
 
 Exists to prove the path end to end: the model is offered a schema, asks for a
 call, and the result comes back in a form it can use. It is also the tool the
-phase-8 guardrail must *not* flag — repeated calls that keep succeeding are
-normal, and only failing or demonstrably-unproductive repetition is a loop.
+guardrail must *not* refuse — repeated calls that keep succeeding are normal,
+and a clock read twice answers differently, so it is never "no progress".
 
 The clock is injected rather than read from `datetime.now()` directly, so a test
 can assert an exact string instead of matching a pattern.

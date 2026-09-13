@@ -4,31 +4,27 @@ One **step** is one model request plus the tools it asked for. A **turn** is one
 or more steps: if a step ends with tool calls, their results are appended and the
 model is asked again; if it ends without, the turn is over.
 
-**The discipline this file exists to hold:** history comes from
-`derive_messages(session.events())`, recomputed before *every* step — never from
-a list this class accumulated. That is what makes resume, fork, and compaction
-consequences of the log rather than features to build and keep in sync. It also
-means a tool result reaches the next request by being *logged*, with no separate
-path for the loop to get wrong.
+History comes from `derive_messages(session.events())`, recomputed before every
+step — never from a list this class accumulated. That is what makes resume,
+fork, and compaction consequences of the log, and it means a tool result reaches
+the next request by being *logged*. The system prompt is prepended per request
+and never logged, so it can reflect the agent running *this* turn.
 
-The system prompt is deliberately not logged and not part of history. It is
-prepended per request, which is what lets it reflect the agent running *this*
-turn — including, from phase 9, a different agent after routing.
-
-`LoopAgent` is a frozen dataclass and holds no state: the `Session` passed to
-`run()` owns everything that survives the call. Engine and state holder are
-separate objects, so two turns against two sessions cannot interleave.
+`LoopAgent` is frozen and holds no state: the `Session` passed to `run()` owns
+everything that survives the call.
 """
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import itertools
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from harness.agent.events import AgentCompleted, AgentFailed, ToolProgress, ToolResult
+from harness.agent.hooks import HookChain
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,
@@ -50,43 +46,20 @@ from harness.session.models import (
     ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
+    TurnEndReason,
     TurnStart,
     UserMessageEvent,
 )
 from harness.session.repair import REPAIRED, TOOL_OUTCOME_UNKNOWN
-from harness.tools.definition import Ok, ToolOutcome, render_outcome
+from harness.tools.definition import BLOCKED, Failure, Ok, ToolOutcome, render_outcome
 from harness.tools.pipeline import ToolPipeline
 
-# What a stream that produced no terminal event is reported as. An adapter owes
-# exactly one (see `llm.client`); treating a missing one as a failure is how that
-# contract is enforced rather than merely documented.
+# An adapter owes exactly one terminal event; a missing one is a failure, not a quirk.
 NO_TERMINAL = "stream ended without a terminal event"
 
-# What a tool call that never finished leaves behind. A provider requires exactly
-# one result per call, so an abandoned turn must still answer every call it made
-# or the next request is rejected outright.
-#
-# The loop only ever owes results for calls it *dispatched* — `tool/call` is
-# logged immediately before the tool runs — so the outcome is genuinely unknown
-# and never "not started". Same words as `session.repair` uses for a crash,
-# because it is the same situation from the model's side: the tab closed or the
-# process died, and either way it must not assume the work did not happen.
+# A provider requires one result per call, so an abandoned turn must answer every
+# call it dispatched. Same words as a crash repair: the outcome is unknown either way.
 INTERRUPTED_RESULT = TOOL_OUTCOME_UNKNOWN
-
-# A backstop against a bug in THIS loop, not a convergence strategy.
-#
-# DeepSeek Harness has no step cap at all. Its answer to a model that repeats
-# itself is `repeat-tool-reminder`: an advisory nudge at 3, 5 and 8 consecutive
-# identical calls that never blocks anything, leaving the decision with the
-# model. That is the better answer to the model-misbehaviour half of the problem,
-# and it arrives with the loop guardrail.
-#
-# What it does not cover is us: if this loop ever fails to clear `owed`, or a
-# tool always returns something that provokes another call, an advisory message
-# to the model changes nothing. So the cap stays until something enforces a
-# bound, and 60 is set above real multi-step work rather than near it — it should
-# never fire in normal use, and firing is a bug report.
-DEFAULT_MAX_STEPS = 60
 
 
 @dataclass(frozen=True)
@@ -98,22 +71,14 @@ class LoopAgent:
     client: LLMClient
     tools: ToolPipeline | None = None
     system_prompt: str = ""
-    max_steps: int = field(default=DEFAULT_MAX_STEPS)
-    # Called immediately before each model request, to make everything logged so
-    # far durable. A prompt that is not yet on disk is a reply to a question the
-    # log cannot show, so this is the one moment durability must not lag.
-    #
-    # A callable rather than the store itself: the loop depends on "make this
-    # durable", not on how. `None` is a session that is never written down —
-    # every test that does not care about storage.
+    # Asked before and after every tool call. Empty by default: the composition
+    # root decides what is installed, and the loop does not know what it is.
+    hooks: HookChain = HookChain()
+    # Makes the log durable before each model request and each tool call — the
+    # two moments a lost write would leave the log unable to explain what followed.
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
 
     def _request_messages(self, session: Session) -> list[Message]:
-        """What this request sees: the system prompt, then the conversation.
-
-        Derived at call time, so it already contains the user message, every
-        earlier step's reply, and every tool result — in log order.
-        """
         history = derive_messages(session.events())
         if not self.system_prompt:
             return history
@@ -124,43 +89,27 @@ class LoopAgent:
     ) -> AsyncIterator[
         TextChunk | ToolCallChunk | ToolProgress | ToolResult | AgentCompleted | AgentFailed
     ]:
-        """Run one turn, streaming its events.
-
-        Yields the reply's chunks live, tool progress and results as they settle,
-        then exactly one terminal. Calling it again continues the conversation —
-        the log carries everything, so there is nothing to thread between turns.
-        """
+        """Run one turn: the reply's chunks live, tool progress and results as
+        they settle, then exactly one terminal."""
         turn = session.next_turn()
         session.append(TurnStart(turn=turn))
         session.append(UserMessageEvent(turn=turn, message=UserMessage(content=user_input)))
 
-        # Text streamed but not yet written to the log. A step normally records
-        # its assistant message only when the request *completes*, so without
-        # this every early exit would discard the half-answer the user watched
-        # appear. The `finally` is what rescues it.
-        partial = ""
-        # Calls this step asked for that have no result yet. A provider rejects a
-        # history containing one, so an abandoned turn must answer them.
-        owed: list[ToolCall] = []
-        # Whether this turn already recorded its own `turn/end`. The `finally`
-        # runs on every path, and a turn closed twice is a log that contradicts
-        # itself.
-        closed = False
+        partial = ""  # streamed text not yet logged; rescued by the `finally`
+        owed: list[ToolCall] = []  # dispatched calls with no result yet
+        closed = False  # whether `turn/end` is already written
         step = 0
-        # Text accumulated across steps, so a tool-calling step's preamble
-        # ("Let me check the time…") survives into the final answer.
-        answer = ""
+        answer = ""  # text across steps, so a tool-calling step's preamble survives
 
         try:
-            for step in range(self.max_steps):
+            # No step cap: repeated failures are a hook's to refuse, and the
+            # user's stop button bounds the rest. dsh has none either.
+            for step in itertools.count():
                 session.append(StepStart(turn=turn, step=step))
                 partial = ""
                 owed = []
 
-                # Read fresh each step, not once up front, so a tool contributed
-                # by a source that connected mid-turn is offered immediately —
-                # and a schema the model read in the previous step is in this
-                # step's tool list.
+                # Read per step, so a tool that appeared mid-turn is offered now.
                 specs = self.tools.specs(session.tools_selected()) if self.tools else None
                 messages = self._request_messages(session)
                 if self.checkpoint is not None:
@@ -168,18 +117,12 @@ class LoopAgent:
 
                 completed: Completed | None = None
                 failed: Failed | None = None
-
-                # `aclosing`, not a bare `async for`: when this generator is
-                # closed mid-stream, GeneratorExit unwinds *this* frame but would
-                # leave the adapter's to the garbage collector's asyncgen hook —
-                # with the HTTP response still open in the meantime.
+                # `aclosing`: closing this generator mid-stream must close the
+                # adapter's too, or its HTTP response outlives the turn.
                 async with aclosing(
                     self.client.stream_completion(messages, self.model, tools=specs)
                 ) as stream:
                     async for event in stream:
-                        # Every stream event is logged verbatim, terminals
-                        # included: the log reproduces the stream, with no
-                        # special cases to get wrong.
                         session.append(AssistantChunk(turn=turn, step=step, chunk=event))
                         if isinstance(event, TextChunk):
                             partial += event.text
@@ -191,18 +134,10 @@ class LoopAgent:
                         elif isinstance(event, Failed):
                             failed = event
 
-                if failed is not None:
-                    session.append(StepEnd(turn=turn, step=step))
-                    session.append(TurnEnd(turn=turn, reason="failed"))
+                if failed is not None or completed is None:
+                    _close(session, turn, step, "failed")
                     closed = True
-                    yield AgentFailed(reason=failed.reason)
-                    return
-
-                if completed is None:
-                    session.append(StepEnd(turn=turn, step=step))
-                    session.append(TurnEnd(turn=turn, reason="failed"))
-                    closed = True
-                    yield AgentFailed(reason=NO_TERMINAL)
+                    yield AgentFailed(reason=failed.reason if failed else NO_TERMINAL)
                     return
 
                 answer += completed.full_text
@@ -216,54 +151,46 @@ class LoopAgent:
                         usage=completed.usage,
                     )
                 )
-                # In the log now, so it is no longer pending — leaving it set
-                # would append it a second time if a tool below is interrupted.
-                partial = ""
+                partial = ""  # logged now; the `finally` must not log it again
 
                 if not completed.tool_calls:
-                    session.append(StepEnd(turn=turn, step=step))
-                    session.append(TurnEnd(turn=turn, reason="completed"))
+                    _close(session, turn, step, "completed")
                     closed = True
                     yield AgentCompleted(text=answer)
                     return
 
                 owed = list(completed.tool_calls)
-                # Serial, one call at a time. `_tool_events` adds fan-in *within*
-                # a call (progress interleaved with the result), not parallelism
-                # across calls — that waits for a seam where overlap is
-                # meaningful and testable.
+                # What the hooks said about this step's calls. Logged after them,
+                # not between: a provider wants the `tool` messages directly
+                # behind the `assistant` that asked.
+                notes: list[str] = []
                 for call in completed.tool_calls:
+                    # `tool/call` is logged and made durable *before* the tool
+                    # runs, so a crash mid-side-effect is recoverable as "may have
+                    # happened" rather than "never started".
                     session.append(ToolCallEvent(turn=turn, step=step, call=call))
-                    # The second durability checkpoint, and the reason
-                    # `tool/call` is written before the tool runs: if the process
-                    # dies inside a side effect, the log must show we were about
-                    # to cause one. Without this, recovery could not tell "never
-                    # started" from "may have completed" — and would have to
-                    # assume the safer, more useless of the two.
                     if self.checkpoint is not None:
                         await self.checkpoint(session)
                     async with aclosing(
-                        self._tool_events(call, session=session, turn=turn, step=step)
+                        self._tool_events(call, session=session, turn=turn, step=step, notes=notes)
                     ) as events:
                         async for event in events:
                             if isinstance(event, ToolResult):
                                 owed.remove(call)
                             yield event
 
+                if notes:
+                    session.append(
+                        UserMessageEvent(
+                            turn=turn,
+                            message=UserMessage(content="\n\n".join(notes)),
+                            source="application",
+                        )
+                    )
                 session.append(StepEnd(turn=turn, step=step))
-
-            # Fell out of the step budget.
-            session.append(TurnEnd(turn=turn, reason="failed"))
-            closed = True
-            yield AgentFailed(reason=f"exceeded {self.max_steps} steps without completing")
         finally:
-            # `finally` rather than an exception handler because the abandoned
-            # paths are not raises of the same kind: closing this generator
-            # raises GeneratorExit, cancelling the task consuming it raises
-            # CancelledError, and neither is an `except Exception`.
-            #
-            # Nothing is awaited here — an async generator may not yield during
-            # cleanup, and `append` is synchronous.
+            # Runs on GeneratorExit and CancelledError alike, which no `except
+            # Exception` would. Nothing is awaited: `append` is synchronous.
             if not closed:
                 if partial:
                     session.append(
@@ -274,8 +201,6 @@ class LoopAgent:
                             interrupted=True,
                         )
                     )
-                # Every call this step made must have a result, or the next
-                # request is rejected outright.
                 for call in owed:
                     session.append(
                         ToolResultEvent(
@@ -285,30 +210,59 @@ class LoopAgent:
                             error=REPAIRED,
                         )
                     )
-                session.append(StepEnd(turn=turn, step=step))
-                session.append(TurnEnd(turn=turn, reason="cancelled"))
+                _close(session, turn, step, "cancelled")
 
     async def _tool_events(
-        self, call: ToolCall, *, session: Session, turn: int, step: int
+        self, call: ToolCall, *, session: Session, turn: int, step: int, notes: list[str]
     ) -> AsyncIterator[ToolProgress | ToolResult]:
-        """One tool call as a stream: zero or more `ToolProgress`, then exactly
-        one `ToolResult`.
+        """One call: zero or more `ToolProgress`, then exactly one `ToolResult`.
+        What a hook wants the model told goes on `notes`.
 
-        The call runs as a *task* rather than a bare `await` because a generator
-        can only yield from its own frame — a progress callback firing inside the
-        tool has no way to put an event on this stream. So the work goes to a
-        task, this frame drains a queue while it runs, and a sentinel the task
-        always posts on its way out is what ends the drain.
-
-        Ordering is by construction: the queue is FIFO, every report is awaited
-        *inside* the tool, and the sentinel is enqueued only once it has
-        returned — so no `ToolProgress` can follow the `ToolResult`.
-
-        The queue is unbounded on purpose. A bounded one would make `report`
-        block, stalling the tool on a consumer that is not reading; a chatty tool
-        is throttled at its source instead.
+        The hooks run here, after `tool/call` was logged, so a refused call
+        still has its call and result on record and the tool never starts.
         """
-        queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
+        refusal = await self.hooks.pre_tool_call(call, session=session)
+        outcome: ToolOutcome | None = None
+        if refusal is not None:
+            outcome = Failure(BLOCKED, refusal)
+        else:
+            async with aclosing(self._run_tool(call, session=session)) as events:
+                async for event in events:
+                    if isinstance(event, ToolProgress):
+                        yield event
+                    else:
+                        outcome = event
+            assert outcome is not None  # `_run_tool` ends with the outcome or raises
+            note = await self.hooks.post_tool_call(call, outcome, session=session)
+            if note is not None:
+                notes.append(note)
+
+        content = render_outcome(outcome)
+        # Logged before it is yielded, so a consumer that persists on `ToolResult`
+        # never sees an assistant `tool_calls` without its answer.
+        session.append(
+            ToolResultEvent(
+                turn=turn,
+                step=step,
+                message=ToolMessage(tool_call_id=call.id, content=content),
+                error=None if isinstance(outcome, Ok) else outcome.code,  # the typed code
+            )
+        )
+        yield ToolResult(tool_call_id=call.id, name=call.name, content=render_text(content))
+
+    async def _run_tool(
+        self, call: ToolCall, *, session: Session
+    ) -> AsyncIterator[ToolProgress | ToolOutcome]:
+        """Run the tool: its progress as it reports it, then its outcome, last.
+
+        A task plus a queue, because a generator can only yield from its own
+        frame and the progress callback fires inside the tool. The sentinel the
+        task posts on its way out is what ends the drain; FIFO order is what
+        keeps every report ahead of the outcome.
+        """
+        queue: asyncio.Queue[ToolProgress | None] = (
+            asyncio.Queue()
+        )  # unbounded: never stall the tool
 
         async def report(*, percent: float | None, message: str | None) -> None:
             queue.put_nowait(
@@ -318,17 +272,13 @@ class LoopAgent:
         async def run() -> ToolOutcome:
             try:
                 assert self.tools is not None  # a call cannot arrive without a pipeline
-                # Folded per *call* rather than per step, like the request's
-                # offer is per step: a schema read by an earlier call of this
-                # step counts for the next one.
+                # Folded per call, like the offer is per step: a schema read by an
+                # earlier call of this step counts for the next one.
                 return await self.tools.execute(
                     call, progress=report, tools_selected=session.tools_selected()
                 )
             finally:
-                # On success, failure and cancellation alike: this sentinel is
-                # the only thing that releases the drain below, so any path that
-                # skipped it would hang the turn forever.
-                queue.put_nowait(None)
+                queue.put_nowait(None)  # on every path, or the drain below hangs
 
         task = asyncio.create_task(run())
         try:
@@ -336,27 +286,14 @@ class LoopAgent:
                 yield event
             outcome = await task
         finally:
-            # Normal exit: the task is done, so this is a no-op. Abnormal exit (a
-            # closed consumer, or the turn cancelled): this is what stops the
-            # tool — otherwise the work outlives the request that asked for it.
+            # A no-op on normal exit; on a closed consumer or a cancelled turn it
+            # is what stops the tool.
             task.cancel()
             with contextlib.suppress(BaseException):
                 await task
+        yield outcome
 
-        content = render_outcome(outcome)
-        # The log is written *before* the event goes out, so a consumer that
-        # persists on `ToolResult` can rely on the result already being there —
-        # otherwise it records an assistant `tool_calls` with no answer, which
-        # the provider rejects on the next request.
-        session.append(
-            ToolResultEvent(
-                turn=turn,
-                step=step,
-                message=ToolMessage(tool_call_id=call.id, content=content),
-                # The typed code, not the rendered string: the phase-8 guardrail
-                # counts failures by identity, and a tool that phrased its error
-                # differently must not become invisible to it.
-                error=None if isinstance(outcome, Ok) else outcome.code,
-            )
-        )
-        yield ToolResult(tool_call_id=call.id, name=call.name, content=render_text(content))
+
+def _close(session: Session, turn: int, step: int, reason: TurnEndReason) -> None:
+    session.append(StepEnd(turn=turn, step=step))
+    session.append(TurnEnd(turn=turn, reason=reason))

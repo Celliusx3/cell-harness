@@ -41,7 +41,7 @@ class ToolSpec(BaseModel):
     """What the model is told about one tool.
 
     Exactly the three fields that go on the wire. `ToolDefinition` holds more —
-    an executor, a timeout, a parser — and `ToolDefinition.spec()` is the
+    an executor, a parser — and `ToolDefinition.spec()` is the
     allowlist that keeps them out of a request.
     """
 

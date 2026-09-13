@@ -60,7 +60,14 @@ export type TurnEndReason = "completed" | "failed" | "cancelled";
 export type SessionEvent =
   | { type: "turn/start"; turn: number }
   | { type: "turn/end"; turn: number; reason: TurnEndReason }
-  | { type: "user/message"; turn: number; message: UserMessage }
+  | {
+      type: "user/message";
+      turn: number;
+      message: UserMessage;
+      /** `user` typed it; `application` is context the backend injected (the
+       *  guardrail's note) — user role on the wire, but not the person's words. */
+      source: "user" | "application";
+    }
   | { type: "step/start"; turn: number; step: number }
   | { type: "step/end"; turn: number; step: number }
   | { type: "assistant/chunk"; turn: number; step: number; chunk: StreamEvent }

@@ -47,8 +47,9 @@ class ScriptedClient(LLMClient):
 class SteppedClient(LLMClient):
     """Yields a different script per call — one per step of a turn.
 
-    The last script repeats, so a test that under-counts steps gets a loop that
-    still terminates rather than an IndexError three frames deep.
+    The last script repeats, so a test that under-counts steps does not hit an
+    IndexError three frames deep. Since the loop has no step cap, a last script
+    that calls a tool loops forever — `drain` in the loop tests bounds it.
     """
 
     def __init__(self, *scripts: Sequence[StreamEvent]) -> None:

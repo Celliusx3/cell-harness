@@ -65,9 +65,32 @@ able to leak it to the model.
 return a typed `Failure` rendered as `"error: …"` — the model can recover. They
 do not raise.
 
-**A decision hook fails open.** A hook that raises refuses nothing and replaces
+**A decision hook fails open.** A hook that raises refuses nothing and appends
 nothing. "Registered" must never be read as "enforcing" — say so where it
-matters.
+matters. Each hook also runs under a timeout, because cell-bot's do not and a
+slow one there stalls every conversation's stream.
+
+**The guardrail is a fold, not a counter.** Phase 10's guardrail keeps no
+state: every decision is computed from the current turn's `tool/call` and
+`tool/result` events, the way `tools_selected()` is computed from
+`tool_reference` blocks. That is why it lives at the loop rather than at the
+dispatcher — the log is what it reads — and why a refusal is logged as an
+ordinary `BLOCKED` result and skipped when counting: the guardrail's own output
+must not feed the count that produced it. What it tells the model is its own
+`user/message`, `source="application"`, logged once per step after the step's
+tool calls settle — never inside a `tool/result`. Two reasons: a provider wants
+the tool messages directly behind the assistant that asked, so nothing may sit
+between them; and a note inside a result with a changing count would make
+every result differ and reset the very detector that wrote it. It is also
+where Claude Code puts its reminders — a text block beside the tool results, in
+the user turn. `source` is what keeps that message out of the conversation's
+title and out of the person's bubbles.
+
+**No step cap.** The loop had one until phase 10, as a backstop against a bug
+in the loop itself. It was dropped by decision, with the consequence stated:
+a decision hook fails open and the guardrail bounds only repeated *failures*,
+so an endless succeeding loop — or a loop bug that never clears `owed` — is now
+bounded by the user's stop button and nothing else. dsh has no cap either.
 
 **Prompt text is code.** When wording changes because a model got it wrong,
 record the observed failure in a comment next to the wording that fixes it.

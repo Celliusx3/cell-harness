@@ -37,6 +37,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from harness.agent.hooks import HookChain
+from harness.agent.hooks.native.exact_failure import ExactFailureHook
+from harness.agent.hooks.native.no_progress import NoProgressHook
+from harness.agent.hooks.native.repeated_call import RepeatedCallHook
+from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.agent.loop import LoopAgent
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -99,7 +104,8 @@ def build_mcp(settings: Settings) -> McpServerStore:
 def build_agent(
     settings: Settings, store: SessionService, mcp: McpServerStore, skills: Catalog
 ) -> LoopAgent:
-    """The default agent: a model, the native tools, and a durability checkpoint.
+    """The default agent: a model, the native tools, the guardrail, and a
+    durability checkpoint.
 
     This is what stands in for dsh's config-driven plugin tree. A missing
     dependency is a `TypeError` here rather than a runtime surprise, which is the
@@ -149,6 +155,18 @@ def build_agent(
         # Durability where it matters: before every model request, and before
         # every tool that might have a side effect.
         checkpoint=store.flush,
+        # The one place the loop guardrail is installed. Delete it and the loop
+        # runs unhooked — nothing in `agent/` knows it was here. The detectors
+        # are asked in this order, and the first with something to say wins:
+        # specific before general.
+        hooks=HookChain(
+            (
+                ExactFailureHook(),
+                SameToolFailureHook(),
+                NoProgressHook(),
+                RepeatedCallHook(),
+            )
+        ),
     )
 
 

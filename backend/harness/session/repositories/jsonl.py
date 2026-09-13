@@ -57,7 +57,7 @@ def _title_from(events: Sequence[SessionEvent]) -> str:
     append-only by design.
     """
     for event in events:
-        if isinstance(event, UserMessageEvent):
+        if isinstance(event, UserMessageEvent) and event.source == "user":
             text = event.message.content.strip()
             if text:
                 return text[:TITLE_MAX_CHARS]

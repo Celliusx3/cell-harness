@@ -68,13 +68,13 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Heartbeat, lease, reclaim | ~~4~~ **when a 2nd process exists** | Reclaiming a *process's* runs is a multi-process problem. One server, and phase 3's repair-on-resume already covers the single-process crash |
 | `Session.after(cursor)` | ~~4~~ **never** | `session.events()[n:]` already is it. Proposed and cut twice |
 | Prompt sections | ~~8~~ **11** | Skills turned out to contribute nothing to the prompt — the catalog rides on the tool. Personas are the first template with a variable |
-| **Around-middleware on tool execution** | 10 | The timeout and guardrail are its first listeners |
-| `ToolDefinition.timeout_s` | 10 | Nothing enforces a deadline until the timeout policy exists |
+| **Around-middleware on tool execution** | ~~10~~ **never** | The guardrail reads the session log, which the dispatcher never sees, so it became a hook at the loop; the timeout was cut (next row). An approval gate, if it comes, is not a hook — it must not fail open |
+| `ToolDefinition.timeout_s` | ~~10~~ **never** | Every tool that can hang already bounds itself where it can be stopped: MCP's 60s command timeout, the sandbox's script timeout. A third number would have to exceed both and would never fire |
 | Typed hooks | 10 | The guardrail is its first real consumer |
 | Seams (`FileSystem`, `Subprocess`) | 13 | Two providers is when an interface earns its keep |
 | `Layered` (scoped registries) | 15 | The first time a plugin registers into *one agent's* world |
 | Durable inbox (`followup`/`steer`/`inject`) | 9 | Phase 5 queues at the channel, which is enough while a correction can wait for the next turn. `steer` mutates a turn already running, so it needs dsh's session-event inbox |
-| `user/message` `source` field | when injected context exists (8 or 9) | Only `human` produces one until then |
+| `user/message` `source` field | ~~when injected context exists (8 or 9)~~ **10** | The guardrail's note to the model is the first injected context — user role on the wire, Claude Code's shape, but not the person's words, so the title and the UI must know |
 
 **Phase 2 built four of these early and they were cut.** An event bus with no
 listener, a `timeout_s` nothing enforced, a `meta` nothing rendered, and a cursor
@@ -160,8 +160,8 @@ the result.
 - `tools/native/clock.py`
 - `session/events.py` — add `step/start`, `step/end`, `tool/call`, `tool/result`
 
-**Not here, though an earlier draft said so.** The interception chain (phase 10,
-when the timeout and guardrail need it), a per-agent tool filter (phase 7's MCP
+**Not here, though an earlier draft said so.** The interception chain (never —
+see the table above), a per-agent tool filter (phase 7's MCP
 wildcards or phase 11's selection), and `todo_write` (phase 4, when a UI renders a
 checklist). Each would have been a mechanism with no user.
 
@@ -732,49 +732,100 @@ step instead of restarting.
 
 # Phase 10 — It doesn't get stuck
 
-**Demo.** An MCP tool keeps failing; it stops instead of burning 60 turns.
+**Demo.** An MCP tool keeps failing; the model is refused the fifth identical
+call and told why, instead of burning steps. And the same call twice with the
+identical result gets a line saying so — the 2026-09-13 failure below.
 
-**Depends on.** 5 (for realistic failures).
+**Depends on.** 5 (for realistic failures). Built ahead of 8.3–8.4 and 9.
 
 **Ships.**
-- `agent/hooks.py` — typed decisions + `HookChain` + timeouts
-- `agent/guardrail.py` — three detectors, as a hook
-- `guard/timeout_policy.py` — a `tools/execute` waterfall wrapper
+- `agent/hooks/chain.py` — `ToolHook`, an ABC whose two typed decisions are
+  asked over the folded turn; `HookChain`, a per-hook timeout
+- `agent/hooks/calls.py` — the fold: `completed_calls(session)`, each
+  `tool/call` joined with its `tool/result` as one `CompletedCall`
+- `agent/hooks/native/<name>/` — the four guardrail hooks, one folder each,
+  the way `tools/native/` holds a tool. Registered at the root in one
+  `HookChain` whose order is their precedence
+- ~~`guard/timeout_policy.py` — a `tools/execute` waterfall wrapper~~ **Cut.**
+  Every tool that can hang already bounds itself where it can be stopped
+  (`mcp/store.py` 60s per command; `code.timeout_seconds` per script, child
+  reaped). A dispatcher timeout would be a third number that must exceed both
+  and would never fire. The *hook* timeout is the one that was built.
+- ~~`ToolDefinition.read_only`, from MCP's `readOnlyHint`~~ **Cut.** Built,
+  then removed: its only job was to make `no_progress`'s refusal safe by
+  limiting it to tools that only read. A tool that answered five identical
+  calls with five identical replies in one turn is the model spinning whether
+  or not the tool has side effects, and the flag is one most servers never set
+  — so the refusal applies to every tool and the flag has no job.
 
 **Key contracts.**
-- Three observers return `None`. Two decisions carry meaning in the return type:
-  `pre_tool_call -> str | None` (refuse), `transform_tool_result -> str | None`
-  (replace). A hook cannot hand back a malformed directive.
+- ~~Three observers return `None`. Two decisions carry meaning in the return
+  type: `pre_tool_call -> str | None` (refuse), `transform_tool_result -> str |
+  None` (replace).~~ **Two points, both decisions:** `pre_tool_call -> str |
+  None` (a reason to refuse — the tool never runs) and `post_tool_call -> str |
+  None` (guidance for the model, never a replacement — nothing wanted to
+  rewrite a result). The observers had no consumer. A hook cannot hand back a
+  malformed directive.
 - First non-None wins; **ordering is precedence**.
 - An exception is logged and contributes nothing, so a **decision hook fails
-  open**. "Registered" must not be read as "enforcing" — say so in the docstring.
-- **Improvement on cell-bot:** `HOOK_TIMEOUT_S` per call, plus a dev-mode warning
-  when a hook does blocking I/O. cell-bot's hooks run inline with no timeout, so a
-  slow one stalls every other conversation's stream.
-- Detectors: `exact_failure` (2 warn / 5 block), `same_tool_failure` (3 / 8),
-  `idempotent_no_progress` (2 / 5). ~~A repeated **success** is never detected.~~
+  open**. "Registered" must not be read as "enforcing" — the docstring says so.
+- `HOOK_TIMEOUT_S` per call. ~~plus a dev-mode warning when a hook does
+  blocking I/O~~ — `PYTHONASYNCIODEBUG=1` already reports slow callbacks.
+- **The guardrail is a fold, not a counter.** Every decision is computed from
+  the current turn's `tool/call` + `tool/result` pairs, the way
+  `Session.tools_selected()` folds `tool_reference` blocks. Nothing to keep,
+  nothing to restore on resume; ~~`before_call` only reads; only `after_call`
+  mutates~~ nothing mutates. A refusal is logged as a `BLOCKED` result like any
+  other and skipped when counting, so refusing never inflates the count that
+  caused it. The fold runs at the loop, where the session is; a script's calls
+  are one call to it, bounded by the script timeout.
+- Detectors, in precedence order: `exact_failure` (2 warn / 5 block),
+  `same_tool_failure` (3 / 8), `no_progress` — same call, identical result —
+  (2 warn / 5 block, any tool), and the
+  repeat reminder below (notes at 3, 5, 8; never blocks). A success resets that
+  signature's failure count; a different result resets `no_progress`. `warn`
+  appends guidance and still runs; `block` is pre-execution and carries the
+  last failure's own text, so a `REFUSED` result's "read its schema first"
+  survives the block.
+  ~~A repeated **success** is never detected.~~
   **Observed 2026-09-13, and it needs detecting:** a 12B local model, given the
   `find-place` skill, ran the identical `instagram__fetch_reels` program twice
   in a row — same arguments, same successful result — then answered with an
   invented address instead of calling `places__search_text`. Nothing told it
   the second call was the first call again. dsh's `repeat-tool-reminder` is the
   right shape here: an *advisory* line at 3, 5 and 8 consecutive identical
-  calls, regardless of outcome — "this is the same call as the last N; the
-  result was identical" — never a block, the decision left with the model. With
-  tool results now lists of blocks (phase 8's insertion 4), the reminder is a
-  `Text` block appended to the repeated result, the same channel the adapter
-  uses for `tool_reference`, and needs no new plumbing.
-  `warn` appends guidance and still runs; `block` is pre-execution. `before_call`
-  only reads; only `after_call` mutates.
+  calls, regardless of outcome — never a block, the decision left with the
+  model. That is `repeated_call`. But it would not have caught this case until
+  the third run, so `no_progress` warns from the **second** identical result —
+  cell-bot's `idempotent_no_progress` counts only read-only tools; ours counts
+  every tool, since the identical reply is the tell and the read-only flag was
+  cut (above). ~~The note is a `Text` block appended to the repeated
+  result~~ — the note is **its own `user/message`, `source="application"`**,
+  logged once per step after its tool calls settle. Two reasons. A provider
+  wants the `tool` messages directly behind the `assistant` that asked, so
+  nothing may sit between them; and a note *inside* a result with a changing
+  count ("2 times now", "3 times now") would make every result differ and reset
+  the very detector that wrote it — `tool/result` stays the tool's words alone.
+  This is also where Claude Code puts its reminders: a text block beside the
+  tool results, in the user turn. It is dsh's `source` field, arriving with its
+  first non-human producer; phase 9's `inject()` is the second.
 - The guardrail keys on the typed `Failure` code, never a string prefix.
-- **`LoopAgent.max_steps` can drop here.** It exists only as a backstop against a
-  bug in the loop itself; once a detector enforces a real bound, counting steps
-  and hoping is no longer the protection. dsh has no step cap at all.
+- ~~**`LoopAgent.max_steps` can drop here.**~~ **Dropped.** The loop runs
+  until the model answers, the user stops it, or the guardrail has refused
+  enough that the model gives up. Recorded plainly in `loop.py`: a decision
+  hook fails open and bounds only *repeated failures*, so an endless
+  *succeeding* loop, or a loop bug that never clears `owed`, is now bounded by
+  the stop button alone. dsh has no step cap either.
 
-**Acceptance.**
+**Acceptance.** All as tests.
 - A raising decision hook refuses nothing and suppresses nothing.
 - A hook exceeding the timeout is skipped and logged.
 - The 5th identical failing call is blocked; a succeeding one never is.
+- A blocked call is logged as `tool/call` + `tool/result(error=BLOCKED)`; the
+  tool body never ran.
+- A note is a `user/message` from the guardrail after the step's results, so
+  the wire reads `assistant → tool → tool → user → assistant`; it never names
+  the conversation and never renders as the person's bubble.
 - Removing the guardrail from the composition root changes no loop code.
 
 ---

@@ -118,6 +118,23 @@ async def test_the_title_comes_from_the_first_user_message(store) -> None:
     assert loaded_header.title == "how do generators work?"
 
 
+async def test_a_guardrail_message_never_becomes_the_title(store) -> None:
+    """Only what the person typed may name the conversation."""
+    await store.create(header())
+    await store.append(
+        "s",
+        [
+            TurnStart(turn=0),
+            UserMessageEvent(turn=0, message=UserMessage(content="Note: …"), source="application"),
+            UserMessageEvent(turn=0, message=UserMessage(content="what the human said")),
+        ],
+    )
+
+    loaded_header, _ = await store.load("s")
+
+    assert loaded_header.title == "what the human said"
+
+
 async def test_a_long_first_message_is_capped_but_the_log_keeps_it_whole(store) -> None:
     """The title is a label, not a summary — the full message stays in the log."""
     long = "x" * 500

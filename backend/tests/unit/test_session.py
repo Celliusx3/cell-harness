@@ -109,3 +109,18 @@ def test_an_interrupted_reply_stays_in_history() -> None:
     )
 
     assert derive_messages(session.events())[-1] == AssistantMessage(content="par")
+
+
+def test_a_guardrail_message_is_a_user_message_on_the_wire() -> None:
+    """Claude Code's shape: a reminder is text beside the tool results, in the
+    user role. The source is a fact about the log, not the message."""
+    session = new_session()
+    session.append(
+        UserMessageEvent(turn=0, message=UserMessage(content="Note: …"), source="application")
+    )
+
+    assert derive_messages(session.events()) == [UserMessage(content="Note: …")]
+
+
+def test_a_user_message_is_from_the_human_unless_said_otherwise() -> None:
+    assert UserMessageEvent(turn=0, message=UserMessage(content="hi")).source == "user"

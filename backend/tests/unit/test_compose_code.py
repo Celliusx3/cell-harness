@@ -12,6 +12,10 @@ from pathlib import Path
 
 import pytest
 
+from harness.agent.hooks.native.exact_failure import ExactFailureHook
+from harness.agent.hooks.native.no_progress import NoProgressHook
+from harness.agent.hooks.native.repeated_call import RepeatedCallHook
+from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.agent.loop import LoopAgent
 from harness.config.settings import McpServer, MissingConfigError, Settings, load
 from harness.llm.messages import ToolCall
@@ -109,3 +113,16 @@ def test_exactly_one_dispatcher_is_built(compose, monkeypatch) -> None:
     compose()
 
     assert len(built) == 1
+
+
+def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
+    """Acceptance: the guardrail is one registration at the root — specific
+    before general, so the first detector with something to say wins."""
+    agent = compose()
+
+    assert [type(hook) for hook in agent.hooks.hooks] == [
+        ExactFailureHook,
+        SameToolFailureHook,
+        NoProgressHook,
+        RepeatedCallHook,
+    ]

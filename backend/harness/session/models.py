@@ -89,6 +89,15 @@ class TurnEnd(BaseModel):
     reason: TurnEndReason
 
 
+# Who put a user-role message on the model-visible surface. `user` is the
+# person. `application` is context this process injected — the guardrail
+# telling the model it is repeating itself is the first; phase 9's `inject()`
+# is the next. The same role on the wire, since that is where Claude Code puts
+# its reminders too, but not something the person said, so the title and the
+# UI must know. dsh's `MessageSource.kind` is the precedent.
+UserMessageSource = Literal["user", "application"]
+
+
 class UserMessageEvent(BaseModel):
     """A user-role message entering the model-visible surface."""
 
@@ -97,6 +106,7 @@ class UserMessageEvent(BaseModel):
     type: Literal["user/message"] = "user/message"
     turn: int
     message: UserMessage
+    source: UserMessageSource = "user"
 
 
 class StepStart(BaseModel):
@@ -151,12 +161,12 @@ class ToolCallEvent(BaseModel):
 class ToolResultEvent(BaseModel):
     """What one tool call returned.
 
-    `message` is the model-facing result, already rendered — a `Failure` wears
-    its `error: ` prefix here. `error` keeps the typed identity beside it, which
-    is what the phase-8 guardrail counts rather than re-deriving intent from a
-    string prefix.
-
-    Phase 4 adds tool-private presentation data here once a UI renders cards.
+    `message` is the tool's result, already rendered — a `Failure` wears its
+    `error: ` prefix here, and nothing the harness adds is ever mixed in: a
+    hook's guidance is its own `user/message`, so "was this result the same as
+    the last one?" compares the tool's words alone. `error` keeps the typed
+    identity beside it, which is what the guardrail counts rather than
+    re-deriving intent from a string prefix.
     """
 
     model_config = ConfigDict(frozen=True)

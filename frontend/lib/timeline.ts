@@ -59,7 +59,7 @@ export interface NoticeItem {
   kind: "notice";
   key: string;
   turn: number;
-  tone: "error" | "cancelled";
+  tone: "error" | "cancelled" | "note";
   text: string;
 }
 
@@ -97,6 +97,17 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
 
     switch (event.type) {
       case "user/message":
+        if (event.source !== "user") {
+          // The harness's words, not the person's: a notice, never a bubble.
+          items.push({
+            kind: "notice",
+            key: `u${index}`,
+            turn: event.turn,
+            tone: "note",
+            text: event.message.content,
+          });
+          break;
+        }
         items.push({
           kind: "user",
           key: `u${index}`,

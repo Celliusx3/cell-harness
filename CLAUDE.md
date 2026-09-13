@@ -14,8 +14,9 @@ MCP — not a terminal coding harness). Synthesized from
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current phase and what it must satisfy.
 
-**Status: phase 8 — "it follows instructions" — in progress; 8.1–8.2 done.**
-Since phase 7, four insertions not in PHASES.md.
+**Status: phase 10 — "it doesn't get stuck" — done, ahead of 8.3–8.4 and 9.**
+Phase 8 is in progress (8.1–8.2 done). Since phase 7, four insertions not in
+PHASES.md, then phase 10 as written there with three cuts recorded in it.
 
 **1. Code mode.** The model is offered three tools and
 reaches every capability by writing a TypeScript program that runs in a Deno
@@ -91,7 +92,7 @@ and only its `env` secrets go in `config.local.json`.
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the event log, its models, repository/, service, repair
-  agent/        the turn loop and its events
+  agent/        the turn loop, its events, and hooks/ — the chain + native/<hook>/
   tools/        definition, registry, dispatcher, pipeline, progress, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   runs/         a turn that outlives its connection — store, subscribe
@@ -133,6 +134,13 @@ Breaking one is not a style disagreement.
 - **Tool schemas are an allowlist.** `name`, `description`, `input_schema`, nothing else.
 - **Tolerant tool failures.** A typed `Failure` rendered as `"error: …"`, never a raise.
 - **A decision hook fails open.** "Registered" never means "enforcing".
+- **The guardrail is a fold, not a counter.** Every decision is computed from
+  the turn's `tool/call` + `tool/result`; nothing to restore on resume, and its
+  own `BLOCKED` results are skipped so refusing never inflates the count that
+  caused it. What it tells the model is a `user/message` with
+  `source="application"`, after the step's results — a `tool/result` is the
+  tool's words alone. There is no step cap: repeated failures are the
+  guardrail's, and everything else is the stop button's.
 - **Prompt text is code.** Wording that fixes a model failure carries that failure.
 - **A watcher owns nothing.** A reader hanging up cannot cancel a turn.
 - **One cursor.** One sequence number for snapshot and live stream alike.

@@ -7,17 +7,21 @@ steps.
 Unknown tools are a `Failure`, not an exception: a caller that hallucinates a
 name should be told so and given another step, not have the turn die.
 
-**Where interception will go.** Phase 8 needs a timeout and the loop guardrail to
-wrap every call, and phase 12 needs an approval gate. Those become an
-around-middleware chain here — a listener that awaits the inner call can time it,
-and one that returns without awaiting refuses it. That chain does not exist yet
-because nothing registers into it; adding it changes `dispatch`'s body and
-nothing else, so there is no reason to build it before its first listener.
+**Where interception did not go.** This was to be the home of an
+around-middleware chain — a timeout, the loop guardrail, one day an approval
+gate. The guardrail went to the loop instead (`agent/hooks/`), because what
+it reads is the session log, which `dispatch` never sees; and the timeout was
+never built, because every tool that can hang already bounds itself where it
+can be stopped (MCP's command timeout, the sandbox's script timeout). A gate
+that must stay shut, when it comes, belongs here and is not a hook — a hook
+fails open.
 
 **This is the one door.** Code mode calls `dispatch` once per tool a script uses,
-so anything added to that chain covers scripts without knowing they exist. Two
+so anything installed here covers scripts without knowing they exist. Two
 dispatchers would let a gate be installed on one and not the other, with nothing
-in the types or the tests to say which path was covered.
+in the types or the tests to say which path was covered. The corollary: the
+guardrail, living above this door, sees a script as one call however many it
+makes inside.
 """
 
 from __future__ import annotations

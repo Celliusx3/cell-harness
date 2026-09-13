@@ -5,7 +5,7 @@ Two ideas carry most of the weight here.
 **The outcome is typed.** `Ok | Failure` rather than a string that starts with
 `"error: "`. The model still sees the string — `render_outcome` produces it, and
 a tolerant string is what lets the model recover instead of the turn dying — but
-everything *inside* the harness switches on the type. The guardrail in phase 8
+everything *inside* the harness switches on the type. The guardrail in phase 10
 counts failures by `Failure.code`; keying it on a string prefix would make any
 tool that phrased its error differently invisible to the detectors, which is the
 one fragility in cell-bot's otherwise identical design.
@@ -42,6 +42,10 @@ EXECUTION_ERROR = "EXECUTION_ERROR"
 # it is not a malfunction: nothing broke, the call was simply not allowed — the
 # pipeline refusing a tool the model was never offered is the first case.
 REFUSED = "REFUSED"
+# Refused by a hook before it ran — the loop guardrail's answer to a call the
+# model keeps repeating. Its own code so the guardrail can leave its own results
+# out of what it counts.
+BLOCKED = "BLOCKED"
 
 # The prefix every tolerant failure wears on the wire. One constant, because the
 # model learns this shape and a second spelling would read as a different kind of
