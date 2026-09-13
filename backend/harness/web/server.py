@@ -43,6 +43,7 @@ from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.agent.loop import LoopAgent
+from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.channel import TelegramChannel
@@ -208,6 +209,10 @@ def build_channels(
     # blank string in JSON is a paste that went wrong, not a deliberate value.
     if settings.telegram.bot_token.strip():
         gateway.register(TelegramChannel(settings.telegram.bot_token, gateway))
+
+    # Same guard, same reason.
+    if settings.discord.bot_token.strip():
+        gateway.register(DiscordChannel(settings.discord.bot_token, gateway))
 
     return gateway, web
 

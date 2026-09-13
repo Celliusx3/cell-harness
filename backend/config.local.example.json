@@ -5,6 +5,9 @@
   "telegram": {
     "bot_token": ""
   },
+  "discord": {
+    "bot_token": ""
+  },
   "mcp": {
     "servers": {
       "instagram": {

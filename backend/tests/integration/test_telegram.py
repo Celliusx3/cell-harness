@@ -179,7 +179,7 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
     """
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
-    settings = Settings(telegram={"bot_token": ""})
+    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
     assert build_channels(settings, sessions, runs)[0].channels == ["web"]
 
@@ -189,15 +189,15 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
 
-    assert build_channels(Settings(telegram={"bot_token": "   "}), sessions, runs)[0].channels == [
-        "web"
-    ]
+    settings = Settings(telegram={"bot_token": "   "}, discord={"bot_token": ""})
+
+    assert build_channels(settings, sessions, runs)[0].channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
-    settings = Settings(telegram={"bot_token": "123:abc"})
+    settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": ""})
 
     built, _ = build_channels(settings, sessions, runs)
 

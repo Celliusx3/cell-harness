@@ -46,6 +46,7 @@ from telegram.ext import Application, ApplicationBuilder, MessageHandler, filter
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
 from harness.channels.telegram import commands
+from harness.channels.text import split_message
 from harness.channels.transport import InboundMessage, OnMissing
 
 logger = logging.getLogger("harness.channels.telegram")
@@ -72,34 +73,6 @@ SPLIT_DELAY_SECONDS = 1.0
 
 # What joins a batch: a newline, because that is how the lines were typed.
 JOIN = "\n"
-
-
-def split_message(text: str, limit: int = MAX_MESSAGE_CHARS) -> list[str]:
-    """One reply as one or more messages, each within Telegram's limit.
-
-    Splits at the latest paragraph break that fits, then the latest line break,
-    then the latest space — falling back to a hard cut only for text with no
-    break in `limit` characters at all (a pasted token, a base64 blob). A hard
-    cut mid-word is visibly broken, so it is the last resort rather than the
-    implementation.
-    """
-    if len(text) <= limit:
-        return [text]
-
-    parts: list[str] = []
-    rest = text
-    while len(rest) > limit:
-        window = rest[:limit]
-        cut = max(window.rfind("\n\n"), window.rfind("\n"), window.rfind(" "))
-        # `cut <= 0` covers both "no break found" (-1) and a break at the very
-        # start, which would make no progress and loop forever.
-        if cut <= 0:
-            cut = limit
-        parts.append(rest[:cut].rstrip())
-        rest = rest[cut:].lstrip()
-    if rest:
-        parts.append(rest)
-    return parts
 
 
 def batch_delay(text: str) -> float:
@@ -244,7 +217,7 @@ class TelegramChannel:
         writing a bare `!` or `.` in the wrong place would lose its whole answer.
         An unrendered asterisk is the cheaper failure.
         """
-        for part in split_message(text):
+        for part in split_message(text, MAX_MESSAGE_CHARS):
             if part:
                 await self._bot.send_message(chat_id=int(chat_id), text=part)
 

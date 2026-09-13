@@ -11,6 +11,11 @@ dependencies = [
     "fastapi>=0.141.1",
     "uvicorn[standard]>=0.52.4",
     "python-telegram-bot[rate-limiter]>=22.8",
+    # Owns the gateway websocket, heartbeats, reconnects, the interactions wire
+    # and bucket-aware 429 handling — the same reasons PTB is here. Brings
+    # `aiohttp`, a third HTTP stack beside `httpx`/`httpx2`; only this channel
+    # uses it. `>=2.7` is the first line to support 3.13 (via `audioop-lts`).
+    "discord.py>=2.7",
     # 2.x, not the still-maintained 1.x line: 1.x is legacy and every attribute
     # was renamed to snake_case in 2.0, so starting there buys a migration. It
     # brings `httpx2` alongside our `httpx` — a second HTTP stack in the venv,

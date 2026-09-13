@@ -5,8 +5,15 @@ from __future__ import annotations
 from telegram.error import BadRequest
 
 from harness.channels.gateway import ChannelGateway
-from harness.channels.telegram.channel import MAX_MESSAGE_CHARS, split_message
+from harness.channels.telegram.channel import MAX_MESSAGE_CHARS
+from harness.channels.text import split_message as split_at
 from tests.unit.telegram_fakes import telegram_channel
+
+
+def split_message(text: str) -> list[str]:
+    """At Telegram's limit — the function itself is shared, the number is not."""
+    return split_at(text, MAX_MESSAGE_CHARS)
+
 
 # ── splitting, which stays ours ───────────────────────────────────────────────
 

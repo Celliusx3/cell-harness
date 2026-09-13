@@ -6,7 +6,9 @@
     commands.py     `/new` and `/stop`, shared by every text platform
     repository.py   the storage port for per-chat state
     repositories/   one file per backend — `jsonl.py` today
+    text.py         fitting one reply into a platform's per-message limit
     telegram/       `TelegramChannel`, and its command syntax
+    discord/        `DiscordChannel`, and its slash commands
     web/            `WebChannel`, and the HTTP surface it owns
 
 **The browser is a channel too**, as of phase 6. It was not, and the cost was two
@@ -72,8 +74,9 @@ so a new platform is two small objects and one block of wiring:
 
 1. **One class implementing `Channel`** — a `channel` name, an `on_missing`, and
    `run()`. It owns its own limits, the way `TelegramChannel` owns the
-   4096-character split and the decision to send plain text rather than risk
-   MarkdownV2 rejecting a whole message. `run()` is the part that genuinely
+   4096-character cut and the decision to send plain text rather than risk
+   MarkdownV2 rejecting a whole message, and `DiscordChannel` owns the
+   2000-character cut and the `@mention` gate. `run()` is the part that genuinely
    differs — Telegram long-polls, WhatsApp serves a webhook, Discord holds a
    websocket, and a channel whose receiving is driven by something else waits.
    A redelivery is answered again rather than guarded; see "dedupe by
@@ -90,9 +93,10 @@ so a new platform is two small objects and one block of wiring:
    gateway how to reply and hands it the task to supervise. That function is the
    only place that knows which platforms exist.
 
-Nothing in `gateway.py`, `commands.py` or `repository.py` should need to change,
-and `tests/unit/test_channel_seam.py` holds a 20-line `FakeDiscord` that proves
-it. If a third platform *does* force a change there, that is the signal the seam
-is in the wrong place — worth fixing rather than working around, since the whole
-point is that each platform costs less than the one before.
+Nothing in `gateway.py`, `commands.py` or `repository.py` should need to change:
+`tests/unit/test_channel_seam.py` holds a 20-line `FakeWhatsApp` that proves it,
+and Discord arrived as exactly that. If a further platform *does* force a change
+there, that is the signal the seam is in the wrong place — worth fixing rather
+than working around, since the whole point is that each platform costs less than
+the one before.
 """

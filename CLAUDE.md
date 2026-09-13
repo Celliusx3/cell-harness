@@ -15,7 +15,7 @@ Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current phase and what it must satisfy.
 
 **Status: phase 10 — "it doesn't get stuck" — done, ahead of 8.3–8.4 and 9.**
-Phase 8 is in progress (8.1–8.2 done). Since phase 7, four insertions not in
+Phase 8 is in progress (8.1–8.2 done). Since phase 7, five insertions not in
 PHASES.md, then phase 10 as written there with three cuts recorded in it.
 
 **1. Code mode.** The model is offered three tools and
@@ -63,6 +63,16 @@ unreferenced name says to read it first. Programs remain for many calls or a
 large result. Reasoning and the measurements in
 [docs/mcp-tool-scaling.md §7](./docs/mcp-tool-scaling.md).
 
+**5. It answers on Discord** — the seam's first real test after `FakeDiscord`,
+and it held: `channels/discord/` is one class and one line in `build_channels`,
+with `gateway.py`, `commands.py` and `repository.py` untouched. Every DM is
+answered; a guild channel or thread only when the bot is `@mentioned` — the
+Hermes and OpenClaw default, and what lets it run **without the privileged
+Message Content intent**. One conversation per DM, channel or thread. `/new`
+and `/stop` are native slash commands. `split_message` moved to
+`channels/text.py` on the way, since the 2000-character cut is the 4096 one
+with a different number. Token in `config.local.json`; no frontend.
+
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
 # everything else — model, endpoint, sessions root, MCP servers — is in
@@ -96,7 +106,7 @@ backend/harness/
   tools/        definition, registry, dispatcher, pipeline, progress, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   runs/         a turn that outlives its connection — store, subscribe
-  channels/     every way in and out — telegram/, web/, and per-chat state
+  channels/     every way in and out — telegram/, discord/, web/, and per-chat state
   web/          server — the composition root (the HTTP surface is channels/web/)
   config/       one Settings: config.json + config.local.json + env
 backend/tests/  unit/ and integration/

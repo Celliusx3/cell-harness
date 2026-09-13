@@ -93,6 +93,12 @@ class TelegramSettings(BaseModel):
     bot_token: str = ""
 
 
+class DiscordSettings(BaseModel):
+    """The Discord bot to answer as, if any. Off when empty, as Telegram's is."""
+
+    bot_token: str = ""
+
+
 class CodeModeSettings(BaseModel):
     """The sandbox the model's programs run in.
 
@@ -248,6 +254,7 @@ class Settings(BaseSettings):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
+    discord: DiscordSettings = Field(default_factory=DiscordSettings)
     code: CodeModeSettings = Field(default_factory=CodeModeSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
     skills: SkillSettings = Field(default_factory=SkillSettings)
