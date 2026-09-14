@@ -26,7 +26,7 @@ from harness.channels.web.schemas import (
     MessageAccepted,
     SendMessage,
 )
-from harness.channels.web.sse import MEDIA_TYPE, sse_frames
+from harness.channels.web.sse import MEDIA_TYPE, Source, sse_frames
 from harness.session.log import Session
 from harness.session.repository import (
     SessionCorruptionError,
@@ -182,17 +182,28 @@ def build_router(web: WebChannel) -> APIRouter:
         `n + 5`, and a bare `end` frame would tell it that it was up to date. Serving
         the tail makes the handoff correct however the timing falls.
 
+        **`end` means idle, not "this run settled".** A message sent mid-turn is
+        queued and drained into a new run the moment the old one settles; the
+        stream waits for that drain and follows the new run at the same cursor,
+        so a browser never has to learn about a turn it did not start.
+
         Closing this response does **not** cancel the run. Nothing here owns the run
-        to begin with — the subscription only reads.
+        to begin with — the subscription only reads, and `drained` only waits.
         """
-        run = web.runs.active(conversation_id)
-        session = (
-            run.session
-            if run is not None
-            else await _load(web.sessions, conversation_id, for_writing=False)
-        )
+
+        async def source() -> Source:
+            run = web.runs.active(conversation_id)
+            if run is not None:
+                return run
+            return await _load(web.sessions, conversation_id, for_writing=False)
+
+        async def after_drain() -> Source:
+            # The browser's chat id *is* the conversation id — see `chats.state_of`.
+            await web.gateway.drained(web.channel, conversation_id)
+            return await source()
+
         return StreamingResponse(
-            sse_frames(run, session, after=after),
+            sse_frames(await source(), after=after, after_drain=after_drain),
             media_type=MEDIA_TYPE,
             # Buffering a token stream delivers it all at once at the end. This
             # header only covers nginx-shaped proxies; the dev one needs

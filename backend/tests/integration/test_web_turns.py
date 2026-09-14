@@ -11,7 +11,14 @@ import asyncio
 import httpx
 
 from tests.integration.web_helpers import api, build, events_from, frame_names, settle
-from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool, hanging_tool
+from tests.unit.fakes import (
+    SteppedClient,
+    calls_tool,
+    completed,
+    echo_tool,
+    gated_tool,
+    hanging_tool,
+)
 from tests.unit.helpers import until
 from tests.webapp import web_app
 
@@ -103,6 +110,50 @@ async def test_two_simultaneous_messages_start_exactly_one_turn(simple, monkeypa
     # after it — nothing is lost, which is the point of queueing over refusing.
     prompts = [e["message"]["content"] for e in detail["events"] if e["type"] == "user/message"]
     assert prompts == ["hi", "a", "b"] or prompts == ["hi", "b", "a"]
+
+
+async def test_a_stream_follows_the_turn_queued_behind_the_one_it_watched(tmp_path) -> None:
+    """The bug: send while streaming, and the answer only appears on refresh.
+
+    A queued message is drained into a *new* run when the watched one settles.
+    A stream bound to the first run said `end` right then, the browser parked on
+    it, and nothing ever woke it. The stream must follow the conversation across
+    the drain: both turns, one cursor, one `end` — when nothing is left.
+    """
+    release = asyncio.Event()
+    service, runs = build(
+        tmp_path,
+        SteppedClient(calls_tool("gate", '{"value": "x"}'), completed("done")),
+        gated_tool(release),
+    )
+    async with api(tmp_path, service, runs) as client:
+        conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()[
+            "id"
+        ]
+        session = runs.active(conversation_id).session
+        await until(
+            lambda: any(e.type == "tool/call" for e in session.events()),
+            what="the tool to be dispatched",
+        )
+        watching = asyncio.create_task(
+            client.get(f"/api/conversations/{conversation_id}/events?after=0")
+        )
+
+        second = await client.post(
+            f"/api/conversations/{conversation_id}/messages", json={"prompt": "again"}
+        )
+        assert second.json()["queued"] is True
+        release.set()
+
+        body = (await asyncio.wait_for(watching, timeout=5)).text
+        seen = events_from(body)
+        prompts = [e["message"]["content"] for e in seen if e["type"] == "user/message"]
+        assert prompts == ["go", "again"]
+        assert [e["reason"] for e in seen if e["type"] == "turn/end"] == ["completed", "completed"]
+        assert frame_names(body)[-1] == "end"
+        # One cursor across two runs: nothing repeated, nothing skipped.
+        await settle(runs, conversation_id)
+        assert len(seen) == len((await service.read(conversation_id)).events())
 
 
 async def test_a_corrupt_log_reports_the_file_it_could_not_read(simple, tmp_path) -> None:

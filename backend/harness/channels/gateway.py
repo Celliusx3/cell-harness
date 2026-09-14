@@ -182,6 +182,33 @@ class ChannelGateway:
             return False
         return await self._runs.stop(state.conversation_id)
 
+    async def drained(self, channel: str, chat_id: str) -> None:
+        """Wait while this chat is between turns: one settled, and its follower
+        is deciding whether a queued message starts the next. Returns at once
+        when a turn is in flight or none is coming.
+
+        What a stream needs after the run it watched settles: a queued message
+        becomes a *new* run the moment the old one settles, and a client told
+        `end` in between parked on it and never saw the turn it was waiting for.
+        Once this returns, the drained turn is in flight or already on disk.
+
+        The in-flight check matters: the follower is replaced the instant a
+        drain starts a turn, so waiting on whatever is registered would, past
+        that instant, mean waiting for the *whole next turn* — and a stream
+        would then deliver it from disk in one lump instead of live.
+
+        `asyncio.wait`, not `await task`: a waiter that is cancelled — a browser
+        hanging up — must not cancel the follower, or closing a tab would lose
+        the message it had queued. A watcher owns nothing.
+        """
+        task = self._following.get((channel, chat_id))
+        if task is None:
+            return
+        state = await self._state(channel, chat_id)
+        if state.conversation_id and self._runs.active(state.conversation_id) is not None:
+            return
+        await asyncio.wait({task})
+
     async def aclose(self) -> None:
         """Stop receiving, then stop delivering.
 

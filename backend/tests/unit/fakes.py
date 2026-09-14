@@ -171,6 +171,23 @@ def hanging_tool(name: str = "hang") -> ToolDefinition[EchoArgs]:
     )
 
 
+def gated_tool(release: asyncio.Event, name: str = "gate") -> ToolDefinition[EchoArgs]:
+    """A tool that returns once the test says so.
+
+    For a turn that must be *running* long enough to queue a message behind it,
+    and then finish on its own — `hanging_tool` can only be stopped, and stopping
+    discards the queue.
+    """
+
+    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+        await release.wait()
+        return Ok(content=args.value)
+
+    return ToolDefinition.from_model(
+        name=name, description="Returns when released.", args_model=EchoArgs, execute=execute
+    )
+
+
 def raising_tool(name: str = "boom") -> ToolDefinition[EchoArgs]:
     """A tool whose body blows up — a bug in a tool must not kill the turn."""
 

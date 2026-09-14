@@ -8,6 +8,7 @@ refused, and a restart must not re-text a reply that already arrived.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 
 from tests.unit.fakes import (
     ScriptedClient,
@@ -15,6 +16,7 @@ from tests.unit.fakes import (
     calls_tool,
     completed,
     echo_tool,
+    gated_tool,
     hanging_tool,
 )
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
@@ -108,6 +110,107 @@ async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
     prompts = [e.message.content for e in stored.events() if e.type == "user/message"]
     assert prompts == ["opening", "one\ntwo\nthree"]
     assert (await chats.load("telegram", CHAT)).pending == ()
+
+
+# ── waiting for the drain ─────────────────────────────────────────────────────
+#
+# What a stream needs after the run it watched settles: "is another turn about
+# to start on this conversation?" — answered once the follower has drained.
+
+
+async def test_drained_returns_at_once_for_an_idle_chat(tmp_path) -> None:
+    _, gateway, _, _, _ = build(tmp_path, ScriptedClient(completed("hi")))
+
+    await asyncio.wait_for(gateway.drained("telegram", CHAT), timeout=1)
+
+
+async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: asyncio.Event):
+    """A turn parked in `gate`, with a message queued behind it whose own turn
+    parks in `gate2` — so both "started" states can be observed, not raced."""
+    bot, gateway, runs, chats, sessions = build(
+        tmp_path,
+        SteppedClient(
+            calls_tool("gate", '{"value": "x"}'),
+            completed("first done"),
+            calls_tool("gate2", '{"value": "y"}', id="c2"),
+            completed("second done"),
+        ),
+        gated_tool(first),
+        gated_tool(second, name="gate2"),
+    )
+    await gateway.receive(msg("slow one", 1))
+    conversation = (await chats.load("telegram", CHAT)).conversation_id
+    for _ in range(200):
+        if runs.active(conversation) is not None:
+            break
+        await asyncio.sleep(0.01)
+    await gateway.receive(msg("and another", 2))
+    assert (await chats.load("telegram", CHAT)).pending == ("and another",)
+    return bot, gateway, runs, chats, sessions, conversation
+
+
+async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) -> None:
+    """Asked after the watched turn settled — the only time a stream asks — it
+    returns once the queued turn exists, and at once if one is already in flight.
+
+    The drain is parked inside the session load so the gap is a state the test
+    holds open, not one it hopes to catch.
+    """
+    first, second = asyncio.Event(), asyncio.Event()
+    _, gateway, runs, chats, sessions, conversation = await _queued_behind_a_gated_turn(
+        tmp_path, first, second
+    )
+    watched = runs.active(conversation)
+    loading = asyncio.Event()
+    real_resume = sessions.resume
+
+    async def gated_resume(session_id: str):
+        await loading.wait()
+        return await real_resume(session_id)
+
+    monkeypatch.setattr(sessions, "resume", gated_resume)
+    first.set()
+    async with watched.condition:
+        await watched.condition.wait_for(lambda: watched.settled)
+
+    waiting = asyncio.create_task(gateway.drained("telegram", CHAT))
+    await asyncio.sleep(0.05)
+    assert not waiting.done(), "returned with the drain still deciding"
+    loading.set()
+    await asyncio.wait_for(waiting, timeout=5)
+
+    drained = runs.active(conversation)
+    assert drained is not None and drained is not watched
+    assert (await chats.load("telegram", CHAT)).pending == ()
+    # With that turn in flight, asking again does not wait for *it* — or a
+    # stream that asked a beat late would get the whole turn as one lump.
+    await asyncio.wait_for(gateway.drained("telegram", CHAT), timeout=1)
+    assert not drained.settled
+    second.set()
+    await settle(runs, gateway)
+
+
+async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -> None:
+    """A watcher owns nothing: a browser hanging up mid-wait must not lose the
+    queued message by cancelling the task that was about to drain it."""
+    first, second = asyncio.Event(), asyncio.Event()
+    bot, gateway, runs, _, sessions, conversation = await _queued_behind_a_gated_turn(
+        tmp_path, first, second
+    )
+    waiting = asyncio.create_task(gateway.drained("telegram", CHAT))
+    await asyncio.sleep(0.01)
+    waiting.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await waiting
+
+    first.set()
+    second.set()
+    await settle(runs, gateway)
+
+    stored = await sessions.read(conversation)
+    prompts = [e.message.content for e in stored.events() if e.type == "user/message"]
+    assert prompts == ["slow one", "and another"]
+    assert bot.sent == [(CHAT, "first done"), (CHAT, "second done")]
 
 
 # ── delivery cursor ───────────────────────────────────────────────────────────

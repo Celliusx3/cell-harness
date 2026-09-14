@@ -30,7 +30,7 @@ from harness.agent.loop import LoopAgent
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
+from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool, hanging_tool
 from tests.unit.helpers import pipeline_for
 from tests.webapp import web_app
 
@@ -63,13 +63,11 @@ async def serving(app) -> AsyncIterator[str]:
         await asyncio.wait_for(task, timeout=TIMEOUT)
 
 
-@pytest.fixture
-async def live(tmp_path):
-    """A server whose turn parks inside a tool until something stops it.
-
-    A turn that never finishes on its own is what makes "hang up while it is
-    still running" a reachable state at all.
-    """
+@asynccontextmanager
+async def served(
+    tmp_path, client, *tools
+) -> AsyncIterator[tuple[httpx.AsyncClient, SessionService, RunStore]]:
+    """A real server over `client`'s script and `tools`, and a client on it."""
     ids = iter(f"c{n}" for n in range(100))
     service = SessionService(
         JsonlSessionRepository(tmp_path / "sessions"),
@@ -77,18 +75,27 @@ async def live(tmp_path):
         new_id=lambda: next(ids),
     )
     agent = LoopAgent(
-        name="t",
-        model="m",
-        client=SteppedClient(calls_tool("hang", '{"value": "x"}')),
-        tools=pipeline_for(hanging_tool()),
-        checkpoint=service.flush,
+        name="t", model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
     )
     runs = RunStore(service, agent)
     async with (
         serving(web_app(tmp_path, service, runs)) as base_url,
-        httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as client,
+        httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as http,
     ):
-        yield client, service, runs
+        yield http, service, runs
+
+
+@pytest.fixture
+async def live(tmp_path):
+    """A server whose turn parks inside a tool until something stops it.
+
+    A turn that never finishes on its own is what makes "hang up while it is
+    still running" a reachable state at all.
+    """
+    async with served(
+        tmp_path, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool()
+    ) as live:
+        yield live
 
 
 async def start(client: httpx.AsyncClient) -> str:
@@ -105,19 +112,34 @@ async def until(predicate, *, what: str) -> None:
     raise AssertionError(f"timed out waiting for {what}")
 
 
-async def read_events(response: httpx.Response, *, count: int) -> list[dict]:
-    """Take `count` `session` frames off a live response, then stop reading."""
-    collected: list[dict] = []
+async def session_events(response: httpx.Response) -> AsyncIterator[dict]:
+    """The `session` frames of a live response, decoded, as they arrive.
+
+    One per response: a body can only be read once, so a test that reads in two
+    phases holds this and keeps pulling from it.
+    """
     buffer = ""
     async for chunk in response.aiter_text():
         buffer += chunk
         while "\n\n" in buffer:
             block, buffer = buffer.split("\n\n", 1)
             if block.startswith("event: session"):
-                collected.append(json.loads(block.split("data: ", 1)[1]))
-                if len(collected) >= count:
-                    return collected
+                yield json.loads(block.split("data: ", 1)[1])
+
+
+async def take(events: AsyncIterator[dict], *, done) -> list[dict]:
+    """Pull events until `done(seen)` says so — or the stream ends first."""
+    collected: list[dict] = []
+    async for event in events:
+        collected.append(event)
+        if done(collected):
+            break
     return collected
+
+
+async def read_events(response: httpx.Response, *, count: int) -> list[dict]:
+    """Take `count` `session` frames off a live response, then stop reading."""
+    return await take(session_events(response), done=lambda seen: len(seen) >= count)
 
 
 # ── the central contract ──────────────────────────────────────────────────────
@@ -215,3 +237,49 @@ async def test_a_watcher_is_released_when_the_turn_is_stopped(live) -> None:
     body = await asyncio.wait_for(watching, timeout=TIMEOUT)
     assert body.rstrip().endswith("data: {}")
     assert '"reason":"cancelled"' in body.replace(" ", "")
+
+
+async def test_a_queued_turn_is_streamed_live_not_delivered_after_it_ends(tmp_path) -> None:
+    """The bug, from the watching tab's side, with a real socket.
+
+    The stream must carry the queued turn *while it runs*: its `user/message`
+    has to arrive with the turn still parked in its tool. Waiting on the wrong
+    thing after the drain would deliver the turn whole once it ended, which the
+    in-process tests cannot tell apart from live.
+    """
+    first, second = asyncio.Event(), asyncio.Event()
+    async with served(
+        tmp_path,
+        SteppedClient(
+            calls_tool("gate", '{"value": "x"}'),
+            completed("first done"),
+            calls_tool("gate2", '{"value": "y"}', id="c2"),
+            completed("second done"),
+        ),
+        gated_tool(first),
+        gated_tool(second, name="gate2"),
+    ) as (client, _, runs):
+        conversation_id = await start(client)
+        async with client.stream(
+            "GET", f"/api/conversations/{conversation_id}/events?after=0"
+        ) as response:
+            events = session_events(response)
+            await take(events, done=lambda seen: len(seen) >= 1)
+            queued = await client.post(
+                f"/api/conversations/{conversation_id}/messages", json={"prompt": "again"}
+            )
+            assert queued.json()["queued"] is True
+            first.set()
+
+            def prompt_of(event: dict) -> str | None:
+                return event["message"]["content"] if event["type"] == "user/message" else None
+
+            await take(events, done=lambda seen: prompt_of(seen[-1]) == "again")
+            # Turn 2 is parked in its own tool, so its `user/message` arriving
+            # here is proof the stream is following it live.
+            run = runs.active(conversation_id)
+            assert run is not None and not run.settled
+
+            second.set()
+            rest = await take(events, done=lambda seen: seen[-1]["type"] == "turn/end")
+            assert rest[-1]["reason"] == "completed"
