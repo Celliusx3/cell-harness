@@ -25,13 +25,14 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from urllib.parse import quote
 
 from harness.channels.repository import ChatRepository, ChatState
 from harness.channels.transport import Channel, InboundMessage, Pushing
 from harness.runs.store import Run, RunAlreadyActive, RunStore
 from harness.runs.subscribe import subscribe
 from harness.session.log import Session
-from harness.session.models import AssistantMessageEvent
+from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 
@@ -47,6 +48,11 @@ QUEUE_JOIN = "\n"
 # Telegram chat `123` and Discord channel `123` are different conversations, so
 # nothing is keyed on the chat id alone.
 ChatKey = tuple[str, str]
+
+
+def app_url(public_url: str, conversation_id: str, call_id: str) -> str:
+    """The page that renders one tool call's MCP App — `frontend/app/apps/`."""
+    return f"{public_url}/apps/{quote(conversation_id, safe='')}/{quote(call_id, safe='')}"
 
 
 class DuplicateChannelError(RuntimeError):
@@ -69,10 +75,17 @@ class ChannelGateway:
         repository: ChatRepository,
         runs: RunStore,
         sessions: SessionService,
+        *,
+        public_url: str,
     ) -> None:
         self._repository = repository
         self._runs = runs
         self._sessions = sessions
+        # Where a link to an MCP App's page points — `settings.web.public_url`.
+        # Empty means no link is sent: there is nowhere a phone could open.
+        self._public_url = public_url
+        if not public_url:
+            logger.info("web.public_url is not set; app links will not be sent to chats")
         # One per platform, for the life of the server. Holds the channel itself
         # — the same object we reply through and listen on, which is why there is
         # one registry and not two.
@@ -338,16 +351,35 @@ class ChannelGateway:
         try:
             state = await self._state(channel, chat_id)
             cursor = state.delivered_through
+            # Which tool each call was, so the link to its app can say.
+            names: dict[str, str] = {}
             async for event in subscribe(run, after=cursor):
                 cursor += 1
-                if not isinstance(event, AssistantMessageEvent):
+                if isinstance(event, ToolCallEvent):
+                    names[event.call.id] = event.call.name
                     continue
-                # A tool-calling step records an assistant message with empty
-                # content — the model asked for a tool and said nothing. Sending
-                # an empty message is an error.
-                if not event.message.content.strip():
+                if isinstance(event, ToolResultEvent):
+                    # A result with an app is the one thing besides prose a chat
+                    # is told about: it cannot render the app, but it can open
+                    # the page that does.
+                    if event.ui is None or not self._public_url:
+                        continue
+                    call_id = event.message.tool_call_id
+                    await self._send_link(
+                        transport,
+                        chat_id,
+                        names.get(call_id, event.ui.server),
+                        app_url(self._public_url, run.session.id, call_id),
+                    )
+                elif isinstance(event, AssistantMessageEvent):
+                    # A tool-calling step records an assistant message with empty
+                    # content — the model asked for a tool and said nothing.
+                    # Sending an empty message is an error.
+                    if not event.message.content.strip():
+                        continue
+                    await transport.send_message(chat_id, event.message.content)
+                else:
                     continue
-                await transport.send_message(chat_id, event.message.content)
                 # Advanced only after the send returns. A crash before this
                 # re-sends one message, a crash after sends none — and of the
                 # two, a duplicate is the recoverable one.
@@ -361,6 +393,17 @@ class ChannelGateway:
             typing.cancel()
             with contextlib.suppress(BaseException):
                 await typing
+
+    async def _send_link(self, transport: Pushing, chat_id: str, text: str, url: str) -> None:
+        """Best-effort, unlike a reply. A platform may refuse the URL — Telegram
+        rejects `localhost` outright — and a link nobody can open is a smaller
+        loss than every reply after it: raising here would abort delivery with
+        the cursor unadvanced, and the next turn would replay the same event
+        into the same refusal, forever."""
+        try:
+            await transport.send_link(chat_id, text, url)
+        except Exception:
+            logger.warning("app link %s could not be sent to chat %s", url, chat_id, exc_info=True)
 
     async def _drain(self, channel: str, chat_id: str) -> None:
         """Run whatever queued during the last turn, as one turn.

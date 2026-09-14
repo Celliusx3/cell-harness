@@ -61,6 +61,7 @@ from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
+from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.skills import build_router as build_skills_router
 
 SYSTEM_PROMPT = (
@@ -194,7 +195,7 @@ def build_channels(
     # whole of this harness's durable state, and every platform shares it — the
     # channel name is part of a chat's identity, so they cannot collide.
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
-    gateway = ChannelGateway(chats, runs, sessions)
+    gateway = ChannelGateway(chats, runs, sessions, public_url=settings.web.public_url)
 
     # Unconditional, because the browser is the product's floor — there is no
     # configuration in which the HTTP API is absent. It registers like any other
@@ -300,4 +301,5 @@ def create_app(
     app = FastAPI(title="cell-harness", lifespan=lifespan)
     app.include_router(web.router)
     app.include_router(build_skills_router(skills))
+    app.include_router(build_mcp_router(mcp))
     return app

@@ -109,3 +109,13 @@ class Pushing(Protocol):
         a reason not to send the actual reply.
         """
         ...
+
+    async def send_link(self, chat_id: str, text: str, url: str) -> None:
+        """Deliver `text` with `url` to open — how an MCP App reaches a chat.
+
+        A chat cannot render HTML, so an app is a page the harness serves and
+        the chat gets a way to it: a button that opens it where the platform
+        has buttons (Telegram, Discord), the URL as text where it does not.
+        Raises if it could not be delivered, like `send_message`.
+        """
+        ...

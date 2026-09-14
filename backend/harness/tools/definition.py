@@ -23,7 +23,7 @@ import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from harness.llm.messages import Block, Text, ToolSpec, render_text
 from harness.tools.progress import ToolProgressReporter
@@ -53,6 +53,23 @@ BLOCKED = "BLOCKED"
 ERROR_PREFIX = "error: "
 
 
+class ToolUi(BaseModel):
+    """The interface a result is drawn with — MCP Apps' `_meta.ui.resourceUri`.
+
+    Presentation, not prose: the model never sees it, the browser renders from it.
+    `server` is which connection answers `resources/read` for `resource_uri` and
+    the view's own `tools/call`; `data` is the result's `structuredContent`, kept
+    beside the reference because that is what the view draws from, and a reloaded
+    conversation must draw the same thing.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    server: str
+    resource_uri: str
+    data: object | None = None
+
+
 @dataclass(frozen=True)
 class Ok:
     """A call that produced a result.
@@ -63,14 +80,13 @@ class Ok:
     the whole of how selection is stated, and it rides into the log with the
     result. `data` is the same result as a structured value, when the tool has
     one — an MCP server's `structuredContent`, say — because a *program* wants
-    the object where the model wants prose.
-
-    Phase 4 adds tool-private presentation data here (a diff, a row count) once
-    there is a UI to render a card from it.
+    the object where the model wants prose. `ui` is tool-private presentation:
+    set only by a tool bound to an MCP App, and read only by the browser.
     """
 
     content: tuple[Block, ...]
     data: object | None = None
+    ui: ToolUi | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.content, str):

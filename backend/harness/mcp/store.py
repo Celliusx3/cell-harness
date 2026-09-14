@@ -29,7 +29,9 @@ from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 from mcp import Client, StdioServerParameters
-from mcp.types import CallToolResult, ListToolsResult, Tool
+from mcp.client.extension import advertise
+from mcp.server.apps import APP_MIME_TYPE, EXTENSION_ID
+from mcp.types import CallToolResult, ListToolsResult, ReadResourceResult, Tool
 
 from harness.config.settings import McpServer
 from harness.mcp.errors import (
@@ -67,6 +69,8 @@ class ClientLike(Protocol):
 
     async def call_tool(self, name: str, arguments: dict) -> CallToolResult: ...
 
+    async def read_resource(self, uri: str) -> ReadResourceResult: ...
+
 
 ClientFactory = Callable[[McpServer], AbstractAsyncContextManager[ClientLike]]
 
@@ -81,7 +85,11 @@ def open_client(server: McpServer) -> AbstractAsyncContextManager[ClientLike]:
             # allow-list of safe defaults, and an empty one would strip `PATH`
             # from a server that needs it — a spawn failure naming nothing.
             env=dict(server.env) or None,
-        )
+        ),
+        # MCP Apps is negotiated, not assumed: a server that renders a UI is
+        # told the browser can show one, and one that degrades to text for
+        # other clients gives us the rich form.
+        extensions=[advertise(EXTENSION_ID, {"mimeTypes": [APP_MIME_TYPE]})],
     )
 
 
@@ -102,6 +110,24 @@ class _Call:
     deadline: float
     reply: asyncio.Future[CallToolResult]
 
+    def describe(self) -> str:
+        return repr(self.name)
+
+
+@dataclass
+class _Read:
+    """`resources/read` — how an MCP App's HTML is fetched, over the same loop."""
+
+    uri: str
+    deadline: float
+    reply: asyncio.Future[ReadResourceResult]
+
+    def describe(self) -> str:
+        return repr(self.uri)
+
+
+_Command = _Call | _Read
+
 
 @dataclass
 class _Connection:
@@ -113,7 +139,10 @@ class _Connection:
     status: Status = "connecting"
     error: str = ""
     tools: tuple[ToolDefinition[dict], ...] = ()
-    commands: asyncio.Queue[_Call] = field(default_factory=asyncio.Queue)
+    # As the server published them — `_meta` included, which `tools` drops.
+    # An app calls by these names, and its visibility rules live here.
+    published: tuple[Tool, ...] = ()
+    commands: asyncio.Queue[_Command] = field(default_factory=asyncio.Queue)
     task: asyncio.Task[None] | None = None
 
     def snapshot(self) -> ServerStatus:
@@ -131,8 +160,6 @@ class _Connection:
         self.task.add_done_callback(self._report_exit)
 
     async def call(self, tool: str, arguments: dict) -> CallToolResult:
-        if self.task is None or self.task.done():
-            raise McpNotConnectedError(f"{self.id} is not connected")
         loop = asyncio.get_running_loop()
         command = _Call(
             name=tool,
@@ -140,14 +167,29 @@ class _Connection:
             deadline=loop.time() + COMMAND_TIMEOUT_SECONDS,
             reply=loop.create_future(),
         )
+        return await self._submit(command, command.reply)
+
+    async def read_resource(self, uri: str) -> ReadResourceResult:
+        loop = asyncio.get_running_loop()
+        command = _Read(
+            uri=uri, deadline=loop.time() + COMMAND_TIMEOUT_SECONDS, reply=loop.create_future()
+        )
+        return await self._submit(command, command.reply)
+
+    async def _submit[T](self, command: _Command, reply: asyncio.Future[T]) -> T:
+        """Queue one command for the owner and wait for its reply.
+
+        `reply` is `command.reply`, passed again so the answer is typed by the
+        command that asked rather than by the union.
+        """
+        if self.task is None or self.task.done():
+            raise McpNotConnectedError(f"{self.id} is not connected")
         self.commands.put_nowait(command)
         # Two waits, one number: the deadline above bounds how long the *server*
         # gets, this bounds how long the *loop* gets to be alive at all. The
         # grace lets the owner lose the race and still deliver the better error.
         try:
-            return await asyncio.wait_for(
-                command.reply, COMMAND_TIMEOUT_SECONDS + REPLY_GRACE_SECONDS
-            )
+            return await asyncio.wait_for(reply, COMMAND_TIMEOUT_SECONDS + REPLY_GRACE_SECONDS)
         except TimeoutError as err:
             raise McpTimeoutError(f"{self.id} stopped answering") from err
 
@@ -174,12 +216,14 @@ class _Connection:
             self.status = "disconnected"
             self.error = ""
             self.tools = ()
+            self.published = ()
 
     async def _serve(self) -> None:
         """Open, publish the tools, service commands, close — all in one task."""
         try:
             async with self.factory(self.server) as client:
-                self.tools = tuple(build_tools(self.id, await _list_all(client), self.call))
+                self.published = tuple(await _list_all(client))
+                self.tools = tuple(build_tools(self.id, self.published, self.call))
                 self.status = "connected"
                 logger.info("MCP server %s connected with %d tools", self.id, len(self.tools))
                 while True:
@@ -198,9 +242,10 @@ class _Connection:
             # A connection that died on its own stops offering tools without
             # anyone having to notice that it died.
             self.tools = ()
+            self.published = ()
             self._fail_queued()
 
-    async def _run(self, client: ClientLike, command: _Call) -> None:
+    async def _run(self, client: ClientLike, command: _Command) -> None:
         try:
             # Cancels *this* task at the await point; the SDK sends
             # notifications/cancelled, then `timeout_at` absorbs the
@@ -208,12 +253,16 @@ class _Connection:
             # open and the loop runs on. Verified against the real SDK before
             # this was written — a timed-out call leaves the next one working.
             async with asyncio.timeout_at(command.deadline):
-                result = await client.call_tool(command.name, command.arguments)
+                result: CallToolResult | ReadResourceResult
+                if isinstance(command, _Call):
+                    result = await client.call_tool(command.name, command.arguments)
+                else:
+                    result = await client.read_resource(command.uri)
         except TimeoutError:
             _fail(
                 command.reply,
                 McpTimeoutError(
-                    f"{self.id} did not answer {command.name!r} within "
+                    f"{self.id} did not answer {command.describe()} within "
                     f"{COMMAND_TIMEOUT_SECONDS:.0f}s"
                 ),
             )
@@ -269,6 +318,30 @@ class McpServerStore:
         its tools, without anyone rebuilding the agent.
         """
         return [tool for connection in self._connections.values() for tool in connection.tools]
+
+    def published(self, server_id: str) -> tuple[Tool, ...]:
+        """One server's tools as it published them. `KeyError` if not configured."""
+        return self._connection(server_id).published
+
+    async def call(self, server_id: str, name: str, arguments: dict) -> CallToolResult:
+        """One `tools/call` on one server, by the server's own name, answered
+        verbatim — the harness proxying for an MCP App, which is not the model
+        and gets the result as its server sent it."""
+        return await self._connection(server_id).call(name, arguments)
+
+    async def read_resource(self, server_id: str, uri: str) -> ReadResourceResult:
+        """One `resources/read` on one server — the browser fetching an app's HTML."""
+        return await self._connection(server_id).read_resource(uri)
+
+    def _connection(self, server_id: str) -> _Connection:
+        """`KeyError` for a server that is not configured: that is the caller
+        naming something that does not exist, distinct from one that is
+        configured and down, which the connection reports as not connected."""
+        if server_id not in self._servers:
+            raise KeyError(server_id)
+        if server_id not in self._connections:
+            raise McpNotConnectedError(f"{server_id} is not connected")
+        return self._connections[server_id]
 
     async def start(self) -> None:
         """Connect every configured server, without blocking startup on any.

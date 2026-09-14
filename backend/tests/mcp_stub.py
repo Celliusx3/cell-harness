@@ -14,9 +14,23 @@ from __future__ import annotations
 import asyncio
 import os
 
+from mcp.server.apps import Apps, client_supports_apps
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.context import Context
 
-server = MCPServer("stub")
+APP = "ui://stub/app.html"
+apps = Apps()
+
+
+@apps.tool(resource_uri=APP, description="This server's pid, with a UI to show it in.")
+async def show_pid(ctx: Context) -> dict[str, object]:
+    """Rich only for a client that negotiated MCP Apps — proving ours did."""
+    return {"pid": os.getpid(), "apps": client_supports_apps(ctx)}
+
+
+apps.add_html_resource(APP, "<!doctype html><title>stub</title><p>stub app</p>")
+
+server = MCPServer("stub", extensions=[apps])
 DEAF = os.environ.get("STUB_MODE") == "deaf"
 
 

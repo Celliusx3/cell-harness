@@ -24,7 +24,8 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
 )
-from harness.tools.definition import BLOCKED, Ok, ToolOutcome
+from harness.tools.definition import BLOCKED, Ok, ToolDefinition, ToolOutcome, ToolUi
+from harness.tools.progress import ToolProgressReporter
 from tests.unit.fakes import (
     EchoArgs,
     SteppedClient,
@@ -161,6 +162,27 @@ async def test_progress_is_not_logged() -> None:
     await drain(agent(client, reporting_tool([(50.0, "half")])).run("q", session=session))
 
     assert not any("progress" in e.type for e in session.events())
+
+
+async def test_a_tool_bound_to_an_app_logs_the_binding_but_never_shows_the_model() -> None:
+    """`ui` is presentation: it rides the `tool/result` event because the browser
+    renders from the log, and stays out of the message the model is given."""
+    ui = ToolUi(server="srv", resource_uri="ui://srv/app.html", data={"rows": 3})
+
+    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+        return Ok(content=args.value, data={"rows": 3}, ui=ui)
+
+    tool = ToolDefinition.from_model(
+        name="echo", description="Echo.", args_model=EchoArgs, execute=execute
+    )
+    client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
+    session = new_session()
+
+    await drain(agent(client, tool).run("q", session=session))
+
+    result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
+    assert result.ui == ui
+    assert client.seen_per_call[1][-1] == ToolMessage(tool_call_id="c1", content="42")
 
 
 async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:

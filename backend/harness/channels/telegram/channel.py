@@ -38,7 +38,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.constants import ChatAction
 from telegram.error import TelegramError
 from telegram.ext import Application, ApplicationBuilder, MessageHandler, filters
@@ -73,6 +73,9 @@ SPLIT_DELAY_SECONDS = 1.0
 
 # What joins a batch: a newline, because that is how the lines were typed.
 JOIN = "\n"
+
+# The button under a message that links to an MCP App's page.
+OPEN_LABEL = "Open"
 
 
 def batch_delay(text: str) -> float:
@@ -220,6 +223,22 @@ class TelegramChannel:
         for part in split_message(text, MAX_MESSAGE_CHARS):
             if part:
                 await self._bot.send_message(chat_id=int(chat_id), text=part)
+
+    async def send_link(self, chat_id: str, text: str, url: str) -> None:
+        """One message with one button that opens `url`.
+
+        A `web_app` button opens the page *inside* Telegram as a Mini App, which
+        is what an MCP App wants — but Telegram accepts only `https://` there,
+        so a plain-http dev URL gets a `url` button and opens in the browser
+        instead. The choice is the platform's rule, not a fallback of ours.
+        """
+        if url.startswith("https://"):
+            button = InlineKeyboardButton(OPEN_LABEL, web_app=WebAppInfo(url=url))
+        else:
+            button = InlineKeyboardButton(OPEN_LABEL, url=url)
+        await self._bot.send_message(
+            chat_id=int(chat_id), text=text, reply_markup=InlineKeyboardMarkup([[button]])
+        )
 
     async def send_typing(self, chat_id: str) -> None:
         """Show "typing…" in the chat.

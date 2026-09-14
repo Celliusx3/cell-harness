@@ -1,4 +1,10 @@
-import type { ConversationDetail, ConversationSummary, MessageAccepted } from "./types";
+import type {
+  AppResource,
+  AppToolResult,
+  ConversationDetail,
+  ConversationSummary,
+  MessageAccepted,
+} from "./types";
 
 /** Thrown for any non-2xx, carrying the backend's `detail` so the UI can show it. */
 export class ApiError extends Error {
@@ -62,3 +68,22 @@ export const sendMessage = (id: string, prompt: string) =>
 
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
+
+/** An MCP App's HTML, read from its server through the harness. */
+export const getAppResource = (server: string, uri: string) =>
+  request<AppResource>(`/mcp/${server}/resources?uri=${encodeURIComponent(uri)}`);
+
+/**
+ * A call the app makes back to its own server, proxied by the harness.
+ * `resourceUri` says which app is asking — a tool bound to another app is refused.
+ */
+export const callAppTool = (
+  server: string,
+  name: string,
+  args: Record<string, unknown>,
+  resourceUri: string,
+) =>
+  request<AppToolResult>(`/mcp/${server}/tools/${encodeURIComponent(name)}`, {
+    method: "POST",
+    body: JSON.stringify({ arguments: args, resource_uri: resourceUri }),
+  });

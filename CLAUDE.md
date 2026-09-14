@@ -15,7 +15,7 @@ Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current phase and what it must satisfy.
 
 **Status: phase 10 — "it doesn't get stuck" — done, ahead of 8.3–8.4 and 9.**
-Phase 8 is in progress (8.1–8.2 done). Since phase 7, five insertions not in
+Phase 8 is in progress (8.1–8.2 done). Since phase 7, six insertions not in
 PHASES.md, then phase 10 as written there with three cuts recorded in it.
 
 **1. Code mode.** The model is offered three tools and
@@ -73,12 +73,36 @@ and `/stop` are native slash commands. `split_message` moved to
 `channels/text.py` on the way, since the 2000-character cut is the 4096 one
 with a different number. Token in `config.local.json`; no frontend.
 
+**6. It shows a UI.** [MCP Apps](https://github.com/modelcontextprotocol/ext-apps)
+(SEP-1865, Final) — a tool's `_meta.ui.resourceUri` names a `ui://` HTML
+resource, and the chat renders it in a sandboxed iframe that receives the tool
+result and may call the same server back. The harness is the MCP client, so
+`mcp/store.py` reads the resource over its command loop, `open_client`
+negotiates the extension, and `ToolResultEvent.ui` carries the binding plus the
+`structuredContent` the view draws — the "tool result `meta`" row PHASES.md
+deferred twice, with its caller. The browser holds no MCP client: two routes
+under `/api/mcp/{server}/` serve the HTML (with a CSP the harness composed) and
+**proxy** a view's `tools/call` to its own server — by the server's name, from
+the server's published list, answered verbatim; not the dispatcher, which is
+the model's path. No session event results.
+`frontend/components/McpApp.tsx` is the official `AppBridge` over a single
+`srcdoc` iframe with an opaque origin, on **its own page**:
+`/apps/{conversation}/{call}` renders one call's app, and every chat gets a link
+to it rather than the app — the browser card an "Open app" link,
+`Pushing.send_link` for the rest (Telegram: a Mini App `web_app` button over
+https; Discord: a link button), all pointed at `web.public_url` — empty by default, so no link is sent until you set one. No auth exists yet, so `public_url` must stay local until it
+does — see the doc. Proven against a public app with no server code of ours: `sysmon` in `config.json` is
+`npx @modelcontextprotocol/server-system-monitor --stdio`, whose dashboard
+polls an app-only tool through the harness every second. Kebab-case tool names
+are now mapped (`get-system-info` → `sysmon__get_system_info`) rather than
+dropped. Deferred, and why, in [docs/mcp-apps.md](./docs/mcp-apps.md).
+
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
 # everything else — model, endpoint, sessions root, MCP servers — is in
 # backend/config.json (committed); secrets go in config.local.json (gitignored)
 make install && make test          # needs Deno on PATH — https://deno.com
-make dev                                # backend :4896 + frontend :4897
+make dev                                # backend :4896 + frontend :4897; `sysmon` needs Node (npx) on PATH
 # open http://localhost:4897 — there is no CLI, the API is the only surface
 ```
 
@@ -154,8 +178,12 @@ Breaking one is not a style disagreement.
 - **Prompt text is code.** Wording that fixes a model failure carries that failure.
 - **A watcher owns nothing.** A reader hanging up cannot cancel a turn.
 - **One cursor.** One sequence number for snapshot and live stream alike.
-- **Every tool call goes through the dispatcher** — a script's calls included, and
+- **Every call the model or a script makes goes through the dispatcher**, and
   there is exactly one, which is what makes one timeout and one gate cover both.
+  An MCP App's call is not one of those: it is the harness proxying to the
+  app's own server, by the server's own name, answered verbatim — with its
+  guards (same server, `visibility`, resource binding) at the MCP layer, where
+  every other host puts them.
 - **Registered is not offered; referenced is.** The dispatcher resolves any
   registered name — scripts need it to — but a call the *model* makes by a name
   it was not shown is refused by the pipeline, told to read it first. A result's
@@ -202,3 +230,4 @@ Breaking one is not a style disagreement.
 | [docs/without-cordis.md](./docs/without-cordis.md) | Scope / Layered / Events in ~250 lines, and what we give up — built when first needed, not now |
 | [docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md) | Why MCP schemas load on demand, how code mode works and who else ships it, and what the evidence actually says |
 | [docs/skills.md](./docs/skills.md) | The Agent Skills spec, how six clients implement it, and which of their choices bind phase 8 |
+| [docs/mcp-apps.md](./docs/mcp-apps.md) | MCP Apps: the contract, what the SDKs ship, how VS Code / Vercel / MCPJam host it, and the choices made here |

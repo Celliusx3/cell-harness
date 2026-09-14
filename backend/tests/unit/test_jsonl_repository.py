@@ -6,13 +6,21 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harness.llm.messages import ApplicationMessage, AssistantMessage, UserMessage
+from harness.llm.messages import (
+    ApplicationMessage,
+    AssistantMessage,
+    ToolCall,
+    ToolMessage,
+    UserMessage,
+)
 from harness.llm.stream import TextChunk
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,
     SessionHeader,
+    ToolCallEvent,
+    ToolResultEvent,
     TurnEnd,
     TurnStart,
     UserMessageEvent,
@@ -23,6 +31,7 @@ from harness.session.repository import (
     SessionFormatUnsupportedError,
     SessionNotFoundError,
 )
+from harness.tools.definition import ToolUi
 
 
 def header(session_id: str = "s") -> SessionHeader:
@@ -56,6 +65,45 @@ async def test_events_round_trip_identically(store) -> None:
 
     assert loaded_header.id == "s"
     assert loaded == events
+
+
+async def test_a_tool_result_with_an_app_round_trips(store) -> None:
+    """The binding is what a reload draws the app from, `data` included."""
+    await store.create(header())
+    result = ToolResultEvent(
+        turn=0,
+        step=0,
+        message=ToolMessage(tool_call_id="c1", content="42"),
+        ui=ToolUi(server="srv", resource_uri="ui://srv/app.html", data={"rows": [1, 2]}),
+    )
+    await store.append(
+        "s",
+        [
+            TurnStart(turn=0),
+            ToolCallEvent(turn=0, step=0, call=ToolCall(id="c1", name="srv__x", arguments="{}")),
+            result,
+        ],
+    )
+
+    _, loaded = await store.load("s")
+
+    assert loaded[-1] == result
+
+
+async def test_a_tool_result_logged_before_apps_existed_still_loads(store, tmp_path) -> None:
+    await store.create(header())
+    await store.append("s", a_turn())
+    path = tmp_path / "sessions" / "s.jsonl"
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(
+            '{"type":"tool/result","turn":1,"step":0,'
+            '"message":{"role":"tool","tool_call_id":"c1","content":"42"},"error":null}\n'
+        )
+
+    _, loaded = await store.load("s")
+
+    assert isinstance(loaded[-1], ToolResultEvent)
+    assert loaded[-1].ui is None
 
 
 async def test_a_thousand_events_round_trip(store) -> None:

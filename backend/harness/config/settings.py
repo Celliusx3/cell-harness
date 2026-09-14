@@ -99,6 +99,27 @@ class DiscordSettings(BaseModel):
     bot_token: str = ""
 
 
+class WebSettings(BaseModel):
+    """Where the browser UI is reached from *outside* this machine.
+
+    Not the port uvicorn binds — that stays in the `Makefile`, beside the dev
+    proxy that must agree with it, and is deliberately not repeated here. This
+    is the address a phone is sent when a chat gets a link to an MCP App's
+    page. **Empty means no such links are sent**, which is the only honest
+    default: a phone cannot open `localhost`, and Telegram refuses a button
+    pointing at it. Set a tunnel's `https://` URL for Telegram's Mini App
+    button (it accepts nothing else), or `http://127.0.0.1:4897` for Discord
+    on this machine. No trailing slash.
+    """
+
+    public_url: str = ""
+
+    @field_validator("public_url")
+    @classmethod
+    def _no_trailing_slash(cls, value: str) -> str:
+        return value.rstrip("/")
+
+
 class CodeModeSettings(BaseModel):
     """The sandbox the model's programs run in.
 
@@ -255,6 +276,7 @@ class Settings(BaseSettings):
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
     discord: DiscordSettings = Field(default_factory=DiscordSettings)
+    web: WebSettings = Field(default_factory=WebSettings)
     code: CodeModeSettings = Field(default_factory=CodeModeSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
     skills: SkillSettings = Field(default_factory=SkillSettings)

@@ -223,3 +223,20 @@ def test_skill_roots_can_come_from_the_environment(config_file, monkeypatch) -> 
     monkeypatch.setenv("HARNESS_SKILLS__EDITABLE", "/only")
 
     assert Settings().skills.roots == (Path("/only"),)
+
+
+# ── the public URL ────────────────────────────────────────────────────────────
+
+
+def test_the_public_url_is_off_by_default(config_file) -> None:
+    """Empty, not the dev frontend: the port lives in the Makefile alone, and
+    Telegram refuses a `localhost` button anyway."""
+    assert Settings().web.public_url == ""
+
+
+def test_a_trailing_slash_on_the_public_url_is_dropped(config_file) -> None:
+    """Joined with `/apps/...`, so a slash here would double."""
+    write_committed, _ = config_file
+    write_committed({"web": {"public_url": "https://h.example/"}})
+
+    assert Settings().web.public_url == "https://h.example"

@@ -15,11 +15,12 @@ import sys
 from pathlib import Path
 
 import pytest
+from mcp.server.apps import APP_MIME_TYPE
 
 from harness.config.settings import McpServer
 from harness.mcp import store as store_module
 from harness.mcp.store import McpServerStore
-from harness.tools.definition import Failure, Ok
+from harness.tools.definition import Failure, Ok, ToolUi
 from harness.tools.registry import ToolRegistry
 from tests.unit.helpers import no_progress
 
@@ -66,6 +67,24 @@ async def test_a_real_server_contributes_callable_tools(live) -> None:
 
     assert isinstance(outcome, Ok)
     assert "echo: hello" in outcome.text
+
+
+async def test_an_app_bound_tool_and_its_html_come_through_the_real_wire(live) -> None:
+    """The extension is negotiated (the server says so in its result), the
+    binding rides the outcome, and the HTML is one more command on the loop."""
+    store, registry = await live(stub())
+
+    show = registry.get("stub__show_pid")
+    assert show is not None
+    outcome = await show.invoke("{}", progress=no_progress)
+
+    assert isinstance(outcome, Ok)
+    assert outcome.ui == ToolUi(server="stub", resource_uri="ui://stub/app.html", data=outcome.data)
+    assert outcome.data["apps"] is True
+
+    resource = await store.read_resource("stub", "ui://stub/app.html")
+    assert resource.contents[0].mime_type == APP_MIME_TYPE
+    assert "stub app" in resource.contents[0].text
 
 
 async def test_a_tool_that_raises_comes_back_as_a_failure(live) -> None:

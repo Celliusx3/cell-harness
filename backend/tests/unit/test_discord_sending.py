@@ -16,7 +16,7 @@ def _http_error(text: str) -> discord.HTTPException:
 
 
 async def test_a_long_reply_is_split_within_the_limit() -> None:
-    channel, client = discord_channel(ChannelGateway(None, None, None))
+    channel, client = discord_channel(ChannelGateway(None, None, None, public_url="http://t"))
     chat = client.chat("42")
     body = "word " * 1000
 
@@ -29,7 +29,7 @@ async def test_a_long_reply_is_split_within_the_limit() -> None:
 
 
 async def test_an_empty_reply_is_never_sent() -> None:
-    channel, client = discord_channel(ChannelGateway(None, None, None))
+    channel, client = discord_channel(ChannelGateway(None, None, None, public_url="http://t"))
     chat = client.chat("42")
 
     await channel.send_message("42", "")
@@ -39,7 +39,7 @@ async def test_an_empty_reply_is_never_sent() -> None:
 
 async def test_an_uncached_chat_is_fetched() -> None:
     """After a restart nothing is cached, and a reply may still be owed."""
-    channel, client = discord_channel(ChannelGateway(None, None, None))
+    channel, client = discord_channel(ChannelGateway(None, None, None, public_url="http://t"))
     client.fetchable[42] = FakeMessageable()
 
     await channel.send_message("42", "hi")
@@ -51,7 +51,7 @@ async def test_an_uncached_chat_is_fetched() -> None:
 async def test_a_failed_send_is_not_swallowed() -> None:
     """Delivery must know it failed, or the cursor would advance past a reply
     that never arrived."""
-    channel, client = discord_channel(ChannelGateway(None, None, None))
+    channel, client = discord_channel(ChannelGateway(None, None, None, public_url="http://t"))
     client.chat("42").fail_next = _http_error("unknown channel")
 
     try:
@@ -61,8 +61,26 @@ async def test_a_failed_send_is_not_swallowed() -> None:
     raise AssertionError("a failed send must propagate")
 
 
+async def test_a_link_is_a_button_that_opens_the_page() -> None:
+    channel, client = discord_channel(ChannelGateway(None, None, None, public_url="http://t"))
+    chat = client.chat("42")
+
+    await channel.send_link("42", "srv__show", "http://localhost:4897/apps/c0/c1")
+
+    ((text, view),) = chat.linked
+    (button,) = view.children
+    assert text == "srv__show"
+    assert isinstance(button, discord.ui.Button)
+    assert (button.style, button.label, button.url) == (
+        discord.ButtonStyle.link,
+        "Open",
+        "http://localhost:4897/apps/c0/c1",
+    )
+    assert chat.sent == []
+
+
 async def test_typing_is_shown() -> None:
-    channel, client = discord_channel(ChannelGateway(None, None, None))
+    channel, client = discord_channel(ChannelGateway(None, None, None, public_url="http://t"))
     chat = client.chat("42")
 
     await channel.send_typing("42")
@@ -72,7 +90,7 @@ async def test_typing_is_shown() -> None:
 
 async def test_a_failed_typing_indicator_is_swallowed() -> None:
     """The Protocol calls it best-effort: a real reply must not be lost to it."""
-    channel, client = discord_channel(ChannelGateway(None, None, None))
+    channel, client = discord_channel(ChannelGateway(None, None, None, public_url="http://t"))
     client.chat("42").fail_next = _http_error("unknown channel")
 
     await channel.send_typing("42")  # must not raise

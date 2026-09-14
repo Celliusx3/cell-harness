@@ -43,7 +43,7 @@ def build(tmp_path):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions)
+    gateway = ChannelGateway(chats, runs, sessions, public_url="http://t")
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
     return channel, bot, gateway, runs, chats, sessions

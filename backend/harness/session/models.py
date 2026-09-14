@@ -42,6 +42,7 @@ from harness.llm.messages import (
     UserMessage,
 )
 from harness.llm.stream import StreamEvent, Usage
+from harness.tools.definition import ToolUi
 
 # Stamped into every header written. A backend refuses any other version on load
 # rather than guessing: migration is a real feature, and best-effort parsing of a
@@ -180,7 +181,9 @@ class ToolResultEvent(BaseModel):
     hook's guidance is its own `application/message`, so "was this result the same as
     the last one?" compares the tool's words alone. `error` keeps the typed
     identity beside it, which is what the guardrail counts rather than
-    re-deriving intent from a string prefix.
+    re-deriving intent from a string prefix. `ui` is the one thing here the
+    model does not see: an MCP App bound to the tool, logged because the browser
+    renders a conversation from this log and nothing else.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -190,6 +193,7 @@ class ToolResultEvent(BaseModel):
     step: int
     message: ToolMessage
     error: str | None = None
+    ui: ToolUi | None = None
 
 
 class AssistantMessageEvent(BaseModel):

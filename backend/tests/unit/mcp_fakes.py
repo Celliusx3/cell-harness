@@ -11,21 +11,41 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
-from mcp.types import CallToolResult, ListToolsResult, TextContent, Tool
+from mcp.server.apps import APP_MIME_TYPE
+from mcp.types import (
+    CallToolResult,
+    ListToolsResult,
+    ReadResourceResult,
+    TextContent,
+    TextResourceContents,
+    Tool,
+)
 
 from harness.config.settings import McpServer
 
 
-def tool(name: str, *, description: str = "", schema: dict | None = None) -> Tool:
+def tool(
+    name: str, *, description: str = "", schema: dict | None = None, meta: dict | None = None
+) -> Tool:
     return Tool(
         name=name,
         description=description,
         inputSchema=schema if schema is not None else {"type": "object", "properties": {}},
+        meta=meta,
     )
 
 
 def text_result(body: str, *, is_error: bool = False) -> CallToolResult:
     return CallToolResult(content=[TextContent(type="text", text=body)], isError=is_error)
+
+
+def html_resource(
+    uri: str, html: str, *, mime: str = APP_MIME_TYPE, meta: dict | None = None
+) -> ReadResourceResult:
+    """What `resources/read` answers for an MCP App's HTML."""
+    return ReadResourceResult(
+        contents=[TextResourceContents(uri=uri, mimeType=mime, text=html, meta=meta)]
+    )
 
 
 def servers(*ids: str, **overrides) -> dict[str, McpServer]:
@@ -44,6 +64,9 @@ class FakeClient:
     exited_in: asyncio.Task | None = None
     calls: list[tuple[str, dict]] = field(default_factory=list)
     pages: int = 1
+    # uri -> what reading it returns. A float sleeps that long first.
+    resources: dict[str, ReadResourceResult | float] = field(default_factory=dict)
+    reads: list[str] = field(default_factory=list)
 
     async def list_tools(self, *, cursor: str | None = None) -> ListToolsResult:
         # Split the tool list across `pages` responses so pagination is covered.
@@ -64,6 +87,16 @@ class FakeClient:
         if isinstance(outcome, CallToolResult):
             return outcome
         return text_result(str(outcome))
+
+    async def read_resource(self, uri: str) -> ReadResourceResult:
+        self.reads.append(uri)
+        found = self.resources.get(uri)
+        if found is None:
+            raise ValueError(f"unknown resource {uri}")
+        if isinstance(found, float):
+            await asyncio.sleep(found)
+            raise AssertionError("a slow read should have timed out")
+        return found
 
 
 @dataclass

@@ -1,3 +1,5 @@
+import type { CallToolResult } from "@modelcontextprotocol/client";
+
 /**
  * The wire types, mirroring `backend/harness/session/models.py`.
  *
@@ -62,6 +64,30 @@ export interface ToolMessage {
   content: ContentBlock[];
 }
 
+/**
+ * An MCP App bound to a tool result — mirror of `ToolUi` in
+ * `harness/tools/definition.py`. `server` answers `resources/read` for
+ * `resource_uri` and the app's own tool calls; `data` is the result's
+ * `structuredContent`, which is what the app draws.
+ */
+export interface ToolUi {
+  server: string;
+  resource_uri: string;
+  data: unknown;
+}
+
+/** `GET /api/mcp/{server}/resources` — an app's HTML and the policy to run it under. */
+export interface AppResource {
+  html: string;
+  csp: string;
+}
+
+/**
+ * `POST /api/mcp/{server}/tools/{name}` — the server's `CallToolResult`,
+ * proxied verbatim. Typed by the MCP SDK because that is exactly what it is.
+ */
+export type AppToolResult = CallToolResult;
+
 export type TurnEndReason = "completed" | "failed" | "cancelled";
 
 export type SessionEvent =
@@ -88,6 +114,8 @@ export type SessionEvent =
       message: ToolMessage;
       /** The typed failure code, or null on success. Not the rendered string. */
       error: string | null;
+      /** The app that renders this result, when the tool declares one. */
+      ui: ToolUi | null;
     };
 
 export interface ConversationSummary {

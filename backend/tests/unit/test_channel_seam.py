@@ -60,6 +60,10 @@ class FakeWhatsApp:
     async def send_typing(self, chat_id: str) -> None:
         return None
 
+    async def send_link(self, chat_id: str, text: str, url: str) -> None:
+        # No buttons here: the URL travels as text, which every platform can carry.
+        self.sent.append((chat_id, f"{text}\n{url}"))
+
 
 def build(tmp_path):
     ids = iter(f"c{n}" for n in range(100))
@@ -76,7 +80,7 @@ def build(tmp_path):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    return ChannelGateway(chats, runs, sessions), runs, chats
+    return ChannelGateway(chats, runs, sessions, public_url="http://t"), runs, chats
 
 
 async def settle(runs, gateway, key) -> None:

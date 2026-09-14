@@ -1,4 +1,4 @@
-import type { ContentBlock, SessionEvent, ToolCall, Usage } from "./types";
+import type { ContentBlock, SessionEvent, ToolCall, ToolUi, Usage } from "./types";
 
 /**
  * Session events -> what the screen shows.
@@ -53,6 +53,8 @@ export interface ToolItem {
   result: ContentBlock[] | null;
   /** The typed failure code, or null. Non-null means the card shows as failed. */
   error: string | null;
+  /** The MCP App that draws this result, arriving with `tool/result`. */
+  ui: ToolUi | null;
 }
 
 export interface NoticeItem {
@@ -189,6 +191,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
           call: event.call,
           result: null,
           error: null,
+          ui: null,
         });
         break;
 
@@ -196,7 +199,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         const at = toolAt.get(event.message.tool_call_id);
         if (at === undefined) break; // a result whose call predates this window
         const item = items[at] as ToolItem;
-        items[at] = { ...item, result: event.message.content, error: event.error };
+        items[at] = { ...item, result: event.message.content, error: event.error, ui: event.ui };
         break;
       }
 

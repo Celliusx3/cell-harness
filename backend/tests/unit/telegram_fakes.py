@@ -18,15 +18,27 @@ class FakeBot:
 
     def __init__(self) -> None:
         self.sent: list[tuple[str, str]] = []
+        # (chat, text, the inline keyboard) for every send that carried one.
+        self.linked: list[tuple[str, str, object]] = []
         self.typing: list[str] = []
         # Set to raise on the next call, for the failure paths.
         self.fail_next: Exception | None = None
+        # Set to refuse every send that carries a keyboard — Telegram's answer
+        # to a URL it will not button.
+        self.refuse_links: Exception | None = None
 
-    async def send_message(self, chat_id: int, text: str, **_: object) -> None:
+    async def send_message(
+        self, chat_id: int, text: str, reply_markup: object = None, **_: object
+    ) -> None:
         if self.fail_next is not None:
             error, self.fail_next = self.fail_next, None
             raise error
-        self.sent.append((str(chat_id), text))
+        if reply_markup is not None and self.refuse_links is not None:
+            raise self.refuse_links
+        if reply_markup is not None:
+            self.linked.append((str(chat_id), text, reply_markup))
+        else:
+            self.sent.append((str(chat_id), text))
 
     async def send_chat_action(self, chat_id: int, action: object, **_: object) -> None:
         if self.fail_next is not None:

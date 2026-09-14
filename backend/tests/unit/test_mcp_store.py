@@ -11,9 +11,9 @@ import asyncio
 import pytest
 
 from harness.mcp import store as store_module
-from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
+from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
 from harness.mcp.store import McpServerStore
-from tests.unit.mcp_fakes import FakeFactory, servers, tool
+from tests.unit.mcp_fakes import FakeFactory, html_resource, servers, tool
 
 
 async def connected(factory: FakeFactory, *ids: str) -> McpServerStore:
@@ -103,6 +103,61 @@ async def test_a_timed_out_call_leaves_the_connection_usable(monkeypatch) -> Non
         await connection.call("slow", {})
 
     # The owner survived, so the next call still works.
+    assert connection.status == "connected"
+    assert (await connection.call("echo", {})).content[0].text == "echo ok"
+    await store.aclose()
+
+
+async def test_a_resource_is_read_over_the_same_loop() -> None:
+    """An app's HTML is one more command to the owner, not a second session."""
+    factory = FakeFactory()
+    factory.client.resources = {"ui://stub/app.html": html_resource("ui://stub/app.html", "<p>")}
+    store = await connected(factory)
+
+    result = await store.read_resource("stub", "ui://stub/app.html")
+
+    assert result.contents[0].text == "<p>"
+    assert factory.client.reads == ["ui://stub/app.html"]
+    await store.aclose()
+
+
+async def test_reading_from_a_server_that_is_not_configured_is_a_key_error() -> None:
+    store = await connected(FakeFactory())
+
+    with pytest.raises(KeyError):
+        await store.read_resource("nope", "ui://nope/app.html")
+    await store.aclose()
+
+
+async def test_reading_after_close_is_not_connected() -> None:
+    factory = FakeFactory()
+    factory.client.resources = {"ui://stub/app.html": html_resource("ui://stub/app.html", "<p>")}
+    store = await connected(factory)
+    await store.aclose()
+
+    with pytest.raises(McpNotConnectedError):
+        await store.read_resource("stub", "ui://stub/app.html")
+
+
+async def test_a_read_the_server_rejects_is_a_connection_error_not_a_crash() -> None:
+    store = await connected(FakeFactory())
+
+    with pytest.raises(McpConnectionError, match="unknown resource"):
+        await store.read_resource("stub", "ui://stub/missing.html")
+    assert store.statuses()[0].status == "connected"
+    await store.aclose()
+
+
+async def test_a_timed_out_read_leaves_the_connection_usable(monkeypatch) -> None:
+    monkeypatch.setattr(store_module, "COMMAND_TIMEOUT_SECONDS", 0.05)
+    factory = FakeFactory()
+    factory.client.resources = {"ui://stub/slow.html": 5.0}
+    store = await connected(factory)
+    connection = store._connections["stub"]
+
+    with pytest.raises(McpTimeoutError, match="ui://stub/slow.html"):
+        await connection.read_resource("ui://stub/slow.html")
+
     assert connection.status == "connected"
     assert (await connection.call("echo", {})).content[0].text == "echo ok"
     await store.aclose()

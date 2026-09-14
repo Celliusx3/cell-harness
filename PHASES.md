@@ -64,7 +64,7 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Persistence + the model-visible invariant | 3 | Resume is what makes the invariant testable |
 | Runs and cursors | 4 | A turn must outlive the tab that started it |
 | `Scope` (reversible teardown) | ~~4~~ **7** | Phase 4 registers nothing; stopping a run is `task.cancel()`. An MCP connection is the first real connect/disconnect lifecycle |
-| Tool result `meta` (UI cards) | ~~4~~ **7** | A UI exists now and still has nothing to put there — the only tool is a clock. The first MCP tool returning an image is the caller |
+| Tool result `meta` (UI cards) | ~~4~~ ~~7~~ **insertion 6** | A UI exists now and still has nothing to put there — the only tool is a clock. The first MCP tool returning an image is the caller. ~~Cut again in 7.~~ The caller turned out to be MCP Apps: `ToolResultEvent.ui`, see [docs/mcp-apps.md](./docs/mcp-apps.md) |
 | Heartbeat, lease, reclaim | ~~4~~ **when a 2nd process exists** | Reclaiming a *process's* runs is a multi-process problem. One server, and phase 3's repair-on-resume already covers the single-process crash |
 | `Session.after(cursor)` | ~~4~~ **never** | `session.events()[n:]` already is it. Proposed and cut twice |
 | Prompt sections | ~~8~~ **11** | Skills turned out to contribute nothing to the prompt — the catalog rides on the tool. Personas are the first template with a variable |

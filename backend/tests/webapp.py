@@ -29,7 +29,9 @@ def web_gateway(
     tmp_path: Path, service: SessionService, runs: RunStore
 ) -> tuple[ChannelGateway, WebChannel]:
     """A gateway with only the browser registered."""
-    gateway = ChannelGateway(JsonlChatRepository(tmp_path / "chats"), runs, service)
+    gateway = ChannelGateway(
+        JsonlChatRepository(tmp_path / "chats"), runs, service, public_url="http://t"
+    )
     web = WebChannel(service, runs, gateway)
     gateway.register(web)
     return gateway, web

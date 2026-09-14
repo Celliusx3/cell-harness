@@ -1,6 +1,8 @@
 "use client";
 
-import { ChevronRight, TriangleAlert, Wrench } from "lucide-react";
+import { ChevronRight, ExternalLink, TriangleAlert, Wrench } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { CodeBlock } from "@/components/CodeBlock";
@@ -14,12 +16,14 @@ const EXECUTE = "execute_typescript";
  * One tool call, collapsed to a line until asked to open.
  *
  * Rendered entirely from `tool/call` and `tool/result` — the name, the model's
- * raw argument string, and the already-rendered result. A tool has no way to
- * attach richer display data yet; that field arrives in phase 5, with the first
- * MCP tool that returns something worth drawing.
+ * raw argument string, and the already-rendered result. A result bound to an
+ * MCP App gets a link below the line to the page that renders it — the same
+ * link a phone is sent, so every channel opens an app the same way; the raw
+ * arguments and result stay behind the chevron, exactly as for any other tool.
  */
 export function ToolCard({ item }: { item: ToolItem }) {
   const [open, setOpen] = useState(false);
+  const { id: conversationId } = useParams<{ id: string }>();
   const failed = item.error !== null;
   const pending = item.result === null;
 
@@ -47,6 +51,21 @@ export function ToolCard({ item }: { item: ToolItem }) {
           {pending ? "running…" : failed ? item.error : "done"}
         </span>
       </button>
+
+      {item.ui !== null && (
+        // The same page a phone is sent — the app alone, full size.
+        <div className="border-t border-line px-3 py-2">
+          <Link
+            href={`/apps/${encodeURIComponent(conversationId)}/${encodeURIComponent(item.call.id)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium hover:bg-accent-soft"
+          >
+            <ExternalLink size={13} />
+            Open app
+          </Link>
+        </div>
+      )}
 
       {open && (
         <div className="space-y-2 border-t border-line px-3 py-2">

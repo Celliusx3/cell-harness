@@ -246,6 +246,7 @@ class LoopAgent:
                 step=step,
                 message=ToolMessage(tool_call_id=call.id, content=content),
                 error=None if isinstance(outcome, Ok) else outcome.code,  # the typed code
+                ui=outcome.ui if isinstance(outcome, Ok) else None,
             )
         )
         yield ToolResult(tool_call_id=call.id, name=call.name, content=render_text(content))

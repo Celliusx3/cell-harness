@@ -7,8 +7,8 @@ import re
 from mcp.types import AudioContent, CallToolResult, ImageContent, TextContent
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
-from harness.mcp.tool import build_tools, mcp_tool, render_content
-from harness.tools.definition import EXECUTION_ERROR, UNKNOWN_TOOL, Failure, Ok
+from harness.mcp.tool import build_tools, mcp_tool, render_content, ui_resource_uri
+from harness.tools.definition import EXECUTION_ERROR, UNKNOWN_TOOL, Failure, Ok, ToolUi
 from tests.unit.helpers import no_progress
 from tests.unit.mcp_fakes import text_result, tool
 
@@ -162,22 +162,69 @@ def test_a_name_no_provider_would_accept_is_dropped_not_relayed() -> None:
     assert [t.name for t in built] == ["srv__fine"]
 
 
-def test_a_name_code_mode_could_not_declare_is_dropped_too() -> None:
-    """Narrower than the providers require, deliberately.
+async def test_a_hyphenated_name_is_mapped_for_the_model_and_kept_for_the_server() -> None:
+    """Providers accept a hyphen; `tools/native/code/typescript.py` emits
+    `declare function {name}(...)` **unquoted**, so a hyphenated name is
+    unparseable TypeScript. Every public MCP App is named `get-time`, so the
+    hyphen is mapped rather than the tool dropped — and the server is still
+    called by the name it published."""
+    asked: list[str] = []
 
-    Providers accept a hyphen; `tools/native/code/typescript.py` emits
-    `declare function {name}(...)` **unquoted**, so a hyphenated tool name is
-    unparseable TypeScript — and because the declarations are printed as one
-    block, it would break every *other* tool's declaration in the same catalog.
-    Dropping one tool with a warning is the smaller loss.
-    """
-    built = build_tools("srv", [tool("get-video"), tool("get_video")], never_called)
+    async def call(name: str, arguments: dict) -> CallToolResult:
+        asked.append(name)
+        return text_result("ok")
 
-    assert [t.name for t in built] == ["srv__get_video"]
+    built = one("srv", tool("get-video"), call)
+    await built.invoke("{}", progress=no_progress)
+
+    assert built.name == "srv__get_video"
+    assert asked == ["get-video"]
     # Note a leading digit in the *tool* name is fine — `srv__9lives` still
     # starts with the server id. It is the *id* that must start with a letter,
     # which `_SERVER_ID` now enforces (see test_mcp_settings.py).
     assert [t.name for t in build_tools("srv", [tool("9lives")], never_called)] == ["srv__9lives"]
+
+
+def test_two_tools_that_map_to_one_name_keep_the_first() -> None:
+    """Two tools under one name would make the dispatcher's choice silent."""
+    built = build_tools("srv", [tool("get-video"), tool("get_video")], never_called)
+
+    assert [t.name for t in built] == ["srv__get_video"]
+
+
+def test_the_app_binding_is_read_from_the_tool_meta() -> None:
+    assert ui_resource_uri(tool("x", meta={"ui": {"resourceUri": "ui://x/app.html"}})) == (
+        "ui://x/app.html"
+    )
+    # `poll-system-stats`' shape: `ui` metadata with no resource at all.
+    assert ui_resource_uri(tool("x", meta={"ui": {"visibility": ["app"]}})) is None
+    assert ui_resource_uri(tool("x", meta={"ui": {"resourceUri": "https://x"}})) is None
+    assert ui_resource_uri(tool("x")) is None
+
+
+async def test_a_bound_tool_returns_its_app_with_the_structured_content() -> None:
+    async def call(name: str, arguments: dict) -> CallToolResult:
+        return CallToolResult(
+            content=[TextContent(type="text", text="3 rows")], structuredContent={"rows": 3}
+        )
+
+    built = one("db", tool("count", meta={"ui": {"resourceUri": "ui://db/app.html"}}), call)
+    outcome = await built.invoke("{}", progress=no_progress)
+
+    assert outcome == Ok(
+        "3 rows",
+        data={"rows": 3},
+        ui=ToolUi(server="db", resource_uri="ui://db/app.html", data={"rows": 3}),
+    )
+
+
+async def test_a_bound_tool_that_fails_has_no_app() -> None:
+    async def call(name: str, arguments: dict) -> CallToolResult:
+        return text_result("nope", is_error=True)
+
+    built = one("db", tool("count", meta={"ui": {"resourceUri": "ui://db/app.html"}}), call)
+
+    assert await built.invoke("{}", progress=no_progress) == Failure(EXECUTION_ERROR, "nope")
 
 
 def test_every_relayed_name_is_a_usable_typescript_identifier() -> None:

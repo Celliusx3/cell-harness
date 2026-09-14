@@ -41,7 +41,7 @@ def build(tmp_path: Path):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions)
+    gateway = ChannelGateway(chats, runs, sessions, public_url="http://t")
     web = WebChannel(sessions, runs, gateway)
     gateway.register(web)
     return gateway, web, runs, chats, sessions

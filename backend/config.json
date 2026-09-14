@@ -12,6 +12,9 @@
     "roots": [".agents/skills", "~/.agents/skills"],
     "editable": "~/.agents/skills"
   },
+  "web": {
+    "public_url": ""
+  },
   "code": {
     "deno_path": "deno",
     "timeout_seconds": 600
@@ -50,6 +53,15 @@
         "env": {
           "PLACES_MAX_RESULTS": "3"
         }
+      },
+      "sysmon": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "--silent",
+          "@modelcontextprotocol/server-system-monitor",
+          "--stdio"
+        ]
       }
     }
   }

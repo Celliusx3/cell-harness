@@ -30,13 +30,18 @@ class FakeMessageable:
 
     def __init__(self) -> None:
         self.sent: list[str] = []
+        # (text, the view) for every send that carried buttons.
+        self.linked: list[tuple[str, object]] = []
         self.typing_count = 0
         # Set to raise on the next call, for the failure paths.
         self.fail_next: Exception | None = None
 
-    async def send(self, text: str, **_: object) -> None:
+    async def send(self, text: str, view: object = None, **_: object) -> None:
         self._maybe_fail()
-        self.sent.append(text)
+        if view is not None:
+            self.linked.append((text, view))
+        else:
+            self.sent.append(text)
 
     async def typing(self) -> None:
         self._maybe_fail()
@@ -139,7 +144,7 @@ def build(tmp_path, client: LLMClient | None = None):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions)
+    gateway = ChannelGateway(chats, runs, sessions, public_url="http://t")
     channel, fake = discord_channel(gateway)
     gateway.register(channel)
     return channel, fake, gateway, runs, chats, sessions

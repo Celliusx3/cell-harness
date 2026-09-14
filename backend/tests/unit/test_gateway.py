@@ -13,13 +13,16 @@ from pathlib import Path
 
 from harness.agent.loop import LoopAgent
 from harness.channels.commands import Command, apply
-from harness.channels.gateway import ChannelGateway
+from harness.channels.gateway import ChannelGateway, app_url
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.transport import InboundMessage
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.tools.definition import Ok, ToolDefinition, ToolOutcome, ToolUi
+from harness.tools.progress import ToolProgressReporter
 from tests.unit.fakes import (
+    EchoArgs,
     ScriptedClient,
     SteppedClient,
     calls_tool,
@@ -33,7 +36,7 @@ from tests.unit.telegram_fakes import telegram_channel
 CHAT = "4242"
 
 
-def build(tmp_path: Path, model, *tools):
+def build(tmp_path: Path, model, *tools, public_url: str = "http://t"):
     ids = iter(f"c{n}" for n in range(100))
     sessions = SessionService(
         JsonlSessionRepository(tmp_path / "sessions"),
@@ -49,7 +52,7 @@ def build(tmp_path: Path, model, *tools):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions)
+    gateway = ChannelGateway(chats, runs, sessions, public_url=public_url)
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
     return bot, gateway, runs, chats, sessions
@@ -122,6 +125,87 @@ async def test_a_tool_step_sends_no_empty_message(tmp_path) -> None:
     await settle(runs, gateway)
 
     assert bot.sent == [(CHAT, "it is 42")]
+
+
+def app_tool() -> ToolDefinition[EchoArgs]:
+    """A tool whose result is bound to an MCP App."""
+
+    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+        return Ok(args.value, ui=ToolUi(server="srv", resource_uri="ui://srv/app.html"))
+
+    return ToolDefinition.from_model(
+        name="srv__show", description="Show.", args_model=EchoArgs, execute=execute
+    )
+
+
+async def test_a_result_with_an_app_is_delivered_as_a_link_before_the_reply(tmp_path) -> None:
+    """A chat cannot render the app, so it gets the page that does — named for
+    the tool, and before the prose that follows the tool."""
+    bot, gateway, runs, _, _ = build(
+        tmp_path,
+        SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
+        app_tool(),
+    )
+
+    await gateway.receive(msg("show me", 1))
+    await settle(runs, gateway)
+
+    ((chat_id, text, markup),) = bot.linked
+    assert (chat_id, text) == (CHAT, "srv__show")
+    assert markup.inline_keyboard[0][0].url == app_url("http://t", "c0", "c1")
+    assert bot.sent == [(CHAT, "there it is")]
+
+
+async def test_a_link_the_platform_refuses_does_not_cost_the_reply(tmp_path) -> None:
+    """Telegram rejects a `localhost` button. The reply after it must still
+    arrive, and the cursor must move past the event — or the next turn replays
+    it into the same refusal, forever."""
+    bot, gateway, runs, chats, _ = build(
+        tmp_path,
+        SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
+        app_tool(),
+    )
+    bot.refuse_links = RuntimeError("Bad Request: inline keyboard button URL is invalid")
+
+    await gateway.receive(msg("show me", 1))
+    await settle(runs, gateway)
+
+    assert bot.linked == []
+    assert bot.sent == [(CHAT, "there it is")]
+    state = await chats.load("telegram", CHAT)
+    assert state is not None and state.delivered_through > 0
+
+
+async def test_no_public_url_means_no_link(tmp_path) -> None:
+    bot, gateway, runs, _, _ = build(
+        tmp_path,
+        SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
+        app_tool(),
+        public_url="",
+    )
+
+    await gateway.receive(msg("show me", 1))
+    await settle(runs, gateway)
+
+    assert bot.linked == []
+    assert bot.sent == [(CHAT, "there it is")]
+
+
+async def test_a_result_without_an_app_sends_no_link(tmp_path) -> None:
+    bot, gateway, runs, _, _ = build(
+        tmp_path,
+        SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
+        echo_tool(),
+    )
+
+    await gateway.receive(msg("what is it?", 1))
+    await settle(runs, gateway)
+
+    assert bot.linked == []
+
+
+def test_the_app_page_url_escapes_its_ids() -> None:
+    assert app_url("http://t", "c/1", "call:2") == "http://t/apps/c%2F1/call%3A2"
 
 
 # ── busy: queue, never refuse ─────────────────────────────────────────────────

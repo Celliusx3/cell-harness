@@ -51,6 +51,9 @@ CHANNEL = "discord"
 # splitting, and our own rules forbid truncating anything user-facing.
 MAX_MESSAGE_CHARS = 2000
 
+# The button under a message that links to an MCP App's page.
+OPEN_LABEL = "Open"
+
 
 class DiscordChannel:
     """`Channel` and `Pushing` for Discord: receive, send, show typing."""
@@ -157,6 +160,15 @@ class DiscordChannel:
         for part in split_message(text, MAX_MESSAGE_CHARS):
             if part:
                 await target.send(part)
+
+    async def send_link(self, chat_id: str, text: str, url: str) -> None:
+        """One message with one link button. Discord has no in-app webview, so
+        the button opens the page in the browser — which suits an MCP App: the
+        page is the same one the browser chat links to."""
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(style=discord.ButtonStyle.link, label=OPEN_LABEL, url=url))
+        target = await self._messageable(chat_id)
+        await target.send(text, view=view)
 
     async def send_typing(self, chat_id: str) -> None:
         """Show "typing…" for about ten seconds. Best-effort by contract."""
