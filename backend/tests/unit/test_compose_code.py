@@ -17,7 +17,8 @@ from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.agent.loop import LoopAgent
-from harness.config.settings import McpServer, MissingConfigError, Settings, load
+from harness.config.sections import McpServer
+from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
 from harness.session.repositories.jsonl import JsonlSessionRepository

@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from harness.skills import SkillCatalog
-from tests.integration.test_web import build
+from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.webapp import web_app
 

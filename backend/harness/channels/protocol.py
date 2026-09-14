@@ -8,13 +8,22 @@ neatly but makes a platform two objects to wire when it is really one.
 
 **Sending is a separate Protocol, because not every platform can be sent to.**
 See `Pushing`.
+
+`RunningChannel` is the one concrete class here: a `Channel` and the task
+running its `run()`, held together so the gateway has one thing per platform to
+start, reply through, and stop.
 """
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
 from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
+
+logger = logging.getLogger("harness.channels")
 
 # What to do when a chat's conversation id names nothing on disk. A messenger must
 # `recreate` — the chat is otherwise permanently broken and the person holding the
@@ -119,3 +128,53 @@ class Pushing(Protocol):
         Raises if it could not be delivered, like `send_message`.
         """
         ...
+
+
+class RunningChannel:
+    """A channel, and the task listening on it — useless apart, and looked up
+    by the same platform name."""
+
+    def __init__(self, channel: Channel) -> None:
+        # Public, because the gateway replies through the same object it
+        # supervises.
+        self.channel = channel
+        self._task: asyncio.Task[None] | None = None
+
+    @property
+    def name(self) -> str:
+        return self.channel.channel
+
+    async def start(self) -> None:
+        logger.info("%s channel starting", self.name)
+        self._task = asyncio.create_task(self.channel.run())
+        # Without this a dead channel is *silent*: `create_task` holds the
+        # exception until someone awaits the task, and nothing does until
+        # shutdown. That is how a dead poller once looked like a working one.
+        self._task.add_done_callback(self._report_exit)
+
+    async def aclose(self) -> None:
+        """Stop receiving. Delivery is shared, so the gateway closes that once
+        after every channel is down — here would close it on the first."""
+        if self._task is None:
+            return
+        self._task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self._task
+        self._task = None
+
+    def _report_exit(self, task: asyncio.Task[None]) -> None:
+        """Say something when receiving ends on its own."""
+        if task.cancelled():
+            return
+        error = task.exception()
+        if error is not None:
+            logger.error("%s channel stopped: %s", self.name, error, exc_info=error)
+        elif isinstance(self.channel, Pushing):
+            logger.warning("%s channel stopped; it will not answer", self.name)
+        else:
+            # A pull channel's `run()` returning means only that it stopped
+            # waiting — its receiving is somewhere else entirely (uvicorn serves
+            # `WebChannel`'s routes), so it goes on answering. Saying "it will not
+            # answer" here would be the false alarm that teaches people to ignore
+            # the true one.
+            logger.info("%s channel stopped waiting", self.name)

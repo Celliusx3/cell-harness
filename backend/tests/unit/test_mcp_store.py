@@ -10,7 +10,7 @@ import asyncio
 
 import pytest
 
-from harness.mcp import store as store_module
+from harness.mcp import connection as connection_module
 from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
 from harness.mcp.store import McpServerStore
 from tests.unit.mcp_fakes import FakeFactory, html_resource, servers, tool
@@ -92,7 +92,7 @@ async def test_concurrent_callers_each_get_their_own_result() -> None:
 
 async def test_a_timed_out_call_leaves_the_connection_usable(monkeypatch) -> None:
     """The point of putting the deadline on the owner rather than the caller."""
-    monkeypatch.setattr(store_module, "COMMAND_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(connection_module, "COMMAND_TIMEOUT_SECONDS", 0.05)
     factory = FakeFactory()
     factory.client.tools = [tool("slow"), tool("echo")]
     factory.client.behaviour = {"slow": 5.0}
@@ -149,7 +149,7 @@ async def test_a_read_the_server_rejects_is_a_connection_error_not_a_crash() -> 
 
 
 async def test_a_timed_out_read_leaves_the_connection_usable(monkeypatch) -> None:
-    monkeypatch.setattr(store_module, "COMMAND_TIMEOUT_SECONDS", 0.05)
+    monkeypatch.setattr(connection_module, "COMMAND_TIMEOUT_SECONDS", 0.05)
     factory = FakeFactory()
     factory.client.resources = {"ui://stub/slow.html": 5.0}
     store = await connected(factory)

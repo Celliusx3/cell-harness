@@ -23,8 +23,8 @@ from harness.channels.gateway import (
     DuplicateChannelError,
     UnknownChannelError,
 )
+from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.transport import InboundMessage
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

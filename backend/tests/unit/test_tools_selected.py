@@ -14,7 +14,7 @@ import json
 from contextlib import aclosing
 
 from harness.agent.loop import LoopAgent
-from harness.llm.adapters.openai import _wire_message
+from harness.llm.adapters.openai_wire import wire_message
 from harness.llm.messages import Text, ToolCall, ToolMessage, ToolReference
 from harness.session.models import ToolResultEvent
 from harness.tools.definition import Ok, ToolDefinition
@@ -22,9 +22,9 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.pipeline import MAX_TOOLS_SELECTED, ToolPipeline
 from harness.tools.registry import ToolRegistry
+from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
 from tests.unit.helpers import new_session, no_progress
-from tests.unit.test_code_tools import FakeRunner
 
 DEFAULTS = (LIST, DETAILS, EXECUTE)
 
@@ -78,7 +78,7 @@ def test_the_adapter_spells_a_reference_out_for_a_wire_without_blocks() -> None:
         tool_call_id="c1", content=(Text(text="declare …"), ToolReference(tool_name="a"))
     )
 
-    wire = _wire_message(message)
+    wire = wire_message(message)
 
     assert wire["role"] == "tool" and wire["tool_call_id"] == "c1"
     assert wire["content"].startswith("declare …")

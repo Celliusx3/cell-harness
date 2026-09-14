@@ -12,7 +12,8 @@ import pytest
 from pydantic import ValidationError
 
 from harness.config import settings as settings_module
-from harness.config.settings import McpServer, McpSettings, Settings
+from harness.config.sections import McpServer, McpSettings
+from harness.config.settings import Settings
 
 
 def test_a_plain_server_is_accepted() -> None:

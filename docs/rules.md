@@ -107,6 +107,29 @@ snapshot and a live stream. Don't add a second numbering for a subscriber, and
 don't let the UI derive one — that is what makes a replayed conversation and a
 live one the same code path.
 
+**Every call goes through the one dispatcher.** The model's calls and a
+script's calls arrive by different routes and must land in the same place, or a
+timeout, a gate or a hook installed on one path is silently absent from the
+other. An MCP App's `tools/call` is deliberately not one of those: the harness
+is proxying for a view to the view's own server, by that server's own name,
+answered verbatim — and its guards (same server, `visibility`, resource
+binding) sit at the MCP layer, where every other host puts them. Routing it
+through the dispatcher would put the model's pipeline in front of a call the
+model never made. `docs/mcp-apps.md`.
+
+**The sandbox is granted nothing, and knows nothing.** Deno runs with no
+`--allow-*`; the bridge is the only way out, and code mode never binds itself.
+`harness/sandbox/` imports nothing from `harness` because the moment it learns
+what a `ToolOutcome` is, the next thing that wants a sandbox has to bring the
+tool domain with it — `test_layering.py` asserts both. And no SDK owns the Deno
+child, so a `finally` kills it; a runaway or cancelled script leaving a process
+behind is proved absent by pid. `docs/mcp-tool-scaling.md`.
+
+**Prompt assembly cannot raise.** The TypeScript printer degrades an unprintable
+schema to `unknown` rather than raising, because one odd server schema would
+otherwise cost the turn *every* tool — the request is built as one string. A
+tool the model cannot type is still a tool it can call.
+
 **Registered is not offered.** Every MCP tool is registered at startup and the
 dispatcher runs whatever name it is handed, because a script's calls arrive
 there with names that were never in the request. That left a

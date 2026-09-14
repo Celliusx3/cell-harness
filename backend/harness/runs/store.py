@@ -62,7 +62,7 @@ class Run:
         # propagates through `await _inner`, and `Task.cancel()` delivers
         # `CancelledError` once — a coroutine that catches it keeps running,
         # awaits in its `finally` included. Swapping the target passes every test
-        # in `test_runs.py`, which is how the false reasoning was caught.
+        # in `test_runs_stop.py`, which is how the false reasoning was caught.
         #
         # The split is kept for a narrower reason: `_outer` is then never a
         # cancellation target at all, so settling cannot be interrupted by a

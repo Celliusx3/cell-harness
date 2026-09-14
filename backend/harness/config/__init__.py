@@ -6,13 +6,8 @@ component is handed the values it needs, which is what keeps "which model is
 actually in use?" answerable at one call site.
 """
 
-from harness.config.settings import (
-    LLMSettings,
-    MissingConfigError,
-    SessionSettings,
-    Settings,
-    load,
-)
+from harness.config.sections import LLMSettings, SessionSettings
+from harness.config.settings import MissingConfigError, Settings, load
 
 __all__ = [
     "LLMSettings",

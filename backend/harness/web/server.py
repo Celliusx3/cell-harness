@@ -31,7 +31,6 @@ State lives on `app.state`, read through the accessors in
 
 from __future__ import annotations
 
-import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -61,6 +60,7 @@ from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
+from harness.web.logs import configure_logging
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.skills import build_router as build_skills_router
 
@@ -218,27 +218,6 @@ def build_channels(
     return gateway, web
 
 
-def _configure_logging() -> None:
-    """Make `harness.*` log lines visible when running under uvicorn.
-
-    Uvicorn configures only its own loggers, so without this everything this
-    codebase logs — a tool provider that raised, a run that failed, a channel
-    that stopped polling — is written to a logger with no handler and vanishes.
-    That is how a dead Telegram poller came to look like a working one.
-
-    Done **here and not at import**: configuring logging is the application's
-    business, and a library that did it on import would fight whatever imported
-    it.
-    """
-    harness = logging.getLogger("harness")
-    if harness.handlers:
-        return
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
-    harness.addHandler(handler)
-    harness.setLevel(logging.INFO)
-
-
 def create_web_app() -> FastAPI:
     """The application uvicorn starts.
 
@@ -246,7 +225,7 @@ def create_web_app() -> FastAPI:
     here rather than at import, so a missing API key is a `MissingConfigError`
     naming the file to edit instead of an import-time traceback.
     """
-    _configure_logging()
+    configure_logging()
     settings = load()
     service = build_store(settings)
     mcp = build_mcp(settings)

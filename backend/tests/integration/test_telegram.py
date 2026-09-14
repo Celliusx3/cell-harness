@@ -14,7 +14,7 @@ import httpx
 
 from harness.agent.loop import LoopAgent
 from harness.channels.gateway import ChannelGateway
-from harness.channels.transport import InboundMessage
+from harness.channels.protocol import InboundMessage
 from harness.config.settings import Settings
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository

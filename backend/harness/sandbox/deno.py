@@ -4,7 +4,7 @@ One process per execution, granted nothing: no `--allow-*` flags, so the bridge
 is the script's only route outward. Proved rather than asserted in
 `tests/integration/test_sandbox.py`.
 
-No command loop here. `mcp/store.py` needs one because the MCP SDK is an anyio
+No command loop here. `mcp/connection.py` needs one because the MCP SDK is an anyio
 context manager bound to its entering task; `create_subprocess_exec` is not.
 """
 
@@ -23,7 +23,7 @@ from harness.sandbox.runner import Bridge, BridgeError, Runner, Script
 logger = logging.getLogger("harness.sandbox")
 
 # Past this the child is logged and abandoned rather than awaited forever, the
-# same trade `mcp/store.py` makes.
+# same trade `mcp/connection.py` makes.
 CLOSE_TIMEOUT_SECONDS = 5.0
 
 # A backstop against a script that returns a whole transcript — the case code

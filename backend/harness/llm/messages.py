@@ -10,7 +10,7 @@ A user or assistant `content` is a plain string. A **tool result's** is a list
 of typed blocks — the Anthropic shape — because a result can carry more than
 prose: a `tool_reference` says "this tool is callable now", and an image will be
 a block when an MCP server returns one. The wire this harness speaks (OpenAI
-`/chat/completions`) has no such blocks, so `adapters/openai.py` renders them to
+`/chat/completions`) has no such blocks, so `adapters/openai_wire.py` renders them to
 the string it expects; what a block *means* is decided once, there.
 """
 

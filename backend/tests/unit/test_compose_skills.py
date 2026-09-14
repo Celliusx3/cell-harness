@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 from harness.agent.loop import LoopAgent
-from harness.config.settings import McpServer, Settings
+from harness.config.sections import McpServer
+from harness.config.settings import Settings
 from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
 from harness.session.repositories.jsonl import JsonlSessionRepository

@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 from mcp.server.apps import APP_MIME_TYPE
 
-from harness.config.settings import McpServer
-from harness.mcp import store as store_module
+from harness.config.sections import McpServer
+from harness.mcp import connection as connection_module
 from harness.mcp.store import McpServerStore
 from harness.tools.definition import Failure, Ok, ToolUi
 from harness.tools.registry import ToolRegistry
@@ -121,7 +121,7 @@ async def test_closing_reaps_the_subprocess(live) -> None:
 
 async def test_a_server_that_stops_answering_fails_within_the_timeout(live, monkeypatch) -> None:
     """A server that accepts connections and then goes quiet."""
-    monkeypatch.setattr(store_module, "COMMAND_TIMEOUT_SECONDS", 2.0)
+    monkeypatch.setattr(connection_module, "COMMAND_TIMEOUT_SECONDS", 2.0)
     store, registry = await live(stub(STUB_MODE="deaf"))
 
     echo = registry.get("stub__echo")

@@ -261,9 +261,8 @@ class LoopAgent:
         task posts on its way out is what ends the drain; FIFO order is what
         keeps every report ahead of the outcome.
         """
-        queue: asyncio.Queue[ToolProgress | None] = (
-            asyncio.Queue()
-        )  # unbounded: never stall the tool
+        # Unbounded: never stall the tool.
+        queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 
         async def report(*, percent: float | None, message: str | None) -> None:
             queue.put_nowait(

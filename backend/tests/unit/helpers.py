@@ -1,4 +1,4 @@
-"""Assertions shared across test modules.
+"""Assertions and builders shared across test modules.
 
 `unanswered_calls` lives here rather than in `harness/` because nothing in the
 product calls it: the loop knows what it owes from the calls it dispatched, so a
@@ -11,12 +11,19 @@ and belongs with `resume`, which is the code that would act on it.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import asyncio
+from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime
+from pathlib import Path
 
+from harness.agent.hooks import HookChain
+from harness.agent.loop import LoopAgent
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
+from harness.runs.store import RunStore
 from harness.session.log import Session
 from harness.session.models import SessionHeader
+from harness.session.repositories.jsonl import JsonlSessionRepository
+from harness.session.service import SessionService
 from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
@@ -80,3 +87,61 @@ def pipeline_for(
     registry = ToolRegistry(tools, providers=providers)
     names = [*(tool.name for tool in tools), *offer]
     return ToolPipeline(registry, ToolDispatcher(registry), default_tools=names)
+
+
+def loop_agent(
+    client,
+    *tools: ToolDefinition,
+    system_prompt: str = "",
+    hooks: HookChain | None = None,
+    checkpoint: Callable[[Session], Awaitable[None]] | None = None,
+) -> LoopAgent:
+    """An agent over `tools`, with no pipeline at all when there are none —
+    so a bare agent sends `tools: None`, not an empty list."""
+    return LoopAgent(
+        name="t",
+        model="m",
+        client=client,
+        tools=pipeline_for(*tools) if tools else None,
+        system_prompt=system_prompt,
+        hooks=hooks if hooks is not None else HookChain(),
+        checkpoint=checkpoint,
+    )
+
+
+async def drain(gen) -> list:
+    """Everything an async iterator yields, bounded: the loop has no step cap, so
+    a script that never stops calling a tool would otherwise hang the suite
+    rather than fail a test."""
+    async with asyncio.timeout(5):
+        return [event async for event in gen]
+
+
+async def until(predicate, *, what: str) -> None:
+    """Let the loop run until `predicate` holds.
+
+    Polling rather than an event, because what is being waited for is a *third
+    party's* progress — the loop appending to a log it owns — and there is no
+    hook for it that would not exist purely for tests.
+    """
+    for _ in range(500):
+        if predicate():
+            return
+        await asyncio.sleep(0)
+    raise AssertionError(f"timed out waiting for {what}")
+
+
+def durable_service(root: Path, *, prefix: str = "c") -> SessionService:
+    """A session service over `root` with a fixed clock and predictable ids
+    (`c0`, `c1`, …), so a test can name the conversation it just made."""
+    ids = iter(f"{prefix}{n}" for n in range(100))
+    return SessionService(
+        JsonlSessionRepository(root),
+        now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
+        new_id=lambda: next(ids),
+    )
+
+
+def run_store(service: SessionService, client, *tools: ToolDefinition) -> RunStore:
+    """Runs over an agent that checkpoints through `service`, as the server wires it."""
+    return RunStore(service, loop_agent(client, *tools, checkpoint=service.flush))

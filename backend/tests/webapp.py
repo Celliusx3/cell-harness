@@ -17,8 +17,9 @@ from fastapi import FastAPI
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
-from harness.config.settings import McpServer
-from harness.mcp.store import ClientFactory, McpServerStore, open_client
+from harness.config.sections import McpServer
+from harness.mcp.client import ClientFactory, open_client
+from harness.mcp.store import McpServerStore
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
 from harness.skills import Catalog, SkillSnapshot

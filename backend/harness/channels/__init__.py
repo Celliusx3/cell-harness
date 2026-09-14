@@ -1,8 +1,11 @@
 """Channels — every way in and out, the browser included.
 
-    transport.py    `Channel`, and `Pushing` for platforms that can be sent to
-    gateway.py      **one** gateway: inbound -> a run, the log -> outbound, and
-                    supervision of every channel's background task
+    protocol.py     `Channel`, `Pushing` for platforms that can be sent to, and
+                    `RunningChannel` — a channel and the task listening on it
+    gateway.py      **one** gateway: inbound -> a run, a queue while one is
+                    running, and the drain that answers it
+    chats.py        which conversation a chat is on, and what a missing one means
+    replies.py      the log -> outbound, behind the `delivered_through` cursor
     commands.py     `/new` and `/stop`, shared by every text platform
     repository.py   the storage port for per-chat state
     repositories/   one file per backend — `jsonl.py` today

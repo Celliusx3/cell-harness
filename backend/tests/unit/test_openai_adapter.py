@@ -12,7 +12,7 @@ import json
 import httpx
 import pytest
 
-from harness.config.settings import LLMSettings
+from harness.config.sections import LLMSettings
 from harness.llm.adapters import openai as adapter_module
 from harness.llm.adapters.openai import OpenAIClient
 from harness.llm.messages import UserMessage

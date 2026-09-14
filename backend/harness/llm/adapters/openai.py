@@ -23,19 +23,10 @@ from collections.abc import AsyncIterator
 
 import httpx
 
-from harness.config.settings import LLMSettings
+from harness.config.sections import LLMSettings
+from harness.llm.adapters.openai_wire import wire_message, wire_tool
 from harness.llm.client import LLMClient
-from harness.llm.messages import (
-    AssistantMessage,
-    Block,
-    Message,
-    Text,
-    ToolCall,
-    ToolMessage,
-    ToolReference,
-    ToolSpec,
-    render_text,
-)
+from harness.llm.messages import Message, ToolCall, ToolSpec
 from harness.llm.stream import (
     Completed,
     Failed,
@@ -50,78 +41,6 @@ logger = logging.getLogger("harness.llm.openai")
 # The frame the SSE stream ends with. It is not JSON, so it must be recognized
 # before parsing rather than after failing to parse.
 _DONE = "[DONE]"
-
-# How a `tool_reference` block reads on a wire that has no such block. Anthropic's
-# API expands references into the tool list itself; this endpoint cannot, so the
-# pipeline does the list and this sentence does the telling. Prompt text is
-# code: without it a 7.5B model handed four TypeScript declarations wrote a
-# program to call them, three runs out of three, while the four tools sat in its
-# list unused — nothing had said the list changed.
-REFERENCES_NOTE = (
-    "Now in your tool list, callable directly: {names}. Call each as a tool for "
-    "one step at a time; write a program only to batch many calls or to filter a "
-    "large result before you see it."
-)
-
-
-def _wire_message(message: Message) -> dict:
-    """One message in the provider's shape.
-
-    Our `AssistantMessage.tool_calls` is flat (`id`, `name`, `arguments`); the
-    wire nests the last two under `function` and adds a redundant `type`. The
-    translation lives here rather than on the model because it is this
-    provider's dialect, not something the loop or the log should know.
-    """
-    if isinstance(message, AssistantMessage) and message.tool_calls:
-        return {
-            "role": "assistant",
-            "content": message.content,
-            "tool_calls": [
-                {
-                    "id": call.id,
-                    "type": "function",
-                    "function": {"name": call.name, "arguments": call.arguments},
-                }
-                for call in message.tool_calls
-            ],
-        }
-    if isinstance(message, AssistantMessage):
-        # `tool_calls: []` is not the same as absent to every provider, and an
-        # assistant message without calls should not claim to have an empty set.
-        return {"role": "assistant", "content": message.content}
-    if isinstance(message, ToolMessage):
-        return {
-            "role": "tool",
-            "tool_call_id": message.tool_call_id,
-            "content": _tool_content(message.content),
-        }
-    return message.model_dump()
-
-
-def _tool_content(blocks: tuple[Block, ...]) -> str:
-    """A result's blocks as the one string this wire carries.
-
-    Text is joined; references become the sentence above. The block *is* the
-    fact and lives in the log; this is only how it is spelled to a model that
-    cannot read blocks.
-    """
-    parts = [render_text(blocks)] if any(isinstance(b, Text) for b in blocks) else []
-    referenced = sorted(b.tool_name for b in blocks if isinstance(b, ToolReference))
-    if referenced:
-        parts.append(REFERENCES_NOTE.format(names=", ".join(referenced)))
-    return "\n\n".join(parts)
-
-
-def _wire_tool(spec: ToolSpec) -> dict:
-    """One tool declaration in the provider's shape."""
-    return {
-        "type": "function",
-        "function": {
-            "name": spec.name,
-            "description": spec.description,
-            "parameters": spec.input_schema,
-        },
-    }
 
 
 def _usage(payload: dict) -> Usage | None:
@@ -241,7 +160,7 @@ class OpenAIClient(LLMClient):
         settings = self._settings
         body: dict = {
             "model": model,
-            "messages": [_wire_message(m) for m in messages],
+            "messages": [wire_message(m) for m in messages],
             "temperature": settings.temperature,
             "stream": True,
             # Without this, a streamed response reports no usage at all.
@@ -251,7 +170,7 @@ class OpenAIClient(LLMClient):
             # Omitted entirely rather than sent empty: some providers reject
             # `"tools": []`, and an empty list says something different from
             # "this call has no tools available".
-            body["tools"] = [_wire_tool(t) for t in tools]
+            body["tools"] = [wire_tool(t) for t in tools]
 
         accumulated = ""
         usage: Usage | None = None

@@ -40,8 +40,8 @@ from discord import app_commands
 from harness.channels.commands import Command
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
+from harness.channels.protocol import InboundMessage, OnMissing
 from harness.channels.text import split_message
-from harness.channels.transport import InboundMessage, OnMissing
 
 logger = logging.getLogger("harness.channels.discord")
 

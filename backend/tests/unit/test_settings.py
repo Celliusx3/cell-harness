@@ -13,7 +13,8 @@ from pathlib import Path
 import pytest
 
 from harness.config import settings as settings_module
-from harness.config.settings import LLMSettings, MissingConfigError, Settings, load
+from harness.config.sections import LLMSettings
+from harness.config.settings import MissingConfigError, Settings, load
 
 
 @pytest.fixture
@@ -148,7 +149,7 @@ def test_temperature_is_bounded(bad: float) -> None:
 
 def test_the_sessions_root_expands_a_tilde() -> None:
     """config.json holds the readable form; the code needs a real path."""
-    from harness.config.settings import SessionSettings
+    from harness.config.sections import SessionSettings
 
     root = SessionSettings(root="~/somewhere").root
 

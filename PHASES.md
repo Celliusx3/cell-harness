@@ -39,6 +39,21 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 better than cell-bot. 13–15 are agentic capabilities to add only if the product
 turns out to want them.
 
+## Status
+
+**Phase 10 — "it doesn't get stuck" — done, ahead of 8.3–8.4 and 9.** Phase 8
+is in progress (8.1–8.2 done). Since phase 7, six insertions not planned above,
+then phase 10 as written with three cuts recorded in it.
+
+| | Insertion | What shipped | Where the reasoning is |
+|---|---|---|---|
+| 1 | **Code mode** | Three tools (`list_functions`, `get_function_details`, `execute_typescript`); every capability is reached from a TypeScript program in a Deno sandbox. Replaced a tool-search attempt. Deno is a startup requirement. | [docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md) |
+| 2 | **It finds places from Instagram reels** | Two MCP servers, `instagram` and `places`; the model composes them in one program and `backend/harness/` gained nothing. Google Places needs a key in `config.local.json`. | [mcp-servers/README.md](./mcp-servers/README.md) |
+| 3 | **It follows instructions (8.1–8.2)** | `skills/catalog.py` reads ranked roots per request; `skills/tool.py` is the one tool a skill is loaded through. First skill: `find-place`. | [docs/skills.md](./docs/skills.md) |
+| 4 | **It selects, then calls** | A tool result is a list of typed blocks; `get_function_details` returns `tool_reference` blocks and the pipeline offers the eight most recent. Programs remain for many calls or a large result. | [docs/mcp-tool-scaling.md §7](./docs/mcp-tool-scaling.md) |
+| 5 | **It answers on Discord** | `channels/discord/` — one class, one line in `build_channels`. DMs always; guild channels and threads only when `@mentioned`, so no privileged intent. `/new` and `/stop` are slash commands. | `channels/discord/channel.py` |
+| 6 | **It shows a UI** | MCP Apps (SEP-1865): `ToolResultEvent.ui` binds a result to a `ui://` resource; `/apps/{conversation}/{call}` renders it, every chat gets a link (`web.public_url`, empty by default), `/api/mcp/{server}/` serves the HTML and proxies a view's `tools/call`. Proven against `sysmon`. | [docs/mcp-apps.md](./docs/mcp-apps.md) |
+
 ### Why this order
 
 A chat product's constraints differ from a coding harness's:
@@ -413,7 +428,7 @@ outlive because there never was one, so a design that tied a turn to the request
 that asked for it would have nowhere to put the answer.
 
 **Ships.**
-- `channels/transport.py` — `Channel`, one Protocol per platform, and `InboundMessage`
+- `channels/protocol.py` — `Channel`, one Protocol per platform, and `InboundMessage`
 - `channels/gateway.py` — inbound → run, log → outbound, and supervision of every channel
 - `channels/telegram/channel.py` — one platform: polling, batching, splitting, typing
 - `channels/commands.py` — what `/new` and `/stop` *do*, shared by every platform
@@ -559,7 +574,7 @@ attach to; `ilmuchat-enterprise` carries the same probe for the same reason.
 Keying on the conversation removed that round trip in phase 4.
 
 **Ships.**
-- `channels/transport.py` — `Pushing` split off `Channel`; `on_missing`
+- `channels/protocol.py` — `Pushing` split off `Channel`; `on_missing`
 - `channels/web/` — `WebChannel` and the HTTP surface moved from `web/`
 - `channels/gateway.py` — one inbound path for every channel; `start_turn()`
 - `web/server.py` — the composition root alone; `app.state` retired

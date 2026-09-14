@@ -54,7 +54,7 @@ committed and only its `env` secrets are not.
 
 ### Three things that will bite you
 
-**The server id may not contain a hyphen.** `config/settings.py` and
+**The server id may not contain a hyphen.** `config/sections.py` and
 `mcp/tool.py` both permit one, but `tools/native/code/typescript.py` emits
 `declare function {name}(...)` **unquoted** — so a server keyed `instagram`
 prints `declare function my-server__fetch_reels(...)`, which is not
@@ -122,7 +122,7 @@ Four properties the harness makes non-negotiable. Each is enforced by a test in
 4. **Never write to stdout.** stdout is the protocol. Log to stderr, which the
    harness attaches to its own.
 
-One call is capped at **60 seconds** (`mcp/store.py`, a module constant), and one
+One call is capped at **60 seconds** (`mcp/connection.py`, a module constant), and one
 connection serves **one call at a time** — so `Promise.all` over several calls to
 the same server serializes them. A server that can be slow should batch
 internally and return partial results rather than hoping.

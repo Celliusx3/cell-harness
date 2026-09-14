@@ -45,9 +45,9 @@ from telegram.ext import Application, ApplicationBuilder, MessageHandler, filter
 
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
+from harness.channels.protocol import InboundMessage, OnMissing
 from harness.channels.telegram import commands
 from harness.channels.text import split_message
-from harness.channels.transport import InboundMessage, OnMissing
 
 logger = logging.getLogger("harness.channels.telegram")
 

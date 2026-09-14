@@ -9,7 +9,7 @@ import pytest
 from mcp.types import CallToolResult, ImageContent, TextContent
 
 from harness.web.routes.mcp import build_csp
-from tests.integration.test_web import build
+from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.mcp_fakes import FakeClient, FakeFactory, html_resource, servers, text_result, tool
 from tests.webapp import web_app, web_mcp

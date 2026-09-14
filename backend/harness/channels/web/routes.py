@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.responses import StreamingResponse
 
-from harness.channels.transport import InboundMessage
+from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import (
     ConversationDetail,
     ConversationSummary,

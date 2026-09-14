@@ -16,8 +16,8 @@ import pytest
 
 from harness.agent.loop import LoopAgent
 from harness.channels.gateway import ChannelGateway
+from harness.channels.protocol import InboundMessage, Pushing
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.transport import InboundMessage, Pushing
 from harness.channels.web.channel import WebChannel
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
