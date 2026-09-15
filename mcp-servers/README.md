@@ -24,6 +24,7 @@ declared in `mcp.servers`.
 |---|---|
 | [instagram](./instagram) | Read a shared Instagram reel into text observations a POI can be reasoned from |
 | [places](./places) | Resolve a described place to a real POI via Google Places API (New) |
+| [markets](./markets) | Investment research data — quotes, history, fundamentals, filings, news — for US stocks/ETFs, crypto and Bursa Malaysia, from free sources |
 
 `places` began as the third-party `@cablate/mcp-google-map` and
 was replaced, which is worth recording because the reason generalises: **it

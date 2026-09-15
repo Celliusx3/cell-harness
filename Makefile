@@ -64,7 +64,7 @@ test-integration:
 # uv project with its own 80% gate, and folding a second --cov source into one
 # pytest run makes the gate mean nothing about either. One server's flake must
 # not fail the harness's suite. `uv run` syncs on demand, so no install target.
-MCP_SERVERS = mcp-servers/instagram mcp-servers/places
+MCP_SERVERS = mcp-servers/instagram mcp-servers/places mcp-servers/markets
 
 test-mcp-servers:
 	@for s in $(MCP_SERVERS); do (cd $$s && uv run pytest) || exit 1; done

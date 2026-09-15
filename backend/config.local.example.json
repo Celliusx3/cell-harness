@@ -19,6 +19,12 @@
         "env": {
           "GOOGLE_MAPS_API_KEY": "AIza… (GCP project with Places API (New) enabled)"
         }
+      },
+      "markets": {
+        "env": {
+          "SEC_USER_AGENT": "Your Name you@example.com (EDGAR's declared contact; not a secret, just yours)",
+          "COINGECKO_API_KEY": "CG-… (free Demo key from coingecko.com/en/api/pricing)"
+        }
       }
     }
   }

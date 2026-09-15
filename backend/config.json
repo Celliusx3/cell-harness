@@ -54,6 +54,20 @@
           "PLACES_MAX_RESULTS": "3"
         }
       },
+      "markets": {
+        "command": "uv",
+        "args": [
+          "run",
+          "--quiet",
+          "--project",
+          "../mcp-servers/markets",
+          "markets"
+        ],
+        "env": {
+          "SEC_USER_AGENT": "cell-harness contact@example.com",
+          "MARKETS_MAX_ROWS": "70"
+        }
+      },
       "sysmon": {
         "command": "npx",
         "args": [
