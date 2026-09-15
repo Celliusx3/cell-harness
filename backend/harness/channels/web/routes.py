@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.responses import StreamingResponse
 
+from harness.channels.commands import unknown_skill
 from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import (
     ConversationDetail,
@@ -34,9 +35,19 @@ from harness.session.repository import (
     SessionNotFoundError,
 )
 from harness.session.service import SessionService
+from harness.skills import UnknownSkill
 
 if TYPE_CHECKING:
     from harness.channels.web.channel import WebChannel
+
+
+def _unknown_skill(web: WebChannel, err: UnknownSkill) -> HTTPException:
+    """`/word` that is neither a command nor a skill — the same sentence
+    Telegram and Discord send, as the `detail` the error bar shows."""
+    return HTTPException(
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=unknown_skill(err.name, web.gateway.skills.invocable()),
+    )
 
 
 def _summary(session: Session) -> ConversationSummary:
@@ -101,7 +112,12 @@ def build_router(web: WebChannel) -> APIRouter:
         # a Telegram one has and can therefore queue. Not `receive()`, though:
         # `create()` has written nothing yet, so this conversation is absent from
         # disk and `on_missing="raise"` would 404 the id we just made.
-        await web.gateway.start_turn(session, body.prompt, channel=web.channel)
+        try:
+            await web.gateway.start_turn(session, body.prompt, channel=web.channel)
+        except UnknownSkill as err:
+            # Nothing was written: `create()` is lazy, so the refused id never
+            # appears in the list.
+            raise _unknown_skill(web, err) from err
         return _summary(session)
 
     @router.get("/{conversation_id}", response_model=ConversationDetail)
@@ -157,6 +173,8 @@ def build_router(web: WebChannel) -> APIRouter:
             )
         except SessionNotFoundError as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
+        except UnknownSkill as err:
+            raise _unknown_skill(web, err) from err
 
         if run is not None:
             return MessageAccepted(**_summary(run.session).model_dump(), queued=False)

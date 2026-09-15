@@ -12,10 +12,19 @@ from tests.unit.fakes import HangingClient
 CHAT = "77"
 
 
-def test_exactly_the_two_commands_are_registered(tmp_path) -> None:
+def test_exactly_the_three_commands_are_registered(tmp_path) -> None:
     channel = build(tmp_path)[0]
 
-    assert {command.name for command in channel._tree.get_commands()} == {"new", "stop"}
+    assert {command.name for command in channel._tree.get_commands()} == {"new", "stop", "skills"}
+
+
+async def test_skills_replies_with_the_list(tmp_path) -> None:
+    channel, _, _, _, _, _ = build(tmp_path)
+    interaction = FakeInteraction(CHAT)
+
+    await channel._tree.get_command("skills").callback(interaction)
+
+    assert interaction.replies == ["No skills installed. Commands: /new, /stop."]
 
 
 async def test_new_starts_a_fresh_conversation(tmp_path) -> None:

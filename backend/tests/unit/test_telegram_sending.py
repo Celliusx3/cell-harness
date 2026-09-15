@@ -7,6 +7,7 @@ from telegram.error import BadRequest
 from harness.channels.gateway import ChannelGateway
 from harness.channels.telegram.channel import MAX_MESSAGE_CHARS
 from harness.channels.text import split_message as split_at
+from tests.unit.helpers import no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
 
@@ -66,7 +67,9 @@ def test_splitting_loses_no_words() -> None:
 
 
 async def test_send_message_splits_over_the_wire() -> None:
-    channel, bot = telegram_channel(ChannelGateway(None, None, None, public_url="http://t"))
+    channel, bot = telegram_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
 
     await channel.send_message("42", "word " * 2000)
 
@@ -76,7 +79,9 @@ async def test_send_message_splits_over_the_wire() -> None:
 
 async def test_an_empty_reply_is_never_sent() -> None:
     """Telegram rejects an empty message, and it says nothing anyway."""
-    channel, bot = telegram_channel(ChannelGateway(None, None, None, public_url="http://t"))
+    channel, bot = telegram_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
 
     await channel.send_message("42", "")
 
@@ -85,7 +90,9 @@ async def test_an_empty_reply_is_never_sent() -> None:
 
 async def test_a_failed_typing_indicator_is_swallowed() -> None:
     """The Protocol calls it best-effort: a real reply must not be lost to it."""
-    channel, bot = telegram_channel(ChannelGateway(None, None, None, public_url="http://t"))
+    channel, bot = telegram_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
     bot.fail_next = BadRequest("chat not found")
 
     await channel.send_typing("42")  # must not raise
@@ -94,7 +101,9 @@ async def test_a_failed_typing_indicator_is_swallowed() -> None:
 async def test_a_failed_send_is_not_swallowed() -> None:
     """Unlike typing. Delivery must know it failed, or the cursor would advance
     past a reply that never arrived."""
-    channel, bot = telegram_channel(ChannelGateway(None, None, None, public_url="http://t"))
+    channel, bot = telegram_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
     bot.fail_next = BadRequest("chat not found")
 
     try:
@@ -106,7 +115,9 @@ async def test_a_failed_send_is_not_swallowed() -> None:
 
 async def test_an_https_link_opens_inside_telegram() -> None:
     """A `web_app` button: the Mini App sheet, which is where an MCP App belongs."""
-    channel, bot = telegram_channel(ChannelGateway(None, None, None, public_url="http://t"))
+    channel, bot = telegram_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
 
     await channel.send_link("42", "srv__show", "https://h.example/apps/c0/c1")
 
@@ -119,7 +130,9 @@ async def test_an_https_link_opens_inside_telegram() -> None:
 
 async def test_a_plain_http_link_opens_in_the_browser() -> None:
     """Telegram refuses `web_app` over http, so a dev URL is a `url` button."""
-    channel, bot = telegram_channel(ChannelGateway(None, None, None, public_url="http://t"))
+    channel, bot = telegram_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
 
     await channel.send_link("42", "srv__show", "http://localhost:4897/apps/c0/c1")
 
@@ -132,6 +145,8 @@ async def test_a_plain_http_link_opens_in_the_browser() -> None:
 def test_the_transport_names_its_channel() -> None:
     """Part of a chat's identity, so Telegram `123` and Discord `123` differ."""
     assert (
-        telegram_channel(ChannelGateway(None, None, None, public_url="http://t"))[0].channel
+        telegram_channel(ChannelGateway(None, None, None, no_skills(), public_url="http://t"))[
+            0
+        ].channel
         == "telegram"
     )

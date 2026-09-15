@@ -13,6 +13,7 @@ from tests.unit.fakes import (
     echo_tool,
 )
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
+from tests.unit.helpers import no_skills
 
 
 def app_tool() -> ToolDefinition[EchoArgs]:
@@ -33,6 +34,7 @@ async def test_a_result_with_an_app_is_delivered_as_a_link_before_the_reply(tmp_
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
         app_tool(),
+        skills=no_skills(),
     )
 
     await gateway.receive(msg("show me", 1))
@@ -52,6 +54,7 @@ async def test_a_link_the_platform_refuses_does_not_cost_the_reply(tmp_path) -> 
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
         app_tool(),
+        skills=no_skills(),
     )
     bot.refuse_links = RuntimeError("Bad Request: inline keyboard button URL is invalid")
 
@@ -70,6 +73,7 @@ async def test_no_public_url_means_no_link(tmp_path) -> None:
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
         app_tool(),
         public_url="",
+        skills=no_skills(),
     )
 
     await gateway.receive(msg("show me", 1))
@@ -84,6 +88,7 @@ async def test_a_result_without_an_app_sends_no_link(tmp_path) -> None:
         tmp_path,
         SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
         echo_tool(),
+        skills=no_skills(),
     )
 
     await gateway.receive(msg("what is it?", 1))

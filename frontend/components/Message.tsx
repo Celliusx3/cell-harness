@@ -4,15 +4,51 @@ import type { Element } from "hast";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { useState } from "react";
+
 import { CodeBlock } from "@/components/CodeBlock";
+import type { Invocation } from "@/lib/invocation";
 import type { AssistantItem, UserItem } from "@/lib/timeline";
 
 export function UserBubble({ item }: { item: UserItem }) {
+  if (item.invoked) return <InvokedBubble item={item} invoked={item.invoked} />;
   return (
     <div className="flex justify-end">
       <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-accent px-4 py-2.5 text-sm text-white">
         {item.content}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A `/name` message: the typed line, with the skill it loaded as a chip.
+ *
+ * The chip opens the whole message — what the model was actually sent — the way
+ * a tool card opens its result. Shown short by default because the person
+ * wrote one line, and hidden never, because the log is the truth.
+ */
+function InvokedBubble({ item, invoked }: { item: UserItem; invoked: Invocation }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-accent px-4 py-2.5 text-sm text-white">
+        {invoked.typed}
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        title={open ? "Hide what was sent" : "Show what was sent"}
+        className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-xs text-ink-soft transition hover:text-ink"
+      >
+        {invoked.skill}
+      </button>
+      {open ? (
+        <pre className="max-h-96 w-full max-w-[80%] overflow-auto whitespace-pre-wrap break-words rounded-lg border border-line bg-surface-sunken p-2 font-mono text-xs">
+          {item.content}
+        </pre>
+      ) : null}
     </div>
   );
 }

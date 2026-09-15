@@ -23,13 +23,13 @@ from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.skills import SKILL, SkillSnapshot
+from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import CODE_PROMPT, LIST
 from harness.web import server
 from harness.web.server import DEFAULT_TOOLS, build_agent
-from tests.unit.helpers import no_progress
+from tests.unit.helpers import no_progress, no_skills
 
 # What a request carries when no skill exists: `SKILL` is in `DEFAULT_TOOLS` but
 # its provider yields nothing, and the pipeline skips an absent name.
@@ -45,7 +45,7 @@ def compose(tmp_path: Path):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(settings, sessions, mcp, SkillSnapshot)
+        return build_agent(settings, sessions, mcp, no_skills())
 
     return build
 

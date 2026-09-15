@@ -1,3 +1,4 @@
+import { display, type Invocation } from "@/lib/invocation";
 import type { ContentBlock, SessionEvent, ToolCall, ToolUi, Usage } from "./types";
 
 /**
@@ -26,7 +27,10 @@ export interface UserItem {
   kind: "user";
   key: string;
   turn: number;
+  /** The whole message as logged and sent — for `/name`, that includes the skill. */
   content: string;
+  /** Set when the message is a `/name` expansion: the short form to show. */
+  invoked: Invocation | null;
 }
 
 export interface AssistantItem {
@@ -104,6 +108,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
           key: `u${index}`,
           turn: event.turn,
           content: event.message.content,
+          invoked: display(event.message.content),
         });
         break;
 

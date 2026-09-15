@@ -19,13 +19,13 @@ edit shows at the next activation with no change to the tool's schema.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, create_model
 
-from harness.skills.catalog import read_body
-from harness.skills.models import SKILL_FILE, Catalog, Skill
+from harness.skills.models import Skill
+from harness.skills.rendering import instructions
+from harness.skills.service import SkillService
 from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome
 from harness.tools.progress import ToolProgressReporter
 
@@ -34,11 +34,6 @@ SKILL = "skill"
 # A bundled file the model asks for by `path`. Bounded because it lands in the
 # conversation whole: a 2 MB data file would cost the turn its context.
 MAX_RESOURCE_BYTES = 64 * 1024
-# Bundled files are *listed* with the body so the model knows what it may ask
-# for. Capped, with the count of the rest, so a skill shipping a directory of
-# fixtures does not cost more than its instructions.
-MAX_LISTED_FILES = 20
-_LIST_DEPTH = 3
 
 # Prompt text is code. "before starting" exists because a model shown the tool
 # would otherwise use it after it had already answered from general knowledge —
@@ -55,9 +50,9 @@ _DESCRIPTION = (
 )
 
 
-def skill_tool(catalog: Catalog) -> ToolDefinition[BaseModel] | None:
+def skill_tool(skills: SkillService) -> ToolDefinition[BaseModel] | None:
     """The tool over the skills the model may load, or `None` when there are none."""
-    offered = [skill for skill in catalog().skills if skill.model_invocable]
+    offered = [skill for skill in skills.snapshot().skills if skill.model_invocable]
     if not offered:
         return None
     by_name = {skill.name: skill for skill in offered}
@@ -129,30 +124,11 @@ def _escape(text: str) -> str:
 
 def _instructions(skill: Skill) -> ToolOutcome:
     try:
-        body = read_body(skill)
+        return Ok(instructions(skill))
     except (OSError, ValueError) as err:
         # Present when the catalog was built, gone or broken now. Reported as a
         # failure the model can react to; the catalog will drop it next call.
         return Failure(INVALID_ARGUMENTS, f"skill {skill.name!r} could not be read: {err}")
-    parts = [f'<skill name="{skill.name}">\n{body}\n</skill>']
-    listed, more = _bundled(skill.dir)
-    if listed:
-        files = ", ".join(listed) + (f", and {more} more" if more else "")
-        parts.append(f"Bundled files, readable with `path`: {files}")
-    return Ok("\n\n".join(parts))
-
-
-def _bundled(root: Path) -> tuple[list[str], int]:
-    """Every file under the skill directory except `SKILL.md`, as relative
-    posix paths; the first `MAX_LISTED_FILES` and how many were left out."""
-    found: list[str] = []
-    for file in sorted(root.rglob("*")):
-        relative = file.relative_to(root)
-        if len(relative.parts) > _LIST_DEPTH or any(p.startswith(".") for p in relative.parts):
-            continue
-        if file.is_file() and relative.as_posix() != SKILL_FILE:
-            found.append(relative.as_posix())
-    return found[:MAX_LISTED_FILES], max(0, len(found) - MAX_LISTED_FILES)
 
 
 def _resource(skill: Skill, path: str) -> ToolOutcome:

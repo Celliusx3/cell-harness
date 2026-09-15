@@ -20,12 +20,15 @@ from tests.unit.fakes import (
     hanging_tool,
 )
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
+from tests.unit.helpers import no_skills
 
 # ── the happy path ────────────────────────────────────────────────────────────
 
 
 async def test_a_message_becomes_a_turn_and_a_reply(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(tmp_path, ScriptedClient(completed("hello there")))
+    bot, gateway, runs, _, _ = build(
+        tmp_path, ScriptedClient(completed("hello there")), skills=no_skills()
+    )
 
     await gateway.receive(msg("hi", 1))
     await settle(runs, gateway)
@@ -34,7 +37,9 @@ async def test_a_message_becomes_a_turn_and_a_reply(tmp_path) -> None:
 
 
 async def test_first_contact_creates_a_conversation(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(tmp_path, ScriptedClient(completed("hi")))
+    bot, gateway, runs, chats, sessions = build(
+        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+    )
 
     await gateway.receive(msg("hello", 1))
     await settle(runs, gateway)
@@ -45,7 +50,9 @@ async def test_first_contact_creates_a_conversation(tmp_path) -> None:
 
 
 async def test_a_second_message_continues_the_same_conversation(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(tmp_path, ScriptedClient(completed("ok")))
+    bot, gateway, runs, chats, sessions = build(
+        tmp_path, ScriptedClient(completed("ok")), skills=no_skills()
+    )
 
     await gateway.receive(msg("first", 1))
     await settle(runs, gateway)
@@ -65,6 +72,7 @@ async def test_a_tool_step_sends_no_empty_message(tmp_path) -> None:
         tmp_path,
         SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
         echo_tool(),
+        skills=no_skills(),
     )
 
     await gateway.receive(msg("what is it?", 1))
@@ -78,7 +86,10 @@ async def test_a_tool_step_sends_no_empty_message(tmp_path) -> None:
 
 async def test_a_message_during_a_turn_is_queued(tmp_path) -> None:
     bot, gateway, runs, chats, _ = build(
-        tmp_path, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool()
+        tmp_path,
+        SteppedClient(calls_tool("hang", '{"value": "x"}')),
+        hanging_tool(),
+        skills=no_skills(),
     )
     await gateway.receive(msg("slow one", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
@@ -97,7 +108,9 @@ async def test_a_message_during_a_turn_is_queued(tmp_path) -> None:
 
 async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
     """Three lines typed in a burst were one thought."""
-    bot, gateway, runs, chats, sessions = build(tmp_path, ScriptedClient(completed("answered")))
+    bot, gateway, runs, chats, sessions = build(
+        tmp_path, ScriptedClient(completed("answered")), skills=no_skills()
+    )
     await gateway.receive(msg("opening", 1))
     await settle(runs, gateway)
     state = await chats.load("telegram", CHAT)
@@ -119,7 +132,7 @@ async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
 
 
 async def test_drained_returns_at_once_for_an_idle_chat(tmp_path) -> None:
-    _, gateway, _, _, _ = build(tmp_path, ScriptedClient(completed("hi")))
+    _, gateway, _, _, _ = build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
 
     await asyncio.wait_for(gateway.drained("telegram", CHAT), timeout=1)
 
@@ -137,6 +150,7 @@ async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: as
         ),
         gated_tool(first),
         gated_tool(second, name="gate2"),
+        skills=no_skills(),
     )
     await gateway.receive(msg("slow one", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
@@ -217,7 +231,9 @@ async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -
 
 
 async def test_delivery_advances_the_cursor(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(tmp_path, ScriptedClient(completed("hi")))
+    bot, gateway, runs, chats, sessions = build(
+        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+    )
 
     await gateway.receive(msg("hello", 1))
     await settle(runs, gateway)
@@ -229,14 +245,16 @@ async def test_delivery_advances_the_cursor(tmp_path) -> None:
 
 async def test_a_restart_does_not_resend(tmp_path) -> None:
     """The cursor is what stops someone getting yesterday's reply twice."""
-    bot, gateway, runs, chats, sessions = build(tmp_path, ScriptedClient(completed("hi")))
+    bot, gateway, runs, chats, sessions = build(
+        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+    )
     await gateway.receive(msg("hello", 1))
     await settle(runs, gateway)
     delivered = len(bot.sent)
 
     # A fresh service over the same directories — nothing shared in memory.
     reopened_bot, reopened, reopened_runs, _, _ = build(
-        tmp_path, ScriptedClient(completed("second"))
+        tmp_path, ScriptedClient(completed("second")), skills=no_skills()
     )
     await reopened.receive(msg("again", 2))
     await settle(reopened_runs, reopened)

@@ -55,6 +55,18 @@ class InboundMessage(BaseModel):
     text: str
 
 
+class DuplicateChannelError(RuntimeError):
+    """Two channels registered under one platform name."""
+
+
+class UnknownChannelError(RuntimeError):
+    """A message arrived from a platform with no registered transport.
+
+    Loud rather than ignored: it means a channel was wired to receive but not to
+    reply, and a bot that reads everything and answers nothing looks like a hang.
+    """
+
+
 class Channel(Protocol):
     """One whole platform: receiving, and how it recovers.
 

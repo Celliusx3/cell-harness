@@ -24,9 +24,11 @@ routes its equivalents around the busy policy for the same reason.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import StrEnum
 
 from harness.channels.gateway import ChannelGateway
+from harness.skills import Skill
 
 
 class Command(StrEnum):
@@ -34,16 +36,34 @@ class Command(StrEnum):
 
     NEW = "new"
     STOP = "stop"
-    # Recognised as *a* command but not one we have. Answered rather than passed
-    # to the model: someone typing `/summarise` meant a command, and treating it
-    # as a prompt produces a confident answer to a question they did not ask.
-    UNKNOWN = "unknown"
+    # The phone has no `/skills` page. This is its list.
+    SKILLS = "skills"
 
 
 STARTED = "New conversation started."
 STOPPED = "Stopped."
 NOTHING_TO_STOP = "Nothing is running."
-HELP = "Commands: new — start a fresh conversation. stop — stop the current reply."
+COMMANDS = "Commands: /new, /stop."
+
+
+def unknown_skill(name: str, skills: Sequence[Skill]) -> str:
+    """The reply to a `/word` that is neither a command nor a skill.
+
+    Answered rather than passed to the model: someone typing `/summarise` meant
+    a command, and treating it as a prompt produces a confident answer to a
+    question they did not ask. The reply lists what they could have typed — the
+    gateway raises `UnknownSkill`, each platform sends this.
+    """
+    listed = ", ".join(f"/{skill.name}" for skill in skills) or "none"
+    return f"No skill named {name!r}. Skills: {listed}. {COMMANDS}"
+
+
+def skills_reply(skills: Sequence[Skill]) -> str:
+    """`/skills`: every skill a person may type, with what it is for."""
+    if not skills:
+        return f"No skills installed. {COMMANDS}"
+    lines = "\n".join(f"/{skill.name} — {skill.description}" for skill in skills)
+    return f"Skills you can type:\n{lines}\n\n{COMMANDS}"
 
 
 async def apply(gateway: ChannelGateway, channel: str, chat_id: str, command: Command) -> str:
@@ -57,4 +77,4 @@ async def apply(gateway: ChannelGateway, channel: str, chat_id: str, command: Co
         return STARTED
     if command is Command.STOP:
         return STOPPED if await gateway.stop(channel, chat_id) else NOTHING_TO_STOP
-    return HELP
+    return skills_reply(gateway.skills.invocable())

@@ -37,11 +37,12 @@ import logging
 import discord
 from discord import app_commands
 
-from harness.channels.commands import Command
+from harness.channels.commands import Command, unknown_skill
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, OnMissing
 from harness.channels.text import split_message
+from harness.skills import UnknownSkill
 
 logger = logging.getLogger("harness.channels.discord")
 
@@ -92,6 +93,10 @@ class DiscordChannel:
         async def stop(interaction: discord.Interaction) -> None:
             await self._on_command(interaction, Command.STOP)
 
+        @self._tree.command(name="skills", description="List the skills you can type as /name")
+        async def skills(interaction: discord.Interaction) -> None:
+            await self._on_command(interaction, Command.SKILLS)
+
     # ── receiving ─────────────────────────────────────────────────────────────
 
     async def run(self) -> None:
@@ -119,6 +124,10 @@ class DiscordChannel:
         chat_id = str(message.channel.id)
         try:
             await self._gateway.receive(InboundMessage(channel=CHANNEL, chat_id=chat_id, text=text))
+        except UnknownSkill as err:
+            await self.send_message(
+                chat_id, unknown_skill(err.name, self._gateway.skills.invocable())
+            )
         except Exception:
             # One chat's bad message is not a reason to stop answering everyone
             # else, and the library would otherwise route this to `on_error`.

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
-from harness.channels.commands import Command, apply
+from harness.channels.commands import Command, apply, skills_reply, unknown_skill
+from harness.skills import Skill
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -13,12 +15,16 @@ from tests.unit.fakes import (
     hanging_tool,
 )
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
+from tests.unit.helpers import no_skills, skills_at
+from tests.unit.test_skill_tool import write_skill
 
 # ── commands ──────────────────────────────────────────────────────────────────
 
 
 async def test_new_points_the_chat_at_a_fresh_conversation(tmp_path) -> None:
-    bot, gateway, runs, chats, _ = build(tmp_path, ScriptedClient(completed("hi")))
+    bot, gateway, runs, chats, _ = build(
+        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+    )
     await gateway.receive(msg("hello", 1))
     await settle(runs, gateway)
     before = (await chats.load("telegram", CHAT)).conversation_id
@@ -37,7 +43,10 @@ async def test_new_points_the_chat_at_a_fresh_conversation(tmp_path) -> None:
 async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
     """ "Stop" means stop — answering the queue afterwards is the opposite."""
     bot, gateway, runs, chats, _ = build(
-        tmp_path, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool()
+        tmp_path,
+        SteppedClient(calls_tool("hang", '{"value": "x"}')),
+        hanging_tool(),
+        skills=no_skills(),
     )
     await gateway.receive(msg("slow", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
@@ -55,20 +64,33 @@ async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
 
 
 async def test_stop_on_an_idle_chat_says_so(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(tmp_path, ScriptedClient(completed("hi")))
+    bot, gateway, runs, _, _ = build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
 
     assert await apply(gateway, "telegram", CHAT, Command.STOP) == "Nothing is running."
 
 
-async def test_an_unknown_command_is_answered_not_sent_to_the_model(tmp_path) -> None:
-    """`/summarise` meant a command; passing it through would produce a confident
-    answer to a question nobody asked."""
-    bot, gateway, runs, _, sessions = build(tmp_path, ScriptedClient(completed("hi")))
+def test_an_unknown_skill_reply_says_what_can_be_typed() -> None:
+    """`/summarise` meant something; the reply is the list it could have been."""
+    reply = unknown_skill("summarise", named("find-place", "weekly-report"))
 
-    reply = await apply(gateway, "telegram", CHAT, Command.UNKNOWN)
+    assert reply == (
+        "No skill named 'summarise'. Skills: /find-place, /weekly-report. Commands: /new, /stop."
+    )
+    assert unknown_skill("x", []) == "No skill named 'x'. Skills: none. Commands: /new, /stop."
 
-    assert "Commands:" in reply
-    assert bot.sent == []
+
+def named(*names: str) -> list[Skill]:
+    return [
+        Skill(
+            name=name,
+            description="d",
+            dir=Path("/x") / name,
+            root=Path("/x"),
+            model_invocable=True,
+            user_invocable=True,
+        )
+        for name in names
+    ]
 
 
 async def test_stopping_before_the_first_checkpoint_does_not_break_the_chat(tmp_path) -> None:
@@ -79,7 +101,9 @@ async def test_stopping_before_the_first_checkpoint_does_not_break_the_chat(tmp_
     the chat was **permanently** broken: every later message resumed a
     conversation that would never exist.
     """
-    bot, gateway, runs, chats, _ = build(tmp_path, ScriptedClient(completed("hi")))
+    bot, gateway, runs, chats, _ = build(
+        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+    )
     await gateway.receive(msg("hello", 1))
     await gateway.stop("telegram", CHAT)
 
@@ -98,7 +122,9 @@ async def test_a_drained_turn_delivers_its_reply(tmp_path) -> None:
     returning; one added `await` in the unwind and the drained follow-up would
     have died half-delivered. This asserts the reply actually arrives.
     """
-    bot, gateway, runs, chats, _ = build(tmp_path, ScriptedClient(completed("answered")))
+    bot, gateway, runs, chats, _ = build(
+        tmp_path, ScriptedClient(completed("answered")), skills=no_skills()
+    )
     await gateway.receive(msg("opening"))
     await settle(runs, gateway)
     state = await chats.load("telegram", CHAT)
@@ -108,3 +134,25 @@ async def test_a_drained_turn_delivers_its_reply(tmp_path) -> None:
     await settle(runs, gateway)
 
     # Two replies: the opening turn's, and the drained one's.
+
+
+async def test_skills_lists_what_can_be_typed(tmp_path) -> None:
+    """The phone has no `/skills` page; this is its list."""
+    root = tmp_path / "skills"
+    write_skill(root, "find-place", "Where a reel was filmed.")
+    write_skill(root, "internal", "Not for typing.", user_invocable="false")
+    bot, gateway, runs, _, _ = build(
+        tmp_path, ScriptedClient(completed("hi")), skills=skills_at(root)
+    )
+
+    reply = await apply(gateway, "telegram", CHAT, Command.SKILLS)
+
+    assert (
+        reply
+        == "Skills you can type:\n/find-place — Where a reel was filmed.\n\nCommands: /new, /stop."
+    )
+    assert bot.sent == []
+
+
+def test_no_skills_says_so() -> None:
+    assert skills_reply([]) == "No skills installed. Commands: /new, /stop."

@@ -22,16 +22,20 @@ from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.store import McpServerStore
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
-from harness.skills import Catalog, SkillSnapshot
+from harness.skills import SkillService
 from harness.web.server import create_app
 
 
 def web_gateway(
-    tmp_path: Path, service: SessionService, runs: RunStore
+    tmp_path: Path, service: SessionService, runs: RunStore, *, skills: SkillService
 ) -> tuple[ChannelGateway, WebChannel]:
     """A gateway with only the browser registered."""
     gateway = ChannelGateway(
-        JsonlChatRepository(tmp_path / "chats"), runs, service, public_url="http://t"
+        JsonlChatRepository(tmp_path / "chats"),
+        runs,
+        service,
+        skills,
+        public_url="http://t",
     )
     web = WebChannel(service, runs, gateway)
     gateway.register(web)
@@ -57,11 +61,8 @@ def web_app(
     runs: RunStore,
     *,
     mcp: McpServerStore | None = None,
-    skills: Catalog = SkillSnapshot,
+    skills: SkillService,
 ) -> FastAPI:
-    """The application, wired as `create_web_app` wires it.
-
-    `skills` defaults to an empty catalog — `SkillSnapshot()` with no arguments is one.
-    """
-    gateway, web = web_gateway(tmp_path, service, runs)
+    """The application, wired as `create_web_app` wires it."""
+    gateway, web = web_gateway(tmp_path, service, runs, skills=skills)
     return create_app(runs, gateway, web, mcp or web_mcp(), skills)

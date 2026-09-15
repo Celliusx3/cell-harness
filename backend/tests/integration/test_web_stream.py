@@ -31,7 +31,7 @@ from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool, hanging_tool
-from tests.unit.helpers import pipeline_for
+from tests.unit.helpers import no_skills, pipeline_for
 from tests.webapp import web_app
 
 # Generous, because a failure here should read as "the contract broke" rather
@@ -79,7 +79,7 @@ async def served(
     )
     runs = RunStore(service, agent)
     async with (
-        serving(web_app(tmp_path, service, runs)) as base_url,
+        serving(web_app(tmp_path, service, runs, skills=no_skills())) as base_url,
         httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as http,
     ):
         yield http, service, runs

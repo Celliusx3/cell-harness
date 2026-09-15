@@ -19,7 +19,7 @@ from tests.unit.fakes import (
     gated_tool,
     hanging_tool,
 )
-from tests.unit.helpers import until
+from tests.unit.helpers import no_skills, until
 from tests.webapp import web_app
 
 # ── one turn at a time ────────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ async def test_shutdown_stops_a_running_turn_durably(tmp_path) -> None:
     service, runs = build(
         tmp_path, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool()
     )
-    app = web_app(tmp_path, service, runs)
+    app = web_app(tmp_path, service, runs, skills=no_skills())
     transport = httpx.ASGITransport(app=app)
     conversation_id = ""
 

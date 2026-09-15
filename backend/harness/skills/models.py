@@ -17,7 +17,6 @@ Pure: nothing here touches the disk. `catalog.py` does the reading.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
 
@@ -39,6 +38,20 @@ _FENCE = "---"
 
 class InvalidSkill(ValueError):
     """A `SKILL.md` that cannot be loaded. The message says why, for a person."""
+
+
+class UnknownSkill(LookupError):
+    """`/name` named no skill a person may invoke.
+
+    One error for three causes — no such skill, `user-invocable: false`, or a
+    `SKILL.md` that failed to parse — because the spec's client guide says to
+    hide filtered skills rather than list and refuse them, and because the reply
+    is the same either way: here is what you can type.
+    """
+
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
+        self.name = name
 
 
 class Frontmatter(BaseModel):
@@ -89,11 +102,6 @@ class SkillSnapshot(BaseModel):
 
     skills: tuple[Skill, ...] = ()
     problems: tuple[SkillProblem, ...] = ()
-
-
-# The seam every consumer reads through. A callable rather than a Protocol with
-# one implementation, the same choice code mode made for its `Catalog`.
-Catalog = Callable[[], SkillSnapshot]
 
 
 def valid_name(name: str) -> bool:

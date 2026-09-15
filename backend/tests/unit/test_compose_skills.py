@@ -15,11 +15,11 @@ from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.skills import SKILL, SkillCatalog
+from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.native.code import EXECUTE, LIST
 from harness.web.server import DEFAULT_TOOLS, build_agent
-from tests.unit.helpers import no_progress
+from tests.unit.helpers import no_progress, skills_at
 
 
 def write_skill(root: Path, name: str) -> Path:
@@ -37,7 +37,7 @@ def compose(tmp_path: Path):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(settings, sessions, mcp, SkillCatalog([root]))
+        return build_agent(settings, sessions, mcp, skills_at(root))
 
     return build, root
 
@@ -97,3 +97,20 @@ async def test_a_script_cannot_reach_it(compose) -> None:
         progress=no_progress,
     )
     assert "skill is not defined" in str(ran).lower() or "cannot be called" in str(ran)
+
+
+def test_a_skill_saved_through_the_editor_is_offered_next_request(compose) -> None:
+    """8.4's "save, it is used": no restart, no refresh step — the catalog's
+    file stamp sees the write and the next `specs()` carries the new name."""
+    build, root = compose
+    agent = build()
+    assert agent.tools is not None
+    assert SKILL not in [s.name for s in agent.tools.specs()]
+
+    skills_at(root).save("notes", "---\ndescription: Notes.\n---\nWrite them.\n")
+
+    (spec,) = [s for s in agent.tools.specs() if s.name == SKILL]
+    assert spec.input_schema["properties"]["name"]["enum"] == ["notes"]
+
+    skills_at(root).delete("notes")
+    assert SKILL not in [s.name for s in agent.tools.specs()]

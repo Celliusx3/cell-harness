@@ -19,6 +19,7 @@ from harness.channels.telegram.commands import parse
     [
         ("/new", Command.NEW),
         ("/stop", Command.STOP),
+        ("/skills", Command.SKILLS),
         ("  /new  ", Command.NEW),
         ("/NEW", Command.NEW),
     ],
@@ -33,10 +34,11 @@ def test_the_botname_suffix_is_stripped() -> None:
     assert parse("/new@my_harness_bot") is Command.NEW
 
 
-def test_an_unknown_slash_word_is_a_command_not_a_prompt() -> None:
-    """Someone typing `/summarise` meant a command; handing it to the model
-    produces a confident answer to a question nobody asked."""
-    assert parse("/summarise this") is Command.UNKNOWN
+def test_any_other_slash_word_is_left_for_the_gateway() -> None:
+    """`/find-place` is a skill and `/summarise` is nobody's — but which is which
+    is the catalog's call, not the platform's, so both go through."""
+    assert parse("/summarise this") is None
+    assert parse("/find-place https://x") is None
 
 
 @pytest.mark.parametrize("text", ["hello", "what is 1/2?", "", "   "])

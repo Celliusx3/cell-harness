@@ -54,7 +54,7 @@ from harness.runs.store import RunStore
 from harness.sandbox import DenoRunner
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.skills import SKILL, Catalog, SkillCatalog, skill_tool
+from harness.skills import SKILL, SkillService, skill_tool
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
@@ -104,7 +104,7 @@ def build_mcp(settings: Settings) -> McpServerStore:
 
 
 def build_agent(
-    settings: Settings, store: SessionService, mcp: McpServerStore, skills: Catalog
+    settings: Settings, store: SessionService, mcp: McpServerStore, skills: SkillService
 ) -> LoopAgent:
     """The default agent: a model, the native tools, the guardrail, and a
     durability checkpoint.
@@ -173,7 +173,7 @@ def build_agent(
 
 
 def build_channels(
-    settings: Settings, sessions: SessionService, runs: RunStore
+    settings: Settings, sessions: SessionService, runs: RunStore, skills: SkillService
 ) -> tuple[ChannelGateway, WebChannel]:
     """The gateway, and a runtime per configured platform.
 
@@ -195,7 +195,7 @@ def build_channels(
     # whole of this harness's durable state, and every platform shares it — the
     # channel name is part of a chat's identity, so they cannot collide.
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
-    gateway = ChannelGateway(chats, runs, sessions, public_url=settings.web.public_url)
+    gateway = ChannelGateway(chats, runs, sessions, skills, public_url=settings.web.public_url)
 
     # Unconditional, because the browser is the product's floor — there is no
     # configuration in which the HTTP API is absent. It registers like any other
@@ -229,11 +229,11 @@ def create_web_app() -> FastAPI:
     settings = load()
     service = build_store(settings)
     mcp = build_mcp(settings)
-    # One catalog for the agent and the settings API, so what the page lists and
-    # what the model is offered are the same read.
-    skills = SkillCatalog(settings.skills.roots)
+    # One service for the agent, the gateway and the API, so what the page
+    # lists, what `/name` accepts and what the model is offered are one read.
+    skills = SkillService(settings.skills)
     runs = RunStore(service, build_agent(settings, service, mcp, skills))
-    gateway, web = build_channels(settings, service, runs)
+    gateway, web = build_channels(settings, service, runs, skills)
     return create_app(runs, gateway, web, mcp, skills)
 
 
@@ -242,7 +242,7 @@ def create_app(
     gateway: ChannelGateway,
     web: WebChannel,
     mcp: McpServerStore,
-    skills: Catalog,
+    skills: SkillService,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it.
 

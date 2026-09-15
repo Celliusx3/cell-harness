@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquarePlus } from "lucide-react";
+import { BookOpen, MessageSquarePlus } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,13 +41,24 @@ export function Sidebar() {
     <aside className="flex w-72 shrink-0 flex-col border-r border-line bg-surface-sunken">
       <div className="flex items-center justify-between px-4 py-4">
         <span className="text-sm font-semibold tracking-tight">cell-harness</span>
-        <Link
-          href="/"
-          aria-label="New conversation"
-          className="rounded-md p-1.5 text-ink-soft transition hover:bg-line hover:text-ink"
-        >
-          <MessageSquarePlus size={18} />
-        </Link>
+        <div className="flex items-center gap-0.5">
+          <Link
+            href="/skills"
+            aria-label="Skills"
+            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
+              pathname === "/skills" ? "bg-accent-soft text-ink" : "text-ink-soft"
+            }`}
+          >
+            <BookOpen size={18} />
+          </Link>
+          <Link
+            href="/"
+            aria-label="New conversation"
+            className="rounded-md p-1.5 text-ink-soft transition hover:bg-line hover:text-ink"
+          >
+            <MessageSquarePlus size={18} />
+          </Link>
+        </div>
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">

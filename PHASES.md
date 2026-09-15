@@ -34,16 +34,20 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 | 13 | **It reads and writes files** *(opt)* | File tools without going through MCP | 800 |
 | 14 | **It runs commands** *(opt)* | `bash`, confined | 800 |
 | 15 | **It delegates** *(opt)* | Subagents working in parallel | 800 |
+| 16 | **It operates itself** *(opt)* | "Save this as a skill" — it writes one, and uses it next conversation | 500 |
 
 **Phases 1–6 are the product.** 7–10 make it capable and safe. 11–12 make it
-better than cell-bot. 13–15 are agentic capabilities to add only if the product
+better than cell-bot. 13–16 are agentic capabilities to add only if the product
 turns out to want them.
 
 ## Status
 
-**Phase 10 — "it doesn't get stuck" — done, ahead of 8.3–8.4 and 9.** Phase 8
-is in progress (8.1–8.2 done). Since phase 7, six insertions not planned above,
-then phase 10 as written with three cuts recorded in it.
+**Phase 8 — "it follows instructions" — done; phase 10 done ahead of it.** Next
+is phase 9. Since phase 7, seven insertions not planned above, then phase 10 as
+written with three cuts recorded in it, then 8.3–8.4 with two choices recorded
+in [Phase 8](#phase-8--it-follows-instructions): a `/name` message is expanded
+*in place* — Claude Code's shape, no new event or field — and the editor is
+strict where the catalog is lenient.
 
 | | Insertion | What shipped | Where the reasoning is |
 |---|---|---|---|
@@ -53,6 +57,7 @@ then phase 10 as written with three cuts recorded in it.
 | 4 | **It selects, then calls** | A tool result is a list of typed blocks; `get_function_details` returns `tool_reference` blocks and the pipeline offers the eight most recent. Programs remain for many calls or a large result. | [docs/mcp-tool-scaling.md §7](./docs/mcp-tool-scaling.md) |
 | 5 | **It answers on Discord** | `channels/discord/` — one class, one line in `build_channels`. DMs always; guild channels and threads only when `@mentioned`, so no privileged intent. `/new` and `/stop` are slash commands. | `channels/discord/channel.py` |
 | 6 | **It shows a UI** | MCP Apps (SEP-1865): `ToolResultEvent.ui` binds a result to a `ui://` resource; `/apps/{conversation}/{call}` renders it, every chat gets a link (`web.public_url`, empty by default), `/api/mcp/{server}/` serves the HTML and proxies a view's `tools/call`. Proven against `sysmon`. | [docs/mcp-apps.md](./docs/mcp-apps.md) |
+| 7 | **It researches a stock** | `mcp-servers/markets/` — seven tools over one id vocabulary (`AAPL`, `1155.KL`, `crypto:bitcoin`) for US stocks/ETFs, crypto and Bursa Malaysia: search, quotes, history, profile, financials, EDGAR filings, news. Research only; `backend/harness/` gained nothing. Needs an EDGAR `User-Agent` and a free CoinGecko Demo key in `config.local.json`. | [mcp-servers/markets/README.md](./mcp-servers/markets/README.md) |
 
 ### Why this order
 
@@ -670,8 +675,8 @@ field is ignored, not refused. Research and the six clients compared in
 |---|---|---|
 | 8.1 | `GET /api/skills` lists what is on disk, and why anything did not load | `skills/models.py`, `skills/catalog.py`, `skills.roots` / `skills.editable` in `Settings`, `web/routes/skills.py` |
 | 8.2 | Share a reel; the model calls `skill(name="find-place")`, then one program across both servers | `skills/tool.py`, `withheld` in code mode, `SKILL` in `DEFAULT_TOOLS`, `.agents/skills/find-place/` |
-| 8.3 | Type `/find-place <url>` in the browser or on Telegram; the model receives the body without deciding | `skills/invocation.py`, `UserMessageEvent.invoked`, gateway expansion, Telegram passthrough, a chip in the timeline |
-| 8.4 | A `/skills` page: paste a public `SKILL.md`, save, it is used | `PUT`/`DELETE /api/skills/{name}`, `frontend/app/skills/` |
+| 8.3 | Type `/find-place <url>` in the browser or on Telegram; the model receives the body without deciding | `skills/invocation.py`, gateway expansion, Telegram passthrough, a chip in the timeline. ~~`UserMessageEvent.invoked`~~ — no new field: the message *is* the expansion, typed line first, and `display()` reads the short form back out of it |
+| 8.4 | A `/skills` page: paste a public `SKILL.md`, save, it is used | `skills/editor.py`, `GET`/`PUT`/`DELETE /api/skills/{name}`, `frontend/app/(chat)/skills/` |
 
 **Key contracts.**
 - **The catalog is never logged.** It rides on the `skill` tool's description,
@@ -694,6 +699,26 @@ field is ignored, not refused. Research and the six clients compared in
   reverse. A skill that failed to parse is invocable by nobody.
 - **The `skill` tool is withheld from scripts** — its result is context for the
   model, not data for a program.
+- **`/name` expands in place, first.** The logged user message is the typed
+  line, a blank line, then the skill as the `skill` tool returns it — Claude
+  Code's shape. No field marks it: the title and the bubble split on the
+  first `\n\n<skill name="` and show what precedes it. One string, logged
+  whole, so an edited skill does not rewrite an old conversation, and nothing
+  in the loop, the store or `derive_messages` changed. The marker is the
+  contract, mirrored in `frontend/lib/invocation.ts` and pinned by a test.
+- **An unknown `/name` is answered, never sent to the model.** The gateway
+  raises `UnknownSkill` before queueing; each platform sends the one sentence
+  in `commands.py`. Telegram's `/start` gets it too — `Command.UNKNOWN` is gone,
+  because which slash words are skills is the catalog's call, not the
+  platform's.
+  `/skills` is the third command on both platforms, because a phone has no
+  `/skills` page and a skill nobody can see is a skill nobody types.
+- **The editor is strict where the catalog is lenient.** A save refuses what
+  the catalog would merely note — a mismatched frontmatter `name`, an empty
+  description — and refuses outright a name a higher-ranked root already
+  holds, because it would be written and never read. Delete removes the
+  directory, bundled files included. Both are `skills/editor.py`, typed errors,
+  so phase 16 wraps them without moving them.
 - Bundled files are listed with the body and readable by `path`, confined to
   the skill's directory and capped at 64 KiB. Scripts are listed but cannot run
   (no shell until phase 14); the tool says so.
@@ -707,6 +732,13 @@ field is ignored, not refused. Research and the six clients compared in
 - Deleting the last skill removes the tool from the next request.
 - A root that cannot be listed preserves its last-good set (incomplete ≠ empty).
 - A script calling `skill(...)` is refused; `list_functions` never lists it.
+- `/find-place <url>` logs one `user/message` whose content starts with the
+  typed line and contains `<skill name="find-place">`; its title is the typed
+  line; `/nonexistent` is a `422` in the browser and a reply on Telegram and
+  Discord, with no turn started.
+- A skill saved through `PUT /api/skills/{name}` is in the `skill` enum on the
+  next request with no restart; one the catalog would not load is a `422` with
+  the reason; one the project root owns is a `409`.
 
 **Security note.** A skill's `scripts/` cannot run here — there is no shell —
 so a skill is instructions the model reads. Its instructions can still direct
@@ -924,8 +956,10 @@ not frozen at compose time. Scoped registries are a phase-13 concern.
 
 # Optional track — agentic capabilities
 
-Phases 13–15 are worth building only if the product wants them. cell-bot ships
-without all three. **Decide before starting 13**, not during.
+Phases 13–16 are worth building only if the product wants them. cell-bot ships
+without any of them. **Decide before starting 13**, not during. 16 depends on
+none of 13–15 — it is here because it is a capability the product may not want,
+not because it needs a shell.
 
 ## Phase 13 — It reads and writes files *(optional)*
 
@@ -966,6 +1000,66 @@ lacks is **rejected loudly**. Layer resolution is global → farthest ancestor �
 nearest; `own()` is chain-blind because capabilities inherit and restrictions
 don't. ~800 lines.
 
+## Phase 16 — It operates itself *(optional)*
+
+**Demo.** The model has just walked a reel to a place across two servers. "Save
+that as a skill." It calls `skill_save`; `/skills` lists it; a new
+conversation's `skill` enum offers it and `/name` invokes it. Hermes's
+`skill_manage` and OpenClaw's proposal queue are the precedents — a chat
+product's agent writes its own instructions.
+
+**The principle.** A feature we build for the system ships with a tool for the
+model, or a recorded reason it does not. The API is the only surface for
+people; after this phase the tool list is the same surface for the model.
+
+**Depends on.** 8 (the editor service and the `/skills` page it shares); 11 for
+`agent_*`.
+
+**Ships.**
+- `tools/native/skills/` — `skill_save(name, text)`, `skill_delete(name)`, thin
+  over `skills/editor.py` — the same service `PUT`/`DELETE /api/skills/{name}`
+  call, so the page and the model have one validator and one write path.
+- `tools/native/conversations/` — `conversation_search(query)`,
+  `conversation_read(id)`: read-only, the model's cross-conversation memory
+  until phase 12 gives it a better one.
+- `tools/native/mcp/` — `mcp_servers()`: which servers are connected, which
+  failed and why, so the model can tell a person "places is not connected"
+  instead of failing a program.
+- After 11: `agent_save`, `agent_delete` over `agents/service.py`.
+- A stay-in-step test: every mutating `/api` route maps to a tool or to a line
+  in a `NOT_EXPOSED` table with the reason.
+
+**Key contracts.**
+- **Self-modification is a visible call.** Every `*_save`/`*_delete` is
+  withheld from code mode, like `skill`, so a write to the model's own
+  instructions is its own `tool/call` in the timeline, never a line inside a
+  program.
+- **The tool can do exactly what the page can.** Same validation, same
+  editable-root rule, same refusals — rendered as a `Failure`, never a raise. A
+  skill the page would refuse, the model cannot save.
+- **Nothing that spawns or destroys without an approval gate.** MCP
+  connect/disconnect stays cut for phase 7's reason (a model-callable connect
+  tool spawns processes); conversation delete and config edits likewise. They
+  wait for phase 14's `interaction/approval.py`, which must not fail open.
+- Reads are offered to scripts; writes are not.
+
+**Acceptance.**
+- The demo, end to end, with the saved skill visible on `/skills` and the write
+  visible as a tool card in the conversation that made it.
+- `skill_save` with a body the page would reject returns the page's message as
+  a `Failure`.
+- `skill_delete` on a project-root skill is refused naming the root.
+- `list_functions` never lists a `*_save`/`*_delete`; a script calling one is
+  refused.
+- The route ↔ tool table test fails when a mutating route is added without a
+  tool or a reason.
+
+**Cut, and why.** `mcp_connect` (phase 7's cut stands), `conversation_delete`
+(destructive, no gate), `settings_*` (secrets), a proposal queue for
+model-written skills (OpenClaw) — the timeline is the review surface; if someone
+wants approval before a write, that is phase 14's gate, not a second queue.
+~500 lines.
+
 ---
 
 # Cross-cutting, from phase 1
@@ -993,6 +1087,7 @@ Not phases. They start immediately and run throughout.
 | Phase 4 | Frontend stack | **Next.js**, matching cell-bot's `frontend/` |
 | Phase 8 | Skills from DB, filesystem, or both | ~~Both~~ **Filesystem** — there is no DB, and a managed directory the page writes into is the same feature with one provider |
 | Phase 13 | Build the optional track at all | **Defer** until the product asks |
+| Phase 16 | Which mutations the model may make without an approval gate | **Skills only** — reads elsewhere, writes wait for 14's gate |
 
 ---
 

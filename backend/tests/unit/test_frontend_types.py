@@ -14,6 +14,7 @@ cell-bot's templates-versus-enum test.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import get_args
@@ -23,6 +24,7 @@ import pytest
 from harness.llm.messages import Block
 from harness.llm.stream import StreamEvent
 from harness.session.models import SessionEvent, TurnEndReason
+from harness.skills.invocation import MARKER
 
 _TYPES_TS = Path(__file__).resolve().parents[3] / "frontend" / "lib" / "types.ts"
 
@@ -94,3 +96,11 @@ def test_the_check_would_notice_an_absence(types_ts: str) -> None:
     """
     assert 'type: "turn/start"' in types_ts
     assert 'type: "turn/invented"' not in types_ts
+
+
+def test_the_invocation_marker_is_the_same_on_both_sides() -> None:
+    """`/name` expands to one string and the browser parses the typed line back
+    out of it. The marker is the whole contract; two copies that drift would
+    show a skill body as the person's bubble."""
+    source = (_TYPES_TS.parent / "invocation.ts").read_text()
+    assert f"export const MARKER = {json.dumps(MARKER)};" in source

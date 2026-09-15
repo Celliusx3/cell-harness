@@ -36,6 +36,7 @@ from harness.session.repository import (
     SessionFormatUnsupportedError,
     SessionNotFoundError,
 )
+from harness.skills import display
 
 # How many characters of the first user message become the title. Long enough to
 # tell two conversations apart in a list, short enough to render in a sidebar.
@@ -58,7 +59,11 @@ def _title_from(events: Sequence[SessionEvent]) -> str:
     """
     for event in events:
         if isinstance(event, UserMessageEvent):
-            text = event.message.content.strip()
+            content = event.message.content
+            # `/name` expands in place, so the first message can be mostly a
+            # skill body. The title is what the person typed.
+            shown = display(content)
+            text = (shown.typed if shown else content).strip()
             if text:
                 return text[:TITLE_MAX_CHARS]
     return ""

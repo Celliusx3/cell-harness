@@ -18,12 +18,14 @@ from pathlib import Path
 
 from harness.agent.hooks import HookChain
 from harness.agent.loop import LoopAgent
+from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.runs.store import RunStore
 from harness.session.log import Session
 from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.skills import SkillService
 from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
@@ -145,3 +147,15 @@ def durable_service(root: Path, *, prefix: str = "c") -> SessionService:
 def run_store(service: SessionService, client, *tools: ToolDefinition) -> RunStore:
     """Runs over an agent that checkpoints through `service`, as the server wires it."""
     return RunStore(service, loop_agent(client, *tools, checkpoint=service.flush))
+
+
+def skills_at(*roots: Path) -> SkillService:
+    """A skill service over test directories, ranked as given; the last is the
+    editable one, as `~/.agents/skills` is in config.json. A root that does not
+    exist is simply empty."""
+    return SkillService(SkillSettings(roots=roots, editable=roots[-1]))
+
+
+def no_skills() -> SkillService:
+    """For call sites with no `tmp_path`: a root that cannot exist."""
+    return skills_at(Path("/nonexistent/cell-harness-skills"))

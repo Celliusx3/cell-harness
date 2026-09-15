@@ -24,6 +24,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.helpers import no_skills
 
 
 def build(tmp_path: Path):
@@ -41,7 +42,7 @@ def build(tmp_path: Path):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions, public_url="http://t")
+    gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     web = WebChannel(sessions, runs, gateway)
     gateway.register(web)
     return gateway, web, runs, chats, sessions
@@ -49,7 +50,7 @@ def build(tmp_path: Path):
 
 async def settle(runs: RunStore, gateway: ChannelGateway, key) -> None:
     for _ in range(300):
-        task = gateway._following.get(key)
+        task = gateway._tasks.get(key)
         busy = task is not None and not task.done()
         if not busy and not any(runs._runs.values()):
             return

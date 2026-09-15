@@ -21,6 +21,7 @@ from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.helpers import no_skills
 
 BOT_ID = 900
 
@@ -144,7 +145,7 @@ def build(tmp_path, client: LLMClient | None = None):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions, public_url="http://t")
+    gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     channel, fake = discord_channel(gateway)
     gateway.register(channel)
     return channel, fake, gateway, runs, chats, sessions
@@ -153,7 +154,7 @@ def build(tmp_path, client: LLMClient | None = None):
 async def settle(gateway: ChannelGateway, runs: RunStore) -> None:
     """Wait for every turn and its delivery to finish."""
     for _ in range(300):
-        busy = any(not task.done() for task in gateway._following.values())
+        busy = gateway._tasks.running()
         if not busy and not runs._runs:
             return
         await asyncio.sleep(0.01)

@@ -18,17 +18,18 @@ from datetime import UTC, datetime
 
 from harness.agent.loop import LoopAgent
 from harness.channels.commands import Command, apply
-from harness.channels.gateway import (
-    ChannelGateway,
+from harness.channels.gateway import ChannelGateway
+from harness.channels.protocol import (
     DuplicateChannelError,
+    InboundMessage,
     UnknownChannelError,
 )
-from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.helpers import no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
 WHATSAPP = "whatsapp"
@@ -80,12 +81,12 @@ def build(tmp_path):
     )
     runs = RunStore(sessions, agent)
     chats = JsonlChatRepository(tmp_path / "chats")
-    return ChannelGateway(chats, runs, sessions, public_url="http://t"), runs, chats
+    return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t"), runs, chats
 
 
 async def settle(runs, gateway, key) -> None:
     for _ in range(300):
-        task = gateway._following.get(key)
+        task = gateway._tasks.get(key)
         busy = task is not None and not task.done()
         if not busy and not any(runs._runs.values()):
             return
@@ -225,4 +226,4 @@ async def test_a_finished_delivery_is_forgotten(tmp_path) -> None:
     # The callback runs on the loop's next pass, not inline with the task ending.
     await asyncio.sleep(0)
 
-    assert gateway._following == {}
+    assert not gateway._tasks

@@ -12,7 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from harness.skills import InvalidSkill, SkillCatalog, parse
+from harness.skills import InvalidSkill, parse
+from harness.skills.catalog import SkillCatalog
 
 MINIMAL = (
     "---\nname: pdf\ndescription: Extract text from PDFs. Use when handling PDFs.\n---\n"

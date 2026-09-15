@@ -44,10 +44,12 @@ from telegram.error import TelegramError
 from telegram.ext import Application, ApplicationBuilder, MessageHandler, filters
 
 from harness.channels.commands import apply as apply_command
+from harness.channels.commands import unknown_skill
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, OnMissing
 from harness.channels.telegram import commands
 from harness.channels.text import split_message
+from harness.skills import UnknownSkill
 
 logger = logging.getLogger("harness.channels.telegram")
 
@@ -204,6 +206,10 @@ class TelegramChannel:
         try:
             await self._gateway.receive(
                 InboundMessage(channel=CHANNEL, chat_id=chat_id, text=batch.text)
+            )
+        except UnknownSkill as err:
+            await self.send_message(
+                chat_id, unknown_skill(err.name, self._gateway.skills.invocable())
             )
         except Exception:
             # One chat's bad message is not a reason to stop answering everyone

@@ -25,34 +25,27 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from harness.channels.chat_tasks import ChatKey, ChatTasks
 from harness.channels.chats import session_for, state_of
-from harness.channels.protocol import Channel, InboundMessage, Pushing, RunningChannel
+from harness.channels.protocol import (
+    Channel,
+    DuplicateChannelError,
+    InboundMessage,
+    Pushing,
+    RunningChannel,
+    UnknownChannelError,
+)
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.store import Run, RunAlreadyActive, RunStore
 from harness.session.log import Session
 from harness.session.service import SessionService
+from harness.skills import SkillService, UnknownSkill
 
 logger = logging.getLogger("harness.channels")
 
 # Queued messages are joined with a newline because that is how they were typed.
 QUEUE_JOIN = "\n"
-
-# Telegram chat `123` and Discord channel `123` are different conversations, so
-# nothing is keyed on the chat id alone.
-ChatKey = tuple[str, str]
-
-
-class DuplicateChannelError(RuntimeError):
-    """Two channels registered under one platform name."""
-
-
-class UnknownChannelError(RuntimeError):
-    """A message arrived from a platform with no registered transport.
-
-    Loud rather than ignored: it means a channel was wired to receive but not to
-    reply, and a bot that reads everything and answers nothing looks like a hang.
-    """
 
 
 class ChannelGateway:
@@ -63,26 +56,25 @@ class ChannelGateway:
         repository: ChatRepository,
         runs: RunStore,
         sessions: SessionService,
+        skills: SkillService,
         *,
         public_url: str,
     ) -> None:
         self._repository = repository
         self._runs = runs
         self._sessions = sessions
+        # `/name` is expanded here and nowhere else, because this is the one
+        # place every platform's text passes through — a phone and a browser
+        # get the feature from the same line.
+        self._skills = skills
         self._replies = Replies(repository, public_url=public_url)
         # One per platform, for the life of the server. Holds the channel itself
         # — the same object we reply through and listen on, which is why there is
         # one registry and not two.
         self._channels: dict[str, RunningChannel] = {}
-        # One per chat with a turn in flight, for the life of that turn. A strong
-        # reference is mandatory, not bookkeeping: asyncio holds only weak
-        # references to tasks, so an unreferenced follower can be collected
-        # mid-send. `hermes-agent` keeps the same collections for the same
-        # reason. Only `aclose()` reads it — `/stop` goes through the run.
-        #
-        # In memory, so single-process. Multi-pod needs shared storage and a
-        # lease; `RunStore` is what breaks first, not this. DESIGN.md §7.
-        self._following: dict[ChatKey, asyncio.Task[None]] = {}
+        # One per chat with a turn in flight, for the life of that turn. Only
+        # `drained()` and `aclose()` read it — `/stop` goes through the run.
+        self._tasks = ChatTasks()
 
     def register(self, channel: Channel) -> None:
         """Add one platform: how to reply on it, and its background task.
@@ -101,16 +93,19 @@ class ChannelGateway:
         # every message while answering none. Naming the resolved mode at startup
         # is what makes that visible — the same fix phase 5 used for a poller that
         # died without saying so.
-        logger.info(
-            "%s channel registered (%s)",
-            channel.channel,
-            "push" if isinstance(channel, Pushing) else "pull",
-        )
+        mode = "push" if isinstance(channel, Pushing) else "pull"
+        logger.info("%s channel registered (%s)", channel.channel, mode)
 
     @property
     def channels(self) -> list[str]:
         """The registered platforms, for logs and tests."""
         return list(self._channels)
+
+    @property
+    def skills(self) -> SkillService:
+        """What `/name` may name — for a channel composing the refusal when it
+        named something else."""
+        return self._skills
 
     async def start(self) -> None:
         """Begin receiving on every registered channel."""
@@ -129,20 +124,24 @@ class ChannelGateway:
         same question twice, which `channels/__init__.py`'s "dedupe by
         consequence" rule says is not worth guarding.
         """
-        if message.channel not in self._channels:
-            raise UnknownChannelError(f"no channel registered for {message.channel!r}")
+        self._require(message.channel)
+        # Before the busy check, so `/nonexistent` is refused now, while there is
+        # a request to refuse it on — a queue has no one to tell.
+        content = self._skills.expand(message.text)
 
         state = await self._state(message.channel, message.chat_id)
         if state.conversation_id and self._runs.active(state.conversation_id) is not None:
             # Held, not refused, on every channel. A phone cannot grey out its
             # composer, and a browser that refuses makes the person retype — so
             # the alternative is always dropping something someone wrote.
+            # The typed text, not the expansion: the skill is read when the
+            # turn starts, the same moment it would be for a message sent then.
             await self._repository.save(
                 state.model_copy(update={"pending": (*state.pending, message.text)})
             )
             return None
 
-        return await self._turn_for_chat(state, message.text)
+        return await self._turn_for_chat(state, content)
 
     async def start_turn(self, session: Session, text: str, *, channel: str) -> Run:
         """Begin a turn for a session the caller already holds.
@@ -153,11 +152,11 @@ class ChannelGateway:
         and a channel whose `on_missing` is `raise` would 404 on the conversation
         it had just made.
         """
-        if channel not in self._channels:
-            raise UnknownChannelError(f"no channel registered for {channel!r}")
+        self._require(channel)
+        content = self._skills.expand(text)
         state = ChatState(channel=channel, chat_id=session.id, conversation_id=session.id)
         await self._repository.save(state)
-        return self._begin(state, session, text)
+        return self._begin(state, session, content)
 
     async def reset(self, channel: str, chat_id: str) -> None:
         """Point this chat at a fresh conversation (`/new`).
@@ -201,7 +200,7 @@ class ChannelGateway:
         hanging up — must not cancel the follower, or closing a tab would lose
         the message it had queued. A watcher owns nothing.
         """
-        task = self._following.get((channel, chat_id))
+        task = self._tasks.get((channel, chat_id))
         if task is None:
             return
         state = await self._state(channel, chat_id)
@@ -217,11 +216,11 @@ class ChannelGateway:
         """
         for supervised in self._channels.values():
             await supervised.aclose()
-        for task in list(self._following.values()):
-            task.cancel()
-        if self._following:
-            await asyncio.gather(*self._following.values(), return_exceptions=True)
-        self._following.clear()
+        await self._tasks.aclose()
+
+    def _require(self, channel: str) -> None:
+        if channel not in self._channels:
+            raise UnknownChannelError(f"no channel registered for {channel!r}")
 
     async def _state(self, channel: str, chat_id: str) -> ChatState:
         return await state_of(self._repository, self._channels[channel].channel, chat_id)
@@ -243,25 +242,9 @@ class ChannelGateway:
     def _begin(self, state: ChatState, session: Session, text: str) -> Run:
         """Start the run, and follow it to its end."""
         run = self._runs.start(session, text)
-        self._spawn_follower(state, run)
-        return run
-
-    def _spawn_follower(self, state: ChatState, run: Run) -> None:
         key = (state.channel, state.chat_id)
-        # Deliberately no "cancel the previous follower for this chat". Two cannot
-        # overlap: a turn only starts when none is active, and the one path that
-        # spawns while another is live is the drain — where the "previous" *is*
-        # the calling task, so the guard only cancelled itself.
-        task = asyncio.create_task(self._follow(key, run))
-        self._following[key] = task
-        # Or every chat that has ever had a turn leaves a completed task here
-        # until the process stops. Guarded on identity because a newer follower
-        # may already own the key.
-        task.add_done_callback(lambda done: self._forget(key, done))
-
-    def _forget(self, key: ChatKey, task: asyncio.Task[None]) -> None:
-        if self._following.get(key) is task:
-            del self._following[key]
+        self._tasks.start(key, self._follow(key, run))
+        return run
 
     async def _follow(self, key: ChatKey, run: Run) -> None:
         """See this turn to its end, then start whatever queued behind it.
@@ -304,4 +287,12 @@ class ChannelGateway:
         text = QUEUE_JOIN.join(state.pending)
         cleared = state.model_copy(update={"pending": ()})
         await self._repository.save(cleared)
-        await self._turn_for_chat(cleared, text)
+        try:
+            content = self._skills.expand(text)
+        except UnknownSkill as err:
+            # Accepted while the skill existed, gone by the time its turn came.
+            # Nobody is waiting on a reply to refuse into, so the literal line
+            # goes to the model — the honest record of what was typed.
+            logger.warning("queued /%s no longer names a skill; sent as text", err.name)
+            content = text
+        await self._turn_for_chat(cleared, content)

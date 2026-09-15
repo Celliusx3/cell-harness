@@ -11,6 +11,7 @@ from mcp.types import CallToolResult, ImageContent, TextContent
 from harness.web.routes.mcp import build_csp
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.helpers import no_skills
 from tests.unit.mcp_fakes import FakeClient, FakeFactory, html_resource, servers, text_result, tool
 from tests.webapp import web_app, web_mcp
 
@@ -58,7 +59,7 @@ async def api(tmp_path):
             break
         await asyncio.sleep(0.01)
     service, runs = build(tmp_path, ScriptedClient(completed("hi")))
-    app = web_app(tmp_path, service, runs, mcp=store)
+    app = web_app(tmp_path, service, runs, mcp=store, skills=no_skills())
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://t"
     ) as http:

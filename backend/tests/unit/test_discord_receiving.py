@@ -125,3 +125,16 @@ def test_the_transport_names_its_channel(tmp_path) -> None:
     """Part of a chat's identity, so Telegram `123` and Discord `123` differ."""
     assert build(tmp_path)[0].channel == "discord"
     assert build(tmp_path)[0].on_missing == "recreate"
+
+
+async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path) -> None:
+    """Discord hands an unregistered `/word` over as plain text; the gateway
+    decides, and the reply is the same one Telegram gives."""
+    channel, client, gateway, runs, chats, sessions = build(tmp_path)
+    chat = client.chat(CHAT)
+
+    await channel.on_message(message(CHAT, "/summarise this"))
+    await settle(gateway, runs)
+
+    assert chat.sent == ["No skill named 'summarise'. Skills: none. Commands: /new, /stop."]
+    assert await chats.load("discord", CHAT) is None

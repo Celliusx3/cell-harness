@@ -14,7 +14,7 @@ import httpx
 
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
-from tests.unit.helpers import durable_service, run_store
+from tests.unit.helpers import durable_service, no_skills, run_store
 from tests.webapp import web_app
 
 
@@ -24,7 +24,7 @@ def build(tmp_path, client, *tools) -> tuple[SessionService, RunStore]:
 
 
 def api(tmp_path, service: SessionService, runs: RunStore) -> httpx.AsyncClient:
-    app = web_app(tmp_path, service, runs)
+    app = web_app(tmp_path, service, runs, skills=no_skills())
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://harness.test")
 
 

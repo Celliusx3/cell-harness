@@ -4,6 +4,8 @@ import type {
   ConversationDetail,
   ConversationSummary,
   MessageAccepted,
+  SkillFile,
+  SkillList,
 } from "./types";
 
 /** Thrown for any non-2xx, carrying the backend's `detail` so the UI can show it. */
@@ -68,6 +70,17 @@ export const sendMessage = (id: string, prompt: string) =>
 
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
+
+export const listSkills = () => request<SkillList>("/skills");
+
+export const getSkill = (name: string) => request<SkillFile>(`/skills/${name}`);
+
+/** Whole-file save into the editable root; the backend validates and refuses. */
+export const putSkill = (name: string, text: string) =>
+  request<void>(`/skills/${name}`, { method: "PUT", body: JSON.stringify({ text }) });
+
+export const deleteSkill = (name: string) =>
+  request<void>(`/skills/${name}`, { method: "DELETE" });
 
 /** An MCP App's HTML, read from its server through the harness. */
 export const getAppResource = (server: string, uri: string) =>
