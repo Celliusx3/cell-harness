@@ -23,7 +23,7 @@ help:
 	@echo "  make test-unit         unit tests only, no coverage gate"
 	@echo "  make test-integration  integration tests only, no coverage gate"
 	@echo "  make test-mcp-servers   each MCP server's own suite and its own gate"
-	@echo "  make lint              ruff check + format check"
+	@echo "  make lint              ruff check + format check + every file under 300 lines"
 	@echo "  make lint-mcp-servers   ruff check + format check in each MCP server"
 	@echo "  make fmt               ruff format + fix"
 	@echo "  make cov               tests with an HTML coverage report"
@@ -75,6 +75,7 @@ lint:
 	$(BACKEND) ruff check .
 	$(BACKEND) ruff format --check .
 	cd backend/harness/sandbox/js && deno check shim.ts && deno lint && deno fmt --check
+	./scripts/check-file-lengths.sh
 
 lint-mcp-servers:
 	@for s in $(MCP_SERVERS); do \

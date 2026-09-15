@@ -84,6 +84,7 @@ are relative to `backend/harness/`.
 - **Explicit over implicit defaults.** Pass behavioral choices explicitly.
 - **One setting, one place to look.** No `a.x or b.y` fallback chains.
 - **Comments: the *why*, in one or two lines.** Longer reasoning goes in docs.
+- **Every file under 300 lines.** `make lint` refuses a longer one; split on the seam, never raise the cap.
 
 ## Invariants
 

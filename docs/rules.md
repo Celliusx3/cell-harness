@@ -39,6 +39,15 @@ ones. A *behavioral* choice (a mode, a flag, which credential, on/off) should be
 passed explicitly. Reserve defaults for genuinely-absent optionals
 (`x: T | None = None`) and obvious zero-values (`default_factory=list`).
 
+**Every file under 300 lines.** `scripts/check-file-lengths.sh` runs inside
+`make lint` and fails on any `.py`, `.ts` or `.tsx` over 300 lines — backend,
+tests, MCP servers, frontend. The number is where a module still reads top to
+bottom in one sitting, and it is the size the repo was refactored to in
+`9c9cb0f`. A file that needs more has two responsibilities; find the seam
+(`channels/chat_tasks.py` came out of the gateway this way, and the `/name`
+tests out of `test_gateway.py`). Never raise the cap or exempt a file — the
+first exemption is the last time the rule means anything.
+
 **One setting, one place to look.** No `a.x or b.y` fallback chains between
 settings — it makes "which value is actually in use?" unanswerable without
 tracing two objects. Give each setting its own default, even if two defaults
