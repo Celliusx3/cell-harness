@@ -109,7 +109,10 @@ class DenoRunner(Runner):
                         # call `main` had in flight met a closed pipe. What is
                         # left on stdout says which; the message names the
                         # mistake, because "handler is closed" told the model
-                        # nothing and it gave up.
+                        # nothing and it gave up. It also names the fix: told
+                        # only "must be awaited", a 4B model deleted the
+                        # `main();` line instead and shipped four scripts that
+                        # declared `main` and never called it.
                         return await self._unanswered(process, frame["name"])
                 case "done":
                     return Script(result=frame.get("result"), logs=tuple(frame.get("logs", ())))
@@ -134,7 +137,8 @@ class DenoRunner(Runner):
                     logs=tuple(frame.get("logs", ())),
                     error=(
                         f"the script returned while {name} was still running — every call "
-                        "must be awaited all the way up to the script's own return"
+                        "must be awaited all the way up to the script's own return: end the "
+                        "body with `return await main();`, or write the steps at the top level"
                     ),
                 )
         return Script(error=await self._died(process))

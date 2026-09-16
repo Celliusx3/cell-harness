@@ -174,5 +174,5 @@ async def test_a_script_that_returns_with_a_call_in_flight_is_told_so() -> None:
 
     assert script.error is not None
     assert "tool was still running" in script.error
-    assert "awaited" in script.error
+    assert "return await main();" in script.error
     assert script.logs == ("in",)

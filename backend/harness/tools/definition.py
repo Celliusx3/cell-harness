@@ -5,7 +5,7 @@ Two ideas carry most of the weight here.
 **The outcome is typed.** `Ok | Failure` rather than a string that starts with
 `"error: "`. The model still sees the string — `render_outcome` produces it, and
 a tolerant string is what lets the model recover instead of the turn dying — but
-everything *inside* the harness switches on the type. The guardrail in phase 10
+everything *inside* the harness switches on the type. The guardrail in phase 9
 counts failures by `Failure.code`; keying it on a string prefix would make any
 tool that phrased its error differently invisible to the detectors, which is the
 one fragility in cell-bot's otherwise identical design.
@@ -181,6 +181,33 @@ class ToolDefinition[ArgsT]:
             input_schema=self.input_schema,
         )
 
+    def _missing_required(self, raw: dict) -> str | None:
+        """A required field the model left out, told back as what it sent
+        against what the schema has.
+
+        Checked before `parse` and for every tool, because an MCP tool's parser
+        is identity and the server's rejection is a pydantic dump that names the
+        missing field but never the keys that arrived. The case that earned this:
+        a model shown `declare function f(args: { id: string })` calls the tool
+        directly with `{"args": {"id": "AAPL"}}` — three conversations, every
+        direct markets call — and "id: Field required" told it nothing about the
+        `args` it had wrapped the call in. Only missing *required* fields are
+        the harness's business; an extra key is the tool's to accept or refuse.
+        """
+        required = [f for f in self.input_schema.get("required", ()) if f not in raw]
+        if not required:
+            return None
+        fields = self.input_schema.get("properties", {})
+        expected = ", ".join(
+            f"{name} (required)" if name in self.input_schema.get("required", ()) else name
+            for name in fields
+        )
+        return (
+            f"invalid arguments for {self.name!r}: missing required field "
+            f"{', '.join(required)}. You sent: {', '.join(raw) or 'nothing'}. "
+            f"Expected fields: {expected}."
+        )
+
     async def invoke(self, arguments: str, *, progress: ToolProgressReporter) -> ToolOutcome:
         """Parse the model's raw argument string, then run.
 
@@ -200,6 +227,9 @@ class ToolDefinition[ArgsT]:
                 INVALID_ARGUMENTS,
                 f"arguments for {self.name!r} must be a JSON object, got {type(raw).__name__}",
             )
+
+        if missing := self._missing_required(raw):
+            return Failure(INVALID_ARGUMENTS, missing)
 
         try:
             parsed = self.parse(raw)

@@ -280,8 +280,14 @@ def _rendered(script: Script) -> ToolOutcome:
 
     returned = "" if script.result is None else f"Returned:\n{_json(script.result)}"
     body = "\n\n".join(part for part in (printed, returned) if part)
+    # The consequence, not the observation. "Finished without printing anything"
+    # was read as success four times in a row by a 4B model that had declared
+    # `main` and never called it; the report that followed had invented figures.
     return Ok(
-        body or "The script finished without returning or printing anything.", data=script.result
+        body
+        or "The script ran but returned nothing and printed nothing, so nothing came "
+        "back to you — no data has been fetched.",
+        data=script.result,
     )
 
 

@@ -140,7 +140,8 @@ async def test_a_script_that_returns_nothing_says_so() -> None:
     outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
     assert isinstance(outcome, Ok)
-    assert "without returning" in outcome.text
+    assert "nothing came back" in outcome.text
+    assert "no data has been fetched" in outcome.text
 
 
 async def test_a_missing_sandbox_is_reported_as_a_failure_not_a_crash() -> None:
