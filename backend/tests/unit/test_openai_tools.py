@@ -224,3 +224,47 @@ async def test_an_assistant_message_without_calls_omits_the_field(monkeypatch) -
     await collect(monkeypatch, handler, messages=[AssistantMessage(content="hi")])
 
     assert captured["messages"][0] == {"role": "assistant", "content": "hi"}
+
+
+@pytest.mark.parametrize("arguments", ["", "   ", "{not json"])
+async def test_unparseable_arguments_are_replayed_as_an_empty_object(
+    monkeypatch, arguments: str
+) -> None:
+    """The log keeps what the model said; the wire carries what the provider can
+    parse. LM Studio 500s on an assistant `tool_calls` entry whose `arguments`
+    is not JSON, on every request that replays it — a dead conversation. The
+    model already saw the `INVALID_ARGUMENTS` result, so nothing is hidden."""
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(json.loads(request.content))
+        return httpx.Response(200, content=sse("[DONE]"))
+
+    history = [
+        AssistantMessage(
+            content="", tool_calls=(ToolCall(id="c1", name="t", arguments=arguments),)
+        ),
+        ToolMessage(tool_call_id="c1", content="error: invalid arguments"),
+    ]
+    await collect(monkeypatch, handler, messages=history)
+
+    assert captured["messages"][0]["tool_calls"][0]["function"]["arguments"] == "{}"
+
+
+async def test_valid_arguments_are_replayed_byte_for_byte(monkeypatch) -> None:
+    """Only the unparseable case is touched: the provider must see exactly what
+    the model emitted, whitespace and key order included."""
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(json.loads(request.content))
+        return httpx.Response(200, content=sse("[DONE]"))
+
+    raw = '{ "b": 1,\n"a": [ ] }'
+    history = [
+        AssistantMessage(content="", tool_calls=(ToolCall(id="c1", name="t", arguments=raw),)),
+        ToolMessage(tool_call_id="c1", content="ok"),
+    ]
+    await collect(monkeypatch, handler, messages=history)
+
+    assert captured["messages"][0]["tool_calls"][0]["function"]["arguments"] == raw

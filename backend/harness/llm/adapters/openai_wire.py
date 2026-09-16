@@ -8,6 +8,8 @@ inbound direction — SSE frames back into stream events — is `openai.py`.
 
 from __future__ import annotations
 
+import json
+
 from harness.llm.messages import (
     AssistantMessage,
     Block,
@@ -48,7 +50,7 @@ def wire_message(message: Message) -> dict:
                 {
                     "id": call.id,
                     "type": "function",
-                    "function": {"name": call.name, "arguments": call.arguments},
+                    "function": {"name": call.name, "arguments": _wire_arguments(call.arguments)},
                 }
                 for call in message.tool_calls
             ],
@@ -64,6 +66,23 @@ def wire_message(message: Message) -> dict:
             "content": _tool_content(message.content),
         }
     return message.model_dump()
+
+
+def _wire_arguments(arguments: str) -> str:
+    """The model's raw arguments, unless the provider cannot carry them.
+
+    Kept byte-for-byte when they parse. When they do not — a truncated call, or
+    the `""` a small model emits for a parameterless tool — LM Studio answers
+    every request that replays the message with a 500, which is a conversation
+    that can never recover. The log still holds the call as emitted, and the
+    model already saw the `INVALID_ARGUMENTS` result; only the wire is repaired.
+    Same repair as hermes-agent's `sanitize_tool_call_arguments` and kimi-cli #1171.
+    """
+    try:
+        json.loads(arguments)
+    except json.JSONDecodeError:
+        return "{}"
+    return arguments
 
 
 def _tool_content(blocks: tuple[Block, ...]) -> str:
