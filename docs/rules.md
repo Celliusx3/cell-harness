@@ -14,8 +14,8 @@ speculative features, no abstractions for single-use code, no
 similar paths is fine; extract at ~5 when the shape genuinely converges.
 
 This applies to infrastructure as much as features. Subpackages arrive with the
-phase that needs them: `Scope` in phase 7, `Layered` in phase 15, tool-execution
-middleware in phase 10. A registry is a flat dict until a plugin needs to
+phase that needs them: `Scope` in phase 7, `Layered` in phase 14, tool-execution
+middleware in phase 9. A registry is a flat dict until a plugin needs to
 register into one agent's world. Phase 2 cut four such things, phase 3 five, and
 phase 4 deferred six more before writing a line.
 
@@ -79,7 +79,7 @@ nothing. "Registered" must never be read as "enforcing" — say so where it
 matters. Each hook also runs under a timeout, because cell-bot's do not and a
 slow one there stalls every conversation's stream.
 
-**The guardrail is a fold, not a counter.** Phase 10's guardrail keeps no
+**The guardrail is a fold, not a counter.** Phase 9's guardrail keeps no
 state: every decision is computed from the current turn's `tool/call` and
 `tool/result` events, the way `tools_selected()` is computed from
 `tool_reference` blocks. That is why it lives at the loop rather than at the
@@ -97,7 +97,7 @@ puts its reminders — but it is its own event type in the log, not a flag on
 a second field is one a reader forgets to check. That is what keeps the note
 out of the conversation's title and out of the person's bubbles.
 
-**No step cap.** The loop had one until phase 10, as a backstop against a bug
+**No step cap.** The loop had one until phase 9, as a backstop against a bug
 in the loop itself. It was dropped by decision, with the consequence stated:
 a decision hook fails open and the guardrail bounds only repeated *failures*,
 so an endless succeeding loop — or a loop bug that never clears `owed` — is now

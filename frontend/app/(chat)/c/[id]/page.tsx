@@ -15,7 +15,11 @@ import { useConversation, useTimeline } from "@/lib/useConversation";
  * whether you just sent the first message, refreshed mid-turn, or came back
  * tomorrow — which is why refresh-mid-turn needs no special handling.
  */
-export default function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ConversationPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const conversation = useConversation(id);
   const { items, openingMessage } = useTimeline(conversation.events);
@@ -42,7 +46,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
           <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
         ) : (
           <>
-            <Timeline items={items} />
+            <Timeline items={items} onAnswered={conversation.wake} />
             {/* Below the timeline rather than inside it: the timeline renders the
                 session log, and these are precisely the messages that are not in
                 it yet. Mixing them in would blur the one thing that makes a

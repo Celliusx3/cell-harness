@@ -19,11 +19,13 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections.abc import AsyncIterator
 from contextlib import aclosing
 
 from harness.agent.loop import LoopAgent
 from harness.session.log import Session
 from harness.session.service import SessionService
+from harness.tools.definition import Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 
@@ -105,7 +107,23 @@ class RunStore:
         self._runs[session.id] = run
         # Both tasks created here rather than inside `_drive`, so `stop()` can
         # never arrive before `_inner` exists.
-        run._inner = asyncio.create_task(self._stream(run, prompt))
+        run._inner = asyncio.create_task(
+            self._stream(run, self._agent.run(prompt, session=session))
+        )
+        run._outer = asyncio.create_task(self._drive(run))
+        return run
+
+    def resume(self, session: Session, call_id: str, outcome: Ok | Failure) -> Run:
+        """Begin the turn that answers a client tool — the person's answer as
+        its first event. Same atomicity as `start`, for the same reason: two
+        answers arriving together must not both open a turn."""
+        if session.id in self._runs:
+            raise RunAlreadyActive(session.id)
+        run = Run(session)
+        self._runs[session.id] = run
+        run._inner = asyncio.create_task(
+            self._stream(run, self._agent.resume(call_id, outcome, session=session))
+        )
         run._outer = asyncio.create_task(self._drive(run))
         return run
 
@@ -136,14 +154,14 @@ class RunStore:
         for conversation_id in list(self._runs):
             await self.stop(conversation_id)
 
-    async def _stream(self, run: Run, prompt: str) -> None:
+    async def _stream(self, run: Run, turn: AsyncIterator[object]) -> None:
         """Drive the turn, waking subscribers as the log grows.
 
         It ignores what the loop yields. The loop appends to the log *before* it
         yields, so by the time this frame runs there is nothing to copy — only to
         announce. That is the whole reason there is no event buffer.
         """
-        async with aclosing(self._agent.run(prompt, session=run.session)) as events:
+        async with aclosing(turn) as events:
             async for _ in events:
                 await self._wake(run)
 

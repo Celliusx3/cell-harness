@@ -3,6 +3,7 @@ import type {
   AppToolResult,
   ConversationDetail,
   ConversationSummary,
+  ClientOutput,
   MessageAccepted,
   SkillFile,
   SkillList,
@@ -26,7 +27,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     throw new ApiError(response.status, await detailOf(response));
   }
-  return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+  return response.status === 204
+    ? (undefined as T)
+    : ((await response.json()) as T);
 }
 
 /**
@@ -42,7 +45,9 @@ async function detailOf(response: Response): Promise<string> {
     const body = await response.json();
     if (typeof body?.detail === "string") return body.detail;
     if (Array.isArray(body?.detail)) {
-      return body.detail.map((item: { msg?: string }) => item.msg ?? "invalid").join("; ");
+      return body.detail
+        .map((item: { msg?: string }) => item.msg ?? "invalid")
+        .join("; ");
     }
   } catch {
     // A non-JSON error body is not worth a second failure mode.
@@ -50,7 +55,8 @@ async function detailOf(response: Response): Promise<string> {
   return `request failed (${response.status})`;
 }
 
-export const listConversations = () => request<ConversationSummary[]>("/conversations");
+export const listConversations = () =>
+  request<ConversationSummary[]>("/conversations");
 
 export const getConversation = (id: string) =>
   request<ConversationDetail>(`/conversations/${id}`);
@@ -71,20 +77,44 @@ export const sendMessage = (id: string, prompt: string) =>
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
 
+/**
+ * The output of a client tool the browser saw called on the stream — Vercel's
+ * `addToolOutput`. 404 when that call is not the one waiting (answered,
+ * expired, stopped), 409 when another tab beat this one — both mean "nothing
+ * to do", and the stream carries the result. 422 is a bug in the handler.
+ */
+export const sendToolOutput = <T>(
+  id: string,
+  callId: string,
+  output: ClientOutput<T>,
+) =>
+  request<void>(
+    `/conversations/${id}/calls/${encodeURIComponent(callId)}/output`,
+    {
+      method: "POST",
+      body: JSON.stringify(output),
+    },
+  );
+
 export const listSkills = () => request<SkillList>("/skills");
 
 export const getSkill = (name: string) => request<SkillFile>(`/skills/${name}`);
 
 /** Whole-file save into the editable root; the backend validates and refuses. */
 export const putSkill = (name: string, text: string) =>
-  request<void>(`/skills/${name}`, { method: "PUT", body: JSON.stringify({ text }) });
+  request<void>(`/skills/${name}`, {
+    method: "PUT",
+    body: JSON.stringify({ text }),
+  });
 
 export const deleteSkill = (name: string) =>
   request<void>(`/skills/${name}`, { method: "DELETE" });
 
 /** An MCP App's HTML, read from its server through the harness. */
 export const getAppResource = (server: string, uri: string) =>
-  request<AppResource>(`/mcp/${server}/resources?uri=${encodeURIComponent(uri)}`);
+  request<AppResource>(
+    `/mcp/${server}/resources?uri=${encodeURIComponent(uri)}`,
+  );
 
 /**
  * A call the app makes back to its own server, proxied by the harness.

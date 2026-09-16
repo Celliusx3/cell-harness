@@ -16,6 +16,7 @@ from collections.abc import Awaitable, Callable, Iterable, Sequence
 from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent, Tool
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
+from harness.tools.context import ToolContext
 from harness.tools.definition import (
     EXECUTION_ERROR,
     NAMESPACE,
@@ -26,7 +27,6 @@ from harness.tools.definition import (
     ToolOutcome,
     ToolUi,
 )
-from harness.tools.progress import ToolProgressReporter
 
 logger = logging.getLogger("harness.mcp")
 
@@ -118,7 +118,7 @@ def mcp_tool(*, server: str, tool: Tool, call: CallTool) -> ToolDefinition[dict]
     name = namespaced(server, tool.name)
     resource_uri = ui_resource_uri(tool)
 
-    async def execute(arguments: dict, _progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(arguments: dict, _context: ToolContext) -> ToolOutcome:
         try:
             result = await call(tool.name, arguments)
         except McpNotConnectedError:

@@ -206,3 +206,38 @@ async def test_stored_count_tracks_appends(store) -> None:
     await store.append("s", a_turn(0))
 
     assert await store.stored_count("s") == 5
+
+
+async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None:
+    """The reverse of `load`: a resumed turn must be followed by every chat
+    that points at its conversation, and only the repository knows which."""
+    from harness.channels.repositories.jsonl import JsonlChatRepository
+    from harness.channels.repository import ChatState
+
+    chats = JsonlChatRepository(tmp_path / "chats")
+    await chats.save(ChatState(channel="telegram", chat_id="1", conversation_id="c0"))
+    await chats.save(ChatState(channel="discord", chat_id="9", conversation_id="c0"))
+    await chats.save(ChatState(channel="telegram", chat_id="2", conversation_id="c1"))
+    await chats.set_cursor("telegram", "77")  # a cursor file is not a chat
+
+    found = await chats.chats_of("c0")
+    assert sorted((s.channel, s.chat_id) for s in found) == [("discord", "9"), ("telegram", "1")]
+    assert await chats.chats_of("nope") == []
+
+
+async def test_files_that_are_not_chats_do_not_break_the_lookup(tmp_path) -> None:
+    """The directory outlives layouts: an `offset.json` from an earlier
+    channel design sat beside real chats and took the whole resume down with a
+    parse error. Only the repository's own `<channel>-<chat>.json` files are
+    chats; anything else in the directory is not its business."""
+    from harness.channels.repositories.jsonl import JsonlChatRepository
+    from harness.channels.repository import ChatState
+
+    chats = JsonlChatRepository(tmp_path / "chats")
+    await chats.save(ChatState(channel="discord", chat_id="9", conversation_id="c0"))
+    (tmp_path / "chats" / "offset.json").write_text('{"offset": 993566173}')
+    (tmp_path / "chats" / "chat-1932139557.json").write_text('{"chat_id": 1932139557}')
+    (tmp_path / "chats" / "notes.txt").write_text("not json at all")
+
+    found = await chats.chats_of("c0")
+    assert [(s.channel, s.chat_id) for s in found] == [("discord", "9")]

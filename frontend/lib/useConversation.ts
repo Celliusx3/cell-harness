@@ -40,6 +40,9 @@ export interface Conversation {
   error: string | null;
   send(prompt: string): Promise<void>;
   stop(): Promise<void>;
+  /** A turn was started by something other than `send` — a client-tool card
+   *  posting its output. Wake the stream so it is watched live. */
+  wake(): void;
 }
 
 export function useConversation(conversationId: string): Conversation {
@@ -87,7 +90,11 @@ export function useConversation(conversationId: string): Conversation {
         cursor.current = detail.next_cursor;
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : "could not load this conversation");
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "could not load this conversation",
+        );
         setLoading(false);
         return;
       }
@@ -142,6 +149,17 @@ export function useConversation(conversationId: string): Conversation {
     };
   }, [conversationId]);
 
+  /**
+   * A turn was just started elsewhere — by `send`, or by a client-tool card
+   * that posted its output — so wake the stream loop if the last turn left it
+   * parked. Safe after the request that started the turn returns: the run is
+   * registered before the response, so the subscribe cannot miss it.
+   */
+  const wake = useCallback(() => {
+    setRunning(true);
+    resume.current?.();
+  }, []);
+
   const send = useCallback(
     async (prompt: string) => {
       setError(null);
@@ -152,15 +170,14 @@ export function useConversation(conversationId: string): Conversation {
         // log says. A *queued* message has no log entry to wait for, which is the
         // one case the client has to render for itself.
         if (accepted.queued) setQueued((previous) => [...previous, prompt]);
-        setRunning(true);
-        // Wake the loop if the last turn left it parked. Safe after the await:
-        // the run is registered before the `202`, so the subscribe cannot miss it.
-        resume.current?.();
+        wake();
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "could not send that message");
+        setError(
+          err instanceof ApiError ? err.message : "could not send that message",
+        );
       }
     },
-    [conversationId],
+    [conversationId, wake],
   );
 
   const stop = useCallback(async () => {
@@ -170,12 +187,14 @@ export function useConversation(conversationId: string): Conversation {
       // A 404 means it finished between the click and the request. Not worth
       // showing: the user asked for it to stop and it has.
       if (!(err instanceof ApiError && err.status === 404)) {
-        setError(err instanceof ApiError ? err.message : "could not stop this turn");
+        setError(
+          err instanceof ApiError ? err.message : "could not stop this turn",
+        );
       }
     }
   }, [conversationId]);
 
-  return { events, queued, title, running, loading, error, send, stop };
+  return { events, queued, title, running, loading, error, send, stop, wake };
 }
 
 /** The timeline for a set of events, recomputed only when they change. */

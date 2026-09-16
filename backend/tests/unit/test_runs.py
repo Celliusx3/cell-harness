@@ -18,12 +18,14 @@ from harness.session.models import (
     TurnEnd,
 )
 from harness.session.service import SessionService
+from harness.tools.definition import Ok
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
     calls_tool,
     completed,
     echo_tool,
+    pending_tool,
 )
 from tests.unit.helpers import drain, durable_service, run_store
 
@@ -166,3 +168,27 @@ async def test_starting_is_atomic_against_a_concurrent_start(service) -> None:
     outcomes = await asyncio.gather(attempt(), attempt(), attempt())
 
     assert sorted(outcomes) == ["refused", "refused", "started"]
+
+
+# ── resuming a pending turn ───────────────────────────────────────────────────
+
+
+async def test_resume_runs_a_turn_that_starts_with_the_answer(service) -> None:
+    """A pending turn leaves the conversation free; the answer starts a run
+    like a message does, and the model continues from the result."""
+    client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés"))
+    runs = run_store(service, client, pending_tool())
+    session = await service.create()
+    first = runs.start(session, "near me?")
+    await asyncio.wait_for(first._outer, timeout=5)
+
+    assert runs.active(session.id) is None  # pending is not running
+    run = runs.resume(session, "c1", Ok(content='{"lat": 3.1}'))
+    assert runs.active(session.id) is run
+    with pytest.raises(RunAlreadyActive):
+        runs.resume(session, "c1", Ok(content="again"))
+    await asyncio.wait_for(run._outer, timeout=5)
+
+    assert runs.active(session.id) is None
+    stored = await service.read(session.id)
+    assert [e.reason for e in stored.events() if e.type == "turn/end"] == ["pending", "completed"]

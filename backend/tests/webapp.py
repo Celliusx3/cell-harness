@@ -23,11 +23,18 @@ from harness.mcp.store import McpServerStore
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tools.client import ClientToolService
 from harness.web.server import create_app
+from tests.unit.helpers import client_tools as default_client_tools
 
 
 def web_gateway(
-    tmp_path: Path, service: SessionService, runs: RunStore, *, skills: SkillService
+    tmp_path: Path,
+    service: SessionService,
+    runs: RunStore,
+    *,
+    skills: SkillService,
+    client_tools: ClientToolService,
 ) -> tuple[ChannelGateway, WebChannel]:
     """A gateway with only the browser registered."""
     gateway = ChannelGateway(
@@ -36,6 +43,7 @@ def web_gateway(
         service,
         skills,
         public_url="http://t",
+        client_tools=client_tools.names,
     )
     web = WebChannel(service, runs, gateway)
     gateway.register(web)
@@ -62,7 +70,9 @@ def web_app(
     *,
     mcp: McpServerStore | None = None,
     skills: SkillService,
+    client_tools: ClientToolService | None = None,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
-    gateway, web = web_gateway(tmp_path, service, runs, skills=skills)
-    return create_app(runs, gateway, web, mcp or web_mcp(), skills)
+    client_tools = client_tools or default_client_tools()
+    gateway, web = web_gateway(tmp_path, service, runs, skills=skills, client_tools=client_tools)
+    return create_app(runs, gateway, web, mcp or web_mcp(), skills, client_tools)

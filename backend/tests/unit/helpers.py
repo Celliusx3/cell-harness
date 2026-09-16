@@ -26,10 +26,13 @@ from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tools.client import ClientToolService
+from harness.tools.context import ToolContext
 from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolProvider, ToolRegistry
+from harness.web.agent import CLIENT_TOOLS
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -63,6 +66,11 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
     one is a type error, not progress that silently never arrives.
     """
     return None
+
+
+def context_for(call_id: str = "call-1") -> ToolContext:
+    """A context for invoking a tool directly, outside the dispatcher."""
+    return ToolContext(call_id=call_id, progress=no_progress)
 
 
 def new_session(session_id: str = "s") -> Session:
@@ -159,3 +167,8 @@ def skills_at(*roots: Path) -> SkillService:
 def no_skills() -> SkillService:
     """For call sites with no `tmp_path`: a root that cannot exist."""
     return skills_at(Path("/nonexistent/cell-harness-skills"))
+
+
+def client_tools() -> ClientToolService:
+    """The real declarations, as the server composes them."""
+    return ClientToolService(CLIENT_TOOLS)

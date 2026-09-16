@@ -9,7 +9,7 @@ from mcp.types import AudioContent, CallToolResult, ImageContent, TextContent
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
 from harness.mcp.tool import build_tools, mcp_tool, render_content, ui_resource_uri
 from harness.tools.definition import EXECUTION_ERROR, UNKNOWN_TOOL, Failure, Ok, ToolUi
-from tests.unit.helpers import no_progress
+from tests.unit.helpers import context_for
 from tests.unit.mcp_fakes import text_result, tool
 
 
@@ -45,7 +45,7 @@ async def test_an_unknown_argument_reaches_the_server_untouched() -> None:
         return text_result("ok")
 
     built = one("fs", tool("read"), call)
-    await built.invoke('{"path": "/x", "undeclared": 7}', progress=no_progress)
+    await built.invoke('{"path": "/x", "undeclared": 7}', context=context_for())
 
     assert seen == [{"path": "/x", "undeclared": 7}]
 
@@ -57,7 +57,7 @@ async def test_a_tool_that_reports_an_error_becomes_a_failure() -> None:
         return text_result("disk is full", is_error=True)
 
     built = one("fs", tool("write"), call)
-    outcome = await built.invoke("{}", progress=no_progress)
+    outcome = await built.invoke("{}", context=context_for())
 
     assert outcome == Failure(EXECUTION_ERROR, "disk is full")
 
@@ -67,7 +67,7 @@ async def test_an_error_with_no_message_still_names_the_tool() -> None:
         return CallToolResult(content=[], isError=True)
 
     built = one("fs", tool("write"), call)
-    outcome = await built.invoke("{}", progress=no_progress)
+    outcome = await built.invoke("{}", context=context_for())
 
     assert isinstance(outcome, Failure)
     assert "fs__write" in outcome.message
@@ -80,7 +80,7 @@ async def test_a_disconnected_server_reports_the_tool_as_unknown() -> None:
         raise McpNotConnectedError("stub is not connected")
 
     built = one("stub", tool("echo"), call)
-    outcome = await built.invoke("{}", progress=no_progress)
+    outcome = await built.invoke("{}", context=context_for())
 
     assert isinstance(outcome, Failure)
     assert outcome.code == UNKNOWN_TOOL
@@ -91,7 +91,7 @@ async def test_a_timeout_is_an_execution_error_carrying_the_reason() -> None:
         raise McpTimeoutError("stub did not answer 'echo' within 60s")
 
     built = one("stub", tool("echo"), call)
-    outcome = await built.invoke("{}", progress=no_progress)
+    outcome = await built.invoke("{}", context=context_for())
 
     assert outcome == Failure(EXECUTION_ERROR, "stub did not answer 'echo' within 60s")
 
@@ -103,7 +103,7 @@ async def test_structured_content_is_used_when_there_are_no_blocks() -> None:
         return CallToolResult(content=[], structuredContent={"rows": 3})
 
     built = one("db", tool("count"), call)
-    outcome = await built.invoke("{}", progress=no_progress)
+    outcome = await built.invoke("{}", context=context_for())
 
     assert outcome == Ok('{"rows": 3}', data={"rows": 3})
 
@@ -119,7 +119,7 @@ async def test_structured_content_survives_alongside_text() -> None:
         )
 
     built = one("jobs", tool("search"), call)
-    outcome = await built.invoke("{}", progress=no_progress)
+    outcome = await built.invoke("{}", context=context_for())
 
     assert isinstance(outcome, Ok)
     assert outcome.text == "Found 3 jobs."
@@ -132,7 +132,7 @@ async def test_a_tool_with_no_structured_content_has_none() -> None:
 
     built = one("stub", tool("echo"), call)
 
-    assert await built.invoke("{}", progress=no_progress) == Ok("hi")
+    assert await built.invoke("{}", context=context_for()) == Ok("hi")
 
 
 def test_text_blocks_are_joined_in_order() -> None:
@@ -175,7 +175,7 @@ async def test_a_hyphenated_name_is_mapped_for_the_model_and_kept_for_the_server
         return text_result("ok")
 
     built = one("srv", tool("get-video"), call)
-    await built.invoke("{}", progress=no_progress)
+    await built.invoke("{}", context=context_for())
 
     assert built.name == "srv__get_video"
     assert asked == ["get-video"]
@@ -209,7 +209,7 @@ async def test_a_bound_tool_returns_its_app_with_the_structured_content() -> Non
         )
 
     built = one("db", tool("count", meta={"ui": {"resourceUri": "ui://db/app.html"}}), call)
-    outcome = await built.invoke("{}", progress=no_progress)
+    outcome = await built.invoke("{}", context=context_for())
 
     assert outcome == Ok(
         "3 rows",
@@ -224,7 +224,7 @@ async def test_a_bound_tool_that_fails_has_no_app() -> None:
 
     built = one("db", tool("count", meta={"ui": {"resourceUri": "ui://db/app.html"}}), call)
 
-    assert await built.invoke("{}", progress=no_progress) == Failure(EXECUTION_ERROR, "nope")
+    assert await built.invoke("{}", context=context_for()) == Failure(EXECUTION_ERROR, "nope")
 
 
 def test_every_relayed_name_is_a_usable_typescript_identifier() -> None:

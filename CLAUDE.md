@@ -120,7 +120,7 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 - **No skills, no tool.** An enum with no members is never offered.
 - **A skill's body is context, not data.** The `skill` tool is withheld from scripts.
 - **The catalog is read, never published.** Skills are rebuilt from disk per
-  request like the tool list; nothing to invalidate, nothing for phase 12 to
+  request like the tool list; nothing to invalidate, nothing for phase 11 to
   re-establish.
 
 ## Before marking work complete
@@ -149,3 +149,4 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 | [docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md) | Why MCP schemas load on demand, how code mode works and who else ships it, and what the evidence actually says |
 | [docs/skills.md](./docs/skills.md) | The Agent Skills spec, how six clients implement it, and which of their choices bind phase 8 |
 | [docs/mcp-apps.md](./docs/mcp-apps.md) | MCP Apps: the contract, what the SDKs ship, how VS Code / Vercel / MCPJam host it, and the choices made here |
+| [docs/client-data.md](./docs/client-data.md) | Data the client holds: how `get_location` asks the browser, Telegram and Discord, the four shapes in the wild, and why the wait is in the tool |

@@ -41,6 +41,16 @@ three-way policy (`queue` | `steer` | `interrupt`) and defaults **text to queue*
 FIFO by construction; cell-bot's browser answer — refuse with a `409` — is right
 for a UI that can show the refusal and useless on a phone.
 
+## One conversation, one delivery
+
+A turn is followed only by the channel that started it, which has a
+consequence worth stating because the opposite is easy to assume: answer a
+Telegram conversation from the browser and the reply lands in the log and on
+screen, but *not* on the phone. Both channels share the conversation, not the
+delivery. Fixing it means following a turn from every channel mapped to its
+conversation, each with its own `delivered_through` — real, but nobody has
+asked for it, and it is a phase of its own.
+
 ## Dedupe by consequence, not by default
 
 Platforms **do** redeliver. Telegram warns outright that "updates may be received

@@ -131,4 +131,4 @@ the `/skills` page and it is used next turn. Seven capabilities not in the
 original arc have shipped since phase 7 — code mode, Instagram → Places, skills,
 tool references, Discord, MCP Apps, markets — each recorded in
 [PHASES.md §Status](./PHASES.md#status). Every phase in PHASES.md is a capability
-you can demo. Next is phase 9, steering.
+you can demo. Next is phase 11, long conversations.

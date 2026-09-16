@@ -266,8 +266,8 @@ product may never want — cell-bot ships a real product without any of it.
 
 The mechanisms in §2 and §4 land where they are first needed: `Events` in phase 2
 (the tool pipeline is the first thing needing interception), `Scope` in phase 4
-(the first runtime agent teardown), `Layered` in phase 13 (the first time a plugin
-registers into *one agent's* world). Per-agent tool *selection* in phase 9 needs
+(the first runtime agent teardown), `Layered` in phase 14 (the first time a plugin
+registers into *one agent's* world). Per-agent tool *selection* in phase 10 needs
 no layers — filtering the provider at compose time is simpler and correct.
 
 ## 6. Practices adopted from day one
@@ -322,7 +322,7 @@ From cell-bot:
    ([docs/without-cordis.md](./docs/without-cordis.md)). Adopting Cordis would
    mean rewriting cell-bot's Python to inherit DI and hot reload we do not need,
    from a framework in developer preview.
-3. **The router ships** (phase 9). A multi-agent catalog is exactly what a chat
+3. **The router ships** (phase 10). A multi-agent catalog is exactly what a chat
    product wants, and routing answers a different question from delegation —
    "who should answer this?" rather than "run these parts in parallel."
 4. **JSONL, not SQLite** — reverted after reading how dsh actually does it. My
@@ -356,7 +356,7 @@ From cell-bot:
    (`queue` | `steer` | `interrupt`) and defaults text to `queue`; duta-ilmu
    enforces per-conversation FIFO by construction. We ship `queue` alone —
    `steer` mutates a turn already running and needs dsh's durable inbox, which
-   is phase 9.
+   is phase 16.
 8. **The channel seam splits by capability, not by platform** (phase 6). The
    browser is a channel — one gateway serves it and Telegram, so "resolve the
    conversation, is a turn running?, start one" is one implementation instead of
@@ -390,13 +390,13 @@ From cell-bot:
 ### Still open
 
 10. **Serial vs parallel tool dispatch.** Ship serial. `concurrency_safe` has no
-   reason to exist until the fs seam (phase 11) makes overlap meaningful and
-   testable — and phase 11 is optional.
+   reason to exist until the fs seam (phase 12) makes overlap meaningful and
+   testable — and phase 12 is optional.
 11. **How much of the run layer survives a multi-process future.** Phase 4 ships
    one process and no lease: reclaiming a *process's* runs cannot be exercised,
    and phase 3's repair-on-resume already covers a single-process crash. When a
    second process exists, the heartbeat + reclaim design is cell-bot's.
-12. **Whether the optional track (13–15) is ever built.** Decide before phase 11,
+12. **Whether the optional track (12–14) is ever built.** Decide before phase 12,
     not during. cell-bot ships a real product without any of it; every capability
     arrives through an MCP server.
 

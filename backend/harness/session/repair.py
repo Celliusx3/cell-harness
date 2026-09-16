@@ -24,8 +24,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from harness.llm.messages import ToolMessage
-from harness.session.models import AssistantMessageEvent, SessionEvent, ToolResultEvent
+from harness.llm.messages import ToolCall, ToolMessage
+from harness.session.models import (
+    AssistantMessageEvent,
+    SessionEvent,
+    ToolResultEvent,
+    TurnEnd,
+)
 
 # The model reads this, so it is written for the model rather than a maintainer.
 # Deliberately *not* "this never ran": the tool was dispatched before the process
@@ -41,14 +46,31 @@ TOOL_OUTCOME_UNKNOWN = (
 REPAIRED = "INTERRUPTED_BY_CRASH"
 
 
+def unanswered(events: Sequence[SessionEvent]) -> list[tuple[AssistantMessageEvent, ToolCall]]:
+    """Every call in the log with no result, with the message that made it."""
+    answered = {e.message.tool_call_id for e in events if isinstance(e, ToolResultEvent)}
+    return [
+        (event, call)
+        for event in events
+        if isinstance(event, AssistantMessageEvent)
+        for call in event.message.tool_calls
+        if call.id not in answered
+    ]
+
+
 def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
-    """Results for every call the log left unanswered.
+    """Results for every call the log left unanswered *by accident*.
+
+    A turn that ended `pending` left its client-tool call open on purpose —
+    the person has not answered yet — and that call is not damage: the turn
+    that answers it, or skips it, is the next one. Everything else unanswered
+    is a crash.
 
     Idempotent: a log with nothing outstanding yields nothing, so resuming twice
     does not stack results. That doubles as the "does this need repair?"
     question, which is why there is no separate predicate.
     """
-    answered = {e.message.tool_call_id for e in events if isinstance(e, ToolResultEvent)}
+    pending = {e.turn for e in events if isinstance(e, TurnEnd) and e.reason == "pending"}
     return [
         ToolResultEvent(
             turn=event.turn,
@@ -56,8 +78,6 @@ def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
             message=ToolMessage(tool_call_id=call.id, content=TOOL_OUTCOME_UNKNOWN),
             error=REPAIRED,
         )
-        for event in events
-        if isinstance(event, AssistantMessageEvent)
-        for call in event.message.tool_calls
-        if call.id not in answered
+        for event, call in unanswered(events)
+        if event.turn not in pending
     ]

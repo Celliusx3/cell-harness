@@ -10,8 +10,8 @@ That is also why `specs()` and `get()` re-resolve rather than caching. Caching
 would be faster and would freeze each agent's tool set at the moment it was
 composed — the exact bug the provider seam exists to avoid.
 
-A flat dict for now. Per-agent *layers* arrive in phase 13, when a plugin first
-registers into one agent's world; per-agent *selection* (phase 9) needs no layers
+A flat dict for now. Per-agent *layers* arrive in phase 14, when a plugin first
+registers into one agent's world; per-agent *selection* (phase 10) needs no layers
 at all — it wraps a provider and filters what it yields.
 """
 

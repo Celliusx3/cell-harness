@@ -21,16 +21,7 @@ mid-batch loses those messages rather than repeating them. Hermes ships that way
 semantics on purpose, for the rate limiting and the webhook and media surface
 that come with the library.
 
-**Batching, and why it is timers.** Telegram's *client* splits a long paste into
-several messages, so without a buffer one paste is several turns — a correctness
-bug, not a polish item, and the reason Hermes buffers at all:
-
-    "Buffer rapid text messages so Telegram client-side splits of long messages
-     are aggregated into a single MessageEvent."
-
-A hand-rolled poller could not use per-chat timers, because the poll loop then had
-to decide what to acknowledge while dispatches were still pending. With PTB
-holding the offset that coupling is gone, and the delays below are Hermes's.
+**Batching** — why one paste is one turn — is `batching.py`.
 """
 
 from __future__ import annotations
@@ -38,18 +29,29 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+    WebAppInfo,
+)
 from telegram.constants import ChatAction
 from telegram.error import TelegramError
 from telegram.ext import Application, ApplicationBuilder, MessageHandler, filters
 
+from harness.channels.client import ChatAnswers
 from harness.channels.commands import apply as apply_command
 from harness.channels.commands import unknown_skill
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, OnMissing
 from harness.channels.telegram import commands
+from harness.channels.telegram.asking import ask_client
+from harness.channels.telegram.batching import JOIN, Batch, batch_delay
 from harness.channels.text import split_message
 from harness.skills import UnknownSkill
+from harness.tools.client import PendingCall
+from harness.tools.native.location import LOCATION
 
 logger = logging.getLogger("harness.channels.telegram")
 
@@ -59,46 +61,8 @@ CHANNEL = "telegram"
 # it fails the send, and our own rules forbid truncating anything user-facing.
 MAX_MESSAGE_CHARS = 4096
 
-# Hermes's adaptive ingress delays, tuned for "feels instant". Short text reaches
-# the model fast; only something long enough to have been client-split waits the
-# full window.
-FAST_LEN = 320
-FAST_DELAY_SECONDS = 0.18
-SHORT_LEN = 1024
-SHORT_DELAY_SECONDS = 0.24
-BATCH_DELAY_SECONDS = 0.30
-
-# A message at or near the per-message limit was very likely cut by the client,
-# so its continuation is worth waiting noticeably longer for.
-SPLIT_SUSPECT_LEN = 4000
-SPLIT_DELAY_SECONDS = 1.0
-
-# What joins a batch: a newline, because that is how the lines were typed.
-JOIN = "\n"
-
 # The button under a message that links to an MCP App's page.
 OPEN_LABEL = "Open"
-
-
-def batch_delay(text: str) -> float:
-    """How long to wait for the rest of `text`, if more is coming."""
-    if len(text) >= SPLIT_SUSPECT_LEN:
-        return SPLIT_DELAY_SECONDS
-    if len(text) <= FAST_LEN:
-        return FAST_DELAY_SECONDS
-    if len(text) <= SHORT_LEN:
-        return SHORT_DELAY_SECONDS
-    return BATCH_DELAY_SECONDS
-
-
-class _Batch:
-    """Text accumulating for one chat, and the timer that will dispatch it."""
-
-    __slots__ = ("text", "timer")
-
-    def __init__(self, text: str, timer: asyncio.Task[None]) -> None:
-        self.text = text
-        self.timer = timer
 
 
 class TelegramChannel:
@@ -114,16 +78,19 @@ class TelegramChannel:
     # The browser is the opposite — it names the id it wants, so a miss is a 404.
     on_missing: OnMissing = "recreate"
 
-    def __init__(self, token: str, gateway: ChannelGateway) -> None:
+    def __init__(self, token: str, gateway: ChannelGateway, answers: ChatAnswers) -> None:
         self._gateway = gateway
+        self._answers = answers
         self._app: Application = (
             ApplicationBuilder().token(token).rate_limiter(_rate_limiter()).build()
         )
         # Held rather than reached through `self._app.bot` on every send. The
         # `Application` still owns its lifecycle; this is just the handle we use.
         self._bot = self._app.bot
-        self._batches: dict[str, _Batch] = {}
+        self._batches: dict[str, Batch] = {}
         self._app.add_handler(MessageHandler(filters.TEXT & ~filters.UpdateType.EDITED, self._on))
+        # A pin, whether tapped from the keyboard we sent or attached by hand.
+        self._app.add_handler(MessageHandler(filters.LOCATION, self._on_location))
 
     # ── receiving ─────────────────────────────────────────────────────────────
 
@@ -185,10 +152,34 @@ class TelegramChannel:
         if existing is not None:
             existing.timer.cancel()
             text = f"{existing.text}{JOIN}{text}"
-        self._batches[chat_id] = _Batch(
+        self._batches[chat_id] = Batch(
             text=text,
             timer=asyncio.create_task(self._dispatch_after(chat_id, batch_delay(text))),
         )
+
+    async def _on_location(self, update: Update, _context: object) -> None:
+        """A location message: the answer to a pending `get_location`, or —
+        when nothing asked — a message in its own right, sent as text, because
+        a person who shares a pin unprompted means it."""
+        message = update.effective_message
+        chat = update.effective_chat
+        if message is None or chat is None or message.location is None:
+            return
+        chat_id = str(chat.id)
+        pin = message.location
+        shared = {
+            "kind": "shared",
+            "data": {
+                "latitude": pin.latitude,
+                "longitude": pin.longitude,
+                "accuracy_m": pin.horizontal_accuracy or 0.0,
+            },
+        }
+        if await self._answers.answer(self, chat_id, LOCATION, shared):
+            return
+        await self._flush(chat_id)
+        text = f"(shared location: {pin.latitude}, {pin.longitude})"
+        await self._gateway.receive(InboundMessage(channel=CHANNEL, chat_id=chat_id, text=text))
 
     async def _dispatch_after(self, chat_id: str, delay: float) -> None:
         try:
@@ -228,7 +219,12 @@ class TelegramChannel:
         """
         for part in split_message(text, MAX_MESSAGE_CHARS):
             if part:
-                await self._bot.send_message(chat_id=int(chat_id), text=part)
+                # The only keyboard ever sent is a client tool's ask, and any
+                # reply means that ask is over — answered or skipped — so the
+                # stale button goes with it.
+                await self._bot.send_message(
+                    chat_id=int(chat_id), text=part, reply_markup=ReplyKeyboardRemove()
+                )
 
     async def send_link(self, chat_id: str, text: str, url: str) -> None:
         """One message with one button that opens `url`.
@@ -245,6 +241,10 @@ class TelegramChannel:
         await self._bot.send_message(
             chat_id=int(chat_id), text=text, reply_markup=InlineKeyboardMarkup([[button]])
         )
+
+    async def ask_client(self, chat_id: str, request: PendingCall, url: str) -> None:
+        """Telegram's own prompt where it has one, the page otherwise — `asking.py`."""
+        await ask_client(self, self._bot, chat_id, request, url)
 
     async def send_typing(self, chat_id: str) -> None:
         """Show "typing…" in the chat.

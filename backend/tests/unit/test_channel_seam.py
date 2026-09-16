@@ -28,6 +28,7 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.tools.client import PendingCall
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_skills
 from tests.unit.telegram_fakes import telegram_channel
@@ -64,6 +65,10 @@ class FakeWhatsApp:
     async def send_link(self, chat_id: str, text: str, url: str) -> None:
         # No buttons here: the URL travels as text, which every platform can carry.
         self.sent.append((chat_id, f"{text}\n{url}"))
+
+    async def ask_client(self, chat_id: str, request: PendingCall, url: str) -> None:
+        # No device prompts either: the page's URL is the ask.
+        self.sent.append((chat_id, f"{request.name}\n{url}"))
 
 
 def build(tmp_path):

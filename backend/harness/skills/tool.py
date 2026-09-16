@@ -26,8 +26,8 @@ from pydantic import BaseModel, Field, create_model
 from harness.skills.models import Skill
 from harness.skills.rendering import instructions
 from harness.skills.service import SkillService
+from harness.tools.context import ToolContext
 from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome
-from harness.tools.progress import ToolProgressReporter
 
 SKILL = "skill"
 
@@ -57,7 +57,7 @@ def skill_tool(skills: SkillService) -> ToolDefinition[BaseModel] | None:
         return None
     by_name = {skill.name: skill for skill in offered}
 
-    async def execute(args: BaseModel, _progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: BaseModel, _context: ToolContext) -> ToolOutcome:
         name: str = args.name  # type: ignore[attr-defined]
         path: str | None = args.path  # type: ignore[attr-defined]
         skill = by_name[name]

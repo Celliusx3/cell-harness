@@ -7,7 +7,7 @@ consumer switching on `kind` must not confuse the LLM call ending with the
 
 `AgentEvent` is a Protocol rather than a closed union, for one reason: a closed
 union would have to name every agent kind's events, so adding one would mean
-editing this module. The router in phase 9 declares its own terminal and
+editing this module. The router in phase 10 declares its own terminal and
 satisfies this structurally.
 """
 
@@ -64,6 +64,16 @@ class ToolResult(BaseModel):
     content: str
 
 
+class ToolPending(BaseModel):
+    """One call's turn is over without a result: the client answers it later."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["tool_pending"] = "tool_pending"
+    tool_call_id: str
+    name: str
+
+
 class AgentCompleted(BaseModel):
     """Terminal: the turn finished. `text` is the final reply."""
 
@@ -71,6 +81,21 @@ class AgentCompleted(BaseModel):
 
     kind: Literal["agent_completed"] = "agent_completed"
     text: str
+
+
+class AgentPending(BaseModel):
+    """Terminal: the turn stopped for the person to answer a client tool.
+
+    Not a failure and not completion. The call named here has no result in
+    the log; the turn that supplies one — or answers it as skipped — is the
+    next one.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["agent_pending"] = "agent_pending"
+    tool_call_id: str
+    name: str
 
 
 class AgentFailed(BaseModel):

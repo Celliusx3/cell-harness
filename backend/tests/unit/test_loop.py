@@ -12,7 +12,8 @@ from contextlib import aclosing
 import pytest
 
 from harness.agent.events import AgentCompleted, AgentFailed
-from harness.agent.loop import NO_TERMINAL, LoopAgent
+from harness.agent.loop import LoopAgent
+from harness.agent.turn import NO_TERMINAL
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk
 from harness.session.models import (

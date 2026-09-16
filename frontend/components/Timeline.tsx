@@ -1,9 +1,11 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { AssistantBubble, UserBubble } from "@/components/Message";
 import { ToolCard } from "@/components/ToolCard";
+import { CLIENT_TOOLS } from "@/lib/clientTools";
 import type { TimelineItem } from "@/lib/timeline";
 
 /**
@@ -14,9 +16,16 @@ import type { TimelineItem } from "@/lib/timeline";
  * conversation renders identically to the live stream" true by construction
  * rather than by keeping two components in step.
  */
-export function Timeline({ items }: { items: TimelineItem[] }) {
+export function Timeline({
+  items,
+  onAnswered,
+}: {
+  items: TimelineItem[];
+  onAnswered: () => void;
+}) {
   const floor = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
+  const { id: conversationId } = useParams<{ id: string }>();
 
   // Follow the stream only while the user is already at the bottom. Scrolling up
   // to re-read something during a long reply must not be yanked back.
@@ -24,7 +33,8 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
     const scroller = floor.current?.parentElement;
     if (!scroller) return;
     const onScroll = () => {
-      const slack = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+      const slack =
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
       pinned.current = slack < 80;
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
@@ -45,9 +55,24 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
             // A step that went straight to tool calls has no prose. Skipped
             // here rather than dropped in the reducer, which still needs the
             // item so `usage` and `interrupted` are not lost.
-            return item.content ? <AssistantBubble key={item.key} item={item} /> : null;
-          case "tool":
-            return <ToolCard key={item.key} item={item} />;
+            return item.content ? (
+              <AssistantBubble key={item.key} item={item} />
+            ) : null;
+          case "tool": {
+            // A call the browser answers rather than watches — by the handler
+            // map, so the timeline never learns a client tool's name.
+            const Handler = CLIENT_TOOLS[item.call.name];
+            return Handler ? (
+              <Handler
+                key={item.key}
+                item={item}
+                conversationId={conversationId}
+                onAnswered={onAnswered}
+              />
+            ) : (
+              <ToolCard key={item.key} item={item} />
+            );
+          }
           case "notice":
             return (
               <p

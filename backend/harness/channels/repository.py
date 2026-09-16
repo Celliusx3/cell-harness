@@ -64,6 +64,16 @@ class ChatRepository(Protocol):
         """Durably record one chat's state, replacing what was there."""
         ...
 
+    async def chats_of(self, conversation_id: str) -> list[ChatState]:
+        """Every chat currently pointing at this conversation.
+
+        The reverse of `load`, for the one thing that starts a turn without a
+        chat in hand: a client tool answered from the browser page. The turn
+        it opens must be followed by whichever chats own the conversation, or
+        their reply lands only in the log.
+        """
+        ...
+
     async def cursor(self, channel: str) -> str:
         """Where this platform's ingress got to, or `""` if it has not started.
 

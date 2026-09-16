@@ -27,9 +27,9 @@ from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import CODE_PROMPT, LIST
-from harness.web import server
-from harness.web.server import DEFAULT_TOOLS, build_agent
-from tests.unit.helpers import no_progress, no_skills
+from harness.web import agent as composition
+from harness.web.agent import CLIENT_TOOLS, DEFAULT_TOOLS, build_agent
+from tests.unit.helpers import client_tools, no_progress, no_skills
 
 # What a request carries when no skill exists: `SKILL` is in `DEFAULT_TOOLS` but
 # its provider yields nothing, and the pipeline skips an absent name.
@@ -45,7 +45,7 @@ def compose(tmp_path: Path):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(settings, sessions, mcp, no_skills())
+        return build_agent(settings, sessions, mcp, no_skills(), client_tools())
 
     return build
 
@@ -97,19 +97,19 @@ def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:
 def test_exactly_one_dispatcher_is_built(compose, monkeypatch) -> None:
     """The property this whole split protects.
 
-    Phase 12 installs an approval gate on the dispatcher. A second instance would
+    Phase 13 installs an approval gate on the dispatcher. A second instance would
     let the gate cover the model and miss scripts — or the reverse — and nothing
     else in the suite would notice. Counting constructions says that directly,
     without reaching into anyone's closures.
     """
     built: list[ToolDispatcher] = []
-    real = server.ToolDispatcher
+    real = composition.ToolDispatcher
 
     def spy(registry) -> ToolDispatcher:
         built.append(real(registry))
         return built[-1]
 
-    monkeypatch.setattr(server, "ToolDispatcher", spy)
+    monkeypatch.setattr(composition, "ToolDispatcher", spy)
 
     compose()
 
@@ -127,3 +127,19 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
         NoProgressHook,
         RepeatedCallHook,
     ]
+
+
+async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:
+    """The spine's composition promise: a declaration in `CLIENT_TOOLS` is in
+    every request's specs and absent from `list_functions` — a script's
+    timeout is shorter than a person's, and the model decides when to ask."""
+    agent = compose()
+    assert agent.tools is not None
+    offered = {spec.name for spec in agent.tools.specs()}
+    assert CLIENT_TOOLS.names <= offered
+
+    listed = await agent.tools.execute(
+        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
+    )
+    assert isinstance(listed, Ok)
+    assert not any(name in listed.text for name in CLIENT_TOOLS.names)

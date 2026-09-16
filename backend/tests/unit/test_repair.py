@@ -7,7 +7,9 @@ from harness.session.derive import derive_messages
 from harness.session.models import (
     AssistantMessageEvent,
     SessionEvent,
+    StepEnd,
     StepStart,
+    ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
@@ -128,3 +130,23 @@ def test_repair_is_idempotent() -> None:
     once = [*events, *repair(events)]
 
     assert repair(once) == []
+
+
+# ── a pending turn is not a crash ─────────────────────────────────────────────
+
+
+def test_a_call_left_open_by_a_pending_turn_is_not_repaired() -> None:
+    """The model asked the person and the turn ended `pending` on purpose. The
+    answer — or the skip — is the next turn's; stamping it as a crash would
+    refuse the answer when it comes."""
+    events = [*asked_for(call()), ToolCallEvent(turn=0, step=0, call=call())]
+    events.append(StepEnd(turn=0, step=0))
+    events.append(TurnEnd(turn=0, reason="pending"))
+
+    assert repair(events) == []
+
+
+def test_the_same_open_call_in_an_unclosed_turn_is_still_a_crash() -> None:
+    events = [*asked_for(call()), ToolCallEvent(turn=0, step=0, call=call())]
+
+    assert [a.error for a in repair(events)] == [REPAIRED]

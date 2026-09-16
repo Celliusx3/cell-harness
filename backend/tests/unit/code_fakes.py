@@ -17,7 +17,7 @@ from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import code_mode_tools
 from harness.tools.registry import ToolRegistry
-from tests.unit.helpers import no_progress
+from tests.unit.helpers import context_for
 
 
 def returns(outcome: Ok):
@@ -98,7 +98,7 @@ class Built:
         return next(t for t in self.tools if t.name == name)
 
     async def run(self, name: str, arguments: str = "{}") -> ToolOutcome:
-        return await self.tool(name).invoke(arguments, progress=no_progress)
+        return await self.tool(name).invoke(arguments, context=context_for())
 
 
 def build(

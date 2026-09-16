@@ -27,24 +27,26 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 | 6 | **One seam for every channel** | Browser and Telegram behind one adapter contract; a third is a file | 400 |
 | 7 | **It uses your tools** | Add an MCP server in settings; its tools work next turn | 900 |
 | 8 | **It follows instructions** | Attach a skill; it loads and applies it | 1000 |
-| 9 | **You can steer it** | Correct it mid-turn without restarting | 450 |
-| 10 | **It doesn't get stuck** | A runaway tool loop is stopped | 450 |
-| 11 | **It picks the right specialist** | Multiple agents; the right one answers each turn | 700 |
-| 12 | **It handles long conversations** | 200 turns without hitting the context window | 450 |
-| 13 | **It reads and writes files** *(opt)* | File tools without going through MCP | 800 |
-| 14 | **It runs commands** *(opt)* | `bash`, confined | 800 |
-| 15 | **It delegates** *(opt)* | Subagents working in parallel | 800 |
-| 16 | **It operates itself** *(opt)* | "Save this as a skill" — it writes one, and uses it next conversation | 500 |
+| 9 | **It doesn't get stuck** | A runaway tool loop is stopped | 450 |
+| 10 | **It picks the right specialist** | Multiple agents; the right one answers each turn | 700 |
+| 11 | **It handles long conversations** | 200 turns without hitting the context window | 450 |
+| 12 | **It reads and writes files** *(opt)* | File tools without going through MCP | 800 |
+| 13 | **It runs commands** *(opt)* | `bash`, confined | 800 |
+| 14 | **It delegates** *(opt)* | Subagents working in parallel | 800 |
+| 15 | **It operates itself** *(opt)* | "Save this as a skill" — it writes one, and uses it next conversation | 500 |
+| 16 | **You can steer it** *(opt)* | Correct it mid-turn without restarting | 450 |
 
-**Phases 1–6 are the product.** 7–10 make it capable and safe. 11–12 make it
-better than cell-bot. 13–16 are agentic capabilities to add only if the product
+**Phases 1–6 are the product.** 7–9 make it capable and safe. 10–11 make it
+better than cell-bot. 12–16 are agentic capabilities to add only if the product
 turns out to want them.
 
 ## Status
 
-**Phase 8 — "it follows instructions" — done; phase 10 done ahead of it.** Next
-is phase 9. Since phase 7, seven insertions not planned above, then phase 10 as
-written with three cuts recorded in it, then 8.3–8.4 with two choices recorded
+**Phases 1–9 done; 9 — "it doesn't get stuck" — built ahead of 8.3–8.4.**
+Next is phase 11. Steering, once phase 9, is now phase 16 at the end of the
+optional track (why: in [Phase 16](#phase-16--you-can-steer-it)). Since phase
+7, eight insertions not planned above, then phase 9 as written with three cuts
+recorded in it, then 8.3–8.4 with two choices recorded
 in [Phase 8](#phase-8--it-follows-instructions): a `/name` message is expanded
 *in place* — Claude Code's shape, no new event or field — and the editor is
 strict where the catalog is lenient.
@@ -58,6 +60,7 @@ strict where the catalog is lenient.
 | 5 | **It answers on Discord** | `channels/discord/` — one class, one line in `build_channels`. DMs always; guild channels and threads only when `@mentioned`, so no privileged intent. `/new` and `/stop` are slash commands. | `channels/discord/channel.py` |
 | 6 | **It shows a UI** | MCP Apps (SEP-1865): `ToolResultEvent.ui` binds a result to a `ui://` resource; `/apps/{conversation}/{call}` renders it, every chat gets a link (`web.public_url`, empty by default), `/api/mcp/{server}/` serves the HTML and proxies a view's `tools/call`. Proven against `sysmon`. | [docs/mcp-apps.md](./docs/mcp-apps.md) |
 | 7 | **It researches a stock** | `mcp-servers/markets/` — seven tools over one id vocabulary (`AAPL`, `1155.KL`, `crypto:bitcoin`) for US stocks/ETFs, crypto and Bursa Malaysia: search, quotes, history, profile, financials, EDGAR filings, news. Research only; `backend/harness/` gained nothing. Needs an EDGAR `User-Agent` and a free CoinGecko Demo key in `config.local.json`. | [mcp-servers/markets/README.md](./mcp-servers/markets/README.md) |
+| 8 | **It knows where you are** | `get_location` — the first tool the *client* answers, and the generic spine under it (`tools/client/`): a client tool is a declaration whose only outcome is `Pending`; the loop ends the turn there (`turn/end pending`), nothing waits in memory, and the browser card, Telegram's share-location button or a link to `/answer` opens the turn that carries the answer (`LoopAgent.resume`). Typing instead writes `SKIPPED` for the call. No new event; no timer; a restart changes nothing. A second datum is one declaration and one browser handler. | [docs/client-data.md](./docs/client-data.md) |
 
 ### Why this order
 
@@ -68,10 +71,10 @@ A chat product's constraints differ from a coding harness's:
 | The UI is | the product — pull it to phase 4 | optional |
 | Capabilities arrive via | **MCP** (phase 7) | built-in fs/shell tools |
 | A turn is | often long (a download, a deck) — runs must outlive connections | usually short |
-| Multiple agents means | **routing** to a specialist (phase 11) | delegating to subagents |
+| Multiple agents means | **routing** to a specialist (phase 10) | delegating to subagents |
 | `bash`/fs tools are | optional, late | phase 2 material |
 
-This is why phases 13–15 are marked optional. cell-bot ships a real product with
+This is why phases 12–14 are marked optional. cell-bot ships a real product with
 none of them — every capability arrives through an MCP server.
 
 ### Where the infrastructure lands
@@ -87,14 +90,15 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Tool result `meta` (UI cards) | ~~4~~ ~~7~~ **insertion 6** | A UI exists now and still has nothing to put there — the only tool is a clock. The first MCP tool returning an image is the caller. ~~Cut again in 7.~~ The caller turned out to be MCP Apps: `ToolResultEvent.ui`, see [docs/mcp-apps.md](./docs/mcp-apps.md) |
 | Heartbeat, lease, reclaim | ~~4~~ **when a 2nd process exists** | Reclaiming a *process's* runs is a multi-process problem. One server, and phase 3's repair-on-resume already covers the single-process crash |
 | `Session.after(cursor)` | ~~4~~ **never** | `session.events()[n:]` already is it. Proposed and cut twice |
-| Prompt sections | ~~8~~ **11** | Skills turned out to contribute nothing to the prompt — the catalog rides on the tool. Personas are the first template with a variable |
-| **Around-middleware on tool execution** | ~~10~~ **never** | The guardrail reads the session log, which the dispatcher never sees, so it became a hook at the loop; the timeout was cut (next row). An approval gate, if it comes, is not a hook — it must not fail open |
-| `ToolDefinition.timeout_s` | ~~10~~ **never** | Every tool that can hang already bounds itself where it can be stopped: MCP's 60s command timeout, the sandbox's script timeout. A third number would have to exceed both and would never fire |
-| Typed hooks | 10 | The guardrail is its first real consumer |
-| Seams (`FileSystem`, `Subprocess`) | 13 | Two providers is when an interface earns its keep |
-| `Layered` (scoped registries) | 15 | The first time a plugin registers into *one agent's* world |
-| Durable inbox (`followup`/`steer`/`inject`) | 9 | Phase 5 queues at the channel, which is enough while a correction can wait for the next turn. `steer` mutates a turn already running, so it needs dsh's session-event inbox |
-| ~~`user/message` `source` field~~ `application/message` event | ~~when injected context exists (8 or 9)~~ **10** | The guardrail's note to the model is the first injected context — user role on the wire, Claude Code's shape, but not the person's words, so the title and the UI must know. Shipped as a `source` flag, then made its own event: everything else discriminates on `type` |
+| Prompt sections | ~~8~~ **10** | Skills turned out to contribute nothing to the prompt — the catalog rides on the tool. Personas are the first template with a variable |
+| **Around-middleware on tool execution** | ~~9~~ **never** | The guardrail reads the session log, which the dispatcher never sees, so it became a hook at the loop; the timeout was cut (next row). An approval gate, if it comes, is not a hook — it must not fail open |
+| `ToolDefinition.timeout_s` | ~~9~~ **never** | Every tool that can hang already bounds itself where it can be stopped: MCP's 60s command timeout, the sandbox's script timeout. A third number would have to exceed both and would never fire |
+| Typed hooks | 9 | The guardrail is its first real consumer |
+| `ToolContext` (a tool knows its call id) | insertion 8 | A tool whose answer arrives from outside the process must know which call it is. Nothing else ever needed to |
+| Seams (`FileSystem`, `Subprocess`) | 12 | Two providers is when an interface earns its keep |
+| `Layered` (scoped registries) | 14 | The first time a plugin registers into *one agent's* world |
+| Durable inbox (`followup`/`steer`/`inject`) | 16 | Phase 5 queues at the channel, which is enough while a correction can wait for the next turn. `steer` mutates a turn already running, so it needs dsh's session-event inbox |
+| ~~`user/message` `source` field~~ `application/message` event | ~~when injected context exists (8 or 16)~~ **9** | The guardrail's note to the model is the first injected context — user role on the wire, Claude Code's shape, but not the person's words, so the title and the UI must know. Shipped as a `source` flag, then made its own event: everything else discriminates on `type` |
 
 **Phase 2 built four of these early and they were cut.** An event bus with no
 listener, a `timeout_s` nothing enforced, a `meta` nothing rendered, and a cursor
@@ -102,7 +106,7 @@ nothing subscribed to. Each was justified by a docstring describing a *future*
 caller — which is the tell. The check is `grep`: a definition whose only callers
 are in `tests/` either belongs in `tests/` or does not exist yet.
 
-On `Layered`: per-agent **tool selection** (phase 11) does not need layered
+On `Layered`: per-agent **tool selection** (phase 10) does not need layered
 registries. cell-bot does it by filtering the provider at compose time
 (`narrow(mode, patterns, provider)`), which is simpler and correct. `Layered` is
 only needed when a plugin registers into one agent's world — which is subagents.
@@ -110,12 +114,12 @@ only needed when a plugin registers into one agent's world — which is subagent
 **Dependency graph:**
 
 ```
-1 ── 2 ── 3 ── 4 ── 5 ── 6 ─┬─ 7 ─┬─ 8 ── 11
-                            ├─ 9  │
-                            ├─ 10 ┘
-                            └─ 12
+1 ── 2 ── 3 ── 4 ── 5 ── 6 ─┬─ 7 ─┬─ 8 ── 10
+                            ├─ 9 ─┘
+                            └─ 11
 
-                            13 ── 14 ── 15   (optional track, needs 4)
+                            12 ── 13 ── 14   (optional track, needs 4)
+                            16               (optional, needs 4)
 ```
 
 ---
@@ -182,7 +186,7 @@ the result.
 
 **Not here, though an earlier draft said so.** The interception chain (never —
 see the table above), a per-agent tool filter (phase 7's MCP
-wildcards or phase 11's selection), and `todo_write` (phase 4, when a UI renders a
+wildcards or phase 10's selection), and `todo_write` (phase 4, when a UI renders a
 checklist). Each would have been a mechanism with no user.
 
 **Why live providers now.** Phase 7's MCP servers connect mid-conversation. A
@@ -195,7 +199,7 @@ materializes a list at compose time freezes each agent's tools forever.
   directly only when the schema comes from elsewhere (MCP).
 - `ToolOutcome` is typed: `Ok(content, meta) | Failure(code, message)`, rendered
   as `"error: …"` so the model recovers. Never raises.
-- Serial dispatch. `concurrency_safe` arrives in phase 13 when reads can overlap.
+- Serial dispatch. `concurrency_safe` arrives in phase 12 when reads can overlap.
 - A provider that raises is logged and contributes nothing — one broken source
   must not cost the model every other tool.
 
@@ -300,7 +304,7 @@ never emit it from `agent/loop.py`.
 
 dsh's wording for the second tells the model to *"retry only read-only or
 idempotent work and to verify possible side effects or ask the user."* That is a
-real safety difference once phase 14 has `bash`.
+real safety difference once phase 13 has `bash`.
 
 ## Acceptance
 
@@ -473,7 +477,7 @@ per-conversation FIFO, *"consumers MUST keep entries with the same partition_key
 on one worker to preserve per-conversation ordering."*
 
 **`dsh`**'s durable inbox — `agent/inbox/spliced` events projected into
-`next-turn` and `next-step` lists — is the richest answer and belongs to phase 9,
+`next-turn` and `next-step` lists — is the richest answer and belongs to phase 16,
 because `steer` mutates a turn already running.
 
 ## Key contracts
@@ -681,7 +685,7 @@ field is ignored, not refused. Research and the six clients compared in
 **Key contracts.**
 - **The catalog is never logged.** It rides on the `skill` tool's description,
   rebuilt from disk on every request the way the tool list is. Nothing
-  republishes it, nothing digests it, and phase 12 has nothing to re-establish.
+  republishes it, nothing digests it, and phase 11 has nothing to re-establish.
   (An earlier draft of this phase took dsh's logged-catalog design; every other
   client rebuilds per request, and so does this one.)
 - Ranked roots, first wins: `<project>/.agents/skills` (project = nearest
@@ -718,11 +722,11 @@ field is ignored, not refused. Research and the six clients compared in
   description — and refuses outright a name a higher-ranked root already
   holds, because it would be written and never read. Delete removes the
   directory, bundled files included. Both are `skills/editor.py`, typed errors,
-  so phase 16 wraps them without moving them.
+  so phase 15 wraps them without moving them.
 - Bundled files are listed with the body and readable by `path`, confined to
   the skill's directory and capped at 64 KiB. Scripts are listed but cannot run
-  (no shell until phase 14); the tool says so.
-- Skills are global until phase 11 gives agents allowlists.
+  (no shell until phase 13); the tool says so.
+- Skills are global until phase 10 gives agents allowlists.
 
 **Acceptance.**
 - A skill copied from anthropics/skills loads with no problems reported.
@@ -746,44 +750,13 @@ the model to call any capability it has; install skills from sources you trust.
 
 ---
 
-# Phase 9 — You can steer it
-
-**Demo.** It's going the wrong way; type a correction and it adjusts at the next
-step instead of restarting.
-
-**Depends on.** 4.
-
-**Ships.**
-- `agent/inbox.py` — one inbox, `InboxTarget`, wakeup flag
-- `agent/handle.py` — `send`, `followup`, `steer`, `inject`, `when_idle`
-- `frontend/` — send-while-running affordance
-
-**Key contracts.**
-
-| Method | Target | Wakes driver? |
-|---|---|---|
-| `followup(msg)` | next turn, sole ordinary message of its own turn | yes |
-| `steer(msg)` | nearest step boundary | yes (starts a turn if idle) |
-| `inject(msg)` | next pre-step, model-facing context | **no** |
-
-- `inject()` **not waking** the driver is the subtle, valuable bit:
-  background-job completions ride along with the next real message.
-- Cancellation: first cause wins; `keep_inbox` preserves pending work.
-
-**Acceptance.**
-- `inject()` on an idle agent does nothing until a `followup()` arrives; both then
-  land in the same request.
-- `steer()` during a turn is consumed at the next step boundary, not mid-stream.
-
----
-
-# Phase 10 — It doesn't get stuck
+# Phase 9 — It doesn't get stuck
 
 **Demo.** An MCP tool keeps failing; the model is refused the fifth identical
 call and told why, instead of burning steps. And the same call twice with the
 identical result gets a line saying so — the 2026-09-13 failure below.
 
-**Depends on.** 5 (for realistic failures). Built ahead of 8.3–8.4 and 9.
+**Depends on.** 5 (for realistic failures). Built ahead of 8.3–8.4.
 
 **Ships.**
 - `agent/hooks/chain.py` — `ToolHook`, an ABC whose two typed decisions are
@@ -857,7 +830,7 @@ identical result gets a line saying so — the 2026-09-13 failure below.
   the very detector that wrote it — `tool/result` stays the tool's words alone.
   This is also where Claude Code puts its reminders: a text block beside the
   tool results, in the user turn. It is dsh's `MessageSource.kind`, arriving
-  with its first non-human producer; phase 9's `inject()` is the second.
+  with its first non-human producer; phase 16's `inject()` is the second.
 - The guardrail keys on the typed `Failure` code, never a string prefix.
 - ~~**`LoopAgent.max_steps` can drop here.**~~ **Dropped.** The loop runs
   until the model answers, the user stops it, or the guardrail has refused
@@ -879,7 +852,7 @@ identical result gets a line saying so — the 2026-09-13 failure below.
 
 ---
 
-# Phase 11 — It picks the right specialist
+# Phase 10 — It picks the right specialist
 
 **Demo.** Several agents in the catalog; each turn is answered by the right one,
 with its own prompt, skills, and tool subset.
@@ -900,7 +873,7 @@ no refresh step a future mutator can forget.
 
 **Per-agent tools without layered registries.** `narrow(mode, patterns, provider)`
 wraps the provider rather than materializing a list, so an agent's MCP tools are
-not frozen at compose time. Scoped registries are a phase-13 concern.
+not frozen at compose time. Scoped registries are a phase-12 concern.
 
 **Key contracts.**
 - One cheap structured call per turn. **Not** `transfer_to_*` handoff tools —
@@ -924,7 +897,7 @@ not frozen at compose time. Scoped registries are a phase-13 concern.
 
 ---
 
-# Phase 12 — It handles long conversations
+# Phase 11 — It handles long conversations
 
 **Demo.** A 200-turn session stays coherent instead of hitting the context window.
 
@@ -950,18 +923,18 @@ not frozen at compose time. Scoped registries are a phase-13 concern.
 - The raw log still replays in full; compaction is additive.
 - A skill loaded before compaction is still in context after it.
 
-**This is cell-bot's largest gap.** Worth doing even if 11–13 never ship.
+**This is cell-bot's largest gap.** Worth doing even if 10–12 never ship.
 
 ---
 
 # Optional track — agentic capabilities
 
-Phases 13–16 are worth building only if the product wants them. cell-bot ships
-without any of them. **Decide before starting 13**, not during. 16 depends on
-none of 13–15 — it is here because it is a capability the product may not want,
-not because it needs a shell.
+Phases 12–16 are worth building only if the product wants them. cell-bot ships
+without any of them. **Decide before starting 12**, not during. 15 and 16 depend
+on none of 12–14 — they are here because they are capabilities the product may
+not want, not because they need a shell.
 
-## Phase 13 — It reads and writes files *(optional)*
+## Phase 12 — It reads and writes files *(optional)*
 
 **Ships.** `seams/fs.py`, `seams/subprocess.py`, local providers,
 `read`/`write`/`edit`, `glob`/`grep` via packaged ripgrep,
@@ -974,7 +947,7 @@ tools. Reads overlap; writes don't.
 **Acceptance.** Pointing `FileSystem` + `Subprocess` at the test suite's in-memory
 provider moves all five tools with **zero tool changes**. ~800 lines.
 
-## Phase 14 — It runs commands *(optional)*
+## Phase 13 — It runs commands *(optional)*
 
 **Ships.** `seams/shell.py`, `seams/sandbox.py`, local providers,
 `tools/native/bash.py`, `jobs/` + `job_*` tools, `interaction/approval.py`.
@@ -986,7 +959,7 @@ registers with the generic `Jobs` runtime; completion arrives via `inject()`.
 **Risk.** Platform-specific and the most likely phase to overrun. POSIX only;
 defer Windows. ~800 lines.
 
-## Phase 15 — It delegates *(optional)*
+## Phase 14 — It delegates *(optional)*
 
 **Ships.** `core/layered.py` (converting the registries), `seams/subagent.py`,
 `providers/subagent_fork.py`, `providers/subagent_spawn.py`, the `subagent` /
@@ -1000,7 +973,7 @@ lacks is **rejected loudly**. Layer resolution is global → farthest ancestor �
 nearest; `own()` is chain-blind because capabilities inherit and restrictions
 don't. ~800 lines.
 
-## Phase 16 — It operates itself *(optional)*
+## Phase 15 — It operates itself *(optional)*
 
 **Demo.** The model has just walked a reel to a place across two servers. "Save
 that as a skill." It calls `skill_save`; `/skills` lists it; a new
@@ -1012,7 +985,7 @@ product's agent writes its own instructions.
 model, or a recorded reason it does not. The API is the only surface for
 people; after this phase the tool list is the same surface for the model.
 
-**Depends on.** 8 (the editor service and the `/skills` page it shares); 11 for
+**Depends on.** 8 (the editor service and the `/skills` page it shares); 10 for
 `agent_*`.
 
 **Ships.**
@@ -1021,11 +994,11 @@ people; after this phase the tool list is the same surface for the model.
   call, so the page and the model have one validator and one write path.
 - `tools/native/conversations/` — `conversation_search(query)`,
   `conversation_read(id)`: read-only, the model's cross-conversation memory
-  until phase 12 gives it a better one.
+  until phase 11 gives it a better one.
 - `tools/native/mcp/` — `mcp_servers()`: which servers are connected, which
   failed and why, so the model can tell a person "places is not connected"
   instead of failing a program.
-- After 11: `agent_save`, `agent_delete` over `agents/service.py`.
+- After 10: `agent_save`, `agent_delete` over `agents/service.py`.
 - A stay-in-step test: every mutating `/api` route maps to a tool or to a line
   in a `NOT_EXPOSED` table with the reason.
 
@@ -1040,7 +1013,7 @@ people; after this phase the tool list is the same surface for the model.
 - **Nothing that spawns or destroys without an approval gate.** MCP
   connect/disconnect stays cut for phase 7's reason (a model-callable connect
   tool spawns processes); conversation delete and config edits likewise. They
-  wait for phase 14's `interaction/approval.py`, which must not fail open.
+  wait for phase 13's `interaction/approval.py`, which must not fail open.
 - Reads are offered to scripts; writes are not.
 
 **Acceptance.**
@@ -1057,7 +1030,7 @@ people; after this phase the tool list is the same surface for the model.
 **Cut, and why.** `mcp_connect` (phase 7's cut stands), `conversation_delete`
 (destructive, no gate), `settings_*` (secrets), a proposal queue for
 model-written skills (OpenClaw) — the timeline is the review surface; if someone
-wants approval before a write, that is phase 14's gate, not a second queue.
+wants approval before a write, that is phase 13's gate, not a second queue.
 ~500 lines.
 
 ---
@@ -1077,6 +1050,42 @@ Not phases. They start immediately and run throughout.
 
 ---
 
+## Phase 16 — You can steer it *(optional)*
+
+**Demo.** It's going the wrong way; type a correction and it adjusts at the next
+step instead of restarting.
+
+**Moved here from the core arc, last of all.** Of the three verbs, `followup`
+already exists — it is the channel `pending` queue from phase 6 — and `inject`
+has no caller: nothing runs in the background and reports back later. Only
+`steer` is new, and a correction that waits for the turn to end is tolerable.
+
+**Depends on.** 4.
+
+**Ships.**
+- `agent/inbox.py` — one inbox, `InboxTarget`, wakeup flag
+- `agent/handle.py` — `send`, `followup`, `steer`, `inject`, `when_idle`
+- `frontend/` — send-while-running affordance
+
+**Key contracts.**
+
+| Method | Target | Wakes driver? |
+|---|---|---|
+| `followup(msg)` | next turn, sole ordinary message of its own turn | yes |
+| `steer(msg)` | nearest step boundary | yes (starts a turn if idle) |
+| `inject(msg)` | next pre-step, model-facing context | **no** |
+
+- `inject()` **not waking** the driver is the subtle, valuable bit:
+  background-job completions ride along with the next real message.
+- Cancellation: first cause wins; `keep_inbox` preserves pending work.
+
+**Acceptance.**
+- `inject()` on an idle agent does nothing until a `followup()` arrives; both then
+  land in the same request.
+- `steer()` during a turn is consumed at the next step boundary, not mid-stream.
+
+---
+
 # Decision gates
 
 | Before | Decide | Default if silent |
@@ -1086,8 +1095,8 @@ Not phases. They start immediately and run throughout.
 | Phase 3 | JSONL vs SQLite | **JSONL**, header on line 1 (dsh's design) |
 | Phase 4 | Frontend stack | **Next.js**, matching cell-bot's `frontend/` |
 | Phase 8 | Skills from DB, filesystem, or both | ~~Both~~ **Filesystem** — there is no DB, and a managed directory the page writes into is the same feature with one provider |
-| Phase 13 | Build the optional track at all | **Defer** until the product asks |
-| Phase 16 | Which mutations the model may make without an approval gate | **Skills only** — reads elsewhere, writes wait for 14's gate |
+| Phase 12 | Build the optional track at all | **Defer** until the product asks |
+| Phase 15 | Which mutations the model may make without an approval gate | **Skills only** — reads elsewhere, writes wait for 13's gate |
 
 ---
 
@@ -1097,7 +1106,7 @@ Not phases. They start immediately and run throughout.
 
 The only thing to be strict about: the loop reads its history from
 `derive_messages(log)`, never from a list it accumulated. That one discipline is
-what makes phases 3, 10, and 13 cheap instead of rewrites.
+what makes phases 3, 9, and 12 cheap instead of rewrites.
 
 And the one temptation to resist: **no HTTP before phase 4.** A quick endpoint in
 phase 1 streams on the request connection, which is precisely the design phase 4

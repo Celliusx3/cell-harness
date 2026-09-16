@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from harness.llm.messages import Block, Text, ToolSpec, render_text
-from harness.tools.progress import ToolProgressReporter
+from harness.tools.context import ToolContext
 
 # Joins a source to the tool it published — `yt` + `get_subtitles`. Here rather
 # than in `mcp/` because it is the tool-name convention, and putting it there
@@ -111,14 +111,27 @@ class Failure:
     message: str
 
 
-ToolOutcome = Ok | Failure
+@dataclass(frozen=True)
+class Pending:
+    """A call the *client* answers, later.
+
+    Not a result and not a failure: the tool has nothing to compute, the
+    person does. The loop ends the turn here with no result for the call; the
+    answer arrives as the first event of a later turn. Vercel's "a tool with
+    no `execute` is a client tool", spelled as an outcome so the dispatcher
+    stays the one door and the loop never checks a tool's name.
+    """
 
 
-def render_outcome(outcome: ToolOutcome) -> tuple[Block, ...]:
+ToolOutcome = Ok | Failure | Pending
+
+
+def render_outcome(outcome: Ok | Failure) -> tuple[Block, ...]:
     """What the model sees, as blocks.
 
     The only place a `Failure` is given its shape, so it cannot reach the model
-    wearing two different ones: one text block, wearing the prefix.
+    wearing two different ones: one text block, wearing the prefix. A
+    `Pending` is never rendered — it has no result yet.
     """
     if isinstance(outcome, Ok):
         return outcome.content
@@ -142,7 +155,7 @@ class ToolDefinition[ArgsT]:
     input_schema: dict
     # Raw argument dict -> what the executor wants.
     parse: Callable[[dict], ArgsT]
-    execute: Callable[[ArgsT, ToolProgressReporter], Awaitable[ToolOutcome]]
+    execute: Callable[[ArgsT, ToolContext], Awaitable[ToolOutcome]]
 
     @classmethod
     def from_model[M: BaseModel](
@@ -151,7 +164,7 @@ class ToolDefinition[ArgsT]:
         name: str,
         description: str,
         args_model: type[M],
-        execute: Callable[[M, ToolProgressReporter], Awaitable[ToolOutcome]],
+        execute: Callable[[M, ToolContext], Awaitable[ToolOutcome]],
     ) -> ToolDefinition[M]:
         """A tool whose code we own, described by one Pydantic model.
 
@@ -208,7 +221,7 @@ class ToolDefinition[ArgsT]:
             f"Expected fields: {expected}."
         )
 
-    async def invoke(self, arguments: str, *, progress: ToolProgressReporter) -> ToolOutcome:
+    async def invoke(self, arguments: str, *, context: ToolContext) -> ToolOutcome:
         """Parse the model's raw argument string, then run.
 
         Every failure mode returns a `Failure` rather than raising: malformed
@@ -237,6 +250,6 @@ class ToolDefinition[ArgsT]:
             return Failure(INVALID_ARGUMENTS, f"invalid arguments for {self.name!r}: {err}")
 
         try:
-            return await self.execute(parsed, progress)
+            return await self.execute(parsed, context)
         except Exception as err:  # noqa: BLE001 — a tool's bug must not kill the turn
             return Failure(EXECUTION_ERROR, f"{self.name} failed: {type(err).__name__}: {err}")

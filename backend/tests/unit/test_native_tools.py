@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from harness.tools.definition import EXECUTION_ERROR, Failure, Ok
 from harness.tools.native.clock import clock_tool
-from tests.unit.helpers import no_progress
+from tests.unit.helpers import context_for
 
 FIXED = datetime(2026, 8, 23, 12, 30, 0, tzinfo=UTC)
 
@@ -16,13 +16,13 @@ def frozen_clock():
 
 
 async def test_defaults_to_utc() -> None:
-    outcome = await frozen_clock().invoke("{}", progress=no_progress)
+    outcome = await frozen_clock().invoke("{}", context=context_for())
 
     assert outcome == Ok(content="2026-08-23T12:30:00+00:00")
 
 
 async def test_converts_to_a_named_timezone() -> None:
-    outcome = await frozen_clock().invoke('{"timezone": "Asia/Singapore"}', progress=no_progress)
+    outcome = await frozen_clock().invoke('{"timezone": "Asia/Singapore"}', context=context_for())
 
     assert outcome == Ok(content="2026-08-23T20:30:00+08:00")
 
@@ -30,7 +30,7 @@ async def test_converts_to_a_named_timezone() -> None:
 async def test_an_unknown_timezone_is_a_failure_not_a_silent_utc() -> None:
     """Defaulting would answer confidently with the wrong time — the one outcome
     worse than admitting the timezone is unknown."""
-    outcome = await frozen_clock().invoke('{"timezone": "Mars/Olympus"}', progress=no_progress)
+    outcome = await frozen_clock().invoke('{"timezone": "Mars/Olympus"}', context=context_for())
 
     assert isinstance(outcome, Failure)
     assert outcome.code == EXECUTION_ERROR

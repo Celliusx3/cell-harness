@@ -11,7 +11,7 @@ import asyncio
 import contextlib
 from contextlib import aclosing
 
-from harness.agent.loop import INTERRUPTED_RESULT
+from harness.agent.turn import INTERRUPTED_RESULT
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import ToolCallChunk
 from harness.session.derive import derive_messages

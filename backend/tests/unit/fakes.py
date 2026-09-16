@@ -16,8 +16,8 @@ from pydantic import BaseModel, Field
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, ToolCall, ToolSpec
 from harness.llm.stream import Completed, StreamEvent, TextChunk, ToolCallChunk
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
-from harness.tools.progress import ToolProgressReporter
+from harness.tools.context import ToolContext
+from harness.tools.definition import Ok, Pending, ToolDefinition, ToolOutcome
 
 
 class ScriptedClient(LLMClient):
@@ -132,7 +132,7 @@ class EchoArgs(BaseModel):
 def echo_tool(name: str = "echo") -> ToolDefinition[EchoArgs]:
     """A tool that succeeds, for testing dispatch and schema derivation."""
 
-    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         return Ok(content=args.value)
 
     return ToolDefinition.from_model(
@@ -143,9 +143,9 @@ def echo_tool(name: str = "echo") -> ToolDefinition[EchoArgs]:
 def reporting_tool(reports: Sequence[tuple[float | None, str]]) -> ToolDefinition[EchoArgs]:
     """A tool that reports progress before returning."""
 
-    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         for percent, message in reports:
-            await progress(percent=percent, message=message)
+            await context.progress(percent=percent, message=message)
         return Ok(content=args.value)
 
     return ToolDefinition.from_model(
@@ -162,7 +162,7 @@ def hanging_tool(name: str = "hang") -> ToolDefinition[EchoArgs]:
     owed and nothing needs repairing.
     """
 
-    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         await asyncio.Event().wait()  # never set
         raise AssertionError("unreachable")
 
@@ -179,7 +179,7 @@ def gated_tool(release: asyncio.Event, name: str = "gate") -> ToolDefinition[Ech
     discards the queue.
     """
 
-    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         await release.wait()
         return Ok(content=args.value)
 
@@ -191,9 +191,20 @@ def gated_tool(release: asyncio.Event, name: str = "gate") -> ToolDefinition[Ech
 def raising_tool(name: str = "boom") -> ToolDefinition[EchoArgs]:
     """A tool whose body blows up — a bug in a tool must not kill the turn."""
 
-    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         raise RuntimeError("kaboom")
 
     return ToolDefinition.from_model(
         name=name, description="Always raises.", args_model=EchoArgs, execute=execute
+    )
+
+
+def pending_tool(name: str = "ask") -> ToolDefinition[EchoArgs]:
+    """A client tool: it does not compute, it says the person will."""
+
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
+        return Pending()
+
+    return ToolDefinition.from_model(
+        name=name, description="The person answers.", args_model=EchoArgs, execute=execute
     )

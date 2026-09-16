@@ -27,6 +27,7 @@ makes inside.
 from __future__ import annotations
 
 from harness.llm.messages import ToolCall
+from harness.tools.context import ToolContext
 from harness.tools.definition import UNKNOWN_TOOL, Failure, ToolOutcome
 from harness.tools.progress import ToolProgressReporter
 from harness.tools.registry import ToolRegistry
@@ -43,7 +44,11 @@ class ToolDispatcher:
         tool = self._registry.get(call.name)
         if tool is None:
             return Failure(UNKNOWN_TOOL, self._unknown(call.name))
-        return await tool.invoke(call.arguments, progress=progress)
+        # Built here, not by the caller: the dispatcher is the one place that
+        # holds both the call and the reporter, so no caller can hand a tool
+        # another call's id.
+        context = ToolContext(call_id=call.id, progress=progress)
+        return await tool.invoke(call.arguments, context=context)
 
     def _unknown(self, name: str) -> str:
         """Naming what *is* available turns a dead end into a correction the

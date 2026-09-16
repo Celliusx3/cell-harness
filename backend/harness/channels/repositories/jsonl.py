@@ -56,6 +56,27 @@ class JsonlChatRepository:
         path = self._path(state.channel, state.chat_id)
         _write_atomic(self._root, path, state.model_dump_json())
 
+    async def chats_of(self, conversation_id: str) -> list[ChatState]:
+        # A scan, because there is no index and the directory is one file per
+        # chat this process has ever talked to — small, and read on the one
+        # path that has nothing better to key on. Only files this class named
+        # are chats: the directory outlives layouts, and an `offset.json` from
+        # an earlier design once took a whole resume down with a parse error.
+        found: list[ChatState] = []
+        for path in sorted(self._root.glob("*-*.json")):
+            if path.name.endswith("-cursor.json"):
+                continue
+            try:
+                state = ChatState.model_validate_json(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                # Not one of ours, or damaged: `load` names it the day that
+                # chat speaks; a lookup for a *different* conversation must
+                # not fail on it.
+                continue
+            if state.conversation_id == conversation_id:
+                found.append(state)
+        return found
+
     async def cursor(self, channel: str) -> str:
         path = self._cursor_path(channel)
         if not path.exists():

@@ -15,7 +15,7 @@ so a name the project root already holds would be saved and never read.
 
 **The catalog is read, never published.** `snapshot()` rescans the roots on
 every call, cheap by file stamp — nothing to invalidate after a save, and
-nothing for phase 12 to re-establish.
+nothing for phase 11 to re-establish.
 """
 
 from __future__ import annotations

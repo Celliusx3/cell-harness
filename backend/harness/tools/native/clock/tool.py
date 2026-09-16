@@ -17,8 +17,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, Field
 
+from harness.tools.context import ToolContext
 from harness.tools.definition import EXECUTION_ERROR, Failure, Ok, ToolDefinition, ToolOutcome
-from harness.tools.progress import ToolProgressReporter
 
 Now = Callable[[], datetime]
 
@@ -39,7 +39,7 @@ CLOCK = "get_current_time"
 
 
 def clock_tool(now: Now = lambda: datetime.now(UTC)) -> ToolDefinition[ClockArgs]:
-    async def execute(args: ClockArgs, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: ClockArgs, _context: ToolContext) -> ToolOutcome:
         try:
             zone = ZoneInfo(args.timezone)
         except (ZoneInfoNotFoundError, ValueError) as err:

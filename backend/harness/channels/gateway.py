@@ -41,6 +41,7 @@ from harness.runs.store import Run, RunAlreadyActive, RunStore
 from harness.session.log import Session
 from harness.session.service import SessionService
 from harness.skills import SkillService, UnknownSkill
+from harness.tools.definition import Failure, Ok
 
 logger = logging.getLogger("harness.channels")
 
@@ -59,6 +60,7 @@ class ChannelGateway:
         skills: SkillService,
         *,
         public_url: str,
+        client_tools: frozenset[str] = frozenset(),
     ) -> None:
         self._repository = repository
         self._runs = runs
@@ -67,7 +69,7 @@ class ChannelGateway:
         # place every platform's text passes through — a phone and a browser
         # get the feature from the same line.
         self._skills = skills
-        self._replies = Replies(repository, public_url=public_url)
+        self._replies = Replies(repository, public_url=public_url, client_tools=client_tools)
         # One per platform, for the life of the server. Holds the channel itself
         # — the same object we reply through and listen on, which is why there is
         # one registry and not two.
@@ -102,6 +104,12 @@ class ChannelGateway:
         return list(self._channels)
 
     @property
+    def runs(self) -> RunStore:
+        """Which conversations are busy — for a chat deciding whether an
+        answer can open a turn."""
+        return self._runs
+
+    @property
     def skills(self) -> SkillService:
         """What `/name` may name — for a channel composing the refusal when it
         named something else."""
@@ -116,13 +124,9 @@ class ChannelGateway:
         """One inbound message, from any platform.
 
         Returns the run it started, or `None` when the message was queued behind
-        one already going. A caller that must tell its client which happened — the
-        browser's `202` says `queued` — needs that answer, and returning it beats
-        making the caller ask the store a question we just answered.
-
-        A redelivery is answered again, not recognised: the cost is answering the
-        same question twice, which `channels/__init__.py`'s "dedupe by
-        consequence" rule says is not worth guarding.
+        one already going — the browser's `202` says `queued` from this. A
+        redelivery is answered again, not recognised: `channels/__init__.py`,
+        "dedupe by consequence".
         """
         self._require(message.channel)
         # Before the busy check, so `/nonexistent` is refused now, while there is
@@ -156,7 +160,7 @@ class ChannelGateway:
         content = self._skills.expand(text)
         state = ChatState(channel=channel, chat_id=session.id, conversation_id=session.id)
         await self._repository.save(state)
-        return self._begin(state, session, content)
+        return self._begin(state, self._runs.start(session, content))
 
     async def reset(self, channel: str, chat_id: str) -> None:
         """Point this chat at a fresh conversation (`/new`).
@@ -184,17 +188,10 @@ class ChannelGateway:
     async def drained(self, channel: str, chat_id: str) -> None:
         """Wait while this chat is between turns: one settled, and its follower
         is deciding whether a queued message starts the next. Returns at once
-        when a turn is in flight or none is coming.
-
-        What a stream needs after the run it watched settles: a queued message
-        becomes a *new* run the moment the old one settles, and a client told
-        `end` in between parked on it and never saw the turn it was waiting for.
-        Once this returns, the drained turn is in flight or already on disk.
-
-        The in-flight check matters: the follower is replaced the instant a
-        drain starts a turn, so waiting on whatever is registered would, past
-        that instant, mean waiting for the *whole next turn* — and a stream
-        would then deliver it from disk in one lump instead of live.
+        when a turn is in flight or none is coming — a stream told `end` in
+        that gap would otherwise park and miss the drained turn. The in-flight
+        check matters: past the instant a drain starts a turn, waiting on the
+        follower would mean waiting for the *whole next turn*.
 
         `asyncio.wait`, not `await task`: a waiter that is cancelled — a browser
         hanging up — must not cancel the follower, or closing a tab would lose
@@ -231,7 +228,7 @@ class ChannelGateway:
             self._repository, self._sessions, self._channels[state.channel].channel, state
         )
         try:
-            return self._begin(state, session, text)
+            return self._begin(state, self._runs.start(session, text))
         except RunAlreadyActive:
             # Raced with another inbound message. Queue rather than drop.
             await self._repository.save(
@@ -239,9 +236,23 @@ class ChannelGateway:
             )
             return None
 
-    def _begin(self, state: ChatState, session: Session, text: str) -> Run:
-        """Start the run, and follow it to its end."""
-        run = self._runs.start(session, text)
+    async def resume(self, session: Session, call_id: str, outcome: Ok | Failure) -> Run:
+        """Begin the turn that carries an answer to a client tool.
+
+        No chat in hand, on purpose: the answer may come from a Telegram pin
+        or from the browser page a Discord link opened, and either way the
+        turn is followed — delivered, then drained — by *every* chat mapped to
+        the conversation; nothing started it, so nothing else would. Chats are
+        looked up first: a lookup that fails must leave nothing running unfollowed.
+        """
+        states = await self._repository.chats_of(session.id)
+        run = self._runs.resume(session, call_id, outcome)
+        for state in states:
+            if state.channel in self._channels:
+                self._begin(state, run)
+        return run
+
+    def _begin(self, state: ChatState, run: Run) -> Run:
         key = (state.channel, state.chat_id)
         self._tasks.start(key, self._follow(key, run))
         return run
@@ -249,20 +260,11 @@ class ChannelGateway:
     async def _follow(self, key: ChatKey, run: Run) -> None:
         """See this turn to its end, then start whatever queued behind it.
 
-        **Every channel gets one of these, including the ones nothing is sent to.**
-        Delivery is the part that varies; the drain is not. A queued message has to
-        be answered when the turn it waited for finishes, and if only push channels
-        were followed, a browser message typed mid-turn would sit in `pending`
-        until something else happened to arrive — which for a one-off question is
-        never.
-
-        **A turn is followed only by the channel that started it**, which has a
-        consequence worth stating because the opposite is easy to assume: answer a
-        Telegram conversation from the browser and the reply lands in the log and
-        on screen, but *not* on the phone. Both channels share the conversation,
-        not the delivery. Fixing it means following a turn from every channel
-        mapped to its conversation, each with its own `delivered_through` — real,
-        but nobody has asked for it, and it is a phase of its own.
+        **Every channel gets one of these, including the ones nothing is sent
+        to.** Delivery varies; the drain does not: a queued message must be
+        answered when the turn it waited for finishes, whoever is listening. A
+        turn is followed only by the channel that started it — see
+        `channels/__init__.py`, "one conversation, one delivery".
         """
         channel, chat_id = key
         transport = self._channels[channel].channel

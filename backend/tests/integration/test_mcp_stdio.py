@@ -22,7 +22,7 @@ from harness.mcp import connection as connection_module
 from harness.mcp.store import McpServerStore
 from harness.tools.definition import Failure, Ok, ToolUi
 from harness.tools.registry import ToolRegistry
-from tests.unit.helpers import no_progress
+from tests.unit.helpers import context_for
 
 STUB = Path(__file__).resolve().parent.parent / "mcp_stub.py"
 TIMEOUT = 30.0
@@ -63,7 +63,7 @@ async def test_a_real_server_contributes_callable_tools(live) -> None:
     # Through the registry, the way the agent loop reaches a tool.
     echo = registry.get("stub__echo")
     assert echo is not None
-    outcome = await echo.invoke('{"value": "hello"}', progress=no_progress)
+    outcome = await echo.invoke('{"value": "hello"}', context=context_for())
 
     assert isinstance(outcome, Ok)
     assert "echo: hello" in outcome.text
@@ -76,7 +76,7 @@ async def test_an_app_bound_tool_and_its_html_come_through_the_real_wire(live) -
 
     show = registry.get("stub__show_pid")
     assert show is not None
-    outcome = await show.invoke("{}", progress=no_progress)
+    outcome = await show.invoke("{}", context=context_for())
 
     assert isinstance(outcome, Ok)
     assert outcome.ui == ToolUi(server="stub", resource_uri="ui://stub/app.html", data=outcome.data)
@@ -94,7 +94,7 @@ async def test_a_tool_that_raises_comes_back_as_a_failure(live) -> None:
     boom = registry.get("stub__boom")
     assert boom is not None
 
-    assert isinstance(await boom.invoke("{}", progress=no_progress), Failure)
+    assert isinstance(await boom.invoke("{}", context=context_for()), Failure)
 
 
 async def test_closing_reaps_the_subprocess(live) -> None:
@@ -103,7 +103,7 @@ async def test_closing_reaps_the_subprocess(live) -> None:
 
     whoami = registry.get("stub__whoami")
     assert whoami is not None
-    outcome = await whoami.invoke("{}", progress=no_progress)
+    outcome = await whoami.invoke("{}", context=context_for())
     assert isinstance(outcome, Ok)
     pid = int(outcome.text.strip())
 
@@ -127,7 +127,7 @@ async def test_a_server_that_stops_answering_fails_within_the_timeout(live, monk
     echo = registry.get("stub__echo")
     assert echo is not None
     outcome = await asyncio.wait_for(
-        echo.invoke('{"value": "anyone there"}', progress=no_progress), TIMEOUT
+        echo.invoke('{"value": "anyone there"}', context=context_for()), TIMEOUT
     )
 
     assert isinstance(outcome, Failure)

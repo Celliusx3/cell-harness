@@ -8,7 +8,7 @@ from pathlib import Path
 
 from harness.skills import SKILL, skill_tool
 from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok
-from tests.unit.helpers import no_progress, no_skills, skills_at
+from tests.unit.helpers import context_for, no_skills, skills_at
 
 
 def write_skill(root: Path, name: str, description: str = "Does X. Use when Y.", **front) -> Path:
@@ -22,7 +22,7 @@ def write_skill(root: Path, name: str, description: str = "Does X. Use when Y.",
 
 
 async def call(tool, **arguments):
-    return await tool.invoke(json.dumps(arguments), progress=no_progress)
+    return await tool.invoke(json.dumps(arguments), context=context_for())
 
 
 def test_no_skills_means_no_tool() -> None:

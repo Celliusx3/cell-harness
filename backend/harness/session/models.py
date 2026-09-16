@@ -83,7 +83,10 @@ class TurnStart(BaseModel):
 # Why a turn ended. `completed` is the only success; the rest each say something
 # a consumer acts on differently — a UI shows an error for `failed`, nothing for
 # `cancelled`, and a retry affordance for neither.
-TurnEndReason = Literal["completed", "failed", "cancelled"]
+# `pending`: the model asked the client for something and the turn stopped for
+# the person to answer — deliberate, so a call it leaves unanswered is not a
+# crash for `repair` and not a cancellation for the screen.
+TurnEndReason = Literal["completed", "failed", "cancelled", "pending"]
 
 
 class TurnEnd(BaseModel):
@@ -108,7 +111,7 @@ class UserMessageEvent(BaseModel):
 
 class ApplicationMessageEvent(BaseModel):
     """Context this process injected — the guardrail telling the model it is
-    repeating itself is the first; phase 9's `inject()` is the next.
+    repeating itself is the first; phase 16's `inject()` is the next.
 
     Its own event, not a flag on `user/message`: it reaches the model in the
     user role (Claude Code's reminder shape, see `derive_messages`), but it is

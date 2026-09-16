@@ -23,6 +23,8 @@ from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
 
+from harness.tools.client import PendingCall
+
 logger = logging.getLogger("harness.channels")
 
 # What to do when a chat's conversation id names nothing on disk. A messenger must
@@ -138,6 +140,20 @@ class Pushing(Protocol):
         the chat gets a way to it: a button that opens it where the platform
         has buttons (Telegram, Discord), the URL as text where it does not.
         Raises if it could not be delivered, like `send_message`.
+        """
+        ...
+
+    async def ask_client(self, chat_id: str, request: PendingCall, url: str) -> None:
+        """Ask the person for what a client tool wants — how `get_location`
+        and its successors reach a chat.
+
+        The platform is the client here and fulfils the request *by name*, as
+        the browser's handler map does: its own prompt where it has one
+        (Telegram's share-location button), and otherwise `url` — the page
+        that asks the browser instead — or a line saying there is no such
+        page because `web.public_url` is unset. The answer comes back the
+        platform's own way: a location message, or the page posting to the
+        API. Raises if it could not be delivered, like `send_message`.
         """
         ...
 

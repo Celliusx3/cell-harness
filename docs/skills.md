@@ -94,20 +94,20 @@ Same three tiers; the catalog is in the system prompt.
    re-establish after compaction" was DeepSeek Harness's design and the outlier
    — it exists there because dsh injects the catalog as a user-role message and
    caches its prompt prefix. Rebuilding per request drops all four pieces and
-   phase 12 has nothing to re-establish.
+   phase 11 has nothing to re-establish.
 3. **No skills ⇒ no tool.** A provider that yields nothing is how that falls out
    of the registry.
 4. **Two surfaces are the norm.** `disable-model-invocation` and
    `user-invocable` are Claude Code's names and OpenClaw's; user invocation is a
    harness expansion of `/name`, not a model action.
 5. **Instruction-only skills are how chat products use them.** Scripts need a
-   shell (phase 14). References, though, are read on demand — so the activation
+   shell (phase 13). References, though, are read on demand — so the activation
    tool takes a `path`, Hermes-style, or a public skill with a `references/`
    directory is half unusable.
 6. **`.agents/skills/` is the interop root**, and ranked roots with the project
    first are universal.
 7. **Chat products scope per agent** (OpenClaw's allowlist, Hermes's trust
-   list). Nobody scopes per conversation. That is phase 11's agent catalog;
+   list). Nobody scopes per conversation. That is phase 10's agent catalog;
    until then the catalog is global.
 8. **Skills teach tool use.** Anthropic's own framing is that skills "complement
    MCP servers by teaching agents more complex workflows that involve external

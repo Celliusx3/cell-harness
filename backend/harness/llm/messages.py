@@ -77,7 +77,7 @@ class UserMessage(BaseModel):
 
 class ApplicationMessage(BaseModel):
     """Context this process put on the model-visible surface — the guardrail's
-    note first, phase 9's `inject()` next.
+    note first, phase 16's `inject()` next.
 
     **Not a wire message.** No provider has an `application` role, so
     `session.derive_messages` sends one as a `UserMessage` — the user turn is

@@ -19,6 +19,7 @@ from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.store import Run
 from harness.runs.subscribe import subscribe
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent
+from harness.tools.client import PendingCall
 
 logger = logging.getLogger("harness.channels")
 
@@ -32,11 +33,24 @@ def app_url(public_url: str, conversation_id: str, call_id: str) -> str:
     return f"{public_url}/apps/{quote(conversation_id, safe='')}/{quote(call_id, safe='')}"
 
 
+def answer_url(public_url: str, conversation_id: str, call_id: str) -> str:
+    """The page that answers one client-tool call — `frontend/app/answer/`.
+    Empty when there is no public URL: the platform says so in words."""
+    if not public_url:
+        return ""
+    return f"{public_url}/answer/{quote(conversation_id, safe='')}/{quote(call_id, safe='')}"
+
+
 class Replies:
     """Sends a turn's replies to the chat that asked, and remembers how far."""
 
-    def __init__(self, repository: ChatRepository, *, public_url: str) -> None:
+    def __init__(
+        self, repository: ChatRepository, *, public_url: str, client_tools: frozenset[str]
+    ) -> None:
         self._repository = repository
+        # The calls a chat is *asked* about before their result: the result is
+        # the person's to give. Names, because that is all the log carries.
+        self._client_tools = client_tools
         # Where a link to an MCP App's page points — `settings.web.public_url`.
         # Empty means no link is sent: there is nowhere a phone could open.
         self._public_url = public_url
@@ -55,8 +69,19 @@ class Replies:
                 cursor += 1
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
-                    continue
-                if isinstance(event, ToolResultEvent):
+                    if event.call.name not in self._client_tools:
+                        continue
+                    # An ask is a delivery like any other, and the cursor
+                    # must move past it below: the turn ends pending right
+                    # after, and the turn that carries the answer is followed
+                    # from this cursor — a stale one replays the ask.
+                    await self._ask_client(
+                        transport,
+                        chat_id,
+                        PendingCall(event.call.name, event.call.id, event.call.arguments),
+                        answer_url(self._public_url, run.session.id, event.call.id),
+                    )
+                elif isinstance(event, ToolResultEvent):
                     # A result with an app is the one thing besides prose a chat
                     # is told about: it cannot render the app, but it can open
                     # the page that does.
@@ -112,6 +137,17 @@ class Replies:
             await transport.send_link(chat_id, text, url)
         except Exception:
             logger.warning("app link %s could not be sent to chat %s", url, chat_id, exc_info=True)
+
+    async def _ask_client(
+        self, transport: Pushing, chat_id: str, request: PendingCall, url: str
+    ) -> None:
+        """Best-effort for the same reason as a link: a prompt that could not
+        be sent times out into a result the model can act on, and aborting
+        delivery would replay the ask into the same refusal forever."""
+        try:
+            await transport.ask_client(chat_id, request, url)
+        except Exception:
+            logger.warning("%s could not be asked of chat %s", request.name, chat_id, exc_info=True)
 
     async def _keep_typing(self, transport: Pushing, chat_id: str) -> None:
         """Refresh the typing indicator until cancelled."""

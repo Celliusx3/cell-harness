@@ -5,11 +5,14 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.store import RunStore
 from harness.skills import SkillService
+from harness.tools.client import ClientToolService
+from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import durable_service, run_store
 from tests.unit.telegram_fakes import telegram_channel
 
@@ -22,12 +25,16 @@ def build(
     *tools,
     public_url: str = "http://t",
     skills: SkillService,
+    client_tools: ClientToolService | None = None,
 ):
     sessions = durable_service(tmp_path / "sessions")
     runs = run_store(sessions, model, *tools)
     chats = JsonlChatRepository(tmp_path / "chats")
-    gateway = ChannelGateway(chats, runs, sessions, skills, public_url=public_url)
-    channel, bot = telegram_channel(gateway)
+    client_tools = client_tools or default_client_tools()
+    gateway = ChannelGateway(
+        chats, runs, sessions, skills, public_url=public_url, client_tools=client_tools.names
+    )
+    channel, bot = telegram_channel(gateway, ChatAnswers(chats, sessions, gateway, client_tools))
     gateway.register(channel)
     return bot, gateway, runs, chats, sessions
 

@@ -21,7 +21,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import no_skills
+from tests.unit.helpers import client_tools, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import web_gateway, web_mcp
 
@@ -44,10 +44,11 @@ def build(tmp_path):
     runs = RunStore(sessions, agent)
     # Both channels on one gateway, which is the arrangement the server ships:
     # the browser is a channel now, so an app always has at least one.
-    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
+    tools = client_tools()
+    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills(), client_tools=tools)
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
-    app = create_app(runs, gateway, web, web_mcp(), no_skills())
+    app = create_app(runs, gateway, web, web_mcp(), no_skills(), tools)
     return bot, app, gateway, runs, sessions
 
 
@@ -120,8 +121,9 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     """
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
-    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
-    wired = create_app(runs, gateway, web, web_mcp(), no_skills())
+    tools = client_tools()
+    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills(), client_tools=tools)
+    wired = create_app(runs, gateway, web, web_mcp(), no_skills(), tools)
 
     assert gateway.channels == ["web"]
     async with wired.router.lifespan_context(wired):
@@ -181,7 +183,9 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
-    assert build_channels(settings, sessions, runs, no_skills())[0].channels == ["web"]
+    assert build_channels(settings, sessions, runs, no_skills(), client_tools())[0].channels == [
+        "web"
+    ]
 
 
 async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
@@ -191,7 +195,9 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
 
     settings = Settings(telegram={"bot_token": "   "}, discord={"bot_token": ""})
 
-    assert build_channels(settings, sessions, runs, no_skills())[0].channels == ["web"]
+    assert build_channels(settings, sessions, runs, no_skills(), client_tools())[0].channels == [
+        "web"
+    ]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
@@ -199,7 +205,7 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
     settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": ""})
 
-    built, _ = build_channels(settings, sessions, runs, no_skills())
+    built, _ = build_channels(settings, sessions, runs, no_skills(), client_tools())
 
     assert built.channels == ["web", "telegram"]
     await built.aclose()

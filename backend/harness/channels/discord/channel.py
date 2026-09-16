@@ -43,6 +43,7 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, OnMissing
 from harness.channels.text import split_message
 from harness.skills import UnknownSkill
+from harness.tools.client import PendingCall
 
 logger = logging.getLogger("harness.channels.discord")
 
@@ -54,6 +55,12 @@ MAX_MESSAGE_CHARS = 2000
 
 # The button under a message that links to an MCP App's page.
 OPEN_LABEL = "Open"
+# What a chat is asked for a client tool: Discord has no device prompts of its
+# own, so every ask is the page. Without a public URL there is no page, and
+# an operator's line in the chat beats a silence the model reads as "nobody
+# answered" two minutes later.
+ASK_BY_LINK = "The assistant needs something from your device. Open the page to answer."
+NO_ANSWER_PAGE = "(Answering from Discord needs `web.public_url` to be set.)"
 
 
 class DiscordChannel:
@@ -178,6 +185,13 @@ class DiscordChannel:
         view.add_item(discord.ui.Button(style=discord.ButtonStyle.link, label=OPEN_LABEL, url=url))
         target = await self._messageable(chat_id)
         await target.send(text, view=view)
+
+    async def ask_client(self, chat_id: str, _request: PendingCall, url: str) -> None:
+        """The page that asks the browser, whatever the tool — see `ASK_BY_LINK`."""
+        if not url:
+            await self.send_message(chat_id, f"{ASK_BY_LINK} {NO_ANSWER_PAGE}")
+            return
+        await self.send_link(chat_id, ASK_BY_LINK, url)
 
     async def send_typing(self, chat_id: str) -> None:
         """Show "typing…" for about ten seconds. Best-effort by contract."""

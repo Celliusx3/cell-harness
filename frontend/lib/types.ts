@@ -15,7 +15,12 @@ import type { CallToolResult } from "@modelcontextprotocol/client";
 export type StreamEvent =
   | { kind: "text"; text: string }
   | { kind: "tool_call"; call: ToolCall }
-  | { kind: "completed"; full_text: string; tool_calls: ToolCall[]; usage: Usage | null }
+  | {
+      kind: "completed";
+      full_text: string;
+      tool_calls: ToolCall[];
+      usage: Usage | null;
+    }
   | { kind: "failed"; reason: string };
 
 export interface ToolCall {
@@ -88,7 +93,7 @@ export interface AppResource {
  */
 export type AppToolResult = CallToolResult;
 
-export type TurnEndReason = "completed" | "failed" | "cancelled";
+export type TurnEndReason = "completed" | "failed" | "cancelled" | "pending";
 
 export type SessionEvent =
   | { type: "turn/start"; turn: number }
@@ -169,4 +174,22 @@ export interface SkillFile {
   name: string;
   text: string;
   editable: boolean;
+}
+
+/**
+ * What the browser answers a client tool with — the backend's `ClientOutput`,
+ * one shape for every client tool: the datum, a refusal, or the device's own
+ * reason it could not (a browser forwards its `GeolocationPositionError`
+ * name; nothing is translated).
+ */
+export type ClientOutput<T> =
+  | { kind: "shared"; data: T }
+  | { kind: "declined" }
+  | { kind: "unavailable"; reason: string };
+
+/** `get_location`'s datum. */
+export interface Location {
+  latitude: number;
+  longitude: number;
+  accuracy_m: number;
 }

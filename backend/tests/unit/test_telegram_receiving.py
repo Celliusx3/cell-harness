@@ -15,7 +15,7 @@ import pytest
 from harness.agent.loop import LoopAgent
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.telegram.channel import (
+from harness.channels.telegram.batching import (
     BATCH_DELAY_SECONDS,
     FAST_DELAY_SECONDS,
     SHORT_DELAY_SECONDS,

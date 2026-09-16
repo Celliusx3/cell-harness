@@ -1,5 +1,11 @@
 import { display, type Invocation } from "@/lib/invocation";
-import type { ContentBlock, SessionEvent, ToolCall, ToolUi, Usage } from "./types";
+import type {
+  ContentBlock,
+  SessionEvent,
+  ToolCall,
+  ToolUi,
+  Usage,
+} from "./types";
 
 /**
  * Session events -> what the screen shows.
@@ -204,12 +210,19 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         const at = toolAt.get(event.message.tool_call_id);
         if (at === undefined) break; // a result whose call predates this window
         const item = items[at] as ToolItem;
-        items[at] = { ...item, result: event.message.content, error: event.error, ui: event.ui };
+        items[at] = {
+          ...item,
+          result: event.message.content,
+          error: event.error,
+          ui: event.ui,
+        };
         break;
       }
 
       case "turn/end":
         closed.add(event.turn);
+        // `completed` and `pending` say nothing here: the reply, or the
+        // client-tool card still waiting, is already on screen.
         if (event.reason === "cancelled") {
           items.push({
             kind: "notice",

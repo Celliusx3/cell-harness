@@ -15,8 +15,8 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
 )
+from harness.tools.context import ToolContext
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome, ToolUi
-from harness.tools.progress import ToolProgressReporter
 from tests.unit.fakes import (
     EchoArgs,
     SteppedClient,
@@ -140,7 +140,7 @@ async def test_a_tool_bound_to_an_app_logs_the_binding_but_never_shows_the_model
     renders from the log, and stays out of the message the model is given."""
     ui = ToolUi(server="srv", resource_uri="ui://srv/app.html", data={"rows": 3})
 
-    async def execute(args: EchoArgs, progress: ToolProgressReporter) -> ToolOutcome:
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         return Ok(content=args.value, data={"rows": 3}, ui=ui)
 
     tool = ToolDefinition.from_model(
@@ -222,7 +222,7 @@ async def test_the_executor_receives_a_parsed_model_not_a_raw_dict() -> None:
     tool body works with typed values rather than re-validating a dict."""
     seen: list[EchoArgs] = []
 
-    async def execute(args, progress):
+    async def execute(args, context):
         seen.append(args)
         return Ok(content=args.value)
 
@@ -241,7 +241,7 @@ async def test_arguments_the_schema_rejects_never_reach_the_executor() -> None:
     model would refuse. Pydantic does not coerce an int into a str."""
     seen: list[EchoArgs] = []
 
-    async def execute(args, progress):
+    async def execute(args, context):
         seen.append(args)
         return Ok(content=args.value)
 
@@ -263,3 +263,21 @@ async def test_text_only_turns_still_work() -> None:
 
     assert events == [TextChunk(text="just talking"), AgentCompleted(text="just talking")]
     assert sum(isinstance(e, StepStart) for e in session.events()) == 1
+
+
+async def test_a_tool_is_told_which_call_it_is_running() -> None:
+    """`context.call_id` is the model's id for the call — what a `tool/result`
+    is matched to, and what a tool whose answer arrives from outside the
+    process parks on. It must be the loop's id, not one the tool invents."""
+    seen: list[str] = []
+
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
+        seen.append(context.call_id)
+        return Ok(content=args.value)
+
+    typed = replace(echo_tool(), execute=execute)
+    client = SteppedClient(calls_tool("echo", '{"value": "42"}', id="call_7f3a"), completed("ok"))
+
+    await drain(loop_agent(client, typed).run("q", session=new_session()))
+
+    assert seen == ["call_7f3a"]
