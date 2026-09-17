@@ -24,6 +24,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from harness.config.sections import LLMSettings
+from harness.llm.adapters.errors import classify
 from harness.llm.adapters.openai_wire import wire_message, wire_tool
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, ToolCall, ToolSpec
@@ -189,7 +190,10 @@ class OpenAIClient(LLMClient):
                     # The body must be read before it can be reported: `stream`
                     # gives us headers first, and the detail we need is downstream.
                     detail = (await response.aread()).decode(errors="replace")
-                    yield Failed(reason=f"provider returned {response.status_code}: {detail}")
+                    yield Failed(
+                        reason=f"provider returned {response.status_code}: {detail}",
+                        code=classify(detail),
+                    )
                     return
 
                 async for line in response.aiter_lines():

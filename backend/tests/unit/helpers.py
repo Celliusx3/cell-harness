@@ -16,6 +16,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
+from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
 from harness.agent.loop import LoopAgent
 from harness.config.settings import SkillSettings
@@ -105,6 +106,7 @@ def loop_agent(
     system_prompt: str = "",
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
+    compaction: CompactionService | None = None,
 ) -> LoopAgent:
     """An agent over `tools`, with no pipeline at all when there are none —
     so a bare agent sends `tools: None`, not an empty list."""
@@ -116,6 +118,7 @@ def loop_agent(
         system_prompt=system_prompt,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
+        compaction=compaction,
     )
 
 
@@ -152,9 +155,16 @@ def durable_service(root: Path, *, prefix: str = "c") -> SessionService:
     )
 
 
-def run_store(service: SessionService, client, *tools: ToolDefinition) -> RunStore:
+def run_store(
+    service: SessionService,
+    client,
+    *tools: ToolDefinition,
+    compaction: CompactionService | None = None,
+) -> RunStore:
     """Runs over an agent that checkpoints through `service`, as the server wires it."""
-    return RunStore(service, loop_agent(client, *tools, checkpoint=service.flush))
+    return RunStore(
+        service, loop_agent(client, *tools, checkpoint=service.flush, compaction=compaction)
+    )
 
 
 def skills_at(*roots: Path) -> SkillService:

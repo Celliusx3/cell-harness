@@ -22,11 +22,12 @@ arriving in the gap starts a turn nobody will answer.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 
-from harness.channels.chat_tasks import ChatKey, ChatTasks
-from harness.channels.chats import session_for, state_of
+from harness.agent.compaction import CompactionRefused
+from harness.channels.chat_tasks import ChatTasks
+from harness.channels.chats import state_of
+from harness.channels.following import Following
 from harness.channels.protocol import (
     Channel,
     DuplicateChannelError,
@@ -40,13 +41,10 @@ from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.store import Run, RunAlreadyActive, RunStore
 from harness.session.log import Session
 from harness.session.service import SessionService
-from harness.skills import SkillService, UnknownSkill
+from harness.skills import SkillService
 from harness.tools.definition import Failure, Ok
 
 logger = logging.getLogger("harness.channels")
-
-# Queued messages are joined with a newline because that is how they were typed.
-QUEUE_JOIN = "\n"
 
 
 class ChannelGateway:
@@ -69,7 +67,6 @@ class ChannelGateway:
         # place every platform's text passes through — a phone and a browser
         # get the feature from the same line.
         self._skills = skills
-        self._replies = Replies(repository, public_url=public_url, client_tools=client_tools)
         # One per platform, for the life of the server. Holds the channel itself
         # — the same object we reply through and listen on, which is why there is
         # one registry and not two.
@@ -77,6 +74,17 @@ class ChannelGateway:
         # One per chat with a turn in flight, for the life of that turn. Only
         # `drained()` and `aclose()` read it — `/stop` goes through the run.
         self._tasks = ChatTasks()
+        # What happens after a turn starts — delivery, waiting, draining the
+        # queue — lives in `following.py`; this class only decides what starts.
+        self._following = Following(
+            repository,
+            runs,
+            sessions,
+            skills,
+            self._channels,
+            self._tasks,
+            Replies(repository, public_url=public_url, client_tools=client_tools),
+        )
 
     def register(self, channel: Channel) -> None:
         """Add one platform: how to reply on it, and its background task.
@@ -145,7 +153,7 @@ class ChannelGateway:
             )
             return None
 
-        return await self._turn_for_chat(state, content)
+        return await self._following.turn_for_chat(state, content)
 
     async def start_turn(self, session: Session, text: str, *, channel: str) -> Run:
         """Begin a turn for a session the caller already holds.
@@ -160,7 +168,7 @@ class ChannelGateway:
         content = self._skills.expand(text)
         state = ChatState(channel=channel, chat_id=session.id, conversation_id=session.id)
         await self._repository.save(state)
-        return self._begin(state, self._runs.start(session, content))
+        return self._following.begin(state, self._runs.start(session, content))
 
     async def reset(self, channel: str, chat_id: str) -> None:
         """Point this chat at a fresh conversation (`/new`).
@@ -186,24 +194,8 @@ class ChannelGateway:
         return await self._runs.stop(state.conversation_id)
 
     async def drained(self, channel: str, chat_id: str) -> None:
-        """Wait while this chat is between turns: one settled, and its follower
-        is deciding whether a queued message starts the next. Returns at once
-        when a turn is in flight or none is coming — a stream told `end` in
-        that gap would otherwise park and miss the drained turn. The in-flight
-        check matters: past the instant a drain starts a turn, waiting on the
-        follower would mean waiting for the *whole next turn*.
-
-        `asyncio.wait`, not `await task`: a waiter that is cancelled — a browser
-        hanging up — must not cancel the follower, or closing a tab would lose
-        the message it had queued. A watcher owns nothing.
-        """
-        task = self._tasks.get((channel, chat_id))
-        if task is None:
-            return
-        state = await self._state(channel, chat_id)
-        if state.conversation_id and self._runs.active(state.conversation_id) is not None:
-            return
-        await asyncio.wait({task})
+        """Wait while this chat is between turns — see `Following.drained`."""
+        await self._following.drained(channel, chat_id)
 
     async def aclose(self) -> None:
         """Stop receiving, then stop delivering.
@@ -222,18 +214,33 @@ class ChannelGateway:
     async def _state(self, channel: str, chat_id: str) -> ChatState:
         return await state_of(self._repository, self._channels[channel].channel, chat_id)
 
-    async def _turn_for_chat(self, state: ChatState, text: str) -> Run | None:
-        """Resolve this chat's conversation and begin a turn in it."""
-        state, session = await session_for(
-            self._repository, self._sessions, self._channels[state.channel].channel, state
-        )
+    async def compact(self, session: Session) -> Run:
+        """Begin a manual compaction, followed by every chat mapped to the
+        conversation — like `resume`, nothing started it, so nothing else
+        would. The browser follows it through the stream; a phone is told the
+        one line `replies.py` sends on the end."""
+        compactor = self._runs.compaction
+        if compactor is not None and (reason := compactor.refusal(session)) is not None:
+            raise CompactionRefused(reason)
+        states = await self._repository.chats_of(session.id)
+        run = self._runs.compact(session)
+        for state in states:
+            if state.channel in self._channels:
+                self._following.begin(state, run)
+        return run
+
+    async def compact_chat(self, channel: str, chat_id: str) -> Run | None:
+        """`/compact` from a chat: compact this chat's conversation, or `None`
+        when it has none or a turn is running — the command composes what to
+        say from that."""
+        self._require(channel)
+        state = await self._state(channel, chat_id)
+        if not state.conversation_id or self._runs.active(state.conversation_id) is not None:
+            return None
+        session = await self._sessions.resume(state.conversation_id)
         try:
-            return self._begin(state, self._runs.start(session, text))
-        except RunAlreadyActive:
-            # Raced with another inbound message. Queue rather than drop.
-            await self._repository.save(
-                state.model_copy(update={"pending": (*state.pending, text)})
-            )
+            return await self.compact(session)
+        except (RunAlreadyActive, CompactionRefused):
             return None
 
     async def resume(self, session: Session, call_id: str, outcome: Ok | Failure) -> Run:
@@ -249,52 +256,5 @@ class ChannelGateway:
         run = self._runs.resume(session, call_id, outcome)
         for state in states:
             if state.channel in self._channels:
-                self._begin(state, run)
+                self._following.begin(state, run)
         return run
-
-    def _begin(self, state: ChatState, run: Run) -> Run:
-        key = (state.channel, state.chat_id)
-        self._tasks.start(key, self._follow(key, run))
-        return run
-
-    async def _follow(self, key: ChatKey, run: Run) -> None:
-        """See this turn to its end, then start whatever queued behind it.
-
-        **Every channel gets one of these, including the ones nothing is sent
-        to.** Delivery varies; the drain does not: a queued message must be
-        answered when the turn it waited for finishes, whoever is listening. A
-        turn is followed only by the channel that started it — see
-        `channels/__init__.py`, "one conversation, one delivery".
-        """
-        channel, chat_id = key
-        transport = self._channels[channel].channel
-        if isinstance(transport, Pushing):
-            await self._replies.deliver(transport, channel, chat_id, run)
-        else:
-            # Nothing to send — this channel's client is reading the log itself.
-            # Just wait for the turn to be over so the queue can drain.
-            async with run.condition:
-                await run.condition.wait_for(lambda: run.settled)
-        await self._drain(channel, chat_id)
-
-    async def _drain(self, channel: str, chat_id: str) -> None:
-        """Run whatever queued during the last turn, as one turn.
-
-        Three lines typed in five seconds are one thought; three replies to them
-        is what makes a bot feel like a machine.
-        """
-        state = await self._state(channel, chat_id)
-        if not state.pending:
-            return
-        text = QUEUE_JOIN.join(state.pending)
-        cleared = state.model_copy(update={"pending": ()})
-        await self._repository.save(cleared)
-        try:
-            content = self._skills.expand(text)
-        except UnknownSkill as err:
-            # Accepted while the skill existed, gone by the time its turn came.
-            # Nobody is waiting on a reply to refuse into, so the literal line
-            # goes to the model — the honest record of what was typed.
-            logger.warning("queued /%s no longer names a skill; sent as text", err.name)
-            content = text
-        await self._turn_for_chat(cleared, content)

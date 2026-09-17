@@ -13,8 +13,6 @@ says `pending`, which is how `repair` knows the open call is deliberate.
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
 import itertools
 from collections.abc import AsyncIterator
 from contextlib import aclosing
@@ -28,14 +26,10 @@ from harness.agent.events import (
     ToolProgress,
     ToolResult,
 )
-from harness.llm.messages import (
-    ApplicationMessage,
-    AssistantMessage,
-    ToolCall,
-    ToolMessage,
-    render_text,
-)
-from harness.llm.stream import Completed, Failed, TextChunk, ToolCallChunk
+from harness.agent.tool_run import tool_events
+from harness.llm.messages import ApplicationMessage, AssistantMessage, ToolCall, ToolMessage
+from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
+from harness.session.compaction import CompactionEnd, CompactionPrune
 from harness.session.log import Session
 from harness.session.models import (
     ApplicationMessageEvent,
@@ -49,7 +43,6 @@ from harness.session.models import (
     TurnEndReason,
 )
 from harness.session.repair import REPAIRED, TOOL_OUTCOME_UNKNOWN
-from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
     from harness.agent.loop import LoopAgent
@@ -90,6 +83,12 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
             partial = ""
             owed = []
 
+            # Before the request is built: shrink the history if it has grown
+            # past the window. Appends events a fold reads back, so the
+            # `request_messages` below already sees the compacted view.
+            if agent.compaction is not None:
+                await _consume(agent.compaction.before_step(session, turn=turn))
+
             # Read per step, so a tool that appeared mid-turn is offered now.
             specs = agent.tools.specs(session.tools_selected()) if agent.tools else None
             messages = agent.request_messages(session)
@@ -116,6 +115,17 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
                         failed = event
 
             if failed is not None or completed is None:
+                # The provider refused the request for its size: compact and
+                # retry the step. Bounded — each recovery shrinks the derived
+                # history, and a log that is only a summary has nothing left,
+                # so a summary that cannot shrink further fails the turn here.
+                if (
+                    failed is not None
+                    and failed.code == CONTEXT_WINDOW_EXCEEDED
+                    and agent.compaction is not None
+                    and _reduced(await _consume(agent.compaction.recover(session, turn=turn)))
+                ):
+                    continue
                 _close(session, turn, step, "failed")
                 closed = True
                 yield AgentFailed(reason=failed.reason if failed else NO_TERMINAL)
@@ -156,7 +166,7 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
                 if agent.checkpoint is not None:
                     await agent.checkpoint(session)
                 async with aclosing(
-                    _tool_events(agent, call, session=session, turn=turn, step=step, notes=notes)
+                    tool_events(agent, call, session=session, turn=turn, step=step, notes=notes)
                 ) as events:
                     async for event in events:
                         if isinstance(event, (ToolResult, ToolPending)):
@@ -202,97 +212,26 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
             _close(session, turn, step, "cancelled")
 
 
-async def _tool_events(
-    agent: LoopAgent,
-    call: ToolCall,
-    *,
-    session: Session,
-    turn: int,
-    step: int,
-    notes: list[str],
-) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
-    """One call: zero or more `ToolProgress`, then exactly one `ToolResult` —
-    or a `ToolPending`, which logs nothing: the result is the person's to
-    give. What a hook wants the model told goes on `notes`.
-
-    The hooks run here, after `tool/call` was logged, so a refused call
-    still has its call and result on record and the tool never starts.
-    """
-    refusal = await agent.hooks.pre_tool_call(call, session=session)
-    outcome: ToolOutcome | None = None
-    if refusal is not None:
-        outcome = Failure(BLOCKED, refusal)
-    else:
-        async with aclosing(_run_tool(agent, call, session=session)) as events:
-            async for event in events:
-                if isinstance(event, ToolProgress):
-                    yield event
-                else:
-                    outcome = event
-        assert outcome is not None  # `_run_tool` ends with the outcome or raises
-        if isinstance(outcome, Pending):
-            yield ToolPending(tool_call_id=call.id, name=call.name)
-            return
-        note = await agent.hooks.post_tool_call(call, outcome, session=session)
-        if note is not None:
-            notes.append(note)
-
-    content = render_outcome(outcome)
-    # Logged before it is yielded, so a consumer that persists on `ToolResult`
-    # never sees an assistant `tool_calls` without its answer.
-    session.append(
-        ToolResultEvent(
-            turn=turn,
-            step=step,
-            message=ToolMessage(tool_call_id=call.id, content=content),
-            error=None if isinstance(outcome, Ok) else outcome.code,  # the typed code
-            ui=outcome.ui if isinstance(outcome, Ok) else None,
-        )
-    )
-    yield ToolResult(tool_call_id=call.id, name=call.name, content=render_text(content))
+async def _consume(events: AsyncIterator[object]) -> list[object]:
+    """Drain a compaction generator, closing it if the turn is cancelled
+    mid-summary — its `finally` then closes the bracket."""
+    produced: list[object] = []
+    async with aclosing(events) as stream:
+        async for event in stream:
+            produced.append(event)
+    return produced
 
 
-async def _run_tool(
-    agent: LoopAgent, call: ToolCall, *, session: Session
-) -> AsyncIterator[ToolProgress | ToolOutcome]:
-    """Run the tool: its progress as it reports it, then its outcome, last.
-
-    A task plus a queue, because a generator can only yield from its own
-    frame and the progress callback fires inside the tool. The sentinel the
-    task posts on its way out is what ends the drain; FIFO order is what
-    keeps every report ahead of the outcome.
-    """
-    # Unbounded: never stall the tool.
-    queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
-
-    async def report(*, percent: float | None, message: str | None) -> None:
-        queue.put_nowait(
-            ToolProgress(tool_call_id=call.id, name=call.name, percent=percent, message=message)
-        )
-
-    async def run() -> ToolOutcome:
-        try:
-            assert agent.tools is not None  # a call cannot arrive without a pipeline
-            # Folded per call, like the offer is per step: a schema read by an
-            # earlier call of this step counts for the next one.
-            return await agent.tools.execute(
-                call, progress=report, tools_selected=session.tools_selected()
-            )
-        finally:
-            queue.put_nowait(None)  # on every path, or the drain below hangs
-
-    task = asyncio.create_task(run())
-    try:
-        while (event := await queue.get()) is not None:
-            yield event
-        outcome = await task
-    finally:
-        # A no-op on normal exit; on a closed consumer or a cancelled turn it
-        # is what stops the tool.
-        task.cancel()
-        with contextlib.suppress(BaseException):
-            await task
-    yield outcome
+def _reduced(produced: list[object]) -> bool:
+    """Did a recovery actually shrink the history? A prune clears results; a
+    summary that landed a message moves the boundary. A failed or empty
+    attempt did neither, so the turn must not retry on it."""
+    for event in produced:
+        if isinstance(event, CompactionPrune):
+            return True
+        if isinstance(event, CompactionEnd) and event.succeeded:
+            return True
+    return False
 
 
 def _close(session: Session, turn: int, step: int, reason: TurnEndReason) -> None:

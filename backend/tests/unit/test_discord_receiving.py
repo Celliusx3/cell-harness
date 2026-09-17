@@ -136,5 +136,7 @@ async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path)
     await channel.on_message(message(CHAT, "/summarise this"))
     await settle(gateway, runs)
 
-    assert chat.sent == ["No skill named 'summarise'. Skills: none. Commands: /new, /stop."]
+    assert chat.sent == [
+        "No skill named 'summarise'. Skills: none. Commands: /new, /stop, /compact."
+    ]
     assert await chats.load("discord", CHAT) is None

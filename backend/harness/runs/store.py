@@ -91,6 +91,12 @@ class RunStore:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)
 
+    @property
+    def compaction(self):  # -> CompactionService | None; typed loosely to avoid the import
+        """The agent's compaction service, for a route deciding whether a manual
+        compaction can run before it starts one."""
+        return self._agent.compaction
+
     def start(self, session: Session, prompt: str) -> Run:
         """Begin a turn on a task this store owns.
 
@@ -124,6 +130,19 @@ class RunStore:
         run._inner = asyncio.create_task(
             self._stream(run, self._agent.resume(call_id, outcome, session=session))
         )
+        run._outer = asyncio.create_task(self._drive(run))
+        return run
+
+    def compact(self, session: Session) -> Run:
+        """Begin a manual compaction as its own run — no model turn, just the
+        compaction events. Same atomicity as `start`: the busy check and the
+        stream that wakes subscribers come with being a run, so the browser and
+        every chat see the summary land the way they see a reply."""
+        if session.id in self._runs:
+            raise RunAlreadyActive(session.id)
+        run = Run(session)
+        self._runs[session.id] = run
+        run._inner = asyncio.create_task(self._stream(run, self._agent.compact(session=session)))
         run._outer = asyncio.create_task(self._drive(run))
         return run
 

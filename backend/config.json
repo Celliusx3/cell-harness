@@ -9,7 +9,10 @@
     "root": "~/.harness/sessions"
   },
   "skills": {
-    "roots": [".agents/skills", "~/.agents/skills"],
+    "roots": [
+      ".agents/skills",
+      "~/.agents/skills"
+    ],
     "editable": "~/.agents/skills"
   },
   "web": {
@@ -18,6 +21,9 @@
   "code": {
     "deno_path": "deno",
     "timeout_seconds": 600
+  },
+  "compaction": {
+    "context_tokens": null
   },
   "mcp": {
     "servers": {

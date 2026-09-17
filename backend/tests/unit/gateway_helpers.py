@@ -26,9 +26,10 @@ def build(
     public_url: str = "http://t",
     skills: SkillService,
     client_tools: ClientToolService | None = None,
+    compaction=None,
 ):
     sessions = durable_service(tmp_path / "sessions")
-    runs = run_store(sessions, model, *tools)
+    runs = run_store(sessions, model, *tools, compaction=compaction)
     chats = JsonlChatRepository(tmp_path / "chats")
     client_tools = client_tools or default_client_tools()
     gateway = ChannelGateway(

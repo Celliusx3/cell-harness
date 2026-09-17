@@ -104,6 +104,12 @@ class DiscordChannel:
         async def skills(interaction: discord.Interaction) -> None:
             await self._on_command(interaction, Command.SKILLS)
 
+        @self._tree.command(
+            name="compact", description="Summarize the conversation to free up context"
+        )
+        async def compact(interaction: discord.Interaction) -> None:
+            await self._on_command(interaction, Command.COMPACT)
+
     # ── receiving ─────────────────────────────────────────────────────────────
 
     async def run(self) -> None:

@@ -95,6 +95,9 @@ export type AppToolResult = CallToolResult;
 
 export type TurnEndReason = "completed" | "failed" | "cancelled" | "pending";
 
+/** Why a compaction ran — mirror of `CompactionTrigger` in `session/compaction.py`. */
+export type CompactionTrigger = "auto" | "manual" | "overflow";
+
 export type SessionEvent =
   | { type: "turn/start"; turn: number }
   | { type: "turn/end"; turn: number; reason: TurnEndReason }
@@ -121,7 +124,18 @@ export type SessionEvent =
       error: string | null;
       /** The app that renders this result, when the tool declares one. */
       ui: ToolUi | null;
-    };
+    }
+  /** A summary is being attempted. `turn` is null for a manual one on an idle conversation. */
+  | { type: "compaction/start"; turn: number | null; trigger: CompactionTrigger; tokens: number | null }
+  /** The attempt is over: `message` is what the model reads from here on, or `error` says why nothing changed. */
+  | {
+      type: "compaction/end";
+      turn: number | null;
+      message: ApplicationMessage | null;
+      error: string | null;
+    }
+  /** These results are cleared from the model's view; the log and the screen keep them. */
+  | { type: "compaction/prune"; turn: number | null; call_ids: string[] };
 
 export interface ConversationSummary {
   id: string;

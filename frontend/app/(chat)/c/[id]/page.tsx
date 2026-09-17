@@ -39,6 +39,18 @@ export default function ConversationPage({
             working
           </span>
         )}
+        {/* Compaction is its own run, so it cannot start while a turn is in
+            flight — the button is disabled then, like the composer's stop is
+            its inverse. */}
+        <button
+          type="button"
+          onClick={() => void conversation.compact()}
+          disabled={conversation.running}
+          title="Summarize older messages to free up context"
+          className="ml-auto shrink-0 rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink disabled:opacity-40"
+        >
+          Compact
+        </button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

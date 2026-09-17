@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 
 import { AssistantBubble, UserBubble } from "@/components/Message";
 import { ToolCard } from "@/components/ToolCard";
+import { Compaction } from "@/components/Compaction";
 import { CLIENT_TOOLS } from "@/lib/clientTools";
 import type { TimelineItem } from "@/lib/timeline";
 
@@ -82,6 +83,8 @@ export function Timeline({
                 {item.text}
               </p>
             );
+          case "compaction":
+            return <Compaction key={item.key} item={item} />;
         }
       })}
       <div ref={floor} />

@@ -31,6 +31,8 @@ State lives on `app.state`, read through the accessors in
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -43,6 +45,7 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
+from harness.llm.adapters.models import context_length
 from harness.mcp.store import McpServerStore
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -52,8 +55,11 @@ from harness.tools.client import ClientToolService
 from harness.web.agent import CLIENT_TOOLS, build_agent
 from harness.web.logs import configure_logging
 from harness.web.routes.client import build_router as build_client_router
+from harness.web.routes.compact import build_router as build_compact_router
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.skills import build_router as build_skills_router
+
+logger = logging.getLogger("harness.web")
 
 
 def build_store(settings: Settings) -> SessionService:
@@ -131,6 +137,27 @@ def build_channels(
     return gateway, web
 
 
+def _resolve_context_tokens(settings: Settings) -> int | None:
+    """The model's window for compaction: the configured cap, or what the
+    endpoint reports, or `None` — which leaves proactive compaction off and the
+    provider's own refusal as the only trigger. Logged either way, because a
+    conversation that never compacts and one that compacts at 128k look the same
+    until this line says which."""
+    configured = settings.compaction.context_tokens
+    if configured is not None:
+        logger.info("compaction: context window %d tokens (from config)", configured)
+        return configured
+    discovered = asyncio.run(context_length(settings.llm))
+    if discovered is not None:
+        logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
+    else:
+        logger.warning(
+            "compaction: context window unknown — no config value and the endpoint did not "
+            "report one; automatic compaction is off, only a provider overflow triggers it"
+        )
+    return discovered
+
+
 def create_web_app() -> FastAPI:
     """The application uvicorn starts.
 
@@ -148,7 +175,10 @@ def create_web_app() -> FastAPI:
     # One service for the agent, the chats and the route, so what the model
     # is offered and what an answer is held to are one declaration.
     client_tools = ClientToolService(CLIENT_TOOLS)
-    runs = RunStore(service, build_agent(settings, service, mcp, skills, client_tools))
+    context_tokens = _resolve_context_tokens(settings)
+    runs = RunStore(
+        service, build_agent(settings, service, mcp, skills, client_tools, context_tokens)
+    )
     gateway, web = build_channels(settings, service, runs, skills, client_tools)
     return create_app(runs, gateway, web, mcp, skills, client_tools)
 
@@ -199,4 +229,5 @@ def create_app(
     app.include_router(build_skills_router(skills))
     app.include_router(build_mcp_router(mcp))
     app.include_router(build_client_router(web, client_tools))
+    app.include_router(build_compact_router(web))
     return app

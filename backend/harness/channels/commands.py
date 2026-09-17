@@ -38,12 +38,16 @@ class Command(StrEnum):
     STOP = "stop"
     # The phone has no `/skills` page. This is its list.
     SKILLS = "skills"
+    # The phone has no Compact button. This is it.
+    COMPACT = "compact"
 
 
 STARTED = "New conversation started."
 STOPPED = "Stopped."
 NOTHING_TO_STOP = "Nothing is running."
-COMMANDS = "Commands: /new, /stop."
+COMPACTING = "Compacting the conversation to free up context…"
+NOTHING_TO_COMPACT = "Nothing to compact yet."
+COMMANDS = "Commands: /new, /stop, /compact."
 
 
 def unknown_skill(name: str, skills: Sequence[Skill]) -> str:
@@ -77,4 +81,7 @@ async def apply(gateway: ChannelGateway, channel: str, chat_id: str, command: Co
         return STARTED
     if command is Command.STOP:
         return STOPPED if await gateway.stop(channel, chat_id) else NOTHING_TO_STOP
+    if command is Command.COMPACT:
+        started = await gateway.compact_chat(channel, chat_id)
+        return COMPACTING if started is not None else NOTHING_TO_COMPACT
     return skills_reply(gateway.skills.invocable())

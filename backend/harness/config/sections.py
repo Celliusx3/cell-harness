@@ -101,6 +101,23 @@ class CodeModeSettings(BaseModel):
     timeout_seconds: float = Field(default=60.0, gt=0)
 
 
+class CompactionSettings(BaseModel):
+    """When to shrink a conversation that has outgrown the model's window.
+
+    `context_tokens` is the window in tokens. Left unset (`None`), the
+    composition root asks the endpoint at startup (`GET /v1/models`); an
+    endpoint that does not report one — LM Studio, say — leaves proactive
+    compaction off and only the provider's own refusal triggers it. Set it to
+    cap cost and latency below the real window, or to give a number the
+    endpoint withholds. It is *not* a claim about the model: the reactive net
+    covers a value set too high.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    context_tokens: int | None = Field(default=None, gt=0)
+
+
 class McpServer(BaseModel):
     """One stdio MCP server, keyed in `McpSettings.servers` by its id.
 

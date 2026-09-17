@@ -41,7 +41,7 @@ async def test_an_unknown_skill_name_is_a_422_and_starts_nothing(tmp_path) -> No
         created = await c.post("/api/conversations", json={"prompt": "/summarise this"})
         assert created.status_code == 422
         assert created.json()["detail"] == (
-            "No skill named 'summarise'. Skills: /find-place. Commands: /new, /stop."
+            "No skill named 'summarise'. Skills: /find-place. Commands: /new, /stop, /compact."
         )
         assert (await c.get("/api/conversations")).json() == []
 

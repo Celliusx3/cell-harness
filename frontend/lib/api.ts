@@ -77,6 +77,11 @@ export const sendMessage = (id: string, prompt: string) =>
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
 
+/** Compact the conversation now. A 409 (running, or nothing to compact) is an
+ *  `ApiError` the caller can surface. */
+export const compactConversation = (id: string) =>
+  request<void>(`/conversations/${id}/compact`, { method: "POST" });
+
 /**
  * The output of a client tool the browser saw called on the stream — Vercel's
  * `addToolOutput`. 404 when that call is not the one waiting (answered,

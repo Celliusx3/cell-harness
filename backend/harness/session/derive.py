@@ -11,6 +11,12 @@ log, because nothing else reaches a request. The invariant that enforces it in
 the other direction — that nothing in a request is *missing* from the log —
 arrives in phase 3, when resume makes it testable.
 
+Compaction is honoured here and only here. The last successful
+`compaction/end` is a boundary: derivation starts there, with its message in
+the user role, and nothing before it reaches the model. A result named by a
+`compaction/prune` renders as a placeholder. The log keeps every original
+event either way — phase 11's "appends, never rewrites".
+
 Chunks are skipped. They exist for replay fidelity, and the assembled
 `assistant/message` beside them is what the model is shown; including both would
 send the reply twice. `tool/call` is skipped for the same reason — the calls
@@ -31,7 +37,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from harness.llm.messages import Message, UserMessage
+from harness.llm.messages import Message, ToolMessage, UserMessage
+from harness.session.compaction import PRUNED, boundary, pruned_ids
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
@@ -48,8 +55,19 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
     agent running *this* turn. Turn and step boundaries are structure, not
     content, and are dropped here.
     """
+    log = tuple(events)
+    pruned = pruned_ids(log)
     messages: list[Message] = []
-    for event in events:
+    start = boundary(log)
+    if start is not None:
+        # The summary stands in for everything before it. User role, like an
+        # `application/message`: the harness's words, where Claude Code puts
+        # its continuation summary too.
+        summary = log[start]
+        assert summary.message is not None  # `boundary` only returns one with a message
+        messages.append(UserMessage(content=summary.message.content))
+        log = log[start + 1 :]
+    for event in log:
         if isinstance(event, UserMessageEvent):
             messages.append(event.message)
         elif isinstance(event, ApplicationMessageEvent):
@@ -62,5 +80,10 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
             # disagree with what is on screen.
             messages.append(event.message)
         elif isinstance(event, ToolResultEvent):
-            messages.append(event.message)
+            if event.message.tool_call_id in pruned:
+                messages.append(
+                    ToolMessage(tool_call_id=event.message.tool_call_id, content=PRUNED)
+                )
+            else:
+                messages.append(event.message)
     return messages

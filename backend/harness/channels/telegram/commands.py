@@ -9,7 +9,12 @@ from __future__ import annotations
 
 from harness.channels.commands import Command
 
-_NAMES = {"/new": Command.NEW, "/stop": Command.STOP, "/skills": Command.SKILLS}
+_NAMES = {
+    "/new": Command.NEW,
+    "/stop": Command.STOP,
+    "/skills": Command.SKILLS,
+    "/compact": Command.COMPACT,
+}
 
 
 def parse(text: str) -> Command | None:

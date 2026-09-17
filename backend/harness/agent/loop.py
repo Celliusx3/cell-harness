@@ -29,6 +29,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass
 
+from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
 from harness.agent.turn import TurnEvent, drive
 from harness.llm.client import LLMClient
@@ -64,6 +65,10 @@ class LoopAgent:
     # Makes the log durable before each model request and each tool call — the
     # two moments a lost write would leave the log unable to explain what followed.
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
+    # Shrinks the history when it outgrows the window — before each request, and
+    # as the net when the provider refuses one. `None` leaves the loop
+    # uncompacted, the same way an empty `HookChain` leaves it unhooked.
+    compaction: CompactionService | None = None
 
     def request_messages(self, session: Session) -> list[Message]:
         history = derive_messages(session.events())
@@ -121,5 +126,13 @@ class LoopAgent:
         # `aclosing`: a consumer closing this generator must close the turn's
         # too, or its `finally` — the one that answers owed calls — runs late.
         async with aclosing(drive(self, session, turn)) as events:
+            async for event in events:
+                yield event
+
+    async def compact(self, *, session: Session) -> AsyncIterator[object]:
+        """A manual compaction, driven as its own run. Yields the compaction
+        events so the run's stream wakes subscribers as they land; appends
+        nothing when the service refuses (`compact_now` checks first)."""
+        async with aclosing(self.compaction.compact_now(session)) as events:  # type: ignore[union-attr]
             async for event in events:
                 yield event

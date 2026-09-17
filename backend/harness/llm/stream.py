@@ -82,17 +82,25 @@ class Completed(BaseModel):
     usage: Usage | None = None
 
 
+# The one failure the loop acts on rather than reports: the provider refused
+# the request for its size, so compacting and asking again can succeed.
+CONTEXT_WINDOW_EXCEEDED = "context_window_exceeded"
+
+
 class Failed(BaseModel):
     """Terminal: the call did not produce a reply.
 
     `reason` is model-facing and user-facing both, so it must be complete — no
-    truncation, and enough detail to act on.
+    truncation, and enough detail to act on. `code` is the typed identity when
+    the adapter recognised the failure; `None` is every other failure, and the
+    loop treats it as final.
     """
 
     model_config = ConfigDict(frozen=True)
 
     kind: Literal["failed"] = "failed"
     reason: str
+    code: str | None = None
 
 
 StreamEvent = TextChunk | ToolCallChunk | Completed | Failed

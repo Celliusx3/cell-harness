@@ -18,6 +18,7 @@ from harness.channels.protocol import Pushing
 from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.store import Run
 from harness.runs.subscribe import subscribe
+from harness.session.compaction import CompactionEnd
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.tools.client import PendingCall
 
@@ -39,6 +40,13 @@ def answer_url(public_url: str, conversation_id: str, call_id: str) -> str:
     if not public_url:
         return ""
     return f"{public_url}/answer/{quote(conversation_id, safe='')}/{quote(call_id, safe='')}"
+
+
+def _compaction_line(event: CompactionEnd) -> str:
+    """What a chat is told when a manual compaction settles."""
+    if event.succeeded:
+        return "Conversation compacted to free up context."
+    return "Could not compact the conversation right now."
 
 
 class Replies:
@@ -101,6 +109,10 @@ class Replies:
                     if not event.message.content.strip():
                         continue
                     await transport.send_message(chat_id, event.message.content)
+                elif isinstance(event, CompactionEnd):
+                    # A manual compaction's whole reply: the phone cannot show
+                    # the summary card, but it can say it happened, or why not.
+                    await transport.send_message(chat_id, _compaction_line(event))
                 else:
                     continue
                 # Advanced only after the send returns. A crash before this

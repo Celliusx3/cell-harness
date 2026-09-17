@@ -42,8 +42,8 @@ turns out to want them.
 
 ## Status
 
-**Phases 1–9 done; 9 — "it doesn't get stuck" — built ahead of 8.3–8.4.**
-Next is phase 11. Steering, once phase 9, is now phase 16 at the end of the
+**Phases 1–11 done; 9 — "it doesn't get stuck" — built ahead of 8.3–8.4.**
+Next is the optional track (decide before 12). Steering, once phase 9, is now phase 16 at the end of the
 optional track (why: in [Phase 16](#phase-16--you-can-steer-it)). Since phase
 7, eight insertions not planned above, then phase 9 as written with three cuts
 recorded in it, then 8.3–8.4 with two choices recorded
@@ -924,6 +924,23 @@ not frozen at compose time. Scoped registries are a phase-12 concern.
 - A skill loaded before compaction is still in context after it.
 
 **This is cell-bot's largest gap.** Worth doing even if 10–12 never ship.
+
+**Shipped, with these choices** — full reasoning in [docs/compaction.md](./docs/compaction.md):
+- **Two bracket events, not three** (`compaction/start` … `compaction/end`; the
+  summary rides on `end`) plus `compaction/prune`. Not `seams/`/`providers/`:
+  the on-disk convention is `agent/compaction/` + `session/compaction.py`, and
+  seams stay deferred to phase 12 per "two providers is when an interface earns
+  its keep".
+- **Window discovered, capped in config.** `context_length` from the endpoint's
+  `GET /v1/models` at startup; `compaction.context_tokens` overrides it. Probed
+  on both of the user's endpoints (evidence table in the doc).
+- **A ratio, not Claude Code's absolute buffer** (`COMPACT_AT = 0.8`): a 13k
+  reserve tuned to 200k goes negative at a 16k window.
+- **The reactive net is exact and fails closed**: only a recognised
+  context-length 4xx triggers a compact-and-retry; a generic 400 fails the turn.
+- **No retained tail** — Claude Code's shape: the summary's "current work / next
+  step" carries the turn, and the recent messages after the boundary are already
+  there. `skill` results survive (exempt from pruning, re-attached on the end).
 
 ---
 

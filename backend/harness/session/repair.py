@@ -9,7 +9,10 @@ message requests a call with no matching tool message, so the resumed session
 would fail on its first request. Writing the missing result is what makes resume
 work at all.
 
-**Only the missing results.** An unclosed `turn/start` or `step/start` is left
+**The missing results, and an open compaction.** A `compaction/start` the
+crash left without an end is closed with an `error` end, so a UI stops saying
+"compacting" and the next attempt is not read as already running. An unclosed
+`turn/start` or `step/start` is left
 exactly as the crash left it: `derive_messages` ignores turn and step boundaries,
 so closing them changes nothing the model sees, and nothing else reads them.
 DeepSeek Harness does synthesize those closers and marks the turn with a
@@ -25,6 +28,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from harness.llm.messages import ToolCall, ToolMessage
+from harness.session.compaction import CompactionEnd, open_start
 from harness.session.models import (
     AssistantMessageEvent,
     SessionEvent,
@@ -71,7 +75,7 @@ def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
     question, which is why there is no separate predicate.
     """
     pending = {e.turn for e in events if isinstance(e, TurnEnd) and e.reason == "pending"}
-    return [
+    additions: list[SessionEvent] = [
         ToolResultEvent(
             turn=event.turn,
             step=event.step,
@@ -81,3 +85,7 @@ def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
         for event, call in unanswered(events)
         if event.turn not in pending
     ]
+    started = open_start(events)
+    if started is not None:
+        additions.append(CompactionEnd(turn=started.turn, error=REPAIRED))
+    return additions

@@ -42,6 +42,7 @@ from harness.llm.messages import (
     UserMessage,
 )
 from harness.llm.stream import StreamEvent, Usage
+from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.tools.definition import ToolUi
 
 # Stamped into every header written. A backend refuses any other version on load
@@ -232,4 +233,7 @@ SessionEvent = (
     | AssistantMessageEvent
     | ToolCallEvent
     | ToolResultEvent
+    | CompactionStart
+    | CompactionEnd
+    | CompactionPrune
 )

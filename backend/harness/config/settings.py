@@ -41,6 +41,7 @@ from pydantic_settings import (
 
 from harness.config.sections import (
     CodeModeSettings,
+    CompactionSettings,
     DiscordSettings,
     LLMSettings,
     McpSettings,
@@ -121,6 +122,7 @@ class Settings(BaseSettings):
     discord: DiscordSettings = Field(default_factory=DiscordSettings)
     web: WebSettings = Field(default_factory=WebSettings)
     code: CodeModeSettings = Field(default_factory=CodeModeSettings)
+    compaction: CompactionSettings = Field(default_factory=CompactionSettings)
     mcp: McpSettings = Field(default_factory=McpSettings)
     skills: SkillSettings = Field(default_factory=SkillSettings)
 

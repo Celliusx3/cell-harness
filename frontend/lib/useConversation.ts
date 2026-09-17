@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ApiError, getConversation, sendMessage, stopRun } from "./api";
+import {
+  ApiError,
+  compactConversation,
+  getConversation,
+  sendMessage,
+  stopRun,
+} from "./api";
 import { streamEvents } from "./stream";
 import { buildTimeline } from "./timeline";
 import type { SessionEvent } from "./types";
@@ -40,6 +46,8 @@ export interface Conversation {
   error: string | null;
   send(prompt: string): Promise<void>;
   stop(): Promise<void>;
+  /** Compact the conversation now; the summary lands via the stream. */
+  compact(): Promise<void>;
   /** A turn was started by something other than `send` — a client-tool card
    *  posting its output. Wake the stream so it is watched live. */
   wake(): void;
@@ -180,6 +188,19 @@ export function useConversation(conversationId: string): Conversation {
     [conversationId, wake],
   );
 
+  const compact = useCallback(async () => {
+    try {
+      await compactConversation(conversationId);
+      // The compaction is its own run; wake the stream so its events arrive
+      // the way a turn's do — the `send`/`onAnswered` pattern.
+      wake();
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "could not compact this conversation",
+      );
+    }
+  }, [conversationId, wake]);
+
   const stop = useCallback(async () => {
     try {
       await stopRun(conversationId);
@@ -194,7 +215,7 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId]);
 
-  return { events, queued, title, running, loading, error, send, stop, wake };
+  return { events, queued, title, running, loading, error, send, stop, compact, wake };
 }
 
 /** The timeline for a set of events, recomputed only when they change. */

@@ -29,69 +29,24 @@ import type {
  * *replace* the accumulation when `assistant/message` for that key arrives.
  */
 
-export interface UserItem {
-  kind: "user";
-  key: string;
-  turn: number;
-  /** The whole message as logged and sent — for `/name`, that includes the skill. */
-  content: string;
-  /** Set when the message is a `/name` expansion: the short form to show. */
-  invoked: Invocation | null;
-}
-
-export interface AssistantItem {
-  kind: "assistant";
-  key: string;
-  turn: number;
-  step: number;
-  content: string;
-  /** No `assistant/message` yet, so the text is still arriving. */
-  streaming: boolean;
-  /** Finalized from the prefix the user saw after a cancel, not a short answer. */
-  interrupted: boolean;
-  usage: Usage | null;
-}
-
-export interface ToolItem {
-  kind: "tool";
-  key: string;
-  turn: number;
-  step: number;
-  call: ToolCall;
-  /** The result's blocks — text carrying its `error: ` prefix if it failed,
-   *  and any tools it made callable. Null while the call is running. */
-  result: ContentBlock[] | null;
-  /** The typed failure code, or null. Non-null means the card shows as failed. */
-  error: string | null;
-  /** The MCP App that draws this result, arriving with `tool/result`. */
-  ui: ToolUi | null;
-}
-
-export interface NoticeItem {
-  kind: "notice";
-  key: string;
-  turn: number;
-  tone: "error" | "cancelled" | "note";
-  text: string;
-}
-
-export type TimelineItem = UserItem | AssistantItem | ToolItem | NoticeItem;
-
-export interface Timeline {
-  items: TimelineItem[];
-  /** True while the last turn is still open — no `turn/end` for it yet. */
-  openTurn: number | null;
-  /**
-   * The opening message, for a header whose stored title is not there yet.
-   *
-   * The backend stamps `title` from the first user message at the first flush,
-   * which lands *after* the create response returns — so a brand-new
-   * conversation legitimately has an empty title for its first turn. The text is
-   * already on screen, so showing "Untitled" would be withholding something we
-   * have.
-   */
-  openingMessage: string | null;
-}
+export type {
+  AssistantItem,
+  CompactionItem,
+  NoticeItem,
+  Timeline,
+  TimelineItem,
+  ToolItem,
+  UserItem,
+} from "@/lib/timeline-items";
+import type {
+  AssistantItem,
+  CompactionItem,
+  NoticeItem,
+  Timeline,
+  TimelineItem,
+  ToolItem,
+  UserItem,
+} from "@/lib/timeline-items";
 
 export function buildTimeline(events: SessionEvent[]): Timeline {
   const items: TimelineItem[] = [];
@@ -100,12 +55,14 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
   /** tool_call_id -> index in `items`, so a result can find its call. */
   const toolAt = new Map<string, number>();
   const closed = new Set<number>();
+  /** index of the last open `compaction/start`, so its end can fill it. */
+  let compactionAt: number | null = null;
   let lastTurn: number | null = null;
 
   const stepKey = (turn: number, step: number) => `${turn}:${step}`;
 
   for (const [index, event] of events.entries()) {
-    lastTurn = "turn" in event ? event.turn : lastTurn;
+    if ("turn" in event && event.turn !== null) lastTurn = event.turn;
 
     switch (event.type) {
       case "user/message":
@@ -246,6 +203,40 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
 
       // Boundaries carry no content of their own. They matter to the log's
       // structure, not to what is on screen.
+      case "compaction/start":
+        compactionAt = items.length;
+        items.push({
+          kind: "compaction",
+          key: `k${index}`,
+          turn: event.turn,
+          tokens: event.tokens,
+          summary: null,
+          error: null,
+          pending: true,
+        });
+        break;
+
+      case "compaction/end": {
+        // Fill the open start. A bare end (no start on screen) is a repair
+        // closing a crash — show nothing rather than an empty divider.
+        if (compactionAt !== null) {
+          const item = items[compactionAt] as CompactionItem;
+          items[compactionAt] = {
+            ...item,
+            summary: event.message ? event.message.content : null,
+            error: event.error,
+            pending: false,
+          };
+          compactionAt = null;
+        }
+        break;
+      }
+
+      // The results it cleared stay on screen — the browser renders the log,
+      // not the model's view.
+      case "compaction/prune":
+        break;
+
       case "turn/start":
       case "step/start":
       case "step/end":

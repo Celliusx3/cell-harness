@@ -116,7 +116,7 @@ async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
     state = await chats.load("telegram", CHAT)
     await chats.save(state.model_copy(update={"pending": ("one", "two", "three")}))
 
-    await gateway._drain("telegram", CHAT)
+    await gateway._following._drain("telegram", CHAT)
     await settle(runs, gateway)
 
     stored = await sessions.read(state.conversation_id)

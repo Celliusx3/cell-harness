@@ -7,6 +7,7 @@ runs; nothing about HTTP or channels.
 
 from __future__ import annotations
 
+from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
 from harness.agent.hooks.native.exact_failure import ExactFailureHook
 from harness.agent.hooks.native.no_progress import NoProgressHook
@@ -66,6 +67,7 @@ def build_agent(
     mcp: McpServerStore,
     skills: SkillService,
     client_tools: ClientToolService,
+    context_tokens: int | None = None,
 ) -> LoopAgent:
     """The default agent: a model, the native tools, the guardrail, and a
     durability checkpoint.
@@ -108,18 +110,31 @@ def build_agent(
     # are connected. See `DEFAULT_TOOLS`.
     pipeline = ToolPipeline(registry, dispatcher, DEFAULT_TOOLS)
 
+    client = OpenAIClient(settings.llm)
+    system_prompt = SYSTEM_PROMPT + CODE_PROMPT
+
     return LoopAgent(
         name="default",
         model=settings.llm.model,
-        client=OpenAIClient(settings.llm),
+        client=client,
         tools=pipeline,
         # The prompt travels with the tools: a model shown three unfamiliar tools
         # and not told what they are for will answer "I can't do that" rather
         # than discover its own capabilities.
-        system_prompt=SYSTEM_PROMPT + CODE_PROMPT,
+        system_prompt=system_prompt,
         # Durability where it matters: before every model request, and before
         # every tool that might have a side effect.
         checkpoint=store.flush,
+        # Shrinks the history when it outgrows the window. Same client and
+        # prompt as the turn, so the summary sees the conversation exactly as
+        # the model does. `context_tokens` is resolved at startup — see
+        # `create_web_app`.
+        compaction=CompactionService(
+            client=client,
+            model=settings.llm.model,
+            system_prompt=system_prompt,
+            context_tokens=context_tokens,
+        ),
         # The one place the loop guardrail is installed. Delete it and the loop
         # runs unhooked — nothing in `agent/` knows it was here. The detectors
         # are asked in this order, and the first with something to say wins:

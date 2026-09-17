@@ -221,6 +221,6 @@ async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path)
     await settle(gateway, runs)
 
     assert bot.sent == [
-        (CHAT, "No skill named 'start'. Skills: /find-place. Commands: /new, /stop.")
+        (CHAT, "No skill named 'start'. Skills: /find-place. Commands: /new, /stop, /compact.")
     ]
     assert await chats.load("telegram", CHAT) is None

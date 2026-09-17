@@ -23,7 +23,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from harness.llm.messages import ToolReference
-from harness.session.models import SessionEvent, SessionHeader, ToolResultEvent, TurnStart
+from harness.session.models import (
+    AssistantMessageEvent,
+    SessionEvent,
+    SessionHeader,
+    ToolResultEvent,
+    TurnStart,
+)
 
 
 class Session:
@@ -86,3 +92,13 @@ class Session:
                         order.pop(block.tool_name, None)
                         order[block.tool_name] = None
         return tuple(order)
+
+    def context_size(self) -> int | None:
+        """The context after the last reply that reported its usage: its input
+        plus its output, which is what the next request starts from. `None`
+        until a provider has said — compaction cannot measure what it was not
+        told, and a guess would fire it on the wrong conversation."""
+        for event in reversed(self._events):
+            if isinstance(event, AssistantMessageEvent) and event.usage is not None:
+                return event.usage.input_tokens + event.usage.output_tokens
+        return None
