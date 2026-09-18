@@ -12,7 +12,9 @@ and belongs with `resume`, which is the code that would act on it.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from collections.abc import Awaitable, Callable, Sequence
+from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -128,6 +130,24 @@ async def drain(gen) -> list:
     rather than fail a test."""
     async with asyncio.timeout(5):
         return [event async for event in gen]
+
+
+async def cancel_mid_turn(agent_, session: Session, user_input: str = "q") -> None:
+    """Run a turn in its own task and cancel it once it is blocked inside a
+    tool or a hanging stream, the way a closed tab does. A task rather than a
+    `break`, because the consumer is *blocked*: there is no next event."""
+
+    async def consume() -> None:
+        async with aclosing(agent_.run(user_input, session=session)) as events:
+            async for _ in events:
+                pass
+
+    task = asyncio.create_task(consume())
+    for _ in range(50):
+        await asyncio.sleep(0)
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
 
 
 async def until(predicate, *, what: str) -> None:
