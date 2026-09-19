@@ -11,27 +11,10 @@ dependencies = [
     "fastapi>=0.141.1",
     "uvicorn[standard]>=0.52.4",
     "python-telegram-bot[rate-limiter]>=22.8",
-    # Owns the gateway websocket, heartbeats, reconnects, the interactions wire
-    # and bucket-aware 429 handling — the same reasons PTB is here. Brings
-    # `aiohttp`, a third HTTP stack beside `httpx`/`httpx2`; only this channel
-    # uses it. `>=2.7` is the first line to support 3.13 (via `audioop-lts`).
     "discord.py>=2.7",
-    # 2.x, not the still-maintained 1.x line: 1.x is legacy and every attribute
-    # was renamed to snake_case in 2.0, so starting there buys a migration. It
-    # brings `httpx2` alongside our `httpx` — a second HTTP stack in the venv,
-    # but distinct import names, and only the MCP client uses it.
     "mcp>=2.1.1",
-    # SKILL.md frontmatter (phase 8). Already in the tree transitively; named
-    # here because `harness/skills` imports it directly.
     "pyyaml>=6",
 ]
-
-# Phase-gated, added when the phase that needs them starts (PHASES.md). The
-# numbers below are the current 13-phase plan; an earlier 16-phase draft left
-# stale ones here, which is why they carry the capability and not just a number.
-#   phase 11  ripgrep binary   — glob/grep
-# `frontend/` is npm and carries its own package.json.
-# Listing them here early would install weight nothing imports yet.
 
 [dependency-groups]
 dev = [
@@ -58,9 +41,6 @@ target-version = "py313"
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.isort]
-# Both are installed (the package, and tests as a namespace), so without this
-# ruff sorts them among third-party imports and the grouping stops meaning
-# anything.
 known-first-party = ["harness", "tests"]
 
 [build-system]

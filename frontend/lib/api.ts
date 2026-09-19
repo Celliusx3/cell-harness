@@ -32,14 +32,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     : ((await response.json()) as T);
 }
 
-/**
- * The backend's message, or a fallback.
- *
- * FastAPI puts a string in `detail` for our `HTTPException`s and an array of
- * per-field objects for a 422 — hence the two shapes. Neither is truncated: a
- * corrupt-log 500 names the file and line, which is the whole point of passing
- * it through.
- */
+/** The backend's message, or a fallback. */
 async function detailOf(response: Response): Promise<string> {
   try {
     const body = await response.json();
@@ -50,7 +43,6 @@ async function detailOf(response: Response): Promise<string> {
         .join("; ");
     }
   } catch {
-    // A non-JSON error body is not worth a second failure mode.
   }
   return `request failed (${response.status})`;
 }
@@ -61,7 +53,7 @@ export const listConversations = () =>
 export const getConversation = (id: string) =>
   request<ConversationDetail>(`/conversations/${id}`);
 
-/** Create a conversation *and* send its first message — see the route's docstring. */
+/** Create a conversation *and* send its first message */
 export const createConversation = (prompt: string) =>
   request<ConversationSummary>("/conversations", {
     method: "POST",
@@ -77,17 +69,11 @@ export const sendMessage = (id: string, prompt: string) =>
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
 
-/** Compact the conversation now. A 409 (running, or nothing to compact) is an
- *  `ApiError` the caller can surface. */
+/** Compact the conversation now. */
 export const compactConversation = (id: string) =>
   request<void>(`/conversations/${id}/compact`, { method: "POST" });
 
-/**
- * The output of a client tool the browser saw called on the stream — Vercel's
- * `addToolOutput`. 404 when that call is not the one waiting (answered,
- * expired, stopped), 409 when another tab beat this one — both mean "nothing
- * to do", and the stream carries the result. 422 is a bug in the handler.
- */
+/** The output of a client tool the browser saw called on the stream */
 export const sendToolOutput = <T>(
   id: string,
   callId: string,
@@ -121,10 +107,7 @@ export const getAppResource = (server: string, uri: string) =>
     `/mcp/${server}/resources?uri=${encodeURIComponent(uri)}`,
   );
 
-/**
- * A call the app makes back to its own server, proxied by the harness.
- * `resourceUri` says which app is asking — a tool bound to another app is refused.
- */
+/** A call the app makes back to its own server, proxied by the harness. */
 export const callAppTool = (
   server: string,
   name: string,

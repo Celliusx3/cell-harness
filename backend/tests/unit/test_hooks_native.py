@@ -3,21 +3,19 @@
 from __future__ import annotations
 
 from harness.agent.hooks import HookChain
-from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK, ExactFailureHook
-from harness.agent.hooks.native.no_progress import NO_PROGRESS_BLOCK, NoProgressHook
-from harness.agent.hooks.native.repeated_call import RepeatedCallHook
+from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK
+from harness.agent.hooks.native.no_progress import NO_PROGRESS_BLOCK
 from harness.agent.hooks.native.same_tool_failure import (
     SAME_TOOL_FAILURE_BLOCK,
-    SameToolFailureHook,
 )
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.session.log import Session
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.definition import BLOCKED, EXECUTION_ERROR, REFUSED, Failure, Ok
+from harness.web.agent import default_hooks
 from tests.unit.helpers import new_session
 
-# The four detectors in the order the composition root registers them.
-GUARD = HookChain((ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook()))
+GUARD = default_hooks()
 
 
 def call(name: str = "read", arguments: str = '{"a": 1}', *, id: str = "c") -> ToolCall:
@@ -63,9 +61,6 @@ async def post(
     return await guard.post_tool_call(c or call(), outcome, session=session)
 
 
-# ── exact failure ─────────────────────────────────────────────────────────────
-
-
 async def test_a_first_failure_says_nothing() -> None:
     session = turn()
 
@@ -83,7 +78,6 @@ async def test_the_second_identical_failure_is_warned_with_its_count() -> None:
 
 
 async def test_the_fifth_identical_failing_call_is_refused_before_it_runs() -> None:
-    """Acceptance. The fourth still runs."""
     session = turn()
     failing(session, EXACT_FAILURE_BLOCK - 2)
     assert await pre(GUARD, session) is None
@@ -97,7 +91,6 @@ async def test_the_fifth_identical_failing_call_is_refused_before_it_runs() -> N
 
 
 async def test_a_refusal_carries_the_last_failures_own_advice() -> None:
-    """A `REFUSED` result's "read its schema first" must survive the block."""
     session = turn()
     for _ in range(EXACT_FAILURE_BLOCK - 1):
         settle(session, text="error: read its schema with get_function_details", error=REFUSED)
@@ -117,7 +110,6 @@ async def test_a_success_resets_the_failure_count() -> None:
 
 
 async def test_a_succeeding_call_is_never_refused() -> None:
-    """Acceptance: only failing or unproductive repetition is a loop."""
     session = turn()
     for i in range(20):
         settle(session, "write", text=f"result {i}")
@@ -126,7 +118,6 @@ async def test_a_succeeding_call_is_never_refused() -> None:
 
 
 async def test_the_guardrails_own_refusals_are_not_counted() -> None:
-    """A sixth call is still refused, and the count stays where the block put it."""
     session = turn()
     failing(session, EXACT_FAILURE_BLOCK - 1)
     settle(session, text="error: was not run", error=BLOCKED)
@@ -135,9 +126,6 @@ async def test_the_guardrails_own_refusals_are_not_counted() -> None:
     reason = await pre(GUARD, session)
 
     assert reason is not None and f"{EXACT_FAILURE_BLOCK - 1} times" in reason
-
-
-# ── same-tool failure ─────────────────────────────────────────────────────────
 
 
 async def test_the_same_tool_failing_with_different_arguments_is_warned_at_three() -> None:
@@ -167,11 +155,7 @@ async def test_another_tools_failures_do_not_count() -> None:
     assert await pre(GUARD, session) is None
 
 
-# ── no progress ───────────────────────────────────────────────────────────────
-
-
 async def test_an_identical_result_twice_is_warned() -> None:
-    """The 2026-09-13 failure: the second identical program run must be told so."""
     session = turn()
     settle(session, "write", text="same")
 
@@ -209,9 +193,6 @@ async def test_the_fourth_identical_call_still_runs() -> None:
     assert await pre(GUARD, session) is None
 
 
-# ── repeated call ─────────────────────────────────────────────────────────────
-
-
 async def test_consecutive_calls_with_changing_results_are_noted_at_three_five_and_eight() -> None:
     session = turn()
     noted: list[int] = []
@@ -233,9 +214,6 @@ async def test_an_intervening_call_breaks_the_run() -> None:
     assert await post(GUARD, session, Ok(content="3"), call("write")) is None
 
 
-# ── the fold ──────────────────────────────────────────────────────────────────
-
-
 async def test_an_earlier_turns_failures_do_not_count() -> None:
     session = turn()
     failing(session, EXACT_FAILURE_BLOCK)
@@ -245,7 +223,6 @@ async def test_an_earlier_turns_failures_do_not_count() -> None:
 
 
 async def test_the_call_in_flight_has_no_result_and_is_ignored() -> None:
-    """The loop logs `tool/call` before asking; that unpaired call is not a failure."""
     session = turn()
     failing(session, EXACT_FAILURE_BLOCK - 2)
     session.append(ToolCallEvent(turn=0, step=0, call=call(id="running")))

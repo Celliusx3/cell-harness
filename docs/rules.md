@@ -104,7 +104,13 @@ so an endless succeeding loop — or a loop bug that never clears `owed` — is 
 bounded by the user's stop button and nothing else. dsh has no cap either.
 
 **Prompt text is code.** When wording changes because a model got it wrong,
-record the observed failure in a comment next to the wording that fixes it.
+record the observed failure in [prompt-failures.md](./prompt-failures.md), one
+line keyed by the constant that carries the wording.
+
+**One writer per sessions root.** `JsonlSessionRepository` remembers each
+session's stored count in memory after the first read, so a second process
+appending to the same root would land its next write at a stale offset. Two
+writers need a lock, not a bigger cache.
 
 **A watcher owns nothing.** A turn belongs to the run store, never to a
 connection. Anything reading a run — an SSE response, a future WebSocket — only
@@ -114,7 +120,9 @@ a reader can cancel, "close the tab and come back" stops being true.
 **One cursor.** A session sequence number means the same thing to a stored
 snapshot and a live stream. Don't add a second numbering for a subscriber, and
 don't let the UI derive one — that is what makes a replayed conversation and a
-live one the same code path.
+live one the same code path. The browser reads the stream with `fetch`, not
+`EventSource`: its own `Last-Event-ID` reconnect would race the cursor, it
+cannot be aborted precisely, and it treats a clean end as a reason to reconnect.
 
 **Every call goes through the one dispatcher.** The model's calls and a
 script's calls arrive by different routes and must land in the same place, or a
@@ -196,17 +204,16 @@ edit is seen at the next step because the next step looks.
 
 ## Comment discipline
 
-Comment the *why*, and keep it short. A comment that restates the code is noise;
-a comment that says why this and not the obvious alternative is the point. Lines
-that exist because of a bug carry the bug.
+No comments. A comment that restates the code is noise, and a comment that
+explains a why is a confession that the code did not: the why goes into a name,
+a type, a test, or a docs file, and the comment goes.
 
-**Budget: one or two lines.** Not a paragraph, not a numbered argument, not a
-record of what you tried. If the reason genuinely needs more than that, the
-design belongs in [DESIGN.md](../DESIGN.md) or here, with a one-line pointer
-from the code. Prefer no comment to a padded one — most lines need none.
-
-Module docstrings state what the module is for in a sentence or two, not the
-history of how it got that way.
+Only five things survive: a legal header; a note on behaviour forced by an
+external dependency, platform or protocol we cannot reshape; a formatter-ignore
+or a suppression of a style-only lint rule; a one-line docstring, a module's
+stating its one responsibility and a public function's its contract; an issue or
+RFC link for a constraint code cannot express. A surprise in our own code is not
+an external constraint: rename, extract or restructure until it is obvious.
 
 ## When the plan and the principles disagree
 

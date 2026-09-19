@@ -1,11 +1,4 @@
-"""The real SDK, a real subprocess.
-
-Everything else in the MCP suite runs against a fake session, which is right —
-the command loop is about tasks and deadlines. This file exists to prove the
-assumptions those tests are built on actually hold against `mcp`: that a failing
-tool comes back as `is_error` rather than an exception, that a timed-out call
-leaves the connection usable, and that closing really reaps the process.
-"""
+"""The real SDK, a real subprocess."""
 
 from __future__ import annotations
 
@@ -60,7 +53,6 @@ async def test_a_real_server_contributes_callable_tools(live) -> None:
 
     assert "stub__echo" in [t.name for t in registry.all()]
 
-    # Through the registry, the way the agent loop reaches a tool.
     echo = registry.get("stub__echo")
     assert echo is not None
     outcome = await echo.invoke('{"value": "hello"}', context=context_for())
@@ -70,8 +62,6 @@ async def test_a_real_server_contributes_callable_tools(live) -> None:
 
 
 async def test_an_app_bound_tool_and_its_html_come_through_the_real_wire(live) -> None:
-    """The extension is negotiated (the server says so in its result), the
-    binding rides the outcome, and the HTML is one more command on the loop."""
     store, registry = await live(stub())
 
     show = registry.get("stub__show_pid")
@@ -88,7 +78,6 @@ async def test_an_app_bound_tool_and_its_html_come_through_the_real_wire(live) -
 
 
 async def test_a_tool_that_raises_comes_back_as_a_failure(live) -> None:
-    """The SDK returns `is_error=True`; it does not raise. The model can recover."""
     _, registry = await live(stub())
 
     boom = registry.get("stub__boom")
@@ -98,7 +87,6 @@ async def test_a_tool_that_raises_comes_back_as_a_failure(live) -> None:
 
 
 async def test_closing_reaps_the_subprocess(live) -> None:
-    """Proved rather than assumed: the pid really is gone."""
     store, registry = await live(stub())
 
     whoami = registry.get("stub__whoami")
@@ -120,7 +108,6 @@ async def test_closing_reaps_the_subprocess(live) -> None:
 
 
 async def test_a_server_that_stops_answering_fails_within_the_timeout(live, monkeypatch) -> None:
-    """A server that accepts connections and then goes quiet."""
     monkeypatch.setattr(connection_module, "COMMAND_TIMEOUT_SECONDS", 2.0)
     store, registry = await live(stub(STUB_MODE="deaf"))
 
@@ -132,5 +119,4 @@ async def test_a_server_that_stops_answering_fails_within_the_timeout(live, monk
 
     assert isinstance(outcome, Failure)
     assert "did not answer" in outcome.message
-    # Still connected: a slow tool is not a dead server.
     assert store.statuses()[0].status == "connected"

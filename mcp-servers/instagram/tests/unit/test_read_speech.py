@@ -19,7 +19,6 @@ def frame(tmp_path: Path) -> Path:
 @pytest.mark.parametrize(
     "text",
     [
-        # Verbatim, from a real music-only travel reel.
         "bira bira bira bira",
         "la la la la la la",
         "",
@@ -36,7 +35,6 @@ def test_music_filler_is_recognised_as_not_speech(text: str) -> None:
     [
         "It is called Natalina Italian Kitchen located in Avenue K.",
         "This is where you can find one of the best Italian food in KL.",
-        # Short but genuinely varied — must not be discarded.
         "Best nasi lemak in Bangsar, open seven to eleven.",
     ],
 )
@@ -51,10 +49,5 @@ async def test_a_music_only_transcript_is_reported_as_not_speech(tmp_path: Path)
 
     transcript = await speech.transcribe(http, audio, model="m")
 
-    # The text is still returned here — withholding it is the server's decision,
-    # so this seam stays honest about what the provider actually said.
     assert transcript.is_speech is False
     assert transcript.text == "bira bira bira bira"
-
-
-# --- description parsing --------------------------------------------------

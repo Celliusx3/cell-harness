@@ -1,17 +1,8 @@
 import type { CallToolResult } from "@modelcontextprotocol/client";
 
-/**
- * The wire types, mirroring `backend/harness/session/models.py`.
- *
- * These are hand-written rather than generated, and that is a deliberate trade:
- * a generator would be a build step and a toolchain for nine small types. The
- * cost is that this file can fall behind, so a backend test asserts that every
- * `SessionEvent` discriminator appears here — see
- * `tests/unit/test_frontend_types.py`. Add an event type without a renderer and
- * the Python suite fails, not the browser.
- */
+/** The wire types, mirroring `backend/harness/session/models.py`. */
 
-/** `assistant/chunk` payloads — the raw stream, kept for replay fidelity. */
+/** `assistant/chunk` payloads */
 export type StreamEvent =
   | { kind: "text"; text: string }
   | { kind: "tool_call"; call: ToolCall }
@@ -26,7 +17,7 @@ export type StreamEvent =
 export interface ToolCall {
   id: string;
   name: string;
-  /** The model's raw JSON string, unparsed — it may not even be valid JSON. */
+  /** The model's raw JSON string, unparsed */
   arguments: string;
 }
 
@@ -40,8 +31,7 @@ export interface UserMessage {
   content: string;
 }
 
-/** Context the backend injected (the guardrail's note) — sent to the model in
- *  the user role, but not the person's words. */
+/** Context the backend injected (the guardrail's note) */
 export interface ApplicationMessage {
   role: "application";
   content: string;
@@ -53,12 +43,7 @@ export interface AssistantMessage {
   tool_calls: ToolCall[];
 }
 
-/**
- * One part of a tool result — the Anthropic shape. `text` is prose;
- * `tool_reference` says the named tool is callable from the next request on.
- * Mirror of `Block` in `harness/llm/messages.py`; the Python test guards the
- * `type` literals.
- */
+/** One part of a tool result */
 export type ContentBlock =
   | { type: "text"; text: string }
   | { type: "tool_reference"; tool_name: string };
@@ -69,33 +54,25 @@ export interface ToolMessage {
   content: ContentBlock[];
 }
 
-/**
- * An MCP App bound to a tool result — mirror of `ToolUi` in
- * `harness/tools/definition.py`. `server` answers `resources/read` for
- * `resource_uri` and the app's own tool calls; `data` is the result's
- * `structuredContent`, which is what the app draws.
- */
+/** An MCP App bound to a tool result */
 export interface ToolUi {
   server: string;
   resource_uri: string;
   data: unknown;
 }
 
-/** `GET /api/mcp/{server}/resources` — an app's HTML and the policy to run it under. */
+/** `GET /api/mcp/{server}/resources` */
 export interface AppResource {
   html: string;
   csp: string;
 }
 
-/**
- * `POST /api/mcp/{server}/tools/{name}` — the server's `CallToolResult`,
- * proxied verbatim. Typed by the MCP SDK because that is exactly what it is.
- */
+/** `POST /api/mcp/{server}/tools/{name}` */
 export type AppToolResult = CallToolResult;
 
 export type TurnEndReason = "completed" | "failed" | "cancelled" | "pending";
 
-/** Why a compaction ran — mirror of `CompactionTrigger` in `session/compaction.py`. */
+/** Why a compaction ran */
 export type CompactionTrigger = "auto" | "manual" | "overflow";
 
 export type SessionEvent =
@@ -120,12 +97,12 @@ export type SessionEvent =
       turn: number;
       step: number;
       message: ToolMessage;
-      /** The typed failure code, or null on success. Not the rendered string. */
+      /** The typed failure code, or null on success. */
       error: string | null;
       /** The app that renders this result, when the tool declares one. */
       ui: ToolUi | null;
     }
-  /** A summary is being attempted. `turn` is null for a manual one on an idle conversation. */
+  /** A summary is being attempted. */
   | { type: "compaction/start"; turn: number | null; trigger: CompactionTrigger; tokens: number | null }
   /** The attempt is over: `message` is what the model reads from here on, or `error` says why nothing changed. */
   | {
@@ -140,18 +117,12 @@ export type SessionEvent =
 export interface ConversationSummary {
   id: string;
   created_at: string;
-  /** Empty until the opening turn's first flush stamps it. Needs a fallback. */
+  /** Empty until the opening turn's first flush stamps it. */
   title: string;
 }
 
 export interface MessageAccepted extends ConversationSummary {
-  /**
-   * True when the message was held behind a turn already running.
-   *
-   * It is *not in the log yet* — a queued message becomes a `user/message` only
-   * when its turn starts — and this screen draws the conversation from the log.
-   * So the client shows it itself until then; see `useConversation`.
-   */
+  /** True when the message was held behind a turn already running. */
   queued: boolean;
 }
 
@@ -160,8 +131,6 @@ export interface ConversationDetail extends ConversationSummary {
   next_cursor: number;
   running: boolean;
 }
-
-// ── skills — mirrors backend/harness/web/routes/skills.py ────────────────────
 
 export interface SkillSummary {
   name: string;
@@ -190,12 +159,7 @@ export interface SkillFile {
   editable: boolean;
 }
 
-/**
- * What the browser answers a client tool with — the backend's `ClientOutput`,
- * one shape for every client tool: the datum, a refusal, or the device's own
- * reason it could not (a browser forwards its `GeolocationPositionError`
- * name; nothing is translated).
- */
+/** What the browser answers a client tool with */
 export type ClientOutput<T> =
   | { kind: "shared"; data: T }
   | { kind: "declined" }

@@ -8,15 +8,7 @@ import { McpApp } from "@/components/McpApp";
 import type { ToolItem } from "@/lib/timeline";
 import { useConversation, useTimeline } from "@/lib/useConversation";
 
-/**
- * One tool call's MCP App, on a page of its own.
- *
- * This is the URL a chat is sent when a result carries an app — a Telegram
- * Mini App button, a Discord link, the "open" link on a browser card — so it
- * has no sidebar and gives the app the whole viewport. Read from the same log
- * as the conversation page: the app's binding and data are on the stored
- * `tool/result`, so there is nothing here that a reload would lose.
- */
+/** One tool call's MCP App, on a page of its own. */
 export default function AppPage({
   params,
 }: {

@@ -1,5 +1,4 @@
-"""CoinGecko: the pure mapping, then the client at the transport — what is
-sent (the key header) and what each status code becomes."""
+"""CoinGecko: the pure mapping, then the client at the transport."""
 
 from __future__ import annotations
 
@@ -14,7 +13,7 @@ from markets.symbol import parse
 from tests.conftest import FakeMarket, capturing, http_client
 
 DAY = 86_400_000
-T0 = 1_772_150_400_000  # 2026-02-27T00:00:00Z
+T0 = 1_772_150_400_000
 
 
 def chart(days: int, start: float = 100.0, points_per_day: int = 1) -> dict:
@@ -42,9 +41,6 @@ def market_row(id: str = "bitcoin", **over) -> dict:
         "last_updated": "2026-09-14T21:34:20.000Z",
     }
     return row | over
-
-
-# --- mapping -------------------------------------------------------------
 
 
 def test_candidates_are_prefixed_and_carry_the_symbol_in_the_name() -> None:
@@ -120,7 +116,6 @@ def test_weekly_and_monthly_bars_are_the_last_day_of_their_bucket() -> None:
     weekly = mapping.history("c", chart(21), period="3mo", interval="1wk", max_rows=70)
     monthly = mapping.history("c", chart(40), period="3mo", interval="1mo", max_rows=70)
 
-    # 2026-02-27 is a Friday; ISO weeks close on Sunday.
     assert [r.date for r in weekly.rows][:2] == ["2026-03-01", "2026-03-08"]
     assert [r.date for r in monthly.rows] == ["2026-02-28", "2026-03-31", "2026-04-07"]
 
@@ -139,9 +134,6 @@ def test_an_empty_chart_is_not_found() -> None:
     assert mapping.history("c", {"prices": []}, period="1mo", interval="1d", max_rows=5).status == (
         "not_found"
     )
-
-
-# --- client --------------------------------------------------------------
 
 
 def routed(*, status: int = 200, body=None):
@@ -213,7 +205,7 @@ async def test_history_asks_for_the_days_of_the_range_capped_at_a_year(
 ) -> None:
     handler, seen = routed()
 
-    out = await gecko(handler).history(parse("crypto:bitcoin"), period, "1d")  # type: ignore[arg-type]
+    out = await gecko(handler).history(parse("crypto:bitcoin"), period, "1d")
 
     assert seen[0].url.params["days"] == days
     assert ("served as 1y" in out.detail) == (period == "5y")
@@ -291,5 +283,4 @@ async def test_non_json_is_unavailable() -> None:
 
 
 def test_the_market_row_fixture_matches_the_recorded_shape() -> None:
-    """Guards the fixture itself: these are the keys read live on 2026-09-14."""
     assert set(json.loads(json.dumps(market_row()))) >= {"current_price", "last_updated"}

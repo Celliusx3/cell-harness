@@ -1,13 +1,4 @@
-"""One tool call, from the model's request to its logged result.
-
-Split from `turn.py` at the length cap, along the seam that was already there:
-`drive` decides what a step *is*; this module runs one call of it. Zero or more
-`ToolProgress`, then exactly one `ToolResult` — or a `ToolPending`, which logs
-nothing because the result is the person's to give.
-
-The hooks run here, after `tool/call` was logged, so a refused call still has
-its call and result on record and the tool never starts.
-"""
+"""One tool call, from the model's request to its logged result."""
 
 from __future__ import annotations
 
@@ -36,13 +27,7 @@ async def tool_events(
     step: int,
     notes: list[str],
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
-    """One call: zero or more `ToolProgress`, then exactly one `ToolResult` —
-    or a `ToolPending`, which logs nothing: the result is the person's to
-    give. What a hook wants the model told goes on `notes`.
-
-    The hooks run here, after `tool/call` was logged, so a refused call
-    still has its call and result on record and the tool never starts.
-    """
+    """One call: zero or more `ToolProgress`, then exactly one `ToolResult` or `ToolPending`."""
     refusal = await agent.hooks.pre_tool_call(call, session=session)
     outcome: ToolOutcome | None = None
     if refusal is not None:
@@ -54,7 +39,7 @@ async def tool_events(
                     yield event
                 else:
                     outcome = event
-        assert outcome is not None  # `_run_tool` ends with the outcome or raises
+        assert outcome is not None
         if isinstance(outcome, Pending):
             yield ToolPending(tool_call_id=call.id, name=call.name)
             return
@@ -63,14 +48,12 @@ async def tool_events(
             notes.append(note)
 
     content = render_outcome(outcome)
-    # Logged before it is yielded, so a consumer that persists on `ToolResult`
-    # never sees an assistant `tool_calls` without its answer.
     session.append(
         ToolResultEvent(
             turn=turn,
             step=step,
             message=ToolMessage(tool_call_id=call.id, content=content),
-            error=None if isinstance(outcome, Ok) else outcome.code,  # the typed code
+            error=None if isinstance(outcome, Ok) else outcome.code,
             ui=outcome.ui if isinstance(outcome, Ok) else None,
         )
     )
@@ -80,14 +63,7 @@ async def tool_events(
 async def _run_tool(
     agent: LoopAgent, call: ToolCall, *, session: Session
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
-    """Run the tool: its progress as it reports it, then its outcome, last.
-
-    A task plus a queue, because a generator can only yield from its own
-    frame and the progress callback fires inside the tool. The sentinel the
-    task posts on its way out is what ends the drain; FIFO order is what
-    keeps every report ahead of the outcome.
-    """
-    # Unbounded: never stall the tool.
+    """Run the tool: its progress as it reports it, then its outcome, last."""
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 
     async def report(*, percent: float | None, message: str | None) -> None:
@@ -97,14 +73,12 @@ async def _run_tool(
 
     async def run() -> ToolOutcome:
         try:
-            assert agent.tools is not None  # a call cannot arrive without a pipeline
-            # Folded per call, like the offer is per step: a schema read by an
-            # earlier call of this step counts for the next one.
+            assert agent.tools is not None
             return await agent.tools.execute(
                 call, progress=report, tools_selected=session.tools_selected()
             )
         finally:
-            queue.put_nowait(None)  # on every path, or the drain below hangs
+            queue.put_nowait(None)
 
     task = asyncio.create_task(run())
     try:
@@ -112,8 +86,6 @@ async def _run_tool(
             yield event
         outcome = await task
     finally:
-        # A no-op on normal exit; on a closed consumer or a cancelled turn it
-        # is what stops the tool.
         task.cancel()
         with contextlib.suppress(BaseException):
             await task

@@ -1,9 +1,4 @@
-"""The three code-mode tools, against a fake sandbox.
-
-Everything here is about what the *model* sees and what the bridge lets a script
-reach. The sandbox itself is real Deno, and lives in
-`tests/integration/test_code_mode.py`.
-"""
+"""The three code-mode tools, against a fake sandbox."""
 
 from __future__ import annotations
 
@@ -14,8 +9,6 @@ from tests.unit.code_fakes import FakeRunner, build, returns, tool
 
 
 async def test_a_withheld_tool_is_unlisted_unbound_and_refused() -> None:
-    """The composition root's list of tools a script may not reach, checked at
-    all three locks: the catalog, the sandbox globals, and the bridge."""
     raised: list[BridgeError] = []
 
     async def script(bridge: Bridge) -> None:
@@ -36,9 +29,6 @@ async def test_a_withheld_tool_is_unlisted_unbound_and_refused() -> None:
     assert built.dispatched == []
 
 
-# ── what the model is offered ─────────────────────────────────────────────────
-
-
 def test_exactly_three_tools() -> None:
     assert [t.name for t in build().tools] == [LIST, DETAILS, EXECUTE]
 
@@ -54,11 +44,7 @@ async def test_list_functions_renders_the_catalog_without_types() -> None:
 
 
 async def test_the_catalog_never_contains_code_mode_itself() -> None:
-    """The three are registered like any tool so dispatch stays uniform, which
-    means they would otherwise list themselves."""
     built = build(tool("yt__a"))
-    # The registry is read afresh on every call, so registering the three after
-    # the fact is exactly what the composition root does.
     for built_tool in built.tools:
         built.registry.register(built_tool)
 
@@ -87,17 +73,12 @@ async def test_details_types_the_named_functions_and_notes_the_rest() -> None:
 
 
 async def test_details_for_nothing_real_is_ok_not_a_failure() -> None:
-    """Wrong names are a rephrase, not a broken tool — a Failure reads to the
-    model as "stop using this"."""
     built = build(tool("yt__a"))
 
     outcome = await built.run(DETAILS, '{"names": ["ghost"]}')
 
     assert isinstance(outcome, Ok)
     assert LIST in outcome.text
-
-
-# ── running a script ──────────────────────────────────────────────────────────
 
 
 async def test_the_script_is_given_every_available_name() -> None:
@@ -122,7 +103,6 @@ async def test_logs_and_the_return_value_both_reach_the_model() -> None:
 
 
 async def test_a_failed_script_keeps_what_it_printed() -> None:
-    """A script that threw halfway is debugged from what it printed before it did."""
     runtime = FakeRunner(outcome=Script(logs=("step one done",), error="boom"))
     built = build(runtime=runtime)
 
@@ -153,13 +133,7 @@ async def test_a_missing_sandbox_is_reported_as_a_failure_not_a_crash() -> None:
     assert "sandbox could not start" in outcome.message
 
 
-# ── the bridge ────────────────────────────────────────────────────────────────
-
-
 async def test_a_call_from_a_script_goes_through_the_ordinary_pipeline() -> None:
-    """The whole security and consistency argument: a script reaches exactly what
-    the model could, by the same route — and gets a plain value, because the
-    sandbox has no idea what a `ToolOutcome` is."""
     seen: list[object] = []
 
     async def script(bridge: Bridge) -> None:
@@ -174,9 +148,6 @@ async def test_a_call_from_a_script_goes_through_the_ordinary_pipeline() -> None
 
 
 async def test_a_tool_that_publishes_json_as_text_reaches_the_script_as_an_object() -> None:
-    """Most MCP servers put JSON in text rather than `structuredContent`. Without
-    parsing, a script indexing the result reads `undefined` and the model burns
-    turns discovering why — observed live before this existed."""
     seen: list[object] = []
 
     async def script(bridge: Bridge) -> None:
@@ -207,7 +178,6 @@ async def test_text_that_is_not_json_reaches_the_script_untouched() -> None:
 
 
 async def test_inner_calls_get_ids_a_provider_could_never_issue() -> None:
-    """So a later phase can key nested tool cards on them without ambiguity."""
 
     async def script(bridge: Bridge) -> None:
         await bridge("yt__a", {})
@@ -221,8 +191,6 @@ async def test_inner_calls_get_ids_a_provider_could_never_issue() -> None:
 
 
 async def test_the_bridge_refuses_code_mode_itself() -> None:
-    """Deno never sees these names, so this is the second lock: a script that
-    reached one would spawn a sandbox from inside a sandbox, unbounded."""
     raised: list[BridgeError] = []
 
     async def script(bridge: Bridge) -> None:

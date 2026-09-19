@@ -1,5 +1,4 @@
-"""The model's window, read from the endpoint — Claude Code's per-model table,
-served by the provider instead of hardcoded."""
+"""The model's window, read from the endpoint."""
 
 from __future__ import annotations
 
@@ -11,14 +10,13 @@ from harness.llm.adapters import models as models_module
 from harness.llm.adapters.models import context_length
 from tests.unit.test_openai_adapter import settings
 
-# ilmu's listing, as probed: the field is on the list, not on `/models/{id}` (404).
+# ilmu serves the field on `/models`, not on `/models/{id}` (404).
 ILMU = {
     "data": [
         {"id": "glm-ocr", "context_length": 32768, "max_completion_tokens": 32768},
         {"id": "m", "context_length": 1000000, "max_completion_tokens": 128000},
     ]
 }
-# LM Studio's: the standard fields only.
 LM_STUDIO = {"data": [{"id": "m", "object": "model", "owned_by": "organization_owner"}]}
 
 

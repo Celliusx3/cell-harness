@@ -1,18 +1,4 @@
-"""Settings from the environment, validated before the server binds.
-
-Same shape and the same reason as the Places server's: a server that refuses to
-start is absent from `list_functions`, so the model learns it has no markets
-capability. One that starts and then 403s on every filing teaches the model to
-retry a tool that cannot work.
-
-Two things are required even though yfinance itself needs nothing:
-
-- `SEC_USER_AGENT`. EDGAR's fair-access policy demands a declared
-  `Name email` agent and answers a bare client with 403 (verified live). Not a
-  secret — it belongs in the committed `env`.
-- `COINGECKO_API_KEY`. The keyless public endpoint rate-limited a probe after
-  five calls; the free Demo key is what makes crypto work at all.
-"""
+"""Settings from the environment, validated before the server binds."""
 
 from __future__ import annotations
 
@@ -24,11 +10,6 @@ EDGAR_DATA_URL = "https://data.sec.gov"
 EDGAR_WWW_URL = "https://www.sec.gov"
 COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
 
-# A history result is re-sent to the model on every later turn, so rows are
-# the price of the call: 70 bars pretty-print to ~12 KB, 130 to ~23 KB
-# (measured). 70 fits three months of daily bars, a year of weekly ones or
-# five years of monthly ones, and the description tells the model to choose
-# the interval so the range fits.
 DEFAULT_MAX_ROWS = 70
 
 

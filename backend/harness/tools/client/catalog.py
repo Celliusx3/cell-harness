@@ -1,18 +1,4 @@
-"""A client tool is a declaration; the catalog turns it into a tool.
-
-`ClientTool` says what a datum *is* — name, description, what the model
-passes, what a shared answer carries. What a client can answer with is the
-same for every datum (`ClientOutput`), and what the model reads is decided
-here, once: shared data as JSON, the way every MCP tool already answers; a
-refusal and an inability as two typed failures, because the model recovers
-the same way from each but the guardrail counts by code and the card reads
-it. A tool that *does* something on the device rather than reading it —
-Claude's share sheet, "add to calendar" — is the same shape with an empty
-`data_model`.
-
-The tool itself does nothing but say `Pending`: the loop ends the turn there,
-and the answer opens a later one (`LoopAgent.resume`). Nothing waits.
-"""
+"""A client tool is a declaration; the catalog turns it into a tool."""
 
 from __future__ import annotations
 
@@ -24,11 +10,6 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from harness.tools.context import ToolContext
 from harness.tools.definition import Failure, Ok, Pending, ToolDefinition, ToolOutcome
 
-# Two codes, because the model recovers differently from each and the
-# guardrail counts by code. "The person said no" is kept apart from "the
-# device could not" on purpose: a client that silently declines what it could
-# not ask is the failure the prior art warns about. (A third, `SKIPPED`, is
-# the loop's — written when the person moves on without answering.)
 DECLINED = "DECLINED"
 UNAVAILABLE = "UNAVAILABLE"
 
@@ -53,9 +34,7 @@ class Declined(BaseModel):
 
 
 class Unavailable(BaseModel):
-    """The device could not — permission blocked, no fix, timed out. Distinct
-    from declining: nobody said no. `reason` is the platform's own code
-    (a browser's `PERMISSION_DENIED`), forwarded rather than translated."""
+    """The device could not — permission blocked, no fix, timed out."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -86,7 +65,7 @@ class ClientTool[ArgsT: BaseModel, DataT: BaseModel]:
 
 
 class ClientTools:
-    """Every declared client tool, and the two things done with them all."""
+    """Every declared client tool: parsed, resolved to an outcome, and defined."""
 
     def __init__(self, tools: tuple[ClientTool, ...]) -> None:
         self._by_name = {tool.name: tool for tool in tools}
@@ -98,12 +77,7 @@ class ClientTools:
         return frozenset(self._by_name)
 
     def parse(self, name: str, raw: object) -> ClientOutput:
-        """A posted body as the output of the tool named `name`.
-
-        Raises `ValidationError` for a body that does not fit, and
-        `KeyError` for a name that is not a client tool — a caller has
-        already matched `name` against `pending_call`, so that is a bug.
-        """
+        """A posted body as the output of the tool named `name`."""
         return self._by_name[name].output_adapter().validate_python(raw)
 
     def outcome(self, output: ClientOutput) -> Ok | Failure:

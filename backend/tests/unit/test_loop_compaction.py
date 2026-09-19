@@ -1,5 +1,4 @@
-"""The loop compacts on its own: before a step when big, and when the provider
-refuses. Acceptance for phase 11."""
+"""The loop compacts on its own: before a step when big, and when the provider refuses."""
 
 from __future__ import annotations
 
@@ -23,8 +22,7 @@ from tests.unit.helpers import drain, new_session
 
 
 class SizedClient(LLMClient):
-    """Answers each turn, reporting a growing context so compaction is provoked.
-    The summary request (tools=None) gets a fixed checkpoint."""
+    """Answers each turn, reporting a growing context so compaction is provoked."""
 
     def __init__(self, *, per_turn: int) -> None:
         self._per_turn = per_turn
@@ -61,27 +59,22 @@ def agent_with(client: LLMClient, context: int | None) -> LoopAgent:
 
 
 async def test_a_long_conversation_compacts_and_keeps_going() -> None:
-    """200 turns past a small window: it stays coherent, and the raw log still
-    holds every original event."""
     client = SizedClient(per_turn=2_000)
-    agent = agent_with(client, context=20_000)  # threshold 16,000 → compacts by turn ~7
+    agent = agent_with(client, context=20_000)
     session = new_session()
 
     for i in range(200):
         await drain(agent.run(f"message {i}", session=session))
 
     assert client.summaries >= 1
-    # Every turn produced its user message and reply — nothing was dropped from
-    # the log; compaction only changed what the model was sent.
     users = [e for e in session.events() if e.type == "user/message"]
     assert len(users) == 200
-    # After compaction the request the model saw begins with the summary.
     assert any(OPEN in m.content for m in client.seen if isinstance(m, UserMessage))
 
 
 async def test_the_summary_survives_into_the_next_turn() -> None:
     client = SizedClient(per_turn=6_000)
-    agent = agent_with(client, context=10_000)  # threshold 8,000 → compacts after turn 1
+    agent = agent_with(client, context=10_000)
     session = new_session()
 
     await drain(agent.run("first", session=session))
@@ -92,8 +85,7 @@ async def test_the_summary_survives_into_the_next_turn() -> None:
 
 
 class OverflowingClient(LLMClient):
-    """Refuses the first request with a size error, then answers. The summary
-    request always answers, so recovery can make progress."""
+    """Refuses the first request with a size error, then answers."""
 
     def __init__(self) -> None:
         self.refusals = 0
@@ -117,9 +109,8 @@ class OverflowingClient(LLMClient):
 
 async def test_an_overflow_is_recovered_and_the_step_retried() -> None:
     client = OverflowingClient()
-    agent = agent_with(client, context=None)  # no proactive line; the net catches it
+    agent = agent_with(client, context=None)
     session = new_session()
-    # Seed a turn so there is something to summarize.
     from harness.llm.messages import AssistantMessage
     from harness.session.models import (
         AssistantMessageEvent,

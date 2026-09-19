@@ -70,8 +70,6 @@ def test_every_compaction_event_round_trips() -> None:
 
 
 def test_the_boundary_replaces_everything_before_it() -> None:
-    """After a summary, the model sees the summary and what came after — the
-    log still holds everything."""
     session = new_session()
     turn_with_tool(session, 0, "c0", "big result")
     session.append(CompactionStart(turn=None, trigger="manual", tokens=1010))
@@ -128,7 +126,6 @@ def test_context_size_is_the_context_after_the_last_reply() -> None:
     assert session.context_size() is None
     turn_with_tool(session, 0, "c0", "r")
     turn_with_tool(session, 1, "c1", "r")
-    # The last assistant message of turn 1 carries no usage; the one before it does.
     assert session.context_size() == 2000 + 10
 
 
@@ -156,13 +153,12 @@ def test_a_closed_start_needs_no_repair() -> None:
 
 
 def test_a_compaction_end_carries_exactly_one_outcome() -> None:
-    """The sum type has teeth: neither both nor neither is constructible."""
     import pytest
     from pydantic import ValidationError
 
     assert CompactionEnd(turn=0, message=ApplicationMessage(content="s")).succeeded
     assert not CompactionEnd(turn=0, error="boom").succeeded
     with pytest.raises(ValidationError):
-        CompactionEnd(turn=0)  # neither
+        CompactionEnd(turn=0)
     with pytest.raises(ValidationError):
-        CompactionEnd(turn=0, message=ApplicationMessage(content="s"), error="boom")  # both
+        CompactionEnd(turn=0, message=ApplicationMessage(content="s"), error="boom")

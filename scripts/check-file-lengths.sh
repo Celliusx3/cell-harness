@@ -1,11 +1,5 @@
 #!/bin/sh
-# Every source file under 300 lines — backend, its tests, the MCP servers, and
-# the frontend. Part of `make lint`, so it is the gate that runs after every
-# change, not a review comment.
-#
-# 300 is the number the repo was refactored to (commit 9c9cb0f) and the size at
-# which a module still reads top to bottom in one sitting. A file that needs
-# more has two responsibilities; split on the seam rather than raising the cap.
+# Every source file under 300 lines; part of `make lint`.
 set -eu
 
 MAX=300

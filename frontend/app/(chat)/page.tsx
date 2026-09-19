@@ -6,13 +6,7 @@ import { useState } from "react";
 import { Composer } from "@/components/Composer";
 import { ApiError, createConversation } from "@/lib/api";
 
-/**
- * The empty state, and where a conversation is born.
- *
- * There is no "new conversation" request: phase 3's `create()` writes nothing
- * until a first append, so an id handed out before the first message would be
- * absent from the sidebar and gone on refresh. Sending is what creates.
- */
+/** The empty state, and where a conversation is born. */
 export default function NewConversationPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +17,6 @@ export default function NewConversationPage() {
     setError(null);
     try {
       const created = await createConversation(prompt);
-      // The turn is already running by the time this resolves. The conversation
-      // page opens, fetches its snapshot and subscribes — picking up a stream it
-      // did not start, which is the same path a refresh takes.
       router.push(`/c/${created.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "could not start a conversation");

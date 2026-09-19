@@ -1,5 +1,4 @@
-"""EDGAR at the transport: the User-Agent that must be sent, the two hosts,
-the parallel-array shape, and the one-time CIK map."""
+"""EDGAR at the transport."""
 
 from __future__ import annotations
 
@@ -72,7 +71,7 @@ async def test_filings_carry_a_document_url_and_the_declared_user_agent() -> Non
         "https://www.sec.test/Archives/edgar/data/320193/000032019326000020/aapl-20260627.htm"
     )
     assert out.filings[1].period_of_report == "2026-06-27"
-    assert out.filings[2].description == ""  # a shorter parallel array is not an error
+    assert out.filings[2].description == ""
     assert all(r.headers["User-Agent"] == "tests tests@example.com" for r in seen)
     assert seen[1].url.path == "/submissions/CIK0000320193.json"
 
@@ -101,7 +100,7 @@ async def test_a_ticker_edgar_does_not_know_is_not_found() -> None:
     out = await edgar(handler).filings(parse("ZZZZ"), None, 5)
 
     assert out.status == "not_found"
-    assert len(seen) == 1  # the map, and no submissions call
+    assert len(seen) == 1
 
 
 @pytest.mark.parametrize("raw", ["1155.KL", "crypto:bitcoin"])

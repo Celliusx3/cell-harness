@@ -1,13 +1,4 @@
-"""`get_current_time` — the smallest real tool.
-
-Exists to prove the path end to end: the model is offered a schema, asks for a
-call, and the result comes back in a form it can use. It is also the tool the
-guardrail must *not* refuse — repeated calls that keep succeeding are normal,
-and a clock read twice answers differently, so it is never "no progress".
-
-The clock is injected rather than read from `datetime.now()` directly, so a test
-can assert an exact string instead of matching a pattern.
-"""
+"""`get_current_time` — the smallest real tool."""
 
 from __future__ import annotations
 
@@ -32,9 +23,6 @@ class ClockArgs(BaseModel):
     )
 
 
-# Beside the tool it names, so `DEFAULT_TOOLS` can reference it instead of
-# repeating the string — a name in two places is a rename that half-happens, and
-# `specs()` skips a name it cannot find without complaining.
 CLOCK = "get_current_time"
 
 
@@ -43,9 +31,6 @@ def clock_tool(now: Now = lambda: datetime.now(UTC)) -> ToolDefinition[ClockArgs
         try:
             zone = ZoneInfo(args.timezone)
         except (ZoneInfoNotFoundError, ValueError) as err:
-            # A bad timezone is the model's mistake to correct, not ours to
-            # paper over: defaulting to UTC would answer confidently with the
-            # wrong time.
             return Failure(EXECUTION_ERROR, f"unknown timezone {args.timezone!r}: {err}")
         return Ok(content=now().astimezone(zone).isoformat(timespec="seconds"))
 

@@ -1,8 +1,4 @@
-"""The command loop.
-
-The first test is the design's proof: it fails on the obvious implementation
-that opens the session in the caller's task, which is the one anyio forbids.
-"""
+"""The command loop."""
 
 from __future__ import annotations
 
@@ -28,12 +24,6 @@ async def connected(factory: FakeFactory, *ids: str) -> McpServerStore:
 
 
 async def test_session_is_owned_by_one_task_that_is_nobody_s_caller() -> None:
-    """Enter and exit happen in the same task, and it is not the caller's.
-
-    anyio raises `RuntimeError: Attempted to exit cancel scope in a different
-    task than it was entered in` when this is violated, so the whole command
-    loop exists to make it true.
-    """
     factory = FakeFactory()
     caller = asyncio.current_task()
     store = await connected(factory)
@@ -77,7 +67,6 @@ async def test_tool_listing_follows_pagination() -> None:
 
 
 async def test_concurrent_callers_each_get_their_own_result() -> None:
-    """A shared reply queue would hand caller A's answer to caller B."""
     factory = FakeFactory()
     store = await connected(factory)
     call = store._connections["stub"].call
@@ -91,7 +80,6 @@ async def test_concurrent_callers_each_get_their_own_result() -> None:
 
 
 async def test_a_timed_out_call_leaves_the_connection_usable(monkeypatch) -> None:
-    """The point of putting the deadline on the owner rather than the caller."""
     monkeypatch.setattr(connection_module, "COMMAND_TIMEOUT_SECONDS", 0.05)
     factory = FakeFactory()
     factory.client.tools = [tool("slow"), tool("echo")]
@@ -102,14 +90,12 @@ async def test_a_timed_out_call_leaves_the_connection_usable(monkeypatch) -> Non
     with pytest.raises(McpTimeoutError):
         await connection.call("slow", {})
 
-    # The owner survived, so the next call still works.
     assert connection.status == "connected"
     assert (await connection.call("echo", {})).content[0].text == "echo ok"
     await store.aclose()
 
 
 async def test_a_resource_is_read_over_the_same_loop() -> None:
-    """An app's HTML is one more command to the owner, not a second session."""
     factory = FakeFactory()
     factory.client.resources = {"ui://stub/app.html": html_resource("ui://stub/app.html", "<p>")}
     store = await connected(factory)
@@ -176,7 +162,6 @@ async def test_a_server_that_refuses_reports_why_and_offers_nothing() -> None:
 
 
 async def test_an_exception_group_is_unwrapped_to_its_cause() -> None:
-    """The SDK wraps failures in an ExceptionGroup; the bare text names nothing."""
     inner = RuntimeError("connection refused")
     factory = FakeFactory(connect_error=BaseExceptionGroup("unhandled", [inner]))
 
@@ -187,7 +172,6 @@ async def test_an_exception_group_is_unwrapped_to_its_cause() -> None:
 
 
 async def test_one_failed_server_does_not_cost_the_others_their_tools() -> None:
-    """A broken source must not take the whole tool set down with it."""
     factory = FakeFactory()
     store = McpServerStore(
         {**servers("good"), **servers("bad")},
@@ -196,8 +180,6 @@ async def test_one_failed_server_does_not_cost_the_others_their_tools() -> None:
     await store.start()
     await asyncio.sleep(0.05)
 
-    # Both share one fake client here, so the assertion that matters is that a
-    # per-connection failure is per-connection — see the status list.
     assert {s.id for s in store.statuses()} == {"good", "bad"}
     await store.aclose()
 
@@ -222,7 +204,6 @@ async def test_a_store_with_no_configured_servers_offers_nothing() -> None:
 
 
 async def test_start_does_not_wait_for_a_slow_server() -> None:
-    """Startup must not be held up by one server taking its whole timeout."""
     factory = FakeFactory(connect_delay=5.0)
     store = McpServerStore(servers(), client_factory=factory)
 

@@ -1,9 +1,4 @@
-"""The channel service: queueing, draining, and the delivery cursor.
-
-The rules here are the ones a phone forces and a browser does not — you cannot
-grey out someone's keyboard, so a message during a turn must be held rather than
-refused, and a restart must not re-text a reply that already arrived.
-"""
+"""The channel service: queueing, draining, and the delivery cursor."""
 
 from __future__ import annotations
 
@@ -21,8 +16,6 @@ from tests.unit.fakes import (
 )
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
 from tests.unit.helpers import no_skills
-
-# ── the happy path ────────────────────────────────────────────────────────────
 
 
 async def test_a_message_becomes_a_turn_and_a_reply(tmp_path) -> None:
@@ -67,7 +60,6 @@ async def test_a_second_message_continues_the_same_conversation(tmp_path) -> Non
 
 
 async def test_a_tool_step_sends_no_empty_message(tmp_path) -> None:
-    """A tool-calling step records an assistant message with no content."""
     bot, gateway, runs, _, _ = build(
         tmp_path,
         SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
@@ -79,9 +71,6 @@ async def test_a_tool_step_sends_no_empty_message(tmp_path) -> None:
     await settle(runs, gateway)
 
     assert bot.sent == [(CHAT, "it is 42")]
-
-
-# ── busy: queue, never refuse ─────────────────────────────────────────────────
 
 
 async def test_a_message_during_a_turn_is_queued(tmp_path) -> None:
@@ -107,7 +96,6 @@ async def test_a_message_during_a_turn_is_queued(tmp_path) -> None:
 
 
 async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
-    """Three lines typed in a burst were one thought."""
     bot, gateway, runs, chats, sessions = build(
         tmp_path, ScriptedClient(completed("answered")), skills=no_skills()
     )
@@ -125,12 +113,6 @@ async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
     assert (await chats.load("telegram", CHAT)).pending == ()
 
 
-# ── waiting for the drain ─────────────────────────────────────────────────────
-#
-# What a stream needs after the run it watched settles: "is another turn about
-# to start on this conversation?" — answered once the follower has drained.
-
-
 async def test_drained_returns_at_once_for_an_idle_chat(tmp_path) -> None:
     _, gateway, _, _, _ = build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
 
@@ -138,8 +120,7 @@ async def test_drained_returns_at_once_for_an_idle_chat(tmp_path) -> None:
 
 
 async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: asyncio.Event):
-    """A turn parked in `gate`, with a message queued behind it whose own turn
-    parks in `gate2` — so both "started" states can be observed, not raced."""
+    """A turn parked in `gate`, with a queued message whose own turn parks in `gate2`."""
     bot, gateway, runs, chats, sessions = build(
         tmp_path,
         SteppedClient(
@@ -164,12 +145,6 @@ async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: as
 
 
 async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) -> None:
-    """Asked after the watched turn settled — the only time a stream asks — it
-    returns once the queued turn exists, and at once if one is already in flight.
-
-    The drain is parked inside the session load so the gap is a state the test
-    holds open, not one it hopes to catch.
-    """
     first, second = asyncio.Event(), asyncio.Event()
     _, gateway, runs, chats, sessions, conversation = await _queued_behind_a_gated_turn(
         tmp_path, first, second
@@ -196,8 +171,6 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
     drained = runs.active(conversation)
     assert drained is not None and drained is not watched
     assert (await chats.load("telegram", CHAT)).pending == ()
-    # With that turn in flight, asking again does not wait for *it* — or a
-    # stream that asked a beat late would get the whole turn as one lump.
     await asyncio.wait_for(gateway.drained("telegram", CHAT), timeout=1)
     assert not drained.settled
     second.set()
@@ -205,8 +178,6 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
 
 
 async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -> None:
-    """A watcher owns nothing: a browser hanging up mid-wait must not lose the
-    queued message by cancelling the task that was about to drain it."""
     first, second = asyncio.Event(), asyncio.Event()
     bot, gateway, runs, _, sessions, conversation = await _queued_behind_a_gated_turn(
         tmp_path, first, second
@@ -227,9 +198,6 @@ async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -
     assert bot.sent == [(CHAT, "first done"), (CHAT, "second done")]
 
 
-# ── delivery cursor ───────────────────────────────────────────────────────────
-
-
 async def test_delivery_advances_the_cursor(tmp_path) -> None:
     bot, gateway, runs, chats, sessions = build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
@@ -244,7 +212,6 @@ async def test_delivery_advances_the_cursor(tmp_path) -> None:
 
 
 async def test_a_restart_does_not_resend(tmp_path) -> None:
-    """The cursor is what stops someone getting yesterday's reply twice."""
     bot, gateway, runs, chats, sessions = build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
@@ -252,7 +219,6 @@ async def test_a_restart_does_not_resend(tmp_path) -> None:
     await settle(runs, gateway)
     delivered = len(bot.sent)
 
-    # A fresh service over the same directories — nothing shared in memory.
     reopened_bot, reopened, reopened_runs, _, _ = build(
         tmp_path, ScriptedClient(completed("second")), skills=no_skills()
     )
@@ -260,5 +226,4 @@ async def test_a_restart_does_not_resend(tmp_path) -> None:
     await settle(reopened_runs, reopened)
 
     assert delivered == 1
-    # Only the *new* reply, never a repeat of the first.
     assert reopened_bot.sent == [(CHAT, "second")]

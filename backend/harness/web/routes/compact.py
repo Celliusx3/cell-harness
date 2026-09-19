@@ -1,11 +1,4 @@
-"""`POST /api/conversations/{id}/compact` — the person asks to compact now.
-
-Bound to the browser's channel like the client-answer route, and for the same
-reason it goes through the gateway: every chat mapped to the conversation is
-told, and the busy check and the stream come with being a run. The compaction service
-refuses out loud when there is nothing to do or a client request is still
-open; those become a `409`, not an empty bracket in the log.
-"""
+"""`POST /api/conversations/{id}/compact` — the person asks to compact now."""
 
 from __future__ import annotations
 
@@ -31,15 +24,12 @@ def build_router(web: WebChannel) -> APIRouter:
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
         try:
-            # For writing: the compaction appends, so crash repair must have run.
             session = await web.sessions.resume(conversation_id)
         except SessionNotFoundError as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
         try:
             await web.gateway.compact(session)
         except CompactionRefused as err:
-            # `nothing to compact` / a pending client call: nothing changed and
-            # the caller asked for a change, so a 409 with the reason.
             raise HTTPException(status.HTTP_409_CONFLICT, detail=err.reason) from err
         except RunAlreadyActive as err:
             raise HTTPException(

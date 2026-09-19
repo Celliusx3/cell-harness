@@ -1,9 +1,4 @@
-"""The skills a person can see and manage.
-
-Read straight off the catalog on every request, the same view the model gets —
-so what this lists and what the `skill` tool offers cannot drift, and a problem
-reported here is the reason a skill is missing there.
-"""
+"""The skills a person can see and manage."""
 
 from __future__ import annotations
 
@@ -32,8 +27,6 @@ class SkillSummary(BaseModel):
     root: Path
     model_invocable: bool
     user_invocable: bool
-    # Whether this copy is in `skills.editable` — so the page knows what it may
-    # change without comparing paths itself.
     editable: bool
 
 
@@ -45,9 +38,7 @@ class SkillIssue(BaseModel):
 
 
 class SkillList(BaseModel):
-    """Every loadable skill, and everything on disk that was not loaded or was
-    loaded with a caveat — a person editing files needs the second list more
-    than the first."""
+    """Every loadable skill, and everything on disk that was not loaded or loaded with a caveat."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -102,7 +93,7 @@ def build_router(skills: SkillService) -> APIRouter:
 
     @router.put("/{name}", status_code=status.HTTP_204_NO_CONTENT)
     async def save_skill(name: str, body: SkillText) -> None:
-        """Strict where the catalog is lenient — see `SkillService.save`."""
+        """Write a skill, refusing what the catalog would merely flag."""
         try:
             skills.save(name, body.text)
         except InvalidSkill as err:

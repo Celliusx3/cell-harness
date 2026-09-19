@@ -1,19 +1,4 @@
-"""The MCP surface: seven tools over two data sources and EDGAR.
-
-Routing is the id alone — `symbol.parse` says whether a thing is a coin, and
-`pick` hands it to CoinGecko or Yahoo. Nothing else here knows a market.
-
-Two failure shapes, both deliberate:
-
-- **A question about one id is answered with a status.** An unknown ticker or a
-  coin with no statements is `not_found` / `unsupported` on a normal result,
-  because an answer the model can read beats an error it must interpret.
-- **Only the source being unreachable fails the call**, as a `ToolError` whose
-  message names the source — that specific type is what `MCPServer` passes
-  through verbatim; anything else reaches the model as a generic
-  `Error executing tool`. In `get_quote`, which is a batch, even that is a
-  per-item `error` so one dead source does not sink the other's rows.
-"""
+"""The MCP surface: seven tools over two data sources and EDGAR."""
 
 from __future__ import annotations
 

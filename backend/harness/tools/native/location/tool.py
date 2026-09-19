@@ -1,4 +1,4 @@
-"""The declaration."""
+"""`get_location`, declared as a client tool."""
 
 from __future__ import annotations
 
@@ -14,11 +14,6 @@ class NoArgs(BaseModel):
     """`get_location` takes nothing: the position is the device's to give."""
 
 
-# The trigger words are the point: a model not told when to reach for this
-# answers "I don't know where you are" instead of asking. "Read the catalog"
-# is there because, told only to "pass the coordinates to a places search", a
-# model wrote a script calling `places__search` — a name it guessed — and
-# reported the failure as the answer (2026-09-16).
 LOCATION_TOOL = ClientTool(
     name=LOCATION,
     description=(

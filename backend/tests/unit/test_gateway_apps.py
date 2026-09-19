@@ -28,8 +28,6 @@ def app_tool() -> ToolDefinition[EchoArgs]:
 
 
 async def test_a_result_with_an_app_is_delivered_as_a_link_before_the_reply(tmp_path) -> None:
-    """A chat cannot render the app, so it gets the page that does — named for
-    the tool, and before the prose that follows the tool."""
     bot, gateway, runs, _, _ = build(
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
@@ -47,9 +45,6 @@ async def test_a_result_with_an_app_is_delivered_as_a_link_before_the_reply(tmp_
 
 
 async def test_a_link_the_platform_refuses_does_not_cost_the_reply(tmp_path) -> None:
-    """Telegram rejects a `localhost` button. The reply after it must still
-    arrive, and the cursor must move past the event — or the next turn replays
-    it into the same refusal, forever."""
     bot, gateway, runs, chats, _ = build(
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),

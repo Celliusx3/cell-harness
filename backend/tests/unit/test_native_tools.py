@@ -28,8 +28,6 @@ async def test_converts_to_a_named_timezone() -> None:
 
 
 async def test_an_unknown_timezone_is_a_failure_not_a_silent_utc() -> None:
-    """Defaulting would answer confidently with the wrong time — the one outcome
-    worse than admitting the timezone is unknown."""
     outcome = await frozen_clock().invoke('{"timezone": "Mars/Olympus"}', context=context_for())
 
     assert isinstance(outcome, Failure)
@@ -41,5 +39,4 @@ def test_the_schema_documents_its_one_argument() -> None:
     schema = frozen_clock().spec().input_schema
 
     assert "IANA" in schema["properties"]["timezone"]["description"]
-    # Optional: a caller that just wants "now" should not have to name a zone.
     assert "timezone" not in schema.get("required", [])

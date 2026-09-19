@@ -1,20 +1,4 @@
-"""What the seven tools return.
-
-Pydantic models so the server emits an `outputSchema` and populates
-`structuredContent` — without which a code-mode script reads `undefined`
-(`docs/mcp-tool-scaling.md` §6).
-
-**Per-item `status`, never a per-item failure.** A tool `Failure` becomes a
-thrown `Error` in the sandbox and takes every sibling with it. An unknown
-ticker is an answer (`not_found`); only a dead network is a failure.
-
-**Every number travels with what it is.** The research literature's recorded
-failures are the model inventing a figure, mixing millions with billions, or
-presenting last year's quarter as current. So every result carries `as_of` and
-`source`, money carries `currency`, statements carry `period_end` and `scale`,
-and a metric's basis is in its name (`pe_ttm`, `forward_pe`). Nothing is a
-bare float the model has to guess about.
-"""
+"""What the seven tools return."""
 
 from __future__ import annotations
 
@@ -36,8 +20,7 @@ EDGAR = "sec_edgar"
 
 
 def now_iso() -> str:
-    """When the server fetched it. Quotes from free sources are delayed, and the
-    model is told so; this is the honest upper bound on freshness."""
+    """When the server fetched it."""
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
@@ -114,9 +97,7 @@ class History(BaseModel):
 
 
 class Metrics(BaseModel):
-    """Yahoo's pre-computed ratios, TTM unless the name says forward. Null when
-    Yahoo has none — a bank has no gross margin, an ETF no P/E. Percentages are
-    percentages (`36.7`, not `0.367`) and say so in their name."""
+    """Yahoo's pre-computed ratios, TTM unless the name says forward."""
 
     pe_ttm: float | None = None
     forward_pe: float | None = None

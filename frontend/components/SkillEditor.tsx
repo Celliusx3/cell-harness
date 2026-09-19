@@ -7,7 +7,7 @@ import { ApiError, deleteSkill, getSkill, putSkill } from "@/lib/api";
 interface SkillEditorProps {
   /** The skill open for editing, or `null` for a new one. */
   name: string | null;
-  /** Whether saving is allowed — false for a skill in a read-only root. */
+  /** Whether saving is allowed */
   editable: boolean;
   onSaved: (name: string) => void;
   onDeleted: () => void;
@@ -23,14 +23,7 @@ description: What it does, and when to use it.
 Instructions the model follows once this is loaded.
 `;
 
-/**
- * One `SKILL.md`, whole.
- *
- * Paste a public skill and save: the backend validates it the way the catalog
- * would (and stricter — a mismatched frontmatter name is refused, not noted)
- * and writes it to the editable root. A read-only skill can be read here but
- * not saved over; its path says where it lives.
- */
+/** One `SKILL.md`, whole. */
 export function SkillEditor({ name, editable, onSaved, onDeleted }: SkillEditorProps) {
   const [draftName, setDraftName] = useState(name ?? "");
   const [text, setText] = useState(name === null ? TEMPLATE : "");

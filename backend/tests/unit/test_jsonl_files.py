@@ -17,11 +17,7 @@ def store(tmp_path) -> JsonlSessionRepository:
     return repository(tmp_path)
 
 
-# ── what it refuses, and what it tolerates ────────────────────────────────────
-
-
 async def test_a_torn_final_line_is_dropped(store, tmp_path) -> None:
-    """A crash mid-write leaves one. Everything before it was committed."""
     await store.create(header())
     await store.append("s", a_turn())
     path = tmp_path / "sessions" / "s.jsonl"
@@ -34,7 +30,6 @@ async def test_a_torn_final_line_is_dropped(store, tmp_path) -> None:
 
 
 async def test_a_malformed_line_in_the_middle_is_corruption(store, tmp_path) -> None:
-    """Skipping it would hand the model a history with a hole and no way to know."""
     await store.create(header())
     await store.append("s", a_turn())
     path = tmp_path / "sessions" / "s.jsonl"
@@ -47,8 +42,6 @@ async def test_a_malformed_line_in_the_middle_is_corruption(store, tmp_path) -> 
 
 
 async def test_a_complete_but_invalid_final_line_is_also_corruption(store, tmp_path) -> None:
-    """Terminated by a newline means the write finished — so it is not torn,
-    it is wrong."""
     await store.create(header())
     await store.append("s", a_turn())
     path = tmp_path / "sessions" / "s.jsonl"
@@ -86,9 +79,6 @@ async def test_an_unsafe_id_cannot_reach_outside_the_root(store, bad) -> None:
         await store.load(bad)
 
 
-# ── listing ───────────────────────────────────────────────────────────────────
-
-
 async def test_list_returns_newest_first(store) -> None:
     for n, day in enumerate([3, 1, 2]):
         h = SessionHeader(id=f"s{n}", created_at=datetime(2026, 1, day, tzinfo=UTC))
@@ -99,10 +89,6 @@ async def test_list_returns_newest_first(store) -> None:
 
 
 async def test_list_reads_only_line_one(store, tmp_path) -> None:
-    """The point of the whole layout: a conversation index never parses a log.
-
-    Proven by corrupting line 2 — listing must not care.
-    """
     await store.create(header())
     await store.append("s", a_turn())
     path = tmp_path / "sessions" / "s.jsonl"
@@ -113,7 +99,6 @@ async def test_list_reads_only_line_one(store, tmp_path) -> None:
     listed = await store.list()
 
     assert [h.id for h in listed] == ["s"]
-    # …and the same file still refuses to load, so the damage is not hidden.
     with pytest.raises(SessionCorruptionError):
         await store.load("s")
 

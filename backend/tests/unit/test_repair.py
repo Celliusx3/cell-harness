@@ -35,9 +35,6 @@ def asked_for(*calls: ToolCall) -> list[SessionEvent]:
     ]
 
 
-# ── when it applies ───────────────────────────────────────────────────────────
-
-
 def test_nothing_outstanding_needs_no_repair() -> None:
     events = [
         TurnStart(turn=0),
@@ -54,9 +51,6 @@ def test_an_empty_log_needs_no_repair() -> None:
 
 
 def test_an_unclosed_turn_alone_needs_no_repair() -> None:
-    """`derive_messages` ignores turn and step boundaries, so an unclosed turn
-    changes nothing the model sees. Closing it would be writing an event nothing
-    reads."""
     events = [
         TurnStart(turn=0),
         UserMessageEvent(turn=0, message=UserMessage(content="hi")),
@@ -64,9 +58,6 @@ def test_an_unclosed_turn_alone_needs_no_repair() -> None:
     ]
 
     assert repair(events) == []
-
-
-# ── what it writes ────────────────────────────────────────────────────────────
 
 
 def test_an_unanswered_call_gets_a_result() -> None:
@@ -78,8 +69,6 @@ def test_an_unanswered_call_gets_a_result() -> None:
 
 
 def test_the_result_does_not_claim_the_tool_never_ran() -> None:
-    """It was dispatched before the process died and may have finished, so the
-    honest answer is that the outcome is unknown."""
     content = repair(asked_for(call()))[0].message.text
 
     assert "unknown" in content
@@ -87,7 +76,6 @@ def test_the_result_does_not_claim_the_tool_never_ran() -> None:
 
 
 def test_a_repaired_result_is_marked_as_a_crash_not_a_tool_failure() -> None:
-    """Telemetry must be able to tell a dead process from a bad argument."""
     assert repair(asked_for(call()))[0].error == REPAIRED
 
 
@@ -107,17 +95,12 @@ def test_an_already_answered_call_is_left_alone() -> None:
 
 
 def test_the_result_lands_in_the_step_that_asked() -> None:
-    """A provider pairs on the id, but a UI groups by step."""
     additions = repair(asked_for(call()))
 
     assert (additions[0].turn, additions[0].step) == (0, 0)
 
 
-# ── the point of all of it ────────────────────────────────────────────────────
-
-
 def test_a_repaired_log_is_one_a_provider_accepts() -> None:
-    """The reason repair exists: an unanswered call makes the next request 400."""
     events = asked_for(call("c1"), call("c2"))
 
     assert unanswered_calls(derive_messages(events)) == ["c1", "c2"]
@@ -125,20 +108,13 @@ def test_a_repaired_log_is_one_a_provider_accepts() -> None:
 
 
 def test_repair_is_idempotent() -> None:
-    """Resuming twice must not stack results."""
     events = asked_for(call())
     once = [*events, *repair(events)]
 
     assert repair(once) == []
 
 
-# ── a pending turn is not a crash ─────────────────────────────────────────────
-
-
 def test_a_call_left_open_by_a_pending_turn_is_not_repaired() -> None:
-    """The model asked the person and the turn ended `pending` on purpose. The
-    answer — or the skip — is the next turn's; stamping it as a crash would
-    refuse the answer when it comes."""
     events = [*asked_for(call()), ToolCallEvent(turn=0, step=0, call=call())]
     events.append(StepEnd(turn=0, step=0))
     events.append(TurnEnd(turn=0, reason="pending"))

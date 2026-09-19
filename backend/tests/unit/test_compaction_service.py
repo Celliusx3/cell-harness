@@ -74,11 +74,11 @@ def kinds(session) -> list[str]:
 
 def test_due_needs_a_window_and_a_measurement() -> None:
     session = new_session()
-    assert not compactor(ScriptedClient([])).due(session)  # nothing measured yet
-    tool_turn(session, 0, "c0", "r")  # 10,100 used
+    assert not compactor(ScriptedClient([])).due(session)
+    tool_turn(session, 0, "c0", "r")
     assert not compactor(ScriptedClient([]), context=None).due(session)
-    assert not compactor(ScriptedClient([]), context=20_000).due(session)  # 10,100 < 16,000
-    assert compactor(ScriptedClient([]), context=12_000).due(session)  # 10,100 >= 9,600
+    assert not compactor(ScriptedClient([]), context=20_000).due(session)
+    assert compactor(ScriptedClient([]), context=12_000).due(session)
     assert COMPACT_AT == 0.8
 
 
@@ -118,8 +118,6 @@ async def test_nothing_happens_below_the_line() -> None:
 
 
 async def test_with_nothing_to_prune_it_summarizes() -> None:
-    """The summary request is the conversation as the model sees it plus the
-    instruction, no tools; the end carries the rendered message."""
     session = new_session()
     tool_turn(session, 0, "s0", SKILL_BODY, name=SKILL)
     tool_turn(session, 1, "c1", "recent")
@@ -195,7 +193,7 @@ async def test_a_summarizer_that_raises_fails_open() -> None:
             self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
         ) -> AsyncIterator[StreamEvent]:
             raise RuntimeError("adapter bug")
-            yield  # pragma: no cover
+            yield
 
     session = new_session()
     tool_turn(session, 0, "c0", "r")
@@ -204,7 +202,6 @@ async def test_a_summarizer_that_raises_fails_open() -> None:
 
 
 async def test_a_summary_of_only_a_summary_is_refused() -> None:
-    """Bounded: once everything is one summary there is nothing left to shrink."""
     session = new_session()
     tool_turn(session, 0, "c0", "r")
     client = ScriptedClient(completed("S"))

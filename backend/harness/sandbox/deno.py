@@ -1,12 +1,4 @@
-"""A `Runner` backed by a Deno subprocess.
-
-One process per execution, granted nothing: no `--allow-*` flags, so the bridge
-is the script's only route outward. Proved rather than asserted in
-`tests/integration/test_sandbox.py`.
-
-No command loop here. `mcp/connection.py` needs one because the MCP SDK is an anyio
-context manager bound to its entering task; `create_subprocess_exec` is not.
-"""
+"""A `Runner` backed by a Deno subprocess."""
 
 from __future__ import annotations
 
@@ -22,15 +14,10 @@ from harness.sandbox.runner import Bridge, BridgeError, Runner, Script
 
 logger = logging.getLogger("harness.sandbox")
 
-# Past this the child is logged and abandoned rather than awaited forever, the
-# same trade `mcp/connection.py` makes.
 CLOSE_TIMEOUT_SECONDS = 5.0
 
-# A backstop against a script that returns a whole transcript — the case code
-# mode exists to prevent — not a normal limit.
 MAX_FRAME_BYTES = 4 * 1024 * 1024
 
-# Through the package rather than `__file__`, which breaks under zip import.
 _SHIM = (resources.files("harness.sandbox") / "js" / "shim.ts").read_text()
 
 
@@ -42,13 +29,9 @@ class DenoUnavailableError(RuntimeError):
 class DenoRunner(Runner):
     """Spawns one sandboxed Deno per script."""
 
-    # No defaults: `CodeModeSettings` already decides both, and a second copy
-    # here is a value that goes stale the first time config.json changes.
     deno_path: str
     timeout_seconds: float
-    # On the command line rather than on disk, so the child needs no read
-    # permission to load its own entry point.
-    _entry: str = field(
+    _entry_data_url: str = field(
         default_factory=lambda: "data:text/typescript," + urllib.parse.quote(_SHIM),
         repr=False,
     )
@@ -59,7 +42,7 @@ class DenoRunner(Runner):
                 self.deno_path,
                 "run",
                 "--no-prompt",
-                self._entry,
+                self._entry_data_url,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -74,8 +57,6 @@ class DenoRunner(Runner):
         except TimeoutError:
             return Script(error=f"the script did not finish within {self.timeout_seconds:.0f}s")
         finally:
-            # Every path, cancellation included. There is no SDK here to reap the
-            # child the way MCP's transport does.
             await self._reap(process)
 
     async def _converse(
@@ -103,16 +84,6 @@ class DenoRunner(Runner):
                     try:
                         await self._send(process, reply)
                     except (RuntimeError, OSError):
-                        # The child is gone. Observed live: a script that
-                        # called `main();` without `await` returned at once,
-                        # the shim sent `done` and exited, and the reply to the
-                        # call `main` had in flight met a closed pipe. What is
-                        # left on stdout says which; the message names the
-                        # mistake, because "handler is closed" told the model
-                        # nothing and it gave up. It also names the fix: told
-                        # only "must be awaited", a 4B model deleted the
-                        # `main();` line instead and shipped four scripts that
-                        # declared `main` and never called it.
                         return await self._unanswered(process, frame["name"])
                 case "done":
                     return Script(result=frame.get("result"), logs=tuple(frame.get("logs", ())))
@@ -123,8 +94,7 @@ class DenoRunner(Runner):
                     )
 
     async def _unanswered(self, process: asyncio.subprocess.Process, name: str) -> Script:
-        """The child exited while a call was being answered — why, from what it
-        wrote before it went."""
+        """Why the child exited mid-call, from what it wrote before it went."""
         assert process.stdout is not None
         rest = (await process.stdout.read()).decode(errors="replace")
         for line in rest.splitlines():
@@ -149,8 +119,7 @@ class DenoRunner(Runner):
         await process.stdin.drain()
 
     async def _died(self, process: asyncio.subprocess.Process) -> str:
-        """Why the child stopped talking. Deno's diagnostics go to stderr, and
-        without them the caller is told only that something went wrong."""
+        """Why the child stopped talking."""
         assert process.stderr is not None
         detail = (await process.stderr.read()).decode(errors="replace").strip()
         if detail:
@@ -167,18 +136,12 @@ class DenoRunner(Runner):
             logger.error(
                 "deno pid %s did not exit within %.0fs", process.pid, CLOSE_TIMEOUT_SECONDS
             )
-        except BaseException:  # noqa: BLE001 - teardown must not raise over the real result
+        except Exception:
             logger.warning("deno pid %s: error while closing", process.pid, exc_info=True)
 
 
 async def _reply(frame: dict, bridge: Bridge) -> dict:
-    """One call's answer. A `BridgeError` becomes a throw inside the script;
-    anything else the bridge raises is a bug in the caller, not the script, so it
-    propagates and fails the run.
-
-    This loop answers one call before reading the next frame, so the shim can have
-    several calls outstanding inside the script but never two here.
-    """
+    """One call's answer."""
     call_id = frame["id"]
     try:
         value = await bridge(frame["name"], frame.get("args") or {})

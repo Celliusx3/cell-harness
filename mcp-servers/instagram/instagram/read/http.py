@@ -1,10 +1,4 @@
-"""One HTTP client for the provider, and the one retry it allows.
-
-Split out of what used to be a single `provider.py` so that *transport* is
-separable from *what we ask for*: `vision` and `speech` are different questions
-that happen to share a base URL and a key, and fusing them made a 265-line
-module that changed for two unrelated reasons.
-"""
+"""One HTTP client for the provider, and the one retry it allows."""
 
 from __future__ import annotations
 
@@ -13,11 +7,7 @@ from pathlib import Path
 
 import httpx
 
-# Emitted by some GLM-family vision models around their whole answer —
-# `ilmu-vision-v1.3` returns `<|begin_of_box|>red<|end_of_box|>`. Passed through,
-# those tokens end up inside a POI name. `glm-5.3-flash` does not do it, but the
-# model is configurable and the fallback is exactly the one that does, so
-# stripping is unconditional and lives here where every response passes.
+# Some GLM-family vision models wrap their answer: `<|begin_of_box|>red<|end_of_box|>`.
 _SENTINELS = re.compile(r"<\|(?:begin|end)_of_box\|>")
 
 
@@ -34,11 +24,7 @@ def strip_sentinels(text: str) -> str:
 
 
 class ProviderHttp:
-    """Transport only: it knows a base URL, a key, and how to retry once.
-
-    The `httpx.AsyncClient` is injectable so tests drive `MockTransport` rather
-    than monkeypatching a module global — which tests the patch, not the code.
-    """
+    """Transport only: it knows a base URL, a key, and how to retry once."""
 
     def __init__(
         self,
@@ -54,7 +40,7 @@ class ProviderHttp:
         self._headers = {"Authorization": f"Bearer {api_key}"}
 
     async def aclose(self) -> None:
-        """Only close what we opened — an injected client belongs to its owner."""
+        """Close the client only if this instance created it."""
         if self._owns_client:
             await self._client.aclose()
 
@@ -76,12 +62,7 @@ class ProviderHttp:
         return response.json()
 
     async def _send(self, send) -> httpx.Response:
-        """Send, and on a 429 wait out `Retry-After` exactly once.
-
-        One retry, not a backoff loop: this call is already inside a 60-second
-        MCP deadline the server cannot extend, so a second retry would spend the
-        budget that lets the *other* reels in the batch finish.
-        """
+        """Send, and on a 429 wait out `Retry-After` exactly once."""
         import asyncio
 
         for attempt in (0, 1):
@@ -110,12 +91,7 @@ def _retry_after(response: httpx.Response) -> float:
 
 
 def message_text(body: dict) -> str:
-    """The assistant text, or a `ProviderError` naming what came back instead.
-
-    A reasoning-heavy model can spend its whole budget thinking and return an
-    empty `content`. Reported rather than treated as "nothing visible", because
-    those two mean opposite things to the model reading the result.
-    """
+    """The assistant text, or a `ProviderError` naming what came back instead."""
     if "error" in body:
         raise ProviderError(str(body["error"]))
     choices = body.get("choices") or []

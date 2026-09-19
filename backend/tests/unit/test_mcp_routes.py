@@ -67,9 +67,6 @@ async def api(tmp_path):
     await store.aclose()
 
 
-# ── resources ─────────────────────────────────────────────────────────────────
-
-
 async def test_an_apps_html_is_read_with_the_default_policy(api) -> None:
     http, _, client = api
 
@@ -124,16 +121,11 @@ async def test_a_server_that_is_down_is_unavailable(api) -> None:
     assert response.status_code == 503
 
 
-# ── the app calling back ──────────────────────────────────────────────────────
-
-
 def call(arguments: dict | None = None, *, app: str = APP) -> dict:
     return {"arguments": arguments or {}, "resource_uri": app}
 
 
 async def test_an_apps_call_is_proxied_and_answered_verbatim(api) -> None:
-    """By the server's own name, and the result as the server sent it — image
-    block, `_meta` and all. The app was written against that shape."""
     http, _, client = api
 
     response = await http.post("/api/mcp/stub/tools/poll-stats", json=call({"n": 1}))
@@ -147,7 +139,6 @@ async def test_an_apps_call_is_proxied_and_answered_verbatim(api) -> None:
         "structuredContent": {"load": 0.5},
         "isError": False,
         "_meta": {"ts": 1},
-        # The 2026 wire's result kind — verbatim means this too.
         "resultType": "complete",
     }
     assert client.calls == [("poll-stats", {"n": 1})]
@@ -165,9 +156,6 @@ async def test_a_tool_that_fails_is_a_result_the_app_can_show(api) -> None:
 
 
 async def test_an_app_cannot_reach_beyond_its_server(api) -> None:
-    """Resolved from the server's own published list, so a native tool or
-    another server's tool is simply not there — and the refusal names nothing
-    beyond the app's own server."""
     http, _, client = api
 
     response = await http.post("/api/mcp/stub/tools/clock", json=call())
@@ -190,15 +178,12 @@ async def test_a_model_only_tool_is_refused_to_apps(api) -> None:
 
 
 async def test_a_tool_bound_to_another_app_is_refused(api) -> None:
-    """Openwork's rule: an app may call its own server's tools, but not launch a
-    different app's tool under its own name."""
     http, _, client = api
 
     response = await http.post("/api/mcp/stub/tools/other-app", json=call())
 
     assert response.status_code == 403
     assert "ui://stub/other.html" in response.json()["detail"]
-    # The tool bound to *this* app is fine, as is one bound to none.
     assert (await http.post("/api/mcp/stub/tools/get-info", json=call())).status_code == 200
     assert client.calls == [("get-info", {})]
 
@@ -210,9 +195,6 @@ async def test_calling_a_server_that_is_down_is_unavailable(api) -> None:
     assert (await http.post("/api/mcp/stub/tools/get-info", json=call())).status_code == 503
 
 
-# ── the policy itself ─────────────────────────────────────────────────────────
-
-
 def test_the_default_policy_allows_inline_and_no_network() -> None:
     csp = build_csp(None)
     assert csp.startswith("default-src 'none'; object-src 'none'; base-uri 'none'")
@@ -221,7 +203,6 @@ def test_the_default_policy_allows_inline_and_no_network() -> None:
 
 
 def test_only_https_origins_survive_into_the_policy() -> None:
-    """Values come from the server; anything that is not an origin adds nothing."""
     csp = build_csp(
         {
             "ui": {

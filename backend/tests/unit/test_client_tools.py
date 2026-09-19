@@ -1,11 +1,4 @@
-"""The client-tool spine, proven without a real client tool.
-
-A throwaway declaration stands in for any datum: what is tested here is that
-a declaration becomes a tool that says `Pending`, that a posted body is held
-to the declaration's shape, that each answer reaches the model as the spine
-says, and that the service accepts by call id or by tool name and refuses
-everything else.
-"""
+"""The client-tool spine, proven without a real client tool."""
 
 from __future__ import annotations
 
@@ -51,9 +44,6 @@ CHARGED = Shared[Battery](data=Battery(percent=80))
 NAMES = frozenset({"get_battery"})
 
 
-# --- the catalog ------------------------------------------------------------
-
-
 def test_a_body_is_held_to_the_declared_shape() -> None:
     tools = ClientTools((BATTERY,))
     assert tools.names == NAMES
@@ -90,16 +80,11 @@ def test_what_the_model_reads_for_each_answer() -> None:
 
 
 async def test_the_tool_itself_only_says_pending() -> None:
-    """Nothing waits: the loop ends the turn on `Pending`, and the answer
-    opens a later one."""
     (tool,) = ClientTools((BATTERY,)).definitions()
     spec = tool.spec()
     assert (spec.name, spec.description) == ("get_battery", "The device's charge.")
     assert spec.input_schema.get("properties", {}) == {}
     assert await tool.invoke("{}", context=context_for("c1")) == Pending()
-
-
-# --- finding the call to answer ------------------------------------------
 
 
 def _call(call_id: str, name: str = "get_battery") -> ToolCallEvent:
@@ -134,9 +119,6 @@ def test_a_call_from_an_earlier_turn_is_never_pending() -> None:
     assert pending_call(session, NAMES) is None
 
 
-# --- the service ------------------------------------------------------------
-
-
 def _session_with_pending(call_id: str = "c1"):
     session = new_session()
     session.append(TurnStart(turn=0))
@@ -145,8 +127,6 @@ def _session_with_pending(call_id: str = "c1"):
 
 
 def test_the_service_accepts_by_call_id_or_by_tool_name() -> None:
-    """The browser knows the call id; a chat knows only which tool its
-    message answers. Both go through the same checks to the same outcome."""
     service = ClientToolService(ClientTools((BATTERY,)))
     body = {"kind": "shared", "data": {"percent": 80}}
 

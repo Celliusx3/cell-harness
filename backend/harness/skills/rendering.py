@@ -1,27 +1,20 @@
-"""How a skill reads to the model — the same string whether it asked for it
-through the `skill` tool or a person typed `/name`."""
+"""How a skill reads to the model, from the `skill` tool or a typed `/name` alike."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 from harness.skills.catalog import read_body
+from harness.skills.invocation import SKILL_TAG_OPEN
 from harness.skills.models import SKILL_FILE, Skill
 
-# Bundled files are *listed* with the body so the model knows what it may ask
-# for. Capped, with the count of the rest, so a skill shipping a directory of
-# fixtures does not cost more than its instructions.
 MAX_LISTED_FILES = 20
 _LIST_DEPTH = 3
 
 
 def instructions(skill: Skill) -> str:
-    """The skill as the model receives it: the body in a `<skill>` tag, then
-    what else the directory holds. Read from disk now, not when the catalog was
-    built. Shared with `/name` invocation so a skill looks the same to the
-    model whether it asked for it or a person did.
-    """
-    parts = [f'<skill name="{skill.name}">\n{read_body(skill)}\n</skill>']
+    """The skill as the model receives it: the body in a `<skill>` tag, then its files."""
+    parts = [f'{SKILL_TAG_OPEN}{skill.name}">\n{read_body(skill)}\n</skill>']
     listed, more = _bundled(skill.dir)
     if listed:
         files = ", ".join(listed) + (f", and {more} more" if more else "")
@@ -30,8 +23,7 @@ def instructions(skill: Skill) -> str:
 
 
 def _bundled(root: Path) -> tuple[list[str], int]:
-    """Every file under the skill directory except `SKILL.md`, as relative
-    posix paths; the first `MAX_LISTED_FILES` and how many were left out."""
+    """The first `MAX_LISTED_FILES` bundled files as relative paths, and how many were left out."""
     found: list[str] = []
     for file in sorted(root.rglob("*")):
         relative = file.relative_to(root)

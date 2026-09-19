@@ -1,15 +1,4 @@
-"""A third platform, to prove the seam holds.
-
-`FakeWhatsApp` implements `Channel` and nothing else — no Telegram import, no
-shared base class, and **no change to `gateway.py`, `commands.py` or
-`repository.py`**. If adding it had required touching any of those, the seam
-would be in the wrong place and this file is where that shows up.
-
-Two platforms is also when an interface earns its keep, which is the project's
-own rule for building one at all — and this is the third, standing in for the
-WhatsApp that has not been written yet. (It was `FakeWhatsApp` until a real
-`DiscordChannel` arrived and made the name a trap.)
-"""
+"""A third platform, to prove the seam holds."""
 
 from __future__ import annotations
 
@@ -37,13 +26,7 @@ WHATSAPP = "whatsapp"
 
 
 class FakeWhatsApp:
-    """A whole platform in 20 lines.
-
-    Deliberately unlike Telegram where it can be: no message splitting (the
-    limit differs), and **no typing indicator at all** — the Protocol says a
-    platform without the idea implements it as a no-op, and this is the test of
-    that claim.
-    """
+    """A whole platform in 20 lines."""
 
     channel = WHATSAPP
     on_missing = "recreate"
@@ -63,11 +46,9 @@ class FakeWhatsApp:
         return None
 
     async def send_link(self, chat_id: str, text: str, url: str) -> None:
-        # No buttons here: the URL travels as text, which every platform can carry.
         self.sent.append((chat_id, f"{text}\n{url}"))
 
     async def ask_client(self, chat_id: str, request: PendingCall, url: str) -> None:
-        # No device prompts either: the page's URL is the ask.
         self.sent.append((chat_id, f"{request.name}\n{url}"))
 
 
@@ -104,7 +85,6 @@ def message(chat_id: str, text: str) -> InboundMessage:
 
 
 async def test_a_second_platform_needs_no_shared_changes(tmp_path) -> None:
-    """The whole point: register a new `Channel`, everything else already works."""
     gateway, runs, _ = build(tmp_path)
     whatsapp = FakeWhatsApp()
     gateway.register(whatsapp)
@@ -116,12 +96,6 @@ async def test_a_second_platform_needs_no_shared_changes(tmp_path) -> None:
 
 
 async def test_commands_work_on_any_platform(tmp_path) -> None:
-    """The *actions* are shared; only recognising them is per-platform.
-
-    A Discord bot triggers this from an interactions payload and a WhatsApp one
-    from a keyword — neither goes near Telegram's leading slash, which is why
-    parsing lives in the platform and only `apply` is here.
-    """
     gateway, runs, chats = build(tmp_path)
     gateway.register(FakeWhatsApp())
     await gateway.receive(message("guild-1", "hello"))
@@ -135,7 +109,6 @@ async def test_commands_work_on_any_platform(tmp_path) -> None:
 
 
 async def test_a_platform_with_no_typing_indicator_is_fine(tmp_path) -> None:
-    """The Protocol allows a no-op, so email or SMS can satisfy it."""
     gateway, runs, _ = build(tmp_path)
     whatsapp = FakeWhatsApp()
     gateway.register(whatsapp)
@@ -146,16 +119,7 @@ async def test_a_platform_with_no_typing_indicator_is_fine(tmp_path) -> None:
     assert whatsapp.sent == [("guild-1", "answered")]
 
 
-# ── two platforms at once ─────────────────────────────────────────────────────
-
-
 async def test_two_platforms_share_one_gateway(tmp_path) -> None:
-    """**The reason the gateway is singular.**
-
-    Both platforms run through the same rules, the same chat store and the same
-    run store — and each reply goes back out the way it came in, chosen by
-    `InboundMessage.channel`.
-    """
     gateway, runs, _ = build(tmp_path)
     whatsapp = FakeWhatsApp()
     telegram, telegram_bot = telegram_channel(gateway)
@@ -172,8 +136,6 @@ async def test_two_platforms_share_one_gateway(tmp_path) -> None:
 
 
 async def test_the_same_chat_id_on_two_platforms_stays_separate(tmp_path) -> None:
-    """Telegram chat `9` and WhatsApp chat `9` are different conversations,
-    which is why the channel is part of a chat's identity."""
     gateway, runs, chats = build(tmp_path)
     whatsapp = FakeWhatsApp()
     telegram, _ = telegram_channel(gateway)
@@ -191,8 +153,6 @@ async def test_the_same_chat_id_on_two_platforms_stays_separate(tmp_path) -> Non
 
 
 async def test_a_message_from_an_unregistered_platform_is_loud(tmp_path) -> None:
-    """A channel wired to receive but not to reply reads every message and
-    answers none — so it fails rather than going quiet."""
     gateway, _, _ = build(tmp_path)
 
     try:
@@ -202,14 +162,7 @@ async def test_a_message_from_an_unregistered_platform_is_loud(tmp_path) -> None
     raise AssertionError("an unregistered channel must not be ignored")
 
 
-# ── the registry itself ───────────────────────────────────────────────────────
-
-
 async def test_registering_a_platform_twice_is_refused(tmp_path) -> None:
-    """Two registrations used to give one transport and *two* listeners, because
-    a dict overwrote while a list appended. Two pollers on one bot token is a
-    409 from Telegram, so the disagreement had to go — and registering twice is
-    a wiring mistake, not something to resolve silently."""
     gateway, _, _ = build(tmp_path)
     gateway.register(FakeWhatsApp())
 
@@ -221,14 +174,12 @@ async def test_registering_a_platform_twice_is_refused(tmp_path) -> None:
 
 
 async def test_a_finished_delivery_is_forgotten(tmp_path) -> None:
-    """Otherwise every chat that ever got a reply leaves a completed task behind
-    until the process stops — unbounded, keyed by chat."""
     gateway, runs, _ = build(tmp_path)
     gateway.register(FakeWhatsApp())
 
     await gateway.receive(message("guild-1", "hello"))
     await settle(runs, gateway, (WHATSAPP, "guild-1"))
-    # The callback runs on the loop's next pass, not inline with the task ending.
+    # asyncio runs done-callbacks on the loop's next pass.
     await asyncio.sleep(0)
 
     assert not gateway._tasks

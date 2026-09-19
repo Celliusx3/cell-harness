@@ -1,13 +1,4 @@
-"""Acquiring one reel, and turning the attempt into a result.
-
-Lives beside the seam rather than in `tools/` because "what happened when we
-tried to fetch this" is a fact about acquisition, not about MCP. `tools/` is left
-holding only batching and the call budget.
-
-Never raises for anything about *this* reel. The caller runs several of these
-under one MCP call, and an exception would reach the model's script as a throw
-that destroys every sibling result.
-"""
+"""Acquiring one reel, and turning the attempt into a result."""
 
 from __future__ import annotations
 
@@ -25,7 +16,7 @@ logger = logging.getLogger("instagram.media")
 
 @dataclass(frozen=True)
 class Fetcher:
-    """What acquiring needs. Deliberately no provider: fetching costs no tokens."""
+    """What acquiring needs."""
 
     config: Config
     source: MediaSource
@@ -48,7 +39,7 @@ async def fetch_reel(ref: ReelRef, fetcher: Fetcher) -> FetchedReel:
             detail=str(err),
             retry_after_seconds=err.retry_after_seconds,
         )
-    except Exception as err:  # noqa: BLE001 - one item's bug must not reach the call
+    except Exception as err:
         logger.exception("fetch failed for %s", ref.shortcode)
         return FetchedReel(
             url=ref.url,
@@ -57,10 +48,6 @@ async def fetch_reel(ref: ReelRef, fetcher: Fetcher) -> FetchedReel:
             detail=f"{type(err).__name__}: {err}",
         )
 
-    # instaloader does not always report a duration — observed live on a real
-    # reel. Probed here rather than at read time because this is where the video
-    # is already in hand, and because `read_reels` claiming a coverage it cannot
-    # compute is the failure this prevents.
     duration = media.duration_seconds
     if duration is None and media.video is not None:
         duration = await probe.probe_duration(

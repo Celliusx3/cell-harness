@@ -1,8 +1,4 @@
-"""What the Discord channel does with a message: who it answers, and how.
-
-The handler is driven directly, as the Telegram tests drive theirs — the
-library's websocket is never opened.
-"""
+"""What the Discord channel does with a message: who it answers, and how."""
 
 from __future__ import annotations
 
@@ -31,7 +27,6 @@ async def test_a_dm_becomes_a_turn_and_a_reply(tmp_path) -> None:
 
 
 async def test_a_guild_message_without_a_mention_is_ignored(tmp_path) -> None:
-    """The bot reads what is addressed to it and nothing else."""
     channel, client, gateway, runs, chats, _ = build(tmp_path)
 
     await channel.on_message(message(CHAT, "hello everyone", guild=True))
@@ -82,8 +77,6 @@ async def test_a_bare_ping_is_not_a_prompt(tmp_path) -> None:
 
 
 async def test_a_bot_author_is_ignored(tmp_path) -> None:
-    """Discord delivers the bot's own sends back; two bots answering each other
-    never stop. The one guard this channel has."""
     channel, _, gateway, runs, chats, _ = build(tmp_path)
 
     await channel.on_message(message(CHAT, "ok", bot=True))
@@ -106,30 +99,25 @@ async def test_each_channel_or_thread_is_its_own_conversation(tmp_path) -> None:
 
 
 async def test_a_gateway_failure_is_logged_not_raised(tmp_path, caplog) -> None:
-    """The library would otherwise route it to `on_error` and keep going; we
-    say what happened rather than letting one chat's message vanish silently."""
     channel, _, gateway, runs, _, _ = build(tmp_path)
 
     async def explode(_message):
         raise RuntimeError("disk on fire")
 
-    gateway.receive = explode  # type: ignore[method-assign]
+    gateway.receive = explode
 
     with caplog.at_level(logging.ERROR, logger="harness.channels.discord"):
-        await channel.on_message(message(CHAT, "hello"))  # must not raise
+        await channel.on_message(message(CHAT, "hello"))
 
     assert "disk on fire" in caplog.text
 
 
 def test_the_transport_names_its_channel(tmp_path) -> None:
-    """Part of a chat's identity, so Telegram `123` and Discord `123` differ."""
     assert build(tmp_path)[0].channel == "discord"
     assert build(tmp_path)[0].on_missing == "recreate"
 
 
 async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path) -> None:
-    """Discord hands an unregistered `/word` over as plain text; the gateway
-    decides, and the reply is the same one Telegram gives."""
     channel, client, gateway, runs, chats, sessions = build(tmp_path)
     chat = client.chat(CHAT)
 

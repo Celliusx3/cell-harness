@@ -83,7 +83,9 @@ are relative to `backend/harness/`.
 - **Typed boundaries, and fail closed.** No bare `dict`/`Any`; raise, don't guess.
 - **Explicit over implicit defaults.** Pass behavioral choices explicitly.
 - **One setting, one place to look.** No `a.x or b.y` fallback chains.
-- **Comments: the *why*, in one or two lines.** Longer reasoning goes in docs.
+- **No comments.** A why goes into a name, a type, a test, or a docs file; a
+  docstring is one line. Only a note on behaviour forced by an external dependency,
+  a format or style-only lint suppression, and an issue link stay.
 - **Every file under 300 lines.** `make lint` refuses a longer one; split on the seam, never raise the cap.
 
 ## Invariants
@@ -100,7 +102,8 @@ Breaking one is not a style disagreement. The reasoning behind each is in
   the turn's `tool/call` + `tool/result`, its own `BLOCKED` results skipped; what
   it tells the model is an `application/message`, never part of a `tool/result`.
   There is no step cap.
-- **Prompt text is code.** Wording that fixes a model failure carries that failure.
+- **Prompt text is code.** Wording that fixes a model failure has its failure
+  recorded in [docs/prompt-failures.md](./docs/prompt-failures.md).
 - **A watcher owns nothing.** A reader hanging up cannot cancel a turn.
 - **One cursor.** One sequence number for snapshot and live stream alike.
 - **Every call the model or a script makes goes through the one dispatcher.**
@@ -142,6 +145,7 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 | [DESIGN.md](./DESIGN.md) | The proposal: what we take from each source, module layout, core contracts, open decisions |
 | [PHASES.md](./PHASES.md) | 13 phases, each a demoable capability — deliverables, contracts, acceptance criteria |
 | [docs/rules.md](./docs/rules.md) | The reasoning behind every rule and invariant above |
+| [docs/prompt-failures.md](./docs/prompt-failures.md) | The ledger behind "Prompt text is code": every model-facing wording that fixed an observed failure, and what the failure was |
 | [docs/coding-principles.md](./docs/coding-principles.md) | Behavioral guidelines (Karpathy): think first, KISS/YAGNI, surgical changes, goal-driven |
 | [docs/deepseek-harness.md](./docs/deepseek-harness.md) | Teardown of DeepSeek Harness and three replication tiers |
 | [docs/cell-bot.md](./docs/cell-bot.md) | Teardown of cell-bot, its feature inventory, and its gaps |

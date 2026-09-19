@@ -1,8 +1,4 @@
-"""MCP servers as configuration.
-
-A definition that could never spawn is refused when the config loads, so the
-failure names the file to edit rather than surfacing as a missing tool later.
-"""
+"""MCP servers as configuration."""
 
 from __future__ import annotations
 
@@ -28,7 +24,6 @@ def test_no_servers_is_the_default() -> None:
 
 @pytest.mark.parametrize("blank", ["", "   ", "\t"])
 def test_a_blank_command_is_refused(blank: str) -> None:
-    """A blank string in JSON is a paste that went wrong, not a value."""
     with pytest.raises(ValidationError, match="command must not be blank"):
         McpServer(command=blank)
 
@@ -37,22 +32,15 @@ def test_a_blank_command_is_refused(blank: str) -> None:
     "bad_id",
     [
         "Has-Capitals",
-        "has_underscore",  # would make the `{server}__{tool}` split ambiguous
+        "has_underscore",
         "has.dot",
         "has/slash",
         "-leading",
         "trailing-",
         "",
         "a" * 40,
-        # Hyphens were permitted until code mode's printer was checked: it emits
-        # `declare function {name}(...)` unquoted, so `instagram-poi` produced
-        # `declare function instagram-poi__fetch_reels(...)` — unparseable
-        # TypeScript, and the model would write a call the sandbox cannot
-        # resolve with nothing pointing at the id.
         "has-hyphen",
         "instagram-poi",
-        # The id is the *first* thing in the printed identifier, so it must start
-        # with a letter — `3d` would emit `declare function 3d__render(...)`.
         "3d",
         "9lives",
     ],
@@ -63,8 +51,6 @@ def test_an_id_that_could_not_be_half_a_tool_name_is_refused(bad_id: str) -> Non
 
 
 def test_the_refusal_says_why_a_hyphen_is_not_allowed() -> None:
-    """ "Lowercase and digits only" invites re-adding the hyphen. The reason has
-    to travel with the rule, because it is not guessable from the constraint."""
     with pytest.raises(ValidationError, match="TypeScript identifier"):
         McpSettings(servers={"my-server": McpServer(command="npx")})
 
@@ -84,11 +70,7 @@ def test_a_server_is_frozen() -> None:
 
 @pytest.fixture
 def config_file(tmp_path, monkeypatch):
-    """Point the loader at a throwaway config pair — as `test_settings.py` does.
-
-    Patching the module attributes rather than reloading the module: a reload
-    replaces the objects `test_settings.py` holds and breaks it from here.
-    """
+    """Point the loader at a throwaway config pair — as `test_settings.py` does."""
     committed = tmp_path / "config.json"
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
@@ -100,12 +82,6 @@ def config_file(tmp_path, monkeypatch):
 
 
 def test_the_two_config_files_merge_per_server(config_file) -> None:
-    """The shape is committed; only the secret is gitignored.
-
-    This is what makes a `0600` runtime store unnecessary — `config.local.json`
-    is already where secrets live, and it merges *into* a server rather than
-    replacing the whole block.
-    """
     write_committed, write_local = config_file
     write_committed(
         {
@@ -128,7 +104,6 @@ def test_the_two_config_files_merge_per_server(config_file) -> None:
 
 
 def test_a_bad_server_in_config_fails_the_load(config_file) -> None:
-    """Named at startup, not as a tool that quietly never appears."""
     write_committed, _ = config_file
     write_committed({"mcp": {"servers": {"fs": {"command": ""}}}})
 
@@ -137,6 +112,5 @@ def test_a_bad_server_in_config_fails_the_load(config_file) -> None:
 
 
 def test_servers_can_come_from_the_environment() -> None:
-    """`HARNESS_MCP__*` works for free, which is how a container configures one."""
     configured = Settings(mcp={"servers": {"fs": {"command": "npx"}}})
     assert configured.mcp.servers["fs"].command == "npx"

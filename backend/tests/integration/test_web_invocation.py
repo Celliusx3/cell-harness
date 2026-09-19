@@ -1,5 +1,4 @@
-"""`/name` over HTTP: the expansion in the log, the typed line as the title,
-and a `422` for a name nobody may invoke."""
+"""`/name` over HTTP."""
 
 from __future__ import annotations
 

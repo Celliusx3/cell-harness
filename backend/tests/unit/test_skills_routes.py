@@ -22,8 +22,7 @@ def write_skill(root: Path, name: str, text: str) -> None:
 
 @pytest.fixture
 def api(tmp_path):
-    """A project root that outranks the editable home root, as in config.json.
-    The listing is per root in rank order: project skills first, then home."""
+    """A project root that outranks the editable home root, as in config.json."""
     project = tmp_path / "project"
     home = tmp_path / "home"
     write_skill(project, "pdf", "---\ndescription: PDFs.\nuser-invocable: false\n---\nbody\n")
@@ -33,9 +32,6 @@ def api(tmp_path):
     app = web_app(tmp_path, service, runs, skills=skills_at(project, home))
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return client, project, home
-
-
-# ── listing ───────────────────────────────────────────────────────────────────
 
 
 async def test_the_listing_carries_skills_problems_and_editability(api) -> None:
@@ -79,9 +75,6 @@ async def test_a_skill_added_after_startup_is_listed(api) -> None:
     assert [s["name"] for s in response.json()["skills"]] == ["new", "pdf", "mine"]
 
 
-# ── one skill ─────────────────────────────────────────────────────────────────
-
-
 async def test_reading_one_returns_its_file(api) -> None:
     client, _, _ = api
     async with client:
@@ -96,9 +89,6 @@ async def test_reading_one_returns_its_file(api) -> None:
     }
     assert pdf.json()["editable"] is False
     assert none.status_code == 404
-
-
-# ── saving ────────────────────────────────────────────────────────────────────
 
 
 async def test_saving_writes_to_the_editable_root_and_it_is_listed(api) -> None:
@@ -145,7 +135,6 @@ async def test_a_skill_the_catalog_would_not_load_is_refused(api, name, text, re
 
 
 async def test_saving_a_name_the_project_root_owns_is_refused(api) -> None:
-    """Saved but never read: the project copy would win every request."""
     client, project, home = api
     async with client:
         response = await client.put(
@@ -155,9 +144,6 @@ async def test_saving_a_name_the_project_root_owns_is_refused(api) -> None:
     assert response.status_code == 409
     assert str(project / "pdf") in response.json()["detail"]
     assert not (home / "pdf").exists()
-
-
-# ── deleting ──────────────────────────────────────────────────────────────────
 
 
 async def test_deleting_removes_the_directory(api) -> None:

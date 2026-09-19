@@ -14,13 +14,7 @@ from harness.tools.definition import ToolDefinition
 
 
 class McpServerStore:
-    """The live connections to the configured servers, and their tools.
-
-    **No add or remove.** Servers are configuration — `settings.mcp.servers` —
-    so the catalog has one source and changing it is editing `config.json`.
-    A second, runtime store would make "which servers are configured?" two
-    questions with two answers.
-    """
+    """The live connections to the configured servers, and their tools."""
 
     def __init__(
         self,
@@ -33,12 +27,7 @@ class McpServerStore:
         self._connections: dict[str, Connection] = {}
 
     def tools(self) -> list[ToolDefinition[dict]]:
-        """Every tool on offer right now — **the registry provider**.
-
-        Synchronous and snapshot-reading, because the registry calls it on every
-        turn. A server still connecting contributes nothing and then contributes
-        its tools, without anyone rebuilding the agent.
-        """
+        """Every tool on offer right now — **the registry provider**."""
         return [tool for connection in self._connections.values() for tool in connection.tools]
 
     def published(self, server_id: str) -> tuple[Tool, ...]:
@@ -46,9 +35,7 @@ class McpServerStore:
         return self._connection(server_id).published
 
     async def call(self, server_id: str, name: str, arguments: dict) -> CallToolResult:
-        """One `tools/call` on one server, by the server's own name, answered
-        verbatim — the harness proxying for an MCP App, which is not the model
-        and gets the result as its server sent it."""
+        """One `tools/call` on one server, answered verbatim, proxied for an MCP App."""
         return await self._connection(server_id).call(name, arguments)
 
     async def read_resource(self, server_id: str, uri: str) -> ReadResourceResult:
@@ -56,9 +43,7 @@ class McpServerStore:
         return await self._connection(server_id).read_resource(uri)
 
     def _connection(self, server_id: str) -> Connection:
-        """`KeyError` for a server that is not configured: that is the caller
-        naming something that does not exist, distinct from one that is
-        configured and down, which the connection reports as not connected."""
+        """The connection for a configured server; `KeyError` for one that is not."""
         if server_id not in self._servers:
             raise KeyError(server_id)
         if server_id not in self._connections:
@@ -66,12 +51,7 @@ class McpServerStore:
         return self._connections[server_id]
 
     async def start(self) -> None:
-        """Connect every configured server, without blocking startup on any.
-
-        Deliberately not awaiting readiness: a server that takes the full command
-        timeout to fail would otherwise hold up the whole application, and its
-        tools are simply absent from the turns that happen before it answers.
-        """
+        """Connect every configured server, without blocking startup on any."""
         for server_id, server in self._servers.items():
             connection = Connection(id=server_id, server=server, factory=self._factory)
             self._connections[server_id] = connection

@@ -1,11 +1,4 @@
-"""yfinance's shapes into ours. Pure functions, so the whole translation is
-unit-tested with hand-built frames and never touches Yahoo.
-
-The shapes were read from live calls on 2026-09-14 (yfinance 1.7.0):
-`Search.quotes` dicts, `Ticker.fast_info` keys, `history()` frames indexed by
-tz-aware timestamp, statement frames with line items as the index and period
-ends as columns, and `Ticker.news` items nested under `content`.
-"""
+"""yfinance's shapes into ours."""
 
 from __future__ import annotations
 
@@ -36,12 +29,8 @@ from markets.models import (
     now_iso,
 )
 
-# Yahoo's quoteType, and the ones we hand to the model. Futures, options,
-# indices and mutual funds are dropped from search: nothing else here can do
-# anything with them, and a candidate the model cannot use is a wrong turn.
 _KINDS: dict[str, Kind] = {"EQUITY": "stock", "ETF": "etf"}
 
-# The interval to suggest when a range does not fit the row cap at the one asked.
 _COARSER: dict[Interval, Interval | None] = {"1d": "1wk", "1wk": "1mo", "1mo": None}
 
 
@@ -129,9 +118,6 @@ def history(
         status="ok",
         detail=truncation_note(len(rows), max_rows, interval),
         truncated=len(rows) > max_rows,
-        # Summary spans the whole range even when rows are cut: the number the
-        # model most often wants is "how did it do over the period", and that
-        # must not silently become "over the rows that fit".
         summary=Summary(
             first_close=round(float(closes.iloc[0]), 6),
             last_close=round(float(closes.iloc[-1]), 6),
@@ -255,8 +241,7 @@ def _is_nan(value: Any) -> bool:
 
 
 def _num(value: Any) -> float | None:
-    # Yahoo hands back float32 noise (10.460000038146973 for a 10.46 print);
-    # six decimals is finer than any quoted price and drops the noise.
+    # Yahoo hands back float32 noise (10.460000038146973 for a 10.46 print).
     return None if _is_nan(value) else round(float(value), 6)
 
 

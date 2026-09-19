@@ -1,15 +1,4 @@
-"""The one test that touches the real Instagram and the real provider.
-
-Opt-in via `INSTAGRAM_LIVE=1`, and never run in CI. The honest boundary this draws:
-*we test that we handle every shape instaloader and the provider can hand us; we
-do not test that they still hand us those shapes.* Everything above the seams is
-hermetic — this is what re-verifies the seams themselves, and it is the manual
-check before trusting a version bump.
-
-Run it as:
-
-    INSTAGRAM_LIVE=1 AI_PROVIDER_API_KEY=... uv run pytest tests/integration/test_live.py -s
-"""
+"""The one test that touches the real Instagram and the real provider."""
 
 from __future__ import annotations
 
@@ -26,13 +15,8 @@ from instagram.read.http import ProviderHttp
 from instagram.reel import parse
 from instagram.server import build
 
-# A long-lived public reel from a large account, chosen because it is unlikely to
-# be deleted. If this ever 404s, pick another and note the swap here.
 DEFAULT_REEL = "https://www.instagram.com/reel/C6NiA4lRux8/"
 
-# Overridable so "does this reel I just found actually work?" is one command
-# rather than an edit. That question comes up far more often than running the
-# fixed regression check does.
 LIVE_REEL = os.environ.get("INSTAGRAM_LIVE_REEL", "").strip() or DEFAULT_REEL
 
 pytestmark = pytest.mark.skipif(
@@ -41,23 +25,15 @@ pytestmark = pytest.mark.skipif(
 
 
 async def test_a_real_public_reel_fetches_with_no_credentials(tmp_path: Path) -> None:
-    """The claim this whole server rests on: anonymous access works."""
     media = await InstaloaderSource().fetch(parse(LIVE_REEL), tmp_path / "media")
 
     assert media.caption, "a real reel has a caption"
     assert media.author
-    # The bytes, not just a URL — Instagram's CDN links expire in ~35 hours, so
-    # a passing URL check would not mean the pipeline works.
     assert media.video is not None
     assert media.video.stat().st_size > 100_000
 
 
 async def test_the_whole_chain_produces_readable_observations(tmp_path: Path) -> None:
-    """fetch -> frames -> vision -> ASR, against the live provider.
-
-    Prints what it read, because the value of this test is as much in seeing the
-    output as in the assertions.
-    """
     key = os.environ.get("AI_PROVIDER_API_KEY", "")
     if not key:
         pytest.skip("AI_PROVIDER_API_KEY is required for the live provider")

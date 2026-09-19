@@ -1,25 +1,13 @@
 import type { NextConfig } from "next";
 
-/**
- * `/api` is proxied to the harness rather than called cross-origin.
- *
- * Same-origin means no CORS middleware on the backend and no preflight on the
- * event stream. It also keeps the browser's URL the only thing that changes
- * between dev and a future single-origin deployment.
- *
- * 4896 must match `--port` in the repo `Makefile`'s `BACKEND_RUN`. The port is
- * deliberately not in `config.json`: this file cannot read Python config, so a
- * setting would look authoritative while the proxy silently kept using the old
- * value. Both copies live next to the command that uses them instead.
- */
+const BACKEND_PORT = process.env.BACKEND_PORT ?? "4896";
+
+/** `/api` is proxied to the harness rather than called cross-origin. */
 const nextConfig: NextConfig = {
-  // Off because the rewrite below gzips the event stream, and gzip holds the
-  // whole body until we close — a turn arrived as one read at the end. The
-  // backend cannot opt out: `X-Accel-Buffering` is ignored and a
-  // `Content-Encoding: identity` is overwritten. This flag is the only seam.
+  // Next's rewrite proxy gzips the event stream and holds the whole body until close.
   compress: false,
   async rewrites() {
-    return [{ source: "/api/:path*", destination: "http://127.0.0.1:4896/api/:path*" }];
+    return [{ source: "/api/:path*", destination: `http://127.0.0.1:${BACKEND_PORT}/api/:path*` }];
   },
 };
 

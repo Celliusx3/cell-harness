@@ -885,7 +885,7 @@ not frozen at compose time. Scoped registries are a phase-12 concern.
 - Choice model built **per call** with `Literal[uuids]`, so the roster's ids are a
   schema enum. Address by uuid, never name — names are not unique.
 - Field descriptions are written **for the model**, with the observed failure
-  recorded in a comment beside the wording that fixed it.
+  recorded in `docs/prompt-failures.md` beside the constant that fixed it.
 - Deleting the default agent is refused; a conversation whose agent was deleted
   resolves to the default.
 
@@ -1060,7 +1060,7 @@ Not phases. They start immediately and run throughout.
 |---|---|
 | `CLAUDE.md` — project rules, loaded into every session | cell-bot |
 | cell-bot's house rules verbatim | cell-bot |
-| Comment discipline: non-obvious lines carry the *reason*; bug-driven lines carry the bug | cell-bot |
+| Comment discipline: no comments; a reason lives in a name, a type, a test or a docs file | cell-bot |
 | Generated `tool-catalog.md` by **booting** each tool, with a completeness guard | dsh |
 | A "where new behavior goes" table, updated whenever the loop changes | dsh |
 | Tests that assert two things stay in step (templates ↔ enum, tools ↔ manifest) | cell-bot |

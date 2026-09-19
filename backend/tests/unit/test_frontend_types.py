@@ -1,16 +1,4 @@
-"""The frontend's wire types are kept in step with the backend's.
-
-`frontend/lib/types.ts` is hand-written — a generator would be a build step and a
-toolchain for nine small types. The trade is that it can silently fall behind, so
-this is the check that makes falling behind loud.
-
-It is deliberately a *Python* test. Adding an event type is a backend change, and
-the failure has to land in the suite that change runs — not in a `npm run
-typecheck` nobody invokes while editing `models.py`.
-
-This is the project's "two things stay in step" practice, the same shape as
-cell-bot's templates-versus-enum test.
-"""
+"""The frontend's wire types are kept in step with the backend's."""
 
 from __future__ import annotations
 
@@ -31,7 +19,7 @@ _TYPES_TS = Path(__file__).resolve().parents[3] / "frontend" / "lib" / "types.ts
 
 @pytest.fixture(scope="module")
 def types_ts() -> str:
-    if not _TYPES_TS.exists():  # pragma: no cover - only if the frontend is removed
+    if not _TYPES_TS.exists():
         pytest.skip(f"{_TYPES_TS} is absent")
     return _TYPES_TS.read_text()
 
@@ -43,7 +31,6 @@ def _literal_of(model: type, field: str) -> str:
 
 
 def test_every_session_event_type_is_declared(types_ts: str) -> None:
-    """A new event type with no renderer fails here, not in the browser."""
     missing = [
         _literal_of(member, "type")
         for member in get_args(SessionEvent)
@@ -54,11 +41,6 @@ def test_every_session_event_type_is_declared(types_ts: str) -> None:
 
 
 def test_every_stream_chunk_kind_is_declared(types_ts: str) -> None:
-    """`assistant/chunk` carries this union, so the reducer has to know it all.
-
-    Notably `completed`: it holds `full_text`, and a reducer that treats every
-    chunk as text to append renders the whole reply twice.
-    """
     missing = [
         _literal_of(member, "kind")
         for member in get_args(StreamEvent)
@@ -69,16 +51,13 @@ def test_every_stream_chunk_kind_is_declared(types_ts: str) -> None:
 
 
 def test_every_content_block_type_is_declared(types_ts: str) -> None:
-    """A tool result's blocks reach the browser verbatim, so every block kind the
-    backend can log must be a member of `ContentBlock` in `types.ts`."""
-    # `Block` is `Annotated[Union, Field(discriminator=...)]`: the union is arg 0.
+    # `typing.Annotated` puts the union at arg 0.
     for block in get_args(get_args(Block)[0]):
         literal = _literal_of(block, "type")
         assert f'type: "{literal}"' in types_ts, f"types.ts does not declare block {literal!r}"
 
 
 def test_every_turn_end_reason_is_declared(types_ts: str) -> None:
-    """The UI branches on these — a new one must not fall through silently."""
     declared = re.search(r"export type TurnEndReason =([^;]+);", types_ts)
     assert declared is not None, "TurnEndReason is not declared in types.ts"
 
@@ -88,19 +67,10 @@ def test_every_turn_end_reason_is_declared(types_ts: str) -> None:
 
 
 def test_the_check_would_notice_an_absence(types_ts: str) -> None:
-    """The guard's own guard.
-
-    A matcher that never fails is worse than no matcher, and the substring search
-    above is exactly the kind that quietly matches everything if the format
-    assumption is wrong.
-    """
     assert 'type: "turn/start"' in types_ts
     assert 'type: "turn/invented"' not in types_ts
 
 
 def test_the_invocation_marker_is_the_same_on_both_sides() -> None:
-    """`/name` expands to one string and the browser parses the typed line back
-    out of it. The marker is the whole contract; two copies that drift would
-    show a skill body as the person's bubble."""
     source = (_TYPES_TS.parent / "invocation.ts").read_text()
     assert f"export const MARKER = {json.dumps(MARKER)};" in source

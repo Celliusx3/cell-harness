@@ -29,20 +29,20 @@ class SameToolFailureHook(ToolHook):
     warn: int = SAME_TOOL_FAILURE_WARN
     block: int = SAME_TOOL_FAILURE_BLOCK
 
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
-        prior = _failures_since_success(calls, sig.same_tool)
-        if prior + 1 < self.block:
+    async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
+        failed = _failures_since_success(prior, sig.same_tool)
+        if failed + 1 < self.block:
             return None
         return SAME_TOOL_FAILURE_REFUSAL.format(
-            name=sig.name, n=prior, last=_last_failure(calls, sig.same_tool)
+            name=sig.name, n=failed, last=_last_failure(prior, sig.same_tool)
         )
 
     async def post(
-        self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
+        self, sig: Signature, outcome: ToolOutcome, prior: Sequence[CompletedCall]
     ) -> str | None:
         if isinstance(outcome, Ok):
             return None
-        n = _failures_since_success(calls, sig.same_tool) + 1
+        n = _failures_since_success(prior, sig.same_tool) + 1
         return SAME_TOOL_FAILURE_WARNING.format(name=sig.name, n=n) if n >= self.warn else None
 
 
@@ -61,7 +61,5 @@ def _failures_since_success(
 
 
 def _last_failure(calls: Sequence[CompletedCall], match: Callable[[CompletedCall], bool]) -> str:
-    """The most recent matching failure's own words — carried into a refusal so
-    its advice survives. A `REFUSED` result's "read its schema first" is the
-    one line that unsticks that model."""
+    """The most recent matching failure's own words."""
     return next((e.text for e in reversed(calls) if match(e) and e.failed), "")

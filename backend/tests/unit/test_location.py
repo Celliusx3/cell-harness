@@ -1,5 +1,4 @@
-"""`get_location` — the datum and the declaration. The waiting, the answering
-and what the model reads are the spine's, tested in `test_client_tools.py`."""
+"""`get_location` — the datum and the declaration."""
 
 from __future__ import annotations
 
@@ -18,7 +17,7 @@ def test_coordinates_are_bounded_and_nothing_extra_is_accepted() -> None:
     with pytest.raises(ValidationError):
         Location(latitude=0.0, longitude=0.0, accuracy_m=-1.0)
     with pytest.raises(ValidationError):
-        Location(latitude=0.0, longitude=0.0, accuracy_m=1.0, altitude=3.0)  # type: ignore[call-arg]
+        Location(latitude=0.0, longitude=0.0, accuracy_m=1.0, altitude=3.0)
 
 
 def test_the_tool_takes_no_arguments_and_names_its_trigger_words() -> None:

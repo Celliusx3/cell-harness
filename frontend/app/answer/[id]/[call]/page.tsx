@@ -8,15 +8,7 @@ import { CLIENT_TOOLS } from "@/lib/clientTools";
 import type { ToolItem } from "@/lib/timeline";
 import { useConversation, useTimeline } from "@/lib/useConversation";
 
-/**
- * One client-tool call, on a page of its own.
- *
- * This is the URL a chat without a prompt of its own for the tool is sent — a
- * Discord link, a Telegram link for anything but a location — so the browser
- * can ask instead. Read from the same log as the conversation page: whether
- * the call is still waiting is on the stream, and the answer goes to the same
- * route the conversation's card uses, through the same handler map.
- */
+/** One client-tool call, on a page of its own. */
 export default function AnswerPage({
   params,
 }: {

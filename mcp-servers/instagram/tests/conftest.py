@@ -1,18 +1,4 @@
-"""Builders shared across test modules.
-
-Two rules these follow, both inherited from the harness's own test suite:
-
-- **Fake at a seam, never monkeypatch a module.** `ProviderHttp` takes an
-  `httpx.AsyncClient`, the pipeline takes a `CommandRunner`, and the media
-  backend is a Protocol — so a test constructs the world it wants and nothing
-  leaks between tests. A monkeypatched global tests the patch, not the code.
-- **No network, no Instagram, no provider.** Everything here is hermetic. The one
-  test that talks to the real thing is opt-in and lives in `integration/`.
-
-`fetcher_with` and `reader_with` are separate because the two halves genuinely
-are: fetching needs Instagram and no provider, reading needs a provider and no
-Instagram. A read test therefore builds no media backend at all.
-"""
+"""Builders shared across test modules."""
 
 from __future__ import annotations
 
@@ -39,12 +25,7 @@ def work_dir(tmp_path: Path) -> Path:
 
 
 def make_config(work_dir: Path, **overrides: object) -> Config:
-    """A `Config` with everything set, so a test overrides only what it means to.
-
-    Built directly rather than through `load()`: `load` is what validates the
-    environment, and it has its own tests. Going through it here would make every
-    test depend on ffmpeg being installed.
-    """
+    """A `Config` with everything set, so a test overrides only what it means to."""
     values: dict[str, object] = {
         "provider_base_url": "https://provider.test/v1",
         "provider_api_key": "test-key",
@@ -63,7 +44,7 @@ def make_config(work_dir: Path, **overrides: object) -> Config:
         "request_timeout_seconds": 30.0,
     }
     values.update(overrides)
-    return Config(**values)  # type: ignore[arg-type]
+    return Config(**values)
 
 
 def http_with(handler) -> ProviderHttp:
@@ -85,11 +66,7 @@ def asr_reply(text: str, language: str = "en") -> httpx.Response:
 
 
 def scripted(routes: dict[str, httpx.Response]):
-    """Route by URL suffix, and fail loudly on an unexpected call.
-
-    An unrouted request returning a stub would let a test pass while the code
-    called something nobody meant it to.
-    """
+    """Route by URL suffix, and fail loudly on an unexpected call."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         for suffix, response in routes.items():
@@ -101,12 +78,7 @@ def scripted(routes: dict[str, httpx.Response]):
 
 
 def recording_runner(*, code: int = 0, stderr: str = "", touch: str | None = None):
-    """A `CommandRunner` that records argv and optionally creates its output.
-
-    Returns `(runner, calls)`. `touch` names a file to create in the directory
-    the last argv element points at, so ffmpeg's *effect* can be faked without
-    ffmpeg — which is what lets the frame and audio paths be tested hermetically.
-    """
+    """A `CommandRunner` that records argv and optionally creates its output."""
     calls: list[list[str]] = []
 
     async def runner(argv, timeout: float) -> Completed:
@@ -115,8 +87,6 @@ def recording_runner(*, code: int = 0, stderr: str = "", touch: str | None = Non
             target = Path(argv[-1])
             target.parent.mkdir(parents=True, exist_ok=True)
             if "%" in target.name:
-                # ffmpeg's numbered-output pattern: make two, as a real sampling
-                # of a short clip would.
                 for index in (1, 2):
                     (target.parent / (target.name % index)).write_bytes(b"jpegbytes")
             else:

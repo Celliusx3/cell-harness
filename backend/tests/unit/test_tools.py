@@ -29,15 +29,7 @@ def call(name: str, arguments: str = '{"value": "hi"}') -> ToolCall:
     return ToolCall(id="c1", name=name, arguments=arguments)
 
 
-# ── the schema allowlist ──────────────────────────────────────────────────────
-
-
 def test_spec_is_an_allowlist_and_cannot_leak_internals() -> None:
-    """Acceptance: `execute` and `parse` never appear in what the model sees.
-
-    Asserted on the serialized spec rather than the field list, because a leak
-    would show up as an extra key on the wire.
-    """
     wire = echo_tool().spec().model_dump()
 
     assert set(wire) == {"name", "description", "input_schema"}
@@ -46,15 +38,11 @@ def test_spec_is_an_allowlist_and_cannot_leak_internals() -> None:
 
 
 def test_from_model_derives_schema_and_parser_from_one_source() -> None:
-    """What the model is told and what the executor accepts cannot drift."""
     tool = echo_tool()
 
     schema = tool.spec().input_schema
     assert schema["properties"]["value"]["description"] == "Text to echo back."
     assert schema["required"] == ["value"]
-
-
-# ── tolerant failures ─────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize(
@@ -67,7 +55,6 @@ def test_from_model_derives_schema_and_parser_from_one_source() -> None:
     ],
 )
 async def test_bad_arguments_are_a_failure_not_an_exception(arguments, reason) -> None:
-    """Acceptance: invalid args return a Failure the model can recover from."""
     outcome = await pipeline(echo_tool()).execute(call("echo", arguments), progress=no_progress)
 
     assert isinstance(outcome, Failure)
@@ -84,55 +71,35 @@ async def test_a_tool_that_raises_does_not_kill_the_turn() -> None:
 
 
 async def test_empty_arguments_mean_no_arguments() -> None:
-    """A no-arg tool is often called with `""` rather than `"{}"`."""
     outcome = await pipeline(echo_tool()).execute(call("echo", ""), progress=no_progress)
 
-    # `value` is required, so this is still a failure — but a *validation* one,
-    # which is what proves `""` was read as `{}` rather than as malformed JSON.
     assert isinstance(outcome, Failure)
     assert outcome.code == INVALID_ARGUMENTS
     assert "not valid JSON" not in outcome.message
 
 
 def test_data_never_reaches_the_model() -> None:
-    """`Ok` has two readers with two formats: the model reads `content`, a program
-    reads `data`. `render_outcome` is the boundary, and it only knows the first."""
     blocks = render_outcome(Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]}))
     assert blocks == (Text(text="Found 3 jobs."),)
 
 
 def test_ok_still_compares_by_value_with_data_defaulted() -> None:
-    """Half the suite asserts `== Ok(content="hi")`. A defaulted field keeps that
-    true, and this is what stops it drifting."""
     assert Ok(content="hi") == Ok(content="hi", data=None)
     assert Ok(content="hi") != Ok(content="hi", data={})
 
 
 def test_failures_wear_one_wire_shape() -> None:
-    """The model learns this prefix; a second spelling would read as a different
-    kind of thing."""
     assert render_outcome(Failure("X", "went wrong")) == (Text(text="error: went wrong"),)
     assert render_outcome(Ok(content="fine")) == (Text(text="fine"),)
 
 
 def test_a_plain_string_is_one_text_block() -> None:
-    """Almost every tool returns prose; `Ok("hi")` wraps it, and every log line
-    written before blocks existed decodes the same way."""
     assert Ok("hi").content == (Text(text="hi"),)
     assert Ok("hi").text == "hi"
     assert ToolMessage(tool_call_id="c1", content="hi").content == (Text(text="hi"),)
 
 
-# ── live resolution ───────────────────────────────────────────────────────────
-
-
 async def test_a_tool_from_a_provider_is_callable_the_turn_it_appears() -> None:
-    """Acceptance: a tool added between turns is callable on the next.
-
-    This is the seam MCP plugs into in phase 5 — the registry re-asks its
-    providers on every read, so connecting a server does not require rebuilding
-    the agent.
-    """
     connected: list = []
     tools = pipeline(providers=[lambda: list(connected)], offer=("echo",))
 
@@ -147,7 +114,6 @@ async def test_a_tool_from_a_provider_is_callable_the_turn_it_appears() -> None:
 
 
 def test_a_broken_provider_does_not_take_down_the_tool_set() -> None:
-    """One failing source must not cost the model every other tool."""
 
     def broken():
         raise RuntimeError("server went away")
@@ -158,8 +124,6 @@ def test_a_broken_provider_does_not_take_down_the_tool_set() -> None:
 
 
 def test_duplicate_static_registration_fails_loudly() -> None:
-    """Silently shadowing would make which tool runs depend on registration
-    order — a bug that only shows as the model getting the wrong answer."""
     registry = ToolRegistry([echo_tool()])
 
     with pytest.raises(DuplicateToolError):
@@ -173,12 +137,10 @@ def test_a_disposer_removes_exactly_its_registration() -> None:
     assert len(registry.all()) == 1
     dispose()
     assert registry.all() == []
-    dispose()  # idempotent
+    dispose()
 
 
 def test_static_tools_win_a_name_collision_with_a_provider() -> None:
-    """Deterministic rather than an error: a remote source's names are not ours
-    to control, and a collision must not break the turn."""
     registry = ToolRegistry([echo_tool()], providers=[lambda: [raising_tool("echo")]])
 
     assert len(registry.all()) == 1
@@ -186,8 +148,6 @@ def test_static_tools_win_a_name_collision_with_a_provider() -> None:
 
 
 def test_a_provider_disposer_removes_exactly_its_source() -> None:
-    """`add_provider` owes a disposer like `register` does — the invariant has no
-    exceptions, and a source that cannot be unplugged outlives its owner."""
     registry = ToolRegistry()
     dispose = registry.add_provider(lambda: [echo_tool()])
     registry.add_provider(lambda: [raising_tool("boom")])
@@ -195,24 +155,16 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
     assert sorted(t.name for t in registry.all()) == ["boom", "echo"]
     dispose()
     assert [t.name for t in registry.all()] == ["boom"]
-    dispose()  # idempotent
-
-
-# ── the model may only call what it was offered ───────────────────────────────
+    dispose()
 
 
 def offering(*tools: ToolDefinition, default: tuple[str, ...]) -> ToolPipeline:
-    """A pipeline with a chosen `default_tools`, where `pipeline_for` offers
-    every tool it was given — the gate only means anything against a restricted
-    offer."""
+    """A pipeline with a chosen `default_tools` that offers every tool it was given."""
     registry = ToolRegistry(tools)
     return ToolPipeline(registry, ToolDispatcher(registry), default)
 
 
 async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:
-    """Registered is not offered. The dispatcher would run it — scripts need
-    that — but a call the *model* makes by a name it was never shown is refused,
-    pointing at the route that exists rather than listing what else does."""
     pipeline = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
 
     outcome = await pipeline.execute(
@@ -235,7 +187,6 @@ async def test_an_offered_tool_executes() -> None:
 
 
 async def test_an_empty_default_offers_nothing_and_refuses_everything() -> None:
-    """An empty list means what it looks like."""
     pipeline = offering(echo_tool(), default=())
 
     assert pipeline.specs() == []

@@ -1,22 +1,4 @@
-"""Every way the harness touches skills, behind one object.
-
-Built once at the composition root from `skills` settings, the way
-`SessionService` is built from the sessions root, and handed to the agent
-(the `skill` tool), the gateway (`/name`) and the API (the `/skills` page).
-One object because they are one thing: the roots the catalog reads, one of
-which the editor writes.
-
-**Reading is lenient, writing is strict.** The catalog loads a skill written
-for another client unchanged, noting what it had to forgive; a save refuses the
-same thing with the reason, because the editor is the boundary where a mistake
-can still be a message instead of a problem row. And one rule the page cannot
-see from its own data: `skills.editable` is the lowest-ranked root by default,
-so a name the project root already holds would be saved and never read.
-
-**The catalog is read, never published.** `snapshot()` rescans the roots on
-every call, cheap by file stamp — nothing to invalidate after a save, and
-nothing for phase 11 to re-establish.
-"""
+"""Every way the harness touches skills, behind one object."""
 
 from __future__ import annotations
 
@@ -69,15 +51,12 @@ class SkillShadowed(FileExistsError):
 
 
 class SkillService:
-    """The skills on disk: what is there, what a person may type, and the one
-    root they may write."""
+    """The skills on disk, what a person may type, and the one root they may write."""
 
     def __init__(self, settings: SkillSettings) -> None:
         self._roots = settings.roots
         self._editable = settings.editable
         self._catalog = SkillCatalog(settings.roots)
-
-    # ── reading ───────────────────────────────────────────────────────────────
 
     def snapshot(self) -> SkillSnapshot:
         """Every loadable skill and every problem, as of now."""
@@ -96,21 +75,12 @@ class SkillService:
     def editable(self, skill: Skill) -> bool:
         return skill.root == self._editable
 
-    # ── `/name` ───────────────────────────────────────────────────────────────
-
     def invocable(self) -> list[Skill]:
         """What a person may type after `/`."""
         return [skill for skill in self.snapshot().skills if skill.user_invocable]
 
     def expand(self, text: str) -> str:
-        """The message the model receives for `text`.
-
-        Ordinary text is returned unchanged. An invocation becomes the typed
-        text, a blank line, and the skill as the `skill` tool renders it — the
-        order `invocation.display` depends on. A name nobody may invoke raises
-        `UnknownSkill`, including one whose body cannot be read: to the person
-        typing it, that is the same thing — not something they can use now.
-        """
+        """The message the model receives for `text`."""
         name = parse(text)
         if name is None:
             return text
@@ -122,8 +92,6 @@ class SkillService:
         except (OSError, ValueError) as err:
             raise UnknownSkill(name) from err
         return f"{text}\n\n{loaded}"
-
-    # ── writing ───────────────────────────────────────────────────────────────
 
     def save(self, name: str, text: str) -> None:
         """Write `text` as `<editable>/<name>/SKILL.md`, or refuse with the reason."""
@@ -138,8 +106,6 @@ class SkillService:
 
         directory = self._editable / name
         directory.mkdir(parents=True, exist_ok=True)
-        # Whole file or nothing: a catalog read mid-write would otherwise report
-        # a half-written skill as broken, and a crash would leave it that way.
         fd, tmp = tempfile.mkstemp(prefix=".SKILL.", suffix=".tmp", dir=directory)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
@@ -150,8 +116,7 @@ class SkillService:
             raise
 
     def delete(self, name: str) -> None:
-        """Remove the skill's directory — bundled files included, because that
-        is what deleting a skill means."""
+        """Remove the skill's directory, bundled files included."""
         skill = self.find(name)
         if not self.editable(skill):
             raise SkillNotEditable(name, skill.root)

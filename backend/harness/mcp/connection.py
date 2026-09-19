@@ -1,22 +1,4 @@
-"""One connection: a task that owns the session, and a queue feeding it.
-
-**Why a command loop rather than connect/close methods.** The SDK's `Client` is
-an anyio context manager, and anyio's asyncio backend raises from
-`CancelScope.__exit__` when the exiting task is not the entering one:
-
-    RuntimeError: Attempted to exit cancel scope in a different task than it was
-    entered in
-
-Measured, not assumed — a spike closing from another task raised exactly that.
-So one task per connection owns the session for its whole life, and callers
-submit commands and await a reply. This is the shape `RunningChannel` in
-`channels/protocol.py` already uses for a supervised task.
-
-**One task per connection, not a supervisor hosting a task group.** That shape is
-what anyio forces, because a `TaskGroup` can only spawn from its host task. In
-pure asyncio `create_task` spawns from anywhere, so the only surviving constraint
-is enter-and-exit-in-one-task and a supervisor would have nothing to do.
-"""
+"""One connection: a task that owns the session, and a queue feeding it."""
 
 from __future__ import annotations
 
@@ -41,14 +23,9 @@ from harness.tools.definition import ToolDefinition
 
 logger = logging.getLogger("harness.mcp")
 
-# How long a server gets to answer one command. The only configured number here.
 COMMAND_TIMEOUT_SECONDS = 60.0
-# Added to the caller's wait so the owner wins the race and posts the real
-# message. Derived from the above, not a second setting.
 REPLY_GRACE_SECONDS = 1.0
-# Bounds teardown, so one wedged server cannot hang server shutdown.
 CLOSE_TIMEOUT_SECONDS = 10.0
-# A server whose `next_cursor` never clears must not spin forever.
 MAX_TOOL_PAGES = 20
 
 Status = Literal["connecting", "connected", "failed", "disconnected"]
@@ -100,8 +77,6 @@ class Connection:
     status: Status = "connecting"
     error: str = ""
     tools: tuple[ToolDefinition[dict], ...] = ()
-    # As the server published them — `_meta` included, which `tools` drops.
-    # An app calls by these names, and its visibility rules live here.
     published: tuple[Tool, ...] = ()
     commands: asyncio.Queue[_Command] = field(default_factory=asyncio.Queue)
     task: asyncio.Task[None] | None = None
@@ -116,8 +91,6 @@ class Connection:
 
     def start(self) -> None:
         self.task = asyncio.create_task(self._serve(), name=f"mcp:{self.id}")
-        # Without this a connection that died is silent: `create_task` holds the
-        # exception until someone awaits, and nothing does.
         self.task.add_done_callback(self._report_exit)
 
     async def call(self, tool: str, arguments: dict) -> CallToolResult:
@@ -138,17 +111,10 @@ class Connection:
         return await self._submit(command, command.reply)
 
     async def _submit[T](self, command: _Command, reply: asyncio.Future[T]) -> T:
-        """Queue one command for the owner and wait for its reply.
-
-        `reply` is `command.reply`, passed again so the answer is typed by the
-        command that asked rather than by the union.
-        """
+        """Queue one command for the owner and wait for its reply."""
         if self.task is None or self.task.done():
             raise McpNotConnectedError(f"{self.id} is not connected")
         self.commands.put_nowait(command)
-        # Two waits, one number: the deadline above bounds how long the *server*
-        # gets, this bounds how long the *loop* gets to be alive at all. The
-        # grace lets the owner lose the race and still deliver the better error.
         try:
             return await asyncio.wait_for(reply, COMMAND_TIMEOUT_SECONDS + REPLY_GRACE_SECONDS)
         except TimeoutError as err:
@@ -167,10 +133,8 @@ class Connection:
                 self.id,
                 CLOSE_TIMEOUT_SECONDS,
             )
-        except BaseException:  # noqa: BLE001
-            # `suppress(CancelledError)` — the idiom elsewhere in this codebase —
-            # is not enough here: unwinding an anyio task group can raise a
-            # BaseExceptionGroup wrapping one, which that would not catch.
+        except BaseException:
+            # Unwinding an anyio task group can raise a BaseExceptionGroup wrapping CancelledError.
             pass
         finally:
             self.task = None
@@ -192,27 +156,17 @@ class Connection:
         except asyncio.CancelledError:
             self.status = "disconnected"
             raise
-        except BaseException as err:  # noqa: BLE001 — the SDK raises ExceptionGroup
+        except BaseException as err:  # anyio raises BaseExceptionGroup, which Exception misses
             self.status = "failed"
             self.error = describe(err)
-            # The only report there is. This branch swallows the exception so the
-            # task ends cleanly, and nothing awaits a connection — servers come
-            # from config and are dialled once, with no caller to hand this to.
             logger.warning("MCP server %s failed: %s", self.id, self.error)
         finally:
-            # A connection that died on its own stops offering tools without
-            # anyone having to notice that it died.
             self.tools = ()
             self.published = ()
             self._fail_queued()
 
     async def _run(self, client: ClientLike, command: _Command) -> None:
         try:
-            # Cancels *this* task at the await point; the SDK sends
-            # notifications/cancelled, then `timeout_at` absorbs the
-            # CancelledError and calls `Task.uncancel()`, so the session is still
-            # open and the loop runs on. Verified against the real SDK before
-            # this was written — a timed-out call leaves the next one working.
             async with asyncio.timeout_at(command.deadline):
                 result: CallToolResult | ReadResourceResult
                 if isinstance(command, _Call):
@@ -228,10 +182,9 @@ class Connection:
                 ),
             )
         except asyncio.CancelledError:
-            # Ours, not the deadline's. Let the owner die and take the session.
             _fail(command.reply, McpNotConnectedError(f"{self.id} is shutting down"))
             raise
-        except BaseException as err:  # noqa: BLE001
+        except BaseException as err:  # anyio raises BaseExceptionGroup, which Exception misses
             _fail(command.reply, McpConnectionError(describe(err)))
         else:
             _resolve(command.reply, result)
@@ -267,11 +220,7 @@ async def _list_all(client: ClientLike) -> list[Tool]:
 
 
 def _resolve(future: asyncio.Future, value: object) -> None:
-    """Deliver, unless the caller already gave up.
-
-    A caller whose own wait expired leaves a cancelled future behind; setting a
-    result on it would raise and kill the owner task for someone else's timeout.
-    """
+    """Deliver, unless the caller already gave up."""
     if not future.done():
         future.set_result(value)
 
@@ -280,7 +229,6 @@ def _fail(future: asyncio.Future, error: BaseException) -> None:
     if not future.done():
         future.set_exception(error)
     else:
-        # Retrieved so the "never retrieved" warning does not fire for an
-        # exception nobody is waiting for any more.
+        # asyncio warns "exception was never retrieved" unless someone reads it.
         with contextlib.suppress(BaseException):
             future.exception()

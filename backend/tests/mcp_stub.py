@@ -1,13 +1,4 @@
-"""A real stdio MCP server, for the one test that uses the real SDK.
-
-Run as a subprocess: `[sys.executable, "-u", <this file>]`. Everything else
-mocks at `ClientLike`, because the loop's contracts are about tasks and timeouts,
-not about the wire.
-
-`STUB_MODE=deaf` initializes normally and then never answers — which is how
-"accepts connections but stops answering" is testable with no network and no
-wedged server to find.
-"""
+"""A real stdio MCP server, for the one test that uses the real SDK."""
 
 from __future__ import annotations
 

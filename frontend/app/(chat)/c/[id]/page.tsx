@@ -7,14 +7,7 @@ import { QueuedBubble } from "@/components/Message";
 import { Timeline } from "@/components/Timeline";
 import { useConversation, useTimeline } from "@/lib/useConversation";
 
-/**
- * One conversation.
- *
- * Everything here is driven by `useConversation`, which fetches the snapshot and
- * then subscribes from its cursor. Landing on this page is the same code path
- * whether you just sent the first message, refreshed mid-turn, or came back
- * tomorrow — which is why refresh-mid-turn needs no special handling.
- */
+/** One conversation. */
 export default function ConversationPage({
   params,
 }: {
@@ -28,10 +21,6 @@ export default function ConversationPage({
     <>
       <header className="flex items-center gap-3 border-b border-line px-6 py-3">
         <h1 className="min-w-0 truncate text-sm font-medium">
-          {/* The stored title is stamped at the opening turn's first flush, so a
-              conversation created moments ago has none yet. Its first message is
-              already on screen — falling back to it beats showing "Untitled"
-              next to the very text it would have been made from. */}
           {conversation.title || openingMessage || "Untitled"}
         </h1>
         {conversation.running && (
@@ -39,9 +28,6 @@ export default function ConversationPage({
             working
           </span>
         )}
-        {/* Compaction is its own run, so it cannot start while a turn is in
-            flight — the button is disabled then, like the composer's stop is
-            its inverse. */}
         <button
           type="button"
           onClick={() => void conversation.compact()}
@@ -59,10 +45,6 @@ export default function ConversationPage({
         ) : (
           <>
             <Timeline items={items} onAnswered={conversation.wake} />
-            {/* Below the timeline rather than inside it: the timeline renders the
-                session log, and these are precisely the messages that are not in
-                it yet. Mixing them in would blur the one thing that makes a
-                replayed conversation and a live one identical. */}
             {conversation.queued.length > 0 && (
               <div className="flex flex-col gap-3 px-6 pb-4">
                 {conversation.queued.map((text, index) => (

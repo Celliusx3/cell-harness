@@ -1,17 +1,4 @@
-"""Skills read from ranked directories on disk.
-
-Every call rescans the roots. That sounds expensive and is not: a root's listing
-plus one `stat` per `SKILL.md`, and a file whose `(mtime, size)` has not moved
-is served from the last parse. It is what makes a skill copied into a root
-appear at the next step with no watcher, no debounce, and no "a directory
-created after startup needs a restart" hole — the limitation Claude Code
-documents for its watcher-based design.
-
-Ranked: the first root to hold a name wins, and the shadowed copy is reported
-rather than silently dropped. A root that cannot be listed keeps contributing
-whatever it last held — incomplete is not empty, and one unmounted directory
-must not take every other root's skills out of the catalog with it.
-"""
+"""Skills read from ranked directories on disk."""
 
 from __future__ import annotations
 
@@ -34,18 +21,10 @@ logger = logging.getLogger("harness.skills")
 
 
 class SkillCatalog:
-    """Every skill under a ranked list of roots, read afresh on each call.
-
-    Not a skill: the thing that finds them. Built once with the roots at
-    startup; called on every request to get the current `SkillSnapshot`.
-
-    A `SkillSnapshot` is the unit at every level — one file yields one with zero or
-    one skill, one root yields one with many, and the call merges them.
-    """
+    """Every skill under a ranked list of roots, read afresh on each call."""
 
     def __init__(self, roots: Sequence[Path]) -> None:
         self._roots = tuple(roots)
-        # Per file: the (mtime_ns, size) it was parsed at, and what it yielded.
         self._parsed: dict[Path, tuple[tuple[int, int], SkillSnapshot]] = {}
         self._last_good: dict[Path, SkillSnapshot] = {}
         self._failing: set[Path] = set()
@@ -74,7 +53,6 @@ class SkillCatalog:
 
     def _scan(self, root: Path) -> SkillSnapshot:
         if not root.is_dir():
-            # `~/.agents/skills` usually does not exist. Nothing to say.
             return SkillSnapshot()
         try:
             entries = sorted(entry for entry in root.iterdir() if entry.is_dir())
@@ -129,7 +107,6 @@ def _read(root: Path, entry: Path) -> SkillSnapshot:
     front = parsed.frontmatter
     notes: list[SkillProblem] = []
     if front.name is not None and front.name != entry.name:
-        # Loaded anyway, under the directory's name — the spec's lenient rule.
         notes.append(
             SkillProblem(
                 path=file,
@@ -162,9 +139,5 @@ def _problem(file: Path, problem: str) -> SkillSnapshot:
 
 
 def read_body(skill: Skill) -> str:
-    """The instructions, read now — not when the catalog was built.
-
-    A body edit therefore shows at the next activation with no catalog change:
-    the "separate lifecycles" contract from PHASES.md.
-    """
+    """The instructions, read now — not when the catalog was built."""
     return parse((skill.dir / SKILL_FILE).read_text(encoding="utf-8")).body

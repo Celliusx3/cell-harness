@@ -1,5 +1,4 @@
-"""The library seam with stub factories: which attribute is read for which
-question, how the lazy `fast_info` is handled, and what a raise becomes."""
+"""The yfinance seam with stub factories."""
 
 from __future__ import annotations
 
@@ -111,10 +110,10 @@ async def test_financials_pick_the_attribute_for_the_statement_and_period(
 ) -> None:
     src, _ = source()
 
-    out = await src.financials(parse("1155.KL"), statement, period, 2)  # type: ignore[arg-type]
+    out = await src.financials(parse("1155.KL"), statement, period, 2)
 
     assert out.status == status
-    assert out.currency == "MYR"  # financialCurrency, the one that labels statements
+    assert out.currency == "MYR"
 
 
 async def test_news_reads_the_news_attribute() -> None:

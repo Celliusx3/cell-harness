@@ -1,19 +1,4 @@
-"""The seam between the tools and where market data comes from.
-
-Two rules copied from ai-hedge-fund's `DataClient` protocol, because they are
-the difference between a result the model can trust and one it cannot:
-
-- **Empty means "no data".** An unknown ticker or a coin with no statements is
-  a `not_found` status on a normal result.
-- **Infrastructure failure raises.** A dead network or a rate limit is
-  `Unavailable` / `RateLimited`, and the tool layer decides whether that sinks
-  the whole call (one id asked) or one item (a batch).
-
-Both live sources — yfinance for listed equities, CoinGecko for coins — satisfy
-the same Protocol, so the tools route on the id and nothing else. A question a
-source cannot answer (statements for a coin) is an `unsupported` status with a
-detail, so the routing needs no special cases.
-"""
+"""The seam between the tools and where market data comes from."""
 
 from __future__ import annotations
 

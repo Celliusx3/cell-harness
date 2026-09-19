@@ -1,12 +1,4 @@
-"""The composition root, and nothing else.
-
-Deliberately thin, matching the harness's own `web/server.py`. The tools live
-in `tools/`, the sources in `data/`, `coingecko/` and `edgar/`.
-
-**Nothing may be printed to stdout.** stdout is the MCP protocol; logging goes
-to stderr, which the harness attaches to its own. yfinance logs through the
-standard `logging` module, so it lands there too.
-"""
+"""The composition root, and nothing else."""
 
 from __future__ import annotations
 
@@ -65,5 +57,5 @@ def main() -> None:
     ).run(transport="stdio")
 
 
-if __name__ == "__main__":  # pragma: no cover - exercised by tests/integration
+if __name__ == "__main__":  # pragma: no cover
     main()

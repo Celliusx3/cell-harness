@@ -1,10 +1,4 @@
-"""A fake sandbox and a recording dispatcher for the code-mode tools.
-
-`FakeRunner` subclasses `Runner` and `RecordingDispatcher` subclasses
-`ToolDispatcher` rather than duck-typing them: a signature that drifts from the
-real one would otherwise leave the tests passing against a shape that no longer
-exists.
-"""
+"""A fake sandbox and a recording dispatcher for the code-mode tools."""
 
 from __future__ import annotations
 
@@ -42,12 +36,7 @@ def tool(name: str, description: str = "A tool.", schema: object | None = None) 
 
 @dataclass
 class FakeRunner(Runner):
-    """Stands in for Deno. `script` decides what one run does with the bridge.
-
-    Subclasses `Runner` rather than duck-typing it: a signature that drifts from
-    the real runner would otherwise leave these tests passing against a shape
-    that no longer exists.
-    """
+    """Stands in for Deno."""
 
     script: Callable[[Bridge], object] | None = None
     outcome: Script = field(default_factory=lambda: Script(result="ok"))
@@ -66,12 +55,7 @@ class FakeRunner(Runner):
 
 
 class RecordingDispatcher(ToolDispatcher):
-    """A real dispatcher that remembers what it was asked to run.
-
-    A subclass rather than a stand-in callable: `code_mode_tools` takes the
-    concrete type, so this is what keeps the fake honest — an override whose
-    signature drifts stops compiling against the real one.
-    """
+    """A real dispatcher that remembers what it was asked to run."""
 
     def __init__(self, registry: ToolRegistry) -> None:
         super().__init__(registry)

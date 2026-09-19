@@ -1,17 +1,4 @@
-"""SEC filings from EDGAR's JSON APIs — US listings only.
-
-Two hosts, both free and public domain: `www.sec.gov/files/company_tickers.json`
-maps a ticker to a CIK (10k rows, fetched once per process), and
-`data.sec.gov/submissions/CIK##########.json` lists a company's recent filings
-as parallel arrays. The fair-access rules are a declared `User-Agent` and at
-most 10 requests a second; a bare client gets 403 (verified live), which is
-why the agent string is a startup requirement.
-
-Not XBRL. `companyfacts` is multi-megabyte per company and needs a us-gaap tag
-mapping to mean anything; statements come from Yahoo instead. What EDGAR adds
-is the authoritative list *with a URL per filing* — the thing a research
-answer can cite.
-"""
+"""SEC filings from EDGAR's JSON APIs — US listings only."""
 
 from __future__ import annotations
 

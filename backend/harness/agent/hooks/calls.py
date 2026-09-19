@@ -1,16 +1,4 @@
-"""The turn so far, as a hook reads it.
-
-A hook is asked about one call with only the session in hand, and the session
-is a flat list of every event — chunks, boundaries, messages. What a hook wants
-is "the calls made this turn, and how each went". `completed_calls` is that
-reduction: one pass that pairs each `tool/call` with its `tool/result` and keeps
-what a hook compares on — the tool, its arguments spelled canonically, whether
-it failed, and what it said. What a hook then counts is its own business.
-
-Nothing is kept between calls: every question re-folds from the log. That is
-what makes the guardrail a fold and not a counter — restart mid-turn, reload
-the log, and the next answer is the same.
-"""
+"""The turn so far, as a hook reads it."""
 
 from __future__ import annotations
 
@@ -25,8 +13,7 @@ from harness.tools.definition import BLOCKED
 
 @dataclass(frozen=True)
 class CompletedCall:
-    """One call of this turn, joined with its result: two fields from the
-    `tool/call`, two from the `tool/result`."""
+    """One call of this turn, joined with its result."""
 
     name: str
     args: str
@@ -57,8 +44,7 @@ class Signature:
 
 
 def normalise(arguments: str) -> str:
-    """The same arguments spelled the same way, whatever the model's key order
-    or whitespace. Empty means `{}`, as `ToolDefinition.invoke` reads it."""
+    """The same arguments spelled the same way, whatever the model's key order or whitespace."""
     if not arguments.strip():
         return "{}"
     try:
@@ -68,12 +54,7 @@ def normalise(arguments: str) -> str:
 
 
 def completed_calls(session: Session) -> tuple[CompletedCall, ...]:
-    """The current turn's calls that have their result, oldest first.
-
-    Not including the call being decided, which has no result yet; each hook
-    counts that one itself. A refusal of the guardrail's own is left out too,
-    so refusing never inflates the count that caused it.
-    """
+    """The current turn's calls that have their result, oldest first."""
     pending: dict[str, ToolCall] = {}
     completed: list[CompletedCall] = []
     for event in session.events():

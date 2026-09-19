@@ -1,6 +1,4 @@
-"""Prompt text is code. Same guards as the other servers', plus the nested
-row models — `rows[0].close` is what a script indexes, so a row field the
-prose does not name is as invisible as a top-level one."""
+"""Prompt text is code."""
 
 from __future__ import annotations
 
@@ -72,8 +70,6 @@ def test_history_names_every_allowed_period_and_interval(value: str) -> None:
 
 
 def test_search_teaches_the_two_id_shapes_that_are_not_tickers() -> None:
-    """The two live failures behind the vocabulary: MAYBANK is not an id,
-    BTC is not an id."""
     assert "1155.KL" in d.SEARCH and "MAYBANK is not an id" in d.SEARCH
     assert "crypto:bitcoin" in d.SEARCH and "BTC is not an id" in d.SEARCH
 

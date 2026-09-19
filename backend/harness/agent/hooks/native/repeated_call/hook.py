@@ -19,21 +19,20 @@ REPEATED_CALL_NOTE = (
 
 @dataclass(frozen=True)
 class RepeatedCallHook(ToolHook):
-    """The same call, over and over, whatever it returns. Advisory only; the
-    decision stays with the model."""
+    """The same call, over and over, whatever it returns."""
 
     notes_at: tuple[int, ...] = REPEATED_CALL_NOTES
 
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
-        return None  # never refuses
+    async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
+        return None
 
     async def post(
-        self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
+        self, sig: Signature, outcome: ToolOutcome, prior: Sequence[CompletedCall]
     ) -> str | None:
         if not isinstance(outcome, Ok):
             return None
-        n = 1  # this call
-        for entry in reversed(calls):
+        n = 1
+        for entry in reversed(prior):
             if not sig.matches(entry) or entry.failed:
                 break
             n += 1

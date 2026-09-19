@@ -18,9 +18,6 @@ def store(tmp_path) -> SessionService:
     return durable_service(tmp_path / "sessions", prefix="s")
 
 
-# ── create and flush ──────────────────────────────────────────────────────────
-
-
 async def test_a_created_session_is_not_stored_until_it_has_something(store) -> None:
     await store.create()
 
@@ -41,13 +38,12 @@ async def test_flush_makes_the_log_durable(store) -> None:
 
 
 async def test_flushing_twice_writes_nothing_the_second_time(store) -> None:
-    """The cursor is what keeps `flush` cheap enough to call every request."""
     session = await store.create()
     session.append(TurnStart(turn=0))
     session.append(TurnEnd(turn=0, reason="completed"))
     await store.flush(session)
 
-    await store.flush(session)  # would raise on a non-continuing batch
+    await store.flush(session)
 
     resumed = await store.resume("s0")
     assert len(resumed.events()) == 2
@@ -65,12 +61,7 @@ async def test_flush_appends_only_the_tail(store) -> None:
     assert len((await store.resume("s0")).events()) == 3
 
 
-# ── the checkpoint, driven by a real turn ─────────────────────────────────────
-
-
 async def test_a_turn_is_durable_before_its_request_is_sent(store) -> None:
-    """The point of the checkpoint: a crash must never leave a reply to a
-    question the log cannot show."""
     seen: list[int] = []
     client = ScriptedClient(completed("hello"))
 
@@ -81,7 +72,6 @@ async def test_a_turn_is_durable_before_its_request_is_sent(store) -> None:
     session = await store.create()
     await drain(loop_agent(client, checkpoint=checkpoint).run("hi", session=session))
 
-    # Checkpointed once, after turn/start + user/message + step/start.
     assert seen == [3]
     stored = await store.resume("s0")
     assert any(isinstance(e, UserMessageEvent) for e in stored.events())
@@ -93,7 +83,6 @@ async def test_a_turn_survives_the_process_it_ran_in(store, tmp_path) -> None:
     await drain(loop_agent(client, checkpoint=store.flush).run("what is it?", session=session))
     await store.flush(session)
 
-    # A brand-new store over the same directory — nothing shared in memory.
     reopened = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     resumed = await reopened.resume("s0")
 

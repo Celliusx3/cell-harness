@@ -1,10 +1,4 @@
-"""The model's only documentation.
-
-Same three constraints as the Instagram server's, all from the harness's
-TypeScript printer: descriptions are collapsed to one line, argument `Field`
-descriptions are invisible, and the return type prints as `Promise<unknown>`. So
-each is one dense paragraph naming every argument and every returned field.
-"""
+"""The model's only documentation."""
 
 from __future__ import annotations
 
@@ -26,18 +20,6 @@ SEARCH_DESCRIPTION = (
     "right thing to hand a person: there is no API that can add a place to their saved list."
 )
 
-# "Send a CLEAN query" and the nasi-lemak example: Google's own docs say Text
-# Search is "not intended for ambiguous queries" and list "too many concepts or
-# constraints" and "unofficial or vanity names". Verified against public
-# geocoders too — one non-indexed descriptor took a working query to 0 results.
-# Without this paragraph the model pastes the whole reel description in.
-#
-# "An @handle ... makes an excellent query": measured. A live reel's caption
-# carried "📍 @natalinaitalian", which is the venue's real name.
-#
-# "there is no API that can add a place to their saved list": stops the model
-# offering to save it. The My Maps write API died in Jan 2011 and `place/add` in
-# June 2018; the feature request has been open since 2010.
 
 DETAILS_DESCRIPTION = (
     "Get opening hours, rating, website and phone for ONE place you have already chosen. "
@@ -49,8 +31,3 @@ DETAILS_DESCRIPTION = (
     "does. If you are unsure between candidates, show them to the person with their addresses and "
     "let them pick."
 )
-
-# "only after you have settled on a single candidate": Place Details is a
-# separate SKU at a higher tier than Text Search, so fanning it out across
-# candidates is the expensive mistake. The last sentence gives the model
-# something to do instead, because "don't" alone left it calling details anyway.

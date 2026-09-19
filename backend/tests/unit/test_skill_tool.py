@@ -1,5 +1,4 @@
-"""The `skill` tool: an enum of what exists, the index in its description, the
-body as its result — and nothing at all when there is nothing to load."""
+"""The `skill` tool."""
 
 from __future__ import annotations
 

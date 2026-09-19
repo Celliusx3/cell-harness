@@ -1,12 +1,4 @@
-"""Which skills a conversation has loaded, so a summary can carry them across.
-
-A loaded skill is behavioural guidance, not data: losing it mid-conversation
-degrades the agent with no visible error (the Agent Skills spec's compaction
-rule). Two shapes put a body in the log — the `skill` tool's result, and a
-`/name` message the gateway expanded in place — and both open with the same
-tag, so one fold finds them. The last body per name wins: a skill edited and
-reloaded is re-attached as last read.
-"""
+"""Which skills a conversation has loaded, so a summary can carry them across."""
 
 from __future__ import annotations
 
@@ -17,12 +9,11 @@ from harness.session.models import SessionEvent, ToolCallEvent, ToolResultEvent,
 from harness.skills import SKILL
 from harness.skills.invocation import MARKER, display
 
-_TAG = MARKER.lstrip()  # `<skill name="`
+_TAG = MARKER.lstrip()
 
 
 def _name(body: str) -> str | None:
-    """The name in a body's opening tag, or `None` for text that is not one —
-    a `skill` call with `path` answers `<skill_file …>`, not a body."""
+    """The name in a skill body's opening tag, or `None` for text that is not one."""
     if not body.startswith(_TAG):
         return None
     name, quote, _ = body[len(_TAG) :].partition('"')
@@ -30,8 +21,7 @@ def _name(body: str) -> str | None:
 
 
 def retained_skills(events: Sequence[SessionEvent]) -> tuple[tuple[str, str], ...]:
-    """`(name, body)` for every skill loaded so far, last body per name, in
-    the order first loaded."""
+    """`(name, body)` per skill loaded so far, last body per name, in load order."""
     calls: dict[str, str] = {}
     bodies: dict[str, str] = {}
     for event in events:

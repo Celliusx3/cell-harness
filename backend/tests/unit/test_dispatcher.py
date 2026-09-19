@@ -1,8 +1,4 @@
-"""Running the tool a call names.
-
-Split from `test_tools.py`, where these reached dispatch through the object that
-decides what the model is *shown* — two jobs one class used to do.
-"""
+"""Running the tool a call names."""
 
 from __future__ import annotations
 
@@ -29,8 +25,6 @@ async def test_a_known_tool_runs() -> None:
 
 
 async def test_an_unknown_tool_is_a_failure_that_names_the_alternatives() -> None:
-    """Acceptance: an unknown tool returns a Failure, not an exception. Naming
-    what *is* available turns a dead end into a correction the caller can act on."""
     outcome = await dispatcher(echo_tool()).dispatch(call("nope"), progress=no_progress)
 
     assert isinstance(outcome, Failure)

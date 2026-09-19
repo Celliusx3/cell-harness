@@ -1,8 +1,4 @@
-"""One turn at a time, stopping it, and a whole one end to end — over HTTP.
-
-The same in-process transport as `test_web.py`, with the same limit: every
-stream read here is of a stream that ends.
-"""
+"""One turn at a time, stopping it, and a whole one end to end — over HTTP."""
 
 from __future__ import annotations
 
@@ -22,13 +18,8 @@ from tests.unit.fakes import (
 from tests.unit.helpers import no_skills, until
 from tests.webapp import web_app
 
-# ── one turn at a time ────────────────────────────────────────────────────────
-
 
 async def test_a_second_message_while_running_is_queued(slow) -> None:
-    """It used to be a `409`. Refusing makes someone retype what they wrote, and
-    Telegram never could refuse — a phone has no composer to grey out — so the two
-    channels answered this differently until the browser became a channel too."""
     client, _, runs = slow
     conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
 
@@ -42,14 +33,6 @@ async def test_a_second_message_while_running_is_queued(slow) -> None:
 
 
 async def test_a_queued_message_does_not_repair_the_running_turn(slow) -> None:
-    """Why the busy check happens *before* the load, not only after.
-
-    Loading for writing calls `resume`, which commits crash repair — and a running
-    turn legitimately has a dispatched call with no result yet. Resuming
-    underneath it would append a synthetic "outcome unknown" for a tool still
-    executing, and the real result would land beside it: two answers to one call,
-    in an append-only log.
-    """
     client, service, runs = slow
     conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
     session = runs.active(conversation_id).session
@@ -66,14 +49,6 @@ async def test_a_queued_message_does_not_repair_the_running_turn(slow) -> None:
 
 
 async def test_two_simultaneous_messages_start_exactly_one_turn(simple, monkeypatch) -> None:
-    """Both requests get past the pre-check, so the post-check has to catch one.
-
-    The interleaving is **forced**, not hoped for. Left to chance, both requests
-    serialize and the second is refused by the *pre*-check — which passes this
-    assertion while never exercising the branch it is about. So both are parked
-    inside the session load until each has cleared the pre-check, and only then
-    released to race for `start()`.
-    """
     client, service, runs = simple
     conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
     await settle(runs, conversation_id)
@@ -101,25 +76,15 @@ async def test_two_simultaneous_messages_start_exactly_one_turn(simple, monkeypa
 
     responses = await asyncio.gather(first, second)
 
-    # Both are accepted now; exactly one starts a turn and the other is queued.
     assert [r.status_code for r in responses] == [202, 202]
     assert sorted(r.json()["queued"] for r in responses) == [False, True]
     await settle(runs, conversation_id)
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
-    # The opening message, the one that won the race, and the queued one drained
-    # after it — nothing is lost, which is the point of queueing over refusing.
     prompts = [e["message"]["content"] for e in detail["events"] if e["type"] == "user/message"]
     assert prompts == ["hi", "a", "b"] or prompts == ["hi", "b", "a"]
 
 
 async def test_a_stream_follows_the_turn_queued_behind_the_one_it_watched(tmp_path) -> None:
-    """The bug: send while streaming, and the answer only appears on refresh.
-
-    A queued message is drained into a *new* run when the watched one settles.
-    A stream bound to the first run said `end` right then, the browser parked on
-    it, and nothing ever woke it. The stream must follow the conversation across
-    the drain: both turns, one cursor, one `end` — when nothing is left.
-    """
     release = asyncio.Event()
     service, runs = build(
         tmp_path,
@@ -151,23 +116,17 @@ async def test_a_stream_follows_the_turn_queued_behind_the_one_it_watched(tmp_pa
         assert prompts == ["go", "again"]
         assert [e["reason"] for e in seen if e["type"] == "turn/end"] == ["completed", "completed"]
         assert frame_names(body)[-1] == "end"
-        # One cursor across two runs: nothing repeated, nothing skipped.
         await settle(runs, conversation_id)
         assert len(seen) == len((await service.read(conversation_id)).events())
 
 
 async def test_a_corrupt_log_reports_the_file_it_could_not_read(simple, tmp_path) -> None:
-    """Not the client's fault, so a 500 — but one that names the file.
-
-    The message carries the path and line an operator needs, so it is passed
-    through whole rather than collapsed into a bare "internal server error".
-    """
     client, _, runs = simple
     conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
     await settle(runs, conversation_id)
     log = tmp_path / "sessions" / f"{conversation_id}.jsonl"
     lines = log.read_text().splitlines()
-    lines[1] = "{not json"  # a committed line, not the tail
+    lines[1] = "{not json"
     log.write_text("\n".join(lines) + "\n")
 
     response = await client.get(f"/api/conversations/{conversation_id}")
@@ -192,9 +151,6 @@ async def test_a_conversation_accepts_another_message_once_it_settles(simple) ->
         "completed",
         "completed",
     ]
-
-
-# ── stopping ──────────────────────────────────────────────────────────────────
 
 
 async def test_stopping_ends_the_turn_and_answers_every_call(slow) -> None:
@@ -225,7 +181,6 @@ async def test_stopping_an_idle_conversation_is_a_404(simple) -> None:
 
 
 async def test_a_stream_open_when_a_turn_is_stopped_is_released(slow) -> None:
-    """A watching client must be told the turn ended, not left hanging."""
     client, _, runs = slow
     conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
     session = runs.active(conversation_id).session
@@ -244,9 +199,6 @@ async def test_a_stream_open_when_a_turn_is_stopped_is_released(slow) -> None:
     body = await asyncio.wait_for(watching, timeout=5)
     assert frame_names(body)[-1] == "end"
     assert [e["reason"] for e in events_from(body) if e["type"] == "turn/end"] == ["cancelled"]
-
-
-# ── a full turn, end to end ───────────────────────────────────────────────────
 
 
 async def test_a_tool_using_turn_reaches_the_client(tmp_path) -> None:
@@ -268,7 +220,6 @@ async def test_a_tool_using_turn_reaches_the_client(tmp_path) -> None:
 
 
 async def test_shutdown_stops_a_running_turn_durably(tmp_path) -> None:
-    """A turn in flight when the server stops stays resumable."""
     service, runs = build(
         tmp_path, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool()
     )
@@ -286,7 +237,7 @@ async def test_shutdown_stops_a_running_turn_durably(tmp_path) -> None:
             what="the tool to be dispatched",
         )
 
-    await runs.aclose()  # what the lifespan's shutdown does
+    await runs.aclose()
 
     stored = await service.read(conversation_id)
     assert [e.reason for e in stored.events() if e.type == "turn/end"] == ["cancelled"]

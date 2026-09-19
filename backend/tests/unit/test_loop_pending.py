@@ -1,11 +1,4 @@
-"""A turn that ends because the person must answer, and the turn that answers it.
-
-A client tool does not compute: its outcome is `Pending`, and the loop ends
-the turn there with no result for the call. Later, `resume` opens a new turn
-with that result; or `run` opens one with a user message and first answers
-the dangling call as skipped — a provider refuses a history with a call and
-no result, so that line is not optional.
-"""
+"""A turn that ends because the person must answer, and the turn that answers it."""
 
 from __future__ import annotations
 
@@ -40,12 +33,10 @@ async def test_a_pending_tool_ends_the_turn_without_a_result() -> None:
     assert not any(isinstance(e, ToolResultEvent) for e in session.events())
     assert [type(e).__name__ for e in events[-2:]] == ["ToolPending", "AgentPending"]
     assert events[-1] == AgentPending(tool_call_id="c1", name="ask")
-    assert client.calls == 1  # the model was not asked again
+    assert client.calls == 1
 
 
 async def test_a_parallel_ordinary_call_still_gets_its_result() -> None:
-    """The model may ask for a location and a clock in one step. Only the
-    client's call is left open; the other is answered and logged as ever."""
     calls = (
         ToolCall(id="c1", name="echo", arguments='{"value": "42"}'),
         ToolCall(id="c2", name="ask", arguments='{"value": "?"}'),
@@ -81,7 +72,6 @@ async def test_resume_opens_a_turn_with_the_result_and_the_model_sees_it_in_orde
     assert types[-3:] == ["assistant/message", "step/end", "turn/end"]
     assert session.events()[-1] == TurnEnd(turn=1, reason="completed")
     assert events[-1] == AgentCompleted(text="cafés nearby")
-    # The wire: the assistant's request, then its result, then nothing else new.
     seen = client.seen_per_call[-1]
     assert isinstance(seen[-2], AssistantMessage) and seen[-2].tool_calls[0].id == "c1"
     assert seen[-1] == ToolMessage(tool_call_id="c1", content=Ok(content='{"lat": 3.1}').content)
@@ -100,7 +90,7 @@ async def test_a_new_message_first_answers_the_dangling_call_as_skipped() -> Non
     skipped = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert skipped.error == SKIPPED
     assert skipped.message.tool_call_id == "c1"
-    assert skipped.turn == 0  # stamped with the call it answers, not the new turn
+    assert skipped.turn == 0
     types = _types(session)
     assert types[types.index("tool/result") + 1 :][:2] == ["turn/start", "user/message"]
     seen = client.seen_per_call[-1]
@@ -109,7 +99,7 @@ async def test_a_new_message_first_answers_the_dangling_call_as_skipped() -> Non
         "ToolMessage",
         "UserMessage",
     ]
-    assert "continued without answering" in seen[-2].content[0].text  # type: ignore[union-attr]
+    assert "continued without answering" in seen[-2].content[0].text
 
 
 async def test_an_ordinary_turn_writes_no_skips() -> None:

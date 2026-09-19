@@ -29,8 +29,6 @@ from tests.unit.helpers import drain, loop_agent, new_session, unanswered_calls
 
 
 async def test_prompt_to_tool_to_answer() -> None:
-    """Acceptance: prompt → model → tool call → result → model → answer, with
-    every durable event in the log in order."""
     client = SteppedClient(
         calls_tool("echo", '{"value": "42"}', text="Let me check. "),
         completed("The answer is 42."),
@@ -46,7 +44,6 @@ async def test_prompt_to_tool_to_answer() -> None:
         "TextChunk",
         "AgentCompleted",
     ]
-    # Preamble from step 0 survives into the final answer.
     assert events[-1] == AgentCompleted(text="Let me check. The answer is 42.")
 
     kinds = [e.type for e in session.events()]
@@ -54,9 +51,9 @@ async def test_prompt_to_tool_to_answer() -> None:
         "turn/start",
         "user/message",
         "step/start",
-        "assistant/chunk",  # the preamble text
-        "assistant/chunk",  # the tool-call chunk
-        "assistant/chunk",  # the Completed terminal
+        "assistant/chunk",
+        "assistant/chunk",
+        "assistant/chunk",
         "assistant/message",
         "tool/call",
         "tool/result",
@@ -72,8 +69,6 @@ async def test_prompt_to_tool_to_answer() -> None:
 
 
 async def test_the_tool_result_reaches_the_model_via_the_log() -> None:
-    """The discipline: step 1's request is derived, so the result got there by
-    being logged rather than by the loop threading it."""
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
     session = new_session()
 
@@ -99,8 +94,6 @@ async def test_tool_schemas_reach_the_wire_each_step() -> None:
 
 
 async def test_an_agent_with_no_tools_sends_none_not_an_empty_list() -> None:
-    """Some providers reject `"tools": []`, and it says something different from
-    "no tools available"."""
     client = SteppedClient(completed("hi"))
     bare = LoopAgent(name="t", model="m", client=client)
 
@@ -110,7 +103,6 @@ async def test_an_agent_with_no_tools_sends_none_not_an_empty_list() -> None:
 
 
 async def test_progress_interleaves_and_the_result_always_comes_last() -> None:
-    """Acceptance: progress arrives during the call, never after the result."""
     client = SteppedClient(calls_tool("slow", '{"value": "done"}'), completed("ok"))
     session = new_session()
     tool = reporting_tool([(10.0, "starting"), (90.0, "nearly")])
@@ -119,14 +111,11 @@ async def test_progress_interleaves_and_the_result_always_comes_last() -> None:
 
     progress = [e for e in events if isinstance(e, ToolProgress)]
     assert [(p.percent, p.message) for p in progress] == [(10.0, "starting"), (90.0, "nearly")]
-    # Every progress event precedes the single result for that call.
     result_at = next(i for i, e in enumerate(events) if isinstance(e, ToolResult))
     assert all(events.index(p) < result_at for p in progress)
 
 
 async def test_progress_is_not_logged() -> None:
-    """A progress reading is neither durable nor a fact about the conversation,
-    so a replayed turn has none and consumers must tolerate that."""
     client = SteppedClient(calls_tool("slow", '{"value": "done"}'), completed("ok"))
     session = new_session()
 
@@ -136,8 +125,6 @@ async def test_progress_is_not_logged() -> None:
 
 
 async def test_a_tool_bound_to_an_app_logs_the_binding_but_never_shows_the_model() -> None:
-    """`ui` is presentation: it rides the `tool/result` event because the browser
-    renders from the log, and stays out of the message the model is given."""
     ui = ToolUi(server="srv", resource_uri="ui://srv/app.html", data={"rows": 3})
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
@@ -157,8 +144,6 @@ async def test_a_tool_bound_to_an_app_logs_the_binding_but_never_shows_the_model
 
 
 async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:
-    """The guardrail counts by identity; a string prefix would make a tool that
-    phrased its error differently invisible to it."""
     client = SteppedClient(calls_tool("echo", "{bad json"), completed("recovered"))
     session = new_session()
 
@@ -167,7 +152,6 @@ async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == "INVALID_ARGUMENTS"
     assert result.message.text.startswith("error: ")
-    # The turn recovers: the model gets another step and answers.
     assert isinstance(events[-1], AgentCompleted)
 
 
@@ -184,7 +168,6 @@ async def test_steps_are_numbered_within_their_turn() -> None:
 
 
 async def test_assistant_message_carries_the_calls_it_requested() -> None:
-    """Derived history must reproduce the pairing, or the provider rejects it."""
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
     session = new_session()
 
@@ -218,8 +201,6 @@ async def test_two_calls_in_one_step_both_settle() -> None:
 
 
 async def test_the_executor_receives_a_parsed_model_not_a_raw_dict() -> None:
-    """`from_model` derives the parser from the same class as the schema, so a
-    tool body works with typed values rather than re-validating a dict."""
     seen: list[EchoArgs] = []
 
     async def execute(args, context):
@@ -237,8 +218,6 @@ async def test_the_executor_receives_a_parsed_model_not_a_raw_dict() -> None:
 
 
 async def test_arguments_the_schema_rejects_never_reach_the_executor() -> None:
-    """Validation is the boundary: a tool body must never see input its own
-    model would refuse. Pydantic does not coerce an int into a str."""
     seen: list[EchoArgs] = []
 
     async def execute(args, context):
@@ -251,11 +230,10 @@ async def test_arguments_the_schema_rejects_never_reach_the_executor() -> None:
     events = await drain(loop_agent(client, typed).run("q", session=new_session()))
 
     assert seen == []
-    assert isinstance(events[-1], AgentCompleted)  # the model gets to try again
+    assert isinstance(events[-1], AgentCompleted)
 
 
 async def test_text_only_turns_still_work() -> None:
-    """Phase 1's behaviour must survive phase 2."""
     client = SteppedClient(completed("just talking"))
     session = new_session()
 
@@ -266,9 +244,6 @@ async def test_text_only_turns_still_work() -> None:
 
 
 async def test_a_tool_is_told_which_call_it_is_running() -> None:
-    """`context.call_id` is the model's id for the call — what a `tool/result`
-    is matched to, and what a tool whose answer arrives from outside the
-    process parks on. It must be the loop's id, not one the tool invents."""
     seen: list[str] = []
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:

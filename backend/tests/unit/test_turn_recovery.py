@@ -1,6 +1,4 @@
-"""What `drive` commits to around an overflow: the refused step's shape, the
-text on screen when the recovery itself is cut short, and which failures are
-never retried."""
+"""What `drive` commits to around an overflow."""
 
 from __future__ import annotations
 

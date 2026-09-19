@@ -1,5 +1,4 @@
-"""`/name` at the gateway: expanded before the turn starts, refused before it
-queues, and re-expanded when a queued one drains."""
+"""`/name` at the gateway."""
 
 from __future__ import annotations
 

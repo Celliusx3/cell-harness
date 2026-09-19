@@ -1,14 +1,4 @@
-"""CoinGecko's shapes into ours. Pure, like `data/mapping.py`.
-
-Shapes read live on 2026-09-14: `/search` → `coins[{id,name,symbol,
-market_cap_rank}]`; `/coins/markets` → one dict per coin with `current_price`,
-`high_24h`, `price_change_percentage_24h`, `last_updated`; `/coins/{id}` →
-`market_data` with per-currency dicts; `/coins/{id}/market_chart` → `prices`
-and `total_volumes` as `[[ms, value]]` pairs, hourly under 90 days and daily
-above. There are no candles at a fixed interval on the free plan, so bars are
-built here: the last point of each UTC day is that day's close, and weekly or
-monthly bars are the last day of their bucket. `open/high/low` stay null.
-"""
+"""CoinGecko's shapes into ours."""
 
 from __future__ import annotations
 
@@ -46,8 +36,6 @@ def candidates(coins: Sequence[Mapping[str, Any]]) -> list[Candidate]:
         out.append(
             Candidate(
                 id=f"{CRYPTO_PREFIX}{coin_id}",
-                # The symbol rides in the name because it is how people refer to
-                # a coin, and it is *not* the id: BTC is bitcoin, not the id.
                 name=f"{name} ({symbol})" if symbol else name,
                 exchange="",
                 kind="crypto",

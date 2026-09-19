@@ -1,13 +1,4 @@
-"""Which provider errors the loop can do something about.
-
-One today: the request was too big for the model's context. Providers say it in
-different shapes — OpenAI, vLLM and ilmu's proxy set `error.code` to
-`context_length_exceeded`; LM Studio answers `{"error": "Context length
-exceeded"}`, a bare string. Both were observed on 2026-09-16; both are matched
-exactly. Anything else is `None`: ilmu's chat models refuse an oversized
-request with a generic `invalid_request`, and a classifier that read "invalid"
-as "too long" would compact a conversation over a malformed tool schema.
-"""
+"""Which provider errors the loop can do something about."""
 
 from __future__ import annotations
 

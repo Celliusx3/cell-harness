@@ -1,14 +1,4 @@
-"""Which tool results to clear before anything is summarized.
-
-Tool results are the bulk of a long conversation and the least worth
-re-reading — a transcript the model already extracted places from, a JSON blob
-it already answered from. Clearing them costs no model call and loses little,
-so it is tried first; the next step's real `usage` says whether it was enough.
-
-Everything after the boundary is a candidate except a `skill` body, a result
-already cleared, and the most recent `PRUNE_KEEP` — the ones the model is
-likely still working from (Claude Code's microcompact keeps its recent few).
-"""
+"""Which tool results to clear before anything is summarized."""
 
 from __future__ import annotations
 

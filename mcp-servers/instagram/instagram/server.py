@@ -1,16 +1,4 @@
-"""The composition root, and nothing else.
-
-Deliberately thin, matching the harness's own `web/server.py` — *"the
-composition root alone"*. Everything it does is wire concrete things together
-and start the transport; the tools live in `tools/`, acquisition in `media/`,
-interpretation in `read/`. A dependency that is missing is a `TypeError` here
-rather than a runtime surprise, which is the whole reason none of this needs an
-injection framework.
-
-**Nothing may be printed to stdout.** stdout is the MCP protocol. Logging goes to
-stderr, which the harness attaches to its own — so diagnostics land in the
-harness log rather than corrupting a JSON-RPC frame.
-"""
+"""The composition root, and nothing else."""
 
 from __future__ import annotations
 
@@ -30,9 +18,6 @@ from instagram.read.http import ProviderHttp
 
 logger = logging.getLogger("instagram")
 
-# Swept once at startup rather than on a timer: a server that is not running
-# accumulates nothing, so a background task would be a thing to own and cancel
-# for a problem one sweep already solves.
 CACHE_TTL_SECONDS = 24 * 60 * 60
 
 
@@ -49,9 +34,6 @@ def main() -> None:
     try:
         config = load()
     except ConfigError as err:
-        # The harness logs this and the tools are simply absent from
-        # `list_functions`, so the model discovers it has no Instagram capability
-        # and reports that — rather than retrying a tool that cannot work.
         logger.error("instagram refusing to start: %s", err)
         raise SystemExit(2) from err
 
@@ -71,5 +53,5 @@ def main() -> None:
     server.run(transport="stdio")
 
 
-if __name__ == "__main__":  # pragma: no cover - exercised by tests/integration
+if __name__ == "__main__":  # pragma: no cover
     main()

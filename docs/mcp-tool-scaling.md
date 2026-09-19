@@ -211,12 +211,36 @@ kills the turn, and its input is third-party JSON Schema of any draft. Every
 construct it does not understand degrades to `unknown`. DeepSeek's
 `jsonSchemaToTs` has the same property for the same reason.
 
+### What is offered every request
+
+`DEFAULT_TOOLS` in `web/agent.py` is the list to edit. Everything registered
+and not named there is still callable from a program; it is simply not
+described in the request, which is what keeps its schema from being re-uploaded
+with every message. To stop the model writing a program just to read the
+clock, import `CLOCK` and add it; the cost is that schema in every request,
+forever. Prefer a constant over a literal: `specs()` skips a name it cannot
+find without complaining, so a misspelt literal is a tool silently gone. MCP
+tools have no constant and stay literals, unchecked until the server connects.
+`skill` is offered while a skill exists and withheld from scripts because its
+body is context for the model, not data. A new client tool is one entry in
+`CLIENT_TOOLS` and one handler in the browser's map.
+
 ### The sandbox
 
 One Deno process per execution, started with **no `--allow-* flags at all`**. The
 shim ships as a `data:` URL on the command line, so it is never a file on disk and
 the child needs no read permission. The model's script is imported as a nested
 `data:text/typescript` module, which is what strips its type annotations.
+
+The shim and the harness talk newline-delimited JSON over stdio, one frame per
+line; stdout is the wire, so the shim captures `console.*` into `logs` instead:
+
+```
+in   {"kind":"run","code":"…","names":["yt__get_subtitles", …]}
+out  {"kind":"call","id":1,"name":"…","args":{…}}
+in   {"kind":"result","id":1,"ok":true,"value":…}
+out  {"kind":"done","result":…,"logs":[…]}  |  {"kind":"failed","message":"…"}
+```
 
 Four properties, verified against Deno 2.8.3 in
 `tests/integration/test_code_mode.py` rather than assumed:

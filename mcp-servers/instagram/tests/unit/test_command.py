@@ -22,14 +22,11 @@ async def test_stderr_is_captured_as_text_for_an_error_message() -> None:
 
 
 async def test_arguments_are_never_reinterpreted_by_a_shell() -> None:
-    """One of these arguments is a path derived from a model-supplied shortcode,
-    so an argv list rather than a command string is the whole point."""
     result = await run_command(["/bin/echo", "; rm -rf /"], 5.0)
 
     assert result.stdout.strip() == b"; rm -rf /"
 
 
 async def test_a_hung_process_is_killed_rather_than_left_behind() -> None:
-    """We reap what we spawn — a stuck ffmpeg must not outlive the call."""
     with pytest.raises(TimeoutError):
         await run_command(["/bin/sleep", "30"], 0.2)

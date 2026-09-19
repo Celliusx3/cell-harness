@@ -9,14 +9,7 @@ import { Compaction } from "@/components/Compaction";
 import { CLIENT_TOOLS } from "@/lib/clientTools";
 import type { TimelineItem } from "@/lib/timeline";
 
-/**
- * **The one renderer.**
- *
- * It takes timeline items and has no idea whether the events behind them came
- * from the snapshot or the live stream. That is what makes "a reloaded
- * conversation renders identically to the live stream" true by construction
- * rather than by keeping two components in step.
- */
+/** Renders timeline items, from the snapshot and the live stream alike. */
 export function Timeline({
   items,
   onAnswered,
@@ -28,8 +21,6 @@ export function Timeline({
   const pinned = useRef(true);
   const { id: conversationId } = useParams<{ id: string }>();
 
-  // Follow the stream only while the user is already at the bottom. Scrolling up
-  // to re-read something during a long reply must not be yanked back.
   useEffect(() => {
     const scroller = floor.current?.parentElement;
     if (!scroller) return;
@@ -53,15 +44,10 @@ export function Timeline({
           case "user":
             return <UserBubble key={item.key} item={item} />;
           case "assistant":
-            // A step that went straight to tool calls has no prose. Skipped
-            // here rather than dropped in the reducer, which still needs the
-            // item so `usage` and `interrupted` are not lost.
             return item.content ? (
               <AssistantBubble key={item.key} item={item} />
             ) : null;
           case "tool": {
-            // A call the browser answers rather than watches — by the handler
-            // map, so the timeline never learns a client tool's name.
             const Handler = CLIENT_TOOLS[item.call.name];
             return Handler ? (
               <Handler

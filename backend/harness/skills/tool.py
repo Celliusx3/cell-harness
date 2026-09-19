@@ -1,21 +1,4 @@
-"""The one tool through which the model loads a skill.
-
-Built fresh from the catalog on every request, because its schema *is* the
-catalog: `name` is a `Literal` of the skills that exist right now, so an
-invented name is a schema violation before any code runs, and the description
-carries the `<available_skills>` index the model reads to decide. Index and
-enum come from the same list in the same call, so they cannot disagree.
-
-**No skills, no tool.** The factory returns `None` and the registry provider
-yields nothing, so the model is never shown an enum with no members — the spec's
-client guide is explicit that an empty catalog confuses the model more than an
-absent one.
-
-The catalog is the description; the body is the *result*. That is progressive
-disclosure: every request pays for one line per skill, and a body costs nothing
-until the model asks for it. The body is read from disk at that moment, so an
-edit shows at the next activation with no change to the tool's schema.
-"""
+"""The one tool through which the model loads a skill."""
 
 from __future__ import annotations
 
@@ -31,16 +14,8 @@ from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolDefinit
 
 SKILL = "skill"
 
-# A bundled file the model asks for by `path`. Bounded because it lands in the
-# conversation whole: a 2 MB data file would cost the turn its context.
 MAX_RESOURCE_BYTES = 64 * 1024
 
-# Prompt text is code. "before starting" exists because a model shown the tool
-# would otherwise use it after it had already answered from general knowledge —
-# the whole point is that the skill changes how the task is done, not the
-# reply's afterword. The last sentence exists because a public skill's body may
-# say "run scripts/extract.py", and a model with no shell must be told that the
-# instructions, not the scripts, are what it has.
 _DESCRIPTION = (
     "Load a skill's instructions before starting a task that matches its "
     "description. When one matches, call this first and follow what it "
@@ -50,19 +25,17 @@ _DESCRIPTION = (
 )
 
 
-def skill_tool(skills: SkillService) -> ToolDefinition[BaseModel] | None:
+def skill_tool(skills: SkillService) -> ToolDefinition[SkillArgs] | None:
     """The tool over the skills the model may load, or `None` when there are none."""
     offered = [skill for skill in skills.snapshot().skills if skill.model_invocable]
     if not offered:
         return None
     by_name = {skill.name: skill for skill in offered}
 
-    async def execute(args: BaseModel, _context: ToolContext) -> ToolOutcome:
-        name: str = args.name  # type: ignore[attr-defined]
-        path: str | None = args.path  # type: ignore[attr-defined]
-        skill = by_name[name]
-        if path is not None:
-            return _resource(skill, path)
+    async def execute(args: SkillArgs, _context: ToolContext) -> ToolOutcome:
+        skill = by_name[args.name]
+        if args.path is not None:
+            return _resource(skill, args.path)
         return _instructions(skill)
 
     return ToolDefinition.from_model(
@@ -73,11 +46,18 @@ def skill_tool(skills: SkillService) -> ToolDefinition[BaseModel] | None:
     )
 
 
-def _args_model(names: tuple[str, ...]) -> type[BaseModel]:
-    """`name` as an enum of what exists. Generated per call, because the set
-    changes as files do, and a stale enum would refuse a skill that exists."""
+class SkillArgs(BaseModel):
+    """What the model passes to `skill`."""
+
+    name: str
+    path: str | None = None
+
+
+def _args_model(names: tuple[str, ...]) -> type[SkillArgs]:
+    """`SkillArgs` with `name` as an enum of what exists."""
     return create_model(
         "SkillArgs",
+        __base__=SkillArgs,
         name=(
             Literal[names],
             Field(description="The skill to load.", json_schema_extra=_always_enum(names)),
@@ -96,8 +76,8 @@ def _args_model(names: tuple[str, ...]) -> type[BaseModel]:
 
 
 def _always_enum(names: tuple[str, ...]):
-    """Pydantic prints a one-member `Literal` as `const`, not `enum`. One skill
-    is the common case, and the model should see one shape however many."""
+    """A schema hook that forces `enum` for `name`."""
+    # Pydantic prints a one-member `Literal` as `const`, not `enum`.
 
     def fix(schema: dict) -> None:
         schema.pop("const", None)
@@ -118,7 +98,7 @@ def _index(skills: list[Skill]) -> str:
 
 
 def _escape(text: str) -> str:
-    """A description containing `<` would otherwise read as markup."""
+    """`text` with `&`, `<` and `>` XML-escaped."""
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
@@ -126,8 +106,6 @@ def _instructions(skill: Skill) -> ToolOutcome:
     try:
         return Ok(instructions(skill))
     except (OSError, ValueError) as err:
-        # Present when the catalog was built, gone or broken now. Reported as a
-        # failure the model can react to; the catalog will drop it next call.
         return Failure(INVALID_ARGUMENTS, f"skill {skill.name!r} could not be read: {err}")
 
 

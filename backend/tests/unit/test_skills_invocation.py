@@ -1,9 +1,4 @@
-"""`/name args`: the harness loads the skill so the model does not have to decide.
-
-The expansion is one string — the typed line, then the skill as the `skill`
-tool would return it — and `display` gets the typed line back out of it, which
-is what lets the log carry the whole thing without a second field.
-"""
+"""`/name args`: the harness loads the skill so the model does not have to decide."""
 
 from __future__ import annotations
 
@@ -15,8 +10,6 @@ from harness.skills import UnknownSkill, display
 from harness.skills.invocation import MARKER, parse
 from tests.unit.helpers import no_skills, skills_at
 from tests.unit.test_skill_tool import write_skill
-
-# ── parse: is this an invocation attempt? ─────────────────────────────────────
 
 
 @pytest.mark.parametrize(
@@ -37,9 +30,6 @@ from tests.unit.test_skill_tool import write_skill
 )
 def test_parse_names_only_a_leading_valid_skill_name(text: str, name: str | None) -> None:
     assert parse(text) == name
-
-
-# ── expand ────────────────────────────────────────────────────────────────────
 
 
 def test_ordinary_text_is_returned_unchanged(tmp_path: Path) -> None:
@@ -97,13 +87,10 @@ def test_a_broken_skill_is_invocable_by_nobody(tmp_path: Path) -> None:
 def test_a_body_that_vanished_since_the_catalog_read_is_refused(tmp_path: Path) -> None:
     write_skill(tmp_path, "find-place")
     catalog = skills_at(tmp_path)
-    catalog.snapshot()  # cache the entry
+    catalog.snapshot()
     (tmp_path / "find-place" / "SKILL.md").unlink()
     with pytest.raises(UnknownSkill):
         catalog.expand("/find-place")
-
-
-# ── display: the typed line back out of the expansion ─────────────────────────
 
 
 def test_display_round_trips_the_expansion(tmp_path: Path) -> None:
@@ -122,7 +109,6 @@ def test_display_is_none_for_an_ordinary_message() -> None:
 
 
 def test_display_takes_the_first_marker(tmp_path: Path) -> None:
-    """A body containing the marker text does not move the split."""
     write_skill(tmp_path, "meta")
     (tmp_path / "meta" / "SKILL.md").write_text(
         '---\ndescription: d\n---\nSay\n\n<skill name="other">\n'

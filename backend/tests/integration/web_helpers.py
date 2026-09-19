@@ -1,9 +1,4 @@
-"""Building and reading the HTTP surface in-process, for `test_web*.py`.
-
-`ASGITransport` rather than a real port: those tests are about status codes,
-bodies, and the cursor handoff, and a socket would add scheduling noise without
-adding coverage. See `test_web.py` for what that transport cannot test.
-"""
+"""Building and reading the HTTP surface in-process, for `test_web*.py`."""
 
 from __future__ import annotations
 

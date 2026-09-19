@@ -1,5 +1,4 @@
-"""`/new` and `/stop` as slash commands: what they do is shared, how they
-arrive is the interactions API."""
+"""`/new` and `/stop` as Discord slash commands."""
 
 from __future__ import annotations
 
@@ -39,7 +38,6 @@ async def test_new_starts_a_fresh_conversation(tmp_path) -> None:
     before = (await chats.load("discord", CHAT)).conversation_id
 
     interaction = FakeInteraction(CHAT)
-    # Through the tree's own callback, so the registration is what is tested.
     await channel._tree.get_command("new").callback(interaction)
     await channel.on_message(message(CHAT, "second"))
     await settle(gateway, runs)
@@ -50,12 +48,9 @@ async def test_new_starts_a_fresh_conversation(tmp_path) -> None:
 
 
 async def test_stop_cancels_the_turn_and_clears_the_queue(tmp_path) -> None:
-    """The partial reply is what was delivered; what queued behind it is not
-    answered — answering it would be the opposite of what was asked."""
     channel, client, gateway, runs, chats, _ = build(tmp_path, HangingClient("partial"))
     chat = client.chat(CHAT)
     await channel.on_message(message(CHAT, "go"))
-    # Let the turn stream its prefix before it is stopped.
     run = runs.active((await chats.load("discord", CHAT)).conversation_id)
     while not any(e.type == "assistant/chunk" for e in run.session.events()):
         await asyncio.sleep(0.01)

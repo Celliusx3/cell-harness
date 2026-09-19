@@ -1,10 +1,4 @@
-"""Which call a client may answer — read off the log, never the registry.
-
-The log is what the client was shown, so what it may answer is decided by the
-same record: the current turn's call to a client tool that has no result yet.
-A call from an earlier turn already has its result — the loop writes one on
-every path — and a call to any other tool is not the client's to answer.
-"""
+"""Which call a client may answer — read off the log, never the registry."""
 
 from __future__ import annotations
 
@@ -20,8 +14,6 @@ class PendingCall:
 
     name: str
     call_id: str
-    # The model's raw argument string, for a platform that renders the ask
-    # from what was asked.
     arguments: str
 
 

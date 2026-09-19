@@ -4,14 +4,7 @@ import { useState } from "react";
 
 import type { CompactionItem } from "@/lib/timeline";
 
-/**
- * The divider a compaction leaves in the timeline: one line saying it happened,
- * expandable to the summary the model now reads in place of the older history.
- *
- * The older messages stay above it — the browser renders the log, not the
- * model's view — so this is a marker, not a replacement. Expand borrows the
- * `InvokedBubble` chip pattern: short by default, the whole truth on click.
- */
+/** ` · 12k tokens`, or the empty string. */
 function tokenLabel(tokens: number | null): string {
   if (tokens === null) return "";
   if (tokens >= 1000) return ` · ${Math.round(tokens / 1000)}k tokens`;
@@ -30,7 +23,6 @@ export function Compaction({ item }: { item: CompactionItem }) {
   }
 
   if (item.summary === null) {
-    // A failed attempt: nothing changed, and the log records why.
     return (
       <p className="text-center text-xs text-ink-soft">
         Could not compact the conversation{item.error ? ` (${item.error})` : ""}.

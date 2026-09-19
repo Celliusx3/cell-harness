@@ -1,9 +1,4 @@
-"""What `drive` commits to that no other test pins: when it checkpoints, and
-what the repair writes when a step is cut short part-way through its calls.
-
-Literal event sequences, on purpose. These are the observables a reshape of
-`turn.py` could change without any other test going red.
-"""
+"""What `drive` commits to: checkpoints, and the repair after a step cut short."""
 
 from __future__ import annotations
 

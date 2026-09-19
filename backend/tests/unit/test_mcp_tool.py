@@ -22,7 +22,6 @@ def one(server: str, published, call) -> object:
 
 
 async def test_the_published_schema_is_relayed_byte_for_byte() -> None:
-    """Keys our own Pydantic models could never produce must survive."""
     schema = {
         "type": "object",
         "properties": {"path": {"type": "string"}},
@@ -37,7 +36,6 @@ async def test_the_published_schema_is_relayed_byte_for_byte() -> None:
 
 
 async def test_an_unknown_argument_reaches_the_server_untouched() -> None:
-    """`parse` is the identity, so we cannot drop what the server accepts."""
     seen: list[dict] = []
 
     async def call(name: str, arguments: dict) -> CallToolResult:
@@ -51,7 +49,6 @@ async def test_an_unknown_argument_reaches_the_server_untouched() -> None:
 
 
 async def test_a_tool_that_reports_an_error_becomes_a_failure() -> None:
-    """`is_error` is returned, never raised — reading only `content` hides it."""
 
     async def call(name: str, arguments: dict) -> CallToolResult:
         return text_result("disk is full", is_error=True)
@@ -74,7 +71,6 @@ async def test_an_error_with_no_message_still_names_the_tool() -> None:
 
 
 async def test_a_disconnected_server_reports_the_tool_as_unknown() -> None:
-    """Not EXECUTION_ERROR: the model must learn the tool is gone, not broken."""
 
     async def call(name: str, arguments: dict) -> CallToolResult:
         raise McpNotConnectedError("stub is not connected")
@@ -97,7 +93,6 @@ async def test_a_timeout_is_an_execution_error_carrying_the_reason() -> None:
 
 
 async def test_structured_content_is_used_when_there_are_no_blocks() -> None:
-    """With nothing to render, the structured value stands in as the text too."""
 
     async def call(name: str, arguments: dict) -> CallToolResult:
         return CallToolResult(content=[], structuredContent={"rows": 3})
@@ -109,8 +104,6 @@ async def test_structured_content_is_used_when_there_are_no_blocks() -> None:
 
 
 async def test_structured_content_survives_alongside_text() -> None:
-    """A server that sends a summary *and* the rows means both. Keeping only the
-    summary destroyed the rows, and nothing downstream could ask for them back."""
 
     async def call(name: str, arguments: dict) -> CallToolResult:
         return CallToolResult(
@@ -141,7 +134,6 @@ def test_text_blocks_are_joined_in_order() -> None:
 
 
 def test_an_image_is_described_and_its_payload_never_appears() -> None:
-    """base64 here would enter the log and then every later model request."""
     payload = "QUJDREVGR0g="
     rendered = render_content([ImageContent(type="image", data=payload, mimeType="image/png")])
 
@@ -156,18 +148,12 @@ def test_an_unrenderable_block_is_named_rather_than_dropped() -> None:
 
 
 def test_a_name_no_provider_would_accept_is_dropped_not_relayed() -> None:
-    """One bad name fails the whole request, killing every turn — not just this tool."""
     built = build_tools("srv", [tool("a" * 70), tool("fine"), tool("has/slash")], never_called)
 
     assert [t.name for t in built] == ["srv__fine"]
 
 
 async def test_a_hyphenated_name_is_mapped_for_the_model_and_kept_for_the_server() -> None:
-    """Providers accept a hyphen; `tools/native/code/typescript.py` emits
-    `declare function {name}(...)` **unquoted**, so a hyphenated name is
-    unparseable TypeScript. Every public MCP App is named `get-time`, so the
-    hyphen is mapped rather than the tool dropped — and the server is still
-    called by the name it published."""
     asked: list[str] = []
 
     async def call(name: str, arguments: dict) -> CallToolResult:
@@ -179,14 +165,10 @@ async def test_a_hyphenated_name_is_mapped_for_the_model_and_kept_for_the_server
 
     assert built.name == "srv__get_video"
     assert asked == ["get-video"]
-    # Note a leading digit in the *tool* name is fine — `srv__9lives` still
-    # starts with the server id. It is the *id* that must start with a letter,
-    # which `_SERVER_ID` now enforces (see test_mcp_settings.py).
     assert [t.name for t in build_tools("srv", [tool("9lives")], never_called)] == ["srv__9lives"]
 
 
 def test_two_tools_that_map_to_one_name_keep_the_first() -> None:
-    """Two tools under one name would make the dispatcher's choice silent."""
     built = build_tools("srv", [tool("get-video"), tool("get_video")], never_called)
 
     assert [t.name for t in built] == ["srv__get_video"]
@@ -196,7 +178,6 @@ def test_the_app_binding_is_read_from_the_tool_meta() -> None:
     assert ui_resource_uri(tool("x", meta={"ui": {"resourceUri": "ui://x/app.html"}})) == (
         "ui://x/app.html"
     )
-    # `poll-system-stats`' shape: `ui` metadata with no resource at all.
     assert ui_resource_uri(tool("x", meta={"ui": {"visibility": ["app"]}})) is None
     assert ui_resource_uri(tool("x", meta={"ui": {"resourceUri": "https://x"}})) is None
     assert ui_resource_uri(tool("x")) is None
@@ -228,8 +209,6 @@ async def test_a_bound_tool_that_fails_has_no_app() -> None:
 
 
 def test_every_relayed_name_is_a_usable_typescript_identifier() -> None:
-    """The property the two regexes exist to guarantee, asserted directly rather
-    than inferred from them — so a future widening of either is caught here."""
     published = [tool("fine"), tool("also_fine"), tool("get-video"), tool("has/slash"), tool("_ok")]
 
     for built in build_tools("srv", published, never_called):

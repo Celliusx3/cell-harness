@@ -1,12 +1,4 @@
-"""Building the app the way the server does, for tests that drive HTTP.
-
-Shared because there are three callers and the assembly is no longer one line:
-the browser is a channel now, so an app needs a gateway, a chat repository and a
-`WebChannel` registered into it. `build_channels` in `web/server.py` does the same
-thing from `Settings` — which tests cannot use, because a bare `Settings()` reads
-the developer's real `config.local.json` and would point the chat store at their
-actual sessions directory.
-"""
+"""Building the app the way the server does, for tests that drive HTTP."""
 
 from __future__ import annotations
 
@@ -55,11 +47,7 @@ def web_mcp(
     *,
     client_factory: ClientFactory = open_client,
 ) -> McpServerStore:
-    """A store over whatever servers a test declares — none, by default.
-
-    The factory is injectable so a test can connect to a fake in milliseconds
-    instead of spawning a process.
-    """
+    """A store over whatever servers a test declares — none, by default."""
     return McpServerStore(servers or {}, client_factory=client_factory)
 
 

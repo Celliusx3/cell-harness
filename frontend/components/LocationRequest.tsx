@@ -8,41 +8,22 @@ import { useClientTool } from "@/lib/clientTools";
 import type { ToolItem } from "@/lib/timeline";
 import type { Location } from "@/lib/types";
 
-/** `getCurrentPosition` options: coarse is enough for "near me", and a fix
- *  from the last minute is not stale. */
 const POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 15_000,
   maximumAge: 60_000,
 };
 
-/** The browser's error codes, by name — what the backend's `reason` carries. */
+/** The browser's error codes, by name */
 const REASONS = [
   "PERMISSION_DENIED",
   "POSITION_UNAVAILABLE",
   "TIMEOUT",
 ] as const;
 
-/** Three decimals is ~100 m: enough for "near me", and less to keep — the
- *  result is logged with the conversation, and a precise fix need not be. */
-const round = (value: number) => Math.round(value * 1000) / 1000;
+const roundToHundredMetres = (value: number) => Math.round(value * 1000) / 1000;
 
-/**
- * The model asked where the person is.
- *
- * Rendered in place of the tool card for a `get_location` call, and driven
- * entirely by the item: while the call has no result it is pending and the
- * page may answer; once the stream delivers the result, the card reports it.
- * That is what lets a reloaded page — or a restarted server — pick up a
- * request still pending: the state is in the log, not here or there.
- *
- * Consent is the browser's own tri-state, read off `permissions.query`, the
- * way Claude's app reads the device's: granted → share at once (the person
- * granted this origin; a second click would only restate it); denied → say so
- * at once, as `unavailable`, so the model asks in words rather than waiting
- * two minutes to learn it; undecided → buttons, because that prompt belongs
- * behind a click.
- */
+/** The card for a pending `get_location` call. */
 export function LocationRequest(props: ClientToolProps) {
   const { item } = props;
   const { pending, phase, setPhase, decided, send } =
@@ -60,8 +41,8 @@ export function LocationRequest(props: ClientToolProps) {
         void send({
           kind: "shared",
           data: {
-            latitude: round(coords.latitude),
-            longitude: round(coords.longitude),
+            latitude: roundToHundredMetres(coords.latitude),
+            longitude: roundToHundredMetres(coords.longitude),
             accuracy_m: Math.round(coords.accuracy),
           },
         }),
@@ -76,8 +57,7 @@ export function LocationRequest(props: ClientToolProps) {
 
   useEffect(() => {
     if (!pending || decided.current) return;
-    // Safari has no permissions query for geolocation: `prompt` is assumed,
-    // which is the case that shows buttons.
+    // Safari has no permissions query for geolocation, so `prompt` is assumed.
     const query = navigator.permissions?.query({ name: "geolocation" });
     if (!query) return;
     query.then(
@@ -89,9 +69,6 @@ export function LocationRequest(props: ClientToolProps) {
       },
       () => undefined,
     );
-    // `share`/`send` close over stable props; re-running on their identity
-    // would re-query per render for nothing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
 
   return (

@@ -1,9 +1,4 @@
-"""What this package needs of an MCP session, and the real one.
-
-`ClientLike` is narrower than the SDK's `Client`, which is what lets the
-command loop in `connection.py` be tested against a fake in milliseconds
-instead of a subprocess.
-"""
+"""What this package needs of an MCP session, and the real one."""
 
 from __future__ import annotations
 
@@ -38,13 +33,8 @@ def open_client(server: McpServer) -> AbstractAsyncContextManager[ClientLike]:
         StdioServerParameters(
             command=server.command,
             args=list(server.args),
-            # `None` rather than `{}`: the SDK merges a mapping onto its own
-            # allow-list of safe defaults, and an empty one would strip `PATH`
-            # from a server that needs it — a spawn failure naming nothing.
+            # The MCP SDK merges a mapping onto its safe defaults; `{}` would strip `PATH`.
             env=dict(server.env) or None,
         ),
-        # MCP Apps is negotiated, not assumed: a server that renders a UI is
-        # told the browser can show one, and one that degrades to text for
-        # other clients gives us the rich form.
         extensions=[advertise(EXTENSION_ID, {"mimeTypes": [APP_MIME_TYPE]})],
     )

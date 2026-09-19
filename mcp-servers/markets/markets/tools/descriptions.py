@@ -1,12 +1,4 @@
-"""The model's only documentation.
-
-Same three constraints as the other servers, all from the harness's TypeScript
-printer: descriptions are collapsed to one line, argument docs are invisible,
-and the return type prints as `Promise<unknown>`. So each is one dense
-paragraph naming every argument, its allowed values, and every returned field
-— nested rows included, because `rows[0].close` is exactly what a script
-indexes.
-"""
+"""The model's only documentation."""
 
 from __future__ import annotations
 
@@ -24,11 +16,6 @@ SEARCH = (
     "an error: read detail and try a shorter or different name."
 )
 
-# "not by a ticker you have guessed": the two live failures behind the id
-# vocabulary. Yahoo lists Maybank as 1155.KL (and separately as MAYBANK.KL
-# under a different listing), and 'BTC' matches bitcoin, bitcoin-cash and a
-# dozen tokens on CoinGecko. Without this sentence the model passes MAYBANK
-# straight to get_quote and reads not_found as "no such company".
 
 QUOTE = (
     "Latest price for up to a handful of ids in one call, with per-item status. args: { ids: "
@@ -46,9 +33,6 @@ QUOTE = (
     "ids will fill."
 )
 
-# "Prices are DELAYED": the documented failure of stale data presented as
-# current. as_of is on every result; this sentence is what makes the model
-# read it.
 
 HISTORY = (
     "Daily, weekly or monthly price bars over a range, plus a summary of the whole range. args: "
@@ -67,10 +51,6 @@ HISTORY = (
     "in a script."
 )
 
-# "choose the interval for the range": measured cost. A year of daily bars is
-# ~250 rows of pretty-printed JSON that the session log re-sends on every later
-# turn. The cap is operator config; this sentence is what stops the model
-# hitting it and then asking again with the same arguments.
 
 PROFILE = (
     "What a company, ETF or coin is, with its valuation and profitability ratios, in one call. "
@@ -89,9 +69,6 @@ PROFILE = (
     "get_financials."
 )
 
-# "must be reported as unavailable, never estimated" and "already percentages":
-# the two numeric failures the finance-LLM literature records most — filling
-# a gap with a plausible figure, and the 0.367 vs 36.7 unit mix-up.
 
 FINANCIALS = (
     "One financial statement for a listed company, several periods at once, as reported. args: "
@@ -108,9 +85,6 @@ FINANCIALS = (
     "statements, and for a valuation ratio get_company_profile already has it."
 )
 
-# "full units, NOT millions" and "single quarters, not cumulative": the
-# unit/period confusion failure. Yahoo returns raw units where filings print
-# millions, and the model has both conventions in its training data.
 
 FILINGS = (
     "SEC filings for a US-listed company, newest first, each with a link to the document on "
@@ -125,8 +99,6 @@ FILINGS = (
     "not returned; this lists what exists and when."
 )
 
-# "The document text is not returned": stops the model promising to read a
-# 10-K it cannot open. Section extraction is a follow-up, not this tool.
 
 NEWS = (
     "Recent headlines about one company, ETF or coin. args: { id: string, limit?: number }. "
@@ -137,6 +109,3 @@ NEWS = (
     "means the source has nothing recent, which for a small Bursa Malaysia stock is common "
     "and worth saying rather than treating as an error."
 )
-
-# "do not infer a story's content from its title": observed in an early run —
-# a headline about earnings became a paragraph about their contents.

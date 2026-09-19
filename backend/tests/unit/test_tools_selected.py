@@ -1,12 +1,4 @@
-"""Select, then call: a schema the model has read is a tool it may call.
-
-The Anthropic shape: the tool that selects (`get_function_details`) answers
-with `tool_reference` blocks in its result; the log carries them;
-`Session.tools_selected()` folds them out of history; the pipeline offers those
-tools and its gate accepts them; the adapter tells the model in words. So a
-model that never writes a program still reaches every capability by reading
-first, and no layer has to know which tool does the selecting.
-"""
+"""Select, then call: a schema the model has read is a tool it may call."""
 
 from __future__ import annotations
 
@@ -41,16 +33,15 @@ def pipeline(*tools: ToolDefinition) -> ToolPipeline:
     """Code mode's three plus `tools`, offering the three — as the product does."""
     registry = ToolRegistry(tools)
     dispatcher = ToolDispatcher(registry)
-    for made in code_mode_tools(registry=registry, dispatcher=dispatcher, runtime=FakeRunner()):
+    for made in code_mode_tools(
+        registry=registry, dispatcher=dispatcher, runtime=FakeRunner(), withheld=frozenset()
+    ):
         registry.register(made)
     return ToolPipeline(registry, dispatcher, DEFAULTS)
 
 
 def named(built: ToolPipeline, tools_selected: tuple[str, ...]) -> list[str]:
     return [spec.name for spec in built.specs(tools_selected)]
-
-
-# ── the tool states what it selected ──────────────────────────────────────────
 
 
 async def test_details_states_what_it_made_callable() -> None:
@@ -63,8 +54,8 @@ async def test_details_states_what_it_made_callable() -> None:
 
     assert isinstance(outcome, Ok)
     references = [b for b in outcome.content if isinstance(b, ToolReference)]
-    assert references == [ToolReference(tool_name="a")]  # not `ghost`: only what was found
-    assert "tool list" not in outcome.text  # the tool states the fact; the adapter tells the model
+    assert references == [ToolReference(tool_name="a")]
+    assert "tool list" not in outcome.text
 
 
 def test_an_ordinary_result_references_nothing() -> None:
@@ -72,8 +63,6 @@ def test_an_ordinary_result_references_nothing() -> None:
 
 
 def test_the_adapter_spells_a_reference_out_for_a_wire_without_blocks() -> None:
-    """Anthropic's API expands `tool_reference` into the tool list itself; this
-    endpoint cannot, so the sentence is how the model learns its list changed."""
     message = ToolMessage(
         tool_call_id="c1", content=(Text(text="declare …"), ToolReference(tool_name="a"))
     )
@@ -83,9 +72,6 @@ def test_the_adapter_spells_a_reference_out_for_a_wire_without_blocks() -> None:
     assert wire["role"] == "tool" and wire["tool_call_id"] == "c1"
     assert wire["content"].startswith("declare …")
     assert "Now in your tool list, callable directly: a" in wire["content"]
-
-
-# ── the session folds it ──────────────────────────────────────────────────────
 
 
 def test_the_session_folds_selections_from_every_result() -> None:
@@ -109,8 +95,6 @@ def test_a_re_selection_moves_a_name_to_the_end() -> None:
 
 
 def test_the_request_carries_only_the_most_recent_selections() -> None:
-    """Bounded in the pipeline, or a long conversation ends up carrying the
-    catalog. The log keeps the whole history; the request does not."""
     built = pipeline(*(echo_tool(f"t{n}") for n in range(10)))
     history = tuple(f"t{n}" for n in range(10))
 
@@ -121,18 +105,13 @@ def test_the_request_carries_only_the_most_recent_selections() -> None:
 
 
 def test_re_selecting_an_evicted_tool_brings_it_back() -> None:
-    """The session's fold moved `t0` to the end; the pipeline's window then keeps
-    it and drops the oldest instead."""
     built = pipeline(*(echo_tool(f"t{n}") for n in range(10)))
-    history = tuple(f"t{n}" for n in range(1, 10)) + ("t0",)  # t0 selected again, last
+    history = tuple(f"t{n}" for n in range(1, 10)) + ("t0",)
 
     offered = named(built, history)
 
     assert "t0" in offered and "t3" in offered
-    assert "t1" not in offered and "t2" not in offered  # the two oldest fall off
-
-
-# ── the offer and the gate ────────────────────────────────────────────────────
+    assert "t1" not in offered and "t2" not in offered
 
 
 def test_a_selected_tool_joins_the_offer_after_the_defaults_sorted() -> None:
@@ -158,12 +137,7 @@ async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_se
     assert isinstance(allowed, Ok) and allowed.text == "hi"
 
 
-# ── through the loop ──────────────────────────────────────────────────────────
-
-
 async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> None:
-    """The whole feature, end to end: the model reads `a`'s schema, the log line
-    says so, and the very next request carries `a` — whose direct call runs."""
     client = SteppedClient(
         calls_tool(DETAILS, json.dumps({"names": ["a"]})),
         calls_tool("a", '{"value": "direct"}'),
@@ -181,7 +155,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
     assert offered[1] == [*DEFAULTS, "a"]
     assert offered[2] == [*DEFAULTS, "a"]
     results = [e for e in session.events() if e.type == "tool/result"]
-    assert ToolReference(tool_name="a") in results[0].message.content  # the log line states it
+    assert ToolReference(tool_name="a") in results[0].message.content
     assert results[1].error is None and results[1].message.text == "direct"
 
 

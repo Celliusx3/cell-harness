@@ -14,14 +14,11 @@ from instagram.media import store as cache
     ["..", "../../etc/passwd", "a/b", "/absolute", "", "with space", "dot.dot", "a" * 65],
 )
 def test_a_shortcode_that_could_escape_the_root_is_refused(shortcode: str) -> None:
-    """Fail closed. This function is one refactor away from a raw model-supplied
-    string, and at that point `reel.parse`'s regex is somebody else's invariant."""
     with pytest.raises(cache.UnsafeShortcode):
         cache.directory_for(Path("/tmp/root"), shortcode)
 
 
 def test_the_root_is_private_to_this_user(tmp_path: Path) -> None:
-    """Media downloaded from someone's Instagram is not for other accounts to read."""
     root = tmp_path / "work"
 
     cache.directory_for(root, "C6NiA4lRux8")
@@ -30,7 +27,6 @@ def test_the_root_is_private_to_this_user(tmp_path: Path) -> None:
 
 
 def test_has_media_is_false_before_a_fetch_and_true_after(tmp_path: Path) -> None:
-    """What lets read_reels answer `not_fetched` with a real instruction."""
     root = tmp_path / "work"
     assert cache.has_media(root, "AAAAAAAAAA") is False
 
@@ -43,7 +39,6 @@ def test_has_media_is_false_before_a_fetch_and_true_after(tmp_path: Path) -> Non
 
 
 def test_duration_survives_the_gap_between_fetch_and_read(tmp_path: Path) -> None:
-    """Separate MCP calls, so the number fetch knew has to be written down."""
     root = tmp_path / "work"
 
     cache.remember_duration(root, "AAAAAAAAAA", 69.96)
@@ -56,8 +51,6 @@ def test_an_absent_duration_is_none_rather_than_a_guess(tmp_path: Path) -> None:
 
 
 def test_a_corrupt_duration_sidecar_does_not_fail_the_read(tmp_path: Path) -> None:
-    """Without it, frames fall back to a fixed interval and say so — strictly
-    better than refusing to read the reel at all."""
     root = tmp_path / "work"
     (cache.directory_for(root, "AAAAAAAAAA")).mkdir(parents=True, exist_ok=True)
     (cache.directory_for(root, "AAAAAAAAAA") / "duration.txt").write_text("not a number")
@@ -102,5 +95,4 @@ def test_the_sweep_drops_only_directories_older_than_the_cutoff(tmp_path: Path) 
 
 
 def test_sweeping_a_root_that_does_not_exist_yet_is_zero_not_an_error(tmp_path: Path) -> None:
-    """Called at startup, when there may never have been a fetch."""
     assert cache.sweep(tmp_path / "never", older_than_seconds=1) == 0

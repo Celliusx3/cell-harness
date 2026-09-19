@@ -95,7 +95,6 @@ async def test_first_non_none_wins_and_order_is_precedence() -> None:
 async def test_a_raising_decision_hook_refuses_nothing_and_suppresses_nothing(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Acceptance: registered is not enforcing. A later hook is still asked."""
     chain = HookChain((Raises(), Says(refusal="ok", note="note")))
 
     with caplog.at_level(logging.ERROR, logger="harness.agent"):
@@ -119,7 +118,6 @@ async def test_a_hook_exceeding_the_timeout_is_skipped_and_logged(
 
 
 async def test_cancellation_passes_through_a_hook() -> None:
-    """A cancelled turn is the caller's intent, not a hook failure to swallow."""
     hanging = Hangs()
     chain = HookChain((hanging, Says(refusal="never")))
     task = asyncio.create_task(chain.pre_tool_call(CALL, session=new_session()))
@@ -131,9 +129,6 @@ async def test_cancellation_passes_through_a_hook() -> None:
         await task
 
 
-# ── the fold the contract does for a hook ─────────────────────────────────────
-
-
 async def test_a_hook_is_handed_the_signature_and_the_settled_calls_not_the_session() -> None:
     session = new_session()
     session.append(TurnStart(turn=0))
@@ -143,7 +138,7 @@ async def test_a_hook_is_handed_the_signature_and_the_settled_calls_not_the_sess
     session.append(
         ToolResultEvent(turn=0, step=0, message=ToolMessage(tool_call_id="a", content="hi"))
     )
-    session.append(ToolCallEvent(turn=0, step=0, call=CALL))  # the one being decided
+    session.append(ToolCallEvent(turn=0, step=0, call=CALL))
     hook = Sees()
 
     await HookChain((hook,)).pre_tool_call(

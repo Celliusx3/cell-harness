@@ -23,14 +23,11 @@ def test_a_missing_user_agent_refuses_and_says_what_edgar_wants() -> None:
 
 
 def test_a_missing_coingecko_key_refuses_and_names_the_free_route() -> None:
-    """A Demo key is free and not obvious; the refusal is where one learns it."""
     with pytest.raises(ConfigError, match="Demo key"):
         load({"SEC_USER_AGENT": "tests tests@example.com"})
 
 
 def test_the_refusal_goes_to_the_agent_first() -> None:
-    """Both missing: the message names one thing to fix, then the next run
-    names the other. Not both at once, which would be a paragraph."""
     with pytest.raises(ConfigError, match="SEC_USER_AGENT"):
         load({})
 

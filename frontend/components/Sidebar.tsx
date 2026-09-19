@@ -8,14 +8,7 @@ import { useEffect, useState } from "react";
 import { listConversations } from "@/lib/api";
 import type { ConversationSummary } from "@/lib/types";
 
-/**
- * The conversation list.
- *
- * Refetched on navigation rather than kept in a store: the list changes when a
- * conversation is created or its title is stamped, both of which coincide with a
- * navigation, and a cache here would be a second copy of the backend's list to
- * invalidate. `GET /api/conversations` reads one header line per file.
- */
+/** The conversation list. */
 export function Sidebar() {
   const [rows, setRows] = useState<ConversationSummary[]>([]);
   const pathname = usePathname();
@@ -29,8 +22,6 @@ export function Sidebar() {
         if (!cancelled) setRows(listed);
       })
       .catch(() => {
-        // A sidebar that cannot load is not worth interrupting the conversation
-        // for; the main pane reports its own failures.
       });
     return () => {
       cancelled = true;
@@ -76,8 +67,6 @@ export function Sidebar() {
                       : "text-ink-soft hover:bg-line hover:text-ink"
                   }`}
                 >
-                  {/* Empty until the opening turn's first flush stamps it, so
-                      the fallback is load-bearing rather than defensive. */}
                   {row.title || "Untitled"}
                 </Link>
               </li>

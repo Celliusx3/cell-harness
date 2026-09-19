@@ -13,32 +13,14 @@ import { streamEvents } from "./stream";
 import { buildTimeline } from "./timeline";
 import type { SessionEvent } from "./types";
 
-/**
- * One conversation: its events, whether a turn is running, and how to act on it.
- *
- * The order here is the protocol, and it is the reason a refresh mid-turn loses
- * nothing:
- *
- *   1. fetch the snapshot          -> events 0..n, `next_cursor` = n
- *   2. stream from `next_cursor`   -> n onward, live
- *
- * Snapshot first cannot lose an event; the reverse can deliver one twice. The
- * cursor is a session sequence number, so it means the same thing to both.
- */
+/** One conversation: its events, whether a turn is running, and how to act on it. */
 
-/** Waited before reconnecting a dropped stream, so a flapping link cannot spin. */
+/** The wait before reconnecting a dropped stream. */
 const RECONNECT_DELAY_MS = 500;
 
 export interface Conversation {
   events: SessionEvent[];
-  /**
-   * Messages sent while a turn was running, not yet in the log.
-   *
-   * The server holds them and answers them next; they become one `user/message`
-   * when that turn starts. Until then nothing on the server can render them, so
-   * they are shown from here — otherwise text someone just sent would vanish
-   * from the screen until the current answer finished.
-   */
+  /** Messages sent while a turn was running, not yet in the log. */
   queued: string[];
   title: string;
   running: boolean;
@@ -48,8 +30,7 @@ export interface Conversation {
   stop(): Promise<void>;
   /** Compact the conversation now; the summary lands via the stream. */
   compact(): Promise<void>;
-  /** A turn was started by something other than `send` — a client-tool card
-   *  posting its output. Wake the stream so it is watched live. */
+  /** A turn was started by something other than `send` */
   wake(): void;
 }
 
@@ -61,19 +42,8 @@ export function useConversation(conversationId: string): Conversation {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * The cursor lives in a ref, not state.
-   *
-   * It is advanced from inside the streaming loop, which would otherwise be
-   * reading a value captured when the effect ran — and a stale cursor is exactly
-   * the bug that loses or repeats events.
-   */
   const cursor = useRef(0);
 
-  /**
-   * Wakes the follow loop when it is parked between turns. Null while a turn
-   * runs — the stream is open then, so there is nothing to wake.
-   */
   const resume = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -107,19 +77,12 @@ export function useConversation(conversationId: string): Conversation {
         return;
       }
 
-      // Follow the conversation for as long as it is on screen. A `dropped`
-      // ending — a sleeping laptop, a dying link — resumes at the cursor, which
-      // is what makes "close the tab, come back, it's still running" work.
       for (;;) {
         let ended = false;
         await streamEvents(conversationId, cursor.current, controller.signal, {
           onEvent(event) {
             cursor.current += 1;
             setEvents((previous) => [...previous, event]);
-            // The queue drains as *one* turn — the server joins it with
-            // newlines — so a single `user/message` accounts for all of it, and
-            // clearing the lot is right rather than lazy. Three bubbles becoming
-            // one is what the model actually saw.
             if (event.type === "user/message") setQueued([]);
             setRunning(true);
           },
@@ -131,15 +94,12 @@ export function useConversation(conversationId: string): Conversation {
         if (cancelled || controller.signal.aborted) break;
 
         if (ended) {
-          // Park rather than break or reconnect. Breaking left every turn after
-          // the first invisible — the effect only re-runs on `conversationId`.
-          // Reconnecting would spin: an idle conversation answers `end` at once.
           await new Promise<void>((resolve) => {
             resume.current = resolve;
           });
           resume.current = null;
           if (cancelled || controller.signal.aborted) break;
-          continue; // no delay — a wake means a turn started, not a flaky link
+          continue;
         }
 
         await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
@@ -151,18 +111,11 @@ export function useConversation(conversationId: string): Conversation {
     return () => {
       cancelled = true;
       controller.abort();
-      // A parked loop is in no fetch, so `abort` alone would leave it waiting
-      // forever. It re-checks `cancelled` the moment it wakes.
       resume.current?.();
     };
   }, [conversationId]);
 
-  /**
-   * A turn was just started elsewhere — by `send`, or by a client-tool card
-   * that posted its output — so wake the stream loop if the last turn left it
-   * parked. Safe after the request that started the turn returns: the run is
-   * registered before the response, so the subscribe cannot miss it.
-   */
+  /** A turn was just started elsewhere */
   const wake = useCallback(() => {
     setRunning(true);
     resume.current?.();
@@ -173,10 +126,6 @@ export function useConversation(conversationId: string): Conversation {
       setError(null);
       try {
         const accepted = await sendMessage(conversationId, prompt);
-        // A started turn appends nothing here: its `user/message` arrives on the
-        // stream the effect is already holding open, so the screen shows what the
-        // log says. A *queued* message has no log entry to wait for, which is the
-        // one case the client has to render for itself.
         if (accepted.queued) setQueued((previous) => [...previous, prompt]);
         wake();
       } catch (err) {
@@ -191,8 +140,6 @@ export function useConversation(conversationId: string): Conversation {
   const compact = useCallback(async () => {
     try {
       await compactConversation(conversationId);
-      // The compaction is its own run; wake the stream so its events arrive
-      // the way a turn's do — the `send`/`onAnswered` pattern.
       wake();
     } catch (err) {
       setError(
@@ -205,8 +152,6 @@ export function useConversation(conversationId: string): Conversation {
     try {
       await stopRun(conversationId);
     } catch (err) {
-      // A 404 means it finished between the click and the request. Not worth
-      // showing: the user asked for it to stop and it has.
       if (!(err instanceof ApiError && err.status === 404)) {
         setError(
           err instanceof ApiError ? err.message : "could not stop this turn",

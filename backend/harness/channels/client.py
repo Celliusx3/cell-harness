@@ -1,12 +1,4 @@
-"""An answer that arrives from a chat, matched to the call pending for it.
-
-The browser posts its answer to a call id it read off the stream. A chat cannot:
-Telegram sends a pin with no reference to what asked for it. So what a chat
-knows — which chat, and which tool its message answers — is turned into what
-the service needs: the conversation's session, loaded for writing. The checks
-are the service's, the same ones the route goes through; what it accepts
-opens the turn that carries it.
-"""
+"""An answer that arrives from a chat, matched to the call pending for it."""
 
 from __future__ import annotations
 
@@ -36,16 +28,11 @@ class ChatAnswers:
     ) -> None:
         self._repository = repository
         self._sessions = sessions
-        # The gateway, not the run store: a chat's resumed turn must be
-        # *followed* — delivered and drained — like the turn that asked.
         self._gateway = gateway
         self._client_tools = client_tools
 
     async def answer(self, channel: Channel, chat_id: str, name: str, raw: object) -> bool:
-        """Hand `raw` — the platform's rendering of an answer to the tool named
-        `name` — to this chat's pending call, opening the turn that carries
-        it. `False` when it was not taken; the caller decides what an
-        unprompted answer means."""
+        """Hand a platform's answer to the tool `name` to this chat's pending call."""
         state = await state_of(self._repository, channel, chat_id)
         if (
             not state.conversation_id

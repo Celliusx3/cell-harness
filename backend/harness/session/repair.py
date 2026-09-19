@@ -1,27 +1,4 @@
-"""Answering tool calls a dead process never got back to.
-
-The loop's `finally` handles a turn that was *gracefully* abandoned — a closed
-generator, a cancelled task. `kill -9` runs no `finally`, so a log can end with
-an assistant message that asked for a tool and no result for it.
-
-That log is not merely untidy. A provider **rejects** a history whose assistant
-message requests a call with no matching tool message, so the resumed session
-would fail on its first request. Writing the missing result is what makes resume
-work at all.
-
-**The missing results, and an open compaction.** A `compaction/start` the
-crash left without an end is closed with an `error` end, so a UI stops saying
-"compacting" and the next attempt is not read as already running. An unclosed
-`turn/start` or `step/start` is left
-exactly as the crash left it: `derive_messages` ignores turn and step boundaries,
-so closing them changes nothing the model sees, and nothing else reads them.
-DeepSeek Harness does synthesize those closers and marks the turn with a
-`TurnEndReason` no loop emits — worth copying the day something displays "this
-conversation was interrupted", and not before.
-
-**Nothing is ever rewritten.** The results are appended like any other events, so
-the file stays append-only and the repair is itself durable.
-"""
+"""Answering tool calls a dead process never got back to."""
 
 from __future__ import annotations
 
@@ -36,17 +13,12 @@ from harness.session.models import (
     TurnEnd,
 )
 
-# The model reads this, so it is written for the model rather than a maintainer.
-# Deliberately *not* "this never ran": the tool was dispatched before the process
-# died and may well have finished, so the honest answer is that we do not know.
 TOOL_OUTCOME_UNKNOWN = (
     "error: this tool call was interrupted and its outcome is unknown. It may have "
     "completed. Retry only read-only or idempotent work; otherwise verify whether "
     "it took effect, or ask the user."
 )
 
-# Marks a result this module invented rather than a tool returned, so telemetry
-# can tell a crash from a bad argument.
 REPAIRED = "INTERRUPTED_BY_CRASH"
 
 
@@ -63,17 +35,7 @@ def unanswered(events: Sequence[SessionEvent]) -> list[tuple[AssistantMessageEve
 
 
 def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
-    """Results for every call the log left unanswered *by accident*.
-
-    A turn that ended `pending` left its client-tool call open on purpose —
-    the person has not answered yet — and that call is not damage: the turn
-    that answers it, or skips it, is the next one. Everything else unanswered
-    is a crash.
-
-    Idempotent: a log with nothing outstanding yields nothing, so resuming twice
-    does not stack results. That doubles as the "does this need repair?"
-    question, which is why there is no separate predicate.
-    """
+    """Results for every call the log left unanswered *by accident*."""
     pending = {e.turn for e in events if isinstance(e, TurnEnd) and e.reason == "pending"}
     additions: list[SessionEvent] = [
         ToolResultEvent(

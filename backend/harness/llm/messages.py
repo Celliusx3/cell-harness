@@ -1,18 +1,4 @@
-"""The message vocabulary a model request is made of.
-
-Three roles, one shared shape. This is deliberately *not* the session event
-vocabulary: a `Message` is what goes on the wire to a provider, a `SessionEvent`
-is what is durably recorded, and the two diverge as soon as anything is logged
-that the model never sees (or seen that isn't a message — a tool schema, say).
-`session.derive_messages` is the one place that turns the second into the first.
-
-A user or assistant `content` is a plain string. A **tool result's** is a list
-of typed blocks — the Anthropic shape — because a result can carry more than
-prose: a `tool_reference` says "this tool is callable now", and an image will be
-a block when an MCP server returns one. The wire this harness speaks (OpenAI
-`/chat/completions`) has no such blocks, so `adapters/openai_wire.py` renders them to
-the string it expects; what a block *means* is decided once, there.
-"""
+"""The message vocabulary a model request is made of."""
 
 from __future__ import annotations
 
@@ -22,13 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ToolCall(BaseModel):
-    """One invocation the model asked for.
-
-    `arguments` is the model's raw JSON **string**, kept unparsed. Two reasons:
-    replay has to reproduce exactly what the model emitted, and arguments that
-    fail to parse are a normal tool failure the model can recover from — storing
-    a parsed dict would mean the log could not hold the call that caused it.
-    """
+    """One invocation the model asked for."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -38,12 +18,7 @@ class ToolCall(BaseModel):
 
 
 class ToolSpec(BaseModel):
-    """What the model is told about one tool.
-
-    Exactly the three fields that go on the wire. `ToolDefinition` holds more —
-    an executor, a parser — and `ToolDefinition.spec()` is the
-    allowlist that keeps them out of a request.
-    """
+    """What the model is told about one tool."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -53,12 +28,7 @@ class ToolSpec(BaseModel):
 
 
 class SystemMessage(BaseModel):
-    """The instructions prepended to a request.
-
-    Never stored in the session log and never appended to history — the loop
-    prepends it per request, which is what lets it reflect the agent running
-    *this* turn rather than whatever was true when the conversation began.
-    """
+    """The instructions prepended to a request."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -76,14 +46,7 @@ class UserMessage(BaseModel):
 
 
 class ApplicationMessage(BaseModel):
-    """Context this process put on the model-visible surface — the guardrail's
-    note first, phase 16's `inject()` next.
-
-    **Not a wire message.** No provider has an `application` role, so
-    `session.derive_messages` sends one as a `UserMessage` — the user turn is
-    where Claude Code puts its reminders too. It is deliberately not a member of
-    `Message`: a value the adapter cannot render must not be able to reach it.
-    """
+    """Context this process put on the model-visible surface."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -92,15 +55,7 @@ class ApplicationMessage(BaseModel):
 
 
 class AssistantMessage(BaseModel):
-    """One assembled model reply, and any tool calls it asked for.
-
-    A reply may carry text, tool calls, or both — a model often narrates ("Let
-    me check the time…") before calling something.
-
-    A tuple rather than a list because the model is frozen, and a mutable default
-    on a shared frozen value is the classic way for two messages to end up
-    sharing one list.
-    """
+    """One assembled model reply, and any tool calls it asked for."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -119,13 +74,7 @@ class Text(BaseModel):
 
 
 class ToolReference(BaseModel):
-    """A tool this result made callable by name.
-
-    Anthropic's `tool_reference`: a discovery tool answers with references, and
-    the platform expands them into the tool list on every request thereafter by
-    reading them out of history. Here the harness is that platform — the
-    pipeline puts the tool in the request, the adapter tells the model in words.
-    """
+    """A tool this result made callable by name."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -133,19 +82,11 @@ class ToolReference(BaseModel):
     tool_name: str
 
 
-# Discriminated on `type` like `SessionEvent`, so a stored result decodes with no
-# new code and a new block kind is one union member.
 Block = Annotated[Text | ToolReference, Field(discriminator="type")]
 
 
 class ToolMessage(BaseModel):
-    """What one tool call returned, addressed back to it by `tool_call_id`.
-
-    Providers require **exactly one** of these per tool call in the preceding
-    assistant message — a call with no result makes the next request invalid, not
-    merely incomplete. That is why the loop writes one on every path, including
-    refusals and interruptions.
-    """
+    """What one tool call returned, addressed back to it by `tool_call_id`."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -156,8 +97,7 @@ class ToolMessage(BaseModel):
     @field_validator("content", mode="before")
     @classmethod
     def _wrap_text(cls, value: object) -> object:
-        """A plain string is one text block. Every log written before blocks
-        existed holds a string here, and most tools still return one."""
+        """A plain string is one text block."""
         return (Text(text=value),) if isinstance(value, str) else value
 
     @property
@@ -166,8 +106,7 @@ class ToolMessage(BaseModel):
 
 
 def render_text(blocks: tuple[Block, ...]) -> str:
-    """The prose of a result: its text blocks, joined. References are not prose
-    — what they say to the model is the adapter's to phrase."""
+    """The prose of a result: its text blocks, joined."""
     return "\n\n".join(block.text for block in blocks if isinstance(block, Text))
 
 

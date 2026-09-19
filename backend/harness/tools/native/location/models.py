@@ -1,5 +1,4 @@
-"""The datum: a fix from the device, in OpenClaw's `location.get` vocabulary
-— latitude, longitude, accuracy in metres."""
+"""A location fix from the device, in OpenClaw's `location.get` vocabulary."""
 
 from __future__ import annotations
 
@@ -7,8 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Location(BaseModel):
-    """Where the device says it is. Bounded, and nothing extra: a page that
-    posts an altitude it was not asked for is refused, not trimmed."""
+    """Where the device says it is."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

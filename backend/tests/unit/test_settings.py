@@ -1,9 +1,4 @@
-"""Settings: where each value comes from, and which are unguessable.
-
-The precedence chain is the whole point, so it is tested as a chain: each source
-must beat the one below it, and `config.json` must be the floor rather than
-something that overrides a deliberate choice.
-"""
+"""Settings: where each value comes from, and which are unguessable."""
 
 from __future__ import annotations
 
@@ -19,16 +14,7 @@ from harness.config.settings import MissingConfigError, Settings, load
 
 @pytest.fixture
 def config_file(tmp_path, monkeypatch):
-    """Point the loader at a throwaway config pair.
-
-    Both paths must be redirected: a developer's real `config.local.json` would
-    otherwise supply the API key and make these tests pass for the wrong reason —
-    which is how an earlier version of this file only worked on an unconfigured
-    machine.
-
-    Returns `(write_committed, write_local)` so a test can exercise the layering
-    rather than only the merged result.
-    """
+    """Point the loader at a throwaway config pair."""
     committed = tmp_path / "config.json"
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
@@ -40,9 +26,6 @@ def config_file(tmp_path, monkeypatch):
         lambda data: committed.write_text(json.dumps(data)),
         lambda data: local.write_text(json.dumps(data)),
     )
-
-
-# ── the precedence chain ──────────────────────────────────────────────────────
 
 
 def test_config_json_supplies_defaults(config_file) -> None:
@@ -88,9 +71,6 @@ def test_nesting_uses_a_double_underscore(config_file, monkeypatch) -> None:
     assert Settings().llm.api_key == "sk-from-env"
 
 
-# ── what cannot be guessed ────────────────────────────────────────────────────
-
-
 @pytest.mark.parametrize("missing", ["model", "api_key"])
 def test_load_refuses_when_an_unguessable_value_is_absent(config_file, missing) -> None:
     write_committed, _ = config_file
@@ -130,12 +110,7 @@ def test_a_blank_value_counts_as_absent(config_file, blank) -> None:
         load()
 
 
-# ── values with real defaults ─────────────────────────────────────────────────
-
-
 def test_temperature_is_pinned_not_inherited() -> None:
-    """Left unset it would follow whatever the provider currently defaults to,
-    which can change without a line of our code moving."""
     assert LLMSettings().temperature == 1.0
 
 
@@ -148,7 +123,6 @@ def test_temperature_is_bounded(bad: float) -> None:
 
 
 def test_the_sessions_root_expands_a_tilde() -> None:
-    """config.json holds the readable form; the code needs a real path."""
     from harness.config.sections import SessionSettings
 
     root = SessionSettings(root="~/somewhere").root
@@ -158,8 +132,6 @@ def test_the_sessions_root_expands_a_tilde() -> None:
 
 
 def test_config_local_json_beats_config_json(config_file) -> None:
-    """The whole reason for a second file: keep the committed one honest while
-    a machine overrides what it needs."""
     write_committed, write_local = config_file
     write_committed({"llm": {"model": "committed", "base_url": "https://committed"}})
     write_local({"llm": {"model": "local"}})
@@ -167,8 +139,6 @@ def test_config_local_json_beats_config_json(config_file) -> None:
     settings = Settings()
 
     assert settings.llm.model == "local"
-    # Untouched keys still come from the committed file — the two are merged,
-    # not one replacing the other.
     assert settings.llm.base_url == "https://committed"
 
 
@@ -182,7 +152,6 @@ def test_the_environment_beats_config_local_json(config_file, monkeypatch) -> No
 
 
 def test_a_missing_local_file_is_normal(config_file) -> None:
-    """A fresh clone has none, and CI configures everything by environment."""
     write_committed, _ = config_file
     write_committed({"llm": {"model": "m", "api_key": "k"}})
 
@@ -195,9 +164,6 @@ def test_the_refusal_points_at_the_local_file_for_the_key(config_file) -> None:
 
     with pytest.raises(MissingConfigError, match="config.local.json"):
         load()
-
-
-# ── skills ────────────────────────────────────────────────────────────────────
 
 
 def test_skill_roots_resolve_relative_paths_against_the_project(config_file, tmp_path) -> None:
@@ -226,17 +192,11 @@ def test_skill_roots_can_come_from_the_environment(config_file, monkeypatch) -> 
     assert Settings().skills.roots == (Path("/only"),)
 
 
-# ── the public URL ────────────────────────────────────────────────────────────
-
-
 def test_the_public_url_is_off_by_default(config_file) -> None:
-    """Empty, not the dev frontend: the port lives in the Makefile alone, and
-    Telegram refuses a `localhost` button anyway."""
     assert Settings().web.public_url == ""
 
 
 def test_a_trailing_slash_on_the_public_url_is_dropped(config_file) -> None:
-    """Joined with `/apps/...`, so a slash here would double."""
     write_committed, _ = config_file
     write_committed({"web": {"public_url": "https://h.example/"}})
 

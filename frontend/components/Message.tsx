@@ -21,13 +21,7 @@ export function UserBubble({ item }: { item: UserItem }) {
   );
 }
 
-/**
- * A `/name` message: the typed line, with the skill it loaded as a chip.
- *
- * The chip opens the whole message — what the model was actually sent — the way
- * a tool card opens its result. Shown short by default because the person
- * wrote one line, and hidden never, because the log is the truth.
- */
+/** A `/name` message: the typed line, with the skill it loaded as a chip. */
 function InvokedBubble({ item, invoked }: { item: UserItem; invoked: Invocation }) {
   const [open, setOpen] = useState(false);
   return (
@@ -53,14 +47,7 @@ function InvokedBubble({ item, invoked }: { item: UserItem; invoked: Invocation 
   );
 }
 
-/**
- * A message the server is holding until the current turn finishes.
- *
- * Muted and labelled, because it is genuinely in a different state from the rest
- * of the conversation: it has been accepted but the model has not seen it, and it
- * is not in the session log yet. Drawing it identically to a sent message would
- * claim more than is true.
- */
+/** A message the server is holding until the current turn finishes. */
 export function QueuedBubble({ content }: { content: string }) {
   return (
     <div className="flex flex-col items-end gap-1">
@@ -72,12 +59,7 @@ export function QueuedBubble({ content }: { content: string }) {
   );
 }
 
-/**
- * A fenced block, read off the hast node markdown hands the `pre` override.
- *
- * Returns null for a fence with no language, which then renders as an ordinary
- * `<pre>` — highlighting a stack trace as TypeScript is worse than not trying.
- */
+/** A fenced block, read off the hast node markdown hands the `pre` override. */
 function fenced(node: Element | undefined): { code: string; language: string } | null {
   const child = node?.children[0];
   if (child?.type !== "element" || child.tagName !== "code") return null;
@@ -87,24 +69,11 @@ function fenced(node: Element | undefined): { code: string; language: string } |
     : undefined;
   const text = child.children[0];
   if (tag === undefined || text?.type !== "text") return null;
-  // Markdown appends exactly one newline to a fence. `.trim()` would also eat
-  // the first line's indentation, which for a program is content.
+  // remark leaves exactly one trailing newline on a fence; `.trim()` would eat indentation.
   return { code: text.value.replace(/\n$/, ""), language: tag.slice("language-".length) };
 }
 
-/**
- * Module-level so its identity is stable across the re-render every stream chunk
- * causes.
- *
- * `pre` is overridden and `code` deliberately is not: an untagged fence and
- * inline code reach the `code` component as the same shape, so discriminating
- * there renders ``` blocks as inline text — whitespace collapsed, bolded, and
- * wrapped in literal backticks by the typography plugin. Only a fence is ever a
- * `pre`, so this override cannot catch the wrong thing.
- *
- * The weight is worth it now in a way it was not when the only tool was a clock:
- * in code mode the model writes TypeScript in most replies.
- */
+/** Module-level so its identity is stable across the re-render every stream chunk causes. */
 const MARKDOWN: Components = {
   pre({ node, children }) {
     const block = fenced(node);

@@ -1,5 +1,4 @@
-"""Fixtures shared by the HTTP tests: an app whose model answers at once, and
-one whose turn parks inside a tool until something stops it."""
+"""Fixtures shared by the HTTP tests."""
 
 from __future__ import annotations
 

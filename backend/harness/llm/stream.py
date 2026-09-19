@@ -1,15 +1,4 @@
-"""What a streaming completion yields, event by event.
-
-The contract every adapter owes: a stream yields zero or more `TextChunk`s and
-`ToolCallChunk`s and then **exactly one** terminal event, `Completed` or
-`Failed`. The loop relies on that to know a turn is over — an adapter that can
-end silently hangs it, and an adapter that can yield two terminals makes "which
-one was it" unanswerable.
-
-`Failed` is an event rather than an exception because a provider error is
-ordinary, expected traffic on this channel: the loop reports it and the
-conversation continues. Exceptions are reserved for our own bugs.
-"""
+"""What a streaming completion yields, event by event."""
 
 from __future__ import annotations
 
@@ -21,13 +10,7 @@ from harness.llm.messages import ToolCall
 
 
 class Usage(BaseModel):
-    """Token accounting for one model call, when the provider reported it.
-
-    Captured here rather than derived later because it travels with the response
-    and nothing else can reconstruct it. Absent when the provider said nothing —
-    an explicit `None`, not a zero, since "not reported" and "cost nothing" are
-    different facts.
-    """
+    """Token accounting for one model call, when the provider reported it."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -45,16 +28,7 @@ class TextChunk(BaseModel):
 
 
 class ToolCallChunk(BaseModel):
-    """A tool call, once the adapter has assembled it.
-
-    Providers stream a call in fragments — the name in one frame, the arguments
-    across several more — so this is emitted when a call is *complete*, not per
-    fragment. A half-built call is not a thing a consumer can do anything with.
-
-    Live UX only: `Completed.tool_calls` is authoritative, exactly as `full_text`
-    is authoritative over the `TextChunk`s. The duplication is what lets a UI
-    show "calling clock…" before the turn ends.
-    """
+    """A tool call, once the adapter has assembled it."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -63,16 +37,7 @@ class ToolCallChunk(BaseModel):
 
 
 class Completed(BaseModel):
-    """Terminal: the model finished.
-
-    `full_text` is the whole reply, not the last fragment — the adapter
-    accumulates it so a consumer that ignored the chunks (a test, a non-streaming
-    caller) still gets the answer, and so the loop never has to reassemble what
-    the adapter already had. `tool_calls` is the same idea for calls.
-
-    Both may be present: a model often narrates before calling something. Neither
-    being present is also normal — a model may reply with nothing.
-    """
+    """Terminal: the model finished."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -82,19 +47,11 @@ class Completed(BaseModel):
     usage: Usage | None = None
 
 
-# The one failure the loop acts on rather than reports: the provider refused
-# the request for its size, so compacting and asking again can succeed.
 CONTEXT_WINDOW_EXCEEDED = "context_window_exceeded"
 
 
 class Failed(BaseModel):
-    """Terminal: the call did not produce a reply.
-
-    `reason` is model-facing and user-facing both, so it must be complete — no
-    truncation, and enough detail to act on. `code` is the typed identity when
-    the adapter recognised the failure; `None` is every other failure, and the
-    loop treats it as final.
-    """
+    """Terminal: the call did not produce a reply."""
 
     model_config = ConfigDict(frozen=True)
 

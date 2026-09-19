@@ -1,9 +1,4 @@
-"""Reading skills off disk: the spec's format, the spec's leniency, ranked roots.
-
-The compatibility tests are the ones that matter most — a skill written for
-Claude Code, Codex or OpenClaw must load here unchanged, because "copy a public
-skill and use it" is the whole promise.
-"""
+"""Reading skills off disk: the spec's format, the spec's leniency, ranked roots."""
 
 from __future__ import annotations
 
@@ -29,9 +24,6 @@ def write_skill(root: Path, name: str, text: str | None = None) -> Path:
         text if text is not None else MINIMAL.replace("name: pdf", f"name: {name}")
     )
     return directory
-
-
-# ── parsing ───────────────────────────────────────────────────────────────────
 
 
 def test_a_spec_skill_parses_into_frontmatter_and_body() -> None:
@@ -111,14 +103,11 @@ def test_a_non_mapping_frontmatter_is_refused() -> None:
         parse("---\n- just\n- a list\n---\n")
 
 
-# ── the catalog ───────────────────────────────────────────────────────────────
-
-
 def test_a_skill_directory_is_discovered(tmp_path) -> None:
     root = tmp_path / "skills"
     write_skill(root, "pdf")
     (root / "README.md").write_text("ignored")
-    (root / "notes").mkdir()  # a directory without SKILL.md is not a skill
+    (root / "notes").mkdir()
 
     snapshot = SkillCatalog([root])()
 
@@ -132,7 +121,7 @@ def test_a_skill_directory_is_discovered(tmp_path) -> None:
 
 def test_the_directory_name_is_the_identity_and_a_mismatch_is_reported(tmp_path) -> None:
     root = tmp_path / "skills"
-    write_skill(root, "pdf-tools", MINIMAL)  # frontmatter says `pdf`
+    write_skill(root, "pdf-tools", MINIMAL)
 
     snapshot = SkillCatalog([root])()
 
@@ -205,8 +194,7 @@ def test_a_body_edit_is_seen_at_the_next_read_and_a_description_edit_at_the_next
     file.write_text(
         MINIMAL.replace("Do the thing.", "Do it differently.").replace("PDFs.", "PDFs!")
     )
-    # A same-second rewrite of the same size would look unchanged; force the stamp.
-    os.utime(file, ns=(file.stat().st_atime_ns, file.stat().st_mtime_ns + 1))
+    touch_newer(file)
 
     after = catalog()
     assert before.skills[0].description.endswith("PDFs.")
@@ -247,3 +235,7 @@ def test_a_root_that_cannot_be_listed_keeps_its_last_good_set(tmp_path, caplog) 
     assert [s.name for s in first.skills] == ["pdf"]
     assert [s.name for s in second.skills] == ["pdf"]
     assert sum("keeping its last set" in r.message for r in caplog.records) == 1
+
+
+def touch_newer(file: Path) -> None:
+    os.utime(file, ns=(file.stat().st_atime_ns, file.stat().st_mtime_ns + 1))

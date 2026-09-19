@@ -1,23 +1,4 @@
-"""Decides when to compact, and does it — by appending events to the log.
-
-The one seam the loop holds. Everything it does is append events a fold reads
-back: `derive_messages` honours the boundary, `prune` honours the cleared ids,
-so the loop's own history shrinks with no second store. It never rewrites.
-
-Three entry points, one body:
-- `before_step` — the size check before every model request. Over the line, it
-  prunes if it can (no model call), else summarizes.
-- `recover` — the net under the check: the provider refused the request for its
-  size. Same body, ignoring the line, and bounded because each pass strictly
-  shrinks the derived history and a log that is only a summary has nothing left.
-- `compact_now` — the person asked. Refuses out loud when there is nothing to
-  do or a client request is unanswered, rather than writing an empty bracket.
-
-It catches its own failures: a summarizer that raises, times out, or returns
-nothing logs `compaction/end { error }` and the step proceeds unchanged. A
-decision that must fail open — losing the turn to a summary bug is worse than
-a big request — the same stance as the guardrail hooks.
-"""
+"""Decides when to compact, and does it — by appending events to the log."""
 
 from __future__ import annotations
 
@@ -45,19 +26,15 @@ from harness.session.repair import unanswered
 
 logger = logging.getLogger("harness.agent")
 
-# Compact at this fraction of the window. dsh's ratio; Claude Code's absolute
-# 13k reserve is tuned to a 200k window and goes negative at 16k.
 COMPACT_AT = 0.8
 
 NOTHING = "nothing to compact"
 UNANSWERED = "a client request is still unanswered"
-# The close a cancelled or crashed bracket gets, so it is never left open.
 INTERRUPTED = "interrupted"
 
 
 class CompactionRefused(Exception):
-    """A manual compaction cannot run now. `reason` is one of the strings
-    above — safe to show a person, and what the route returns as a 409."""
+    """A manual compaction cannot run now."""
 
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
@@ -71,13 +48,10 @@ class CompactionService:
     client: LLMClient
     model: str
     system_prompt: str
-    # The model's context window: config, else discovered, else `None` —
-    # proactive compaction off, the reactive net still on.
     context_tokens: int | None
 
     def due(self, session: Session) -> bool:
-        """Is the context past the line? False when the window is unknown or
-        nothing has been measured yet."""
+        """Is the context past the line?"""
         if self.context_tokens is None:
             return False
         used = session.context_size()
@@ -85,8 +59,6 @@ class CompactionService:
 
     def refusal(self, session: Session) -> str | None:
         """Why a compaction cannot run now, for the manual path, or `None`."""
-        # A pending client call is an assistant message whose tool call has no
-        # result — exactly what `unanswered` finds, and what a provider rejects.
         if unanswered(session.events()):
             return UNANSWERED
         if not prunable(session.events()) and not self._summarizable(session):
@@ -113,8 +85,7 @@ class CompactionService:
     async def compact_now(
         self, session: Session
     ) -> AsyncIterator[CompactionStart | CompactionEnd | CompactionPrune]:
-        """The person asked. Refuse silently here — the caller reports why via
-        `refusal` — rather than write a bracket that changed nothing."""
+        """A manual compaction: nothing when refused, else one reduce pass."""
         if self.refusal(session) is not None:
             return
         async with aclosing(self._reduce(session, turn=None, trigger="manual")) as events:
@@ -138,16 +109,14 @@ class CompactionService:
                 yield event
 
     def _summarizable(self, session: Session) -> bool:
-        """Is there anything before the tail worth summarizing — i.e. not
-        already reduced to a lone summary? Bounds `recover`."""
+        """Does the un-compacted tail hold a user message to summarize?"""
         events = session.events()
         return any(e.type == "user/message" for e in events[tail_start(events) :])
 
     async def _summarize(
         self, session: Session, *, turn: int | None, trigger: CompactionTrigger
     ) -> AsyncIterator[CompactionStart | CompactionEnd]:
-        """The bracket's lifecycle: open, summarize, close. `_finish` decides
-        the outcome; this only guarantees a close, even on cancellation."""
+        """The bracket's lifecycle: open, summarize, close."""
         start = CompactionStart(turn=turn, trigger=trigger, tokens=session.context_size())
         session.append(start)
         ended = False
@@ -158,28 +127,23 @@ class CompactionService:
             ended = True
             yield end
         finally:
-            # GeneratorExit at either yield, or cancellation inside `_finish`:
-            # the bracket is closed here so `repair` and the UI never see it open.
             if not ended:
                 session.append(CompactionEnd(turn=turn, error=INTERRUPTED))
 
     async def _finish(self, session: Session, *, turn: int | None) -> CompactionEnd:
-        """The summary as one outcome: a success end with the message, or a
-        failure end with the reason. Fails open — a summarizer bug is a failed
-        attempt, never a lost turn."""
+        """The summary as one `CompactionEnd`: success with a message, or failure with a reason."""
         try:
             summary = await self._ask(session)
         except _SummaryFailed as failed:
             return CompactionEnd(turn=turn, error=str(failed))
-        except Exception as err:  # noqa: BLE001 — a summarizer bug must not cost the turn
+        except Exception as err:
             logger.exception("compaction summarizer raised")
             return CompactionEnd(turn=turn, error=f"summarizer raised: {err}")
         message = ApplicationMessage(content=render(summary, retained_skills(session.events())))
         return CompactionEnd(turn=turn, message=message)
 
     async def _ask(self, session: Session) -> str:
-        """One model call: the conversation as the model sees it, plus the
-        instruction, no tools. Only text is kept."""
+        """One model call: the conversation as the model sees it, plus the instruction, no tools."""
         messages = [
             SystemMessage(content=self.system_prompt),
             *derive_messages(session.events()),

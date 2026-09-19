@@ -1,9 +1,4 @@
-"""The OpenAI adapter: SSE parsing, and the one-terminal contract.
-
-Driven through `httpx.MockTransport` rather than a stubbed client object, so the
-bytes-to-events path is the one under test — that is where the tolerance rules
-live, and none of them are exercised by a fake that hands over dicts.
-"""
+"""The OpenAI adapter: SSE parsing, and the one-terminal contract."""
 
 from __future__ import annotations
 
@@ -32,12 +27,7 @@ def delta(text: str) -> str:
 
 
 def client_over(handler) -> OpenAIClient:
-    """An `OpenAIClient` whose httpx calls hit `handler`.
-
-    Patches the module's `httpx.AsyncClient` rather than injecting a transport,
-    because the adapter deliberately owns its client's lifetime (one per call,
-    closed on exit) and threading a transport through would change that.
-    """
+    """An `OpenAIClient` whose httpx calls hit `handler`."""
     real = httpx.AsyncClient
 
     def factory(**kwargs):
@@ -83,12 +73,11 @@ async def test_usage_is_read_from_the_final_frame(monkeypatch) -> None:
     [
         json.dumps({"choices": [], "usage": None}),
         json.dumps({"choices": [], "usage": {"prompt_tokens": "seven"}}),
-        json.dumps({"choices": [], "usage": {"prompt_tokens": 7}}),  # half-reported
+        json.dumps({"choices": [], "usage": {"prompt_tokens": 7}}),
         json.dumps({"choices": []}),
     ],
 )
 async def test_absent_or_malformed_usage_stays_none(monkeypatch, frame: str) -> None:
-    """Not zero: "not reported" and "cost nothing" are different facts."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, content=sse(delta("ok"), frame, "[DONE]"))
@@ -101,12 +90,12 @@ async def test_absent_or_malformed_usage_stays_none(monkeypatch, frame: str) -> 
 @pytest.mark.parametrize(
     "frame",
     [
-        json.dumps({"choices": []}),  # usage-only frame
-        json.dumps({"choices": [{"delta": {}}]}),  # role header
-        json.dumps({"choices": [{"delta": {"content": None}}]}),  # finish reason
-        json.dumps({"choices": [{"delta": "not-an-object"}]}),  # malformed
-        json.dumps({"choices": "not-a-list"}),  # malformed
-        json.dumps({}),  # no choices key at all
+        json.dumps({"choices": []}),
+        json.dumps({"choices": [{"delta": {}}]}),
+        json.dumps({"choices": [{"delta": {"content": None}}]}),
+        json.dumps({"choices": [{"delta": "not-an-object"}]}),
+        json.dumps({"choices": "not-a-list"}),
+        json.dumps({}),
     ],
 )
 async def test_empty_frames_are_normal_traffic_not_errors(monkeypatch, frame: str) -> None:
@@ -128,7 +117,6 @@ async def test_one_unparseable_frame_does_not_kill_the_turn(monkeypatch) -> None
 
 
 async def test_http_error_becomes_failed_with_the_body(monkeypatch) -> None:
-    """The reason is user-facing, so it carries the provider's detail in full."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(429, content=b'{"error":"rate limited, retry in 20s"}')
@@ -151,9 +139,6 @@ async def test_transport_failure_becomes_failed_not_an_exception(monkeypatch) ->
 
 
 async def test_request_pins_temperature_and_asks_for_usage(monkeypatch) -> None:
-    """Both are deliberate: an unpinned temperature inherits whatever the
-    provider currently defaults to, and without `stream_options` a streamed
-    response reports no usage at all."""
     captured: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:

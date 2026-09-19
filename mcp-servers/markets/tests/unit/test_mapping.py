@@ -1,5 +1,4 @@
-"""yfinance's shapes into ours, with frames built by hand from the shapes
-recorded on 2026-09-14. No network."""
+"""yfinance's shapes into ours, with frames built by hand from the shapes recorded on 2026-09-14."""
 
 from __future__ import annotations
 
@@ -29,9 +28,6 @@ def bars(n: int, start: float = 100.0) -> pd.DataFrame:
     )
 
 
-# --- search --------------------------------------------------------------
-
-
 def test_search_keeps_equities_and_etfs_and_drops_the_rest() -> None:
     quotes = [
         {"symbol": "AAPL", "quoteType": "EQUITY", "exchDisp": "NASDAQ", "longname": "Apple Inc."},
@@ -47,9 +43,6 @@ def test_search_keeps_equities_and_etfs_and_drops_the_rest() -> None:
         ("AAPL", "Apple Inc.", "NASDAQ", "stock"),
         ("SPY", "SPDR S&P", "NYSEArca", "etf"),
     ]
-
-
-# --- quote ---------------------------------------------------------------
 
 
 def test_a_quote_reads_fast_info_and_computes_the_change() -> None:
@@ -70,7 +63,7 @@ def test_a_quote_reads_fast_info_and_computes_the_change() -> None:
     quote = mapping.quote("1155.KL", fast)
 
     assert quote.status == "ok"
-    assert quote.price == 10.46  # float32 noise rounded away
+    assert quote.price == 10.46
     assert quote.change_pct == pytest.approx(0.7707, abs=1e-4)
     assert (quote.currency, quote.exchange, quote.kind) == ("MYR", "KLS", "stock")
     assert quote.source == YAHOO
@@ -87,9 +80,6 @@ def test_a_quote_without_a_previous_close_has_no_change() -> None:
     quote = mapping.quote("X", {"lastPrice": 5.0, "previousClose": None})
 
     assert quote.change_pct is None
-
-
-# --- history -------------------------------------------------------------
 
 
 def test_history_rows_are_dated_ohlcv_in_order() -> None:
@@ -151,9 +141,6 @@ def test_a_bar_with_no_close_is_skipped() -> None:
     assert [r.close for r in out.rows] == [100.0, 102.0]
 
 
-# --- profile -------------------------------------------------------------
-
-
 def test_a_profile_carries_metrics_as_percentages() -> None:
     info = {
         "longName": "Malayan Banking Berhad",
@@ -190,13 +177,12 @@ def test_a_profile_carries_metrics_as_percentages() -> None:
     )
     assert out.metrics.net_margin_pct == 36.702
     assert out.metrics.return_on_equity_pct == 11.141
-    assert out.metrics.dividend_yield_pct == 5.97  # Yahoo already reports a percentage
+    assert out.metrics.dividend_yield_pct == 5.97
     assert out.metrics.ev_to_ebitda is None
     assert out.crypto is None
 
 
 def test_a_bare_info_dict_is_not_found() -> None:
-    """What yfinance returns for an unknown symbol: `{'trailingPegRatio': None}`."""
     out = mapping.profile("NOPE", {"trailingPegRatio": None})
 
     assert out.status == "not_found"
@@ -204,9 +190,6 @@ def test_a_bare_info_dict_is_not_found() -> None:
 
 def test_a_profile_falls_back_to_the_short_name() -> None:
     assert mapping.profile("X", {"shortName": "X CORP"}).name == "X CORP"
-
-
-# --- financials ----------------------------------------------------------
 
 
 def statement_frame() -> pd.DataFrame:
@@ -239,9 +222,6 @@ def test_empty_statements_are_not_found() -> None:
     )
 
     assert out.status == "not_found"
-
-
-# --- news ----------------------------------------------------------------
 
 
 def item(title: str) -> dict:

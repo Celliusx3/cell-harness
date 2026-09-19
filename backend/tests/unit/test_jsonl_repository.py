@@ -23,9 +23,6 @@ def store(tmp_path) -> JsonlSessionRepository:
     return repository(tmp_path)
 
 
-# ── round-trip ────────────────────────────────────────────────────────────────
-
-
 async def test_events_round_trip_identically(store) -> None:
     await store.create(header())
     events = a_turn()
@@ -38,7 +35,6 @@ async def test_events_round_trip_identically(store) -> None:
 
 
 async def test_a_tool_result_with_an_app_round_trips(store) -> None:
-    """The binding is what a reload draws the app from, `data` included."""
     await store.create(header())
     result = ToolResultEvent(
         turn=0,
@@ -97,11 +93,7 @@ async def test_appends_accumulate(store) -> None:
     assert [e.turn for e in loaded if isinstance(e, TurnStart)] == [0, 1]
 
 
-# ── lazy materialization ──────────────────────────────────────────────────────
-
-
 async def test_create_writes_nothing(store, tmp_path) -> None:
-    """A conversation opened and abandoned leaves no trace."""
     await store.create(header())
 
     assert not (tmp_path / "sessions" / "s.jsonl").exists()
@@ -125,9 +117,6 @@ async def test_loading_an_absent_session_fails(store) -> None:
         await store.load("ghost")
 
 
-# ── the title ─────────────────────────────────────────────────────────────────
-
-
 async def test_the_title_comes_from_the_first_user_message(store) -> None:
     await store.create(header())
     await store.append("s", a_turn(text="how do generators work?"))
@@ -138,7 +127,6 @@ async def test_the_title_comes_from_the_first_user_message(store) -> None:
 
 
 async def test_a_guardrail_message_never_becomes_the_title(store) -> None:
-    """Only what the person typed may name the conversation."""
     await store.create(header())
     await store.append(
         "s",
@@ -155,7 +143,6 @@ async def test_a_guardrail_message_never_becomes_the_title(store) -> None:
 
 
 async def test_a_long_first_message_is_capped_but_the_log_keeps_it_whole(store) -> None:
-    """The title is a label, not a summary — the full message stays in the log."""
     long = "x" * 500
     await store.create(header())
     await store.append("s", a_turn(text=long))
@@ -177,12 +164,7 @@ async def test_the_title_is_stamped_once_not_rewritten(store) -> None:
     assert loaded_header.title == "first"
 
 
-# ── continuity ────────────────────────────────────────────────────────────────
-
-
 async def test_a_fresh_instance_counts_the_stored_log(store, tmp_path) -> None:
-    """A restarted process reads the count off disk rather than assuming zero —
-    otherwise its first append would silently overwrite the header."""
     await store.create(header())
     await store.append("s", a_turn(0))
 
@@ -195,7 +177,6 @@ async def test_a_fresh_instance_counts_the_stored_log(store, tmp_path) -> None:
 
 
 async def test_stored_count_is_zero_before_anything_is_written(store) -> None:
-    """Including for a session that was created and then abandoned."""
     await store.create(header())
 
     assert await store.stored_count("s") == 0
@@ -209,8 +190,6 @@ async def test_stored_count_tracks_appends(store) -> None:
 
 
 async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None:
-    """The reverse of `load`: a resumed turn must be followed by every chat
-    that points at its conversation, and only the repository knows which."""
     from harness.channels.repositories.jsonl import JsonlChatRepository
     from harness.channels.repository import ChatState
 
@@ -218,7 +197,7 @@ async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None
     await chats.save(ChatState(channel="telegram", chat_id="1", conversation_id="c0"))
     await chats.save(ChatState(channel="discord", chat_id="9", conversation_id="c0"))
     await chats.save(ChatState(channel="telegram", chat_id="2", conversation_id="c1"))
-    await chats.set_cursor("telegram", "77")  # a cursor file is not a chat
+    await chats.set_cursor("telegram", "77")
 
     found = await chats.chats_of("c0")
     assert sorted((s.channel, s.chat_id) for s in found) == [("discord", "9"), ("telegram", "1")]
@@ -226,10 +205,6 @@ async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None
 
 
 async def test_files_that_are_not_chats_do_not_break_the_lookup(tmp_path) -> None:
-    """The directory outlives layouts: an `offset.json` from an earlier
-    channel design sat beside real chats and took the whole resume down with a
-    parse error. Only the repository's own `<channel>-<chat>.json` files are
-    chats; anything else in the directory is not its business."""
     from harness.channels.repositories.jsonl import JsonlChatRepository
     from harness.channels.repository import ChatState
 

@@ -1,5 +1,4 @@
-"""Startup refusals. Each one is a tool the model never sees rather than a tool
-that fails every call — which is the whole reason to fail closed here."""
+"""Startup refusals."""
 
 from __future__ import annotations
 
@@ -23,7 +22,6 @@ def test_a_complete_environment_loads() -> None:
 
 @pytest.mark.parametrize("missing", ["AI_PROVIDER_BASE_URL", "AI_PROVIDER_API_KEY"])
 def test_a_missing_credential_refuses_and_names_the_variable(missing: str) -> None:
-    """Naming it is the difference between a fixable error and a mystery."""
     env = {k: v for k, v in BASE.items() if k != missing}
 
     with pytest.raises(ConfigError, match=missing):
@@ -36,14 +34,11 @@ def test_an_unknown_backend_refuses_and_lists_the_valid_ones() -> None:
 
 
 def test_the_fixture_backend_requires_a_root() -> None:
-    """Selected without one, every fetch would fail identically and confusingly."""
     with pytest.raises(ConfigError, match="INSTAGRAM_FIXTURE_ROOT"):
         load(BASE | {"INSTAGRAM_MEDIA_BACKEND": "fixture"})
 
 
 def test_a_missing_ffmpeg_refuses_at_startup_not_at_the_first_read() -> None:
-    """ffmpeg cannot be a pip dependency, so unlike instaloader it is a PATH
-    requirement — and one that must be checked before the server binds."""
     with pytest.raises(ConfigError, match="not on PATH"):
         load(BASE | {"INSTAGRAM_FFMPEG": "definitely-not-a-real-binary-xyz"})
 
@@ -66,8 +61,6 @@ def test_an_unusable_number_refuses_rather_than_silently_defaulting(
 
 
 def test_a_blank_value_takes_the_default_rather_than_refusing() -> None:
-    """An env var set to empty is how a shell passes "unset", and refusing it
-    would make an ordinary config file unusable."""
     assert load(BASE | {"INSTAGRAM_MAX_FRAMES": ""}).max_frames == 8
 
 

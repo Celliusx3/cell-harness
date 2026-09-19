@@ -17,7 +17,7 @@ def make_config(**overrides: object) -> Config:
         "timeout_seconds": 5.0,
     }
     values.update(overrides)
-    return Config(**values)  # type: ignore[arg-type]
+    return Config(**values)
 
 
 def client_with(handler) -> PlacesClient:
@@ -35,11 +35,7 @@ def place(
     address: str = "Avenue K, Jalan Ampang, Kuala Lumpur",
     kind: str = "Italian restaurant",
 ) -> dict:
-    """A place shaped exactly as Places API (New) returns it.
-
-    Note `displayName` is an object, not a string — reading it as a string is the
-    mistake that yields a POI with no label.
-    """
+    """A place shaped exactly as Places API (New) returns it."""
     return {
         "id": place_id,
         "displayName": {"text": name, "languageCode": "en"},
@@ -55,12 +51,7 @@ def search_reply(*places: dict) -> httpx.Response:
 
 
 def capturing(response: httpx.Response):
-    """Returns `(handler, seen)` so a test can assert on the request itself.
-
-    The field mask and the request body are the two things worth asserting: the
-    mask *is* the price, and the body is where location bias either applied or
-    silently did not.
-    """
+    """Returns `(handler, seen)` so a test can assert on the request itself."""
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:

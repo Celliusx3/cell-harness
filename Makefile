@@ -3,15 +3,9 @@
 
 BACKEND = cd backend && uv run
 
-# The port lives here, not in config.json: the frontend's dev proxy
-# (frontend/next.config.ts) has to agree with it and cannot read Python config,
-# so a setting would look authoritative while the proxy silently kept using the
-# old value. See the note in harness/web/server.py.
-#
-# No --host: uvicorn defaults to 127.0.0.1, which is what we want. This server
-# has no authentication in front of a model loop holding a provider key.
-BACKEND_RUN  = cd backend && uv run uvicorn harness.web.server:create_web_app --factory --reload --port 4896
-FRONTEND_RUN = cd frontend && npm run dev
+BACKEND_PORT ?= 4896
+BACKEND_RUN  = cd backend && uv run uvicorn harness.web.server:create_web_app --factory --reload --host 127.0.0.1 --port $(BACKEND_PORT)
+FRONTEND_RUN = cd frontend && BACKEND_PORT=$(BACKEND_PORT) npm run dev
 
 help:
 	@echo "cell-harness — targets:"
@@ -52,25 +46,17 @@ dev-web:
 test:
 	$(BACKEND) pytest
 
-# --no-cov on the split targets: the gate is a whole-suite property, and a
-# partial run failing it reports "coverage too low" for work that is fine.
 test-unit:
 	$(BACKEND) pytest tests/unit --no-cov
 
 test-integration:
 	$(BACKEND) pytest tests/integration --no-cov
 
-# Deliberately NOT part of `test`: each server under mcp-servers/ is a separate
-# uv project with its own 80% gate, and folding a second --cov source into one
-# pytest run makes the gate mean nothing about either. One server's flake must
-# not fail the harness's suite. `uv run` syncs on demand, so no install target.
 MCP_SERVERS = mcp-servers/instagram mcp-servers/places mcp-servers/markets
 
 test-mcp-servers:
 	@for s in $(MCP_SERVERS); do (cd $$s && uv run pytest) || exit 1; done
 
-# The sandbox shim is real code the model's programs run inside, so it gets the
-# same treatment as the Python. Deno is already required to start the harness.
 lint:
 	$(BACKEND) ruff check .
 	$(BACKEND) ruff format --check .

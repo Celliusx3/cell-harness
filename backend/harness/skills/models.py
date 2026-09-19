@@ -1,18 +1,4 @@
-"""What a skill is, and how one is read off a `SKILL.md`.
-
-The shape is the Agent Skills spec (agentskills.io/specification): a directory
-holding a `SKILL.md` whose YAML frontmatter names it and says when to use it,
-and whose Markdown body is the instructions. Parsing is **lenient where the spec
-allows and strict where a name becomes code**, following the spec's client
-guide: a description is essential and its absence skips the skill; a frontmatter
-`name` that disagrees with the directory is a diagnostic, not a refusal; every
-field we do not know is ignored — that is what lets a skill written for Claude
-Code, Codex or OpenClaw load here unchanged. The directory name is the identity,
-because it becomes a tool enum member and a `/command`, and those cannot be
-lenient.
-
-Pure: nothing here touches the disk. `catalog.py` does the reading.
-"""
+"""What a skill is, and how one is read off a `SKILL.md`."""
 
 from __future__ import annotations
 
@@ -23,13 +9,8 @@ from typing import NamedTuple
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-# The spec's `name` rule, applied to the directory: lowercase, digits, single
-# hyphens, ≤ 64. Strict on purpose — see the module docstring.
 NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_NAME_CHARS = 64
-# The spec's cap. Longer is truncated in the *catalog* and reported, because a
-# description is read by the model on every request and a 3 KB one is exactly
-# the cost the catalog exists to avoid.
 MAX_DESCRIPTION_CHARS = 1024
 SKILL_FILE = "SKILL.md"
 
@@ -41,13 +22,7 @@ class InvalidSkill(ValueError):
 
 
 class UnknownSkill(LookupError):
-    """`/name` named no skill a person may invoke.
-
-    One error for three causes — no such skill, `user-invocable: false`, or a
-    `SKILL.md` that failed to parse — because the spec's client guide says to
-    hide filtered skills rather than list and refuse them, and because the reply
-    is the same either way: here is what you can type.
-    """
+    """`/name` named no skill a person may invoke."""
 
     def __init__(self, name: str) -> None:
         super().__init__(name)
@@ -61,9 +36,6 @@ class Frontmatter(BaseModel):
 
     name: str | None = None
     description: str
-    # Claude Code's two switches, one per surface. `disable-model-invocation`
-    # takes a skill out of the model's catalog and enum; `user-invocable: false`
-    # takes it out of the `/name` commands a person can type. Both default open.
     disable_model_invocation: bool = Field(default=False, alias="disable-model-invocation")
     user_invocable: bool = Field(default=True, alias="user-invocable")
 
@@ -109,14 +81,7 @@ def valid_name(name: str) -> bool:
 
 
 def parse(text: str) -> Parsed:
-    """The frontmatter and body of one `SKILL.md`, or `InvalidSkill`.
-
-    Two things the spec's client guide asks for: quote-and-retry when the YAML
-    fails, because `description: Use when: the user…` is the single most common
-    breakage in skills written for a more forgiving parser; and an empty
-    description is a refusal, because the description is the only thing the
-    model has to decide whether to load the skill.
-    """
+    """The frontmatter and body of one `SKILL.md`, or `InvalidSkill`."""
     parts = _split(text)
     if parts is None:
         raise InvalidSkill(f"{SKILL_FILE} must start with a `---` YAML frontmatter block")
@@ -155,8 +120,6 @@ def _load_yaml(raw: str) -> object:
     try:
         return yaml.safe_load(raw)
     except yaml.YAMLError:
-        # A value with an unquoted `: ` inside it. Wrap such values in quotes
-        # and try once more; anything still broken is reported as-is.
         return yaml.safe_load(_quote_colons(raw))
 
 

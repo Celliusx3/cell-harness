@@ -11,14 +11,7 @@ interface SkillRowsProps {
   onNew: () => void;
 }
 
-/**
- * The catalog as a list: every skill that loaded, then everything that did not.
- *
- * Problems are shown with their path and reason, not hidden — a person editing
- * files needs that list more than the first one. Both invocability flags are
- * shown as chips, because the two surfaces are the thing a skill's frontmatter
- * most often gets wrong.
- */
+/** The catalog as a list: every skill that loaded, then everything that did not. */
 export function SkillRows({ list, selected, onSelect, onNew }: SkillRowsProps) {
   return (
     <div className="px-2 py-3">

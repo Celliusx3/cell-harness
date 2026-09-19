@@ -1,5 +1,4 @@
-"""Skills through the real object graph: offered while one exists, withheld
-from scripts."""
+"""Skills through the real object graph: offered while one exists, withheld from scripts."""
 
 from __future__ import annotations
 
@@ -51,8 +50,6 @@ def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
 
     directory = write_skill(root, "pdf")
     offered = [s.name for s in agent.tools.specs()]
-    # Asserted positively as well as against the constant: a `DEFAULT_TOOLS`
-    # that forgot `SKILL` once passed the second comparison alone.
     assert SKILL in offered
     assert offered == list(DEFAULT_TOOLS)
 
@@ -74,8 +71,6 @@ async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
 
 
 async def test_a_script_cannot_reach_it(compose) -> None:
-    """Not in `list_functions`, and refused at the bridge — the body is context
-    for the model, not data for a program."""
     build, root = compose
     write_skill(root, "pdf")
     agent = build()
@@ -100,8 +95,6 @@ async def test_a_script_cannot_reach_it(compose) -> None:
 
 
 def test_a_skill_saved_through_the_editor_is_offered_next_request(compose) -> None:
-    """8.4's "save, it is used": no restart, no refresh step — the catalog's
-    file stamp sees the write and the next `specs()` carries the new name."""
     build, root = compose
     agent = build()
     assert agent.tools is not None

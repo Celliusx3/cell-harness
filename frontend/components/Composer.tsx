@@ -10,23 +10,12 @@ interface Props {
   autoFocus?: boolean;
 }
 
-/**
- * The composer, and the stop button beside it while a turn runs.
- *
- * **Typing during a turn is allowed.** It used to be blocked, because a second
- * message was refused with a `409` and offering a button that errors is worse
- * than offering none. The server queues now — the same thing it always did for
- * Telegram, where a phone cannot grey out its composer — so the reason for the
- * block is gone. What is sent mid-turn is answered next.
- */
+/** The composer, and the stop button beside it while a turn runs. */
 export function Composer({ running, onSend, onStop, autoFocus }: Props) {
   const [draft, setDraft] = useState("");
   const box = useRef<HTMLTextAreaElement>(null);
 
   const submit = () => {
-    // Trimmed here as well as validated at the edge — the backend rejects a
-    // whitespace-only prompt with a 422, and a UI that can produce one is a UI
-    // that shows the user an error it could have prevented.
     const prompt = draft.trim();
     if (!prompt) return;
     onSend(prompt);
@@ -44,9 +33,7 @@ export function Composer({ running, onSend, onStop, autoFocus }: Props) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
-            // Enter sends, Shift+Enter breaks the line — and `isComposing`
-            // guards an IME: committing a candidate fires Enter too, and
-            // sending there would cut a half-typed word.
+            // An IME committing a candidate fires Enter too; `isComposing` tells them apart.
             if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault();
               submit();
@@ -55,8 +42,6 @@ export function Composer({ running, onSend, onStop, autoFocus }: Props) {
           placeholder={running ? "Reply — it will be answered next" : "Send a message"}
           className="max-h-48 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-ink-soft disabled:opacity-60"
         />
-        {/* Both, now that they are both useful: stop what is running, or queue
-            the next message. Only "stop" is hidden when nothing is running. */}
         {running && (
           <button
             onClick={onStop}

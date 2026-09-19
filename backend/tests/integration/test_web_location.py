@@ -1,11 +1,4 @@
-"""A client tool over HTTP: the model asks, the turn ends pending, and the
-browser's output opens the turn that carries it.
-
-Same in-process transport as `test_web.py`. The route is the only surface;
-what it guards — only the pending call, only a body its declaration accepts,
-only while nothing is running — is tested from the outside, by status code.
-`get_location` is the declaration used because it is the one that exists.
-"""
+"""A client tool over HTTP."""
 
 from __future__ import annotations
 
@@ -40,7 +33,7 @@ async def _pending(client: httpx.AsyncClient, runs: RunStore) -> str:
     ).json()["id"]
     await settle(runs, conversation_id)
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
-    assert detail["running"] is False  # pending is idle: the composer is free
+    assert detail["running"] is False
     assert [e["reason"] for e in detail["events"] if e["type"] == "turn/end"] == ["pending"]
     return conversation_id
 
@@ -57,7 +50,7 @@ async def test_the_browser_answers_the_call_and_the_turn_resumes(tmp_path) -> No
 
     answered = await client.post(PATH.format(id=conversation_id), json=SHARED)
     assert answered.status_code == 204
-    assert runs.active(conversation_id) is not None  # the answer opened a turn
+    assert runs.active(conversation_id) is not None
     await settle(runs, conversation_id)
 
     events = await _events(client, conversation_id)
@@ -90,9 +83,6 @@ async def test_declining_reaches_the_model_as_a_typed_failure(tmp_path) -> None:
 
 
 async def test_typing_instead_skips_the_ask(tmp_path) -> None:
-    """The person moved on. The new turn first answers the dangling call as
-    skipped — a provider refuses a history with a call and no result — then
-    carries their message."""
     client, _, runs = _asking(tmp_path, reply="9pm in Tokyo")
     conversation_id = await _pending(client, runs)
 
@@ -112,7 +102,6 @@ async def test_typing_instead_skips_the_ask(tmp_path) -> None:
 
 
 async def test_a_call_that_is_not_pending_cannot_be_answered(tmp_path) -> None:
-    """Unknown id, unknown conversation, an answered call: 404, every time."""
     client, _, runs = _asking(tmp_path)
     conversation_id = await _pending(client, runs)
 
@@ -128,7 +117,6 @@ async def test_a_call_that_is_not_pending_cannot_be_answered(tmp_path) -> None:
 
 
 async def test_an_answer_while_a_turn_runs_is_refused(tmp_path) -> None:
-    """Two tabs: the first answer opened the turn; the second finds it running."""
     client, _, runs = _asking(tmp_path)
     conversation_id = await _pending(client, runs)
 
@@ -152,18 +140,13 @@ async def test_a_malformed_answer_is_rejected_at_the_boundary(tmp_path) -> None:
         {"kind": "lost"},
     ]
     assert [(await client.post(path, json=body)).status_code for body in bodies] == [422] * 5
-    assert runs.active(conversation_id) is None  # nothing was opened
+    assert runs.active(conversation_id) is None
 
 
 async def test_a_restart_between_the_ask_and_the_answer_changes_nothing(tmp_path) -> None:
-    """The pending call lives in the log, not in memory: a new process over
-    the same directory takes the answer and resumes."""
     client, _, runs = _asking(tmp_path)
     conversation_id = await _pending(client, runs)
 
-    # "Restart": a fresh service and run store over the same directory, and
-    # a fresh app around them. Nothing from the first process survives but
-    # the files.
     tools = client_tools()
     reborn = durable_service(tmp_path / "sessions", prefix="d")
     model = SteppedClient(completed("a café 200 m from you"))

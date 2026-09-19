@@ -1,10 +1,4 @@
-"""Skills: instructions the model loads when a task matches them.
-
-A skill is a directory with a `SKILL.md` (agentskills.io). The catalog — every
-skill's name and one-line description — is rebuilt from disk on every request,
-the way the tool list is; the body is read only when a skill is activated.
-`SkillService` is the one object the rest of the harness holds.
-"""
+"""Skills: instructions the model loads when a task matches them."""
 
 from harness.skills.invocation import display
 from harness.skills.models import (

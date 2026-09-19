@@ -1,10 +1,4 @@
-"""Code mode against a real Deno: the whole path, and the codegen it rests on.
-
-The sandbox's own contracts — permissions, reaping, the bridge — are in
-`test_sandbox.py`. What is here is everything above it: that our generated
-TypeScript is real TypeScript, and that a script reaches a real tool through the
-real pipeline.
-"""
+"""Code mode against a real Deno: the whole path, and the codegen it rests on."""
 
 from __future__ import annotations
 
@@ -29,13 +23,13 @@ deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not inst
 
 
 def tool(name: str, schema: object, description: str = "A tool.") -> ToolDefinition:
-    async def run(args, progress):  # pragma: no cover - never invoked here
+    async def run(args, progress):
         return Ok("")
 
     return ToolDefinition(
         name=name,
         description=description,
-        input_schema=schema,  # type: ignore[arg-type]
+        input_schema=schema,
         parse=lambda raw: raw,
         execute=run,
     )
@@ -44,21 +38,16 @@ def tool(name: str, schema: object, description: str = "A tool.") -> ToolDefinit
 def type_check(source: str) -> subprocess.CompletedProcess[str]:
     """Ask Deno to load the source as a module, which parses and type-strips it."""
     url = "data:text/typescript," + urllib.parse.quote(source)
-    return subprocess.run(  # noqa: S603 - a fixed argv, no shell
-        ["deno", "run", "--no-prompt", url],  # noqa: S607 - resolved via PATH by design
+    return subprocess.run(
+        ["deno", "run", "--no-prompt", url],
         capture_output=True,
         text=True,
         timeout=60,
     )
 
 
-# ── the codegen produces real TypeScript ──────────────────────────────────────
-
-
 @deno
 def test_generated_declarations_are_valid_typescript() -> None:
-    """The printer's output is only useful if Deno accepts it. Every construct we
-    emit is exercised here, including the ones a server can force on us."""
     tools = [
         tool(
             "yt__get_subtitles",
@@ -86,7 +75,6 @@ def test_generated_declarations_are_valid_typescript() -> None:
 
 @deno
 def test_a_script_can_be_written_against_the_declarations() -> None:
-    """Declarations plus a call site — the shape the model actually produces."""
     source = declarations(
         [
             tool(
@@ -100,8 +88,6 @@ def test_a_script_can_be_written_against_the_declarations() -> None:
         ],
         types=True,
     )
-    # `declare` emits no runtime code, so the call is unreachable on purpose:
-    # this asserts the *types* line up, not that anything runs.
     source += "\nasync function _unused() { await yt__get_subtitles({ url: 'x' }); }\n"
 
     result = type_check(source)
@@ -109,14 +95,8 @@ def test_a_script_can_be_written_against_the_declarations() -> None:
     assert result.returncode == 0, result.stderr
 
 
-# ── the whole path ────────────────────────────────────────────────────────────
-
-
 @deno
 async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
-    """Every seam at once: the printer types the tool, the model's script calls it
-    by name, the bridge dispatches through `ToolPipeline`, and only what the
-    script returned comes back."""
 
     async def rows(args, progress):
         return Ok("Found 3 rows.", data={"rows": [{"n": 1}, {"n": 2}, {"n": 3}]})
@@ -138,6 +118,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         registry=registry,
         dispatcher=dispatcher,
         runtime=DenoRunner(deno_path="deno", timeout_seconds=30),
+        withheld=frozenset(),
     ):
         registry.register(built)
     pipeline = ToolPipeline(registry, dispatcher, (LIST, DETAILS, EXECUTE))
@@ -146,7 +127,6 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         call = ToolCall(id="c1", name=name, arguments=arguments)
         return await pipeline.execute(call, progress=no_progress)
 
-    # The model is offered three tools and nothing else.
     assert [spec.name for spec in pipeline.specs()] == [LIST, DETAILS, EXECUTE]
 
     listed = await run(LIST, "{}")
@@ -166,6 +146,5 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
 
     assert isinstance(ran, Ok)
     assert "fetched 3 rows" in ran.text
-    # The three fetched rows never entered the conversation; two numbers did.
     assert ran.data == [2, 3]
     assert '"n"' not in ran.text

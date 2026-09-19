@@ -1,19 +1,4 @@
-"""Asking Google about a place — the one outward call this server makes.
-
-**The most important thing here is a documented limitation, not code.** Google
-states that Text Search *"is not intended for ambiguous queries"*, and lists the
-shapes that fail: *"too many concepts or constraints"* and *"unofficial or vanity
-names"*. So a query assembled straight from a reel — "nasi lemak stall Bangsar
-blue awning banana leaf" — is bad **by construction**; "blue awning" is in no
-index anywhere and its presence actively harms the match.
-
-Verified against the public geocoders too: adding one non-indexed descriptor took
-Nominatim and Photon from 2 results to **0**. The pipeline that works is for the
-model to normalize the evidence into a clean name-and-area query, get a few
-candidates, and re-rank *those* using the visual detail. Descriptors are
-disambiguation signal, never search input, and `search_text`'s description says
-so because the model is the only thing that can get this right.
-"""
+"""Asking Google about a place — the one outward call this server makes."""
 
 from __future__ import annotations
 
@@ -31,11 +16,7 @@ __all__ = ["Circle", "PlacesClient", "PlacesAuthError", "PlacesError"]
 
 @dataclass(frozen=True)
 class Circle:
-    """A location bias. Not a filter — Google may still return results outside it.
-
-    Used rather than `locationRestriction` because restriction only applies to
-    categorical queries, and a POI lookup is almost always a name query.
-    """
+    """A location bias."""
 
     latitude: float
     longitude: float
@@ -98,7 +79,4 @@ class PlacesClient:
         return details(response.json(), place_id)
 
     def _headers(self, mask: str) -> dict[str, str]:
-        # The field mask is mandatory: "If you omit the field mask, the method
-        # returns an error." It is also what sets the price, so it is never
-        # defaulted or widened at the call site.
         return {"X-Goog-Api-Key": self._key, "X-Goog-FieldMask": mask}

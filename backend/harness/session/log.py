@@ -1,22 +1,4 @@
-"""The append-only log, and the session that owns one.
-
-This class stays free of storage concerns: a backend's job is to persist exactly
-what `append` recorded, and `SessionService` owns the cursor of how much of it is
-durable. Nothing here knows whether anything is written down.
-
-Two properties everything downstream leans on:
-
-- **Append-only.** Nothing rewrites or removes an event. Compaction, when it
-  arrives, appends a boundary rather than editing history; a UI's undo would be
-  a new event too. It is what makes a sequence number a stable cursor.
-- **Contiguous sequence numbers**, starting at 0, with no gaps. A consumer that
-  has seen through `n` can ask for everything after `n` and know it missed
-  nothing — which is how the phase-4 run subscription works.
-
-`next_turn()` rather than a caller-supplied number: the log is the only thing
-that knows how many turns it has, and letting a caller pass one invites two
-concurrent turns to share an index and interleave.
-"""
+"""The append-only log, and the session that owns one."""
 
 from __future__ import annotations
 
@@ -41,49 +23,24 @@ class Session:
 
     @property
     def id(self) -> str:
-        """The session's identity, read from the header.
-
-        A property rather than a second field, so a session and its stored
-        metadata cannot disagree about which session this is.
-        """
+        """The session's identity, read from the header."""
         return self.header.id
 
     def append(self, event: SessionEvent) -> int:
-        """Record one event.
-
-        @returns its sequence number — the index, which is also a stable cursor.
-        """
+        """Record one event."""
         self._events.append(event)
         return len(self._events) - 1
 
     def events(self) -> Sequence[SessionEvent]:
-        """Every event, oldest first.
-
-        A view rather than a copy: callers read, and copying the whole log on
-        each of the loop's per-step reads would make history derivation
-        quadratic in a long conversation.
-        """
+        """Every event, oldest first."""
         return self._events
 
     def next_turn(self) -> int:
-        """The index the next turn should open with.
-
-        Derived from the log rather than a counter, so a session rehydrated from
-        storage (phase 3) resumes its numbering with no state to restore.
-        """
+        """The index the next turn should open with."""
         return sum(1 for event in self._events if isinstance(event, TurnStart))
 
     def tools_selected(self) -> tuple[str, ...]:
-        """The tools this conversation has selected, oldest first, no repeats.
-
-        Folded from the `tool_reference` blocks in results — Anthropic's shape,
-        where a discovery tool answers with references and the platform reads
-        them out of history on every request. Nothing here knows which tool does
-        the selecting, any more than `next_turn()` knows who opened a turn. A
-        re-selection moves a name to the end, so the order is by most recent
-        use — how many of them a request carries is the pipeline's decision, not
-        the log's.
-        """
+        """The tools this conversation has selected, oldest first, no repeats."""
         order: dict[str, None] = {}
         for event in self._events:
             if isinstance(event, ToolResultEvent):
@@ -94,10 +51,7 @@ class Session:
         return tuple(order)
 
     def context_size(self) -> int | None:
-        """The context after the last reply that reported its usage: its input
-        plus its output, which is what the next request starts from. `None`
-        until a provider has said — compaction cannot measure what it was not
-        told, and a guess would fire it on the wrong conversation."""
+        """Input plus output tokens of the last reply that reported usage, or `None`."""
         for event in reversed(self._events):
             if isinstance(event, AssistantMessageEvent) and event.usage is not None:
                 return event.usage.input_tokens + event.usage.output_tokens

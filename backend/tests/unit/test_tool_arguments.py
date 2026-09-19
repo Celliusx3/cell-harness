@@ -1,9 +1,4 @@
-"""What `invoke` says when the model's arguments do not fit the schema.
-
-Split from `test_tools.py` for the file cap. The redirect under test: a missing
-required field is told back as what was sent against what the schema has,
-before any parser or server sees it.
-"""
+"""What `invoke` says when the model's arguments do not fit the schema."""
 
 from __future__ import annotations
 
@@ -29,8 +24,7 @@ def call(name: str, arguments: str) -> ToolCall:
 
 
 def profile_tool() -> ToolDefinition[dict]:
-    """An MCP-shaped tool: a hand-written schema and an identity parser, so the
-    only argument check it gets is the one `invoke` does itself."""
+    """An MCP-shaped tool: a hand-written schema and an identity parser."""
 
     async def execute(args: dict, progress: ToolProgressReporter) -> ToolOutcome:
         return Ok(content=f"profile of {args['id']}")
@@ -49,8 +43,6 @@ def profile_tool() -> ToolDefinition[dict]:
 
 
 async def test_missing_required_fields_say_what_was_sent_and_what_is_expected() -> None:
-    """Redirect, not repair: the failure names the missing field, the keys the
-    model sent, and the fields the schema has — the three facts it needs."""
     outcome = await pipeline(profile_tool()).execute(
         call("profile", '{"kind": "stock"}'), progress=no_progress
     )
@@ -63,8 +55,6 @@ async def test_missing_required_fields_say_what_was_sent_and_what_is_expected() 
 
 
 async def test_arguments_wrapped_in_args_are_a_missing_field_not_a_server_error() -> None:
-    """The motivating case: a model shown `declare function f(args: {id})` sends
-    `{"args": {"id": …}}`. Three conversations, every direct markets call."""
     outcome = await pipeline(profile_tool()).execute(
         call("profile", '{"args": {"id": "AAPL"}}'), progress=no_progress
     )
@@ -76,8 +66,6 @@ async def test_arguments_wrapped_in_args_are_a_missing_field_not_a_server_error(
 
 
 async def test_extra_keys_with_every_required_field_pass_through() -> None:
-    """Only *missing required* is the harness's business; an extra key is the
-    tool's or the server's to accept or reject."""
     outcome = await pipeline(profile_tool()).execute(
         call("profile", '{"id": "AAPL", "extra": 1}'), progress=no_progress
     )

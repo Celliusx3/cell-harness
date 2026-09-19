@@ -18,8 +18,6 @@ from tests.unit.gateway_helpers import CHAT, build, msg, settle
 from tests.unit.helpers import no_skills, skills_at
 from tests.unit.test_skill_tool import write_skill
 
-# ── commands ──────────────────────────────────────────────────────────────────
-
 
 async def test_new_points_the_chat_at_a_fresh_conversation(tmp_path) -> None:
     bot, gateway, runs, chats, _ = build(
@@ -32,8 +30,6 @@ async def test_new_points_the_chat_at_a_fresh_conversation(tmp_path) -> None:
     reply = await apply(gateway, "telegram", CHAT, Command.NEW)
 
     state = await chats.load("telegram", CHAT)
-    # Cleared, not replaced — the next message creates one, so `/new` three times
-    # in a row leaves no empty sessions behind.
     assert state.conversation_id == ""
     assert state.delivered_through == 0
     assert "New conversation" in reply
@@ -41,7 +37,6 @@ async def test_new_points_the_chat_at_a_fresh_conversation(tmp_path) -> None:
 
 
 async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
-    """ "Stop" means stop — answering the queue afterwards is the opposite."""
     bot, gateway, runs, chats, _ = build(
         tmp_path,
         SteppedClient(calls_tool("hang", '{"value": "x"}')),
@@ -70,7 +65,6 @@ async def test_stop_on_an_idle_chat_says_so(tmp_path) -> None:
 
 
 def test_an_unknown_skill_reply_says_what_can_be_typed() -> None:
-    """`/summarise` meant something; the reply is the list it could have been."""
     reply = unknown_skill("summarise", named("find-place", "weekly-report"))
 
     assert reply == (
@@ -98,13 +92,6 @@ def named(*names: str) -> list[Skill]:
 
 
 async def test_stopping_before_the_first_checkpoint_does_not_break_the_chat(tmp_path) -> None:
-    """A message, then `/stop` before the loop's first checkpoint.
-
-    The run is cancelled having appended nothing, so lazy materialization leaves
-    no file — while the chat already points at the id. Before this was handled
-    the chat was **permanently** broken: every later message resumed a
-    conversation that would never exist.
-    """
     bot, gateway, runs, chats, _ = build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
@@ -118,14 +105,6 @@ async def test_stopping_before_the_first_checkpoint_does_not_break_the_chat(tmp_
 
 
 async def test_a_drained_turn_delivers_its_reply(tmp_path) -> None:
-    """The drain spawns the next delivery from *inside* the current one.
-
-    An earlier `_spawn_delivery` cancelled "the previous delivery for this chat"
-    — which on this path is the calling task, so it cancelled itself. It
-    survived only because nothing awaited between that line and the function
-    returning; one added `await` in the unwind and the drained follow-up would
-    have died half-delivered. This asserts the reply actually arrives.
-    """
     bot, gateway, runs, chats, _ = build(
         tmp_path, ScriptedClient(completed("answered")), skills=no_skills()
     )
@@ -137,11 +116,8 @@ async def test_a_drained_turn_delivers_its_reply(tmp_path) -> None:
     await gateway._following._drain("telegram", CHAT)
     await settle(runs, gateway)
 
-    # Two replies: the opening turn's, and the drained one's.
-
 
 async def test_skills_lists_what_can_be_typed(tmp_path) -> None:
-    """The phone has no `/skills` page; this is its list."""
     root = tmp_path / "skills"
     write_skill(root, "find-place", "Where a reel was filmed.")
     write_skill(root, "internal", "Not for typing.", user_invocable="false")

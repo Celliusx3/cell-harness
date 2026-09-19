@@ -1,27 +1,4 @@
-"""The model's only documentation.
-
-**Sibling tools are named bare — `read_reels`, not `igpoi__read_reels`.** The
-`{server}__{tool}` namespace the model actually sees comes from the *config key*,
-so a hardcoded prefix is a lie the moment the server is re-keyed. It was one:
-these said `igpoi__` until the server was renamed, which would have told the
-model to call a function that does not exist. Prompt text is code; treat it as such.
-
-Three facts about the harness's TypeScript printer shape everything here, and all
-three were verified in `harness/tools/native/code/typescript.py`:
-
-1. `_one_line()` collapses a description with `" ".join(text.split())`. So a
-   bulleted, multi-line description reads to the model as one run-on line. These
-   are therefore written as dense single paragraphs on purpose — not for lack of
-   formatting, but because formatting is discarded.
-2. The printer emits argument *types* only, with no per-property doc comments.
-   `Field(description=...)` on an argument model reaches nobody, so every
-   argument's meaning is spelled out below or nowhere.
-3. `RETURN_TYPE` is the literal `"Promise<unknown>"` — the harness carries no
-   `outputSchema` into the declaration. So the return shape must be described in
-   prose, or the model is guessing at field names.
-
-Each observed failure is recorded beside the wording that fixes it.
-"""
+"""The model's only documentation."""
 
 from __future__ import annotations
 
@@ -44,17 +21,6 @@ FETCH_DESCRIPTION = (
     "the shortcode: it is the only key read_reels accepts."
 )
 
-# "in ONE call" plus the ten-vs-two sentence: the MCP connection serves one call
-# at a time (harness/mcp/store.py `_serve` is a sequential loop), so a
-# per-URL loop pays full round-trip latency per reel and Promise.all does not
-# help. The model has to be told, because nothing in the signature implies it.
-#
-# "never fails the others ... or abandoning the batch": a model shown one
-# `unavailable` item tends to stop and report total failure.
-#
-# "a caption very often names it outright": measured. On one live reel the
-# caption carried "📍 @natalinaitalian" and on another "📍 Rajgad Fort" — in both
-# cases the venue, before any frame was decoded.
 
 READ_DESCRIPTION = (
     "Look at and listen to a reel you have already fetched: read the on-screen text and describe "
@@ -80,21 +46,3 @@ READ_DESCRIPTION = (
     "judgement is yours to make from all the evidence together. Fewer shortcodes per call finish "
     "sooner, and a long call returns the reels it managed rather than failing outright."
 )
-
-# The Warung Mak Cik and Jalan Telawi examples are verbatim from observed ASR
-# output. A general "transcripts may be inaccurate" did not stop the model
-# spelling a venue's name from audio; two concrete misreadings did.
-#
-# "none (... many reels carry only music)": measured. A music-only travel reel
-# transcribed as "bira bira bira bira" — ASR hallucinates rather than returning
-# silence, so `speech: "none"` is asserted by this server and the nonsense text
-# is withheld. The parenthetical stops the model treating "none" as a fault to
-# retry.
-#
-# "it never names a place": the boundary with the Places server is only
-# enforceable if this one refuses to guess. Without the sentence the vision model
-# happily volunteers a venue and a confidence, and two models then disagree with
-# no audit trail.
-#
-# "Weight the evidence in this order": without an explicit ordering the model
-# trusted a fluent transcript over a terse, correct on-screen overlay.

@@ -1,5 +1,4 @@
-"""Builders. Hermetic: Yahoo is a fake behind the `MarketData` seam, CoinGecko
-and EDGAR are faked at the `httpx` transport."""
+"""Builders."""
 
 from __future__ import annotations
 
@@ -41,7 +40,7 @@ def make_config(**overrides: object) -> Config:
         "coingecko_base_url": "https://gecko.test/api/v3",
     }
     values.update(overrides)
-    return Config(**values)  # type: ignore[arg-type]
+    return Config(**values)
 
 
 def ok_quote(id: str, price: float = 10.0, source: str = "fake") -> Quote:
@@ -49,8 +48,7 @@ def ok_quote(id: str, price: float = 10.0, source: str = "fake") -> Quote:
 
 
 class FakeMarket:
-    """Canned answers per id. A stored exception is raised instead; `delay`
-    makes an id slow enough to run out of a small budget."""
+    """Canned answers per id."""
 
     def __init__(self, name: str = "fake") -> None:
         self._name = name
@@ -118,8 +116,7 @@ class FakeMarket:
 def capturing(
     respond: httpx.Response | Callable[[httpx.Request], httpx.Response],
 ) -> tuple[Callable[[httpx.Request], httpx.Response], list[httpx.Request]]:
-    """Returns `(handler, seen)` so a test can assert on the request itself —
-    the headers carry the User-Agent and the API key, which are the contract."""
+    """A canned handler and the list of requests it saw."""
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:

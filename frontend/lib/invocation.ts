@@ -1,13 +1,4 @@
-/**
- * The short form of a `/name` message.
- *
- * The backend expands `/find-place https://…` in place: what was typed, then
- * the skill in a `<skill name="…">` tag. That whole string is the logged
- * message and the one the model sees, so there is no second field to read —
- * the typed line is everything before the first marker. The order and the
- * marker are the contract, held by `backend/harness/skills/invocation.py`,
- * and a backend test pins the two literals together.
- */
+/** The short form of a `/name` message. */
 
 export const MARKER = "\n\n<skill name=\"";
 

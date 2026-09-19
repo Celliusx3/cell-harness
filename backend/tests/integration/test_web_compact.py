@@ -53,7 +53,7 @@ async def test_compacting_a_running_conversation_is_a_409(tmp_path) -> None:
     runs = run_store(service, HangingClient("thinking"))
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
-        cid = await _seed(c)  # never settles — the client hangs
+        cid = await _seed(c)
         conflict = await c.post(f"/api/conversations/{cid}/compact")
         assert conflict.status_code == 409
     await runs.stop(cid)
@@ -64,7 +64,6 @@ async def test_nothing_to_compact_is_a_409_with_the_reason(tmp_path) -> None:
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await _seed(c)
         await settle(runs, cid)
-        # Compact once to leave the log as a lone summary; a second has nothing.
         await c.post(f"/api/conversations/{cid}/compact")
         await settle(runs, cid)
 
@@ -85,7 +84,6 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
 
     service = durable_service(tmp_path / "sessions")
 
-    # The summary request fails; the turn client answers the seed turn.
     class TwoScripts(ScriptedClient):
         def __init__(self):
             super().__init__(completed("reply"))
@@ -106,7 +104,6 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await _seed(c)
         await settle(runs, cid)
-        # Nothing prunable and a summary that fails: the bracket is a failed end.
         await c.post(f"/api/conversations/{cid}/compact")
         await settle(runs, cid)
         detail = (await c.get(f"/api/conversations/{cid}")).json()

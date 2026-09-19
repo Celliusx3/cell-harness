@@ -1,12 +1,4 @@
-"""Frames to on-screen text and a scene description, in one call.
-
-**One call, not two, and that is a measured decision.** `glm-5.3-flash` read a
-reel's text overlay as accurately as the dedicated OCR model *while also*
-identifying the location from terrain and architecture — on a live reel it
-returned "Rajgad Fort … Pune district, Maharashtra" from frames alone, and named
-the ridge spur. So asking separately for text and for scene would double the
-cost of the common case where both are wanted.
-"""
+"""Frames to on-screen text and a scene description, in one call."""
 
 from __future__ import annotations
 
@@ -17,9 +9,6 @@ from pathlib import Path
 
 from instagram.read.http import ProviderHttp, message_text, strip_sentinels
 
-# The two labels the prompt asks for. Markers rather than JSON because a vision
-# model asked for JSON returns it inside a code fence often enough that a parse
-# failure would cost the whole read.
 _TEXT_MARKER = "ON-SCREEN TEXT:"
 _SCENE_MARKER = "SCENE:"
 
@@ -60,13 +49,7 @@ async def describe(http: ProviderHttp, frames: Sequence[Path], *, model: str) ->
 
 
 def parse_description(raw: str) -> Description:
-    """Split the two labelled sections, tolerating a model that ignores them.
-
-    Total by construction: an unlabelled answer becomes the scene rather than an
-    error, because a usable description in the wrong shape is still evidence and
-    failing the read would throw away a correct place identification over a
-    formatting slip.
-    """
+    """Split the two labelled sections, tolerating a model that ignores them."""
     text = strip_sentinels(raw)
     upper = text.upper()
     text_at = upper.find(_TEXT_MARKER)
@@ -86,13 +69,7 @@ def parse_description(raw: str) -> Description:
 
 
 def _lines(block: str) -> tuple[str, ...]:
-    """Non-empty lines, deduplicated, order preserved.
-
-    Deduplicated because the same overlay persists across sampled frames, so a
-    twelve-frame read of one caption returns it twelve times otherwise. Bullet
-    and quote punctuation is stripped: the model adds it unbidden and it would
-    make an otherwise-identical line look distinct.
-    """
+    """Non-empty lines, deduplicated, order preserved."""
     seen: list[str] = []
     for line in block.splitlines():
         cleaned = line.strip().lstrip("-*•").strip().strip('"').strip()

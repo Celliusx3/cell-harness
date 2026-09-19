@@ -12,21 +12,7 @@ const HOST = { name: "cell-harness", version: "0.1.0" };
 /** Before the app reports its own size. */
 const INITIAL_HEIGHT = 200;
 
-/**
- * An MCP App: the server's HTML in a sandboxed iframe, speaking the MCP Apps
- * protocol over `postMessage` through the official `AppBridge`.
- *
- * The iframe has no `allow-same-origin`, so it runs on an opaque origin — the
- * spec's requirement that host and app differ — and its Content-Security-Policy
- * is a `<meta>` tag the harness composed from what the resource declared (the
- * default allows inline script and no network). Order matters: the bridge is
- * connected *before* `srcdoc` is set, so the listener is armed before the app's
- * script can send `ui/initialize`; `contentWindow` keeps its identity across
- * that navigation.
- *
- * The effect keys on the app's identity, not the item: the timeline rebuilds
- * every item on every event, and remounting the iframe would restart the app.
- */
+/** An MCP App: the server's HTML in a sandboxed iframe, speaking the MCP Apps protocol over `postMessage` through the official `AppBridge`. */
 export function McpApp({ item, ui }: { item: ToolItem; ui: ToolUi }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const latest = useRef({ item, ui });
@@ -52,10 +38,8 @@ export function McpApp({ item, ui }: { item: ToolItem; ui: ToolUi }) {
     );
     bridge.oncalltool = async ({ name, arguments: args }) => {
       try {
-        // The server's result, verbatim — the app was written against that shape.
         return await callAppTool(ui.server, name, args ?? {}, ui.resource_uri);
       } catch (error: unknown) {
-        // MCP-shaped, so the app shows it the way it shows a tool's own error.
         const text = error instanceof ApiError ? error.message : String(error);
         return { content: [{ type: "text", text }], isError: true };
       }
@@ -70,7 +54,6 @@ export function McpApp({ item, ui }: { item: ToolItem; ui: ToolUi }) {
     bridge.oninitialized = () => {
       const { item: current, ui: bound } = latest.current;
       bridge.sendToolInput({ arguments: parseArguments(current.call.arguments) });
-      // `ui` only ever arrives with the result, so the result is here to send.
       void bridge.sendToolResult({
         content: (current.result ?? [])
           .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
@@ -101,8 +84,6 @@ export function McpApp({ item, ui }: { item: ToolItem; ui: ToolUi }) {
       scheme.removeEventListener("change", onScheme);
       void bridge.close();
     };
-    // The app's identity, deliberately — see the component docstring.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ui.server, ui.resource_uri]);
 
   return (

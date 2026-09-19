@@ -1,10 +1,4 @@
-"""Test doubles for the LLM seam and for tools.
-
-A fake client is the whole reason `LLMClient` is a seam: the loop's behaviour on
-a dropped stream, a missing terminal, a tool loop, or a cancellation is not
-reproducible against a real provider, and every one of those is a contract the
-loop owes.
-"""
+"""Test doubles for the LLM seam and for tools."""
 
 from __future__ import annotations
 
@@ -21,12 +15,7 @@ from harness.tools.definition import Ok, Pending, ToolDefinition, ToolOutcome
 
 
 class ScriptedClient(LLMClient):
-    """Yields a fixed script, recording what it was asked.
-
-    `seen` is the last request's messages and `seen_tools` its specs — how a test
-    asserts that history came from the log rather than from somewhere the loop
-    kept it, and that schemas reached the wire.
-    """
+    """Yields a fixed script, recording what it was asked."""
 
     def __init__(self, script: Sequence[StreamEvent]) -> None:
         self._script = list(script)
@@ -45,21 +34,13 @@ class ScriptedClient(LLMClient):
 
 
 class SteppedClient(LLMClient):
-    """Yields a different script per call — one per step of a turn.
-
-    The last script repeats, so a test that under-counts steps does not hit an
-    IndexError three frames deep. Since the loop has no step cap, a last script
-    that calls a tool loops forever — `drain` in the loop tests bounds it.
-    """
+    """Yields a different script per call — one per step of a turn."""
 
     def __init__(self, *scripts: Sequence[StreamEvent]) -> None:
         self._scripts = [list(s) for s in scripts]
         self.seen: list[Message] = []
         self.seen_per_call: list[list[Message]] = []
         self.seen_tools: list[ToolSpec] | None = None
-        # Per step, not just the last: what the model is *offered* now changes
-        # between steps of one turn, so a test about deferred tools has to see
-        # each request rather than the final one.
         self.seen_tools_per_call: list[list[ToolSpec] | None] = []
         self.calls = 0
 
@@ -77,16 +58,7 @@ class SteppedClient(LLMClient):
 
 
 class HangingClient(LLMClient):
-    """Streams `text`, then blocks forever.
-
-    Stands in for a turn the user cancels mid-reply: there is a visible prefix
-    and no terminal event, which is the state the loop must finalize.
-
-    Note there is nothing to await *before* the block — a generator suspended at
-    a `yield` does not run another line until its consumer asks for the next
-    item, so a "started" flag set after the yield could never be observed by a
-    consumer that stops there. Closing the generator is the whole event.
-    """
+    """Streams `text`, then blocks forever."""
 
     def __init__(self, text: str) -> None:
         self._text = text
@@ -97,11 +69,8 @@ class HangingClient(LLMClient):
     ) -> AsyncIterator[StreamEvent]:
         try:
             yield TextChunk(text=self._text)
-            await asyncio.Event().wait()  # never set
+            await asyncio.Event().wait()
         finally:
-            # Set only if the caller closed us properly. `test_cancel` asserts
-            # it, which is what proves the loop's `aclosing` is doing its job
-            # rather than leaving the adapter to the garbage collector.
             self.closed = True
 
 
@@ -154,16 +123,10 @@ def reporting_tool(reports: Sequence[tuple[float | None, str]]) -> ToolDefinitio
 
 
 def hanging_tool(name: str = "hang") -> ToolDefinition[EchoArgs]:
-    """A tool that never returns.
-
-    The only way to reach the loop's repair path: a call must be *dispatched*
-    and unfinished when the consumer walks away. Breaking out of the event stream
-    earlier stops during the model stream, before any call exists — so nothing is
-    owed and nothing needs repairing.
-    """
+    """A tool that never returns."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
-        await asyncio.Event().wait()  # never set
+        await asyncio.Event().wait()
         raise AssertionError("unreachable")
 
     return ToolDefinition.from_model(
@@ -172,12 +135,7 @@ def hanging_tool(name: str = "hang") -> ToolDefinition[EchoArgs]:
 
 
 def gated_tool(release: asyncio.Event, name: str = "gate") -> ToolDefinition[EchoArgs]:
-    """A tool that returns once the test says so.
-
-    For a turn that must be *running* long enough to queue a message behind it,
-    and then finish on its own — `hanging_tool` can only be stopped, and stopping
-    discards the queue.
-    """
+    """A tool that returns once the test says so."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         await release.wait()

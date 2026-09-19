@@ -1,10 +1,4 @@
-"""Stand-ins for discord.py's client, messages and interactions.
-
-Faking at the library's boundary, as `telegram_fakes.py` does: the library owns
-the websocket and the REST wire, and a test that re-implemented Discord's JSON
-would be testing discord.py. What is ours is what we do with a `Message` or an
-`Interaction`, and what we ask the client to send.
-"""
+"""Stand-ins for discord.py's client, messages and interactions."""
 
 from __future__ import annotations
 
@@ -31,10 +25,8 @@ class FakeMessageable:
 
     def __init__(self) -> None:
         self.sent: list[str] = []
-        # (text, the view) for every send that carried buttons.
         self.linked: list[tuple[str, object]] = []
         self.typing_count = 0
-        # Set to raise on the next call, for the failure paths.
         self.fail_next: Exception | None = None
 
     async def send(self, text: str, view: object = None, **_: object) -> None:
@@ -55,11 +47,7 @@ class FakeMessageable:
 
 
 class FakeClient:
-    """Stands in for `discord.Client`: a user, and channels by id.
-
-    `cached` answers `get_channel`; anything else is only reachable through
-    `fetch_channel`, which is the restart path.
-    """
+    """Stands in for `discord.Client`: a user, and channels by id."""
 
     def __init__(self) -> None:
         self.user = SimpleNamespace(id=BOT_ID, bot=True)
@@ -80,15 +68,10 @@ class FakeClient:
 
 
 def discord_channel(gateway: ChannelGateway) -> tuple[DiscordChannel, FakeClient]:
-    """A real `DiscordChannel` whose discord.py client is a fake.
-
-    The channel is genuine — its gating, stripping, splitting and command
-    handling are what the tests are for. Constructing `discord.Client` opens no
-    connection, so the real one is built and then replaced.
-    """
+    """A real `DiscordChannel` whose discord.py client is a fake."""
     channel = DiscordChannel("fake-token", gateway)
     client = FakeClient()
-    channel._client = client  # type: ignore[assignment]
+    channel._client = client
     return channel, client
 
 

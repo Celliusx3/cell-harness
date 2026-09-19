@@ -1,15 +1,4 @@
-"""The two tools through a real MCP client, in-process.
-
-**This module holds the single most important test in this server**:
-`test_the_result_arrives_as_structured_content_a_script_can_index`. The harness's
-`mcp/tool.py` `outcome_of` sets `Ok(data=result.structured_content)`, and its
-code-mode bridge hands that to the model's program as a JavaScript object. The
-harness's own `docs/mcp-tool-scaling.md` §6 records what happens when a server
-publishes JSON as text instead: *"a script reading `results.jobs` got
-`undefined`. Observed live: five failing scripts and a cancelled turn."*
-
-Everything here is hermetic — a fixture media backend and a mocked provider.
-"""
+"""The two tools through a real MCP client, in-process."""
 
 from __future__ import annotations
 
@@ -19,17 +8,10 @@ from mcp import Client
 
 from tests.unit.tools_helpers import call, server_for
 
-# --- the contract ---------------------------------------------------------
-
 
 async def test_the_result_arrives_as_structured_content_a_script_can_index(
     work_dir: Path,
 ) -> None:
-    """Proves the `Ok(data=...)` path the harness's code mode depends on.
-
-    If this returns None, the model's program reads `undefined` and burns turns
-    writing scripts against a shape that is not there.
-    """
     result = await call(
         server_for(work_dir),
         "fetch_reels",
@@ -43,7 +25,6 @@ async def test_the_result_arrives_as_structured_content_a_script_can_index(
 
 
 async def test_both_tools_are_offered_with_an_output_schema(work_dir: Path) -> None:
-    """The `output_schema` is what makes `structuredContent` happen at all."""
     async with Client(server_for(work_dir)) as client:
         tools = {tool.name: tool for tool in (await client.list_tools()).tools}
 
@@ -52,11 +33,7 @@ async def test_both_tools_are_offered_with_an_output_schema(work_dir: Path) -> N
     assert tools["read_reels"].output_schema is not None
 
 
-# --- fetch ----------------------------------------------------------------
-
-
 async def test_a_caption_and_its_mentions_come_back_whole(work_dir: Path) -> None:
-    """The caption is the highest-yield POI signal and is never truncated."""
     result = await call(
         server_for(work_dir), "fetch_reels", {"urls": ["https://www.instagram.com/p/OKvideo000/"]}
     )
@@ -85,8 +62,6 @@ async def test_an_image_only_post_reports_image_not_a_failure(work_dir: Path) ->
 
 
 async def test_one_bad_url_never_sinks_the_others(work_dir: Path) -> None:
-    """A tool failure would reach the script as a thrown Error and destroy every
-    sibling result — so per-item problems are statuses, not failures."""
     result = await call(
         server_for(work_dir),
         "fetch_reels",
@@ -107,7 +82,6 @@ async def test_one_bad_url_never_sinks_the_others(work_dir: Path) -> None:
         "unavailable",
         "rate_limited",
     ]
-    # Order is positional, so a caller can zip results back onto its input list.
     assert items[0]["shortcode"] == "OKvideo000"
 
 

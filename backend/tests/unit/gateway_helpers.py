@@ -41,8 +41,7 @@ def build(
 
 
 def msg(text: str, _seq: int = 0) -> InboundMessage:
-    """One inbound message. `_seq` is ignored — kept so the call sites still read
-    as a sequence of arrivals now that messages carry no id."""
+    """One inbound message."""
     return InboundMessage(channel="telegram", chat_id=CHAT, text=text)
 
 

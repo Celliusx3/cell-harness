@@ -16,9 +16,6 @@ def split_message(text: str) -> list[str]:
     return split_at(text, MAX_MESSAGE_CHARS)
 
 
-# ── splitting, which stays ours ───────────────────────────────────────────────
-
-
 def test_a_short_reply_is_one_message() -> None:
     assert split_message("hello") == ["hello"]
 
@@ -31,8 +28,6 @@ def test_a_long_reply_is_split_within_the_limit() -> None:
 
 
 def test_a_split_never_lands_mid_word() -> None:
-    """PTB does not split at all — it fails the send. A hard cut at 4096 is
-    visibly broken, so it is our last resort rather than our implementation."""
     parts = split_message("word " * 2000)
 
     assert all(not part.startswith(" ") for part in parts)
@@ -47,23 +42,13 @@ def test_splitting_prefers_a_paragraph_break() -> None:
 
 
 def test_text_with_no_break_at_all_still_splits() -> None:
-    """A pasted token or base64 blob has nowhere natural to cut."""
     assert [len(part) for part in split_message("x" * 9000)] == [4096, 4096, 808]
 
 
 def test_splitting_loses_no_words() -> None:
-    """Our rules forbid truncating anything user-facing.
-
-    Asserted on words rather than characters: the split trims whitespace at each
-    boundary, which is the point — a message should not begin with the space the
-    cut landed on.
-    """
     body = "para one\n\n" + ("word " * 1500) + "\n\npara three"
 
     assert " ".join(split_message(body)).split() == body.split()
-
-
-# ── sending ───────────────────────────────────────────────────────────────────
 
 
 async def test_send_message_splits_over_the_wire() -> None:
@@ -78,7 +63,6 @@ async def test_send_message_splits_over_the_wire() -> None:
 
 
 async def test_an_empty_reply_is_never_sent() -> None:
-    """Telegram rejects an empty message, and it says nothing anyway."""
     channel, bot = telegram_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
@@ -89,18 +73,15 @@ async def test_an_empty_reply_is_never_sent() -> None:
 
 
 async def test_a_failed_typing_indicator_is_swallowed() -> None:
-    """The Protocol calls it best-effort: a real reply must not be lost to it."""
     channel, bot = telegram_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
     bot.fail_next = BadRequest("chat not found")
 
-    await channel.send_typing("42")  # must not raise
+    await channel.send_typing("42")
 
 
 async def test_a_failed_send_is_not_swallowed() -> None:
-    """Unlike typing. Delivery must know it failed, or the cursor would advance
-    past a reply that never arrived."""
     channel, bot = telegram_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
@@ -114,7 +95,6 @@ async def test_a_failed_send_is_not_swallowed() -> None:
 
 
 async def test_an_https_link_opens_inside_telegram() -> None:
-    """A `web_app` button: the Mini App sheet, which is where an MCP App belongs."""
     channel, bot = telegram_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
@@ -129,7 +109,6 @@ async def test_an_https_link_opens_inside_telegram() -> None:
 
 
 async def test_a_plain_http_link_opens_in_the_browser() -> None:
-    """Telegram refuses `web_app` over http, so a dev URL is a `url` button."""
     channel, bot = telegram_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
@@ -143,7 +122,6 @@ async def test_a_plain_http_link_opens_in_the_browser() -> None:
 
 
 def test_the_transport_names_its_channel() -> None:
-    """Part of a chat's identity, so Telegram `123` and Discord `123` differ."""
     assert (
         telegram_channel(ChannelGateway(None, None, None, no_skills(), public_url="http://t"))[
             0

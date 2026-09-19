@@ -7,11 +7,7 @@ dependencies = [
     "mcp>=2.1.1",
     "httpx>=0.28",
     "pydantic>=2",
-    # Pinned, not floated: this is an Instagram extractor, and Instagram rotates
-    # the `doc_id` it queries. A float turns "Instagram changed" into "the
-    # capability broke on a machine nobody touched"; a pin turns it into a
-    # commit. 4.15.3 is the version whose anonymous single-post path was
-    # verified working — see README, "How this reaches Instagram".
+    # Instagram rotates the `doc_id`; 4.15.3 is the version verified working (README).
     "instaloader==4.15.3",
 ]
 
@@ -27,9 +23,6 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-# Its own gate, deliberately not folded into the backend's: this project's
-# coverage dip must not fail the harness's suite, and two --cov sources in one
-# run makes "80%" mean nothing about either.
 addopts = "--cov=instagram --cov-report=term-missing --cov-fail-under=80"
 asyncio_mode = "auto"
 testpaths = ["tests"]

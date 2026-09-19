@@ -1,8 +1,4 @@
-"""The tools through a real MCP client, in-process.
-
-The first test is the precondition for everything: every tool declares an
-`outputSchema`, so `structuredContent` is populated and a script can index it.
-"""
+"""The tools through a real MCP client, in-process."""
 
 from __future__ import annotations
 
@@ -42,11 +38,8 @@ async def test_all_seven_tools_declare_an_output_schema() -> None:
     assert all(tool.output_schema is not None for tool in tools.values())
 
 
-# --- search --------------------------------------------------------------
-
-
 def stock(id: str, kind: str = "stock") -> Candidate:
-    return Candidate(id=id, name=id, exchange="X", kind=kind)  # type: ignore[arg-type]
+    return Candidate(id=id, name=id, exchange="X", kind=kind)
 
 
 async def test_search_merges_both_sources_and_names_them() -> None:
@@ -123,9 +116,6 @@ async def test_an_empty_query_is_refused() -> None:
     assert result.is_error
 
 
-# --- quote ---------------------------------------------------------------
-
-
 async def test_quotes_route_by_id_and_come_back_in_order() -> None:
     yahoo, gecko = FakeMarket("yahoo"), FakeMarket("gecko")
     yahoo.quotes["AAPL"] = ok_quote("AAPL", 333.0)
@@ -148,7 +138,6 @@ async def test_quotes_route_by_id_and_come_back_in_order() -> None:
 
 
 async def test_a_bad_id_and_a_dead_source_are_per_item_errors() -> None:
-    """The batch rule: nothing about one id may sink its siblings."""
     yahoo = FakeMarket("yahoo")
     yahoo.quotes["AAPL"] = ok_quote("AAPL")
     yahoo.quotes["MSFT"] = Unavailable("Yahoo Finance could not be read")
@@ -190,9 +179,6 @@ async def test_too_many_ids_is_refused_with_the_cap() -> None:
 
 async def test_no_ids_is_refused() -> None:
     assert (await call(server_with(), "get_quote", {"ids": []})).is_error
-
-
-# --- the single-id tools --------------------------------------------------
 
 
 async def test_history_defaults_to_three_months_of_daily_bars() -> None:

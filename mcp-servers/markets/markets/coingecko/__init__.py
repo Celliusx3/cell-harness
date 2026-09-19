@@ -1,15 +1,4 @@
-"""Coins through CoinGecko's Demo API.
-
-The Demo plan is what a free key buys: 10k credits a month, ~30 calls a
-minute, and history capped at 365 days — so `5y` is served as one year and
-says so. The keyless public endpoint is not an option; a probe of it was
-rate-limited after five calls. Rows carry `x-cg-demo-api-key`, never a query
-parameter, so the key never lands in a log line.
-
-Headlines are not CoinGecko's (its `/news` is a paid endpoint); Yahoo quotes
-the majors as `BTC-USD`, so `news` is answered by the Yahoo source through
-the coin's symbol. Statements do not exist for a coin and say so.
-"""
+"""Coins through CoinGecko's Demo API."""
 
 from __future__ import annotations
 
@@ -35,7 +24,6 @@ from markets.models import (
 )
 from markets.symbol import Symbol
 
-# Demo history stops at a year; anything longer is a paid plan.
 _DAYS: dict[Range, int] = {"1mo": 30, "3mo": 90, "6mo": 180, "1y": 365, "5y": 365}
 _CAPPED = "CoinGecko's free plan holds one year of history, so 5y is served as 1y"
 
@@ -167,5 +155,5 @@ class CoinGeckoSource:
 
 
 def replace_id(news: News, id: str) -> News:
-    """Yahoo answered for `BTC-USD`; the model asked about `crypto:bitcoin`."""
+    """`news` with its id replaced by `id`."""
     return news.model_copy(update={"id": id})

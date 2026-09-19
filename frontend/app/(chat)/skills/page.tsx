@@ -9,14 +9,7 @@ import type { SkillList } from "@/lib/types";
 
 const EMPTY: SkillList = { skills: [], problems: [] };
 
-/**
- * The skills on disk, and an editor for the root a person may write.
- *
- * The list is the same read the model gets — `GET /api/skills` is the catalog —
- * so what is shown here is what the `skill` tool offers, and a problem row is
- * the reason a skill is missing from it. Refetched after every save or delete
- * rather than patched locally: the backend decides what loaded.
- */
+/** The skills on disk, and an editor for the root a person may write. */
 export default function SkillsPage() {
   const [list, setList] = useState<SkillList>(EMPTY);
   const [selected, setSelected] = useState<string | null>(null);

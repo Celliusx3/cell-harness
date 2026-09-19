@@ -1,8 +1,4 @@
-"""Stopping a run, and the turn itself driven through the store.
-
-`stop` cancels the turn and still answers every dispatched call; `aclose` does
-the same for every run at once, so an interrupted conversation stays resumable.
-"""
+"""Stopping a run, and the turn itself driven through the store."""
 
 from __future__ import annotations
 
@@ -37,11 +33,7 @@ def service(tmp_path) -> SessionService:
     return durable_service(tmp_path / "sessions")
 
 
-# ── stopping ──────────────────────────────────────────────────────────────────
-
-
 async def test_stop_ends_the_turn_and_answers_every_dispatched_call(service) -> None:
-    """A stopped turn must leave a history a provider will accept."""
     runs = run_store(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
     session = await service.create()
     run = runs.start(session, "go")
@@ -58,13 +50,6 @@ async def test_stop_ends_the_turn_and_answers_every_dispatched_call(service) -> 
 
 
 async def test_a_stopped_turn_is_durable(service) -> None:
-    """A turn stopped mid-tool is on disk, not just tidy in memory.
-
-    Note this passes whichever of the two tasks `stop` cancels — the comment on
-    `Run.__init__` explains why, and why the split is kept regardless. A test that
-    failed on the swap would have to assert *which* task was cancelled, which pins
-    the mechanism rather than the contract.
-    """
     runs = run_store(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
     session = await service.create()
     runs.start(session, "go")
@@ -81,28 +66,13 @@ async def test_a_stopped_turn_is_durable(service) -> None:
 
 
 async def test_a_bug_in_the_loop_still_settles_the_run(service) -> None:
-    """The safety net, deliberately tripped.
-
-    A conversation stuck at "running" forever cannot even be retried — the next
-    message is refused as a second run — so an unexpected exception has to end in
-    the same settled, deregistered, durable state as success.
-
-    Found by accident: an earlier version of the test above forgot to register the
-    tool, the loop's own assertion fired, and this path is what kept the run from
-    hanging.
-    """
 
     class RaisingClient(LLMClient):
-        """A bug on the far side of the seam, not a provider error.
-
-        A provider failure is `Failed` on the stream and the loop reports it as
-        `AgentFailed`. Raising is what a *defect* looks like, and is the only way
-        to reach `_drive`'s exception path.
-        """
+        """A bug on the far side of the seam, not a provider error."""
 
         async def stream_completion(self, messages, model, *, tools=None):
             raise RuntimeError("kaboom")
-            yield  # pragma: no cover - unreachable, makes this an async generator
+            yield
 
     runs = run_store(service, RaisingClient())
     session = await service.create()
@@ -140,7 +110,6 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
 
 
 async def test_aclose_stops_every_run_durably(service) -> None:
-    """Server shutdown goes through `stop`, so interrupted turns stay resumable."""
     runs = run_store(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
     first = await service.create()
     second = await service.create()
@@ -160,9 +129,6 @@ async def test_aclose_stops_every_run_durably(service) -> None:
         assert unanswered_calls(derive_messages(stored.events())) == []
 
 
-# ── the turn itself, driven through the store ─────────────────────────────────
-
-
 async def test_a_run_records_the_conversation_it_was_asked(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
     session = await service.create()
@@ -177,7 +143,6 @@ async def test_a_run_records_the_conversation_it_was_asked(service) -> None:
 
 
 async def test_a_run_is_durable_without_anyone_subscribing(service) -> None:
-    """Nobody is watching, and the conversation is still there afterwards."""
     runs = run_store(service, ScriptedClient(completed("hello")))
     session = await service.create()
     run = runs.start(session, "go")
@@ -205,7 +170,6 @@ async def test_a_tool_using_turn_streams_through_to_a_subscriber(service) -> Non
 
 
 async def test_the_conversation_id_is_the_session_id(service) -> None:
-    """Not a second identity to keep in step."""
     runs = run_store(service, ScriptedClient(completed("hello")))
     session = await service.create()
 

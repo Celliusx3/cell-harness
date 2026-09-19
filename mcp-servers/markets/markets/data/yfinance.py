@@ -1,18 +1,4 @@
-"""Listed equities and ETFs through yfinance — US, Bursa Malaysia, anything
-Yahoo quotes.
-
-yfinance is synchronous and does blocking network I/O, so every call goes
-through `asyncio.to_thread` — off the event loop, or one slow symbol stalls
-every sibling in a batch that is already racing the harness's 60s deadline.
-The library is the only thing this module imports lazily; the translation to
-our models is `mapping.py`, which never sees it.
-
-What the library does on failure, verified live: an unknown symbol logs a 404
-and returns an *empty* frame or a bare `info` dict rather than raising, so
-"not found" is read from emptiness; a real rate limit raises
-`YFRateLimitError`. Free data, no guarantees — the harness README calls Yahoo
-best-effort for a reason.
-"""
+"""Listed equities and ETFs through yfinance — US, Bursa Malaysia, anything Yahoo quotes."""
 
 from __future__ import annotations
 
@@ -63,8 +49,7 @@ SEARCH_RESULTS = 8
 
 
 class YFinanceSource:
-    """`ticker_factory` and `search_factory` default to the library's own
-    classes; tests pass stubs that return fixture frames."""
+    """Quotes and history from yfinance, with injectable ticker and search factories."""
 
     def __init__(
         self,
@@ -116,9 +101,7 @@ class YFinanceSource:
         def blocking() -> tuple[Any, str]:
             ticker = self._ticker(symbol.key)
             frame = getattr(ticker, _STATEMENTS[(statement, period)])
-            # Statements are reported in the filer's currency, which is not
-            # always the trading currency — an ADR trades in USD and reports in
-            # yen. `financialCurrency` is the one that labels these numbers.
+            # Yahoo's `financialCurrency` labels the statements; `currency` is the trading one.
             info = ticker.info or {}
             return frame, str(info.get("financialCurrency") or info.get("currency") or "")
 
@@ -134,20 +117,18 @@ class YFinanceSource:
     async def _run[T](self, blocking: Callable[[], T]) -> T:
         try:
             return await asyncio.to_thread(blocking)
-        except Exception as err:  # noqa: BLE001 - the library raises many types for two meanings
+        except Exception as err:
             raise _translate(err) from err
 
 
 def _fast_info(ticker: Any) -> dict[str, Any]:
-    """`fast_info` is a lazy mapping that raises from *inside* a key lookup for
-    an unknown symbol (a `KeyError` on an internal field, verified live), so
-    each key is read on its own and a miss is a `None`, never a raise."""
+    """Each `_FAST_KEYS` value from `ticker.fast_info`, `None` where the lookup raises."""
     fast = ticker.fast_info
     out: dict[str, Any] = {}
     for key in _FAST_KEYS:
         try:
             out[key] = fast[key]
-        except Exception:  # noqa: BLE001 - see above
+        except Exception:  # yfinance raises from inside the lookup for an unknown symbol
             out[key] = None
     return out
 

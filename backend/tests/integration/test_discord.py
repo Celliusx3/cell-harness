@@ -1,8 +1,4 @@
-"""The Discord channel wired into the app: present with a token, absent without.
-
-The receive/deliver path is the gateway's and is covered end to end by
-`test_telegram.py`; what is Discord's here is the wiring in `build_channels`.
-"""
+"""The Discord channel wired into the app: present with a token, absent without."""
 
 from __future__ import annotations
 
@@ -22,8 +18,6 @@ def _stores(tmp_path) -> tuple[SessionService, RunStore]:
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    """Both tokens passed explicitly empty, so the developer's real
-    `config.local.json` cannot decide this test — see `test_telegram.py`."""
     sessions, runs = _stores(tmp_path)
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 

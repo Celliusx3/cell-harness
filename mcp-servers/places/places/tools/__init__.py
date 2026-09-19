@@ -1,17 +1,4 @@
-"""The MCP surface: two tools over one lookup client.
-
-Unlike the Instagram server, these return **one** result rather than a list of
-per-item outcomes — so a failure here is a genuine whole-call failure, which is
-correct: there is no sibling result for a raise to destroy. An empty candidate
-list is still a success with a `detail`, because "Google knows of no such place"
-is an answer, not an error.
-
-**Failures are raised as `ToolError`, and that specific type matters.**
-`MCPServer.call_tool` passes a `ToolError`'s message through but wraps anything
-else in `UnexpectedToolError` with a generic string — so a rejected API key
-raised as a plain exception reaches the model as `Error executing tool
-search_text`, indistinguishable from any other fault and impossible to act on.
-"""
+"""The MCP surface: two tools over one lookup client."""
 
 from __future__ import annotations
 
@@ -34,8 +21,6 @@ def register(server: MCPServer, *, config: Config, client: PlacesClient) -> MCPS
         longitude: float | None = None,
         radius_meters: float | None = None,
     ) -> SearchResult:
-        # Both or neither. One coordinate alone is meaningless, and silently
-        # dropping it would bias nothing while looking like it had.
         near = None
         if latitude is not None and longitude is not None:
             near = Circle(

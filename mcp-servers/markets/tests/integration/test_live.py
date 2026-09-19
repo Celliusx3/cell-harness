@@ -1,6 +1,4 @@
-"""The real sources, once, to re-verify the shapes the fixtures were written
-from. Opt-in — `MARKETS_LIVE=1` — because it needs the network and a
-CoinGecko key, and free sources are allowed to be flaky."""
+"""The real sources, once, to re-verify the shapes the fixtures were written from."""
 
 from __future__ import annotations
 

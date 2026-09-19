@@ -1,9 +1,4 @@
-"""The agent the server composes: a model, the native tools, the guardrail.
-
-Split from `server.py` at the length cap, along the seam that was already
-there — everything below is about what the model is offered and how a call
-runs; nothing about HTTP or channels.
-"""
+"""The agent the server composes: a model, the native tools, the guardrail."""
 
 from __future__ import annotations
 
@@ -33,30 +28,6 @@ SYSTEM_PROMPT = (
     "call it instead of guessing."
 )
 
-# What the model is offered on every request, whatever else is registered.
-# Everything not named here is still callable — the model reaches it by writing a
-# program — it is simply not described in the request, which is what stops that
-# description being re-uploaded with every message.
-#
-# **This is the list to edit.** To stop the model writing a program just to read
-# the clock, import `CLOCK` from `tools.native.clock` and add it. The cost is
-# that tool's schema in every request, forever.
-#
-# Prefer a constant over a literal. A name spelled here and defined elsewhere is
-# a rename that half-happens, and `specs()` skips a name it cannot find without
-# complaining. MCP tools have no constant to import — `"jobs__search"` is a
-# literal by necessity, and unchecked until that server connects.
-#
-# `skill` is here because a skill's body is context for the model, not data for
-# a program — see `withheld` in `build_agent`. Present only while a skill exists:
-# the provider yields nothing otherwise, and `specs()` skips an absent name.
-#
-# Every client tool is here so asking costs no discovery round trip: a
-# no-arg schema each, and a model not shown `get_location` answers "I don't
-# know where you are" instead of asking.
-#
-# **A new client tool is one entry in `CLIENT_TOOLS`** and one handler in the
-# browser's map; it is offered, and kept from scripts, by being there.
 CLIENT_TOOLS = ClientTools((LOCATION_TOOL,))
 DEFAULT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL, *sorted(CLIENT_TOOLS.names))
 
@@ -69,29 +40,12 @@ def build_agent(
     client_tools: ClientToolService,
     context_tokens: int | None = None,
 ) -> LoopAgent:
-    """The default agent: a model, the native tools, the guardrail, and a
-    durability checkpoint.
-
-    This is what stands in for dsh's config-driven plugin tree. A missing
-    dependency is a `TypeError` here rather than a runtime surprise, which is the
-    whole reason we do not need an injection framework.
-    """
+    """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
     registry = ToolRegistry([clock_tool(), *client_tools.definitions()])
-    # Registered once and never again — the disposer is deliberately dropped.
-    # Connecting and disconnecting change what this *yields*, not whether it is
-    # here, which is what makes a server added mid-conversation callable on the
-    # next turn without rebuilding the agent.
     registry.add_provider(mcp.tools)
-    # Same shape as MCP's: the tool is rebuilt from the catalog every time the
-    # registry is read, so a skill added to a root is in the next request's enum,
-    # and the last one deleted takes the tool with it.
     registry.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
-    # One dispatcher, shared. Two would let a future approval gate be installed
-    # on the model's path and not on a script's, with nothing to say which.
     dispatcher = ToolDispatcher(registry)
-    # The disposer is dropped for the same reason MCP's is: these live as long as
-    # the process.
     for tool in code_mode_tools(
         registry=registry,
         dispatcher=dispatcher,
@@ -99,15 +53,9 @@ def build_agent(
             deno_path=settings.code.deno_path,
             timeout_seconds=settings.code.timeout_seconds,
         ),
-        # A script may not load a skill: the body is for the model to read, and
-        # `list_functions` must not advertise it as a capability. Nor may it
-        # ask the client for anything: a script's timeout is shorter than a
-        # person's, and the model is the one to decide when to ask.
         withheld=frozenset({SKILL, *CLIENT_TOOLS.names}),
     ):
         registry.register(tool)
-    # Last, because nothing else needs it — three schemas however many servers
-    # are connected. See `DEFAULT_TOOLS`.
     pipeline = ToolPipeline(registry, dispatcher, DEFAULT_TOOLS)
 
     client = OpenAIClient(settings.llm)
@@ -118,33 +66,20 @@ def build_agent(
         model=settings.llm.model,
         client=client,
         tools=pipeline,
-        # The prompt travels with the tools: a model shown three unfamiliar tools
-        # and not told what they are for will answer "I can't do that" rather
-        # than discover its own capabilities.
         system_prompt=system_prompt,
-        # Durability where it matters: before every model request, and before
-        # every tool that might have a side effect.
         checkpoint=store.flush,
-        # Shrinks the history when it outgrows the window. Same client and
-        # prompt as the turn, so the summary sees the conversation exactly as
-        # the model does. `context_tokens` is resolved at startup — see
-        # `create_web_app`.
         compaction=CompactionService(
             client=client,
             model=settings.llm.model,
             system_prompt=system_prompt,
             context_tokens=context_tokens,
         ),
-        # The one place the loop guardrail is installed. Delete it and the loop
-        # runs unhooked — nothing in `agent/` knows it was here. The detectors
-        # are asked in this order, and the first with something to say wins:
-        # specific before general.
-        hooks=HookChain(
-            (
-                ExactFailureHook(),
-                SameToolFailureHook(),
-                NoProgressHook(),
-                RepeatedCallHook(),
-            )
-        ),
+        hooks=default_hooks(),
+    )
+
+
+def default_hooks() -> HookChain:
+    """The four loop detectors, specific before general."""
+    return HookChain(
+        (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook())
     )

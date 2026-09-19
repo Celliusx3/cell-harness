@@ -11,8 +11,6 @@ from tests.conftest import capturing, client_with, place, search_reply
 
 
 async def test_the_field_mask_is_sent_because_the_api_requires_it() -> None:
-    """ "If you omit the field mask, the method returns an error." It is also
-    what sets the price, so it is asserted rather than assumed."""
     handler, seen = capturing(search_reply(place()))
 
     await client_with(handler).search_text("Natalina Bangsar", max_results=3)
@@ -27,7 +25,6 @@ async def test_a_candidate_is_flattened_from_the_shape_google_returns() -> None:
     result = await client_with(handler).search_text("Natalina", max_results=3)
 
     candidate = result.candidates[0]
-    # `displayName` is {text, languageCode} — read as a string it yields "".
     assert candidate.name == "Natalina Italian Kitchen"
     assert candidate.kind == "Italian restaurant"
     assert candidate.latitude == pytest.approx(3.1595)
@@ -35,8 +32,6 @@ async def test_a_candidate_is_flattened_from_the_shape_google_returns() -> None:
 
 
 async def test_the_maps_link_is_built_locally_and_needs_no_key() -> None:
-    """Officially documented, keyless, and opens the native app where one tap
-    saves it — which matters because no API can write to a saved list."""
     handler, _ = capturing(search_reply(place()))
 
     result = await client_with(handler).search_text("Natalina", max_results=3)
@@ -44,7 +39,6 @@ async def test_the_maps_link_is_built_locally_and_needs_no_key() -> None:
     url = result.candidates[0].maps_url
     assert url.startswith("https://www.google.com/maps/search/?api=1&query=")
     assert "query_place_id=ChIJabc" in url
-    # URL-encoded, so a venue name with spaces or punctuation cannot break it.
     assert " " not in url
 
 
@@ -71,9 +65,6 @@ async def test_no_bias_means_no_location_key_at_all() -> None:
 
 
 async def test_no_matches_is_an_answer_with_advice_not_an_error() -> None:
-    """ "Google knows of no such place" is a result. And the advice matters: the
-    usual cause is a descriptive query, which this endpoint is documented as not
-    supporting."""
     handler, _ = capturing(search_reply())
 
     result = await client_with(handler).search_text("blue awning stall", max_results=3)
@@ -94,7 +85,6 @@ async def test_a_rejected_key_is_its_own_error_because_retrying_cannot_help(
 
 
 async def test_a_429_is_retried_exactly_once() -> None:
-    """One retry, not a loop: this runs inside a 60s MCP deadline it cannot extend."""
     calls: list[int] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -158,14 +148,6 @@ async def test_details_for_a_place_with_no_hours_is_still_usable() -> None:
     assert details.name == "Natalina Italian Kitchen"
 
 
-# --- how Google actually reports a key problem ----------------------------
-#
-# Found by calling the live API with a deliberately invalid key: it answers
-# **400 API_KEY_INVALID**, not 401 or 403. Keying only on status missed the most
-# common auth failure entirely and reported it through the generic branch,
-# without the hint that helps.
-
-
 async def test_an_invalid_key_is_recognised_despite_arriving_as_a_400() -> None:
     body = {
         "error": {
@@ -193,8 +175,6 @@ async def test_an_unenabled_api_is_recognised_from_its_403_reason() -> None:
 
 
 async def test_an_ordinary_400_is_not_mistaken_for_a_key_problem() -> None:
-    """A malformed request is our bug. Blaming the user's key for it would send
-    them to the Cloud console over a field mask typo."""
     handler, _ = capturing(
         httpx.Response(
             400, json={"error": {"message": "Invalid field mask", "status": "INVALID_ARGUMENT"}}

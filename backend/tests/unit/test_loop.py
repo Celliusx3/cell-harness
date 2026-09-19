@@ -1,8 +1,4 @@
-"""The turn loop — phase 1's acceptance criteria.
-
-Three of the four live here; the fourth (chunks replay to the same message) is in
-`test_session.py` because it is a property of the log, not the loop.
-"""
+"""The turn loop — phase 1's acceptance criteria."""
 
 from __future__ import annotations
 
@@ -49,8 +45,8 @@ async def test_streams_a_reply_and_records_the_turn() -> None:
         TurnStart,
         UserMessageEvent,
         StepStart,
-        AssistantChunk,  # the text
-        AssistantChunk,  # the Completed terminal, logged verbatim
+        AssistantChunk,
+        AssistantChunk,
         AssistantMessageEvent,
         StepEnd,
         TurnEnd,
@@ -59,11 +55,6 @@ async def test_streams_a_reply_and_records_the_turn() -> None:
 
 
 async def test_history_comes_from_the_log_not_an_accumulated_list() -> None:
-    """The discipline the whole design rests on.
-
-    Turn two must see turn one's exchange — and it can only have got it from the
-    log, because the agent is frozen and holds nothing.
-    """
     client = ScriptedClient(completed("one"))
     session = new_session()
 
@@ -85,8 +76,6 @@ async def test_system_prompt_is_prepended_and_never_logged() -> None:
     await drain(agent(client, system_prompt="be brief").run("hi", session=session))
 
     assert client.seen[0] == SystemMessage(content="be brief")
-    # It reaches the request but never the log, which is what lets a later turn
-    # use a different one.
     assert not any("be brief" in str(e) for e in session.events())
 
 
@@ -98,8 +87,6 @@ async def test_provider_failure_ends_the_turn_without_hanging() -> None:
 
     assert events[-1] == AgentFailed(reason="502 upstream")
     assert session.events()[-1] == TurnEnd(turn=0, reason="failed")
-    # No assistant/message: the adapter kept nothing, and the chunks already
-    # record the prefix the user saw.
     assert not any(isinstance(e, AssistantMessageEvent) for e in session.events())
 
 
@@ -114,21 +101,17 @@ async def test_stream_without_a_terminal_is_a_failure_not_a_success() -> None:
 
 
 async def test_cancelled_turn_finalizes_the_prefix_the_user_saw() -> None:
-    """Acceptance: a cancelled turn records `interrupted: true`."""
     client = HangingClient("partial answer")
     session = new_session()
 
     async with aclosing(agent(client).run("hi", session=session)) as run:
         first = await run.__anext__()
         assert first == TextChunk(text="partial answer")
-    # Leaving the block closes the generator, which is what a disconnected
-    # consumer does.
 
     message = next(e for e in session.events() if isinstance(e, AssistantMessageEvent))
     assert message.interrupted is True
     assert message.message.content == "partial answer"
     assert session.events()[-1] == TurnEnd(turn=0, reason="cancelled")
-    # `aclosing` in the loop closed the adapter rather than leaving it to the GC.
     assert client.closed is True
 
 

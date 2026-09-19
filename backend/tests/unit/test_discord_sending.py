@@ -43,7 +43,6 @@ async def test_an_empty_reply_is_never_sent() -> None:
 
 
 async def test_an_uncached_chat_is_fetched() -> None:
-    """After a restart nothing is cached, and a reply may still be owed."""
     channel, client = discord_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
@@ -56,8 +55,6 @@ async def test_an_uncached_chat_is_fetched() -> None:
 
 
 async def test_a_failed_send_is_not_swallowed() -> None:
-    """Delivery must know it failed, or the cursor would advance past a reply
-    that never arrived."""
     channel, client = discord_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
@@ -102,10 +99,9 @@ async def test_typing_is_shown() -> None:
 
 
 async def test_a_failed_typing_indicator_is_swallowed() -> None:
-    """The Protocol calls it best-effort: a real reply must not be lost to it."""
     channel, client = discord_channel(
         ChannelGateway(None, None, None, no_skills(), public_url="http://t")
     )
     client.chat("42").fail_next = _http_error("unknown channel")
 
-    await channel.send_typing("42")  # must not raise
+    await channel.send_typing("42")

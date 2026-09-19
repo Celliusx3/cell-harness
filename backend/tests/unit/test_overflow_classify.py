@@ -1,10 +1,4 @@
-"""The provider's refusal of an oversized request, recognised — or not.
-
-The bodies are the ones probed on 2026-09-16 (docs/compaction.md): ilmu's
-glm-ocr and LM Studio say it in two different shapes; ilmu's chat models say
-nothing recognisable, and a classifier that guessed there would compact on a
-malformed request.
-"""
+"""The provider's refusal of an oversized request, recognised — or not."""
 
 from __future__ import annotations
 
@@ -37,7 +31,6 @@ def test_the_two_probed_overflow_shapes_are_recognised(body: str) -> None:
     [ILMU_GENERIC, '{"error":"rate limited"}', "not json", "", '{"error":{"code":null}}', "[]"],
 )
 def test_anything_else_is_not_classified(body: str) -> None:
-    """Fail closed: an unrecognised 400 is a failed turn, not a compaction."""
     assert classify(body) is None
 
 

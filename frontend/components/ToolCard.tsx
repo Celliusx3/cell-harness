@@ -9,18 +9,10 @@ import { CodeBlock } from "@/components/CodeBlock";
 import type { ToolItem } from "@/lib/timeline";
 import type { ContentBlock } from "@/lib/types";
 
-/** Code mode's runner. Its `code` field is a program; its siblings are prose. */
-const EXECUTE = "execute_typescript";
+/** The argument field of each tool that is shown as a program. */
+const SCRIPT_FIELDS: Record<string, string> = { execute_typescript: "code" };
 
-/**
- * One tool call, collapsed to a line until asked to open.
- *
- * Rendered entirely from `tool/call` and `tool/result` — the name, the model's
- * raw argument string, and the already-rendered result. A result bound to an
- * MCP App gets a link below the line to the page that renders it — the same
- * link a phone is sent, so every channel opens an app the same way; the raw
- * arguments and result stay behind the chevron, exactly as for any other tool.
- */
+/** One tool call, collapsed to a line until asked to open. */
 export function ToolCard({ item }: { item: ToolItem }) {
   const [open, setOpen] = useState(false);
   const { id: conversationId } = useParams<{ id: string }>();
@@ -53,7 +45,6 @@ export function ToolCard({ item }: { item: ToolItem }) {
       </button>
 
       {item.ui !== null && (
-        // The same page a phone is sent — the app alone, full size.
         <div className="border-t border-line px-3 py-2">
           <Link
             href={`/apps/${encodeURIComponent(conversationId)}/${encodeURIComponent(item.call.id)}`}
@@ -70,8 +61,6 @@ export function ToolCard({ item }: { item: ToolItem }) {
       {open && (
         <div className="space-y-2 border-t border-line px-3 py-2">
           <Arguments raw={item.call.arguments} tool={item.call.name} />
-          {/* Deliberately shown whole. A tool result is exactly what the model
-              was given, and a truncated one would misrepresent the turn. */}
           {item.result !== null && <Result blocks={item.result} />}
         </div>
       )}
@@ -79,28 +68,14 @@ export function ToolCard({ item }: { item: ToolItem }) {
   );
 }
 
-/**
- * The model's argument string, one block per field.
- *
- * It arrives as JSON on a single line, so code mode — whose whole argument *is*
- * a program — renders as `"let i = 0;\nconst results…"`. Splitting the object
- * lets each string value print as itself, which is what turns an escaped script
- * back into readable source.
- *
- * Anything that is not a JSON object falls back to the raw string, because a
- * malformed argument string is exactly when you need to see what was really
- * sent.
- */
+/** The model's argument string, one block per field. */
 function Arguments({ raw, tool }: { raw: string; tool: string }) {
   const fields = parseFields(raw);
   if (fields === null) return <Block label="Arguments" body={raw} />;
   return (
     <>
       {fields.map(([name, body]) => (
-        // Gated on the tool as well as the field name: `Arguments` splits any
-        // JSON object, so an MCP tool that happens to take a `code` argument
-        // would otherwise be highlighted as TypeScript.
-        <Block key={name} label={name} body={body} script={tool === EXECUTE && name === "code"} />
+        <Block key={name} label={name} body={body} script={SCRIPT_FIELDS[tool] === name} />
       ))}
     </>
   );
@@ -116,19 +91,13 @@ function parseFields(raw: string): [string, string][] | null {
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
   const entries = Object.entries(parsed);
   if (entries.length === 0) return null;
-  // Strings print as themselves so newlines survive; everything else is shaped
-  // by the same indented JSON the model's own tool results use.
   return entries.map(([name, value]) => [
     name,
     typeof value === "string" ? value : JSON.stringify(value, null, 2),
   ]);
 }
 
-/**
- * A result's blocks: the prose as one block, and each `tool_reference` as a
- * chip — the tool is in the model's list from the next request on, and the
- * card is where a person sees that happen.
- */
+/** A result's blocks: the prose as one block, and each `tool_reference` as a chip */
 function Result({ blocks }: { blocks: ContentBlock[] }) {
   const text = blocks
     .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
@@ -165,9 +134,6 @@ function Block({ label, body, script = false }: { label: string; body: string; s
   return (
     <div>
       <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink-soft">{label}</p>
-      {/* Capped and scrolled rather than truncated: a 200-line script would
-          otherwise push the rest of the conversation off screen, and cutting it
-          short would hide the line you opened the card to read. */}
       {script ? (
         <CodeBlock code={body} language="tsx" className="bg-surface" />
       ) : (

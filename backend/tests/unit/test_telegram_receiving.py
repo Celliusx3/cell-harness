@@ -1,9 +1,4 @@
-"""Receiving from Telegram: batching, and commands jumping the queue.
-
-The handler is driven directly with updates rather than through PTB's polling —
-PTB owns the wire and testing it would be testing the library. What is ours is
-what happens *between* an update arriving and `ChannelService.receive`.
-"""
+"""Receiving from Telegram: batching, and commands jumping the queue."""
 
 from __future__ import annotations
 
@@ -69,9 +64,6 @@ async def prompts_of(sessions, chats) -> list[str]:
     return [e.message.content for e in stored.events() if e.type == "user/message"]
 
 
-# ── the adaptive delay ────────────────────────────────────────────────────────
-
-
 @pytest.mark.parametrize(
     ("length", "expected"),
     [
@@ -83,20 +75,10 @@ async def prompts_of(sessions, chats) -> list[str]:
     ],
 )
 def test_short_text_waits_less_than_a_suspected_split(length, expected) -> None:
-    """Hermes's numbers: short text reaches the model fast, and only something
-    long enough to have been client-split waits the full window."""
     assert batch_delay("x" * length) == expected
 
 
-# ── batching ──────────────────────────────────────────────────────────────────
-
-
 async def test_a_client_split_paste_becomes_one_turn(tmp_path) -> None:
-    """**The reason batching exists.**
-
-    Telegram's client cuts a long paste into separate messages. They must reach
-    the model as one prompt, or one paste is two turns.
-    """
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
 
     await channel._on(update(CHAT, "first half of a paste", 1), None)
@@ -107,7 +89,6 @@ async def test_a_client_split_paste_becomes_one_turn(tmp_path) -> None:
 
 
 async def test_messages_far_apart_stay_separate_turns(tmp_path) -> None:
-    """Batching must not swallow a genuine follow-up sent a minute later."""
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
 
     await channel._on(update(CHAT, "first", 1), None)
@@ -128,11 +109,7 @@ async def test_different_chats_are_batched_separately(tmp_path) -> None:
     assert sorted(bot.sent) == [("1", "ok"), ("2", "ok")]
 
 
-# ── commands ──────────────────────────────────────────────────────────────────
-
-
 async def test_a_command_is_answered_and_never_batched(tmp_path) -> None:
-    """`/stop` joined to the message after it stops being a command at all."""
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
 
     await channel._on(update(CHAT, "/new", 1), None)
@@ -141,13 +118,6 @@ async def test_a_command_is_answered_and_never_batched(tmp_path) -> None:
 
 
 async def test_a_command_flushes_whatever_was_batching(tmp_path) -> None:
-    """Text already waiting must not be lost to the command that follows it, nor
-    silently glued onto it.
-
-    Asserted at the service boundary rather than on disk: `/stop` cancels the
-    turn it just flushed, so the prompt is correctly handed over and correctly
-    never written. What matters is that it was handed over **separately**.
-    """
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
     handed: list[str] = []
     real = gateway.receive
@@ -165,12 +135,7 @@ async def test_a_command_flushes_whatever_was_batching(tmp_path) -> None:
     assert handed == ["a question"]
 
 
-# ── failure ───────────────────────────────────────────────────────────────────
-
-
 async def test_one_bad_message_does_not_stop_the_channel(tmp_path) -> None:
-    """PTB would otherwise route it to its error handlers and we would lose the
-    context; one chat's failure is not a reason to stop answering everyone."""
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
 
     async def boom(_message):
@@ -179,11 +144,10 @@ async def test_one_bad_message_does_not_stop_the_channel(tmp_path) -> None:
     gateway.receive = boom
 
     await channel._on(update(CHAT, "hello", 1), None)
-    await asyncio.sleep(FAST_DELAY_SECONDS + 0.2)  # must not raise
+    await asyncio.sleep(FAST_DELAY_SECONDS + 0.2)
 
 
 async def test_an_update_with_no_text_is_ignored(tmp_path) -> None:
-    """A sticker or a join event reaches the handler; neither is a turn."""
     from types import SimpleNamespace
 
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
@@ -192,9 +156,6 @@ async def test_an_update_with_no_text_is_ignored(tmp_path) -> None:
     await channel._on(empty, None)
 
     assert bot.sent == []
-
-
-# ── `/name` ───────────────────────────────────────────────────────────────────
 
 
 async def test_a_skill_name_passes_through_and_is_expanded(tmp_path) -> None:
@@ -211,8 +172,6 @@ async def test_a_skill_name_passes_through_and_is_expanded(tmp_path) -> None:
 
 
 async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path) -> None:
-    """`/start` — Telegram's own opener — and `/summarise` alike: they meant a
-    command, and the reply says what the commands are."""
     root = tmp_path / "skills"
     write_skill(root, "find-place")
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=skills_at(root))

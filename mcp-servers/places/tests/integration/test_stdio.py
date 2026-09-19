@@ -1,12 +1,4 @@
-"""This server as the harness runs it: a real subprocess over stdio.
-
-Proves the two things an in-process client cannot: that `[project.scripts]` and
-`main()` agree, and that **nothing is written to stdout** — stdout is the
-protocol, so one stray print corrupts a frame.
-
-Hermetic: `PLACES_BASE_URL` points at a port nothing is listening on, and the
-test only asks for the tool list, so no request is made.
-"""
+"""This server as the harness runs it: a real subprocess over stdio."""
 
 from __future__ import annotations
 
@@ -37,8 +29,6 @@ async def test_it_boots_over_stdio_and_offers_both_tools() -> None:
 
 
 async def test_the_output_schema_survives_the_wire() -> None:
-    """`structuredContent` depends on it, and it is the whole reason this
-    server exists rather than a third-party one."""
     async with Client(params()) as client:
         tools = {tool.name: tool for tool in (await client.list_tools()).tools}
 
@@ -59,5 +49,4 @@ async def test_it_refuses_to_start_without_a_key() -> None:
 
     assert process.returncode == 2
     assert b"GOOGLE_MAPS_API_KEY" in stderr
-    # The refusal goes to stderr, never stdout.
     assert stdout == b""

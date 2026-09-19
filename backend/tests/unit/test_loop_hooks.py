@@ -1,8 +1,4 @@
-"""Hooks around every tool call, driven through the loop.
-
-A refusal is logged and never run; a note is its own `application/message`
-after the step's results, never inside one — the tool's words stay the tool's.
-"""
+"""Hooks around every tool call, driven through the loop."""
 
 from __future__ import annotations
 
@@ -67,14 +63,11 @@ async def test_a_refused_call_is_logged_but_never_run() -> None:
     assert result.message.text == "error: not today"
     assert sum(isinstance(e, ToolCallEvent) for e in session.events()) == 1
     assert unanswered_calls(derive_messages(session.events())) == []
-    # The post hook has nothing to annotate — the tool did not run.
     assert hook.post_seen == []
     assert isinstance(events[-1], AgentCompleted)
 
 
 async def test_a_note_is_logged_as_a_guardrail_message_after_the_steps_calls() -> None:
-    """Never inside the result: the tool's words stay the tool's, and a provider
-    wants the tool messages directly behind the assistant that asked."""
     hook = Stub(note="think again")
     client = SteppedClient(
         [
@@ -116,7 +109,6 @@ async def test_a_note_is_logged_as_a_guardrail_message_after_the_steps_calls() -
         for e in session.events()
         if isinstance(e, ToolResultEvent)
     )
-    # On the wire: assistant(tool_calls) → tool → tool → user(note) → assistant.
     assert [m.role for m in derive_messages(session.events())][1:] == [
         "assistant",
         "tool",
@@ -140,7 +132,6 @@ async def test_a_step_without_notes_logs_no_guardrail_message() -> None:
 
 
 async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_never() -> None:
-    """Acceptance, through the loop with the real guardrail."""
     guardrail = HookChain((ExactFailureHook(),))
     boom, runs = counting(raising_tool())
     scripts = [calls_tool("boom", '{"value": "x"}', id=f"c{i}") for i in range(EXACT_FAILURE_BLOCK)]
@@ -155,7 +146,6 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     assert [r.error for r in results] == ["EXECUTION_ERROR"] * (EXACT_FAILURE_BLOCK - 1) + [BLOCKED]
     assert len(runs) == EXACT_FAILURE_BLOCK - 1
-    # Warned from the second failure on, as a guardrail message on each such step.
     warned = [e for e in session.events() if isinstance(e, ApplicationMessageEvent)]
     assert len(warned) == EXACT_FAILURE_BLOCK - 2
     assert isinstance(events[-1], AgentCompleted)

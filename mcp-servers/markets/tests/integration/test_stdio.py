@@ -1,10 +1,4 @@
-"""This server as the harness runs it: a real subprocess over stdio.
-
-Proves what an in-process client cannot: that `[project.scripts]` and `main()`
-agree, and that **nothing is written to stdout** — stdout is the protocol.
-Hermetic: every base URL points at a port nothing listens on, and the test only
-asks for the tool list, so no request is made and yfinance is never called.
-"""
+"""This server as the harness runs it: a real subprocess over stdio."""
 
 from __future__ import annotations
 
@@ -64,5 +58,4 @@ async def test_it_refuses_to_start_without_a_user_agent() -> None:
 
     assert process.returncode == 2
     assert b"SEC_USER_AGENT" in stderr
-    # The refusal goes to stderr, never stdout.
     assert stdout == b""

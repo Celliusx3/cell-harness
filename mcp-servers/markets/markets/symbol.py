@@ -1,12 +1,4 @@
-"""The one routing decision: what kind of thing an id names.
-
-One vocabulary across three markets so the same tool serves all of them:
-`AAPL` and `SPY` are Yahoo tickers, `1155.KL` is a Bursa Malaysia stock by its
-4-digit code with Yahoo's suffix, `crypto:bitcoin` is a CoinGecko id. The
-prefix is deliberate — crypto symbols have no governance (`BTG`, `WBTC` and
-plain names collide), so a bare `bitcoin` is refused rather than guessed. The
-model gets ids from `search_symbol` and passes them back unchanged.
-"""
+"""The one routing decision: what kind of thing an id names."""
 
 from __future__ import annotations
 
@@ -30,8 +22,7 @@ class Symbol:
 
     @property
     def is_us(self) -> bool:
-        # A Yahoo ticker with no exchange suffix is a US listing. Only US
-        # listings have EDGAR filings.
+        # A Yahoo ticker with no exchange suffix is a US listing.
         return not self.is_crypto and "." not in self.key
 
 

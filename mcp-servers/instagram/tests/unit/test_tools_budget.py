@@ -1,9 +1,4 @@
-"""Partial results, which are the design rather than a nicety.
-
-The harness caps one MCP call at 60s in a module constant this server cannot
-raise, and serves one call per connection at a time — so a batch that does not fit
-must return what it managed instead of failing.
-"""
+"""The per-call budget over a batch."""
 
 from __future__ import annotations
 
@@ -27,7 +22,6 @@ async def test_work_that_fits_all_completes_in_caller_order() -> None:
 
 
 async def test_finished_items_survive_when_others_run_out_of_budget() -> None:
-    """The whole point: `asyncio.timeout` over the group would lose the fast ones."""
 
     async def work(key: int) -> str:
         await asyncio.sleep(0.01 if key == 1 else 5)
@@ -41,7 +35,6 @@ async def test_finished_items_survive_when_others_run_out_of_budget() -> None:
 
 
 async def test_items_that_never_started_are_reported_late_not_hung() -> None:
-    """With concurrency 1 and a spent budget, item 2 must not wait 5 seconds."""
 
     async def work(key: int) -> str:
         await asyncio.sleep(5)
@@ -62,8 +55,6 @@ async def test_no_keys_is_no_work_and_no_error() -> None:
 
 
 async def test_a_real_exception_still_propagates() -> None:
-    """A timeout is a per-item outcome; a bug is not. Swallowing one here would
-    hide it behind a `timeout` the caller would tell the model to retry."""
 
     async def work(key: int) -> str:
         raise ValueError("a genuine bug")

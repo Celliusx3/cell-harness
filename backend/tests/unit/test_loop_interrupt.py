@@ -1,9 +1,4 @@
-"""Interrupting a turn: every dispatched call still gets a result.
-
-A provider rejects a history with an unanswered call outright, so an abandoned
-turn must answer everything it asked for — and the assertion the other tests
-lean on to prove that is itself tested here.
-"""
+"""Interrupting a turn: every dispatched call still gets a result."""
 
 from __future__ import annotations
 
@@ -22,12 +17,7 @@ from tests.unit.helpers import loop_agent, new_session, unanswered_calls
 
 
 async def interrupt_during_tool(agent_, session: Session) -> None:
-    """Cancel a turn while a dispatched tool is still running.
-
-    Cancelling the consuming task is what a closed browser tab does. It has to be
-    a task rather than a `break`, because the consumer is *blocked* inside the
-    tool call — there is no next event to break on.
-    """
+    """Cancel a turn while a dispatched tool is still running."""
 
     async def consume() -> None:
         async with aclosing(agent_.run("q", session=session)) as events:
@@ -35,15 +25,13 @@ async def interrupt_during_tool(agent_, session: Session) -> None:
                 pass
 
     task = asyncio.create_task(consume())
-    await asyncio.sleep(0)  # let it reach the hanging tool
+    await asyncio.sleep(0)
     task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
         await task
 
 
 async def test_every_dispatched_call_gets_a_result_even_when_interrupted() -> None:
-    """A provider rejects a history with an unanswered call outright, so an
-    abandoned turn must still answer everything it asked for."""
     client = SteppedClient(calls_tool("hang", '{"value": "a"}'))
     session = new_session()
 
@@ -69,8 +57,6 @@ async def test_an_interrupted_call_records_a_recoverable_error() -> None:
 
 
 async def test_stopping_before_any_call_exists_owes_nothing() -> None:
-    """Interrupting during the model stream is not the repair path: no call has
-    been made, so there is nothing to answer."""
     client = SteppedClient(calls_tool("echo", '{"value": "a"}'))
     session = new_session()
 
@@ -85,9 +71,6 @@ async def test_stopping_before_any_call_exists_owes_nothing() -> None:
 
 
 def test_the_unanswered_calls_assertion_actually_detects_a_gap() -> None:
-    """The other tests lean on this to prove the repair path worked, so an
-    assertion that silently reports everything as fine would hide the bug it
-    exists to catch."""
     asked = AssistantMessage(
         content="checking",
         tool_calls=(

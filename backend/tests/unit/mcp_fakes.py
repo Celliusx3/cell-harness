@@ -1,9 +1,4 @@
-"""Doubles for the MCP command loop.
-
-A fake session rather than a subprocess: the loop's contracts — task affinity,
-timeouts, concurrent callers — are testable in milliseconds this way. The real
-SDK is exercised once, in `tests/integration/test_mcp_stdio.py`.
-"""
+"""Doubles for the MCP command loop."""
 
 from __future__ import annotations
 
@@ -58,18 +53,15 @@ class FakeClient:
     """A scripted session that records which task owns it."""
 
     tools: list[Tool] = field(default_factory=lambda: [tool("echo")])
-    # tool name -> what calling it does. A float sleeps that long first.
     behaviour: dict[str, object] = field(default_factory=dict)
     entered_in: asyncio.Task | None = None
     exited_in: asyncio.Task | None = None
     calls: list[tuple[str, dict]] = field(default_factory=list)
     pages: int = 1
-    # uri -> what reading it returns. A float sleeps that long first.
     resources: dict[str, ReadResourceResult | float] = field(default_factory=dict)
     reads: list[str] = field(default_factory=list)
 
     async def list_tools(self, *, cursor: str | None = None) -> ListToolsResult:
-        # Split the tool list across `pages` responses so pagination is covered.
         index = int(cursor) if cursor else 0
         size = max(1, len(self.tools) // self.pages) if self.pages > 1 else len(self.tools)
         chunk = self.tools[index : index + size]
@@ -105,7 +97,6 @@ class FakeFactory:
 
     client: FakeClient = field(default_factory=FakeClient)
     opens: int = 0
-    # Seconds to stall inside `__aenter__`, for the never-connects case.
     connect_delay: float = 0.0
     connect_error: BaseException | None = None
 

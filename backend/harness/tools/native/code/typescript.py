@@ -1,10 +1,4 @@
-"""The tool catalog, as TypeScript the model can write against.
-
-Names are exact — `yt__get_subtitles`, not `Yt.getSubtitles` — because every
-conversion needs an inverse; declarations are grouped by server instead. Nothing
-here raises: prompt assembly cannot survive an exception, and the input is
-third-party JSON Schema. Reasoning in `docs/mcp-tool-scaling.md` §6.
-"""
+"""The tool catalog, as TypeScript the model can write against."""
 
 from __future__ import annotations
 
@@ -17,8 +11,6 @@ from harness.tools.definition import NAMESPACE, ToolDefinition
 
 logger = logging.getLogger("harness.tools.code")
 
-# `integer` collapses to `number`: TypeScript has none, and the distinction
-# survives in the server's own validation anyway.
 _PRIMITIVES = {
     "string": "string",
     "integer": "number",
@@ -27,21 +19,13 @@ _PRIMITIVES = {
     "null": "null",
 }
 
-# Bounds how much prompt one pathological tool can add. Not a cycle guard —
-# `$ref` loops are caught by name below.
 MAX_DEPTH = 8
 
-# Not the real return type: MCP's `outputSchema` is optional and we do not carry
-# it, so anything more specific would be a promise the tool never made.
 RETURN_TYPE = "Promise<unknown>"
 
 
 def declarations(tools: Sequence[ToolDefinition], *, types: bool) -> str:
-    """Every tool as a `declare function`, grouped by the server that owns it.
-
-    `types=False` elides argument types, which is what makes two-stage disclosure
-    cheaper than handing over every schema at once.
-    """
+    """Every tool as a `declare function`, grouped by the server that owns it."""
     groups: dict[str, list[str]] = {}
     for tool in sorted(tools, key=lambda t: t.name):
         server, _, _ = tool.name.partition(NAMESPACE)
@@ -62,9 +46,7 @@ def _declare(tool: ToolDefinition, *, types: bool) -> str:
 
 
 def _one_line(text: str) -> str:
-    """One comment line. A server's description may contain a newline or `*/`,
-    either of which would end the comment early and leave the rest parsing as
-    code."""
+    """One comment line."""
     return " ".join(text.split()).replace("*/", "*\\/")
 
 
@@ -75,9 +57,8 @@ def _args_type(schema: object) -> str:
             return "args: unknown"
         defs = _definitions(schema)
         rendered = _render(schema, defs, depth=0, seen=frozenset())
-        # Optional so a no-arg tool still type-checks when passed `{}`.
         return "args?: Record<string, never>" if rendered == "{}" else f"args: {rendered}"
-    except Exception:  # noqa: BLE001 — a bad schema must not cost the turn
+    except Exception:
         logger.warning("could not render a tool schema; falling back to unknown", exc_info=True)
         return "args: unknown"
 
@@ -98,8 +79,6 @@ def _render(schema: object, defs: dict[str, Any], *, depth: int, seen: frozenset
 
     ref = schema.get("$ref")
     if isinstance(ref, str):
-        # By name, not by depth: a self-referential schema is legal, and only the
-        # second visit is a loop.
         name = ref.rsplit("/", 1)[-1]
         if name in seen or name not in defs:
             return "unknown"
@@ -120,7 +99,6 @@ def _render(schema: object, defs: dict[str, Any], *, depth: int, seen: frozenset
 
     kind = schema.get("type")
     if isinstance(kind, list):
-        # `"type": ["string", "null"]` — a union written the other way round.
         return " | ".join(dict.fromkeys(_PRIMITIVES.get(k, "unknown") for k in kind))
     if kind == "array":
         item = _render(schema.get("items"), defs, depth=depth + 1, seen=seen)
@@ -149,8 +127,7 @@ def _object(schema: dict, defs: dict[str, Any], *, depth: int, seen: frozenset[s
 
 
 def _key(name: str) -> str:
-    """Quoted unless it is a bare identifier — `content-type` is legal JSON and
-    illegal TypeScript, and server names are not ours to control."""
+    """A property key, quoted unless it is a bare identifier."""
     ok = name.isidentifier() and not keyword.iskeyword(name) and name.isascii()
     return name if ok else _literal(name)
 
