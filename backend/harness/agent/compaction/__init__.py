@@ -2,20 +2,6 @@
 
 from __future__ import annotations
 
-from harness.agent.compaction.prune import PRUNE_KEEP
-from harness.agent.compaction.service import (
-    COMPACT_AT,
-    NOTHING,
-    UNANSWERED,
-    CompactionRefused,
-    CompactionService,
-)
+from harness.agent.compaction.service import CompactionRefused, CompactionService
 
-__all__ = [
-    "COMPACT_AT",
-    "NOTHING",
-    "PRUNE_KEEP",
-    "UNANSWERED",
-    "CompactionRefused",
-    "CompactionService",
-]
+__all__ = ["CompactionRefused", "CompactionService"]

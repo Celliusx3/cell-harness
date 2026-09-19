@@ -64,8 +64,7 @@ _INSTRUCTION_LINES = (
 INSTRUCTION = "\n".join(_INSTRUCTION_LINES)
 
 
-def render(summary: str, skills: Sequence[tuple[str, str]]) -> str:
+def render(summary: str, skill_bodies: Sequence[str]) -> str:
     """The message the model reads in place of everything before the boundary."""
-    parts = [PREAMBLE, f"{OPEN}\n{summary.strip()}\n{CLOSE}"]
-    parts.extend(body for _, body in skills)
+    parts = [PREAMBLE, f"{OPEN}\n{summary.strip()}\n{CLOSE}", *skill_bodies]
     return "\n\n".join(parts)

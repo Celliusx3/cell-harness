@@ -68,8 +68,8 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
         for step in itertools.count():
             session.append(StepStart(turn=turn, step=step))
 
-            if agent.compaction is not None:
-                await _consume(agent.compaction.before_step(session, turn=turn))
+            if agent.compaction is not None and agent.compaction.due(session):
+                await _consume(agent.compaction.reduce(session, turn=turn, trigger="auto"))
 
             reply: Completed | Failed | RetryStep | None = None
             async with aclosing(_stream_reply(agent, session, turn=turn, step=step)) as chunks:
@@ -145,7 +145,9 @@ async def _stream_reply(
                 failed is not None
                 and failed.code == CONTEXT_WINDOW_EXCEEDED
                 and agent.compaction is not None
-                and _reduced(await _consume(agent.compaction.recover(session, turn=turn)))
+                and _reduced(
+                    await _consume(agent.compaction.reduce(session, turn=turn, trigger="overflow"))
+                )
             ):
                 yield RetryStep()
                 return

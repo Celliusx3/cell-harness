@@ -78,7 +78,9 @@ class LoopAgent:
         """A manual compaction, driven as its own run."""
         if self.compaction is None:
             raise CompactionRefused("compaction is not configured")
-        async with aclosing(self.compaction.compact_now(session)) as events:
+        if self.compaction.refusal(session) is not None:
+            return
+        async with aclosing(self.compaction.reduce(session, turn=None, trigger="manual")) as events:
             async for event in events:
                 yield event
 

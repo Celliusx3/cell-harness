@@ -8,7 +8,7 @@ from harness.agent.compaction import CompactionService
 from harness.agent.compaction.prompt import OPEN
 from harness.agent.loop import LoopAgent
 from harness.llm.client import LLMClient
-from harness.llm.messages import Message, ToolSpec, UserMessage
+from harness.llm.messages import AssistantMessage, Message, ToolCall, ToolSpec, UserMessage
 from harness.llm.stream import (
     CONTEXT_WINDOW_EXCEEDED,
     Completed,
@@ -18,6 +18,13 @@ from harness.llm.stream import (
     Usage,
 )
 from harness.session.derive import derive_messages
+from harness.session.models import (
+    AssistantMessageEvent,
+    ToolCallEvent,
+    TurnEnd,
+    TurnStart,
+    UserMessageEvent,
+)
 from tests.unit.helpers import drain, new_session
 
 
@@ -84,6 +91,38 @@ async def test_the_summary_survives_into_the_next_turn() -> None:
     assert isinstance(messages[0], UserMessage) and OPEN in messages[0].content
 
 
+async def test_a_step_below_the_line_writes_no_compaction_event() -> None:
+    client = SizedClient(per_turn=100)
+    agent = agent_with(client, context=1_000_000)
+    session = new_session()
+
+    for i in range(5):
+        await drain(agent.run(f"message {i}", session=session))
+
+    assert client.summaries == 0
+    assert not any(e.type.startswith("compaction/") for e in session.events())
+
+
+async def test_a_refused_manual_compaction_yields_nothing() -> None:
+    client = SizedClient(per_turn=100)
+    agent = agent_with(client, context=None)
+    session = new_session()
+    call = ToolCall(id="p1", name="get_location", arguments="{}")
+    session.append(TurnStart(turn=0))
+    session.append(UserMessageEvent(turn=0, message=UserMessage(content="where am I")))
+    session.append(
+        AssistantMessageEvent(
+            turn=0, step=0, message=AssistantMessage(content="", tool_calls=(call,))
+        )
+    )
+    session.append(ToolCallEvent(turn=0, step=0, call=call))
+    session.append(TurnEnd(turn=0, reason="pending"))
+
+    assert await drain(agent.compact(session=session)) == []
+    assert client.summaries == 0
+    assert not any(e.type.startswith("compaction/") for e in session.events())
+
+
 class OverflowingClient(LLMClient):
     """Refuses the first request with a size error, then answers."""
 
@@ -111,14 +150,6 @@ async def test_an_overflow_is_recovered_and_the_step_retried() -> None:
     client = OverflowingClient()
     agent = agent_with(client, context=None)
     session = new_session()
-    from harness.llm.messages import AssistantMessage
-    from harness.session.models import (
-        AssistantMessageEvent,
-        TurnEnd,
-        TurnStart,
-        UserMessageEvent,
-    )
-
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="old")))
     session.append(
