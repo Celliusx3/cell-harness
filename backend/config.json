@@ -93,6 +93,14 @@
         "env": {
           "BASIC_MEMORY_NO_PROMOS": "1"
         }
+      },
+      "exa": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "--silent",
+          "exa-mcp-server"
+        ]
       }
     }
   }

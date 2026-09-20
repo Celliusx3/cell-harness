@@ -11,7 +11,7 @@ for cell-bot's. The directory does not, because a folder called `mcp-servers`
 needs no glossary — and because `backend/harness/mcp/` is the MCP *client*, so a
 top-level `mcp/` would name both sides of one protocol.
 
-Third-party servers we merely *declare* — `sysmon`, `memory` — are not here. They are
+Third-party servers we merely *declare* — `sysmon`, `memory`, `exa` — are not here. They are
 an `npx` or `uvx` line in config, so being in this directory is what "ours"
 means. `memory` is Basic Memory, the model's long-term memory over a folder of
 Markdown notes; why it and not our own server, and how to set it up, is in
@@ -37,6 +37,17 @@ cancelled turn."* Its hardcoded Enterprise-tier field masks also cut the free
 allowance by 80% and pulled reviews into the permanent session log. Before
 declaring any third-party server, list its tools and check for an `outputSchema`;
 without one it is the wrong shape for this harness however well maintained it is.
+
+`exa` (`npx exa-mcp-server`, web search and page reading) is the one declared
+exception, on purpose. Its `web_search_exa` and `web_fetch_exa` declare no
+`outputSchema` and return prose, and so does every other web-search server we
+found — Tavily's, Brave's, the official `mcp-server-fetch`. It holds because the
+code bridge now hands a script a text result as a string
+(`tools/native/code/tools.py`, `_as_value`) instead of `undefined`, and because
+the `search-web` skill tells the model to call both directly, one at a time,
+never from a script. The day a turn needs the hits as objects, the shape is an
+own server under this directory on Exa's REST API; the plan for it is recorded
+in PHASES.md insertion 10.
 
 ## Declaring one
 
