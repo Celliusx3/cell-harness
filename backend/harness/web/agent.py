@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
+from harness.agent.hooks.native.empty_reply import EmptyReplyHook
 from harness.agent.hooks.native.exact_failure import ExactFailureHook
 from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
@@ -81,7 +82,8 @@ def build_agent(
 
 
 def default_hooks() -> HookChain:
-    """The four loop detectors, specific before general."""
+    """The four loop detectors, specific before general, and what to do about an empty reply."""
     return HookChain(
-        (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook())
+        (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook()),
+        steps=(EmptyReplyHook(),),
     )

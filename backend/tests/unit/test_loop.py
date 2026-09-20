@@ -8,11 +8,14 @@ from contextlib import aclosing
 import pytest
 
 from harness.agent.events import AgentCompleted, AgentFailed
+from harness.agent.hooks import HookChain
+from harness.agent.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE, EmptyReplyHook
 from harness.agent.loop import LoopAgent
 from harness.agent.turn import NO_TERMINAL
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk
 from harness.session.models import (
+    ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,
     StepEnd,
@@ -21,12 +24,16 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from tests.unit.fakes import HangingClient, ScriptedClient, completed
-from tests.unit.helpers import new_session
+from harness.tools.native.clock import clock_tool
+from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, calls_tool, completed
+from tests.unit.helpers import loop_agent, new_session
+
+NO_HOOKS = HookChain()
+TOLD = HookChain(steps=(EmptyReplyHook(),))
 
 
-def agent(client, *, system_prompt: str = "") -> LoopAgent:
-    return LoopAgent(name="t", model="m", client=client, system_prompt=system_prompt)
+def agent(client, *, system_prompt: str = "", hooks: HookChain = NO_HOOKS) -> LoopAgent:
+    return LoopAgent(name="t", model="m", client=client, system_prompt=system_prompt, hooks=hooks)
 
 
 async def drain(gen) -> list:
@@ -158,3 +165,54 @@ async def test_usage_travels_with_the_assistant_message() -> None:
 
     message = next(e for e in session.events() if isinstance(e, AssistantMessageEvent))
     assert message.usage == usage
+
+
+def _notes(session) -> list[str]:
+    return [e.message.content for e in session.events() if isinstance(e, ApplicationMessageEvent)]
+
+
+async def test_an_empty_reply_is_told_once_and_the_next_text_completes() -> None:
+    client = SteppedClient(completed(""), completed("hello"))
+    session = new_session()
+
+    events = await drain(agent(client, hooks=TOLD).run("hi", session=session))
+
+    assert events[-1] == AgentCompleted(text="hello")
+    assert _notes(session) == [EMPTY_REPLY_NOTE]
+    assert client.calls == 2
+    assert client.seen[-1].content == EMPTY_REPLY_NOTE
+    assert session.events()[-1] == TurnEnd(turn=0, reason="completed")
+
+
+async def test_two_empty_replies_fail_the_turn() -> None:
+    client = SteppedClient(completed(""), completed(""))
+    session = new_session()
+
+    events = await drain(agent(client, hooks=TOLD).run("hi", session=session))
+
+    assert events[-1] == AgentFailed(reason=EMPTY_REPLY)
+    assert _notes(session) == [EMPTY_REPLY_NOTE]
+    assert client.calls == 2
+    assert session.events()[-1] == TurnEnd(turn=0, reason="failed")
+
+
+async def test_with_no_step_hook_an_empty_reply_completes_as_before() -> None:
+    client = SteppedClient(completed(""))
+    session = new_session()
+
+    events = await drain(agent(client).run("hi", session=session))
+
+    assert events[-1] == AgentCompleted(text="")
+    assert _notes(session) == []
+
+
+async def test_a_turn_that_spoke_then_went_blank_is_told_too() -> None:
+    client = SteppedClient(
+        calls_tool("get_current_time", text="Let me check"), completed(""), completed("Tuesday")
+    )
+    session = new_session()
+
+    events = await drain(loop_agent(client, clock_tool(), hooks=TOLD).run("hi", session=session))
+
+    assert events[-1] == AgentCompleted(text="Let me checkTuesday")
+    assert _notes(session) == [EMPTY_REPLY_NOTE]

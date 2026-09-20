@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.agent.hooks.native.empty_reply import EmptyReplyHook
 from harness.agent.hooks.native.exact_failure import ExactFailureHook
 from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
@@ -96,6 +97,7 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
         NoProgressHook,
         RepeatedCallHook,
     ]
+    assert [type(hook) for hook in agent.hooks.steps] == [EmptyReplyHook]
 
 
 async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:

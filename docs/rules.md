@@ -101,7 +101,10 @@ out of the conversation's title and out of the person's bubbles.
 in the loop itself. It was dropped by decision, with the consequence stated:
 a decision hook fails open and the guardrail bounds only repeated *failures*,
 so an endless succeeding loop — or a loop bug that never clears `owed` — is now
-bounded by the user's stop button and nothing else. dsh has no cap either.
+bounded by the user's stop button and nothing else. dsh has no cap either. The
+one bounded retry is the empty reply: a completed reply with no text and no tool
+call is told so once, as an `application/message` read back from the turn's own
+events, and a second one fails the turn rather than completing it with nothing.
 
 **Prompt text is code.** When wording changes because a model got it wrong,
 record the observed failure in [prompt-failures.md](./prompt-failures.md), one

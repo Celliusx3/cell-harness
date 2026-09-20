@@ -9,7 +9,16 @@ from dataclasses import dataclass
 
 import pytest
 
-from harness.agent.hooks import CompletedCall, HookChain, Signature, ToolHook, completed_calls
+from harness.agent.hooks import (
+    CompletedCall,
+    HookChain,
+    Signature,
+    StepDecision,
+    StepHook,
+    Tell,
+    ToolHook,
+    completed_calls,
+)
 from harness.agent.hooks import chain as chain_module
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
@@ -41,6 +50,23 @@ class Raises(ToolHook):
         self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
     ) -> str | None:
         raise RuntimeError("bug in a hook")
+
+
+class RaisesAtStepEnd(StepHook):
+    async def end_of_step(
+        self, empties: int, prior: Sequence[CompletedCall]
+    ) -> StepDecision | None:
+        raise RuntimeError("bug in a step hook")
+
+
+@dataclass(frozen=True)
+class SaysAtStepEnd(StepHook):
+    decision: StepDecision | None = None
+
+    async def end_of_step(
+        self, empties: int, prior: Sequence[CompletedCall]
+    ) -> StepDecision | None:
+        return self.decision
 
 
 class Hangs(ToolHook):
@@ -173,3 +199,15 @@ async def test_the_fold_starts_over_each_turn_and_skips_the_hooks_own_refusals()
     )
 
     assert completed_calls(session) == ()
+
+
+async def test_a_raising_step_hook_decides_nothing_and_the_next_one_is_asked(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    chain = HookChain(steps=(RaisesAtStepEnd(), SaysAtStepEnd(Tell("answer"))))
+
+    with caplog.at_level(logging.ERROR, logger="harness.agent"):
+        assert await chain.end_of_step(session=new_session()) == Tell("answer")
+
+    assert "RaisesAtStepEnd.end_of_step raised" in caplog.text
+    assert await HookChain(steps=(RaisesAtStepEnd(),)).end_of_step(session=new_session()) is None

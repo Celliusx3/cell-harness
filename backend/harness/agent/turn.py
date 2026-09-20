@@ -16,6 +16,7 @@ from harness.agent.events import (
     ToolProgress,
     ToolResult,
 )
+from harness.agent.hooks import GiveUp, Tell
 from harness.agent.tool_run import tool_events
 from harness.llm.messages import ApplicationMessage, AssistantMessage, ToolCall, ToolMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
@@ -89,6 +90,14 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
 
             answer += reply.full_text
             if not reply.tool_calls:
+                decision = await agent.hooks.end_of_step(session=session)
+                if isinstance(decision, GiveUp):
+                    _close(session, turn, step, "failed")
+                    outcome = AgentFailed(reason=decision.reason)
+                    break
+                if isinstance(decision, Tell):
+                    _tell(session, turn, step, decision.note)
+                    continue
                 _close(session, turn, step, "completed")
                 outcome = AgentCompleted(text=answer)
                 break
@@ -232,6 +241,12 @@ def _reduced(produced: list[object]) -> bool:
         if isinstance(event, CompactionEnd) and event.succeeded:
             return True
     return False
+
+
+def _tell(session: Session, turn: int, step: int, note: str) -> None:
+    """Close the step with a note the model reads before the next request."""
+    session.append(ApplicationMessageEvent(turn=turn, message=ApplicationMessage(content=note)))
+    session.append(StepEnd(turn=turn, step=step))
 
 
 def _close(session: Session, turn: int, step: int, reason: TurnEndReason) -> None:

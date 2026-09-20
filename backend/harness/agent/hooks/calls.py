@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from harness.llm.messages import ToolCall, render_text
 from harness.session.log import Session
-from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.definition import BLOCKED
 
 
@@ -75,3 +75,15 @@ def completed_calls(session: Session) -> tuple[CompletedCall, ...]:
                 )
             )
     return tuple(completed)
+
+
+def empty_replies(session: Session) -> int:
+    """The current turn's trailing replies with no text and no tool call."""
+    empties = 0
+    for event in session.events():
+        if isinstance(event, TurnStart):
+            empties = 0
+        elif isinstance(event, AssistantMessageEvent) and not event.interrupted:
+            blank = not event.message.tool_calls and not event.message.content.strip()
+            empties = empties + 1 if blank else 0
+    return empties
