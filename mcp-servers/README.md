@@ -11,9 +11,11 @@ for cell-bot's. The directory does not, because a folder called `mcp-servers`
 needs no glossary — and because `backend/harness/mcp/` is the MCP *client*, so a
 top-level `mcp/` would name both sides of one protocol.
 
-Third-party servers we merely *declare* — `jobs`, `yt` — are not here. They are
+Third-party servers we merely *declare* — `sysmon`, `memory` — are not here. They are
 an `npx` or `uvx` line in config, so being in this directory is what "ours"
-means.
+means. `memory` is Basic Memory, the model's long-term memory over a folder of
+Markdown notes; why it and not our own server, and how to set it up, is in
+[docs/memory.md](../docs/memory.md).
 
 Each directory is its own `uv` project with its own dependencies, its own tests
 and its own coverage gate. `backend/harness/` imports nothing from here and

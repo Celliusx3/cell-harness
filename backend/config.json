@@ -82,6 +82,17 @@
           "@modelcontextprotocol/server-system-monitor",
           "--stdio"
         ]
+      },
+      "memory": {
+        "command": "uvx",
+        "args": [
+          "--prerelease=allow",
+          "basic-memory",
+          "mcp"
+        ],
+        "env": {
+          "BASIC_MEMORY_NO_PROMOS": "1"
+        }
       }
     }
   }

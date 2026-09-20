@@ -25,7 +25,9 @@ from harness.tools.registry import ToolRegistry
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant. When a tool can answer the user's question, "
-    "call it instead of guessing."
+    "call it instead of guessing. You have a long-term memory in the memory "
+    "functions: search it before answering about anything the user told you in "
+    "an earlier conversation, and save what they ask you to remember."
 )
 
 CLIENT_TOOLS = ClientTools((LOCATION_TOOL,))
