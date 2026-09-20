@@ -42,10 +42,11 @@ turns out to want them.
 
 ## Status
 
-**Phases 1–11 done; 9 — "it doesn't get stuck" — built ahead of 8.3–8.4.**
+**Phases 1–9 and 11 done; 10 — "it picks the right specialist" — is open, deferred
+until a second agent is wanted; 9 was built ahead of 8.3–8.4.**
 Next is the optional track (decide before 12). Steering, once phase 9, is now phase 16 at the end of the
 optional track (why: in [Phase 16](#phase-16--you-can-steer-it)). Since phase
-7, eight insertions not planned above, then phase 9 as written with three cuts
+7, nine insertions not planned above, then phase 9 as written with three cuts
 recorded in it, then 8.3–8.4 with two choices recorded
 in [Phase 8](#phase-8--it-follows-instructions): a `/name` message is expanded
 *in place* — Claude Code's shape, no new event or field — and the editor is
@@ -61,6 +62,7 @@ strict where the catalog is lenient.
 | 6 | **It shows a UI** | MCP Apps (SEP-1865): `ToolResultEvent.ui` binds a result to a `ui://` resource; `/apps/{conversation}/{call}` renders it, every chat gets a link (`web.public_url`, empty by default), `/api/mcp/{server}/` serves the HTML and proxies a view's `tools/call`. Proven against `sysmon`. | [docs/mcp-apps.md](./docs/mcp-apps.md) |
 | 7 | **It researches a stock** | `mcp-servers/markets/` — seven tools over one id vocabulary (`AAPL`, `1155.KL`, `crypto:bitcoin`) for US stocks/ETFs, crypto and Bursa Malaysia: search, quotes, history, profile, financials, EDGAR filings, news. Research only; `backend/harness/` gained nothing. Needs an EDGAR `User-Agent` and a free CoinGecko Demo key in `config.local.json`. | [mcp-servers/markets/README.md](./mcp-servers/markets/README.md) |
 | 8 | **It knows where you are** | `get_location` — the first tool the *client* answers, and the generic spine under it (`tools/client/`): a client tool is a declaration whose only outcome is `Pending`; the loop ends the turn there (`turn/end pending`), nothing waits in memory, and the browser card, Telegram's share-location button or a link to `/answer` opens the turn that carries the answer (`LoopAgent.resume`). Typing instead writes `SKIPPED` for the call. No new event; no timer; a restart changes nothing. A second datum is one declaration and one browser handler. | [docs/client-data.md](./docs/client-data.md) |
+| 9 | **It remembers** | Memory across conversations, unbounded and searchable: "remember this cafe", then "which cafe did I like in PJ?" in a later chat. An MCP server (Basic Memory) over a folder of Markdown notes the person can open in Obsidian, declared in `config.json`; one system-prompt sentence and a `remember` skill tell the model when to save and when to search. `backend/harness/` gained no code. Phase 15's `conversation_search` is superseded. | [docs/memory.md](./docs/memory.md) |
 
 ### Why this order
 
