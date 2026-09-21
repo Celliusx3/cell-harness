@@ -24,7 +24,7 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import CODE_PROMPT, LIST
 from harness.web import agent as composition
 from harness.web.agent import CLIENT_TOOLS, DEFAULT_TOOLS, build_agent
-from tests.unit.helpers import client_tools, no_progress, no_skills
+from tests.unit.helpers import client_tools, no_gate, no_progress, no_skills
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
 
@@ -37,7 +37,7 @@ def compose(tmp_path: Path):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(settings, sessions, mcp, no_skills(), client_tools())
+        return build_agent(settings, sessions, mcp, no_skills(), client_tools(), no_gate())
 
     return build
 
@@ -77,8 +77,8 @@ def test_exactly_one_dispatcher_is_built(compose, monkeypatch) -> None:
     built: list[ToolDispatcher] = []
     real = composition.ToolDispatcher
 
-    def spy(registry) -> ToolDispatcher:
-        built.append(real(registry))
+    def spy(registry, gate) -> ToolDispatcher:
+        built.append(real(registry, gate))
         return built[-1]
 
     monkeypatch.setattr(composition, "ToolDispatcher", spy)

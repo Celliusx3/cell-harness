@@ -22,6 +22,7 @@ from harness.runs.store import Run, RunAlreadyActive, RunStore
 from harness.session.log import Session
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tools.approval import Approved
 from harness.tools.definition import Failure, Ok
 
 logger = logging.getLogger("harness.channels")
@@ -162,8 +163,8 @@ class ChannelGateway:
         except (RunAlreadyActive, CompactionRefused):
             return None
 
-    async def resume(self, session: Session, call_id: str, outcome: Ok | Failure) -> Run:
-        """Begin the turn that carries an answer to a client tool."""
+    async def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
+        """Begin the turn that carries an answer to a client tool, or an approval."""
         states = await self._repository.chats_of(session.id)
         run = self._runs.resume(session, call_id, outcome)
         for state in states:

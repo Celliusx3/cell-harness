@@ -15,9 +15,11 @@ from harness.mcp.store import McpServerStore
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.web.server import create_app
 from tests.unit.helpers import client_tools as default_client_tools
+from tests.unit.helpers import no_gate
 
 
 def web_gateway(
@@ -35,7 +37,7 @@ def web_gateway(
         service,
         skills,
         public_url="http://t",
-        client_tools=client_tools.names,
+        client_tools=client_tools.awaited,
     )
     web = WebChannel(service, runs, gateway)
     gateway.register(web)
@@ -59,8 +61,9 @@ def web_app(
     mcp: McpServerStore | None = None,
     skills: SkillService,
     client_tools: ClientToolService | None = None,
+    gate: ApprovalGate | None = None,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, client_tools=client_tools)
-    return create_app(runs, gateway, web, mcp or web_mcp(), skills, client_tools)
+    return create_app(runs, gateway, web, mcp or web_mcp(), skills, client_tools, gate or no_gate())

@@ -112,7 +112,15 @@ export type SessionEvent =
       error: string | null;
     }
   /** These results are cleared from the model's view; the log and the screen keep them. */
-  | { type: "compaction/prune"; turn: number | null; call_ids: string[] };
+  | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
+  | ApprovalGrantEvent;
+
+/** The person allowed `tool` to run unasked for the rest of this conversation. */
+export interface ApprovalGrantEvent {
+  type: "approval/grant";
+  turn: number;
+  tool: string;
+}
 
 export interface ConversationSummary {
   id: string;
@@ -170,4 +178,15 @@ export interface Location {
   latitude: number;
   longitude: number;
   accuracy_m: number;
+}
+
+/** How long an approval holds */
+export type Scope = "once" | "conversation" | "always";
+
+/** What the browser answers an approval gate with */
+export type Decision = { kind: "approved"; scope: Scope } | { kind: "denied" };
+
+/** `GET /api/approvals` */
+export interface Approvals {
+  tools: string[];
 }

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 from harness.llm.messages import ToolReference
 from harness.session.models import (
+    ApprovalGrant,
     AssistantMessageEvent,
     SessionEvent,
     SessionHeader,
@@ -49,6 +50,10 @@ class Session:
                         order.pop(block.tool_name, None)
                         order[block.tool_name] = None
         return tuple(order)
+
+    def tools_granted(self) -> frozenset[str]:
+        """The tools this conversation has allowed to run unasked."""
+        return frozenset(e.tool for e in self._events if isinstance(e, ApprovalGrant))
 
     def context_size(self) -> int | None:
         """Input plus output tokens of the last reply that reported usage, or `None`."""

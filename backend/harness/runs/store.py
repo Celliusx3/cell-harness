@@ -12,6 +12,7 @@ from harness.agent.compaction import CompactionService
 from harness.agent.loop import LoopAgent
 from harness.session.log import Session
 from harness.session.service import SessionService
+from harness.tools.approval import Approved
 from harness.tools.definition import Failure, Ok
 
 logger = logging.getLogger("harness.runs")
@@ -66,7 +67,7 @@ class RunStore:
         run._outer = asyncio.create_task(self._drive(run))
         return run
 
-    def resume(self, session: Session, call_id: str, outcome: Ok | Failure) -> Run:
+    def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
         """Begin the turn that answers a client tool — the person's answer as its first event."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)

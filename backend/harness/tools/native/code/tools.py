@@ -149,11 +149,14 @@ def _bridge(dispatcher: ToolDispatcher, progress: ToolProgressReporter, kept_out
             raise BridgeError(f"{name} cannot be called from inside a script")
         counter += 1
         call = ToolCall(id=f"sub:{counter}", name=name, arguments=json.dumps(arguments))
-        outcome = await dispatcher.dispatch(call, progress=progress)
+        outcome = await dispatcher.dispatch(call, progress=progress, approved=False)
         if isinstance(outcome, Ok):
             return outcome.data if outcome.data is not None else _as_value(outcome.text)
         if isinstance(outcome, Pending):
-            raise BridgeError(f"{name} is answered by the user, not a script")
+            raise BridgeError(
+                f"{name} waits for the user's approval, so a script cannot call it. "
+                f"Read it with {DETAILS}, then call it directly as a tool."
+            )
         raise BridgeError(render_text(render_outcome(outcome)))
 
     return bridge

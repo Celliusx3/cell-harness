@@ -29,6 +29,18 @@ class SessionSettings(BaseModel):
         return value.expanduser()
 
 
+class ApprovalSettings(BaseModel):
+    """Which tools ask the person before running, and where "always" is remembered."""
+
+    tools: tuple[str, ...] = ()
+    grants_path: Path = Path.home() / ".harness" / "approvals.json"
+
+    @field_validator("grants_path")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
+
+
 class TelegramSettings(BaseModel):
     """The bot to answer as, if any."""
 

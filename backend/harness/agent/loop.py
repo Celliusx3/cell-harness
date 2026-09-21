@@ -7,14 +7,23 @@ from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.agent.compaction import CompactionRefused, CompactionService
+from harness.agent.events import AgentPending
 from harness.agent.hooks import HookChain
+from harness.agent.tool_run import approved_events
 from harness.agent.turn import TurnEvent, drive
 from harness.llm.client import LLMClient
-from harness.llm.messages import Message, SystemMessage, ToolMessage, UserMessage
+from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
 from harness.session.derive import derive_messages
 from harness.session.log import Session
-from harness.session.models import ToolResultEvent, TurnStart, UserMessageEvent
+from harness.session.models import (
+    ApprovalGrant,
+    ToolResultEvent,
+    TurnEnd,
+    TurnStart,
+    UserMessageEvent,
+)
 from harness.session.repair import unanswered
+from harness.tools.approval import Approved
 from harness.tools.definition import ERROR_PREFIX, Failure, Ok, render_outcome
 from harness.tools.pipeline import ToolPipeline
 
@@ -55,21 +64,33 @@ class LoopAgent:
                 yield event
 
     async def resume(
-        self, call_id: str, outcome: Ok | Failure, *, session: Session
+        self, call_id: str, answer: Ok | Failure | Approved, *, session: Session
     ) -> AsyncIterator[TurnEvent]:
-        """A turn opened by the person's answer to a client tool."""
+        """A turn opened by the person's answer to a client tool, or their approval of a call."""
         turn = session.next_turn()
         session.append(TurnStart(turn=turn))
-        content = render_outcome(outcome)
-        session.append(
-            ToolResultEvent(
-                turn=turn,
-                step=0,
-                message=ToolMessage(tool_call_id=call_id, content=content),
-                error=None if isinstance(outcome, Ok) else outcome.code,
-                ui=outcome.ui if isinstance(outcome, Ok) else None,
-            )
-        )
+        if self.checkpoint is not None:
+            await self.checkpoint(session)
+        try:
+            if isinstance(answer, Approved):
+                call = _waiting_call(session, call_id)
+                if answer.scope == "conversation":
+                    session.append(ApprovalGrant(turn=turn, tool=call.name))
+                async with aclosing(
+                    approved_events(self, call, session=session, turn=turn)
+                ) as events:
+                    async for event in events:
+                        yield event
+            else:
+                _append_answer(session, turn, call_id, answer)
+            waiting = unanswered(session.events())
+            if waiting:
+                session.append(TurnEnd(turn=turn, reason="pending"))
+                yield AgentPending(tool_call_id=waiting[0][1].id, name=waiting[0][1].name)
+                return
+        except BaseException:
+            session.append(TurnEnd(turn=turn, reason="cancelled"))
+            raise
         async with aclosing(drive(self, session, turn)) as events:
             async for event in events:
                 yield event
@@ -96,3 +117,24 @@ def _skip_calls_walked_past(session: Session) -> None:
                 error=SKIPPED,
             )
         )
+
+
+def _waiting_call(session: Session, call_id: str) -> ToolCall:
+    """The unanswered call the person approved; `LookupError` when the log holds no such call."""
+    for _asked, call in unanswered(session.events()):
+        if call.id == call_id:
+            return call
+    raise LookupError(f"no unanswered call {call_id!r}")
+
+
+def _append_answer(session: Session, turn: int, call_id: str, outcome: Ok | Failure) -> None:
+    """The person's answer as the resumed turn's first event."""
+    session.append(
+        ToolResultEvent(
+            turn=turn,
+            step=0,
+            message=ToolMessage(tool_call_id=call_id, content=render_outcome(outcome)),
+            error=None if isinstance(outcome, Ok) else outcome.code,
+            ui=outcome.ui if isinstance(outcome, Ok) else None,
+        )
+    )

@@ -9,9 +9,10 @@ from contextlib import aclosing
 from typing import TYPE_CHECKING
 
 from harness.agent.events import ToolPending, ToolProgress, ToolResult
-from harness.llm.messages import ToolCall, ToolMessage, render_text
+from harness.llm.messages import ApplicationMessage, ToolCall, ToolMessage, render_text
 from harness.session.log import Session
-from harness.session.models import ToolResultEvent
+from harness.session.models import ApplicationMessageEvent, ToolResultEvent
+from harness.session.repair import REPAIRED, TOOL_OUTCOME_UNKNOWN
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
@@ -26,6 +27,7 @@ async def tool_events(
     turn: int,
     step: int,
     notes: list[str],
+    approved: bool,
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
     """One call: zero or more `ToolProgress`, then exactly one `ToolResult` or `ToolPending`."""
     refusal = await agent.hooks.pre_tool_call(call, session=session)
@@ -33,7 +35,7 @@ async def tool_events(
     if refusal is not None:
         outcome = Failure(BLOCKED, refusal)
     else:
-        async with aclosing(_run_tool(agent, call, session=session)) as events:
+        async with aclosing(_run_tool(agent, call, session=session, approved=approved)) as events:
             async for event in events:
                 if isinstance(event, ToolProgress):
                     yield event
@@ -60,8 +62,42 @@ async def tool_events(
     yield ToolResult(tool_call_id=call.id, name=call.name, content=render_text(content))
 
 
+async def approved_events(
+    agent: LoopAgent, call: ToolCall, *, session: Session, turn: int
+) -> AsyncIterator[ToolProgress | ToolResult]:
+    """An approved call as the resumed turn's first step; a cancel still leaves it answered."""
+    notes: list[str] = []
+    answered = False
+    try:
+        async with aclosing(
+            tool_events(agent, call, session=session, turn=turn, step=0, notes=notes, approved=True)
+        ) as events:
+            async for event in events:
+                if isinstance(event, ToolResult):
+                    answered = True
+                    yield event
+                elif isinstance(event, ToolProgress):
+                    yield event
+        if notes:
+            session.append(
+                ApplicationMessageEvent(
+                    turn=turn, message=ApplicationMessage(content="\n\n".join(notes))
+                )
+            )
+    finally:
+        if not answered:
+            session.append(
+                ToolResultEvent(
+                    turn=turn,
+                    step=0,
+                    message=ToolMessage(tool_call_id=call.id, content=TOOL_OUTCOME_UNKNOWN),
+                    error=REPAIRED,
+                )
+            )
+
+
 async def _run_tool(
-    agent: LoopAgent, call: ToolCall, *, session: Session
+    agent: LoopAgent, call: ToolCall, *, session: Session, approved: bool
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
@@ -74,6 +110,8 @@ async def _run_tool(
     async def run() -> ToolOutcome:
         try:
             assert agent.tools is not None
+            if approved:
+                return await agent.tools.approve(call, progress=report)
             return await agent.tools.execute(
                 call, progress=report, tools_selected=session.tools_selected()
             )

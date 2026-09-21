@@ -51,7 +51,11 @@ class ToolPipeline:
         """Run one of the model's own calls — if it was offered."""
         if call.name not in {tool.name for tool in self._offered(tools_selected)}:
             return Failure(REFUSED, _not_offered(call.name))
-        return await self._dispatcher.dispatch(call, progress=progress)
+        return await self._dispatcher.dispatch(call, progress=progress, approved=False)
+
+    async def approve(self, call: ToolCall, *, progress: ToolProgressReporter) -> ToolOutcome:
+        """Run a call the person has approved — they opened this door, so no offered check."""
+        return await self._dispatcher.dispatch(call, progress=progress, approved=True)
 
 
 def _not_offered(name: str) -> str:

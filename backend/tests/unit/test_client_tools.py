@@ -19,10 +19,10 @@ from harness.tools.client import (
     Refused,
     Shared,
     Unavailable,
-    pending_call,
+    pending_calls,
 )
 from harness.tools.definition import Failure, Ok, Pending
-from tests.unit.helpers import context_for, new_session
+from tests.unit.helpers import context_for, new_session, no_gate
 
 
 class NoArgs(BaseModel):
@@ -96,27 +96,23 @@ def _result(call_id: str) -> ToolResultEvent:
     return ToolResultEvent(turn=0, step=0, message=message, error=None)
 
 
-def test_the_pending_call_is_the_unanswered_client_call_of_the_current_turn() -> None:
+def test_the_pending_calls_are_the_unanswered_client_calls_in_log_order() -> None:
     session = new_session()
-    assert pending_call(session, NAMES) is None
+    assert pending_calls(session, NAMES) == ()
 
     session.append(TurnStart(turn=0))
     session.append(_call("other", name="echo"))
-    assert pending_call(session, NAMES) is None
+    assert pending_calls(session, NAMES) == ()
 
     session.append(_call("c1"))
-    assert pending_call(session, NAMES) == PendingCall("get_battery", "c1", "{}")
+    assert pending_calls(session, NAMES) == (PendingCall("get_battery", "c1", "{}"),)
+
+    session.append(TurnStart(turn=1))
+    session.append(_call("c2"))
+    assert [p.call_id for p in pending_calls(session, NAMES)] == ["c1", "c2"]
 
     session.append(_result("c1"))
-    assert pending_call(session, NAMES) is None
-
-
-def test_a_call_from_an_earlier_turn_is_never_pending() -> None:
-    session = new_session()
-    session.append(TurnStart(turn=0))
-    session.append(_call("c1"))
-    session.append(TurnStart(turn=1))
-    assert pending_call(session, NAMES) is None
+    assert pending_calls(session, NAMES) == (PendingCall("get_battery", "c2", "{}"),)
 
 
 def _session_with_pending(call_id: str = "c1"):
@@ -127,7 +123,7 @@ def _session_with_pending(call_id: str = "c1"):
 
 
 def test_the_service_accepts_by_call_id_or_by_tool_name() -> None:
-    service = ClientToolService(ClientTools((BATTERY,)))
+    service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     body = {"kind": "shared", "data": {"percent": 80}}
 
     assert service.accept_call(_session_with_pending(), "c1", body) == Accepted(
@@ -139,7 +135,7 @@ def test_the_service_accepts_by_call_id_or_by_tool_name() -> None:
 
 
 def test_each_refusal_is_its_own_answer() -> None:
-    service = ClientToolService(ClientTools((BATTERY,)))
+    service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     body = {"kind": "shared", "data": {"percent": 80}}
 
     assert service.accept_call(new_session(), "c1", body) is Refused.NOT_PENDING
@@ -150,7 +146,7 @@ def test_each_refusal_is_its_own_answer() -> None:
 
 
 def test_the_service_exposes_what_composition_needs() -> None:
-    service = ClientToolService(ClientTools((BATTERY,)))
+    service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     assert service.names == NAMES
     assert [tool.name for tool in service.definitions()] == ["get_battery"]
-    assert service.pending(_session_with_pending()) == PendingCall("get_battery", "c1", "{}")
+    assert service.pending(_session_with_pending()) == (PendingCall("get_battery", "c1", "{}"),)

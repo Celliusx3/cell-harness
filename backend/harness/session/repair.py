@@ -11,6 +11,7 @@ from harness.session.models import (
     SessionEvent,
     ToolResultEvent,
     TurnEnd,
+    TurnStart,
 )
 
 TOOL_OUTCOME_UNKNOWN = (
@@ -36,18 +37,27 @@ def unanswered(events: Sequence[SessionEvent]) -> list[tuple[AssistantMessageEve
 
 def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
     """Results for every call the log left unanswered *by accident*."""
-    pending = {e.turn for e in events if isinstance(e, TurnEnd) and e.reason == "pending"}
-    additions: list[SessionEvent] = [
-        ToolResultEvent(
-            turn=event.turn,
-            step=event.step,
-            message=ToolMessage(tool_call_id=call.id, content=TOOL_OUTCOME_UNKNOWN),
-            error=REPAIRED,
+    additions: list[SessionEvent] = []
+    if not _waiting(events):
+        additions.extend(
+            ToolResultEvent(
+                turn=event.turn,
+                step=event.step,
+                message=ToolMessage(tool_call_id=call.id, content=TOOL_OUTCOME_UNKNOWN),
+                error=REPAIRED,
+            )
+            for event, call in unanswered(events)
         )
-        for event, call in unanswered(events)
-        if event.turn not in pending
-    ]
     started = open_start(events)
     if started is not None:
         additions.append(CompactionEnd(turn=started.turn, error=REPAIRED))
     return additions
+
+
+def _waiting(events: Sequence[SessionEvent]) -> bool:
+    """Did the last turn end `pending` — is the log waiting on the person, not on a dead process?"""
+    turns = [e.turn for e in events if isinstance(e, TurnStart)]
+    if not turns:
+        return False
+    last = turns[-1]
+    return any(isinstance(e, TurnEnd) and e.turn == last and e.reason == "pending" for e in events)

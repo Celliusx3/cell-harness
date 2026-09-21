@@ -20,6 +20,7 @@ from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.tools.context import ToolContext
 from harness.tools.definition import ToolDefinition
@@ -56,15 +57,21 @@ def new_session(session_id: str = "s") -> Session:
     return Session(SessionHeader(id=session_id, created_at=datetime(2026, 1, 1, tzinfo=UTC)))
 
 
+def no_gate() -> ApprovalGate:
+    """A gate that lists nothing, over a grants file that cannot exist."""
+    return ApprovalGate(frozenset(), Path("/nonexistent/cell-harness-approvals.json"))
+
+
 def pipeline_for(
     *tools: ToolDefinition,
     providers: Sequence[ToolProvider] = (),
     offer: Sequence[str] = (),
+    gate: ApprovalGate | None = None,
 ) -> ToolPipeline:
     """A registry, a dispatcher and a pipeline over `tools`, offering all of them."""
     registry = ToolRegistry(tools, providers=providers)
     names = [*(tool.name for tool in tools), *offer]
-    return ToolPipeline(registry, ToolDispatcher(registry), default_tools=names)
+    return ToolPipeline(registry, ToolDispatcher(registry, gate or no_gate()), default_tools=names)
 
 
 def loop_agent(
@@ -74,13 +81,14 @@ def loop_agent(
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     compaction: CompactionService | None = None,
+    gate: ApprovalGate | None = None,
 ) -> LoopAgent:
     """An agent over `tools`, with no pipeline at all when there are none."""
     return LoopAgent(
         name="t",
         model="m",
         client=client,
-        tools=pipeline_for(*tools) if tools else None,
+        tools=pipeline_for(*tools, gate=gate) if tools else None,
         system_prompt=system_prompt,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
@@ -134,10 +142,12 @@ def run_store(
     client,
     *tools: ToolDefinition,
     compaction: CompactionService | None = None,
+    gate: ApprovalGate | None = None,
 ) -> RunStore:
     """Runs over an agent that checkpoints through `service`, as the server wires it."""
     return RunStore(
-        service, loop_agent(client, *tools, checkpoint=service.flush, compaction=compaction)
+        service,
+        loop_agent(client, *tools, checkpoint=service.flush, compaction=compaction, gate=gate),
     )
 
 
@@ -153,4 +163,4 @@ def no_skills() -> SkillService:
 
 def client_tools() -> ClientToolService:
     """The real declarations, as the server composes them."""
-    return ClientToolService(CLIENT_TOOLS)
+    return ClientToolService(CLIENT_TOOLS, no_gate())

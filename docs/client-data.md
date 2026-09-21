@@ -185,3 +185,54 @@ kept precise.
   declaration and one handler. A tool without a browser permission of its own
   will need an app-level per-tool setting for Claude's tri-state; that day, not
   this one.
+
+## 8. The same spine, for a decision: the approval gate
+
+A tool on `approval.tools` in `config.json` (`memory__write_note`,
+`memory__delete_note`) does not run when the model calls it. The dispatcher
+answers `Pending` instead, so the loop, the log, repair, the browser card, the
+`/answer` page and a chat's ask all behave exactly as for `get_location`. The
+difference is what the person's answer is: for a location it *is* the result;
+for an approval it is a decision, and the result still has to come from running
+the tool. `LoopAgent.resume` therefore takes `Ok | Failure | Approved`: the
+first two are written as the result (a shared location, a declined one, a
+denied write); `Approved` runs the held call as approved and writes what it
+returned, closing the turn `cancelled` with an `INTERRUPTED` result if the run
+is stopped midway.
+
+- **The gate is at the dispatcher, not a hook.** A hook fails open; a door that
+  must stay shut cannot (rules.md). Scripts pass through the same dispatcher,
+  so a script calling a gated tool gets a `BridgeError` telling the model to
+  read the tool with `get_function_details` and call it directly.
+- **Three answers, three scopes.** `{"kind": "approved", "scope": "once" |
+  "conversation" | "always"}` or `{"kind": "denied"}`, posted to the same
+  `POST …/calls/{call_id}/output`. `once` runs the call. `conversation` first
+  writes an `approval/grant` event; `Session.tools_granted()` folds it the way
+  `tools_selected()` folds references, and the loop passes `approved=True` for
+  that tool from then on. `always` writes the tool into
+  `approval.grants_path` (`~/.harness/approvals.json`), read by
+  `ApprovalGate.asks`; `GET /api/approvals` lists it and `DELETE
+  /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),
+  ChatGPT (per connected app) and OpenClaw (a durable allowlist) each have this
+  rung above "this conversation".
+- **What the model reads on Deny.** `DENIED_RESULT`: the button was pressed,
+  nothing ran, it is a decision and not a fault, do not retry, tell the person.
+  LangGraph and Claude Code say the same; the ledger has the failure that fixed
+  the wording.
+- **Several gated calls in one step.** `pending_calls` returns every unanswered
+  call to an awaited tool, not just the current turn's; `resume` answers one
+  and, while another still waits, closes the turn `pending` again without
+  asking the model. `repair()` now leaves unanswered calls alone only when the
+  *last* turn ended `pending`, so a crash after a tap repairs the call as
+  `INTERRUPTED_BY_CRASH` instead of showing the card a second time.
+- **The card.** The tool name humanised (`memory__write_note` → "write note",
+  tag "memory"), the arguments as fields, four buttons; shown for a tool item
+  with no result while no turn runs, since a gated name is config, not a
+  handler map entry. Telegram gets the same four as inline buttons
+  (`callback_data` `ap:{call_id}:{choice}`, the link when that would pass 64
+  bytes); a tap answers the query, resumes by call id, and edits the card into
+  a receipt with the keyboard removed. Discord keeps the link.
+- **A scheduler later.** One conversation per job, so "for this conversation"
+  is the per-job grant and the card reaches the chat linked to it; a jobs page
+  and a per-job "wait or deny when nobody answers" are that feature's, not this
+  one's.

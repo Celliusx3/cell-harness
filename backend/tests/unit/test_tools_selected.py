@@ -16,7 +16,7 @@ from harness.tools.pipeline import MAX_TOOLS_SELECTED, ToolPipeline
 from harness.tools.registry import ToolRegistry
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
-from tests.unit.helpers import new_session, no_progress
+from tests.unit.helpers import new_session, no_gate, no_progress
 
 DEFAULTS = (LIST, DETAILS, EXECUTE)
 
@@ -32,7 +32,7 @@ def selected(*names: str, call_id: str = "d") -> ToolResultEvent:
 def pipeline(*tools: ToolDefinition) -> ToolPipeline:
     """Code mode's three plus `tools`, offering the three — as the product does."""
     registry = ToolRegistry(tools)
-    dispatcher = ToolDispatcher(registry)
+    dispatcher = ToolDispatcher(registry, no_gate())
     for made in code_mode_tools(
         registry=registry, dispatcher=dispatcher, runtime=FakeRunner(), withheld=frozenset()
     ):

@@ -7,11 +7,12 @@ from dataclasses import dataclass, field
 
 from harness.llm.messages import ToolCall
 from harness.sandbox import Bridge, DenoUnavailableError, Runner, Script
+from harness.tools.approval import ApprovalGate
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import code_mode_tools
 from harness.tools.registry import ToolRegistry
-from tests.unit.helpers import context_for
+from tests.unit.helpers import context_for, no_gate
 
 
 def returns(outcome: Ok):
@@ -57,13 +58,13 @@ class FakeRunner(Runner):
 class RecordingDispatcher(ToolDispatcher):
     """A real dispatcher that remembers what it was asked to run."""
 
-    def __init__(self, registry: ToolRegistry) -> None:
-        super().__init__(registry)
+    def __init__(self, registry: ToolRegistry, gate: ApprovalGate) -> None:
+        super().__init__(registry, gate)
         self.calls: list[ToolCall] = []
 
-    async def dispatch(self, call: ToolCall, *, progress) -> ToolOutcome:
+    async def dispatch(self, call: ToolCall, *, progress, approved: bool) -> ToolOutcome:
         self.calls.append(call)
-        return await super().dispatch(call, progress=progress)
+        return await super().dispatch(call, progress=progress, approved=approved)
 
 
 @dataclass
@@ -89,9 +90,10 @@ def build(
     *tools: ToolDefinition,
     runtime: FakeRunner | None = None,
     withheld: frozenset[str] = frozenset(),
+    gate: ApprovalGate | None = None,
 ) -> Built:
     registry = ToolRegistry(tools)
-    dispatcher = RecordingDispatcher(registry)
+    dispatcher = RecordingDispatcher(registry, gate or no_gate())
     built = code_mode_tools(
         registry=registry, dispatcher=dispatcher, runtime=runtime or FakeRunner(), withheld=withheld
     )

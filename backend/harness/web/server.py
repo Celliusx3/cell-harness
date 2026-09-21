@@ -22,9 +22,11 @@ from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.web.agent import CLIENT_TOOLS, build_agent
 from harness.web.logs import configure_logging
+from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.client import build_router as build_client_router
 from harness.web.routes.compact import build_router as build_compact_router
 from harness.web.routes.mcp import build_router as build_mcp_router
@@ -58,7 +60,7 @@ def build_channels(
         sessions,
         skills,
         public_url=settings.web.public_url,
-        client_tools=client_tools.names,
+        client_tools=client_tools.awaited,
     )
     chat_answers = ChatAnswers(chats, sessions, gateway, client_tools)
 
@@ -98,13 +100,14 @@ def create_web_app() -> FastAPI:
     service = build_store(settings)
     mcp = build_mcp(settings)
     skills = SkillService(settings.skills)
-    client_tools = ClientToolService(CLIENT_TOOLS)
+    gate = ApprovalGate(frozenset(settings.approval.tools), settings.approval.grants_path)
+    client_tools = ClientToolService(CLIENT_TOOLS, gate)
     context_tokens = _resolve_context_tokens(settings)
     runs = RunStore(
-        service, build_agent(settings, service, mcp, skills, client_tools, context_tokens)
+        service, build_agent(settings, service, mcp, skills, client_tools, gate, context_tokens)
     )
     gateway, web = build_channels(settings, service, runs, skills, client_tools)
-    return create_app(runs, gateway, web, mcp, skills, client_tools)
+    return create_app(runs, gateway, web, mcp, skills, client_tools, gate)
 
 
 def create_app(
@@ -114,6 +117,7 @@ def create_app(
     mcp: McpServerStore,
     skills: SkillService,
     client_tools: ClientToolService,
+    gate: ApprovalGate,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -131,5 +135,6 @@ def create_app(
     app.include_router(build_skills_router(skills))
     app.include_router(build_mcp_router(mcp))
     app.include_router(build_client_router(web, client_tools))
+    app.include_router(build_approvals_router(gate))
     app.include_router(build_compact_router(web))
     return app

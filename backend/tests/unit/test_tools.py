@@ -18,7 +18,7 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import DuplicateToolError, ToolRegistry
 from tests.unit.fakes import echo_tool, raising_tool
-from tests.unit.helpers import no_progress, pipeline_for
+from tests.unit.helpers import no_gate, no_progress, pipeline_for
 
 
 def pipeline(*tools, providers=(), offer=()) -> ToolPipeline:
@@ -161,7 +161,7 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
 def offering(*tools: ToolDefinition, default: tuple[str, ...]) -> ToolPipeline:
     """A pipeline with a chosen `default_tools` that offers every tool it was given."""
     registry = ToolRegistry(tools)
-    return ToolPipeline(registry, ToolDispatcher(registry), default)
+    return ToolPipeline(registry, ToolDispatcher(registry, no_gate()), default)
 
 
 async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:

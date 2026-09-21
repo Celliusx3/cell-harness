@@ -200,7 +200,15 @@ async def _run_tool_calls(
             if agent.checkpoint is not None:
                 await agent.checkpoint(session)
             async with aclosing(
-                tool_events(agent, call, session=session, turn=turn, step=step, notes=notes)
+                tool_events(
+                    agent,
+                    call,
+                    session=session,
+                    turn=turn,
+                    step=step,
+                    notes=notes,
+                    approved=call.name in session.tools_granted(),
+                )
             ) as events:
                 async for event in events:
                     if isinstance(event, (ToolResult, ToolPending)):

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
 from harness.agent.hooks.native.empty_reply import EmptyReplyHook
@@ -16,6 +18,7 @@ from harness.mcp.store import McpServerStore
 from harness.sandbox import DenoRunner
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
+from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.clock import clock_tool
@@ -23,6 +26,8 @@ from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_
 from harness.tools.native.location import LOCATION_TOOL
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
+
+logger = logging.getLogger("harness.web")
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant. When a tool can answer the user's question, "
@@ -41,6 +46,7 @@ def build_agent(
     mcp: McpServerStore,
     skills: SkillService,
     client_tools: ClientToolService,
+    gate: ApprovalGate,
     context_tokens: int | None = None,
 ) -> LoopAgent:
     """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
@@ -48,7 +54,8 @@ def build_agent(
     registry.add_provider(mcp.tools)
     registry.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
-    dispatcher = ToolDispatcher(registry)
+    logger.info("approval asks for: %s", sorted(gate.tools) or "nothing")
+    dispatcher = ToolDispatcher(registry, gate)
     for tool in code_mode_tools(
         registry=registry,
         dispatcher=dispatcher,

@@ -18,7 +18,7 @@ from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.native.code import EXECUTE, LIST
 from harness.web.agent import DEFAULT_TOOLS, build_agent
-from tests.unit.helpers import client_tools, no_progress, skills_at
+from tests.unit.helpers import client_tools, no_gate, no_progress, skills_at
 
 
 def write_skill(root: Path, name: str) -> Path:
@@ -36,7 +36,7 @@ def compose(tmp_path: Path):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(settings, sessions, mcp, skills_at(root), client_tools())
+        return build_agent(settings, sessions, mcp, skills_at(root), client_tools(), no_gate())
 
     return build, root
 

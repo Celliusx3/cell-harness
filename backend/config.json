@@ -25,6 +25,10 @@
   "compaction": {
     "context_tokens": null
   },
+  "approval": {
+    "tools": ["memory__write_note", "memory__delete_note"],
+    "grants_path": "~/.harness/approvals.json"
+  },
   "mcp": {
     "servers": {
       "instagram": {

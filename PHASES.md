@@ -46,7 +46,7 @@ turns out to want them.
 until a second agent is wanted; 9 was built ahead of 8.3–8.4.**
 Next is the optional track (decide before 12). Steering, once phase 9, is now phase 16 at the end of the
 optional track (why: in [Phase 16](#phase-16--you-can-steer-it)). Since phase
-7, ten insertions not planned above, then phase 9 as written with three cuts
+7, eleven insertions not planned above, then phase 9 as written with three cuts
 recorded in it, then 8.3–8.4 with two choices recorded
 in [Phase 8](#phase-8--it-follows-instructions): a `/name` message is expanded
 *in place* — Claude Code's shape, no new event or field — and the editor is
@@ -64,6 +64,7 @@ strict where the catalog is lenient.
 | 8 | **It knows where you are** | `get_location` — the first tool the *client* answers, and the generic spine under it (`tools/client/`): a client tool is a declaration whose only outcome is `Pending`; the loop ends the turn there (`turn/end pending`), nothing waits in memory, and the browser card, Telegram's share-location button or a link to `/answer` opens the turn that carries the answer (`LoopAgent.resume`). Typing instead writes `SKIPPED` for the call. No new event; no timer; a restart changes nothing. A second datum is one declaration and one browser handler. | [docs/client-data.md](./docs/client-data.md) |
 | 9 | **It remembers** | Memory across conversations, unbounded and searchable: "remember this cafe", then "which cafe did I like in PJ?" in a later chat. An MCP server (Basic Memory) over a folder of Markdown notes the person can open in Obsidian, declared in `config.json`; one system-prompt sentence and a `remember` skill tell the model when to save and when to search. `backend/harness/` gained no code. Phase 15's `conversation_search` is superseded. | [docs/memory.md](./docs/memory.md) |
 | 10 | **It searches the web** | "What is the latest Deno release", or a pasted link to summarise. The third-party `exa-mcp-server` (`web_search_exa`, `web_fetch_exa`) declared in `config.json` as `exa`, an `EXA_API_KEY` in `config.local.json`, and a `search-web` skill: describe the page, five hits, read one or two, a url beside every fact. Declared without an `outputSchema` on purpose — the one exception to the mcp-servers rule, and why it holds is written there. `backend/harness/` gained no code. An own server on Exa's REST API with typed hits is the next step if a turn ever needs the results as objects. | [mcp-servers/README.md](./mcp-servers/README.md) |
+| 11 | **It asks before it acts** | `approval.tools` names the tools that wait for the person: the dispatcher answers `Pending`, the turn ends the way a `get_location` ask does, and a card offers Allow once / Allow for this conversation / Always allow / Deny in the browser and as Telegram buttons. `Approved` makes `LoopAgent.resume` run the held call; a conversation grant is an `approval/grant` event, an always-grant a line in `~/.harness/approvals.json` with an `/approvals` page to revoke. Phase 13's `interaction/approval.py` landed here instead, at the dispatcher, so scripts cannot pass it; it is not a hook and fails closed. | [docs/client-data.md §8](./docs/client-data.md) |
 
 ### Why this order
 

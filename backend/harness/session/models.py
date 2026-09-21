@@ -143,6 +143,16 @@ class AssistantMessageEvent(BaseModel):
     interrupted: bool = False
 
 
+class ApprovalGrant(BaseModel):
+    """The person allowed `tool` to run unasked for the rest of this conversation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["approval/grant"] = "approval/grant"
+    turn: int
+    tool: str
+
+
 SessionEvent = (
     TurnStart
     | TurnEnd
@@ -157,4 +167,5 @@ SessionEvent = (
     | CompactionStart
     | CompactionEnd
     | CompactionPrune
+    | ApprovalGrant
 )
