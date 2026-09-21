@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, MessageSquarePlus } from "lucide-react";
+import { BookOpen, MessageSquarePlus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,6 +41,15 @@ export function Sidebar() {
             }`}
           >
             <BookOpen size={18} />
+          </Link>
+          <Link
+            href="/approvals"
+            aria-label="Approvals"
+            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
+              pathname === "/approvals" ? "bg-accent-soft text-ink" : "text-ink-soft"
+            }`}
+          >
+            <ShieldCheck size={18} />
           </Link>
           <Link
             href="/"

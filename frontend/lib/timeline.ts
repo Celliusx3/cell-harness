@@ -1,4 +1,5 @@
 import { display, type Invocation } from "@/lib/invocation";
+import { humanise } from "@/lib/toolName";
 import type {
   ContentBlock,
   SessionEvent,
@@ -193,6 +194,16 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
       }
 
       case "compaction/prune":
+        break;
+
+      case "approval/grant":
+        items.push({
+          kind: "notice",
+          key: `g${index}`,
+          turn: event.turn,
+          tone: "note",
+          text: `${humanise(event.tool).label} will run without asking in this conversation.`,
+        });
         break;
 
       case "turn/start":

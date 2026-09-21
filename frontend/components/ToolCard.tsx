@@ -69,7 +69,7 @@ export function ToolCard({ item }: { item: ToolItem }) {
 }
 
 /** The model's argument string, one block per field. */
-function Arguments({ raw, tool }: { raw: string; tool: string }) {
+export function Arguments({ raw, tool }: { raw: string; tool: string }) {
   const fields = parseFields(raw);
   if (fields === null) return <Block label="Arguments" body={raw} />;
   return (

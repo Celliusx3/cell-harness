@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { LocationRequest } from "@/components/LocationRequest";
 import { ApiError, sendToolOutput } from "@/lib/api";
 import type { ToolItem } from "@/lib/timeline";
-import type { ClientOutput } from "@/lib/types";
+import type { ClientOutput, Decision } from "@/lib/types";
 
 /** What a client-tool handler is given: the call, where it lives, and what to do once the output is posted */
 export interface ClientToolProps {
@@ -32,7 +32,7 @@ export function useClientTool<T>({
   const [phase, setPhase] = useState<Phase>("asking");
   const decided = useRef(false);
 
-  const send = async (output: ClientOutput<T>) => {
+  const send = async (output: ClientOutput<T> | Decision) => {
     decided.current = true;
     setPhase("sent");
     try {

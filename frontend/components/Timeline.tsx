@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+import { ApprovalRequest } from "@/components/ApprovalRequest";
 import { AssistantBubble, UserBubble } from "@/components/Message";
 import { ToolCard } from "@/components/ToolCard";
 import { Compaction } from "@/components/Compaction";
@@ -12,9 +13,11 @@ import type { TimelineItem } from "@/lib/timeline";
 /** Renders timeline items, from the snapshot and the live stream alike. */
 export function Timeline({
   items,
+  openTurn,
   onAnswered,
 }: {
   items: TimelineItem[];
+  openTurn: number | null;
   onAnswered: () => void;
 }) {
   const floor = useRef<HTMLDivElement>(null);
@@ -49,16 +52,25 @@ export function Timeline({
             ) : null;
           case "tool": {
             const Handler = CLIENT_TOOLS[item.call.name];
-            return Handler ? (
-              <Handler
-                key={item.key}
-                item={item}
-                conversationId={conversationId}
-                onAnswered={onAnswered}
-              />
-            ) : (
-              <ToolCard key={item.key} item={item} />
-            );
+            if (Handler)
+              return (
+                <Handler
+                  key={item.key}
+                  item={item}
+                  conversationId={conversationId}
+                  onAnswered={onAnswered}
+                />
+              );
+            if (item.result === null && openTurn === null)
+              return (
+                <ApprovalRequest
+                  key={item.key}
+                  item={item}
+                  conversationId={conversationId}
+                  onAnswered={onAnswered}
+                />
+              );
+            return <ToolCard key={item.key} item={item} />;
           }
           case "notice":
             return (

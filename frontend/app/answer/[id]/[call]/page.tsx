@@ -4,11 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
+import { ApprovalRequest } from "@/components/ApprovalRequest";
 import { CLIENT_TOOLS } from "@/lib/clientTools";
 import type { ToolItem } from "@/lib/timeline";
+import { humanise } from "@/lib/toolName";
 import { useConversation, useTimeline } from "@/lib/useConversation";
 
-/** One client-tool call, on a page of its own. */
+/** One client-tool call or gated call, on a page of its own. */
 export default function AnswerPage({
   params,
 }: {
@@ -32,9 +34,9 @@ export default function AnswerPage({
         >
           <ArrowLeft size={16} />
         </Link>
-        <h1 className="min-w-0 truncate text-xs font-medium">
-          Share your location
-        </h1>
+        {item !== undefined && (
+          <h1 className="min-w-0 truncate text-xs font-medium">{heading(item)}</h1>
+        )}
       </header>
       <div className="mx-auto w-full max-w-md px-4 py-6">
         {conversation.loading ? (
@@ -45,18 +47,29 @@ export default function AnswerPage({
           <p className="text-sm text-ink-soft">
             No such request in this conversation.
           </p>
-        ) : Handler === undefined ? (
-          <p className="text-sm text-ink-soft">
-            This page cannot answer {item.call.name}.
-          </p>
-        ) : (
+        ) : Handler !== undefined ? (
           <Handler
             item={item}
             conversationId={id}
             onAnswered={conversation.wake}
           />
+        ) : item.result === null ? (
+          <ApprovalRequest
+            item={item}
+            conversationId={id}
+            onAnswered={conversation.wake}
+          />
+        ) : (
+          <p className="text-sm text-ink-soft">
+            This page cannot answer {item.call.name}.
+          </p>
         )}
       </div>
     </main>
   );
+}
+
+function heading(item: ToolItem): string {
+  if (item.call.name === "get_location") return "Share your location";
+  return `Approve ${humanise(item.call.name).label}?`;
 }

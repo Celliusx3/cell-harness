@@ -1,9 +1,11 @@
 import type {
   AppResource,
   AppToolResult,
+  Approvals,
   ConversationDetail,
   ConversationSummary,
   ClientOutput,
+  Decision,
   MessageAccepted,
   SkillFile,
   SkillList,
@@ -73,11 +75,11 @@ export const stopRun = (id: string) =>
 export const compactConversation = (id: string) =>
   request<void>(`/conversations/${id}/compact`, { method: "POST" });
 
-/** The output of a client tool the browser saw called on the stream */
+/** The output of a client tool the browser saw called on the stream, or the person's decision on a gated call */
 export const sendToolOutput = <T>(
   id: string,
   callId: string,
-  output: ClientOutput<T>,
+  output: ClientOutput<T> | Decision,
 ) =>
   request<void>(
     `/conversations/${id}/calls/${encodeURIComponent(callId)}/output`,
@@ -100,6 +102,13 @@ export const putSkill = (name: string, text: string) =>
 
 export const deleteSkill = (name: string) =>
   request<void>(`/skills/${name}`, { method: "DELETE" });
+
+/** Every tool allowed always */
+export const listApprovals = () => request<Approvals>("/approvals");
+
+/** Make the tool ask again. */
+export const revokeApproval = (tool: string) =>
+  request<void>(`/approvals/${encodeURIComponent(tool)}`, { method: "DELETE" });
 
 /** An MCP App's HTML, read from its server through the harness. */
 export const getAppResource = (server: string, uri: string) =>

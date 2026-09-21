@@ -15,7 +15,7 @@ export default function ConversationPage({
 }) {
   const { id } = use(params);
   const conversation = useConversation(id);
-  const { items, openingMessage } = useTimeline(conversation.events);
+  const { items, openTurn, openingMessage } = useTimeline(conversation.events);
 
   return (
     <>
@@ -44,7 +44,11 @@ export default function ConversationPage({
           <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
         ) : (
           <>
-            <Timeline items={items} onAnswered={conversation.wake} />
+            <Timeline
+              items={items}
+              openTurn={openTurn}
+              onAnswered={conversation.wake}
+            />
             {conversation.queued.length > 0 && (
               <div className="flex flex-col gap-3 px-6 pb-4">
                 {conversation.queued.map((text, index) => (
