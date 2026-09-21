@@ -9,6 +9,7 @@ from telegram import ReplyKeyboardRemove
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
 from harness.channels.telegram.channel import TelegramChannel
+from tests.unit.helpers import client_tools
 
 
 class FakeBot:
@@ -55,7 +56,7 @@ def telegram_channel(
 
 def _no_locations() -> ChatAnswers:
     """A resolver over nothing, for channels that will never receive a pin."""
-    return ChatAnswers(None, None, None, None)
+    return ChatAnswers(None, None, None, client_tools())
 
 
 def location_update(chat_id: str, latitude: float, longitude: float) -> SimpleNamespace:
@@ -73,4 +74,29 @@ def update(chat_id: str, text: str, message_id: int = 1) -> SimpleNamespace:
     return SimpleNamespace(
         effective_message=message,
         effective_chat=SimpleNamespace(id=int(chat_id)),
+    )
+
+
+class FakeCallbackQuery:
+    """What a tap on an inline button hands the handler."""
+
+    def __init__(self, chat_id: str, data: str, card_text: str) -> None:
+        self.data = data
+        self.message = SimpleNamespace(text=card_text, chat=SimpleNamespace(id=int(chat_id)))
+        self.answered = False
+        self.edits: list[tuple[str, object]] = []
+
+    async def answer(self, **_: object) -> None:
+        self.answered = True
+
+    async def edit_message_text(self, text: str, reply_markup: object = None, **_: object) -> None:
+        self.edits.append((text, reply_markup))
+
+
+def decision_update(chat_id: str, data: str, card_text: str) -> SimpleNamespace:
+    """A PTB `Update` carrying a callback query — what tapping Allow or Deny sends."""
+    return SimpleNamespace(
+        callback_query=FakeCallbackQuery(chat_id, data, card_text),
+        effective_chat=SimpleNamespace(id=int(chat_id)),
+        effective_message=None,
     )

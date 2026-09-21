@@ -11,6 +11,7 @@ from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.store import RunStore
 from harness.skills import SkillService
+from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
 from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import durable_service, run_store
@@ -27,13 +28,14 @@ def build(
     skills: SkillService,
     client_tools: ClientToolService | None = None,
     compaction=None,
+    gate: ApprovalGate | None = None,
 ):
     sessions = durable_service(tmp_path / "sessions")
-    runs = run_store(sessions, model, *tools, compaction=compaction)
+    runs = run_store(sessions, model, *tools, compaction=compaction, gate=gate)
     chats = JsonlChatRepository(tmp_path / "chats")
     client_tools = client_tools or default_client_tools()
     gateway = ChannelGateway(
-        chats, runs, sessions, skills, public_url=public_url, client_tools=client_tools.names
+        chats, runs, sessions, skills, public_url=public_url, client_tools=client_tools.awaited
     )
     channel, bot = telegram_channel(gateway, ChatAnswers(chats, sessions, gateway, client_tools))
     gateway.register(channel)
