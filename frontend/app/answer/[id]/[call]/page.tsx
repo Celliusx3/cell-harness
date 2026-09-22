@@ -4,11 +4,11 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
-import { ApprovalRequest } from "@/components/ApprovalRequest";
-import { CLIENT_TOOLS } from "@/lib/clientTools";
-import type { ToolItem } from "@/lib/timeline";
+import { ApprovalRequest } from "@/components/answer/ApprovalRequest";
+import { CLIENT_TOOLS } from "@/components/answer/clientTools";
+import type { ToolItem } from "@/components/conversation/timelineItems";
+import { useConversation, useTimeline } from "@/components/conversation/useConversation";
 import { humanise } from "@/lib/toolName";
-import { useConversation, useTimeline } from "@/lib/useConversation";
 
 /** One client-tool call or gated call, on a page of its own. */
 export default function AnswerPage({

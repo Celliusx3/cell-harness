@@ -1,11 +1,9 @@
 "use client";
 
-import type { ComponentType } from "react";
 import { useRef, useState } from "react";
 
-import { LocationRequest } from "@/components/LocationRequest";
+import type { ToolItem } from "@/components/conversation/timelineItems";
 import { ApiError, sendToolOutput } from "@/lib/api";
-import type { ToolItem } from "@/lib/timeline";
 import type { ClientOutput, Decision } from "@/lib/types";
 
 /** What a client-tool handler is given: the call, where it lives, and what to do once the output is posted */
@@ -14,11 +12,6 @@ export interface ClientToolProps {
   conversationId: string;
   onAnswered: () => void;
 }
-
-/** The handler component for each client tool. */
-export const CLIENT_TOOLS: Record<string, ComponentType<ClientToolProps>> = {
-  get_location: LocationRequest,
-};
 
 export type Phase = "asking" | "working" | "sent";
 

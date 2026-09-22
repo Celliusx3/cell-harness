@@ -3,12 +3,12 @@
 import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-import { ApprovalRequest } from "@/components/ApprovalRequest";
-import { AssistantBubble, UserBubble } from "@/components/Message";
-import { ToolCard } from "@/components/ToolCard";
-import { Compaction } from "@/components/Compaction";
-import { CLIENT_TOOLS } from "@/lib/clientTools";
-import type { TimelineItem } from "@/lib/timeline";
+import { ApprovalRequest } from "@/components/answer/ApprovalRequest";
+import { CLIENT_TOOLS } from "@/components/answer/clientTools";
+import { Compaction } from "@/components/conversation/Compaction";
+import { AssistantBubble, UserBubble } from "@/components/conversation/Message";
+import type { TimelineItem } from "@/components/conversation/timelineItems";
+import { ToolCard } from "@/components/conversation/ToolCard";
 
 /** Renders timeline items, from the snapshot and the live stream alike. */
 export function Timeline({

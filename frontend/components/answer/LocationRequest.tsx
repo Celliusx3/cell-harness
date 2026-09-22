@@ -3,9 +3,9 @@
 import { MapPin } from "lucide-react";
 import { useEffect } from "react";
 
-import type { ClientToolProps, Phase } from "@/lib/clientTools";
-import { useClientTool } from "@/lib/clientTools";
-import type { ToolItem } from "@/lib/timeline";
+import type { ClientToolProps, Phase } from "@/components/answer/useClientTool";
+import { useClientTool } from "@/components/answer/useClientTool";
+import type { ToolItem } from "@/components/conversation/timelineItems";
 import type { Location } from "@/lib/types";
 
 const POSITION_OPTIONS: PositionOptions = {

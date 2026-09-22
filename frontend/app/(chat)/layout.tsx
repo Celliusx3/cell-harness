@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar } from "@/components/chat/Sidebar";
 
 /** The chat: a sidebar of conversations beside the one open. */
 export default function ChatLayout({

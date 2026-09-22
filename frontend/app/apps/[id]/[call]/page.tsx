@@ -4,9 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
-import { McpApp } from "@/components/McpApp";
-import type { ToolItem } from "@/lib/timeline";
-import { useConversation, useTimeline } from "@/lib/useConversation";
+import { McpApp } from "@/components/conversation/McpApp";
+import type { ToolItem } from "@/components/conversation/timelineItems";
+import { useConversation, useTimeline } from "@/components/conversation/useConversation";
 
 /** One tool call's MCP App, on a page of its own. */
 export default function AppPage({

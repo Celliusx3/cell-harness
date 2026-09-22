@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
-import { CodeBlock } from "@/components/CodeBlock";
-import type { ToolItem } from "@/lib/timeline";
+import { CodeBlock } from "@/components/conversation/CodeBlock";
+import type { ToolItem } from "@/components/conversation/timelineItems";
 import type { ContentBlock } from "@/lib/types";
 
 /** The argument field of each tool that is shown as a program. */

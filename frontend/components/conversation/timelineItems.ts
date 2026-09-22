@@ -1,6 +1,6 @@
 /** The shapes `buildTimeline` produces */
 
-import type { Invocation } from "@/lib/invocation";
+import type { Invocation } from "@/components/conversation/invocation";
 import type { ContentBlock, ToolCall, ToolUi, Usage } from "@/lib/types";
 
 export interface UserItem {

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { SkillEditor } from "@/components/SkillEditor";
-import { SkillRows } from "@/components/SkillRows";
+import { SkillEditor } from "@/components/skills/SkillEditor";
+import { SkillRows } from "@/components/skills/SkillRows";
 import { ApiError, listSkills } from "@/lib/api";
 import type { SkillList } from "@/lib/types";
 

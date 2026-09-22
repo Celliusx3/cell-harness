@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { Composer } from "@/components/Composer";
+import { Composer } from "@/components/conversation/Composer";
 import { ApiError, createConversation } from "@/lib/api";
 
 /** The empty state, and where a conversation is born. */

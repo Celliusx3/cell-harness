@@ -2,9 +2,9 @@
 
 import { ShieldQuestion } from "lucide-react";
 
-import { Arguments } from "@/components/ToolCard";
-import type { ClientToolProps } from "@/lib/clientTools";
-import { useClientTool } from "@/lib/clientTools";
+import type { ClientToolProps } from "@/components/answer/useClientTool";
+import { useClientTool } from "@/components/answer/useClientTool";
+import { Arguments } from "@/components/conversation/ToolCard";
 import { humanise } from "@/lib/toolName";
 import type { Decision, Scope } from "@/lib/types";
 

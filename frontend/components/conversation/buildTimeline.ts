@@ -1,4 +1,4 @@
-import { display, type Invocation } from "@/lib/invocation";
+import { display, type Invocation } from "@/components/conversation/invocation";
 import { humanise } from "@/lib/toolName";
 import type {
   ContentBlock,
@@ -6,19 +6,10 @@ import type {
   ToolCall,
   ToolUi,
   Usage,
-} from "./types";
+} from "@/lib/types";
 
 /** Session events -> what the screen shows. */
 
-export type {
-  AssistantItem,
-  CompactionItem,
-  NoticeItem,
-  Timeline,
-  TimelineItem,
-  ToolItem,
-  UserItem,
-} from "@/lib/timeline-items";
 import type {
   AssistantItem,
   CompactionItem,
@@ -27,7 +18,7 @@ import type {
   TimelineItem,
   ToolItem,
   UserItem,
-} from "@/lib/timeline-items";
+} from "@/components/conversation/timelineItems";
 
 export function buildTimeline(events: SessionEvent[]): Timeline {
   const items: TimelineItem[] = [];

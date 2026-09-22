@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { buildTimeline } from "@/components/conversation/buildTimeline";
 import {
   ApiError,
   compactConversation,
   getConversation,
   sendMessage,
   stopRun,
-} from "./api";
-import { streamEvents } from "./stream";
-import { buildTimeline } from "./timeline";
-import type { SessionEvent } from "./types";
+} from "@/lib/api";
+import { streamEvents } from "@/lib/stream";
+import type { SessionEvent } from "@/lib/types";
 
 /** One conversation: its events, whether a turn is running, and how to act on it. */
 

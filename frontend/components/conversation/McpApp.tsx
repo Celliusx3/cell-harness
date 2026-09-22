@@ -3,8 +3,8 @@
 import { AppBridge, PostMessageTransport } from "@modelcontextprotocol/ext-apps/app-bridge";
 import { useEffect, useRef, useState } from "react";
 
+import type { ToolItem } from "@/components/conversation/timelineItems";
 import { ApiError, callAppTool, getAppResource } from "@/lib/api";
-import type { ToolItem } from "@/lib/timeline";
 import type { ToolUi } from "@/lib/types";
 
 /** What this host calls itself in `ui/initialize`. */

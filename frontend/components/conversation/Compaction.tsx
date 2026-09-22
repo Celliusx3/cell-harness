@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { CompactionItem } from "@/lib/timeline";
+import type { CompactionItem } from "@/components/conversation/timelineItems";
 
 /** ` · 12k tokens`, or the empty string. */
 function tokenLabel(tokens: number | null): string {

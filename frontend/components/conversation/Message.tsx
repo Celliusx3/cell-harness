@@ -6,9 +6,9 @@ import remarkGfm from "remark-gfm";
 
 import { useState } from "react";
 
-import { CodeBlock } from "@/components/CodeBlock";
-import type { Invocation } from "@/lib/invocation";
-import type { AssistantItem, UserItem } from "@/lib/timeline";
+import { CodeBlock } from "@/components/conversation/CodeBlock";
+import type { Invocation } from "@/components/conversation/invocation";
+import type { AssistantItem, UserItem } from "@/components/conversation/timelineItems";
 
 export function UserBubble({ item }: { item: UserItem }) {
   if (item.invoked) return <InvokedBubble item={item} invoked={item.invoked} />;
