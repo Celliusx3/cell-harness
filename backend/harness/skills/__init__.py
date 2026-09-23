@@ -10,6 +10,7 @@ from harness.skills.models import (
     parse,
     valid_name,
 )
+from harness.skills.resources import UnreadableFile
 from harness.skills.service import SkillNotEditable, SkillNotFound, SkillService, SkillShadowed
 from harness.skills.tool import SKILL, skill_tool
 
@@ -24,6 +25,7 @@ __all__ = [
     "SkillShadowed",
     "SkillSnapshot",
     "UnknownSkill",
+    "UnreadableFile",
     "display",
     "parse",
     "skill_tool",

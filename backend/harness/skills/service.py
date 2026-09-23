@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import io
 import os
 import shutil
 import tempfile
+import zipfile
 from pathlib import Path
 
 from harness.config.settings import SkillSettings
+from harness.skills import archive, resources
+from harness.skills.archive import ArchivePlan
 from harness.skills.catalog import SkillCatalog
 from harness.skills.invocation import parse
 from harness.skills.models import (
@@ -21,7 +25,7 @@ from harness.skills.models import (
 from harness.skills.models import (
     parse as parse_file,
 )
-from harness.skills.rendering import instructions
+from harness.skills.prompt import instructions
 
 
 class SkillNotFound(LookupError):
@@ -72,6 +76,14 @@ class SkillService:
         """The `SKILL.md` as it is on disk, for the editor to show."""
         return (self.find(name).dir / SKILL_FILE).read_text(encoding="utf-8")
 
+    def files(self, name: str) -> tuple[str, ...]:
+        """Every file the named skill bundles beside its `SKILL.md`."""
+        return resources.listing(self.find(name))
+
+    def file(self, name: str, path: str) -> str:
+        """One bundled file of the named skill, or `UnreadableFile` saying why not."""
+        return resources.read(self.find(name), path)
+
     def editable(self, skill: Skill) -> bool:
         return skill.root == self._editable
 
@@ -115,6 +127,30 @@ class SkillService:
             Path(tmp).unlink(missing_ok=True)
             raise
 
+    def install(self, data: bytes) -> str:
+        """Unpack a zipped skill folder into the editable root; return the skill's name."""
+        if len(data) > archive.MAX_ARCHIVE_BYTES:
+            raise InvalidSkill(
+                f"the upload is {len(data)} bytes, larger than the "
+                f"{archive.MAX_ARCHIVE_BYTES} allowed"
+            )
+        try:
+            zipped = zipfile.ZipFile(io.BytesIO(data))
+        except zipfile.BadZipFile as err:
+            raise InvalidSkill(f"the upload is not a readable zip archive: {err}") from err
+        with zipped:
+            plan = archive.plan(archive.members_of(zipped))
+            self._refuse_if_shadowed(plan.name)
+            self._editable.mkdir(parents=True, exist_ok=True)
+            staged = Path(tempfile.mkdtemp(dir=self._editable.parent))
+            try:
+                _extract(zipped, plan, staged)
+                _refuse_mismatched_name(staged / SKILL_FILE, plan.name)
+                _replace_whole_directory(staged, self._editable / plan.name)
+            finally:
+                shutil.rmtree(staged, ignore_errors=True)
+        return plan.name
+
     def delete(self, name: str) -> None:
         """Remove the skill's directory, bundled files included."""
         skill = self.find(name)
@@ -127,3 +163,32 @@ class SkillService:
         for skill in self.snapshot().skills:
             if skill.name == name and skill.root in above:
                 raise SkillShadowed(name, skill.dir)
+
+
+def _refuse_mismatched_name(file: Path, name: str) -> None:
+    """Raise unless the staged `SKILL.md` parses and agrees with the folder it came in."""
+    try:
+        text = file.read_text(encoding="utf-8")
+    except UnicodeDecodeError as err:
+        raise InvalidSkill(f"{SKILL_FILE} is not a UTF-8 text file") from err
+    declared = parse_file(text).frontmatter.name
+    if declared is not None and declared != name:
+        raise InvalidSkill(f"frontmatter name {declared!r} does not match the folder {name!r}")
+
+
+def _replace_whole_directory(staged: Path, destination: Path) -> None:
+    """Put `staged` where `destination` is, leaving no file of what was there."""
+    if not destination.exists():
+        os.replace(staged, destination)
+        return
+    aside = staged.with_name(staged.name + ".replaced")
+    os.replace(destination, aside)
+    os.replace(staged, destination)
+    shutil.rmtree(aside)
+
+
+def _extract(zipped: zipfile.ZipFile, plan: ArchivePlan, staged: Path) -> None:
+    for planned in plan.files:
+        target = staged / planned.path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(zipped.read(planned.member))

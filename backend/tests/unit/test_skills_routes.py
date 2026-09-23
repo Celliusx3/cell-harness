@@ -86,6 +86,7 @@ async def test_reading_one_returns_its_file(api) -> None:
         "name": "mine",
         "text": "---\ndescription: Mine.\n---\nbody\n",
         "editable": True,
+        "files": [],
     }
     assert pdf.json()["editable"] is False
     assert none.status_code == 404

@@ -6,15 +6,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, create_model
 
+from harness.skills import resources
 from harness.skills.models import Skill
-from harness.skills.rendering import instructions
+from harness.skills.prompt import instructions
 from harness.skills.service import SkillService
 from harness.tools.context import ToolContext
 from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome
 
 SKILL = "skill"
-
-MAX_RESOURCE_BYTES = 64 * 1024
 
 _DESCRIPTION = (
     "Load a skill's instructions before starting a task that matches its "
@@ -111,21 +110,8 @@ def _instructions(skill: Skill) -> ToolOutcome:
 
 def _resource(skill: Skill, path: str) -> ToolOutcome:
     """One bundled file, confined to the skill's directory."""
-    base = skill.dir.resolve()
-    target = (skill.dir / path).resolve()
-    if not target.is_relative_to(base) or target == base:
-        return Failure(INVALID_ARGUMENTS, f"{path!r} is not inside skill {skill.name!r}")
-    if not target.is_file():
-        return Failure(INVALID_ARGUMENTS, f"skill {skill.name!r} has no file {path!r}")
-    if target.stat().st_size > MAX_RESOURCE_BYTES:
-        return Failure(
-            INVALID_ARGUMENTS,
-            f"{path!r} is larger than {MAX_RESOURCE_BYTES // 1024} KiB and cannot be loaded whole",
-        )
     try:
-        text = target.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        return Failure(INVALID_ARGUMENTS, f"{path!r} is not a text file")
-    except OSError as err:
-        return Failure(INVALID_ARGUMENTS, f"{path!r} could not be read: {err}")
+        text = resources.read(skill, path)
+    except resources.UnreadableFile as err:
+        return Failure(INVALID_ARGUMENTS, str(err))
     return Ok(f'<skill_file name="{skill.name}" path="{path}">\n{text}\n</skill_file>')
