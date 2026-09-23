@@ -10,6 +10,14 @@ import { AssistantBubble, UserBubble } from "@/components/conversation/Message";
 import type { TimelineItem } from "@/components/conversation/timelineItems";
 import { ToolCard } from "@/components/conversation/ToolCard";
 
+function scrollParent(node: HTMLElement | null): HTMLElement | null {
+  for (let step = node?.parentElement ?? null; step; step = step.parentElement) {
+    const overflow = getComputedStyle(step).overflowY;
+    if (overflow === "auto" || overflow === "scroll") return step;
+  }
+  return null;
+}
+
 /** Renders timeline items, from the snapshot and the live stream alike. */
 export function Timeline({
   items,
@@ -25,7 +33,7 @@ export function Timeline({
   const { id: conversationId } = useParams<{ id: string }>();
 
   useEffect(() => {
-    const scroller = floor.current?.parentElement;
+    const scroller = scrollParent(floor.current);
     if (!scroller) return;
     const onScroll = () => {
       const slack =
