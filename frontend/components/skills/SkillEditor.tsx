@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FolderTree } from "lucide-react";
 
+import { SkillFilesDialog } from "@/components/skills/SkillFilesDialog";
 import { ApiError, deleteSkill, getSkill, putSkill } from "@/lib/api";
 
 interface SkillEditorProps {
@@ -27,6 +29,8 @@ Instructions the model follows once this is loaded.
 export function SkillEditor({ name, editable, onSaved, onDeleted }: SkillEditorProps) {
   const [draftName, setDraftName] = useState(name ?? "");
   const [text, setText] = useState(name === null ? TEMPLATE : "");
+  const [files, setFiles] = useState<string[]>([]);
+  const [showFiles, setShowFiles] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +39,9 @@ export function SkillEditor({ name, editable, onSaved, onDeleted }: SkillEditorP
     let cancelled = false;
     getSkill(name)
       .then((file) => {
-        if (!cancelled) setText(file.text);
+        if (cancelled) return;
+        setText(file.text);
+        setFiles(file.files);
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load skill.");
@@ -99,6 +105,15 @@ export function SkillEditor({ name, editable, onSaved, onDeleted }: SkillEditorP
             Delete
           </button>
         )}
+        {name !== null && files.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowFiles(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-soft transition hover:bg-line hover:text-ink"
+          >
+            <FolderTree size={12} /> Files ({files.length})
+          </button>
+        )}
         <button
           type="button"
           onClick={save}
@@ -108,6 +123,15 @@ export function SkillEditor({ name, editable, onSaved, onDeleted }: SkillEditorP
           Save
         </button>
       </div>
+
+      {name !== null && files.length > 0 && (
+        <SkillFilesDialog
+          name={name}
+          files={files}
+          open={showFiles}
+          onOpenChange={setShowFiles}
+        />
+      )}
 
       {!editable && (
         <p className="text-xs text-ink-soft">

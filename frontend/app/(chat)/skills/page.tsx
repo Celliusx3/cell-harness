@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { SkillEditor } from "@/components/skills/SkillEditor";
 import { SkillRows } from "@/components/skills/SkillRows";
-import { ApiError, listSkills } from "@/lib/api";
+import { ApiError, listSkills, uploadSkill } from "@/lib/api";
 import type { SkillList } from "@/lib/types";
 
 const EMPTY: SkillList = { skills: [], problems: [] };
@@ -14,6 +14,7 @@ export default function SkillsPage() {
   const [list, setList] = useState<SkillList>(EMPTY);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -27,6 +28,27 @@ export default function SkillsPage() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  async function upload(file: File) {
+    const folder = file.name.replace(/\.zip$/i, "");
+    if (
+      list.skills.some((s) => s.name === folder) &&
+      !window.confirm(`Replace the skill "${folder}" and everything in its folder?`)
+    ) {
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    try {
+      const installed = await uploadSkill(file);
+      setSelected(installed.name);
+      void refresh();
+    } catch (err: unknown) {
+      setError(err instanceof ApiError ? err.message : "Could not install skill.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <>
@@ -51,6 +73,8 @@ export default function SkillsPage() {
             selected={selected}
             onSelect={setSelected}
             onNew={() => setSelected(null)}
+            onUpload={(file) => void upload(file)}
+            busy={uploading}
           />
         </div>
         <div className="min-w-0 flex-1 overflow-y-auto">

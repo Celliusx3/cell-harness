@@ -2,6 +2,7 @@ import type {
   AppResource,
   AppToolResult,
   Approvals,
+  BundledFile,
   ConversationDetail,
   ConversationSummary,
   ClientOutput,
@@ -9,6 +10,7 @@ import type {
   MessageAccepted,
   SkillFile,
   SkillList,
+  SkillSummary,
 } from "./types";
 
 /** Thrown for any non-2xx, carrying the backend's `detail` so the UI can show it. */
@@ -21,10 +23,15 @@ export class ApiError extends Error {
   }
 }
 
+/** A `FormData` body is left unlabelled so the browser can write its own multipart boundary. */
+function headersFor(body: BodyInit | null | undefined) {
+  return typeof body === "string" ? { "content-type": "application/json" } : undefined;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
-    headers: init?.body ? { "content-type": "application/json" } : undefined,
+    headers: headersFor(init?.body),
   });
   if (!response.ok) {
     throw new ApiError(response.status, await detailOf(response));
@@ -93,6 +100,12 @@ export const listSkills = () => request<SkillList>("/skills");
 
 export const getSkill = (name: string) => request<SkillFile>(`/skills/${name}`);
 
+/** One file the skill bundles, read by its relative path. */
+export const getSkillFile = (name: string, path: string) =>
+  request<BundledFile>(
+    `/skills/${name}/files/${path.split("/").map(encodeURIComponent).join("/")}`,
+  );
+
 /** Whole-file save into the editable root; the backend validates and refuses. */
 export const putSkill = (name: string, text: string) =>
   request<void>(`/skills/${name}`, {
@@ -102,6 +115,13 @@ export const putSkill = (name: string, text: string) =>
 
 export const deleteSkill = (name: string) =>
   request<void>(`/skills/${name}`, { method: "DELETE" });
+
+/** Unpack a zipped skill folder into the editable root, replacing a directory of the same name. */
+export const uploadSkill = (file: File) => {
+  const body = new FormData();
+  body.append("file", file);
+  return request<SkillSummary>("/skills", { method: "POST", body });
+};
 
 /** Every tool allowed always */
 export const listApprovals = () => request<Approvals>("/approvals");

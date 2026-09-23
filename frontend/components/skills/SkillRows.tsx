@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 
 import type { SkillList } from "@/lib/types";
 
@@ -9,21 +9,43 @@ interface SkillRowsProps {
   selected: string | null;
   onSelect: (name: string) => void;
   onNew: () => void;
+  onUpload: (file: File) => void;
+  busy: boolean;
 }
 
 /** The catalog as a list: every skill that loaded, then everything that did not. */
-export function SkillRows({ list, selected, onSelect, onNew }: SkillRowsProps) {
+export function SkillRows({ list, selected, onSelect, onNew, onUpload, busy }: SkillRowsProps) {
   return (
     <div className="px-2 py-3">
-      <button
-        type="button"
-        onClick={onNew}
-        className={`mb-2 flex w-full items-center gap-1.5 rounded-md px-2 py-2 text-sm transition ${
-          selected === null ? "bg-accent-soft font-medium text-ink" : "text-ink-soft hover:bg-line hover:text-ink"
-        }`}
-      >
-        <Plus size={16} /> New skill
-      </button>
+      <div className="mb-2 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onNew}
+          className={`flex flex-1 items-center gap-1.5 rounded-md px-2 py-2 text-sm transition ${
+            selected === null ? "bg-accent-soft font-medium text-ink" : "text-ink-soft hover:bg-line hover:text-ink"
+          }`}
+        >
+          <Plus size={16} /> New skill
+        </button>
+        <label
+          className={`flex shrink-0 items-center gap-1.5 rounded-md px-2 py-2 text-sm text-ink-soft transition focus-within:bg-line focus-within:text-ink hover:bg-line hover:text-ink ${
+            busy ? "pointer-events-none opacity-40" : "cursor-pointer"
+          }`}
+        >
+          <Upload size={16} /> Upload
+          <input
+            type="file"
+            accept=".zip,application/zip"
+            disabled={busy}
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) onUpload(file);
+            }}
+          />
+        </label>
+      </div>
 
       {list.skills.length === 0 ? (
         <p className="px-2 py-3 text-xs text-ink-soft">No skills on disk.</p>

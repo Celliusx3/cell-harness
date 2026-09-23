@@ -165,6 +165,13 @@ export interface SkillFile {
   name: string;
   text: string;
   editable: boolean;
+  files: string[];
+}
+
+/** `GET /api/skills/{name}/files/{path}` */
+export interface BundledFile {
+  path: string;
+  text: string;
 }
 
 /** What the browser answers a client tool with */
