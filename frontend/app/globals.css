@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "shadcn/tailwind.css";
+@import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @theme {
@@ -35,6 +37,28 @@
     --color-danger: oklch(68% 0.15 25);
     --color-danger-soft: oklch(30% 0.05 25);
   }
+}
+
+/* shadcn's components are written against its own colour names. `inline` keeps
+   the reference a `var()` instead of resolving it at build time, so the dark
+   overrides above still reach them. */
+@theme inline {
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-ink);
+  --color-popover: var(--color-surface-raised);
+  --color-popover-foreground: var(--color-ink);
+  --color-muted: var(--color-surface-sunken);
+  --color-muted-foreground: var(--color-ink-soft);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: oklch(100% 0 0);
+  --color-secondary: var(--color-surface-sunken);
+  --color-secondary-foreground: var(--color-ink);
+  --color-destructive: var(--color-danger);
+  --color-border: var(--color-line);
+  --color-input: var(--color-line);
+  --color-ring: var(--color-accent);
+
+  --radius: 0.75rem;
 }
 
 /* Drive the typography plugin from our own tokens instead of `prose-invert`.
