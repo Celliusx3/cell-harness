@@ -6,7 +6,8 @@ import { use } from "react";
 
 import { McpApp } from "@/components/conversation/McpApp";
 import type { ToolItem } from "@/components/conversation/timelineItems";
-import { useConversation, useTimeline } from "@/components/conversation/useConversation";
+import { useConversation } from "@/components/conversation/useConversation";
+import { useTimeline } from "@/components/conversation/useTimeline";
 
 /** One tool call's MCP App, on a page of its own. */
 export default function AppPage({

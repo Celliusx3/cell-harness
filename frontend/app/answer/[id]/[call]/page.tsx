@@ -7,7 +7,8 @@ import { use } from "react";
 import { ApprovalRequest } from "@/components/answer/ApprovalRequest";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import type { ToolItem } from "@/components/conversation/timelineItems";
-import { useConversation, useTimeline } from "@/components/conversation/useConversation";
+import { useConversation } from "@/components/conversation/useConversation";
+import { useTimeline } from "@/components/conversation/useTimeline";
 import { humanise } from "@/lib/toolName";
 
 /** One client-tool call or gated call, on a page of its own. */

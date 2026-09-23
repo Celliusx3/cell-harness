@@ -5,7 +5,8 @@ import { use } from "react";
 import { Composer } from "@/components/conversation/Composer";
 import { QueuedBubble } from "@/components/conversation/Message";
 import { Timeline } from "@/components/conversation/Timeline";
-import { useConversation, useTimeline } from "@/components/conversation/useConversation";
+import { useConversation } from "@/components/conversation/useConversation";
+import { useTimeline } from "@/components/conversation/useTimeline";
 
 /** One conversation. */
 export default function ConversationPage({

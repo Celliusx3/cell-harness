@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { buildTimeline } from "@/components/conversation/buildTimeline";
 import {
   ApiError,
   compactConversation,
@@ -161,9 +160,4 @@ export function useConversation(conversationId: string): Conversation {
   }, [conversationId]);
 
   return { events, queued, title, running, loading, error, send, stop, compact, wake };
-}
-
-/** The timeline for a set of events, recomputed only when they change. */
-export function useTimeline(events: SessionEvent[]) {
-  return useMemo(() => buildTimeline(events), [events]);
 }
