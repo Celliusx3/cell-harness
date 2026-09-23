@@ -24,8 +24,8 @@ export function Composer({ running, onSend, onStop, autoFocus }: Props) {
   };
 
   return (
-    <div className="border-t border-line bg-surface px-4 py-4">
-      <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-line bg-surface-sunken p-2 focus-within:border-accent">
+    <div className="relative bg-surface px-4 pb-5 pt-2 before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-8 before:bg-gradient-to-t before:from-surface before:to-transparent before:content-['']">
+      <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-line bg-surface-raised p-2 shadow-sm transition focus-within:border-accent">
         <textarea
           ref={box}
           autoFocus={autoFocus}

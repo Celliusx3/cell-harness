@@ -14,7 +14,7 @@ export function UserBubble({ item }: { item: UserItem }) {
   if (item.invoked) return <InvokedBubble item={item} invoked={item.invoked} />;
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-accent px-4 py-2.5 text-sm text-white">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
         {item.content}
       </div>
     </div>
@@ -26,7 +26,7 @@ function InvokedBubble({ item, invoked }: { item: UserItem; invoked: Invocation 
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-accent px-4 py-2.5 text-sm text-white">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
         {invoked.typed}
       </div>
       <button
@@ -51,7 +51,7 @@ function InvokedBubble({ item, invoked }: { item: UserItem; invoked: Invocation 
 export function QueuedBubble({ content }: { content: string }) {
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-accent/40 px-4 py-2.5 text-sm text-white">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken/60 px-4 py-2.5 text-sm text-ink-soft">
         {content}
       </div>
       <span className="text-xs text-ink-soft">queued — answered next</span>

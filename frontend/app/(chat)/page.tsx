@@ -25,15 +25,17 @@ export default function NewConversationPage() {
   };
 
   return (
-    <>
-      <div className="flex flex-1 flex-col items-center justify-center px-4">
-        <h1 className="text-2xl font-semibold tracking-tight">What can I help with?</h1>
-        <p className="mt-2 text-sm text-ink-soft">
+    <div className="flex flex-1 flex-col justify-center pb-24">
+      <div className="mx-auto w-full max-w-3xl px-8">
+        <h1 className="text-center font-serif text-4xl tracking-tight">What can I help with?</h1>
+        <p className="mt-3 text-center text-sm text-ink-soft">
           Turns keep running if you close the tab. Come back and pick them up.
         </p>
-        {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+        {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
       </div>
-      <Composer autoFocus running={sending} onSend={send} onStop={() => {}} />
-    </>
+      <div className="mt-7">
+        <Composer autoFocus running={sending} onSend={send} onStop={() => {}} />
+      </div>
+    </div>
   );
 }
