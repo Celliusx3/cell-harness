@@ -15,7 +15,7 @@ from harness.channels.web.schemas import (
     MessageAccepted,
     SendMessage,
 )
-from harness.channels.web.sse import MEDIA_TYPE, Source, sse_frames
+from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.session.log import Session
 from harness.session.repository import (
     SessionCorruptionError,
@@ -137,7 +137,7 @@ def build_router(web: WebChannel) -> APIRouter:
             return await source()
 
         return StreamingResponse(
-            sse_frames(await source(), after=after, after_drain=after_drain),
+            kept_alive(sse_frames(await source(), after=after, after_drain=after_drain)),
             media_type=MEDIA_TYPE,
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
