@@ -106,14 +106,17 @@ def parse(text: str) -> Parsed:
 
 
 def _split(text: str) -> tuple[str, str] | None:
-    """`(yaml, body)` — or `None` when there is no leading fence."""
+    """`(yaml, body)`, `None` with no leading fence, or `InvalidSkill` if it never closes."""
     lines = text.splitlines(keepends=True)
     if not lines or lines[0].strip() != _FENCE:
         return None
     for at, line in enumerate(lines[1:], start=1):
         if line.strip() == _FENCE:
             return "".join(lines[1:at]), "".join(lines[at + 1 :]).strip()
-    return None
+    raise InvalidSkill(
+        "the frontmatter opened by `---` on the first line is never closed: end it with a "
+        "line holding only `---`, then write the instructions below it"
+    )
 
 
 def _load_yaml(raw: str) -> object:

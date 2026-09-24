@@ -81,8 +81,8 @@ def test_no_fence_is_refused() -> None:
         parse("# Just markdown\n")
 
 
-def test_an_unclosed_fence_is_refused() -> None:
-    with pytest.raises(InvalidSkill):
+def test_an_unclosed_fence_is_refused_naming_the_missing_close() -> None:
+    with pytest.raises(InvalidSkill, match="never closed"):
         parse("---\nname: x\ndescription: d\n# no closing fence\n")
 
 
