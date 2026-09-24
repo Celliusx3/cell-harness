@@ -142,7 +142,7 @@ class ChannelGateway:
     async def compact(self, session: Session) -> Run:
         """Begin a manual compaction, followed by every chat mapped to the conversation."""
         compactor = self._runs.compaction
-        if compactor is not None and (reason := compactor.refusal(session)) is not None:
+        if compactor is not None and (reason := compactor.refusal_reason(session)) is not None:
             raise CompactionRefused(reason)
         states = await self._repository.chats_of(session.id)
         run = self._runs.compact(session)
