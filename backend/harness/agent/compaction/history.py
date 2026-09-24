@@ -15,7 +15,7 @@ PRUNE_KEEP = 3
 _TAG = MARKER.lstrip()
 
 
-def prunable(events: Sequence[SessionEvent]) -> tuple[str, ...]:
+def prunable_ids(events: Sequence[SessionEvent]) -> tuple[str, ...]:
     """The call ids whose results a prune would clear now, oldest first."""
     pruned = pruned_ids(events)
     names = {e.call.id: e.call.name for e in events if isinstance(e, ToolCallEvent)}
@@ -34,7 +34,7 @@ def summarizable(events: Sequence[SessionEvent]) -> bool:
     return any(e.type == "user/message" for e in events[tail_start(events) :])
 
 
-def retained_skills(events: Sequence[SessionEvent]) -> tuple[str, ...]:
+def loaded_skills(events: Sequence[SessionEvent]) -> tuple[str, ...]:
     """The body of each skill loaded so far, the last per name, in load order."""
     calls: dict[str, str] = {}
     bodies: dict[str, str] = {}
