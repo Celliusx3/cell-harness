@@ -13,6 +13,7 @@ import pytest
 import uvicorn
 
 from harness.agent.loop import LoopAgent
+from harness.channels.web import sse as sse_module
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -130,6 +131,25 @@ async def test_hanging_up_mid_stream_does_not_cancel_the_run(live) -> None:
     assert run is not None, "the run was cancelled by a closed connection"
     assert not run.settled
 
+    await client.delete(f"/api/conversations/{conversation_id}/run")
+
+
+async def test_a_silent_turn_still_sends_something_within_the_keep_alive(live, monkeypatch) -> None:
+    monkeypatch.setattr(sse_module, "KEEP_ALIVE_SECONDS", 0.05, raising=False)
+    client, _, runs = live
+    conversation_id = await start(client)
+    await until(
+        lambda: any(e.type == "tool/call" for e in runs.active(conversation_id).session.events()),
+        what="the turn to park inside the tool",
+    )
+    seen = len(runs.active(conversation_id).session.events())
+
+    async with client.stream(
+        "GET", f"/api/conversations/{conversation_id}/events?after={seen}"
+    ) as response:
+        first = await asyncio.wait_for(anext(response.aiter_text()), timeout=1.0)
+
+    assert first.startswith(":"), "a comment line keeps a quiet stream open through proxies"
     await client.delete(f"/api/conversations/{conversation_id}/run")
 
 
