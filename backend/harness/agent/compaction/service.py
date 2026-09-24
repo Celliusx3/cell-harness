@@ -6,8 +6,8 @@ import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
-from harness.agent.compaction.history import prunable, retained_skills, summarizable
-from harness.agent.compaction.prompt import INSTRUCTION, render
+from harness.agent.compaction.history import loaded_skills, prunable_ids, summarizable
+from harness.agent.compaction.prompt import INSTRUCTION, summary_message
 from harness.llm.client import LLMClient
 from harness.llm.messages import ApplicationMessage, SystemMessage, UserMessage
 from harness.llm.stream import Completed, Failed
@@ -61,7 +61,7 @@ class CompactionService:
         events = session.events()
         if unanswered(events):
             return UNANSWERED
-        if not prunable(events) and not summarizable(events):
+        if not prunable_ids(events) and not summarizable(events):
             return NOTHING
         return None
 
@@ -70,7 +70,7 @@ class CompactionService:
     ) -> AsyncIterator[CompactionEvent]:
         """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
         events = session.events()
-        if ids := prunable(events):
+        if ids := prunable_ids(events):
             prune = CompactionPrune(turn=turn, call_ids=ids)
             session.append(prune)
             yield prune
@@ -112,5 +112,5 @@ class CompactionService:
         text = completed.full_text.strip()
         if not text:
             return CompactionEnd(turn=turn, error="summary request produced no text")
-        content = render(text, retained_skills(session.events()))
+        content = summary_message(text, loaded_skills(session.events()))
         return CompactionEnd(turn=turn, message=ApplicationMessage(content=content))
