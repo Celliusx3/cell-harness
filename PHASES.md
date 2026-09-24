@@ -43,7 +43,9 @@ turns out to want them.
 ## Status
 
 **Phases 1–9 and 11 done; 10 — "it picks the right specialist" — is open, deferred
-until a second agent is wanted; 9 was built ahead of 8.3–8.4.**
+until a second agent is wanted; 9 was built ahead of 8.3–8.4. 15 has begun: skills
+from chat, and the route ↔ tool table (what shipped and what changed, in
+[Phase 15](#phase-15--it-operates-itself-optional)).**
 Next is the optional track (decide before 12). Steering, once phase 9, is now phase 16 at the end of the
 optional track (why: in [Phase 16](#phase-16--you-can-steer-it)). Since phase
 7, twelve insertions not planned above, then phase 9 as written with three cuts
@@ -1007,6 +1009,20 @@ product's agent writes its own instructions.
 model, or a recorded reason it does not. The API is the only surface for
 people; after this phase the tool list is the same surface for the model.
 
+**Shipped so far.** `skill_save` and `skill_delete` in `tools/native/skills/`,
+the path the phase planned, over `SkillService`'s
+own `save` and `delete`. They are withheld from scripts, offered every request,
+and listed in `approval.tools`: insertion 11's gate is the one this section waited
+for, so a skill write asks first on every channel. `tests/unit/test_every_feature_has_a_tool.py`
+is the stay-in-step test, and it covers every `config.json` section as well as every
+changing route. Written by hand, never generated from the routes: nine of the
+eighteen must never be tools, answering an approval card and stopping the reply
+among them. `skill_write_file` writes one bundled file under the upload's own path
+rules plus what the reader would refuse, so a skill arrives with its references and
+scripts; a TypeScript script runs by passing its text to `execute_typescript`, in the
+same sandbox, granted nothing. Next is MCP connect and disconnect,
+no longer cut, because the gate exists; `conversation_*` is superseded by insertion 9.
+
 **Depends on.** 8 (the editor service and the `/skills` page it shares); 10 for
 `agent_*`.
 
@@ -1118,7 +1134,7 @@ has no caller: nothing runs in the background and reports back later. Only
 | Phase 4 | Frontend stack | **Next.js**, matching cell-bot's `frontend/` |
 | Phase 8 | Skills from DB, filesystem, or both | ~~Both~~ **Filesystem** — there is no DB, and a managed directory the page writes into is the same feature with one provider |
 | Phase 12 | Build the optional track at all | **Defer** until the product asks |
-| Phase 15 | Which mutations the model may make without an approval gate | **Skills only** — reads elsewhere, writes wait for 13's gate |
+| Phase 15 | Which mutations the model may make without an approval gate | ~~Skills only~~ **None** — skill writes ask first too, the person's call once insertion 11's gate existed |
 
 ---
 
