@@ -62,7 +62,7 @@ def plan(members: Sequence[Member]) -> ArchivePlan:
     """Where every member goes under one skill directory, or `InvalidSkill` saying why not."""
     for member in members:
         _refuse_unsafe(member)
-    kept = [member for member in members if not member.is_dir and not _ignored(member.name)]
+    kept = [member for member in members if not member.is_dir and not ignored(member.name)]
     name = _sole_top_level(kept)
     if not valid_name(name):
         raise InvalidSkill(
@@ -87,15 +87,19 @@ def plan(members: Sequence[Member]) -> ArchivePlan:
     return ArchivePlan(name=name, files=files)
 
 
+def escapes(name: str) -> bool:
+    path = PurePosixPath(name)
+    return path.is_absolute() or ".." in path.parts or "\\" in name
+
+
 def _refuse_unsafe(member: Member) -> None:
-    path = PurePosixPath(member.name)
-    if path.is_absolute() or ".." in path.parts or "\\" in member.name:
+    if escapes(member.name):
         raise InvalidSkill(f"entry {member.name!r} would escape the skill directory")
     if member.is_link:
         raise InvalidSkill(f"entry {member.name!r} is a link, which is never installed")
 
 
-def _ignored(name: str) -> bool:
+def ignored(name: str) -> bool:
     parts = PurePosixPath(name).parts
     return not parts or any(part in JUNK_DIRS or part.startswith(".") for part in parts)
 

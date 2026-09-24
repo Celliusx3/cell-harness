@@ -262,4 +262,4 @@ async def test_an_uploaded_script_is_listed_and_readable_but_never_run(api) -> N
     script = tool.parse({"name": "invoice", "path": "scripts/render.py"})
     source = (await tool.execute(script, None)).text
     assert "print('rendered')" in source
-    assert "You cannot run a skill's scripts" in tool.description
+    assert "Any other script cannot run" in tool.description
