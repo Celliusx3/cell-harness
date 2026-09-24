@@ -19,7 +19,9 @@ _DESCRIPTION = (
     "Load a skill's instructions before starting a task that matches its "
     "description. When one matches, call this first and follow what it "
     "returns. A skill may name bundled files; read one by passing its relative "
-    "`path`. You cannot run a skill's scripts — follow its instructions with "
+    "`path`. A TypeScript file under a skill's scripts/ is a program, not a function "
+    "you can call by name: read it by `path`, then pass its text as the code to "
+    "execute_typescript. Any other script cannot run; follow the instructions with "
     "the capabilities you have.\n\n"
 )
 

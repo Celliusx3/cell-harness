@@ -118,14 +118,18 @@ class SkillService:
 
         directory = self._editable / name
         directory.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(prefix=".SKILL.", suffix=".tmp", dir=directory)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write(text)
-            os.replace(tmp, directory / SKILL_FILE)
-        except BaseException:
-            Path(tmp).unlink(missing_ok=True)
-            raise
+        _write_atomically(directory / SKILL_FILE, text)
+
+    def write_file(self, name: str, path: str, text: str) -> None:
+        """Write `text` as one file the named skill bundles, or refuse with the reason."""
+        skill = self.find(name)
+        if not self.editable(skill):
+            raise SkillNotEditable(name, skill.root)
+        target = skill.dir / resources.writable(path, text)
+        if not target.parent.resolve().is_relative_to(skill.dir.resolve()):
+            raise InvalidSkill(f"{path!r} would escape the skill directory")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        _write_atomically(target, text)
 
     def install(self, data: bytes) -> str:
         """Unpack a zipped skill folder into the editable root; return the skill's name."""
@@ -163,6 +167,18 @@ class SkillService:
         for skill in self.snapshot().skills:
             if skill.name == name and skill.root in above:
                 raise SkillShadowed(name, skill.dir)
+
+
+def _write_atomically(target: Path, text: str) -> None:
+    """Put `text` at `target` in one rename, so no reader sees half of it."""
+    fd, tmp = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.replace(tmp, target)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 def _refuse_mismatched_name(file: Path, name: str) -> None:

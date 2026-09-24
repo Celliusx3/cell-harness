@@ -24,6 +24,14 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.location import LOCATION_TOOL
+from harness.tools.native.skills import (
+    SKILL_DELETE,
+    SKILL_SAVE,
+    SKILL_WRITE_FILE,
+    skill_delete_tool,
+    skill_save_tool,
+    skill_write_file_tool,
+)
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
 
@@ -37,7 +45,16 @@ SYSTEM_PROMPT = (
 )
 
 CLIENT_TOOLS = ClientTools((LOCATION_TOOL,))
-DEFAULT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL, *sorted(CLIENT_TOOLS.names))
+DEFAULT_TOOLS = (
+    LIST,
+    DETAILS,
+    EXECUTE,
+    SKILL,
+    SKILL_SAVE,
+    SKILL_DELETE,
+    SKILL_WRITE_FILE,
+    *sorted(CLIENT_TOOLS.names),
+)
 
 
 def build_agent(
@@ -50,7 +67,15 @@ def build_agent(
     context_tokens: int | None = None,
 ) -> LoopAgent:
     """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
-    registry = ToolRegistry([clock_tool(), *client_tools.definitions()])
+    registry = ToolRegistry(
+        [
+            clock_tool(),
+            skill_save_tool(skills),
+            skill_delete_tool(skills),
+            skill_write_file_tool(skills),
+            *client_tools.definitions(),
+        ]
+    )
     registry.add_provider(mcp.tools)
     registry.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
@@ -63,7 +88,9 @@ def build_agent(
             deno_path=settings.code.deno_path,
             timeout_seconds=settings.code.timeout_seconds,
         ),
-        withheld=frozenset({SKILL, *CLIENT_TOOLS.names}),
+        withheld=frozenset(
+            {SKILL, SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE, *CLIENT_TOOLS.names}
+        ),
     ):
         registry.register(tool)
     pipeline = ToolPipeline(registry, dispatcher, DEFAULT_TOOLS)

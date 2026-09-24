@@ -26,7 +26,7 @@
     "context_tokens": null
   },
   "approval": {
-    "tools": ["memory__write_note", "memory__delete_note"],
+    "tools": ["memory__write_note", "memory__delete_note", "skill_save", "skill_delete", "skill_write_file"],
     "grants_path": "~/.harness/approvals.json"
   },
   "mcp": {
