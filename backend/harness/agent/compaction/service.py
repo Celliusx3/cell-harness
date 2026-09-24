@@ -49,14 +49,14 @@ class CompactionService:
     system_prompt: str
     context_tokens: int | None
 
-    def due(self, session: Session) -> bool:
+    def should_compact(self, session: Session) -> bool:
         """Is the context past the line?"""
         if self.context_tokens is None:
             return False
         used = session.context_size()
         return used is not None and used >= int(self.context_tokens * COMPACT_AT)
 
-    def refusal(self, session: Session) -> str | None:
+    def refusal_reason(self, session: Session) -> str | None:
         """Why a compaction cannot run now, for the manual path, or `None`."""
         events = session.events()
         if unanswered(events):
@@ -65,7 +65,7 @@ class CompactionService:
             return NOTHING
         return None
 
-    async def reduce(
+    async def compact(
         self, session: Session, *, turn: int | None, trigger: CompactionTrigger
     ) -> AsyncIterator[CompactionEvent]:
         """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
