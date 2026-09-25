@@ -2,8 +2,7 @@
 
 from harness.agent.hooks.native.no_progress.hook import (
     NO_PROGRESS_BLOCK,
-    NO_PROGRESS_WARN,
     NoProgressHook,
 )
 
-__all__ = ["NO_PROGRESS_BLOCK", "NO_PROGRESS_WARN", "NoProgressHook"]
+__all__ = ["NO_PROGRESS_BLOCK", "NoProgressHook"]
