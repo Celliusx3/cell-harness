@@ -78,7 +78,7 @@ def completed_calls(session: Session) -> tuple[CompletedCall, ...]:
     return tuple(completed)
 
 
-def empty_replies(session: Session) -> int:
+def empty_replies_in_a_row(session: Session) -> int:
     """The current turn's trailing replies with no text and no tool call."""
     empties = 0
     for event in session.events():

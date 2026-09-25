@@ -29,7 +29,7 @@ from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, calls
 from tests.unit.helpers import loop_agent, new_session
 
 NO_HOOKS = HookChain()
-TOLD = HookChain(steps=(EmptyReplyHook(),))
+TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
 def agent(client, *, system_prompt: str = "", hooks: HookChain = NO_HOOKS) -> LoopAgent:

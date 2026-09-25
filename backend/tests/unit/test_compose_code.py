@@ -91,13 +91,13 @@ def test_exactly_one_dispatcher_is_built(compose, monkeypatch) -> None:
 def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
     agent = compose()
 
-    assert [type(hook) for hook in agent.hooks.hooks] == [
+    assert [type(hook) for hook in agent.hooks.tool_hooks] == [
         ExactFailureHook,
         SameToolFailureHook,
         NoProgressHook,
         RepeatedCallHook,
     ]
-    assert [type(hook) for hook in agent.hooks.steps] == [EmptyReplyHook]
+    assert [type(hook) for hook in agent.hooks.step_hooks] == [EmptyReplyHook]
 
 
 async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:
