@@ -32,10 +32,10 @@ class NoProgressHook(ToolHook):
     block: int = NO_PROGRESS_BLOCK
 
     async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
-        last = next((e for e in reversed(prior) if sig.matches(e)), None)
+        last = next((e for e in reversed(prior) if sig.is_same_call(e)), None)
         if last is None or last.failed:
             return None
-        identical = _identical_results(sig, last.text, prior)
+        identical = _identical_results_in_a_row(sig, last.text, prior)
         if identical + 1 < self.block:
             return None
         return NO_PROGRESS_REFUSAL.format(name=sig.name, n=identical)
@@ -45,15 +45,15 @@ class NoProgressHook(ToolHook):
     ) -> str | None:
         if not isinstance(outcome, Ok):
             return None
-        n = _identical_results(sig, render_text(outcome.content), prior) + 1
+        n = _identical_results_in_a_row(sig, render_text(outcome.content), prior) + 1
         return NO_PROGRESS_WARNING.format(name=sig.name, n=n) if n >= self.warn else None
 
 
-def _identical_results(sig: Signature, text: str, calls: Sequence[CompletedCall]) -> int:
+def _identical_results_in_a_row(sig: Signature, text: str, calls: Sequence[CompletedCall]) -> int:
     """Trailing successes of the signature that said exactly `text`."""
     n = 0
     for entry in reversed(calls):
-        if not sig.matches(entry):
+        if not sig.is_same_call(entry):
             continue
         if entry.failed or entry.text != text:
             break

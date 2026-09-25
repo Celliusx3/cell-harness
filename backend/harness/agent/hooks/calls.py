@@ -37,10 +37,10 @@ class Signature:
     def of(cls, call: ToolCall) -> Signature:
         return cls(name=call.name, args=normalise(call.arguments))
 
-    def matches(self, entry: CompletedCall) -> bool:
+    def is_same_call(self, entry: CompletedCall) -> bool:
         return (entry.name, entry.args) == (self.name, self.args)
 
-    def same_tool(self, entry: CompletedCall) -> bool:
+    def is_same_tool(self, entry: CompletedCall) -> bool:
         return entry.name == self.name
 
 
