@@ -148,6 +148,18 @@ async def test_the_eighth_failure_of_one_tool_is_refused_whatever_the_arguments(
     assert reason is not None and "different arguments" in reason
 
 
+async def test_a_same_tool_refusal_quotes_its_last_failure() -> None:
+    session = turn()
+    for i in range(SAME_TOOL_FAILURE_BLOCK - 1):
+        settle(
+            session, arguments=f'{{"a": {i}}}', text=f"error: no file {i}", error=EXECUTION_ERROR
+        )
+
+    reason = await pre(GUARD, session, call(arguments='{"a": 99}'))
+
+    assert reason is not None and f"error: no file {SAME_TOOL_FAILURE_BLOCK - 2}" in reason
+
+
 async def test_another_tools_failures_do_not_count() -> None:
     session = turn()
     failing(session, SAME_TOOL_FAILURE_BLOCK, name="other")
