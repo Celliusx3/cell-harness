@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from harness.llm.messages import ToolCall, render_text
@@ -87,3 +88,24 @@ def empty_replies(session: Session) -> int:
             blank = not event.message.tool_calls and not event.message.content.strip()
             empties = empties + 1 if blank else 0
     return empties
+
+
+def failures_since_success(
+    calls: Sequence[CompletedCall], match: Callable[[CompletedCall], bool]
+) -> int:
+    """How many matching calls have failed since one last succeeded."""
+    n = 0
+    for entry in reversed(calls):
+        if not match(entry):
+            continue
+        if not entry.failed:
+            break
+        n += 1
+    return n
+
+
+def last_failure_text(
+    calls: Sequence[CompletedCall], match: Callable[[CompletedCall], bool]
+) -> str:
+    """The most recent matching failure's own words."""
+    return next((e.text for e in reversed(calls) if match(e) and e.failed), "")
