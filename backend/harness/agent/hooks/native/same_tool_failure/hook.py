@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
-from harness.agent.hooks.calls import CompletedCall, Signature
+from harness.agent.hooks.calls import (
+    CompletedCall,
+    Signature,
+    failures_since_success,
+    last_failure_text,
+)
 from harness.agent.hooks.chain import ToolHook
 from harness.agent.hooks.native.exact_failure.hook import NEXT_STEP
 from harness.tools.definition import Ok, ToolOutcome
@@ -30,11 +35,11 @@ class SameToolFailureHook(ToolHook):
     block: int = SAME_TOOL_FAILURE_BLOCK
 
     async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
-        failed = _failures_since_success(prior, sig.same_tool)
+        failed = failures_since_success(prior, sig.same_tool)
         if failed + 1 < self.block:
             return None
         return SAME_TOOL_FAILURE_REFUSAL.format(
-            name=sig.name, n=failed, last=_last_failure(prior, sig.same_tool)
+            name=sig.name, n=failed, last=last_failure_text(prior, sig.same_tool)
         )
 
     async def post(
@@ -42,24 +47,5 @@ class SameToolFailureHook(ToolHook):
     ) -> str | None:
         if isinstance(outcome, Ok):
             return None
-        n = _failures_since_success(prior, sig.same_tool) + 1
+        n = failures_since_success(prior, sig.same_tool) + 1
         return SAME_TOOL_FAILURE_WARNING.format(name=sig.name, n=n) if n >= self.warn else None
-
-
-def _failures_since_success(
-    calls: Sequence[CompletedCall], match: Callable[[CompletedCall], bool]
-) -> int:
-    """How many matching calls have failed since one last succeeded."""
-    n = 0
-    for entry in reversed(calls):
-        if not match(entry):
-            continue
-        if not entry.failed:
-            break
-        n += 1
-    return n
-
-
-def _last_failure(calls: Sequence[CompletedCall], match: Callable[[CompletedCall], bool]) -> str:
-    """The most recent matching failure's own words."""
-    return next((e.text for e in reversed(calls) if match(e) and e.failed), "")
