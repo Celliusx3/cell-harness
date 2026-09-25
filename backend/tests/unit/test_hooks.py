@@ -204,10 +204,12 @@ async def test_the_fold_starts_over_each_turn_and_skips_the_hooks_own_refusals()
 async def test_a_raising_step_hook_decides_nothing_and_the_next_one_is_asked(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    chain = HookChain(steps=(RaisesAtStepEnd(), SaysAtStepEnd(Tell("answer"))))
+    chain = HookChain(step_hooks=(RaisesAtStepEnd(), SaysAtStepEnd(Tell("answer"))))
 
     with caplog.at_level(logging.ERROR, logger="harness.agent"):
         assert await chain.end_of_step(session=new_session()) == Tell("answer")
 
     assert "RaisesAtStepEnd.end_of_step raised" in caplog.text
-    assert await HookChain(steps=(RaisesAtStepEnd(),)).end_of_step(session=new_session()) is None
+    assert (
+        await HookChain(step_hooks=(RaisesAtStepEnd(),)).end_of_step(session=new_session()) is None
+    )

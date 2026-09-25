@@ -9,7 +9,12 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
-from harness.agent.hooks.calls import CompletedCall, Signature, completed_calls, empty_replies
+from harness.agent.hooks.calls import (
+    CompletedCall,
+    Signature,
+    completed_calls,
+    empty_replies_in_a_row,
+)
 from harness.llm.messages import ToolCall
 from harness.session.log import Session
 from harness.tools.definition import ToolOutcome
@@ -68,29 +73,31 @@ D = TypeVar("D")
 class HookChain:
     """Many hooks as one."""
 
-    hooks: tuple[ToolHook, ...] = ()
-    steps: tuple[StepHook, ...] = ()
+    tool_hooks: tuple[ToolHook, ...] = ()
+    step_hooks: tuple[StepHook, ...] = ()
 
     async def pre_tool_call(self, call: ToolCall, *, session: Session) -> str | None:
         sig, calls = Signature.of(call), completed_calls(session)
-        return await self._first(self.hooks, lambda hook: hook.pre(sig, calls), "pre")
+        return await self._first_decision(self.tool_hooks, lambda hook: hook.pre(sig, calls), "pre")
 
     async def post_tool_call(
         self, call: ToolCall, outcome: ToolOutcome, *, session: Session
     ) -> str | None:
         sig, calls = Signature.of(call), completed_calls(session)
-        return await self._first(self.hooks, lambda hook: hook.post(sig, outcome, calls), "post")
-
-    async def end_of_step(self, *, session: Session) -> StepDecision | None:
-        empties, calls = empty_replies(session), completed_calls(session)
-        return await self._first(
-            self.steps, lambda hook: hook.end_of_step(empties, calls), "end_of_step"
+        return await self._first_decision(
+            self.tool_hooks, lambda hook: hook.post(sig, outcome, calls), "post"
         )
 
-    async def _first(
+    async def end_of_step(self, *, session: Session) -> StepDecision | None:
+        empties, calls = empty_replies_in_a_row(session), completed_calls(session)
+        return await self._first_decision(
+            self.step_hooks, lambda hook: hook.end_of_step(empties, calls), "end_of_step"
+        )
+
+    async def _first_decision(
         self, hooks: Sequence[H], ask: Callable[[H], Awaitable[D | None]], point: str
     ) -> D | None:
-        """The first hook with something to say, in registration order."""
+        """The first decision a hook makes, asking in registration order."""
         for hook in hooks:
             name = type(hook).__name__
             try:

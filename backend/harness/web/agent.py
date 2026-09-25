@@ -119,5 +119,5 @@ def default_hooks() -> HookChain:
     """The four loop detectors, specific before general, and what to do about an empty reply."""
     return HookChain(
         (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook()),
-        steps=(EmptyReplyHook(),),
+        step_hooks=(EmptyReplyHook(),),
     )
