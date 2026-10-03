@@ -716,7 +716,8 @@ field is ignored, not refused. Research and the six clients compared in
   first `\n\n<skill name="` and show what precedes it. One string, logged
   whole, so an edited skill does not rewrite an old conversation, and nothing
   in the loop, the store or `derive_messages` changed. The marker is the
-  contract, mirrored in `frontend/lib/invocation.ts` and pinned by a test.
+  contract, mirrored in `frontend/components/conversation/invocation.ts` and
+  pinned by a test.
 - **An unknown `/name` is answered, never sent to the model.** The gateway
   raises `UnknownSkill` before queueing; each platform sends the one sentence
   in `commands.py`. Telegram's `/start` gets it too — `Command.UNKNOWN` is gone,

@@ -14,7 +14,9 @@ from harness.llm.stream import StreamEvent
 from harness.session.models import SessionEvent, TurnEndReason
 from harness.skills.invocation import MARKER
 
-_TYPES_TS = Path(__file__).resolve().parents[3] / "frontend" / "lib" / "types.ts"
+_FRONTEND = Path(__file__).resolve().parents[3] / "frontend"
+_TYPES_TS = _FRONTEND / "lib" / "types.ts"
+_INVOCATION_TS = _FRONTEND / "components" / "conversation" / "invocation.ts"
 
 
 @pytest.fixture(scope="module")
@@ -72,5 +74,5 @@ def test_the_check_would_notice_an_absence(types_ts: str) -> None:
 
 
 def test_the_invocation_marker_is_the_same_on_both_sides() -> None:
-    source = (_TYPES_TS.parent / "invocation.ts").read_text()
+    source = _INVOCATION_TS.read_text()
     assert f"export const MARKER = {json.dumps(MARKER)};" in source
