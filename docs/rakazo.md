@@ -19,10 +19,11 @@ a web page it reads text first:
 |---|---|
 | `browser_navigate(url)` | the page title |
 | `browser_snapshot()` | page text and up to 80 interactive elements, each with a ref |
-| `browser_act(ref, …)` | the result of clicking or typing on that ref |
+| `browser_act(actions)` | the result of up to 24 clicks, fills or typing, each on a ref |
 | `computer_observe()` / `computer_act(actions)` | a screenshot — only when a page cannot be read as text |
 
-Three things keep the context small, and phase 19 copies all three:
+Three things keep the context small. Phase 17 copies the page-state limit and the
+view; phase 19 copies the two about screenshots:
 - An unchanged screen returns its metadata and "the previous screenshot is still valid", not the image.
 - Only the latest two screenshots and the latest three page states stay in the request; older ones become a one-line note.
 - The live view the person watches is a VNC stream to their browser. It never reaches the model.
@@ -42,19 +43,25 @@ Measured: 226 MiB with Chrome closed, 522–627 MiB with a shop page open.
 
 ## 3. Feature inventory
 
+The full list, sorted, is [PHASES.md §Build order](../PHASES.md#build-order);
+"Where it lands" names its row.
+
 | Rakazo | cell-harness today | Where it lands |
 |---|---|---|
-| A bot browses in its own Chrome | nothing | Phase 17 |
-| The live view in the side panel | MCP Apps, and sysmon's poll-through-`tools/call` pattern | Phase 17 |
-| Take control, `request_takeover` | client tools (`get_location`) and the approval card | Phase 18 |
-| The bot reads screenshots | `Text` and `ToolReference` blocks only; images become placeholder text | Phase 19 |
-| Routines and webhook triggers | nothing | Phase 20 |
-| Connected apps (Composio, Pipedream, remote MCP) | MCP servers | already there |
+| A bot browses in its own Chrome | nothing | 12, phase 17 |
+| The live view in the side panel | MCP Apps, and sysmon's poll-through-`tools/call` pattern | 12, phase 17 |
+| Take control, `request_takeover` | client tools (`get_location`) and the approval card | 13, phase 18 |
+| The bot reads screenshots | `Text` and `ToolReference` blocks only; images become placeholder text | 18, phase 19 |
+| Routines | nothing | 3, phase 20 |
+| Webhook triggers | nothing | 17 |
+| Remote MCP servers by URL | local MCP servers only | 5 |
+| Composio, Pipedream | MCP servers | not planned |
 | Telegram, Slack and other messaging | Telegram, Discord | already there |
 | Memory | Basic Memory server | already there |
-| Several bots, delegation | Phase 10 (open), Phase 14 (optional) | existing phases |
+| Helpers inside a turn, several bots | Phase 10 (open), Phase 14 (optional) | 4 and 16 |
 | A computer per bot, a shared team computer | nothing | later; needs the conversation on MCP calls |
-| Voice, mobile app, teach a routine by watching | nothing | not planned |
+| Teach a routine by watching | nothing | 15 |
+| Voice, mobile app | nothing | not planned |
 
 ## 4. What broke when we ran it
 

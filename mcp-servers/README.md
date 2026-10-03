@@ -1,13 +1,13 @@
 # mcp-servers/
 
 The MCP servers we build. Capabilities that are **separate processes**, not
-backend growth — the model `docs/cell-bot.md` describes and PHASES.md phase 7
-prescribes: *"a capability is a separate process with its own README and tests"*.
+backend growth — the model `docs/cell-bot.md` describes and phase 7 prescribed:
+*"a capability is a separate process with its own README and tests"*.
 cell-bot ships five (yt-dlp, whisper, pptx, tradingagents, charts) and its
 backend never learned what a video is.
 
-cell-bot calls these **satellites**, and DESIGN.md and PHASES.md use that word
-for cell-bot's. The directory does not, because a folder called `mcp-servers`
+cell-bot calls these **satellites**, and DESIGN.md uses that word for
+cell-bot's. The directory does not, because a folder called `mcp-servers`
 needs no glossary — and because `backend/harness/mcp/` is the MCP *client*, so a
 top-level `mcp/` would name both sides of one protocol.
 
@@ -46,8 +46,7 @@ code bridge now hands a script a text result as a string
 (`tools/native/code/tools.py`, `_as_value`) instead of `undefined`, and because
 the `search-web` skill tells the model to call both directly, one at a time,
 never from a script. The day a turn needs the hits as objects, the shape is an
-own server under this directory on Exa's REST API; the plan for it is recorded
-in PHASES.md insertion 10.
+own server under this directory on Exa's REST API.
 
 ## Declaring one
 

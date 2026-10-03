@@ -143,7 +143,7 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 | File | What's in it |
 |------|--------------|
 | [DESIGN.md](./DESIGN.md) | The proposal: what we take from each source, module layout, core contracts, open decisions |
-| [PHASES.md](./PHASES.md) | 13 phases, each a demoable capability — deliverables, contracts, acceptance criteria |
+| [PHASES.md](./PHASES.md) | What is done, the build order, and each open phase — deliverables, contracts, acceptance criteria |
 | [docs/rules.md](./docs/rules.md) | The reasoning behind every rule and invariant above |
 | [docs/prompt-failures.md](./docs/prompt-failures.md) | The ledger behind "Prompt text is code": every model-facing wording that fixed an observed failure, and what the failure was |
 | [docs/coding-principles.md](./docs/coding-principles.md) | Behavioral guidelines (Karpathy): think first, KISS/YAGNI, surgical changes, goal-driven |

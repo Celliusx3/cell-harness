@@ -1,7 +1,8 @@
 # Skills — what the field does, and what we take
 
-The research behind phase 8. Read alongside [PHASES.md §Phase 8](../PHASES.md)
-for the deliverables and [docs/rules.md](./rules.md) for the invariants it added.
+The research behind phase 8. Its deliverables were deleted from PHASES.md once
+built (`git show f9865e4:PHASES.md`); [docs/rules.md](./rules.md) has the
+invariants it added.
 Sources are at the end; every claim in the tables is from one of them.
 
 ## 1. The spec

@@ -402,7 +402,7 @@ From cell-bot:
 
 ---
 
-**Next step:** phase 1. See [PHASES.md](./PHASES.md).
+**Next step:** [PHASES.md §Status](./PHASES.md#status).
 
 The one discipline to hold: the loop reads its history from
 `derive_messages(log)`, never a list it accumulated. That is what keeps phases 3,
