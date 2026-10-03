@@ -6,6 +6,8 @@ import { use } from "react";
 
 import { ApprovalRequest } from "@/components/answer/ApprovalRequest";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
+import { ASK_USER } from "@/components/answer/question";
+import { QuestionPanel } from "@/components/answer/QuestionPanel";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import { useConversation } from "@/components/conversation/useConversation";
 import { useTimeline } from "@/components/conversation/useTimeline";
@@ -48,6 +50,12 @@ export default function AnswerPage({
           <p className="text-sm text-ink-soft">
             No such request in this conversation.
           </p>
+        ) : item.call.name === ASK_USER && item.result === null ? (
+          <QuestionPanel
+            item={item}
+            conversationId={id}
+            onAnswered={conversation.wake}
+          />
         ) : Handler !== undefined ? (
           <Handler
             item={item}

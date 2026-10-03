@@ -1,7 +1,9 @@
 "use client";
 
-import { use } from "react";
+import { use, useMemo, useState } from "react";
 
+import { questionOf, waitingQuestion } from "@/components/answer/question";
+import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
 import { Composer } from "@/components/conversation/Composer";
 import { QueuedBubble } from "@/components/conversation/Message";
 import { Timeline } from "@/components/conversation/Timeline";
@@ -17,6 +19,8 @@ export default function ConversationPage({
   const { id } = use(params);
   const conversation = useConversation(id);
   const { items, openTurn, openingMessage } = useTimeline(conversation.events);
+  const waiting = useMemo(() => waitingQuestion(items, openTurn), [items, openTurn]);
+  const [folded, setFolded] = useState<string | null>(null);
 
   return (
     <>
@@ -67,12 +71,30 @@ export default function ConversationPage({
         </p>
       )}
 
-      <Composer
-        autoFocus
-        running={conversation.running}
-        onSend={(prompt) => void conversation.send(prompt)}
-        onStop={() => void conversation.stop()}
-      />
+      {waiting !== null && !conversation.running && folded !== waiting.call.id ? (
+        <QuestionPanel
+          key={waiting.call.id}
+          item={waiting}
+          conversationId={id}
+          onAnswered={conversation.wake}
+          onSkip={() => setFolded(waiting.call.id)}
+        />
+      ) : (
+        <>
+          {waiting !== null && !conversation.running && (
+            <QuestionBar
+              question={questionOf(waiting)?.question ?? "A question"}
+              onAnswer={() => setFolded(null)}
+            />
+          )}
+          <Composer
+            autoFocus
+            running={conversation.running}
+            onSend={(prompt) => void conversation.send(prompt)}
+            onStop={() => void conversation.stop()}
+          />
+        </>
+      )}
     </>
   );
 }
