@@ -5,7 +5,7 @@ Design work for an agent harness of our own, derived from two studied sources.
 | Document | What's in it |
 |---|---|
 | [DESIGN.md](./DESIGN.md) | **The proposal.** What we take from each source, module layout, core contracts, and the open decisions. |
-| [PHASES.md](./PHASES.md) | **The execution plan.** 13 phases, each a demoable capability — deliverables, contracts, and acceptance criteria. |
+| [PHASES.md](./PHASES.md) | **The execution plan.** What is done, the build order, and each open phase — deliverables, contracts, and acceptance criteria. |
 | [docs/deepseek-harness.md](./docs/deepseek-harness.md) | Teardown of `deepseek-ai/deepseek-harness` (256k lines, 227 packages) and three replication tiers. |
 | [docs/cell-bot.md](./docs/cell-bot.md) | Teardown of cell-bot (6.9k lines Python), its feature inventory, and its honest gaps. |
 | [docs/without-cordis.md](./docs/without-cordis.md) | How to get dsh's plugin properties — reversible registration, per-agent scoping, waterfall events — in ~250 lines of Python, and what we give up. |
