@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 
+from pydantic import ValidationError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 from harness.channels.protocol import Pushing
 from harness.channels.text import split_message
 from harness.tools.client import PendingCall
 from harness.tools.native.location import LOCATION
+from harness.tools.native.question import QUESTION, Question
 
 MAX_MESSAGE_CHARS = 4096
 MAX_CALLBACK_BYTES = 64
@@ -21,6 +23,7 @@ APPROVE_BY_LINK = "The assistant wants to run {label}. Open the page to allow or
 NO_ANSWER_PAGE = "(Answering from Telegram needs `web.public_url` to be set.)"
 
 CALLBACK_PREFIX = "ap"
+CHOICE_PREFIX = "qa"
 BUTTONS: tuple[tuple[str, str], ...] = (
     ("Allow once", "once"),
     ("Allow for this conversation", "conversation"),
@@ -38,9 +41,13 @@ async def ask_client(
     *,
     gated: frozenset[str],
 ) -> None:
-    """Put `request` to the chat: the location keyboard, the approval card, or the page."""
+    """Put `request` to the chat: a location keyboard, options, an approval card, or the page."""
     if request.name == LOCATION:
         await _ask_location(bot, chat_id)
+        return
+    question = _question(request.arguments) if request.name == QUESTION else None
+    if question is not None and _choices_fit(request.call_id, question):
+        await _ask_question(bot, chat_id, request.call_id, question)
         return
     if request.name in gated and _buttons_fit(request):
         await _ask_approval(channel, bot, chat_id, request)
@@ -108,6 +115,41 @@ async def _ask_approval(channel: Pushing, bot, chat_id: str, request: PendingCal
     for part in earlier:
         await channel.send_message(chat_id, part)
     await bot.send_message(chat_id=int(chat_id), text=last, reply_markup=_keyboard(request.call_id))
+
+
+def _question(arguments: str) -> Question | None:
+    try:
+        return Question.model_validate_json(arguments)
+    except ValidationError:
+        return None
+
+
+def _choice_callback(call_id: str, index: int) -> str:
+    return f"{CHOICE_PREFIX}:{call_id}:{index}"
+
+
+def _choices_fit(call_id: str, question: Question) -> bool:
+    longest = max(
+        len(_choice_callback(call_id, index).encode()) for index in range(len(question.options))
+    )
+    return longest <= MAX_CALLBACK_BYTES
+
+
+def _choice_keyboard(call_id: str, question: Question) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton(option, callback_data=_choice_callback(call_id, index))]
+            for index, option in enumerate(question.options)
+        ]
+    )
+
+
+async def _ask_question(bot, chat_id: str, call_id: str, question: Question) -> None:
+    await bot.send_message(
+        chat_id=int(chat_id),
+        text=question.question,
+        reply_markup=_choice_keyboard(call_id, question),
+    )
 
 
 async def _ask_location(bot, chat_id: str) -> None:
