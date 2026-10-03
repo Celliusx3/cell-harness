@@ -35,10 +35,15 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 | 14 | **It delegates** *(opt)* | Subagents working in parallel | 800 |
 | 15 | **It operates itself** *(opt)* | "Save this as a skill" — it writes one, and uses it next conversation | 500 |
 | 16 | **You can steer it** *(opt)* | Correct it mid-turn without restarting | 450 |
+| 17 | **It browses on its own computer** *(computer)* | "Find the cheapest ETB on Lazada" — it reads real pages in its own Chrome while you watch | 700 |
+| 18 | **You can take over its browser** *(computer)* | It hits a captcha, hands you the browser, and carries on when you press Done | 400 |
+| 19 | **It sees its screen** *(computer)* | A page text cannot describe — it takes a screenshot and clicks what it sees | 600 |
+| 20 | **It works while you're away** *(computer)* | "Every Monday at 9, check the price" — and it messages you on Telegram | 600 |
 
 **Phases 1–6 are the product.** 7–9 make it capable and safe. 10–11 make it
 better than cell-bot. 12–16 are agentic capabilities to add only if the product
-turns out to want them.
+turns out to want them. 17–20 are the computer track: what
+[Rakazo](./docs/rakazo.md) does, reached through MCP.
 
 ## Status
 
@@ -127,6 +132,10 @@ only needed when a plugin registers into one agent's world — which is subagent
 
                             12 ── 13 ── 14   (optional track, needs 4)
                             16               (optional, needs 4)
+
+                            17 ─┬─ 18        (computer track, needs 7)
+                                ├─ 19        (needs a vision model)
+                                └─ 20        (needs 5)
 ```
 
 ---
@@ -1125,6 +1134,161 @@ has no caller: nothing runs in the background and reports back later. Only
 
 ---
 
+# Computer track — a bot with its own computer
+
+What [Rakazo](./docs/rakazo.md) does — a bot with its own Linux desktop and
+Chrome, a live view of it, and a person who can take over — reached the way every
+capability is reached here: an MCP server, a skill, and an MCP App.
+`backend/harness/` gains code only in 18 (one client tool), 19 (an image block)
+and 20 (a scheduler). Docker is a requirement of the `computer` server, not of the
+harness: without it the server fails to connect and the rest of the product runs.
+
+## Phase 17 — It browses on its own computer
+
+**Demo.** "Find the cheapest Pokémon 30th Celebration ETB on Lazada." The bot
+opens a real Chrome on its own desktop, reads the results as text, clicks into
+listings by their refs and answers with prices and links. The tool card's "Open
+app" link shows that desktop live.
+
+**Depends on.** 7, insertion 6 (MCP Apps).
+
+**Ships.**
+- `mcp-servers/computer/` — one uv project, its own 80% gate:
+  - the container: Rakazo's published image, started on the first call and reused
+    after; stopped after `idle_minutes` without a call; Chrome profile and home on
+    a named volume, so a login survives a stop
+  - `browser_navigate(url)`, `browser_snapshot()`, `browser_act(ref, action, text)`
+    — `docker exec` of the image's own `rakazo-page-browser`, text in and text out
+  - `screen()` and `click(x, y)` / `type(text)` / `key(name)` — the image's control
+    endpoint, for the view only
+  - `ui://computer/screen` — an MCP App that redraws `screen()` about once a
+    second through `tools/call`, sysmon's pattern; view only in this phase
+- `skills/browse-web/` — when to browse and when `exa` is enough; snapshot before
+  acting; a captcha or a login means stop and say so
+- `config.json` declares `computer`; its control token goes in `config.local.json`
+
+**Key contracts.**
+- **Text first; the model sees no screenshot.** `browser_snapshot` returns page
+  text and up to 80 numbered elements, which a text-only model such as
+  `ilmu-glm-5.1` can act on. Screenshots for the model are phase 19.
+- **One computer, shared by every conversation.** An MCP call carries no
+  conversation, and this is a one-person product. A computer per conversation or
+  per agent is a later phase, not a parameter now.
+- **The control path never depends on the viewer.** The server reaches its
+  container through ports it published on `127.0.0.1` when it created it.
+  Rakazo's supervisor joins a computer's network only when a viewer opens, and
+  its bots' clicks failed until then ([docs/rakazo.md §4](./docs/rakazo.md)).
+- **We reap what we spawn**, for containers too: stopped on shutdown, and one left
+  by a previous run is found by its label and reused, never duplicated.
+- The view's tools say "App-only" in their description, as sysmon's do; keeping
+  them out of `list_functions` is mcp-apps.md §7's deferred item, and this is its
+  second caller.
+
+**Acceptance.**
+- With a fake Docker client: the first call starts one container, the second
+  reuses it, the idle stop fires, shutdown stops it, a labelled leftover is reused.
+- A fixture page's snapshot lists its elements with refs; acting on a stale ref is
+  a typed failure, never a guess.
+- `screen()` returns one PNG `ImageContent`, and the view is served under the
+  default CSP: it declares no `connectDomains`.
+
+~700 lines.
+
+## Phase 18 — You can take over its browser
+
+**Demo.** The page shows a captcha. The bot stops and says why; the chat shows a
+card with "Open computer" and Done — a button on Telegram. You solve the captcha
+in the app, press Done, and the bot carries on.
+
+**Depends on.** 17, insertion 8 (client tools), insertion 11 (the card).
+
+**Ships.**
+- `tools/client/hand_over.py` — `hand_over(reason)`, a client tool whose outcome
+  is `Pending`, as `get_location`'s is
+- `mcp-servers/computer/` — `hold(on)` for the view; while held, the model's
+  browser tools answer "the person has the computer" and send no input, and the
+  app turns interactive: a click becomes `click`, a keypress `type` or `key`
+- the card in `frontend/`, and the button on Telegram and Discord
+
+**Key contracts.**
+- **Done resumes with "snapshot before acting", nothing else.** What the person
+  did on the page is read again, never assumed.
+- **Held belongs to the server**, cleared by Done or after `hold_minutes` without
+  input, so a closed tab cannot strand the bot.
+- A password is never asked for in chat; `browse-web` says hand over instead.
+
+**Acceptance.**
+- `hand_over` ends the turn `pending`; Done resumes it; typing a message instead
+  writes `SKIPPED`, as for every client tool.
+- While held, `browser_act` returns the held message and the fake container
+  received no input.
+
+~400 lines.
+
+## Phase 19 — It sees its screen
+
+**Demo.** A page its text cannot describe — a canvas, a map, a picture captcha.
+The bot takes a screenshot, says what it sees, and clicks by coordinates.
+
+**Depends on.** 17, and the decision gate: a model that accepts images.
+
+**Ships.**
+- `llm/messages.py` — an `Image` block beside `Text` and `ToolReference`, and the
+  OpenAI adapter's mapping for it. Check the endpoint first: many
+  OpenAI-compatible endpoints refuse an image inside a `tool` message, and then it
+  rides a user message after the result.
+- `mcp/tool.py` — `ImageContent` becomes an `Image` block, not `[image …]` text
+- `session/` — the bytes in `blobs/<sha256>.png` beside the session, the event
+  holding the hash: still logged, and the JSONL stays small. This answers the
+  open question in mcp-apps.md §7.
+- `session/derive.py` — only the latest two screenshots reach the model; older
+  ones become a one-line note
+- `computer` — `screenshot()` and `act(steps)` offered to the model; a screen that
+  has not changed returns "unchanged" and no image
+
+**Key contracts.**
+- `llm.vision: false` withholds the screenshot tools: an image nobody can see is
+  not offered.
+- Pruning is a function of the log, so the same log builds the same request and
+  the cached prefix holds.
+
+**Acceptance.** An image survives log, repair and derive; pruning keeps exactly
+two; a reload reads the same bytes by hash; the tools are withheld without
+vision. ~600 lines.
+
+## Phase 20 — It works while you're away
+
+**Demo.** "Every Monday at 9, check the ETB on Lazada and tell me on Telegram if
+it drops under RM 600." On Monday it runs with nobody watching and messages you.
+
+**Depends on.** 5, 17.
+
+**Ships.**
+- `routines/` — the store (`~/.harness/routines.json`), and a scheduler task
+  started in the composition root
+- `schedule_create`, `schedule_list`, `schedule_cancel` — create goes through the
+  approval gate
+- a run that no person started: a `routine/run` event says so, and the gateway
+  delivers the reply to the routine's chat
+
+**Key contracts.**
+- **A missed run runs once.** A Mac asleep through three Mondays runs the routine
+  once on waking, not three times.
+- A routine that reaches `hand_over` waits and notifies; it never blocks the next
+  routine.
+
+**Acceptance.** With a fake clock: a run fires once per due time, a restart never
+duplicates one, delivery reaches the chat, and creating a routine asks first.
+~600 lines.
+
+**Later, not phases yet.**
+- A computer per conversation or per agent — the harness must first pass the
+  conversation on an MCP call.
+- Teammates that hand work to each other — phases 10 and 14.
+- A phone per bot — declined in the decision gates below.
+
+---
+
 # Decision gates
 
 | Before | Decide | Default if silent |
@@ -1136,6 +1300,9 @@ has no caller: nothing runs in the background and reports back later. Only
 | Phase 8 | Skills from DB, filesystem, or both | ~~Both~~ **Filesystem** — there is no DB, and a managed directory the page writes into is the same feature with one provider |
 | Phase 12 | Build the optional track at all | **Defer** until the product asks |
 | Phase 15 | Which mutations the model may make without an approval gate | ~~Skills only~~ **None** — skill writes ask first too, the person's call once insertion 11's gate existed |
+| Phase 17 | Reuse Rakazo's computer image or build our own | **Reuse** `ghcr.io/elie222/rakazo/computer` (Apache-2.0, published); fork it only when we need a change it will not take |
+| Phase 19 | Which vision model | **None** — the phase does not start until `llm` points at a model that accepts images |
+| — | A phone per bot | **No** — 0.8–3.2 GB per phone measured against 0.6 GB for the desktop ([docs/rakazo.md §5](./docs/rakazo.md)); mobile websites go through phase 17's browser |
 
 ---
 

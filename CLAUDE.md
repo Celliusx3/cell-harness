@@ -155,3 +155,4 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 | [docs/mcp-apps.md](./docs/mcp-apps.md) | MCP Apps: the contract, what the SDKs ship, how VS Code / Vercel / MCPJam host it, and the choices made here |
 | [docs/client-data.md](./docs/client-data.md) | Data the client holds: how `get_location` asks the browser, Telegram and Discord, the four shapes in the wild, and why the wait is in the tool |
 | [docs/compaction.md](./docs/compaction.md) | Phase 11: the three events, how `derive_messages` honours the boundary, the trigger (window discovered + config cap), the reactive net, and the endpoint evidence |
+| [docs/rakazo.md](./docs/rakazo.md) | Teardown of Rakazo for the computer track (17–20): how its bots use the web, its computer image, what broke when we ran it, and why a phone per bot was declined |
