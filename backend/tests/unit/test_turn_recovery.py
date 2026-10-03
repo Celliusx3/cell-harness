@@ -8,12 +8,15 @@ from harness.agent.compaction import CompactionService
 from harness.agent.events import AgentCompleted, AgentFailed
 from harness.agent.loop import LoopAgent
 from harness.llm.client import LLMClient
-from harness.llm.messages import AssistantMessage, UserMessage
+from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, Usage
+from harness.session.compaction import CompactionEnd
 from harness.session.log import Session
 from harness.session.models import (
     AssistantMessageEvent,
     StepStart,
+    ToolCallEvent,
+    ToolResultEvent,
     TurnEnd,
     TurnStart,
     UserMessageEvent,
@@ -49,6 +52,28 @@ def seeded() -> Session:
             usage=Usage(input_tokens=1, output_tokens=1),
         )
     )
+    session.append(TurnEnd(turn=0, reason="completed"))
+    return session
+
+
+def with_finished_results(count: int) -> Session:
+    """A session whose one finished turn holds `count` answered `echo` calls."""
+    calls = tuple(ToolCall(id=f"c{i}", name="echo", arguments="{}") for i in range(count))
+    session = new_session()
+    session.append(TurnStart(turn=0))
+    session.append(UserMessageEvent(turn=0, message=UserMessage(content="old")))
+    session.append(
+        AssistantMessageEvent(
+            turn=0, step=0, message=AssistantMessage(content="", tool_calls=calls)
+        )
+    )
+    for call in calls:
+        session.append(ToolCallEvent(turn=0, step=0, call=call))
+        session.append(
+            ToolResultEvent(
+                turn=0, step=0, message=ToolMessage(tool_call_id=call.id, content="out")
+            )
+        )
     session.append(TurnEnd(turn=0, reason="completed"))
     return session
 
@@ -135,3 +160,42 @@ async def test_a_failure_without_a_code_is_not_retried_even_with_compaction() ->
 
     assert events[-1] == AgentFailed(reason="502 upstream")
     assert not any(e.type.startswith("compaction/") for e in session.events())
+
+
+async def test_an_overflow_recovered_by_a_prune_retries_the_step() -> None:
+    class OverflowsOnce(LLMClient):
+        def __init__(self) -> None:
+            self.refused = False
+
+        async def stream_completion(self, messages, model, *, tools=None):
+            if not self.refused:
+                self.refused = True
+                yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+                return
+            yield Completed(full_text="recovered")
+
+    session = with_finished_results(4)
+
+    events = await drain(compacting(OverflowsOnce()).run("go", session=session))
+
+    assert events[-1] == AgentCompleted(text="recovered")
+    types = since_the_last_turn_start(session)
+    assert "compaction/prune" in types
+    assert "compaction/start" not in types
+
+
+async def test_an_overflow_whose_summary_fails_fails_the_turn() -> None:
+    class SummaryBreaks(LLMClient):
+        async def stream_completion(self, messages, model, *, tools=None):
+            if asks_for_a_summary(messages, tools):
+                yield Failed(reason="summary broke")
+                return
+            yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+
+    session = seeded()
+
+    events = await drain(compacting(SummaryBreaks()).run("go", session=session))
+
+    assert events[-1] == AgentFailed(reason="too long")
+    ends = [e for e in session.events() if isinstance(e, CompactionEnd)]
+    assert ends and not any(end.succeeded for end in ends)
