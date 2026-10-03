@@ -17,11 +17,12 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and twelve insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and thirteen insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
-(`exa`), 11 approvals, 12 skill upload. Their plans were deleted once built; read
-them with `git show f9865e4:PHASES.md`.
+(`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
+order 1). Their plans were deleted once built; read them with
+`git show f9865e4:PHASES.md`.
 
 **Open:** 10, deferred until a second agent is wanted; 15, begun (skills from
 chat, the route ↔ tool table); and the build order below.
@@ -35,7 +36,6 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 
 | # | Feature | Phase | Needs first | Rakazo |
 |---|---|---|---|---|
-| 1 | **Tap an answer**: one question, 2–4 buttons, and the turn waits | | | `builtin-tools.ts:342` |
 | 2 | **Asks before it writes**: a tool named send, delete, pay… asks first; read verbs pass; an unknown verb asks | | | `packages/core/src/action-approval.ts` |
 | 3 | **Scheduled jobs**: on Telegram, silent when nothing changed | 20 | | `schedule-tools.ts`, `silent-reply.ts` |
 | 4 | **Helpers inside a turn**: up to 4 at once, each reports back | 14, see its note | | `pi-runtime.ts:1069-1119` |

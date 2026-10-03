@@ -187,6 +187,11 @@ export interface Location {
   accuracy_m: number;
 }
 
+/** `ask_user`'s datum. */
+export interface Answer {
+  choice: string;
+}
+
 /** How long an approval holds */
 export type Scope = "once" | "conversation" | "always";
 
