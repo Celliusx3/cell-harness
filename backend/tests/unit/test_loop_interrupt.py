@@ -6,12 +6,12 @@ import asyncio
 import contextlib
 from contextlib import aclosing
 
-from harness.agent.turn import INTERRUPTED_RESULT
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import ToolCallChunk
 from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnEnd
+from harness.session.repair import TOOL_OUTCOME_UNKNOWN
 from tests.unit.fakes import SteppedClient, calls_tool, echo_tool, hanging_tool
 from tests.unit.helpers import loop_agent, new_session, unanswered_calls
 
@@ -52,7 +52,7 @@ async def test_an_interrupted_call_records_a_recoverable_error() -> None:
     await interrupt_during_tool(loop_agent(client, hanging_tool()), session)
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
-    assert result.message.text == INTERRUPTED_RESULT
+    assert result.message.text == TOOL_OUTCOME_UNKNOWN
     assert result.error == "INTERRUPTED_BY_CRASH"
 
 

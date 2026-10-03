@@ -19,7 +19,7 @@ from harness.agent.events import (
 )
 from harness.agent.hooks import GiveUp, Tell
 from harness.agent.tool_run import tool_events
-from harness.llm.messages import ApplicationMessage, AssistantMessage, ToolCall, ToolMessage
+from harness.llm.messages import ApplicationMessage, AssistantMessage, ToolCall
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
 from harness.session.log import Session
@@ -30,18 +30,15 @@ from harness.session.models import (
     StepEnd,
     StepStart,
     ToolCallEvent,
-    ToolResultEvent,
     TurnEnd,
     TurnEndReason,
 )
-from harness.session.repair import REPAIRED, TOOL_OUTCOME_UNKNOWN
+from harness.session.repair import unknown_result
 
 if TYPE_CHECKING:
     from harness.agent.loop import LoopAgent
 
 NO_TERMINAL = "stream ended without a terminal event"
-
-INTERRUPTED_RESULT = TOOL_OUTCOME_UNKNOWN
 
 TurnEvent = (
     TextChunk
@@ -221,14 +218,7 @@ async def _run_tool_calls(
             )
     finally:
         for call in owed:
-            session.append(
-                ToolResultEvent(
-                    turn=turn,
-                    step=step,
-                    message=ToolMessage(tool_call_id=call.id, content=INTERRUPTED_RESULT),
-                    error=REPAIRED,
-                )
-            )
+            session.append(unknown_result(call.id, turn=turn, step=step))
 
 
 async def _shrink_history(

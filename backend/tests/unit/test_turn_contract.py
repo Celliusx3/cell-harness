@@ -6,7 +6,6 @@ from contextlib import aclosing
 
 from harness.agent.events import AgentCompleted
 from harness.agent.hooks import HookChain, ToolHook
-from harness.agent.turn import INTERRUPTED_RESULT
 from harness.llm.messages import ToolCall
 from harness.llm.stream import Completed, TextChunk, ToolCallChunk
 from harness.session.log import Session
@@ -17,6 +16,7 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
 )
+from harness.session.repair import TOOL_OUTCOME_UNKNOWN
 from tests.unit.fakes import (
     HangingClient,
     SteppedClient,
@@ -70,7 +70,7 @@ async def test_cancelling_mid_step_answers_only_the_calls_still_open() -> None:
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     assert [(r.message.tool_call_id, r.message.text, r.error) for r in results] == [
         ("c1", "a", None),
-        ("c2", INTERRUPTED_RESULT, "INTERRUPTED_BY_CRASH"),
+        ("c2", TOOL_OUTCOME_UNKNOWN, "INTERRUPTED_BY_CRASH"),
     ]
     assert session.events()[-1] == TurnEnd(turn=0, reason="cancelled")
 

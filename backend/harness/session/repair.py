@@ -35,17 +35,22 @@ def unanswered(events: Sequence[SessionEvent]) -> list[tuple[AssistantMessageEve
     ]
 
 
+def unknown_result(call_id: str, *, turn: int, step: int) -> ToolResultEvent:
+    """The result for a call whose outcome was lost."""
+    return ToolResultEvent(
+        turn=turn,
+        step=step,
+        message=ToolMessage(tool_call_id=call_id, content=TOOL_OUTCOME_UNKNOWN),
+        error=REPAIRED,
+    )
+
+
 def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
     """Results for every call the log left unanswered *by accident*."""
     additions: list[SessionEvent] = []
     if not _waiting(events):
         additions.extend(
-            ToolResultEvent(
-                turn=event.turn,
-                step=event.step,
-                message=ToolMessage(tool_call_id=call.id, content=TOOL_OUTCOME_UNKNOWN),
-                error=REPAIRED,
-            )
+            unknown_result(call.id, turn=event.turn, step=event.step)
             for event, call in unanswered(events)
         )
     started = open_start(events)
