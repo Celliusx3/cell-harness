@@ -80,9 +80,11 @@ def update(chat_id: str, text: str, message_id: int = 1) -> SimpleNamespace:
 class FakeCallbackQuery:
     """What a tap on an inline button hands the handler."""
 
-    def __init__(self, chat_id: str, data: str, card_text: str) -> None:
+    def __init__(self, chat_id: str, data: str, card_text: str, markup: object = None) -> None:
         self.data = data
-        self.message = SimpleNamespace(text=card_text, chat=SimpleNamespace(id=int(chat_id)))
+        self.message = SimpleNamespace(
+            text=card_text, chat=SimpleNamespace(id=int(chat_id)), reply_markup=markup
+        )
         self.answered = False
         self.edits: list[tuple[str, object]] = []
 
@@ -97,6 +99,15 @@ def decision_update(chat_id: str, data: str, card_text: str) -> SimpleNamespace:
     """A PTB `Update` carrying a callback query — what tapping Allow or Deny sends."""
     return SimpleNamespace(
         callback_query=FakeCallbackQuery(chat_id, data, card_text),
+        effective_chat=SimpleNamespace(id=int(chat_id)),
+        effective_message=None,
+    )
+
+
+def choice_update(chat_id: str, data: str, card_text: str, markup: object) -> SimpleNamespace:
+    """A tap on one of a question's buttons, on the message that carries them."""
+    return SimpleNamespace(
+        callback_query=FakeCallbackQuery(chat_id, data, card_text, markup),
         effective_chat=SimpleNamespace(id=int(chat_id)),
         effective_message=None,
     )

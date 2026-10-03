@@ -31,7 +31,13 @@ from harness.channels.commands import unknown_skill
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, OnMissing
 from harness.channels.telegram import commands
-from harness.channels.telegram.asking import BUTTONS, CALLBACK_PREFIX, MAX_MESSAGE_CHARS, ask_client
+from harness.channels.telegram.asking import (
+    BUTTONS,
+    CALLBACK_PREFIX,
+    CHOICE_PREFIX,
+    MAX_MESSAGE_CHARS,
+    ask_client,
+)
 from harness.channels.telegram.batching import JOIN, Batch, batch_delay
 from harness.channels.text import split_message
 from harness.skills import UnknownSkill
@@ -73,6 +79,7 @@ class TelegramChannel:
         self._app.add_handler(
             CallbackQueryHandler(self._on_decision, pattern=rf"^{CALLBACK_PREFIX}:")
         )
+        self._app.add_handler(CallbackQueryHandler(self._on_choice, pattern=rf"^{CHOICE_PREFIX}:"))
 
     async def run(self) -> None:
         """Poll until cancelled."""
@@ -164,6 +171,22 @@ class TelegramChannel:
         ok = await self._answers.answer_call(self, str(chat.id), tap.call_id, body)
         await self._edit_card(query, RECEIPTS[tap.choice] if ok else STALE_TAP)
 
+    async def _on_choice(self, update: Update, _context: object) -> None:
+        query = update.callback_query
+        chat = update.effective_chat
+        if query is None or chat is None:
+            return
+        await query.answer()
+        choice = _parse_choice(query.data)
+        label = _option_label(query.message.reply_markup, choice.index) if choice else None
+        if choice is None or label is None:
+            logger.warning("chat %s tapped an option with unreadable data %r", chat.id, query.data)
+            await self._edit_card(query, STALE_TAP)
+            return
+        shared = {"kind": "shared", "data": {"choice": label}}
+        ok = await self._answers.answer_call(self, str(chat.id), choice.call_id, shared)
+        await self._edit_card(query, f"✅ {label}" if ok else STALE_TAP)
+
     async def _edit_card(self, query: CallbackQuery, receipt: str) -> None:
         try:
             await query.edit_message_text(f"{query.message.text}\n\n{receipt}", reply_markup=None)
@@ -237,3 +260,24 @@ def _parse_tap(data: str | None) -> Tap | None:
         return None
     _, call_id, choice = data.split(":", 2)
     return Tap(call_id, choice) if choice in CHOICES else None
+
+
+class Choice(NamedTuple):
+    """What one question button's data names."""
+
+    call_id: str
+    index: int
+
+
+def _parse_choice(data: str | None) -> Choice | None:
+    if data is None or data.count(":") < 2:
+        return None
+    _, call_id, index = data.split(":", 2)
+    return Choice(call_id, int(index)) if index.isdecimal() else None
+
+
+def _option_label(markup: InlineKeyboardMarkup | None, index: int) -> str | None:
+    """The tapped button's text: Telegram caps button data at 64 bytes, too few for a label."""
+    if markup is None or index >= len(markup.inline_keyboard) or not markup.inline_keyboard[index]:
+        return None
+    return markup.inline_keyboard[index][0].text

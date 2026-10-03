@@ -24,6 +24,7 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.location import LOCATION_TOOL
+from harness.tools.native.question import QUESTION_TOOL
 from harness.tools.native.skills import (
     SKILL_DELETE,
     SKILL_SAVE,
@@ -44,7 +45,7 @@ SYSTEM_PROMPT = (
     "an earlier conversation, and save what they ask you to remember."
 )
 
-CLIENT_TOOLS = ClientTools((LOCATION_TOOL,))
+CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL))
 DEFAULT_TOOLS = (
     LIST,
     DETAILS,

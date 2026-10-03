@@ -115,7 +115,7 @@ fulfils the request by tool name, as the browser's map does.
 | Client | The ask | The answer |
 |---|---|---|
 | Browser | `CLIENT_TOOLS[name]` — Vercel's `onToolCall` as a lookup. `LocationRequest` replaces the tool card when the call has no result. Permission is the browser's own tri-state read off `permissions.query`, the way Claude's app reads the device's: granted → shares at once; blocked → `unavailable` at once; undecided → two buttons, the prompt behind a click | `POST /api/conversations/{id}/calls/{call_id}/output` — `addToolOutput`. Refused unless the call is the one pending (404), the body fits that tool's declaration (422), and no turn is running (409). The output opens the turn that carries it |
-| Telegram | Its own prompt where it has one: for a location, a reply keyboard with one `request_location` button, private chats only. Any other client tool: a link to `/answer/{id}/{call}` | The pin arrives as a location message; `ChatAnswers` maps chat → conversation → live run → pending call and validates the body like the route does. A pin with nothing waiting is sent as text: a person who shares one unprompted meant it |
+| Telegram | Its own prompt where it has one: for a location, a reply keyboard with one `request_location` button, private chats only; for `ask_user`, the question with one inline button per option. Any other client tool: a link to `/answer/{id}/{call}` | The pin arrives as a location message; `ChatAnswers` maps chat → conversation → live run → pending call and validates the body like the route does. A pin with nothing waiting is sent as text: a person who shares one unprompted meant it. An option's button data is `qa:{call_id}:{index}`, since Telegram allows 64 bytes and a label may be 80 characters, so the label is read back off the tapped button |
 | Discord | No device prompts exist, so always the link — the browser card on a page of its own, dispatched by the same map. No `public_url` → the chat is told so in words | The page posts to the same route |
 
 Both `ask_client` and the app link are best-effort: a prompt that could not be
@@ -178,13 +178,14 @@ kept precise.
   prompt and a `time-context` plugin injects it per step. Worth its own note
   when a date question goes wrong. It would be a session event on the user
   message, additive to this design, not a change to it.
-- **A second client tool.** Whichever comes first — a contact (Telegram's
-  `request_contact` is the exact twin of `request_location`), a photo (needs
-  image content in messages first), a question (dsh's `ask_user_question`,
-  whose schema and label validation are the shape to copy) — it is one
-  declaration and one handler. A tool without a browser permission of its own
-  will need an app-level per-tool setting for Claude's tri-state; that day, not
-  this one.
+- **A third client tool.** The question came second: `ask_user` (2026-10-04,
+  Rakazo's shape: one question, two to four labels, typing is the other
+  answer) was `tools/native/question/`, one entry in `CLIENT_TOOLS` and one in
+  the browser's map, and no line in the spine, which held §2's bar. Whichever
+  comes next — a contact (Telegram's `request_contact` is the exact twin of
+  `request_location`), a photo (needs image content in messages first) — is the
+  same. A tool without a browser permission of its own will need an app-level
+  per-tool setting for Claude's tri-state; that day, not this one.
 
 ## 8. The same spine, for a decision: the approval gate
 
