@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass
 
-from harness.agent.compaction import CompactionRefused, CompactionService
+from harness.agent.compaction import CompactionEvent, CompactionRefused, CompactionService
 from harness.agent.events import AgentPending
 from harness.agent.hooks import HookChain
 from harness.agent.tool_run import approved_events
@@ -95,7 +95,7 @@ class LoopAgent:
             async for event in events:
                 yield event
 
-    async def compact(self, *, session: Session) -> AsyncIterator[object]:
+    async def compact(self, *, session: Session) -> AsyncIterator[CompactionEvent]:
         """A manual compaction, driven as its own run."""
         if self.compaction is None:
             raise CompactionRefused("compaction is not configured")
