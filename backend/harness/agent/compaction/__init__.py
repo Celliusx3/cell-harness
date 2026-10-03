@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
-from harness.agent.compaction.service import CompactionRefused, CompactionService
+from harness.agent.compaction.service import (
+    CompactionEvent,
+    CompactionRefused,
+    CompactionService,
+)
 
-__all__ = ["CompactionRefused", "CompactionService"]
+__all__ = ["CompactionEvent", "CompactionRefused", "CompactionService"]

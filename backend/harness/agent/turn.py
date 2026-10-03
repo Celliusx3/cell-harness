@@ -8,6 +8,7 @@ from contextlib import aclosing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from harness.agent.compaction import CompactionService
 from harness.agent.events import (
     AgentCompleted,
     AgentFailed,
@@ -20,7 +21,7 @@ from harness.agent.hooks import GiveUp, Tell
 from harness.agent.tool_run import tool_events
 from harness.llm.messages import ApplicationMessage, AssistantMessage, ToolCall, ToolMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
-from harness.session.compaction import CompactionEnd, CompactionPrune
+from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
 from harness.session.log import Session
 from harness.session.models import (
     ApplicationMessageEvent,
@@ -70,7 +71,7 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
             session.append(StepStart(turn=turn, step=step))
 
             if agent.compaction is not None and agent.compaction.should_compact(session):
-                await _consume(agent.compaction.compact(session, turn=turn, trigger="auto"))
+                await _shrink_history(agent.compaction, session, turn=turn, trigger="auto")
 
             reply: Completed | Failed | RetryStep | None = None
             async with aclosing(_stream_reply(agent, session, turn=turn, step=step)) as chunks:
@@ -150,17 +151,15 @@ async def _stream_reply(
                     failed = event
 
         if failed is not None or completed is None:
+            failure = failed if failed is not None else Failed(reason=NO_TERMINAL)
             if (
-                failed is not None
-                and failed.code == CONTEXT_WINDOW_EXCEEDED
+                failure.code == CONTEXT_WINDOW_EXCEEDED
                 and agent.compaction is not None
-                and _reduced(
-                    await _consume(agent.compaction.compact(session, turn=turn, trigger="overflow"))
-                )
+                and await _shrink_history(agent.compaction, session, turn=turn, trigger="overflow")
             ):
                 yield RetryStep()
-                return
-            yield failed if failed is not None else Failed(reason=NO_TERMINAL)
+            else:
+                yield failure
             return
 
         session.append(
@@ -232,23 +231,18 @@ async def _run_tool_calls(
             )
 
 
-async def _consume(events: AsyncIterator[object]) -> list[object]:
-    """Drain a compaction generator, closing it if the turn is cancelled mid-summary."""
-    produced: list[object] = []
-    async with aclosing(events) as stream:
-        async for event in stream:
-            produced.append(event)
-    return produced
-
-
-def _reduced(produced: list[object]) -> bool:
-    """Did a recovery actually shrink the history?"""
-    for event in produced:
-        if isinstance(event, CompactionPrune):
-            return True
-        if isinstance(event, CompactionEnd) and event.succeeded:
-            return True
-    return False
+async def _shrink_history(
+    compaction: CompactionService, session: Session, *, turn: int, trigger: CompactionTrigger
+) -> bool:
+    """One compaction, run to its end: `True` when it pruned or wrote a summary."""
+    shrank = False
+    async with aclosing(compaction.compact(session, turn=turn, trigger=trigger)) as events:
+        async for event in events:
+            if isinstance(event, CompactionPrune) or (
+                isinstance(event, CompactionEnd) and event.succeeded
+            ):
+                shrank = True
+    return shrank
 
 
 def _tell(session: Session, turn: int, step: int, note: str) -> None:
