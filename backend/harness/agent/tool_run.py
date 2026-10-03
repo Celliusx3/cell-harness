@@ -12,11 +12,22 @@ from harness.agent.events import ToolPending, ToolProgress, ToolResult
 from harness.llm.messages import ApplicationMessage, ToolCall, ToolMessage, render_text
 from harness.session.log import Session
 from harness.session.models import ApplicationMessageEvent, ToolResultEvent
-from harness.session.repair import REPAIRED, TOOL_OUTCOME_UNKNOWN
+from harness.session.repair import unknown_result
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
     from harness.agent.loop import LoopAgent
+
+
+def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int) -> ToolResultEvent:
+    """A finished call's outcome as the log records it."""
+    return ToolResultEvent(
+        turn=turn,
+        step=step,
+        message=ToolMessage(tool_call_id=call_id, content=render_outcome(outcome)),
+        error=None if isinstance(outcome, Ok) else outcome.code,
+        ui=outcome.ui if isinstance(outcome, Ok) else None,
+    )
 
 
 async def tool_events(
@@ -49,17 +60,11 @@ async def tool_events(
         if note is not None:
             notes.append(note)
 
-    content = render_outcome(outcome)
-    session.append(
-        ToolResultEvent(
-            turn=turn,
-            step=step,
-            message=ToolMessage(tool_call_id=call.id, content=content),
-            error=None if isinstance(outcome, Ok) else outcome.code,
-            ui=outcome.ui if isinstance(outcome, Ok) else None,
-        )
+    result = settled_result(call.id, outcome, turn=turn, step=step)
+    session.append(result)
+    yield ToolResult(
+        tool_call_id=call.id, name=call.name, content=render_text(result.message.content)
     )
-    yield ToolResult(tool_call_id=call.id, name=call.name, content=render_text(content))
 
 
 async def approved_events(
@@ -86,14 +91,7 @@ async def approved_events(
             )
     finally:
         if not answered:
-            session.append(
-                ToolResultEvent(
-                    turn=turn,
-                    step=0,
-                    message=ToolMessage(tool_call_id=call.id, content=TOOL_OUTCOME_UNKNOWN),
-                    error=REPAIRED,
-                )
-            )
+            session.append(unknown_result(call.id, turn=turn, step=0))
 
 
 async def _run_tool(

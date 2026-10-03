@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from harness.agent.compaction import CompactionEvent, CompactionRefused, CompactionService
 from harness.agent.events import AgentPending
 from harness.agent.hooks import HookChain
-from harness.agent.tool_run import approved_events
+from harness.agent.tool_run import approved_events, settled_result
 from harness.agent.turn import TurnEvent, drive
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
@@ -24,7 +24,7 @@ from harness.session.models import (
 )
 from harness.session.repair import unanswered
 from harness.tools.approval import Approved
-from harness.tools.definition import ERROR_PREFIX, Failure, Ok, render_outcome
+from harness.tools.definition import ERROR_PREFIX, Failure, Ok
 from harness.tools.pipeline import ToolPipeline
 
 SKIPPED = "SKIPPED"
@@ -82,7 +82,7 @@ class LoopAgent:
                     async for event in events:
                         yield event
             else:
-                _append_answer(session, turn, call_id, answer)
+                session.append(settled_result(call_id, answer, turn=turn, step=0))
             waiting = unanswered(session.events())
             if waiting:
                 session.append(TurnEnd(turn=turn, reason="pending"))
@@ -127,16 +127,3 @@ def _waiting_call(session: Session, call_id: str) -> ToolCall:
         if call.id == call_id:
             return call
     raise LookupError(f"no unanswered call {call_id!r}")
-
-
-def _append_answer(session: Session, turn: int, call_id: str, outcome: Ok | Failure) -> None:
-    """The person's answer as the resumed turn's first event."""
-    session.append(
-        ToolResultEvent(
-            turn=turn,
-            step=0,
-            message=ToolMessage(tool_call_id=call_id, content=render_outcome(outcome)),
-            error=None if isinstance(outcome, Ok) else outcome.code,
-            ui=outcome.ui if isinstance(outcome, Ok) else None,
-        )
-    )
