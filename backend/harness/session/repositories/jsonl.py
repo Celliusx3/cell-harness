@@ -1,4 +1,4 @@
-"""A session repository backed by one append-only JSONL file per session."""
+"""A session repository: one JSONL file per session, appended to, replaced whole only by a clear."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def _title_from(events: Sequence[SessionEvent]) -> str:
 
 
 class JsonlSessionRepository:
-    """Stores sessions as one append-only JSONL file each."""
+    """Stores sessions as one JSONL file each, appended to and replaced whole only by a clear."""
 
     def __init__(self, root: Path) -> None:
         self._root = root
@@ -55,6 +55,11 @@ class JsonlSessionRepository:
     async def create(self, header: SessionHeader) -> None:
         """Remember the header; write nothing."""
         self._pending[header.id] = header
+
+    async def restart(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+        """Replace the stored log with `header` and `events`."""
+        _write_first(self._path(header.id), header, events)
+        self._stored_count_single_writer[header.id] = len(events)
 
     async def stored_count(self, session_id: str) -> int:
         """Events already on disk. Counted from the file once, then remembered."""

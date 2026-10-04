@@ -77,6 +77,10 @@ export const stopRun = (id: string) =>
 export const compactConversation = (id: string) =>
   request<void>(`/conversations/${id}/compact`, { method: "POST" });
 
+/** Clear the chat in place: its turn stops and every message is deleted. */
+export const clearConversation = (id: string) =>
+  request<void>(`/conversations/${id}/clear`, { method: "POST" });
+
 /** The output of a client tool the browser saw called on the stream, or the person's decision on a gated call */
 export const sendToolOutput = <T>(
   id: string,

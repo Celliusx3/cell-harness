@@ -115,7 +115,8 @@ export type SessionEvent =
   | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
   | ApprovalGrantEvent
   /** The bot answering from here on, and the instructions its turns are prompted with. */
-  | { type: "bot/instructions"; name: string; instructions: string };
+  | { type: "bot/instructions"; name: string; instructions: string }
+  | { type: "chat/cleared" };
 
 /** The person allowed `tool` to run unasked for the rest of this conversation. */
 export interface ApprovalGrantEvent {

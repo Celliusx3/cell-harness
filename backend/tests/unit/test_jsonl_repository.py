@@ -216,3 +216,12 @@ async def test_files_that_are_not_chats_do_not_break_the_lookup(tmp_path) -> Non
 
     found = await chats.chats_of("c0")
     assert [(s.channel, s.chat_id) for s in found] == [("discord", "9")]
+
+
+async def test_a_restart_counts_only_what_it_wrote(store) -> None:
+    await store.create(header())
+    await store.append("s", a_turn())
+
+    await store.restart(header(), [TurnStart(turn=0)])
+
+    assert await store.stored_count("s") == 1

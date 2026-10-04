@@ -41,6 +41,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/conversations/{conversation_id}/compact": NotATool(
         "it cannot run during the model's own turn; /compact does it from every chat"
     ),
+    "POST /api/conversations/{conversation_id}/clear": NotATool(
+        "a clear stops the turn in flight, the model's own; /new does it from every chat"
+    ),
     "POST /api/conversations/{conversation_id}/calls/{call_id}/output": NotATool(
         "the person's answer to a card; a model that could send it would approve itself"
     ),

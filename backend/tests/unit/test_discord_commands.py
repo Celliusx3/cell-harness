@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from harness.channels.commands import NOTHING_TO_STOP, STARTED, STOPPED, Command
+from harness.channels.commands import CLEARED, NOTHING_TO_STOP, STOPPED, Command
 from tests.unit.discord_fakes import FakeInteraction, build, message, settle
 from tests.unit.fakes import HangingClient
 
@@ -31,8 +31,8 @@ async def test_skills_replies_with_the_list(tmp_path) -> None:
     assert interaction.replies == ["No skills installed. Commands: /new, /stop, /compact."]
 
 
-async def test_new_starts_a_fresh_conversation(tmp_path) -> None:
-    channel, _, gateway, runs, chats, _ = build(tmp_path)
+async def test_new_clears_the_chat_in_place(tmp_path) -> None:
+    channel, _, gateway, runs, chats, sessions = build(tmp_path)
     await channel.on_message(message(CHAT, "first"))
     await settle(gateway, runs)
     before = (await chats.load("discord", CHAT)).conversation_id
@@ -43,8 +43,10 @@ async def test_new_starts_a_fresh_conversation(tmp_path) -> None:
     await settle(gateway, runs)
 
     assert interaction.deferred
-    assert interaction.replies == [STARTED]
-    assert (await chats.load("discord", CHAT)).conversation_id != before
+    assert interaction.replies == [CLEARED]
+    assert (await chats.load("discord", CHAT)).conversation_id == before
+    stored = await sessions.read(before)
+    assert "chat/cleared" in [event.type for event in stored.events()]
 
 
 async def test_stop_cancels_the_turn_and_clears_the_queue(tmp_path) -> None:

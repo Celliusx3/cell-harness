@@ -3,12 +3,14 @@ import type { Timeline } from "@/components/conversation/timelineItems";
 import { humanise } from "@/lib/toolName";
 import type { SessionEvent } from "@/lib/types";
 
-/** Session events -> what the screen shows. */
+/** Session events after the last clear -> what the screen shows. */
 
 export function buildTimeline(events: SessionEvent[]): Timeline {
   const draft = new TimelineDraft();
+  const start = events.map((event) => event.type).lastIndexOf("chat/cleared") + 1;
 
   for (const [index, event] of events.entries()) {
+    if (index < start) continue;
     if ("turn" in event && event.turn !== null) draft.rememberTurn(event.turn);
 
     switch (event.type) {
@@ -112,6 +114,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
       case "turn/start":
       case "step/start":
       case "step/end":
+      case "chat/cleared":
         break;
     }
   }

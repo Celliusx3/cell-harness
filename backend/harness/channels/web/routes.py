@@ -1,7 +1,8 @@
-"""Conversations: list, read, send, stream, stop."""
+"""Conversations: list, read, send, stream, stop, clear."""
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
@@ -27,6 +28,8 @@ from harness.skills import UnknownSkill
 
 if TYPE_CHECKING:
     from harness.channels.web.channel import WebChannel
+
+logger = logging.getLogger("harness.web")
 
 
 def _unknown_skill(web: WebChannel, err: UnknownSkill) -> HTTPException:
@@ -147,6 +150,14 @@ def build_router(web: WebChannel) -> APIRouter:
         """Stop the turn in flight."""
         if not await web.runs.stop(conversation_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no turn is running")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @router.post("/{conversation_id}/clear", status_code=status.HTTP_204_NO_CONTENT)
+    async def clear_chat(conversation_id: str) -> Response:
+        """Clear the chat in place: its turn stops and the history starts after it."""
+        await _load(web.sessions, conversation_id, for_writing=False)
+        await web.gateway.clear(web.channel, conversation_id)
+        logger.info("conversation %s cleared by the browser", conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     return router

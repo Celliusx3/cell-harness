@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ApiError,
+  clearConversation,
   compactConversation,
   getConversation,
   sendMessage,
@@ -29,6 +30,8 @@ export interface Conversation {
   stop(): Promise<void>;
   /** Compact the conversation now; the summary lands via the stream. */
   compact(): Promise<void>;
+  /** Clear the chat in place; the clear lands via the stream. */
+  clear(): Promise<void>;
   /** A turn was started by something other than `send` */
   wake(): void;
 }
@@ -147,6 +150,16 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId, wake]);
 
+  const clear = useCallback(async () => {
+    try {
+      await clearConversation(conversationId);
+      setQueued([]);
+      wake();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "could not clear this chat");
+    }
+  }, [conversationId, wake]);
+
   const stop = useCallback(async () => {
     try {
       await stopRun(conversationId);
@@ -159,5 +172,5 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId]);
 
-  return { events, queued, title, running, loading, error, send, stop, compact, wake };
+  return { events, queued, title, running, loading, error, send, stop, compact, clear, wake };
 }

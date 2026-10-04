@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 
 from harness.agent.compaction import CompactionRefused
@@ -20,6 +21,7 @@ from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.store import Run, RunAlreadyActive, RunStore
 from harness.session.log import Session
+from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import Approved
@@ -106,12 +108,15 @@ class ChannelGateway:
         await self._repository.save(state)
         return self._following.begin(state, self._runs.start(session, content))
 
-    async def reset(self, channel: str, chat_id: str) -> None:
-        """Point this chat at a fresh conversation (`/new`)."""
+    async def clear(self, channel: str, chat_id: str) -> None:
+        """Clear this chat in place: stop its turn, then wipe its conversation under the same id."""
         state = await self._state(channel, chat_id)
-        await self._repository.save(
-            state.model_copy(update={"conversation_id": "", "delivered_through": 0, "pending": ()})
-        )
+        await self._repository.save(state.model_copy(update={"pending": ()}))
+        if not state.conversation_id:
+            return
+        await self._runs.stop(state.conversation_id)
+        with contextlib.suppress(SessionNotFoundError):
+            await self._sessions.clear(state.conversation_id)
 
     async def stop(self, channel: str, chat_id: str) -> bool:
         """Cancel the turn in flight, discarding anything queued behind it."""

@@ -100,12 +100,13 @@ async def test_commands_work_on_any_platform(tmp_path) -> None:
     gateway.register(FakeWhatsApp())
     await gateway.receive(message("guild-1", "hello"))
     await settle(runs, gateway, (WHATSAPP, "guild-1"))
-    assert (await chats.load(WHATSAPP, "guild-1")).conversation_id != ""
+    before = (await chats.load(WHATSAPP, "guild-1")).conversation_id
+    assert before != ""
 
     reply = await apply(gateway, WHATSAPP, "guild-1", Command.NEW)
 
-    assert "New conversation" in reply
-    assert (await chats.load(WHATSAPP, "guild-1")).conversation_id == ""
+    assert "cleared" in reply
+    assert (await chats.load(WHATSAPP, "guild-1")).conversation_id == before
 
 
 async def test_a_platform_with_no_typing_indicator_is_fine(tmp_path) -> None:

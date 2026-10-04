@@ -164,6 +164,14 @@ class BotInstructionsEvent(BaseModel):
     instructions: str
 
 
+class ChatCleared(BaseModel):
+    """The person cleared this chat: the model's history and the timeline start after it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["chat/cleared"] = "chat/cleared"
+
+
 SessionEvent = (
     TurnStart
     | TurnEnd
@@ -180,4 +188,5 @@ SessionEvent = (
     | CompactionPrune
     | ApprovalGrant
     | BotInstructionsEvent
+    | ChatCleared
 )

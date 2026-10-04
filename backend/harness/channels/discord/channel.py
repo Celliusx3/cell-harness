@@ -47,7 +47,7 @@ class DiscordChannel:
     def _register_commands(self) -> None:
         """`/new` and `/stop` as the interactions API expects them."""
 
-        @self._tree.command(name="new", description="Start a fresh conversation")
+        @self._tree.command(name="new", description="Clear this chat")
         async def new(interaction: discord.Interaction) -> None:
             await self._on_command(interaction, Command.NEW)
 
