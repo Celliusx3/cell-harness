@@ -9,11 +9,12 @@ from harness.config.settings import Settings
 from harness.mcp.store import McpServerStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.tools.native.bots import BOT_CREATE
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE
 from harness.web.agent import build_agent
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import client_tools, no_gate, no_skills
+from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
 from tests.webapp import web_app
 
 
@@ -54,6 +55,13 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/mcp/{server}/tools/{name}": NotATool(
         "an MCP App's own call to its server; the model reaches that tool through code mode"
     ),
+    "POST /api/bots": Tool(BOT_CREATE),
+    "PUT /api/bots/{bot_id}": NotATool(
+        "not yet: a bot made from chat has its instructions changed on its page"
+    ),
+    "DELETE /api/bots/{bot_id}": NotATool(
+        "a bot is the person's to remove; its chat stays and is answered as Assistant"
+    ),
 }
 
 CONFIG: dict[str, Tool | NotATool] = {
@@ -67,6 +75,7 @@ CONFIG: dict[str, Tool | NotATool] = {
     "mcp": NotATool("not yet: connecting from chat needs a server to start while the app runs"),
     "skills": NotATool("where skills live; skill_save and skill_delete work in the editable one"),
     "approval": NotATool("what the model must ask before doing; it never edits its own list"),
+    "bots": NotATool("where the bots are kept; moving it while running loses them"),
 }
 
 
@@ -98,6 +107,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         no_skills(),
         client_tools(),
         no_gate(),
+        bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
     )
     assert agent.tools is not None

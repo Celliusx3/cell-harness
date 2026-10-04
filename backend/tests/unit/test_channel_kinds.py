@@ -19,7 +19,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import no_skills
+from tests.unit.helpers import no_bots, no_skills
 
 
 def build(tmp_path: Path):
@@ -35,7 +35,7 @@ def build(tmp_path: Path):
         client=ScriptedClient(completed("answered")),
         checkpoint=sessions.flush,
     )
-    runs = RunStore(sessions, agent)
+    runs = RunStore(sessions, agent, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     web = WebChannel(sessions, runs, gateway)

@@ -105,6 +105,10 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         });
         break;
 
+      case "bot/instructions":
+        draft.onBotInstructions(`b${index}`);
+        break;
+
       case "turn/start":
       case "step/start":
       case "step/end":

@@ -18,7 +18,7 @@ from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool, hanging_tool
-from tests.unit.helpers import no_skills, pipeline_for
+from tests.unit.helpers import no_bots, no_skills, pipeline_for
 from tests.webapp import web_app
 
 TIMEOUT = 10.0
@@ -58,7 +58,7 @@ async def served(
     agent = LoopAgent(
         name="t", model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
     )
-    runs = RunStore(service, agent)
+    runs = RunStore(service, agent, no_bots(service))
     async with (
         serving(web_app(tmp_path, service, runs, skills=no_skills())) as base_url,
         httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as http,

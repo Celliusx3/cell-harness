@@ -24,7 +24,7 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import CODE_PROMPT, LIST
 from harness.web import agent as composition
 from harness.web.agent import CLIENT_TOOLS, DEFAULT_TOOLS, build_agent
-from tests.unit.helpers import client_tools, no_gate, no_progress, no_skills
+from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
 
@@ -44,6 +44,7 @@ def compose(tmp_path: Path):
             no_skills(),
             client_tools(),
             no_gate(),
+            bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         )
 

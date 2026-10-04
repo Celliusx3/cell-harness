@@ -41,6 +41,17 @@ class ApprovalSettings(BaseModel):
         return value.expanduser()
 
 
+class BotSettings(BaseModel):
+    """Where the bots and their instructions are kept."""
+
+    path: Path = Path.home() / ".harness" / "bots.json"
+
+    @field_validator("path")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
+
+
 class TelegramSettings(BaseModel):
     """The bot to answer as, if any."""
 

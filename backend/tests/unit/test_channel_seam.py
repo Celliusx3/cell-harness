@@ -19,7 +19,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.client import PendingCall
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import no_skills
+from tests.unit.helpers import no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
 WHATSAPP = "whatsapp"
@@ -65,7 +65,7 @@ def build(tmp_path):
         client=ScriptedClient(completed("answered")),
         checkpoint=sessions.flush,
     )
-    runs = RunStore(sessions, agent)
+    runs = RunStore(sessions, agent, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t"), runs, chats
 

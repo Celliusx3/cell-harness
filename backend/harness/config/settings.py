@@ -16,6 +16,7 @@ from pydantic_settings import (
 
 from harness.config.sections import (
     ApprovalSettings,
+    BotSettings,
     CodeModeSettings,
     CompactionSettings,
     DiscordSettings,
@@ -89,6 +90,7 @@ class Settings(BaseSettings):
     mcp: McpSettings = Field(default_factory=McpSettings)
     skills: SkillSettings = Field(default_factory=SkillSettings)
     approval: ApprovalSettings = Field(default_factory=ApprovalSettings)
+    bots: BotSettings = Field(default_factory=BotSettings)
 
     @classmethod
     def settings_customise_sources(

@@ -14,6 +14,7 @@ from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.agent.loop import LoopAgent
 from harness.agent.subagents import Subagents
+from harness.bots import BotStore
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.store import McpServerStore
@@ -23,6 +24,7 @@ from harness.skills import SKILL, SkillService, skill_tool
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.dispatcher import ToolDispatcher
+from harness.tools.native.bots import BOT_CREATE, bot_create_tool
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.location import LOCATION_TOOL
@@ -41,12 +43,13 @@ from harness.tools.registry import ToolRegistry
 
 logger = logging.getLogger("harness.web")
 
-SYSTEM_PROMPT = (
-    "You are a helpful assistant. When a tool can answer the user's question, "
+ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
+GUIDANCE = (
+    "When a tool can answer the user's question, "
     "call it instead of guessing. You have a long-term memory in the memory "
     "functions: search it before answering about anything the user told you in "
     "an earlier conversation, and save what they ask you to remember."
-)
+) + CODE_PROMPT
 
 CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL))
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
@@ -56,11 +59,14 @@ DEFAULT_TOOLS = (
     EXECUTE,
     SKILL,
     *SKILL_WRITES,
+    BOT_CREATE,
     RUN_SUBAGENT,
     *sorted(CLIENT_TOOLS.names),
 )
 SUBAGENT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL)
-NOT_CALLABLE_FROM_SCRIPTS = frozenset({SKILL, *SKILL_WRITES, RUN_SUBAGENT, *CLIENT_TOOLS.names})
+NOT_CALLABLE_FROM_SCRIPTS = frozenset(
+    {SKILL, *SKILL_WRITES, BOT_CREATE, RUN_SUBAGENT, *CLIENT_TOOLS.names}
+)
 
 
 def build_agent(
@@ -72,6 +78,7 @@ def build_agent(
     gate: ApprovalGate,
     context_tokens: int | None = None,
     *,
+    bots: BotStore,
     subagent_logs: SessionService,
 ) -> LoopAgent:
     """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
@@ -81,6 +88,7 @@ def build_agent(
             skill_save_tool(skills),
             skill_delete_tool(skills),
             skill_write_file_tool(skills),
+            bot_create_tool(bots),
             *client_tools.definitions(),
         ]
     )
@@ -92,18 +100,17 @@ def build_agent(
     _register_code_mode(registry, dispatcher, settings)
 
     client = OpenAIClient(settings.llm)
-    system_prompt = SYSTEM_PROMPT + CODE_PROMPT
     agent = LoopAgent(
         name="default",
         model=settings.llm.model,
         client=client,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
-        system_prompt=system_prompt,
+        system_prompt=GUIDANCE,
         checkpoint=store.flush,
         compaction=CompactionService(
             client=client,
             model=settings.llm.model,
-            system_prompt=system_prompt,
+            system_prompt=GUIDANCE,
             context_tokens=context_tokens,
         ),
         hooks=default_hooks(),

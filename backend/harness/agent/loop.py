@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from harness.agent.compaction import CompactionEvent, CompactionRefused, CompactionService
 from harness.agent.events import AgentPending
 from harness.agent.hooks import HookChain
+from harness.agent.system_prompt import system_text
 from harness.agent.tool_run import approved_events, settled_result
 from harness.agent.turn import TurnEvent, drive
 from harness.llm.client import LLMClient
@@ -49,9 +50,10 @@ class LoopAgent:
 
     def request_messages(self, session: Session) -> list[Message]:
         history = derive_messages(session.events())
-        if not self.system_prompt:
+        system = system_text(session, self.system_prompt)
+        if not system:
             return history
-        return [SystemMessage(content=self.system_prompt), *history]
+        return [SystemMessage(content=system), *history]
 
     async def run(self, user_input: str, *, session: Session) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""

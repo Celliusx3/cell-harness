@@ -17,7 +17,7 @@ from harness.skills import parse
 from harness.tools.definition import Ok
 from harness.tools.native.code import EXECUTE
 from harness.web.agent import build_agent
-from tests.unit.helpers import client_tools, no_gate, no_progress, skills_at
+from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, skills_at
 
 PROJECT_SKILLS = Path(__file__).parents[3] / ".agents" / "skills"
 CREATE_SKILL = PROJECT_SKILLS / "create-skill" / "SKILL.md"
@@ -53,6 +53,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
         skills_at(tmp_path / "skills"),
         client_tools(),
         no_gate(),
+        bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
     )
     assert agent.tools is not None

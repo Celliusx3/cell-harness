@@ -10,7 +10,9 @@ from contextlib import aclosing
 
 from harness.agent.compaction import CompactionService
 from harness.agent.loop import LoopAgent
+from harness.bots import BotStore
 from harness.session.log import Session
+from harness.session.models import BotInstructionsEvent
 from harness.session.service import SessionService
 from harness.tools.approval import Approved
 from harness.tools.definition import Failure, Ok
@@ -41,9 +43,10 @@ class Run:
 class RunStore:
     """Starts and stops turns, and knows which conversations are busy."""
 
-    def __init__(self, service: SessionService, agent: LoopAgent) -> None:
+    def __init__(self, service: SessionService, agent: LoopAgent, bots: BotStore) -> None:
         self._service = service
         self._agent = agent
+        self._bots = bots
         self._runs: dict[str, Run] = {}
 
     def active(self, conversation_id: str) -> Run | None:
@@ -59,6 +62,7 @@ class RunStore:
         """Begin a turn on a task this store owns."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
+        self._log_instructions(session)
         run = Run(session)
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
@@ -103,6 +107,13 @@ class RunStore:
         """Stop every run, for a server shutting down."""
         for conversation_id in list(self._runs):
             await self.stop(conversation_id)
+
+    def _log_instructions(self, session: Session) -> None:
+        """Log the answering bot's instructions when they are not the ones logged last."""
+        bot = self._bots.bot_for(session.id)
+        answering = BotInstructionsEvent(name=bot.name, instructions=bot.instructions)
+        if session.bot_instructions() != answering:
+            session.append(answering)
 
     async def _stream(self, run: Run, turn: AsyncIterator[object]) -> None:
         """Drive the turn, waking subscribers as the log grows."""

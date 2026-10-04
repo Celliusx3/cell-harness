@@ -1,11 +1,14 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import Link from "next/link";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { waitingApproval } from "@/components/answer/approval";
 import { ApprovalBar, ApprovalPanel } from "@/components/answer/ApprovalPanel";
 import { questionOf, waitingQuestion } from "@/components/answer/question";
 import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
+import { useBot, type BotLookup } from "@/components/bots/useBot";
+import { refreshSidebar } from "@/components/chat/Sidebar";
 import { Composer } from "@/components/conversation/Composer";
 import { QueuedBubble } from "@/components/conversation/Message";
 import { Timeline } from "@/components/conversation/Timeline";
@@ -23,33 +26,50 @@ export default function ConversationPage({
 }) {
   const { id } = use(params);
   const conversation = useConversation(id);
+  const bot = useBot(id);
   const { items, openTurn, openingMessage } = useTimeline(conversation.events);
   const waiting = useMemo(
     () => (conversation.running ? null : waitingCall(items, openTurn)),
     [conversation.running, items, openTurn],
   );
   const [folded, setFolded] = useState<string | null>(null);
+  const wasRunning = useRef(false);
+
+  useEffect(() => {
+    if (wasRunning.current && !conversation.running) refreshSidebar();
+    wasRunning.current = conversation.running;
+  }, [conversation.running]);
 
   return (
     <>
       <header className="flex items-center gap-3 border-b border-line px-6 py-3">
         <h1 className="min-w-0 truncate text-sm font-medium">
-          {conversation.title || openingMessage || "Untitled"}
+          {headerTitle(bot, conversation.title || openingMessage || "Untitled")}
         </h1>
         {conversation.running && (
           <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-ink-soft">
             working
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => void conversation.compact()}
-          disabled={conversation.running}
-          title="Summarize older messages to free up context"
-          className="ml-auto shrink-0 rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink disabled:opacity-40"
-        >
-          Compact
-        </button>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {bot.kind === "found" && (
+            <Link
+              href={`/bots/${id}`}
+              className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink"
+            >
+              Edit bot
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => void conversation.compact()}
+            disabled={conversation.running}
+            title="Summarize older messages to free up context"
+            className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink disabled:opacity-40"
+          >
+            Compact
+          </button>
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -102,6 +122,18 @@ export default function ConversationPage({
       )}
     </>
   );
+}
+
+function headerTitle(bot: BotLookup, chatTitle: string): string {
+  switch (bot.kind) {
+    case "found":
+      return bot.bot.name;
+    case "loading":
+      return "";
+    case "none":
+    case "failed":
+      return chatTitle;
+  }
 }
 
 function waitingCall(items: TimelineItem[], openTurn: number | null): Waiting | null {

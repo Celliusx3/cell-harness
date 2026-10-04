@@ -39,6 +39,7 @@ export class TimelineDraft {
   private readonly closed = new Set<number>();
   private compactionAt: number | null = null;
   private lastTurn: number | null = null;
+  private hasInstructions = false;
 
   rememberTurn(turn: number): void {
     this.lastTurn = turn;
@@ -153,6 +154,11 @@ export class TimelineDraft {
     if (item?.kind !== "compaction") return;
     this.items[at] = { ...item, summary, error, pending: false };
     this.compactionAt = null;
+  }
+
+  onBotInstructions(key: string): void {
+    if (this.hasInstructions) this.items.push({ kind: "instructions", key });
+    this.hasInstructions = true;
   }
 
   onTurnEnd(turn: number): void {

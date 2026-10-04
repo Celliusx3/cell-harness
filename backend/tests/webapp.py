@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
+from harness.bots import BotStore
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
@@ -19,7 +20,7 @@ from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.web.server import create_app
 from tests.unit.helpers import client_tools as default_client_tools
-from tests.unit.helpers import no_gate
+from tests.unit.helpers import no_bots, no_gate
 
 
 def web_gateway(
@@ -60,8 +61,18 @@ def web_app(
     skills: SkillService,
     client_tools: ClientToolService | None = None,
     gate: ApprovalGate | None = None,
+    bots: BotStore | None = None,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills)
-    return create_app(runs, gateway, web, mcp or web_mcp(), skills, client_tools, gate or no_gate())
+    return create_app(
+        runs,
+        gateway,
+        web,
+        mcp or web_mcp(),
+        skills,
+        client_tools,
+        gate or no_gate(),
+        bots or no_bots(service),
+    )

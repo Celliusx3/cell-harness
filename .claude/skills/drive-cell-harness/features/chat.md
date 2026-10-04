@@ -1,16 +1,17 @@
 # Chat
 
-A sidebar of conversations beside the open one. A person types in the box at the bottom, presses Send, and the reply streams in under their message.
+A sidebar of bots, then other chats, beside the open one. A person types in the box at the bottom, presses Send, and the reply streams in under their message.
 
 ## Sub-features
 
-- A new conversation from the home page; continuing one at `/c/<id>`.
+- The home page opens Assistant's chat at `/c/assistant`; any chat is at `/c/<id>`.
+- Other chats: earlier conversations, Telegram and Discord, answered as Assistant.
 - Stop while a turn runs; a message sent while it runs is answered next.
 - `/name` in the box invokes a skill.
 
 ## How to get to it (user POV)
 
-Open the app, type in "Send a message", press Send. "New conversation" in the sidebar starts another.
+Open the app, type in "Send a message", press Send. Click a bot in the sidebar to open its chat.
 
 ## Driving it with Playwright MCP
 
