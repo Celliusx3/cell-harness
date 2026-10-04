@@ -98,6 +98,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         no_skills(),
         client_tools(),
         no_gate(),
+        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
     )
     assert agent.tools is not None
 

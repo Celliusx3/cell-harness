@@ -40,6 +40,11 @@ def build_store(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root))
 
 
+def build_subagent_logs(settings: Settings) -> SessionService:
+    """The subagents' own logs, beside the conversations and never listed with them."""
+    return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
+
+
 def build_mcp(settings: Settings) -> McpServerStore:
     """Connections to whatever `config.json` declares under `mcp.servers`."""
     return McpServerStore(settings.mcp.servers)
@@ -99,7 +104,17 @@ def create_web_app() -> FastAPI:
     client_tools = ClientToolService(CLIENT_TOOLS, gate)
     context_tokens = _resolve_context_tokens(settings)
     runs = RunStore(
-        service, build_agent(settings, service, mcp, skills, client_tools, gate, context_tokens)
+        service,
+        build_agent(
+            settings,
+            service,
+            mcp,
+            skills,
+            client_tools,
+            gate,
+            context_tokens,
+            subagent_logs=build_subagent_logs(settings),
+        ),
     )
     gateway, web = build_channels(settings, service, runs, skills, client_tools)
     return create_app(runs, gateway, web, mcp, skills, client_tools, gate)

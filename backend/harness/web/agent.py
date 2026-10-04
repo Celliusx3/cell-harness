@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 
 from harness.agent.compaction import CompactionService
@@ -12,6 +13,7 @@ from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.agent.loop import LoopAgent
+from harness.agent.subagents import Subagents
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.store import McpServerStore
@@ -33,6 +35,7 @@ from harness.tools.native.skills import (
     skill_save_tool,
     skill_write_file_tool,
 )
+from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
 
@@ -46,16 +49,18 @@ SYSTEM_PROMPT = (
 )
 
 CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL))
+SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 DEFAULT_TOOLS = (
     LIST,
     DETAILS,
     EXECUTE,
     SKILL,
-    SKILL_SAVE,
-    SKILL_DELETE,
-    SKILL_WRITE_FILE,
+    *SKILL_WRITES,
+    RUN_SUBAGENT,
     *sorted(CLIENT_TOOLS.names),
 )
+SUBAGENT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL)
+NOT_CALLABLE_FROM_SCRIPTS = frozenset({SKILL, *SKILL_WRITES, RUN_SUBAGENT, *CLIENT_TOOLS.names})
 
 
 def build_agent(
@@ -66,6 +71,8 @@ def build_agent(
     client_tools: ClientToolService,
     gate: ApprovalGate,
     context_tokens: int | None = None,
+    *,
+    subagent_logs: SessionService,
 ) -> LoopAgent:
     """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
     registry = ToolRegistry(
@@ -82,28 +89,15 @@ def build_agent(
 
     logger.info("approval asks for: %s", sorted(gate.tools) or "nothing")
     dispatcher = ToolDispatcher(registry, gate)
-    for tool in code_mode_tools(
-        registry=registry,
-        dispatcher=dispatcher,
-        runtime=DenoRunner(
-            deno_path=settings.code.deno_path,
-            timeout_seconds=settings.code.timeout_seconds,
-        ),
-        withheld=frozenset(
-            {SKILL, SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE, *CLIENT_TOOLS.names}
-        ),
-    ):
-        registry.register(tool)
-    pipeline = ToolPipeline(registry, dispatcher, DEFAULT_TOOLS)
+    _register_code_mode(registry, dispatcher, settings)
 
     client = OpenAIClient(settings.llm)
     system_prompt = SYSTEM_PROMPT + CODE_PROMPT
-
-    return LoopAgent(
+    agent = LoopAgent(
         name="default",
         model=settings.llm.model,
         client=client,
-        tools=pipeline,
+        tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
         system_prompt=system_prompt,
         checkpoint=store.flush,
         compaction=CompactionService(
@@ -114,6 +108,35 @@ def build_agent(
         ),
         hooks=default_hooks(),
     )
+    _register_run_subagent(registry, dispatcher, agent, subagent_logs)
+    return agent
+
+
+def _register_code_mode(
+    registry: ToolRegistry, dispatcher: ToolDispatcher, settings: Settings
+) -> None:
+    for tool in code_mode_tools(
+        registry=registry,
+        dispatcher=dispatcher,
+        runtime=DenoRunner(
+            deno_path=settings.code.deno_path,
+            timeout_seconds=settings.code.timeout_seconds,
+        ),
+        withheld=NOT_CALLABLE_FROM_SCRIPTS,
+    ):
+        registry.register(tool)
+
+
+def _register_run_subagent(
+    registry: ToolRegistry, dispatcher: ToolDispatcher, agent: LoopAgent, logs: SessionService
+) -> None:
+    subagent = dataclasses.replace(
+        agent,
+        name="subagent",
+        tools=ToolPipeline(registry, dispatcher, SUBAGENT_TOOLS),
+        system_prompt=CODE_PROMPT,
+    )
+    registry.register(run_subagent_tool(Subagents(subagent, logs)))
 
 
 def default_hooks() -> HookChain:

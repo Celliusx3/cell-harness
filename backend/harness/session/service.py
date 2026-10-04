@@ -26,9 +26,11 @@ class SessionService:
         self._now = now
         self._new_id = new_id
 
-    async def create(self) -> Session:
-        """A new, empty session. Writes nothing until its first flush."""
-        header = SessionHeader(id=self._new_id(), created_at=self._now())
+    async def create(self, session_id: str | None = None) -> Session:
+        """A new, empty session, under `session_id` if given. Writes nothing until flushed."""
+        header = SessionHeader(
+            id=session_id if session_id is not None else self._new_id(), created_at=self._now()
+        )
         await self._repository.create(header)
         return Session(header)
 

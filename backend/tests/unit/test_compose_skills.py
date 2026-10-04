@@ -39,7 +39,15 @@ def compose(tmp_path: Path):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(settings, sessions, mcp, skills_at(root), client_tools(), no_gate())
+        return build_agent(
+            settings,
+            sessions,
+            mcp,
+            skills_at(root),
+            client_tools(),
+            no_gate(),
+            subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
+        )
 
     return build, root
 
