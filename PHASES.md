@@ -27,8 +27,9 @@ build order 4), 16 long results cut for the model (12,000 characters, build
 order 6). Their plans were deleted once built; read them with
 `git show f9865e4:PHASES.md`.
 
-**Open:** 10, deferred until a second agent is wanted; 15, begun (skills from
-chat, the route ↔ tool table); and the build order below.
+**Open:** 10, begun (bots, each with its own instructions and one chat, made
+from a form or from chat); 15, begun (skills from chat, the route ↔ tool
+table); and the build order below.
 
 ## Build order
 
@@ -49,7 +50,7 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 | 13 | **You take over its browser** for a captcha, then press Done | 18 | 12 | `takeover-resume.ts` |
 | 14 | **Saved website logins**, typed only on their own site | | 7, 13 | `docs/bot-secrets.md` |
 | 15 | **Teach it by showing**: you do a task once, it does it next time | | 13 | `teaching-session.ts` |
-| 16 | **Several bots that talk** and hand work over | | phase 10, see its note | `builtin-tools.ts:889-1008` |
+| 16 | **Several bots that talk** and hand work over | 10 | bots (10, begun) | `builtin-tools.ts:889-1008` |
 | 17 | **Webhooks start it**: the payload is fenced as untrusted data, and its side effects always ask | | 3, a signed-in public URL | `apps/api/src/webhook-inbound.ts:52-56` |
 | 18 | **It sees its screen** | 19 | 12, a vision model | `pi-runtime.ts` |
 | 19 | **Trusts a server you vouch for**: a server marked trusted in config has its read-only marks honoured, so memory's `build_context` and `recent_activity` stop asking; every other server stays on the name rule | | | none; VS Code's per-server trust and Codex's per-server approval mode |
@@ -77,7 +78,7 @@ A chat product's constraints differ from a coding harness's:
 | The UI is | the product — pull it to phase 4 | optional |
 | Capabilities arrive via | **MCP** (phase 7) | built-in fs/shell tools |
 | A turn is | often long (a download, a deck) — runs must outlive connections | usually short |
-| Multiple agents means | **routing** to a specialist (phase 10) | delegating to subagents |
+| Multiple agents means | **bots** you pick, each with its own chat (phase 10) | delegating to subagents |
 | `bash`/fs tools are | optional, late | phase 2 material |
 
 This is why phases 12–14 are marked optional. cell-bot ships a real product with
@@ -103,7 +104,7 @@ only needed when a plugin registers into one agent's world — which is subagent
 **Dependency graph** of the open phases:
 
 ```
-10 ── 15            (agent_* tools)
+10 ── 16 (build order: message_bot, groups)
 12 ── 13 ── 14      (optional track)
 16                  (optional)
 17 ─┬─ 18           (computer track, needs Docker)
@@ -113,53 +114,46 @@ only needed when a plugin registers into one agent's world — which is subagent
 
 ---
 
-# Phase 10 — It picks the right specialist
+# Phase 10 — Bots, each with its own instructions and one chat
 
-**Demo.** Several agents in the catalog; each turn is answered by the right one,
-with its own prompt, skills, and tool subset.
+**Demo.** You make "Researcher" with the New bot form, or ask Assistant for one
+in chat. It appears under Bots in the sidebar with its own chat and answers
+there by its instructions.
 
-**Depends on.** 6.
+**Reshaped on 2026-10-04, after Rakazo.** The router this phase planned (one
+structured call per turn choosing among agents, cell-bot's `RouterAgent`) is
+dropped: you pick the bot by opening its chat, as in Rakazo and LibreChat. One
+chat per bot, as in Rakazo ("one bot has one continuous visible thread",
+`VISION.md:59`).
 
-**Ships.**
-- `agents/catalog.py` — agent rows: name, description, prompt, tool mode/names,
-  skill links, default flag
-- `agents/service.py` — compose a runtime agent per turn from the catalog
-- `agent/router.py` — `RouterAgent`, built per turn
-- `llm/structured.py` — `StructuredOutputClient` (segregated interface)
-- `web/routes/agents.py`, `frontend/` settings — agent editor
-
-**Composed per turn, never cached.** An agent reads the catalog when it is built,
-so it always reflects what the database holds — no cached copy to invalidate and
-no refresh step a future mutator can forget.
-
-**Per-agent tools without layered registries.** `narrow(mode, patterns, provider)`
-wraps the provider rather than materializing a list, so an agent's MCP tools are
-not frozen at compose time. Scoped registries are a phase-12 concern.
+**Shipped so far.**
+- `bots/` — `Bot` (id, name, instructions) in the file at `bots.path`, read on
+  every call. A bot's chat id is the bot's id. Assistant (`"assistant"`) is
+  today's prompt, there from the first start, and cannot be deleted; a chat no
+  bot owns is answered as Assistant.
+- `bot/instructions` — the event that brings a bot's instructions into its
+  chat, logged when a turn starts with instructions that differ from the last
+  ones logged. The request and compaction both build the system prompt from it
+  (`agent/system_prompt.py`): the instructions, then the fixed guidance.
+- `/api/bots`, the sidebar's Bots and Other chats, the New bot and Edit bot form.
+- `bot_create` (`tools/native/bots/`) — the form's save as a tool. It asks
+  first and is withheld from scripts and helpers; Rakazo's `spawn_bot` does not
+  ask (`packages/core/src/action-approval.ts:19`).
 
 **Key contracts.**
-- One cheap structured call per turn. **Not** `transfer_to_*` handoff tools —
-  those grow the tool list with every agent added, and a specialist that never
-  volunteers to hand back strands the conversation.
-- **Advisory, never authoritative.** Unparseable reply, low confidence, unknown
-  agent, timeout, any provider error → stay on the current agent. `run()` has no
-  failure terminal; it always yields exactly one `AgentSelected`.
-- Choice model built **per call** with `Literal[uuids]`, so the roster's ids are a
-  schema enum. Address by uuid, never name — names are not unique.
-- Field descriptions are written **for the model**, with the observed failure
-  recorded in `docs/prompt-failures.md` beside the constant that fixed it.
-- Deleting the default agent is refused; a conversation whose agent was deleted
-  resolves to the default.
+- Model-visible means logged: a request's instructions come from the chat's last
+  `bot/instructions` event, never from the bots file.
+- An old conversation's request is byte-for-byte what it was before bots
+  (`tests/unit/test_bot_prompt.py`).
 
-**Acceptance.**
-- Every failure path leaves the conversation on its current agent.
-- A model answering with an agent *name* fails validation rather than resolving.
-- An agent sees only its own skills; the `<available_skills>` index proves it.
-- Routing does not delay the first token beyond one call.
-
-**Rakazo's several bots (build order 16).** Rakazo's lasting bots, each with its
-own chat and memory, hand work over with `message_bot` and, in a group chat,
-`handoff_to_bot` (`builtin-tools.ts:971-1008`). This phase refuses handoff tools
-for routing; which shape 16 takes is decided when it starts.
+**Next.**
+- `message_bot` (build order 16): a bot writes into another bot's chat and wakes
+  it, the reply returns to the sender on its own, and a chain stops after 6 hops
+  (Rakazo `packages/core/src/bot-messages.ts:10-14`). It needs a turn no person
+  started, as row 3 does; so does `bot_create` with a first task.
+- Group chats, answered by @mention, with `handoff_to_bot`.
+- Per-bot model, skills and tools: every bot sees every skill today, so a skill
+  that matches a message can pull a small model off its bot's instructions.
 
 ---
 
@@ -245,8 +239,7 @@ scripts; a TypeScript script runs by passing its text to `execute_typescript`, i
 same sandbox, granted nothing. Next is MCP connect and disconnect,
 no longer cut, because the gate exists; `conversation_*` is superseded by insertion 9.
 
-**Depends on.** 8 (the editor service and the `/skills` page it shares); 10 for
-`agent_*`.
+**Depends on.** 8 (the editor service and the `/skills` page it shares).
 
 **Ships.**
 - `tools/native/skills/` — `skill_save(name, text)`, `skill_delete(name)`, thin
@@ -258,7 +251,7 @@ no longer cut, because the gate exists; `conversation_*` is superseded by insert
 - `tools/native/mcp/` — `mcp_servers()`: which servers are connected, which
   failed and why, so the model can tell a person "places is not connected"
   instead of failing a program.
-- After 10: `agent_save`, `agent_delete` over `agents/service.py`.
+- `bot_create`, shipped with phase 10; editing or deleting a bot from chat is not yet.
 - A stay-in-step test: every mutating `/api` route maps to a tool or to a line
   in a `NOT_EXPOSED` table with the reason.
 
