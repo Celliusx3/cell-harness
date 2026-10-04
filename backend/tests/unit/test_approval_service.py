@@ -18,7 +18,7 @@ WRITE = "memory__write_note"
 
 
 def _gate(tmp_path: Path, *tools: str) -> ApprovalGate:
-    return ApprovalGate(frozenset(tools), tmp_path / "approvals.json")
+    return ApprovalGate(frozenset(tools), frozenset, tmp_path / "approvals.json")
 
 
 def _call(call_id: str) -> ToolCallEvent:
@@ -103,3 +103,22 @@ def test_a_name_that_is_both_client_and_listed_is_refused_at_construction(tmp_pa
     both = ClientTool(name=WRITE, description="d", args_model=NoArgs, data_model=Nothing)
     with pytest.raises(ValueError):
         ClientToolService(ClientTools((both,)), _gate(tmp_path, WRITE))
+
+
+def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) -> None:
+    gate = ApprovalGate(
+        frozenset(), lambda: frozenset({"mail__send_email"}), tmp_path / "approvals.json"
+    )
+
+    assert gate.asks("mail__send_email")
+    gate.grant("mail__send_email")
+    assert not gate.asks("mail__send_email")
+
+
+def test_the_servers_tools_are_read_again_on_every_check(tmp_path) -> None:
+    connected: set[str] = set()
+    gate = ApprovalGate(frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json")
+
+    assert not gate.asks("mail__send_email")
+    connected.add("mail__send_email")
+    assert gate.asks("mail__send_email")

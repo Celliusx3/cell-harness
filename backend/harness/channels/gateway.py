@@ -39,7 +39,6 @@ class ChannelGateway:
         skills: SkillService,
         *,
         public_url: str,
-        client_tools: frozenset[str] = frozenset(),
     ) -> None:
         self._repository = repository
         self._runs = runs
@@ -54,7 +53,7 @@ class ChannelGateway:
             skills,
             self._channels,
             self._tasks,
-            Replies(repository, public_url=public_url, client_tools=client_tools),
+            Replies(repository, public_url=public_url),
         )
 
     def register(self, channel: Channel) -> None:

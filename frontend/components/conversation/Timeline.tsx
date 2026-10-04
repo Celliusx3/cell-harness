@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-import { ApprovalRequest } from "@/components/answer/ApprovalRequest";
+import { ApprovalRecord } from "@/components/answer/ApprovalPanel";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import { Compaction } from "@/components/conversation/Compaction";
 import { AssistantBubble, UserBubble } from "@/components/conversation/Message";
@@ -70,14 +70,7 @@ export function Timeline({
                 />
               );
             if (item.result === null && openTurn === null)
-              return (
-                <ApprovalRequest
-                  key={item.key}
-                  item={item}
-                  conversationId={conversationId}
-                  onAnswered={onAnswered}
-                />
-              );
+              return <ApprovalRecord key={item.key} item={item} />;
             return <ToolCard key={item.key} item={item} />;
           }
           case "notice":

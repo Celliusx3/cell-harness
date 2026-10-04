@@ -54,14 +54,7 @@ def build_channels(
 ) -> tuple[ChannelGateway, WebChannel]:
     """The gateway, and a runtime per configured platform."""
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
-    gateway = ChannelGateway(
-        chats,
-        runs,
-        sessions,
-        skills,
-        public_url=settings.web.public_url,
-        client_tools=client_tools.awaited,
-    )
+    gateway = ChannelGateway(chats, runs, sessions, skills, public_url=settings.web.public_url)
     chat_answers = ChatAnswers(chats, sessions, gateway, client_tools)
 
     web = WebChannel(sessions, runs, gateway)
@@ -100,7 +93,9 @@ def create_web_app() -> FastAPI:
     service = build_store(settings)
     mcp = build_mcp(settings)
     skills = SkillService(settings.skills)
-    gate = ApprovalGate(frozenset(settings.approval.tools), settings.approval.grants_path)
+    gate = ApprovalGate(
+        frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
+    )
     client_tools = ClientToolService(CLIENT_TOOLS, gate)
     context_tokens = _resolve_context_tokens(settings)
     runs = RunStore(

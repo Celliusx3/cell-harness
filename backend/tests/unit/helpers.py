@@ -59,7 +59,7 @@ def new_session(session_id: str = "s") -> Session:
 
 def no_gate() -> ApprovalGate:
     """A gate that lists nothing, over a grants file that cannot exist."""
-    return ApprovalGate(frozenset(), Path("/nonexistent/cell-harness-approvals.json"))
+    return ApprovalGate(frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"))
 
 
 def pipeline_for(

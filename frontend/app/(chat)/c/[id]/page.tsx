@@ -2,13 +2,18 @@
 
 import { use, useMemo, useState } from "react";
 
+import { waitingApproval } from "@/components/answer/approval";
+import { ApprovalBar, ApprovalPanel } from "@/components/answer/ApprovalPanel";
 import { questionOf, waitingQuestion } from "@/components/answer/question";
 import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
 import { Composer } from "@/components/conversation/Composer";
 import { QueuedBubble } from "@/components/conversation/Message";
 import { Timeline } from "@/components/conversation/Timeline";
+import type { TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { useConversation } from "@/components/conversation/useConversation";
 import { useTimeline } from "@/components/conversation/useTimeline";
+
+type Waiting = { kind: "question"; item: ToolItem } | { kind: "approval"; item: ToolItem };
 
 /** One conversation. */
 export default function ConversationPage({
@@ -19,7 +24,10 @@ export default function ConversationPage({
   const { id } = use(params);
   const conversation = useConversation(id);
   const { items, openTurn, openingMessage } = useTimeline(conversation.events);
-  const waiting = useMemo(() => waitingQuestion(items, openTurn), [items, openTurn]);
+  const waiting = useMemo(
+    () => (conversation.running ? null : waitingCall(items, openTurn)),
+    [conversation.running, items, openTurn],
+  );
   const [folded, setFolded] = useState<string | null>(null);
 
   return (
@@ -71,21 +79,18 @@ export default function ConversationPage({
         </p>
       )}
 
-      {waiting !== null && !conversation.running && folded !== waiting.call.id ? (
-        <QuestionPanel
-          key={waiting.call.id}
-          item={waiting}
+      {waiting !== null && folded !== waiting.item.call.id ? (
+        <WaitingPanel
+          key={waiting.item.call.id}
+          waiting={waiting}
           conversationId={id}
           onAnswered={conversation.wake}
-          onSkip={() => setFolded(waiting.call.id)}
+          onSkip={() => setFolded(waiting.item.call.id)}
         />
       ) : (
         <>
-          {waiting !== null && !conversation.running && (
-            <QuestionBar
-              question={questionOf(waiting)?.question ?? "A question"}
-              onAnswer={() => setFolded(null)}
-            />
+          {waiting !== null && (
+            <WaitingBar waiting={waiting} onUnfold={() => setFolded(null)} />
           )}
           <Composer
             autoFocus
@@ -97,4 +102,46 @@ export default function ConversationPage({
       )}
     </>
   );
+}
+
+function waitingCall(items: TimelineItem[], openTurn: number | null): Waiting | null {
+  const question = waitingQuestion(items, openTurn);
+  if (question !== null) return { kind: "question", item: question };
+  const approval = waitingApproval(items, openTurn);
+  if (approval !== null) return { kind: "approval", item: approval };
+  return null;
+}
+
+function WaitingPanel({
+  waiting,
+  conversationId,
+  onAnswered,
+  onSkip,
+}: {
+  waiting: Waiting;
+  conversationId: string;
+  onAnswered: () => void;
+  onSkip: () => void;
+}) {
+  const props = { item: waiting.item, conversationId, onAnswered, onSkip };
+  switch (waiting.kind) {
+    case "question":
+      return <QuestionPanel {...props} />;
+    case "approval":
+      return <ApprovalPanel {...props} />;
+  }
+}
+
+function WaitingBar({ waiting, onUnfold }: { waiting: Waiting; onUnfold: () => void }) {
+  switch (waiting.kind) {
+    case "question":
+      return (
+        <QuestionBar
+          question={questionOf(waiting.item)?.question ?? "A question"}
+          onAnswer={onUnfold}
+        />
+      );
+    case "approval":
+      return <ApprovalBar item={waiting.item} onReview={onUnfold} />;
+  }
 }

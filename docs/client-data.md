@@ -190,7 +190,14 @@ kept precise.
 ## 8. The same spine, for a decision: the approval gate
 
 A tool on `approval.tools` in `config.json` (`memory__write_note`,
-`memory__delete_note`) does not run when the model calls it. The dispatcher
+`skill_save`), or a connected server's tool whose name does not read, does not
+run when the model calls it. `can_write` in `mcp/tool.py` decides the second
+from the tool's own name alone: a name with a read verb (get, list, search,
+find, read, fetch) runs, every other name asks. A server's annotations are not
+consulted, because a public server's marks cannot be trusted; honouring them
+per trusted server is build order 19. `McpServerStore.writing_tool_names` is
+read on every check, so a server that connects after startup is covered. The
+dispatcher
 answers `Pending` instead, so the loop, the log, repair, the browser card, the
 `/answer` page and a chat's ask all behave exactly as for `get_location`. The
 difference is what the person's answer is: for a location it *is* the result;
@@ -226,10 +233,15 @@ is stopped midway.
   asking the model. `repair()` now leaves unanswered calls alone only when the
   *last* turn ended `pending`, so a crash after a tap repairs the call as
   `INTERRUPTED_BY_CRASH` instead of showing the card a second time.
-- **The card.** The tool name humanised (`memory__write_note` → "write note",
-  tag "memory"), the arguments as fields, four buttons; shown for a tool item
-  with no result while no turn runs, since a gated name is config, not a
-  handler map entry. Telegram gets the same four as inline buttons
+- **The panel.** The tool name humanised (`memory__write_note` → "write note",
+  tag "memory"), the arguments as fields, four numbered choices; while the call
+  waits and no turn runs, `ApprovalPanel` takes the message box's place as
+  `ask_user`'s question does: keys 1–4 answer, Esc folds it to a "wants to run"
+  bar with Review, and the timeline keeps one line, "write note · memory ·
+  waiting for you". A waiting question is shown first. The `/answer` page shows
+  the same panel without Skip. A chat is asked when the turn ends `pending`, for
+  each call left without a result, so a granted tool that runs at once is never
+  asked. Telegram gets the four as inline buttons
   (`callback_data` `ap:{call_id}:{choice}`, the link when that would pass 64
   bytes); a tap answers the query, resumes by call id, and edits the card into
   a receipt with the keyboard removed. Discord keeps the link.

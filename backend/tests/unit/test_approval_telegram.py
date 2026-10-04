@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
+from harness.llm.messages import ToolCall
+from harness.llm.stream import Completed, ToolCallChunk
 from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
 from harness.tools.approval import DENIED, ApprovalGate
 from harness.tools.client import ClientToolService
@@ -17,18 +19,18 @@ from tests.unit.telegram_fakes import decision_update
 WRITE = "memory__write_note"
 
 
-def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
+def _writer(ran: list[str], name: str = WRITE) -> ToolDefinition[EchoArgs]:
     async def execute(args: EchoArgs, _context) -> ToolOutcome:
         ran.append(args.value)
         return Ok(content=f"saved {args.value}")
 
     return ToolDefinition.from_model(
-        name=WRITE, description="Save a note.", args_model=EchoArgs, execute=execute
+        name=name, description="Save a note.", args_model=EchoArgs, execute=execute
     )
 
 
 def _asking(tmp_path, ran: list[str], *, call_id: str = "c1"):
-    gate = ApprovalGate(frozenset({WRITE}), tmp_path / "approvals.json")
+    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, gate)
     model = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id=call_id), completed("saved"))
     return build(
@@ -137,3 +139,71 @@ async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> Non
     ((_, text, markup),) = bot.linked
     assert text == APPROVE_BY_LINK.format(label="write note")
     assert markup.inline_keyboard[0][0].url.endswith(f"/answer/c0/{long_id}")
+
+
+async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_path) -> None:
+    ran: list[str] = []
+    send = "mail__send_email"
+    connected: set[str] = set()
+    gate = ApprovalGate(frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, gate)
+    model = SteppedClient(calls_tool(send, '{"value": "hi"}', id="c1"), completed("sent"))
+    bot, gateway, runs, _chats, _sessions = build(
+        tmp_path,
+        model,
+        _writer(ran, send),
+        *tools.definitions(),
+        skills=no_skills(),
+        client_tools=tools,
+        gate=gate,
+    )
+    connected.add(send)
+
+    await gateway.receive(msg("email Ali"))
+    await settle(runs, gateway)
+
+    ((_chat_id, _text, markup),) = bot.linked
+    taps = [b.callback_data for row in markup.inline_keyboard for b in row]
+    assert taps == ["ap:c1:once", "ap:c1:conversation", "ap:c1:always", "ap:c1:deny"]
+    assert ran == []
+
+
+async def test_an_always_allowed_tool_runs_without_buttons(tmp_path) -> None:
+    ran: list[str] = []
+    bot, gateway, runs, _chats, _sessions = _asking(tmp_path, ran)
+    ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json").grant(WRITE)
+
+    await gateway.receive(msg("remember Kopi"))
+    await settle(runs, gateway)
+
+    assert ran == ["Kopi"]
+    assert bot.linked == []
+
+
+async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
+    ran: list[str] = []
+    quote = "markets__get_quote"
+    calls = (
+        ToolCall(id="c1", name=quote, arguments='{"value": "AAPL"}'),
+        ToolCall(id="c2", name=WRITE, arguments='{"value": "Kopi"}'),
+    )
+    step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
+    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, gate)
+    bot, gateway, runs, _chats, _sessions = build(
+        tmp_path,
+        SteppedClient(step, completed("done")),
+        _writer(ran, quote),
+        _writer(ran),
+        *tools.definitions(),
+        skills=no_skills(),
+        client_tools=tools,
+        gate=gate,
+    )
+
+    await gateway.receive(msg("quote AAPL and remember Kopi"))
+    await settle(runs, gateway)
+
+    assert ran == ["AAPL"]
+    ((_chat_id, _text, markup),) = bot.linked
+    assert markup.inline_keyboard[0][0].callback_data == "ap:c2:once"

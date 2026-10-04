@@ -26,6 +26,10 @@ logger = logging.getLogger("harness.mcp")
 
 _TS_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 
+_WORD_BREAK = re.compile(r"[_-]|(?<=[a-z0-9])(?=[A-Z])")
+
+_READ_VERBS = frozenset({"get", "list", "search", "find", "read", "fetch"})
+
 # Some providers reject a bare `{}` or null schema.
 _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 
@@ -67,6 +71,12 @@ def app_visible(tool: Tool) -> bool:
     ui = (tool.meta or {}).get("ui")
     visibility = ui.get("visibility") if isinstance(ui, dict) else None
     return "app" in visibility if isinstance(visibility, list) else True
+
+
+def can_write(tool: Tool) -> bool:
+    """Yes unless its name has a read verb."""
+    words = {word.lower() for word in _WORD_BREAK.split(tool.name) if word}
+    return _READ_VERBS.isdisjoint(words)
 
 
 def ui_resource_uri(tool: Tool) -> str | None:

@@ -33,7 +33,7 @@ sent several reels at once.
    `"nasi lemak stall Bangsar blue awning"`. An `@handle` makes a good query.
    Use what you saw in the reel to *re-rank* the candidates, never to search.
    If `candidates` is empty, try a shorter query once before giving up.
-4. **Details only for the one you chose.** `places__place_details` costs more
+4. **Details only for the one you chose.** `places__get_place_details` costs more
    than searching; call it once, for the single candidate you settled on, and
    not at all if you are showing a shortlist.
 
@@ -43,7 +43,7 @@ sent several reels at once.
 - **Address**, then the `maps_url` as a plain link.
 - Why you are confident: the caption said so / the sign in the video read … /
   the account tagged is the venue's. One sentence.
-- If `place_details` was called: hours (`open_now`), rating.
+- If `get_place_details` was called: hours (`open_now`), rating.
 
 When two or three candidates are plausible, list them with addresses and let
 the user choose. When nothing matches, say what the reel showed and what you

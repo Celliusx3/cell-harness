@@ -14,19 +14,26 @@ from mcp.types import (
     TextContent,
     TextResourceContents,
     Tool,
+    ToolAnnotations,
 )
 
 from harness.config.sections import McpServer
 
 
 def tool(
-    name: str, *, description: str = "", schema: dict | None = None, meta: dict | None = None
+    name: str,
+    *,
+    description: str = "",
+    schema: dict | None = None,
+    meta: dict | None = None,
+    read_only: bool | None = None,
 ) -> Tool:
     return Tool(
         name=name,
         description=description,
         inputSchema=schema if schema is not None else {"type": "object", "properties": {}},
         meta=meta,
+        annotations=None if read_only is None else ToolAnnotations(read_only_hint=read_only),
     )
 
 

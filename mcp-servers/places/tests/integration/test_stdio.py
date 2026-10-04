@@ -25,7 +25,7 @@ async def test_it_boots_over_stdio_and_offers_both_tools() -> None:
     async with Client(params()) as client:
         tools = sorted(tool.name for tool in (await client.list_tools()).tools)
 
-    assert tools == ["place_details", "search_text"]
+    assert tools == ["get_place_details", "search_text"]
 
 
 async def test_the_output_schema_survives_the_wire() -> None:
@@ -33,7 +33,7 @@ async def test_the_output_schema_survives_the_wire() -> None:
         tools = {tool.name: tool for tool in (await client.list_tools()).tools}
 
     assert tools["search_text"].output_schema is not None
-    assert tools["place_details"].output_schema is not None
+    assert tools["get_place_details"].output_schema is not None
 
 
 async def test_it_refuses_to_start_without_a_key() -> None:

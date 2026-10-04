@@ -46,6 +46,16 @@ async def test_a_configured_server_contributes_namespaced_tools() -> None:
     await store.aclose()
 
 
+async def test_the_tools_that_may_write_are_named_as_the_model_calls_them() -> None:
+    factory = FakeFactory()
+    factory.client.tools = [tool("send_email"), tool("get_quote")]
+    store = await connected(factory)
+
+    assert store.writing_tool_names() == frozenset({"stub__send_email"})
+    await store.aclose()
+    assert store.writing_tool_names() == frozenset()
+
+
 async def test_tools_go_away_when_the_store_closes() -> None:
     factory = FakeFactory()
     store = await connected(factory)

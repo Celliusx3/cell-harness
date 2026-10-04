@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from harness.session.log import Session
-from harness.session.models import ToolCallEvent, ToolResultEvent
+from harness.session.models import SessionEvent, ToolCallEvent, ToolResultEvent
 
 
 @dataclass(frozen=True)
@@ -31,3 +31,14 @@ def pending_calls(session: Session, names: frozenset[str]) -> tuple[PendingCall,
         and event.call.name in names
         and event.call.id not in answered
     )
+
+
+def pending_tool_calls(
+    calls: tuple[PendingCall, ...], event: SessionEvent
+) -> tuple[PendingCall, ...]:
+    """The calls still unanswered once `event` has landed."""
+    if isinstance(event, ToolCallEvent):
+        return (*calls, PendingCall(event.call.name, event.call.id, event.call.arguments))
+    if isinstance(event, ToolResultEvent):
+        return tuple(call for call in calls if call.call_id != event.message.tool_call_id)
+    return calls

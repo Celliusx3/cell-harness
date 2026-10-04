@@ -10,6 +10,7 @@ from harness.config.sections import McpServer
 from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.connection import Connection, ServerStatus
 from harness.mcp.errors import McpNotConnectedError
+from harness.mcp.tool import can_write, namespaced
 from harness.tools.definition import ToolDefinition
 
 
@@ -29,6 +30,16 @@ class McpServerStore:
     def tools(self) -> list[ToolDefinition[dict]]:
         """Every tool on offer right now — **the registry provider**."""
         return [tool for connection in self._connections.values() for tool in connection.tools]
+
+    def writing_tool_names(self) -> frozenset[str]:
+        """Every tool on offer right now that may change something, as the model calls it."""
+        offered = {tool.name for tool in self.tools()}
+        return frozenset(
+            name
+            for connection in self._connections.values()
+            for tool in connection.published
+            if can_write(tool) and (name := namespaced(connection.id, tool.name)) in offered
+        )
 
     def published(self, server_id: str) -> tuple[Tool, ...]:
         """One server's tools as it published them. `KeyError` if not configured."""

@@ -10,7 +10,7 @@ from harness.tools.client.catalog import (
     Shared,
     Unavailable,
 )
-from harness.tools.client.pending import PendingCall, pending_calls
+from harness.tools.client.pending import PendingCall, pending_calls, pending_tool_calls
 from harness.tools.client.service import Accepted, ClientToolService, Refused
 
 __all__ = [
@@ -27,4 +27,5 @@ __all__ = [
     "Shared",
     "Unavailable",
     "pending_calls",
+    "pending_tool_calls",
 ]
