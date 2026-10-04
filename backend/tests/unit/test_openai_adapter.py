@@ -150,3 +150,16 @@ async def test_request_pins_temperature_and_asks_for_usage(monkeypatch) -> None:
     assert captured["temperature"] == 1.0
     assert captured["stream_options"] == {"include_usage": True}
     assert captured["stream"] is True
+
+
+async def test_an_error_sent_inside_the_stream_fails_the_reply(monkeypatch) -> None:
+    error = json.dumps({"error": {"message": "failed to decode, ret = 1"}})
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=f"event: error\ndata: {error}\n\n".encode())
+
+    events = await collect(monkeypatch, handler)
+
+    assert len(events) == 1
+    assert isinstance(events[0], Failed)
+    assert "failed to decode, ret = 1" in events[0].reason
