@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from harness.agent.compaction.history import loaded_skills, prunable_ids, summarizable
 from harness.agent.compaction.prompt import INSTRUCTION, summary_message
+from harness.agent.system_prompt import system_text
 from harness.llm.client import LLMClient
 from harness.llm.messages import ApplicationMessage, SystemMessage, UserMessage
 from harness.llm.stream import Completed, Failed
@@ -93,7 +94,7 @@ class CompactionService:
     async def _summarize(self, session: Session, *, turn: int | None) -> CompactionEnd:
         """One model call, no tools; every way it can go wrong is an `error` end."""
         messages = [
-            SystemMessage(content=self.system_prompt),
+            SystemMessage(content=system_text(session, self.system_prompt)),
             *derive_messages(session.events()),
             UserMessage(content=INSTRUCTION),
         ]

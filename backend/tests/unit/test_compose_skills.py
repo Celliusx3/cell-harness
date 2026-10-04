@@ -19,7 +19,7 @@ from harness.tools.definition import Ok
 from harness.tools.native.code import EXECUTE, LIST
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
 from harness.web.agent import DEFAULT_TOOLS, build_agent
-from tests.unit.helpers import client_tools, no_gate, no_progress, skills_at
+from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, skills_at
 
 COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
 
@@ -46,6 +46,7 @@ def compose(tmp_path: Path):
             skills_at(root),
             client_tools(),
             no_gate(),
+            bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         )
 

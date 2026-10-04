@@ -1,41 +1,32 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Composer } from "@/components/conversation/Composer";
-import { ApiError, createConversation } from "@/lib/api";
+import { ApiError, ASSISTANT_ID, listBots } from "@/lib/api";
 
-/** The empty state, and where a conversation is born. */
-export default function NewConversationPage() {
+/** Opens Assistant's chat once the bot list has made sure it exists. */
+export default function HomePage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
 
-  const send = async (prompt: string) => {
-    setSending(true);
-    setError(null);
-    try {
-      const created = await createConversation(prompt);
-      router.push(`/c/${created.id}`);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "could not start a conversation");
-      setSending(false);
-    }
-  };
+  useEffect(() => {
+    let cancelled = false;
+    listBots()
+      .then(() => {
+        if (!cancelled) router.replace(`/c/${ASSISTANT_ID}`);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load bots.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
-  return (
-    <div className="flex flex-1 flex-col justify-center pb-24">
-      <div className="mx-auto w-full max-w-3xl px-8">
-        <h1 className="text-center font-serif text-4xl tracking-tight">What can I help with?</h1>
-        <p className="mt-3 text-center text-sm text-ink-soft">
-          Turns keep running if you close the tab. Come back and pick them up.
-        </p>
-        {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
-      </div>
-      <div className="mt-7">
-        <Composer autoFocus running={sending} onSend={send} onStop={() => {}} />
-      </div>
-    </div>
+  return error === null ? (
+    <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
+  ) : (
+    <p className="px-6 py-6 text-sm text-danger">{error}</p>
   );
 }

@@ -153,6 +153,16 @@ class ApprovalGrant(BaseModel):
     tool: str
 
 
+class BotInstructionsEvent(BaseModel):
+    """The bot answering in this conversation, as its turns from here on are prompted."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["bot/instructions"] = "bot/instructions"
+    name: str
+    instructions: str
+
+
 SessionEvent = (
     TurnStart
     | TurnEnd
@@ -168,4 +178,5 @@ SessionEvent = (
     | CompactionEnd
     | CompactionPrune
     | ApprovalGrant
+    | BotInstructionsEvent
 )

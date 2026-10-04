@@ -84,6 +84,12 @@ export function Timeline({
             );
           case "compaction":
             return <Compaction key={item.key} item={item} />;
+          case "instructions":
+            return (
+              <p key={item.key} className="text-center text-xs text-ink-soft">
+                Instructions updated
+              </p>
+            );
         }
       })}
       <div ref={floor} />

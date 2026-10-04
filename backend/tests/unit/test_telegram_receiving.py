@@ -22,7 +22,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import no_skills, skills_at
+from tests.unit.helpers import no_bots, no_skills, skills_at
 from tests.unit.telegram_fakes import telegram_channel, update
 from tests.unit.test_skill_tool import write_skill
 
@@ -39,7 +39,7 @@ def build(tmp_path, *, skills: SkillService):
     agent = LoopAgent(
         name="t", model="m", client=ScriptedClient(completed("ok")), checkpoint=sessions.flush
     )
-    runs = RunStore(sessions, agent)
+    runs = RunStore(sessions, agent, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url="http://t")
     channel, bot = telegram_channel(gateway)

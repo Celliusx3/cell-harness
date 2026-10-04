@@ -131,6 +131,15 @@ def test_the_sessions_root_expands_a_tilde() -> None:
     assert str(root).startswith("/")
 
 
+def test_the_bots_file_path_expands_a_tilde() -> None:
+    from harness.config.sections import BotSettings
+
+    path = BotSettings(path="~/bots.json").path
+
+    assert "~" not in str(path)
+    assert str(path).startswith("/")
+
+
 def test_config_local_json_beats_config_json(config_file) -> None:
     write_committed, write_local = config_file
     write_committed({"llm": {"model": "committed", "base_url": "https://committed"}})

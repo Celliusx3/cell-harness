@@ -9,12 +9,13 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels
 from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import client_tools, no_skills
+from tests.unit.helpers import client_tools, no_bots, no_skills
 
 
 def _stores(tmp_path) -> tuple[SessionService, RunStore]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    return sessions, RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
+    agent = LoopAgent(name="t", model="m", client=ScriptedClient([]))
+    return sessions, RunStore(sessions, agent, no_bots(sessions))
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:

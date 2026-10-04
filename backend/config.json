@@ -26,8 +26,11 @@
     "context_tokens": null
   },
   "approval": {
-    "tools": ["memory__write_note", "memory__delete_note", "skill_save", "skill_delete", "skill_write_file"],
+    "tools": ["memory__write_note", "memory__delete_note", "skill_save", "skill_delete", "skill_write_file", "bot_create"],
     "grants_path": "~/.harness/approvals.json"
+  },
+  "bots": {
+    "path": "~/.harness/bots.json"
   },
   "mcp": {
     "servers": {

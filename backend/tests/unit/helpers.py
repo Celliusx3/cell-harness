@@ -12,6 +12,7 @@ from pathlib import Path
 from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
 from harness.agent.loop import LoopAgent
+from harness.bots import BotStore
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.runs.store import RunStore
@@ -27,7 +28,7 @@ from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolProvider, ToolRegistry
-from harness.web.agent import CLIENT_TOOLS
+from harness.web.agent import ASSISTANT_INSTRUCTIONS, CLIENT_TOOLS
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -148,6 +149,16 @@ def run_store(
     return RunStore(
         service,
         loop_agent(client, *tools, checkpoint=service.flush, compaction=compaction, gate=gate),
+        no_bots(service),
+    )
+
+
+def no_bots(service: SessionService) -> BotStore:
+    """Only Assistant, over a bots file that cannot exist."""
+    return BotStore(
+        Path("/nonexistent/cell-harness-bots.json"),
+        service,
+        assistant_instructions=ASSISTANT_INSTRUCTIONS,
     )
 
 

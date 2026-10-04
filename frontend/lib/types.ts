@@ -113,7 +113,9 @@ export type SessionEvent =
     }
   /** These results are cleared from the model's view; the log and the screen keep them. */
   | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
-  | ApprovalGrantEvent;
+  | ApprovalGrantEvent
+  /** The bot answering from here on, and the instructions its turns are prompted with. */
+  | { type: "bot/instructions"; name: string; instructions: string };
 
 /** The person allowed `tool` to run unasked for the rest of this conversation. */
 export interface ApprovalGrantEvent {
@@ -128,6 +130,14 @@ export interface ConversationSummary {
   /** Empty until the opening turn's first flush stamps it. */
   title: string;
 }
+
+export interface Bot {
+  id: string;
+  name: string;
+  instructions: string;
+}
+
+export type BotDraft = Omit<Bot, "id">;
 
 export interface MessageAccepted extends ConversationSummary {
   /** True when the message was held behind a turn already running. */

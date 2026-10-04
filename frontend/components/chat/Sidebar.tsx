@@ -1,32 +1,55 @@
 "use client";
 
-import { BookOpen, MessageSquarePlus, ShieldCheck } from "lucide-react";
+import { BookOpen, BotMessageSquare, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { listConversations } from "@/lib/api";
-import type { ConversationSummary } from "@/lib/types";
+import { listBots, listConversations } from "@/lib/api";
+import type { Bot, ConversationSummary } from "@/lib/types";
 
-/** The conversation list. */
+const STALE = "harness:sidebar-stale";
+
+/** Ask the sidebar to read its bots and chats again, as after a turn that may have changed them. */
+export function refreshSidebar(): void {
+  window.dispatchEvent(new Event(STALE));
+}
+
+function chatsWithoutBot(rows: ConversationSummary[], bots: Bot[]): ConversationSummary[] {
+  const botIds = new Set(bots.map((bot) => bot.id));
+  return rows.filter((row) => !botIds.has(row.id));
+}
+
+/** The bots, then every chat no bot owns. */
 export function Sidebar() {
+  const [bots, setBots] = useState<Bot[]>([]);
   const [rows, setRows] = useState<ConversationSummary[]>([]);
   const pathname = usePathname();
   const params = useParams<{ id?: string }>();
   const currentId = params?.id;
+  const others = useMemo(() => chatsWithoutBot(rows, bots), [rows, bots]);
+  const [stale, setStale] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setStale((count) => count + 1);
+    window.addEventListener(STALE, bump);
+    return () => window.removeEventListener(STALE, bump);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    listConversations()
-      .then((listed) => {
-        if (!cancelled) setRows(listed);
+    Promise.all([listBots(), listConversations()])
+      .then(([listedBots, listedRows]) => {
+        if (cancelled) return;
+        setBots(listedBots);
+        setRows(listedRows);
       })
       .catch(() => {
       });
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, [pathname, stale]);
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-line bg-surface-sunken">
@@ -52,37 +75,65 @@ export function Sidebar() {
             <ShieldCheck size={18} />
           </Link>
           <Link
-            href="/"
-            aria-label="New conversation"
-            className="rounded-md p-1.5 text-ink-soft transition hover:bg-line hover:text-ink"
+            href="/bots/new"
+            aria-label="New bot"
+            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
+              pathname === "/bots/new" ? "bg-accent-soft text-ink" : "text-ink-soft"
+            }`}
           >
-            <MessageSquarePlus size={18} />
+            <BotMessageSquare size={18} />
           </Link>
         </div>
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
-        {rows.length === 0 ? (
-          <p className="px-2 py-3 text-xs text-ink-soft">No conversations yet.</p>
-        ) : (
-          <ul className="space-y-0.5">
-            {rows.map((row) => (
-              <li key={row.id}>
-                <Link
-                  href={`/c/${row.id}`}
-                  className={`block truncate rounded-md px-2 py-2 text-sm transition ${
-                    row.id === currentId
-                      ? "bg-accent-soft font-medium text-ink"
-                      : "text-ink-soft hover:bg-line hover:text-ink"
-                  }`}
-                >
-                  {row.title || "Untitled"}
-                </Link>
-              </li>
+      <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 pb-4">
+        <SidebarSection title="Bots">
+          {bots.map((bot) => (
+            <SidebarRow
+              key={bot.id}
+              href={`/c/${bot.id}`}
+              label={bot.name}
+              current={bot.id === currentId}
+            />
+          ))}
+        </SidebarSection>
+        {others.length > 0 && (
+          <SidebarSection title="Other chats">
+            {others.map((row) => (
+              <SidebarRow
+                key={row.id}
+                href={`/c/${row.id}`}
+                label={row.title || "Untitled"}
+                current={row.id === currentId}
+              />
             ))}
-          </ul>
+          </SidebarSection>
         )}
       </nav>
     </aside>
+  );
+}
+
+function SidebarSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h2 className="px-2 pb-1 text-xs font-medium text-ink-soft">{title}</h2>
+      <ul className="space-y-0.5">{children}</ul>
+    </section>
+  );
+}
+
+function SidebarRow({ href, label, current }: { href: string; label: string; current: boolean }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className={`block truncate rounded-md px-2 py-2 text-sm transition ${
+          current ? "bg-accent-soft font-medium text-ink" : "text-ink-soft hover:bg-line hover:text-ink"
+        }`}
+      >
+        {label}
+      </Link>
+    </li>
   );
 }

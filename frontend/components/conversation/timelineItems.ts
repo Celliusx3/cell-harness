@@ -62,12 +62,18 @@ export interface CompactionItem {
   pending: boolean;
 }
 
+export interface InstructionsItem {
+  kind: "instructions";
+  key: string;
+}
+
 export type TimelineItem =
   | UserItem
   | AssistantItem
   | ToolItem
   | NoticeItem
-  | CompactionItem;
+  | CompactionItem
+  | InstructionsItem;
 
 export interface Timeline {
   items: TimelineItem[];

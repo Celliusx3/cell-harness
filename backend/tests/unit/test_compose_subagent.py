@@ -28,7 +28,7 @@ from harness.web import agent as composition
 from harness.web.agent import build_agent
 from harness.web.server import build_store, build_subagent_logs
 from tests.unit.fakes import SteppedClient, calls_tool, completed
-from tests.unit.helpers import client_tools, no_gate, no_progress, no_skills
+from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
 
 
 @pytest.fixture
@@ -48,6 +48,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             no_skills(),
             client_tools(),
             no_gate(),
+            bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=subagent_logs,
         )
         return agent, sessions

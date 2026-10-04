@@ -15,7 +15,7 @@ from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import no_skills
+from tests.unit.helpers import no_bots, no_skills
 
 BOT_ID = 900
 
@@ -126,7 +126,7 @@ def build(tmp_path, client: LLMClient | None = None):
         client=client or ScriptedClient(completed("ok")),
         checkpoint=sessions.flush,
     )
-    runs = RunStore(sessions, agent)
+    runs = RunStore(sessions, agent, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     channel, fake = discord_channel(gateway)

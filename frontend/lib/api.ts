@@ -2,6 +2,8 @@ import type {
   AppResource,
   AppToolResult,
   Approvals,
+  Bot,
+  BotDraft,
   BundledFile,
   ConversationDetail,
   ConversationSummary,
@@ -62,13 +64,6 @@ export const listConversations = () =>
 export const getConversation = (id: string) =>
   request<ConversationDetail>(`/conversations/${id}`);
 
-/** Create a conversation *and* send its first message */
-export const createConversation = (prompt: string) =>
-  request<ConversationSummary>("/conversations", {
-    method: "POST",
-    body: JSON.stringify({ prompt }),
-  });
-
 export const sendMessage = (id: string, prompt: string) =>
   request<MessageAccepted>(`/conversations/${id}/messages`, {
     method: "POST",
@@ -95,6 +90,22 @@ export const sendToolOutput = <T>(
       body: JSON.stringify(output),
     },
   );
+
+export const ASSISTANT_ID = "assistant";
+
+export const listBots = () => request<Bot[]>("/bots");
+
+export const createBot = (draft: BotDraft) =>
+  request<Bot>("/bots", { method: "POST", body: JSON.stringify(draft) });
+
+export const updateBot = (id: string, draft: BotDraft) =>
+  request<Bot>(`/bots/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(draft),
+  });
+
+export const deleteBot = (id: string) =>
+  request<void>(`/bots/${encodeURIComponent(id)}`, { method: "DELETE" });
 
 export const listSkills = () => request<SkillList>("/skills");
 

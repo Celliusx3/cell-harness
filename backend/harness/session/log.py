@@ -8,6 +8,7 @@ from harness.llm.messages import ToolReference
 from harness.session.models import (
     ApprovalGrant,
     AssistantMessageEvent,
+    BotInstructionsEvent,
     SessionEvent,
     SessionHeader,
     ToolResultEvent,
@@ -54,6 +55,13 @@ class Session:
     def tools_granted(self) -> frozenset[str]:
         """The tools this conversation has allowed to run unasked."""
         return frozenset(e.tool for e in self._events if isinstance(e, ApprovalGrant))
+
+    def bot_instructions(self) -> BotInstructionsEvent | None:
+        """The bot instructions this conversation logged last, compacted or not, or `None`."""
+        for event in reversed(self._events):
+            if isinstance(event, BotInstructionsEvent):
+                return event
+        return None
 
     def context_size(self) -> int | None:
         """Input plus output tokens of the last reply that reported usage, or `None`."""

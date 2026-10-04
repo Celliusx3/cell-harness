@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from harness.bots import BotStore
 from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
@@ -24,9 +25,10 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
-from harness.web.agent import CLIENT_TOOLS, build_agent
+from harness.web.agent import ASSISTANT_INSTRUCTIONS, CLIENT_TOOLS, build_agent
 from harness.web.logs import configure_logging
 from harness.web.routes.approvals import build_router as build_approvals_router
+from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
 from harness.web.routes.compact import build_router as build_compact_router
 from harness.web.routes.mcp import build_router as build_mcp_router
@@ -103,6 +105,7 @@ def create_web_app() -> FastAPI:
     )
     client_tools = ClientToolService(CLIENT_TOOLS, gate)
     context_tokens = _resolve_context_tokens(settings)
+    bots = BotStore(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
     runs = RunStore(
         service,
         build_agent(
@@ -113,11 +116,13 @@ def create_web_app() -> FastAPI:
             client_tools,
             gate,
             context_tokens,
+            bots=bots,
             subagent_logs=build_subagent_logs(settings),
         ),
+        bots,
     )
     gateway, web = build_channels(settings, service, runs, skills, client_tools)
-    return create_app(runs, gateway, web, mcp, skills, client_tools, gate)
+    return create_app(runs, gateway, web, mcp, skills, client_tools, gate, bots)
 
 
 def create_app(
@@ -128,6 +133,7 @@ def create_app(
     skills: SkillService,
     client_tools: ClientToolService,
     gate: ApprovalGate,
+    bots: BotStore,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -147,4 +153,5 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_approvals_router(gate))
     app.include_router(build_compact_router(web))
+    app.include_router(build_bots_router(bots))
     return app
