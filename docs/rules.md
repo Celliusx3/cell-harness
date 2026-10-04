@@ -123,7 +123,10 @@ a reader can cancel, "close the tab and come back" stops being true.
 **One cursor.** A session sequence number means the same thing to a stored
 snapshot and a live stream. Don't add a second numbering for a subscriber, and
 don't let the UI derive one — that is what makes a replayed conversation and a
-live one the same code path. The browser reads the stream with `fetch`, not
+live one the same code path. Every streamed event carries its number, and a
+clear wipes the file without restarting the numbering, as Rakazo's
+`nextMessageSeq` does, so a reader never counts and a bookmark from before a
+clear still lands on the next event. The browser reads the stream with `fetch`, not
 `EventSource`: its own `Last-Event-ID` reconnect would race the cursor, it
 cannot be aborted precisely, and it treats a clean end as a reason to reconnect.
 

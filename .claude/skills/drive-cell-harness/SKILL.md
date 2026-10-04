@@ -51,7 +51,7 @@ Load the browser tools with ToolSearch (`select:mcp__plugin_everything-claude-co
 4. Click a tool card's name (for example `run_subagent`) to open it: its arguments and its result appear under it.
 5. An approval card offers "Allow once", "Allow for this conversation", "Always allow" and "Deny".
 
-Handles: placeholder "Send a message", labels "Send", "Stop", "New bot", "Edit bot", "Skills", "Approvals". Never click by coordinates.
+Handles: placeholder "Send a message", labels "Send", "Stop", "Clear", "New bot", "Edit bot", "Skills", "Approvals". Never click by coordinates.
 
 ## Evidence
 

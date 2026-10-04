@@ -73,7 +73,7 @@ the token in `backend/config.local.json`:
 tunnel, because it long-polls rather than taking a webhook. Text the bot and the
 conversation shows up in the browser sidebar like any other.
 
-`/new` starts a fresh conversation, `/stop` cancels the current reply. A message
+`/new` clears the chat in place, like the browser's Clear button; `/stop` cancels the current reply. A message
 sent while it is working is answered next rather than refused — and since phase 6
 the browser behaves the same way, because being able to *show* a refusal is not a
 reason to make someone retype what they wrote.

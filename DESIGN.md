@@ -128,7 +128,8 @@ type SessionEvent = (
 
 Rules, enforced not documented:
 
-1. Append-only, contiguous sequence numbers, lossless JSON. `append()` validates
+1. Append-only until a clear replaces the file whole; contiguous sequence
+   numbers that a clear carries on rather than restarts; lossless JSON. `append()` validates
    serializability at the source — a non-serializable payload is rejected where
    it is produced, not where it is read back.
 2. `derive_messages(log)` is the **only** way model history is produced. There is

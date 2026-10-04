@@ -64,7 +64,8 @@ collapse into one run; cron is read on local wall time (`croniter`, MIT), so a
 daylight-saving change does not move it an hour; a conversation is busy while a
 chat's last reply is still being sent, not only while a turn runs, or that reply
 goes out twice; compaction must count the routine's opening event as input; and
-`/new` on Telegram leaves the routine with the old conversation.
+`/new` clears the chat in place, so a routine keeps its chat and loses only the
+history before the clear.
 
 Also open, outside this order: 12 (files), 13 (commands), 15 (begun) and 16
 (steering), in the optional track below.
@@ -139,6 +140,12 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
 - `bot_create` (`tools/native/bots/`) — the form's save as a tool. It asks
   first and is withheld from scripts and helpers; Rakazo's `spawn_bot` does not
   ask (`packages/core/src/action-approval.ts:19`).
+- Clear — the Clear button and `/new` wipe a chat in place, as Rakazo's
+  `clearThread` does (`packages/db/src/events.ts:257-342`): the turn stops, and
+  `SessionService.clear` rewrites the chat's file to one `chat/cleared` line
+  under the same id, with no title. Its numbering carries on
+  (`SessionHeader.numbered_from`) and every streamed event carries its number
+  (`id:`), so an open tab or a Telegram chat keeps its place.
 
 **Key contracts.**
 - Model-visible means logged: a request's instructions come from the chat's last
@@ -147,6 +154,11 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
   (`tests/unit/test_bot_prompt.py`).
 
 **Next.**
+- Telegram and Discord write into Assistant's chat instead of one conversation
+  per platform chat, and get replies only for the turns they started (Rakazo
+  `packages/adapters/src/messaging-delivery.ts:87-90`).
+- Delete archives a bot with its chat, and no chat exists outside a bot: Other
+  chats and `POST`/`GET /api/conversations` go (Rakazo `Bot.archivedAt`).
 - `message_bot` (build order 16): a bot writes into another bot's chat and wakes
   it, the reply returns to the sender on its own, and a chain stops after 6 hops
   (Rakazo `packages/core/src/bot-messages.ts:10-14`). It needs a turn no person
