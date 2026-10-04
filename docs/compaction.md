@@ -118,7 +118,13 @@ recognised — answered against the user's two endpoints:
 
 So the window is discovered where reported (ilmu) and configured where not (LM
 Studio), and the reactive net catches LM Studio and some ilmu models but is
-never the mechanism. `GET /v1/models/{id}` is 404 on ilmu; the list carries the
+never the mechanism. Since 2026-10-04 `classify` (`llm/adapters/errors.py`)
+recognises an overflow by its wording anywhere in the error body, the way
+LiteLLM's `is_error_str_context_window_exceeded` does, so LM Studio's error sent
+inside a 200 stream (`{"error":{"message":"Context length exceeded"}}`),
+llama.cpp's "exceeds the available context size" and Anthropic's "prompt is too
+long" are caught like the two probed shapes; ilmu's generic `invalid_request`
+still is not. `GET /v1/models/{id}` is 404 on ilmu; the list carries the
 field. Claude Code's own answers: a per-model table for the window, `usage` for
 the size, a check before every request, and on "prompt too long" it does not
 retry — it asks the person to `/compact`.
