@@ -6,25 +6,26 @@ from collections.abc import AsyncIterator
 from functools import partial
 
 from harness.runs.store import Run
-from harness.session.models import SessionEvent
+from harness.session.log import Numbered
 
 
-async def subscribe(run: Run, *, after: int) -> AsyncIterator[SessionEvent]:
-    """Every event past `after`, then each new one, until the turn ends."""
+async def subscribe(run: Run, *, after: int) -> AsyncIterator[Numbered]:
+    """Every event numbered `after` and up, then each new one, until the turn ends."""
     cursor = after
     while True:
         async with run.condition:
             await run.condition.wait_for(partial(_caught_up, run, cursor))
-            events = list(run.session.events()[cursor:])
+            items = run.session.numbered_events_from(cursor)
             settled = run.settled
 
-        for event in events:
-            yield event
-        cursor += len(events)
+        for item in items:
+            yield item
+        if items:
+            cursor = items[-1].number + 1
 
-        if settled and cursor >= len(run.session.events()):
+        if settled and cursor >= run.session.next_number():
             return
 
 
 def _caught_up(run: Run, cursor: int) -> bool:
-    return len(run.session.events()) > cursor or run.settled
+    return run.session.next_number() > cursor or run.settled

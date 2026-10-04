@@ -54,11 +54,10 @@ class Replies:
         typing = asyncio.create_task(self._keep_typing(transport, chat_id))
         try:
             state = await self._state(channel, chat_id)
-            cursor = state.delivered_through
             names: dict[str, str] = {}
             pending: tuple[PendingCall, ...] = ()
-            async for event in subscribe(run, after=cursor):
-                cursor += 1
+            async for item in subscribe(run, after=state.delivered_through):
+                event = item.event
                 pending = pending_tool_calls(pending, event)
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
@@ -85,7 +84,8 @@ class Replies:
                 else:
                     continue
                 state = await self._state(channel, chat_id)
-                await self._repository.save(state.model_copy(update={"delivered_through": cursor}))
+                delivered = {"delivered_through": item.number + 1}
+                await self._repository.save(state.model_copy(update=delivered))
         except asyncio.CancelledError:
             raise
         except Exception:

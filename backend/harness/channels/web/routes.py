@@ -92,7 +92,7 @@ def build_router(web: WebChannel) -> APIRouter:
             created_at=header.created_at,
             title=header.title,
             events=events,
-            next_cursor=len(events),
+            next_cursor=session.next_number(),
             running=run is not None,
         )
 

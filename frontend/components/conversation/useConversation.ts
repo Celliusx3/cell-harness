@@ -79,8 +79,8 @@ export function useConversation(conversationId: string): Conversation {
       for (;;) {
         let ended = false;
         await streamEvents(conversationId, cursor.current, controller.signal, {
-          onEvent(event) {
-            cursor.current += 1;
+          onEvent(event, number) {
+            cursor.current = number + 1;
             setEvents((previous) => [...previous, event]);
             if (event.type === "user/message") setQueued([]);
             setRunning(true);

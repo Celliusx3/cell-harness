@@ -9,7 +9,7 @@ export type StreamEnd =
   | { kind: "aborted" };
 
 export interface StreamHandlers {
-  onEvent(event: SessionEvent): void;
+  onEvent(event: SessionEvent, number: number): void;
   onEnd(end: StreamEnd): void;
 }
 
@@ -54,8 +54,8 @@ export async function streamEvents(
         if (!frame) continue;
         if (frame.event === "end") {
           sawEnd = true;
-        } else if (frame.event === "session") {
-          handlers.onEvent(JSON.parse(frame.data) as SessionEvent);
+        } else if (frame.event === "session" && frame.id !== null) {
+          handlers.onEvent(JSON.parse(frame.data) as SessionEvent, frame.id);
         }
       }
       if (sawEnd) break;
@@ -69,13 +69,26 @@ export async function streamEvents(
   else handlers.onEnd(sawEnd ? { kind: "end" } : { kind: "dropped" });
 }
 
-function parseFrame(block: string): { event: string; data: string } | null {
+interface Frame {
+  event: string;
+  /** The event's number in the chat, or `null` when the frame has no numeric `id`. */
+  id: number | null;
+  data: string;
+}
+
+function parseFrame(block: string): Frame | null {
   let event = "message";
+  let id: number | null = null;
   const data: string[] = [];
   for (const line of block.split("\n")) {
     if (line.startsWith(":")) continue; // an SSE comment line
     if (line.startsWith("event: ")) event = line.slice(7);
+    else if (line.startsWith("id: ")) id = frameNumber(line.slice(4));
     else if (line.startsWith("data: ")) data.push(line.slice(6));
   }
-  return data.length ? { event, data: data.join("\n") } : null;
+  return data.length ? { event, id, data: data.join("\n") } : null;
+}
+
+function frameNumber(text: string): number | null {
+  return /^\d+$/.test(text) ? Number(text) : null;
 }

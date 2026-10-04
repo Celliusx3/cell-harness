@@ -61,12 +61,13 @@ async def test_a_reconnecting_subscriber_misses_nothing(service) -> None:
     early = [await anext(first), await anext(first)]
     await first.aclose()
 
-    rest = await drain(subscribe(run, after=len(early)))
+    rest = await drain(subscribe(run, after=early[-1].number + 1))
 
     seen = [*early, *rest]
-    assert seen == list(run.session.events())
-    assert [e.reason for e in seen if isinstance(e, TurnEnd)] == ["completed"]
-    assert any(isinstance(e, ToolResultEvent) for e in seen)
+    assert seen == list(enumerate(run.session.events()))
+    events = [item.event for item in seen]
+    assert [e.reason for e in events if isinstance(e, TurnEnd)] == ["completed"]
+    assert any(isinstance(e, ToolResultEvent) for e in events)
 
 
 async def test_subscribing_after_the_turn_ends_replays_everything(service) -> None:
@@ -75,7 +76,7 @@ async def test_subscribing_after_the_turn_ends_replays_everything(service) -> No
     run = runs.start(session, "go")
     await asyncio.wait_for(run._outer, timeout=5)
 
-    assert await drain(subscribe(run, after=0)) == list(run.session.events())
+    assert await drain(subscribe(run, after=0)) == list(enumerate(run.session.events()))
 
 
 async def test_a_settled_run_still_yields_its_last_events(service) -> None:
@@ -84,9 +85,10 @@ async def test_a_settled_run_still_yields_its_last_events(service) -> None:
     run = runs.start(session, "go")
     await asyncio.wait_for(run._outer, timeout=5)
 
-    events = await drain(subscribe(run, after=len(run.session.events()) - 1))
+    last = len(run.session.events()) - 1
+    items = await drain(subscribe(run, after=last))
 
-    assert [type(e) for e in events] == [TurnEnd]
+    assert [(item.number, type(item.event)) for item in items] == [(last, TurnEnd)]
 
 
 async def test_a_subscriber_waiting_when_the_run_settles_is_released(service) -> None:
@@ -96,7 +98,7 @@ async def test_a_subscriber_waiting_when_the_run_settles_is_released(service) ->
 
     collected = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
 
-    assert collected == list(run.session.events())
+    assert collected == list(enumerate(run.session.events()))
     assert run.settled
 
 

@@ -105,8 +105,8 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
 
     await runs.stop(session.id)
 
-    events = await asyncio.wait_for(collected, timeout=5)
-    assert events == list(session.events())
+    items = await asyncio.wait_for(collected, timeout=5)
+    assert items == list(enumerate(session.events()))
 
 
 async def test_aclose_stops_every_run_durably(service) -> None:
@@ -162,11 +162,11 @@ async def test_a_tool_using_turn_streams_through_to_a_subscriber(service) -> Non
     session = await service.create()
     run = runs.start(session, "go")
 
-    events = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
+    items = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
 
-    assert any(isinstance(e, ToolCallEvent) for e in events)
-    assert any(isinstance(e, ToolResultEvent) for e in events)
-    assert events == list(session.events())
+    assert any(isinstance(item.event, ToolCallEvent) for item in items)
+    assert any(isinstance(item.event, ToolResultEvent) for item in items)
+    assert items == list(enumerate(session.events()))
 
 
 async def test_the_conversation_id_is_the_session_id(service) -> None:

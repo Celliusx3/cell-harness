@@ -8,7 +8,7 @@ from contextlib import suppress
 
 from harness.runs.store import Run
 from harness.runs.subscribe import subscribe
-from harness.session.log import Session
+from harness.session.log import Numbered, Session
 
 MEDIA_TYPE = "text/event-stream"
 
@@ -26,20 +26,25 @@ def frame(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
+def session_frame(item: Numbered) -> str:
+    """One logged event as an SSE frame whose `id` is the event's number."""
+    return f"event: session\nid: {item.number}\ndata: {item.event.model_dump_json()}\n\n"
+
+
 async def sse_frames(source: Source, *, after: int, after_drain: AfterDrain) -> AsyncGenerator[str]:
     """The conversation's events from `after`, across every turn, then `end`."""
     cursor = after
     while True:
         if isinstance(source, Run):
-            async for event in subscribe(source, after=cursor):
-                cursor += 1
-                yield frame("session", event.model_dump_json())
+            async for item in subscribe(source, after=cursor):
+                yield session_frame(item)
+            cursor = source.session.next_number()
         else:
-            for event in source.events()[cursor:]:
-                cursor += 1
-                yield frame("session", event.model_dump_json())
+            for item in source.numbered_events_from(cursor):
+                yield session_frame(item)
+            cursor = source.next_number()
         source = await after_drain()
-        if isinstance(source, Session) and len(source.events()) <= cursor:
+        if isinstance(source, Session) and source.next_number() <= cursor:
             break
     yield frame("end", "{}")
 

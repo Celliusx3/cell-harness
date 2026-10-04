@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import get_args
 
 from harness.llm.messages import ApplicationMessage, AssistantMessage, Message, UserMessage
 from harness.llm.stream import Completed, TextChunk
 from harness.session.derive import derive_messages
+from harness.session.log import Session
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,
+    SessionHeader,
     TurnEnd,
     TurnStart,
     UserMessageEvent,
@@ -22,6 +25,16 @@ def test_sequence_numbers_are_contiguous_from_zero() -> None:
     session = new_session()
     seqs = [session.append(TurnStart(turn=n)) for n in range(5)]
     assert seqs == [0, 1, 2, 3, 4]
+
+
+def test_numbers_carry_on_from_the_header() -> None:
+    header = SessionHeader(id="s", created_at=datetime(2026, 1, 1, tzinfo=UTC), numbered_from=10)
+    events = [TurnStart(turn=n) for n in range(3)]
+    session = Session(header, events)
+
+    assert session.numbered_events_from(3) == [(10, events[0]), (11, events[1]), (12, events[2])]
+    assert session.numbered_events_from(11) == [(11, events[1]), (12, events[2])]
+    assert session.next_number() == 13
 
 
 def test_next_turn_is_derived_not_counted() -> None:

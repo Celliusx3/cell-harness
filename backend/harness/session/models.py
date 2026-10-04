@@ -31,6 +31,7 @@ class SessionHeader(BaseModel):
     id: str = Field(min_length=1)
     created_at: datetime
     title: str = ""
+    numbered_from: int = Field(default=0, description="The number of this file's first event.")
 
 
 class TurnStart(BaseModel):
