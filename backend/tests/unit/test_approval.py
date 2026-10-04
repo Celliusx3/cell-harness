@@ -29,7 +29,7 @@ WRITE = "memory__write_note"
 
 
 def _gate(tmp_path: Path, *tools: str) -> ApprovalGate:
-    return ApprovalGate(frozenset(tools), tmp_path / "approvals.json")
+    return ApprovalGate(frozenset(tools), frozenset, tmp_path / "approvals.json")
 
 
 def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:

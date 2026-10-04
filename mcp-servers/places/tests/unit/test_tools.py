@@ -19,9 +19,9 @@ async def test_both_tools_declare_an_output_schema() -> None:
     async with Client(server_with(handler)) as client:
         tools = {tool.name: tool for tool in (await client.list_tools()).tools}
 
-    assert set(tools) == {"search_text", "place_details"}
+    assert set(tools) == {"search_text", "get_place_details"}
     assert tools["search_text"].output_schema is not None
-    assert tools["place_details"].output_schema is not None
+    assert tools["get_place_details"].output_schema is not None
 
 
 async def test_a_search_arrives_as_structured_content_a_script_can_index() -> None:
@@ -90,7 +90,7 @@ async def test_details_round_trips_as_structured_content() -> None:
 
     handler, _ = capturing(httpx.Response(200, json=payload))
 
-    result = await call(server_with(handler), "place_details", {"place_id": "ChIJabc"})
+    result = await call(server_with(handler), "get_place_details", {"place_id": "ChIJabc"})
 
     data = result.structured_content
     assert data["opening_hours"]["open_now"] is False

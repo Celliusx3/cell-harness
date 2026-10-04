@@ -38,7 +38,7 @@ def build(tmp_path):
     )
     runs = RunStore(sessions, agent)
     tools = client_tools()
-    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills(), client_tools=tools)
+    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
     app = create_app(runs, gateway, web, web_mcp(), no_skills(), tools, no_gate())
@@ -97,7 +97,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunStore(sessions, LoopAgent(name="t", model="m", client=ScriptedClient([])))
     tools = client_tools()
-    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills(), client_tools=tools)
+    gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     wired = create_app(runs, gateway, web, web_mcp(), no_skills(), tools, no_gate())
 
     assert gateway.channels == ["web"]

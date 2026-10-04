@@ -7,7 +7,7 @@ import pytest
 from places.models import Candidate, PlaceDetails
 from places.tools.descriptions import DETAILS_DESCRIPTION, SEARCH_DESCRIPTION
 
-ALL = {"search_text": SEARCH_DESCRIPTION, "place_details": DETAILS_DESCRIPTION}
+ALL = {"search_text": SEARCH_DESCRIPTION, "get_place_details": DETAILS_DESCRIPTION}
 
 
 @pytest.mark.parametrize("name", sorted(ALL))
@@ -28,7 +28,7 @@ def test_a_description_names_its_arguments(name: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("name", "model"), [("search_text", Candidate), ("place_details", PlaceDetails)]
+    ("name", "model"), [("search_text", Candidate), ("get_place_details", PlaceDetails)]
 )
 def test_every_returned_field_is_named_in_the_prose(name: str, model: type) -> None:
     missing = [field for field in model.model_fields if field not in ALL[name]]

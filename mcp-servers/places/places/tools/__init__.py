@@ -33,7 +33,7 @@ def register(server: MCPServer, *, config: Config, client: PlacesClient) -> MCPS
         except PlacesError as err:
             raise ToolError(str(err)) from err
 
-    @server.tool(name="place_details", description=DETAILS_DESCRIPTION)
+    @server.tool(name="get_place_details", description=DETAILS_DESCRIPTION)
     async def place_details(place_id: str) -> PlaceDetails:
         try:
             return await client.place_details(place_id)

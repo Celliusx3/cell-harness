@@ -17,11 +17,12 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and thirteen insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and fourteen insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
-order 1). Their plans were deleted once built; read them with
+order 1), 14 asks before it writes (a server's tool asks first unless its
+name has a read verb, build order 2). Their plans were deleted once built; read them with
 `git show f9865e4:PHASES.md`.
 
 **Open:** 10, deferred until a second agent is wanted; 15, begun (skills from
@@ -36,7 +37,6 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 
 | # | Feature | Phase | Needs first | Rakazo |
 |---|---|---|---|---|
-| 2 | **Asks before it writes**: a tool named send, delete, pay… asks first; read verbs pass; an unknown verb asks | | | `packages/core/src/action-approval.ts` |
 | 3 | **Scheduled jobs**: on Telegram, silent when nothing changed | 20 | | `schedule-tools.ts`, `silent-reply.ts` |
 | 4 | **Helpers inside a turn**: up to 4 at once, each reports back | 14, see its note | | `pi-runtime.ts:1069-1119` |
 | 5 | **Connect hosted apps by URL**, with sign-in | | 2 | `remote-mcp.ts`, `mcp-oauth.ts` |
@@ -53,6 +53,7 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 | 16 | **Several bots that talk** and hand work over | | phase 10, see its note | `builtin-tools.ts:889-1008` |
 | 17 | **Webhooks start it**: the payload is fenced as untrusted data, and its side effects always ask | | 3, a signed-in public URL | `apps/api/src/webhook-inbound.ts:52-56` |
 | 18 | **It sees its screen** | 19 | 12, a vision model | `pi-runtime.ts` |
+| 19 | **Trusts a server you vouch for**: a server marked trusted in config has its read-only marks honoured, so memory's `build_context` and `recent_activity` stop asking; every other server stays on the name rule | | | none; VS Code's per-server trust and Codex's per-server approval mode |
 
 Also open, outside this order: 12 (files), 13 (commands), 15 (begun) and 16
 (steering), in the optional track below.

@@ -28,7 +28,6 @@ def web_gateway(
     runs: RunStore,
     *,
     skills: SkillService,
-    client_tools: ClientToolService,
 ) -> tuple[ChannelGateway, WebChannel]:
     """A gateway with only the browser registered."""
     gateway = ChannelGateway(
@@ -37,7 +36,6 @@ def web_gateway(
         service,
         skills,
         public_url="http://t",
-        client_tools=client_tools.awaited,
     )
     web = WebChannel(service, runs, gateway)
     gateway.register(web)
@@ -65,5 +63,5 @@ def web_app(
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
-    gateway, web = web_gateway(tmp_path, service, runs, skills=skills, client_tools=client_tools)
+    gateway, web = web_gateway(tmp_path, service, runs, skills=skills)
     return create_app(runs, gateway, web, mcp or web_mcp(), skills, client_tools, gate or no_gate())

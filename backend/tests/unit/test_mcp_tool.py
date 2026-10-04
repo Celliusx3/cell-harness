@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import re
 
+import pytest
 from mcp.types import AudioContent, CallToolResult, ImageContent, TextContent
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
-from harness.mcp.tool import build_tools, mcp_tool, render_content, ui_resource_uri
+from harness.mcp.tool import build_tools, can_write, mcp_tool, render_content, ui_resource_uri
 from harness.tools.definition import EXECUTION_ERROR, UNKNOWN_TOOL, Failure, Ok, ToolUi
 from tests.unit.helpers import context_for
 from tests.unit.mcp_fakes import text_result, tool
@@ -218,3 +219,27 @@ def test_every_relayed_name_is_a_usable_typescript_identifier() -> None:
 def test_a_server_publishing_no_schema_still_gets_a_usable_one() -> None:
     built = mcp_tool(server="srv", tool=tool("bare", schema={}), call=never_called)
     assert built.input_schema == {"type": "object", "properties": {}}
+
+
+@pytest.mark.parametrize(
+    ("name", "read_only", "writes"),
+    [
+        ("send_email", None, True),
+        ("blast_campaign", True, True),
+        ("place_details", None, True),
+        ("createIssue", None, True),
+        ("build_context", True, True),
+        ("get_quote", None, False),
+        ("get_items", False, False),
+        ("get_or_create", None, False),
+        ("get_place_details", None, False),
+        ("fetch_reels", None, False),
+        ("web_search_exa", None, False),
+        ("notion-search", None, False),
+        ("listIssues", None, False),
+    ],
+)
+def test_only_a_name_with_a_read_verb_runs_unasked_whatever_the_server_marks(
+    name: str, read_only: bool | None, writes: bool
+) -> None:
+    assert can_write(tool(name, read_only=read_only)) is writes

@@ -12,8 +12,8 @@ from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.store import Run
 from harness.runs.subscribe import subscribe
 from harness.session.compaction import CompactionEnd
-from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent
-from harness.tools.client import PendingCall
+from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnEnd
+from harness.tools.client import PendingCall, pending_tool_calls
 
 logger = logging.getLogger("harness.channels")
 
@@ -43,11 +43,8 @@ def _compaction_line(event: CompactionEnd) -> str:
 class Replies:
     """Sends a turn's replies to the chat that asked, and remembers how far."""
 
-    def __init__(
-        self, repository: ChatRepository, *, public_url: str, client_tools: frozenset[str]
-    ) -> None:
+    def __init__(self, repository: ChatRepository, *, public_url: str) -> None:
         self._repository = repository
-        self._client_tools = client_tools
         self._public_url = public_url
         if not public_url:
             logger.info("web.public_url is not set; app links will not be sent to chats")
@@ -59,18 +56,13 @@ class Replies:
             state = await self._state(channel, chat_id)
             cursor = state.delivered_through
             names: dict[str, str] = {}
+            pending: tuple[PendingCall, ...] = ()
             async for event in subscribe(run, after=cursor):
                 cursor += 1
+                pending = pending_tool_calls(pending, event)
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
-                    if event.call.name not in self._client_tools:
-                        continue
-                    await self._ask_client(
-                        transport,
-                        chat_id,
-                        PendingCall(event.call.name, event.call.id, event.call.arguments),
-                        answer_url(self._public_url, run.session.id, event.call.id),
-                    )
+                    continue
                 elif isinstance(event, ToolResultEvent):
                     if event.ui is None or not self._public_url:
                         continue
@@ -87,6 +79,9 @@ class Replies:
                     await transport.send_message(chat_id, event.message.content)
                 elif isinstance(event, CompactionEnd):
                     await transport.send_message(chat_id, _compaction_line(event))
+                elif isinstance(event, TurnEnd) and event.reason == "pending":
+                    for call in pending:
+                        await self._ask(transport, chat_id, run.session.id, call)
                 else:
                     continue
                 state = await self._state(channel, chat_id)
@@ -114,14 +109,15 @@ class Replies:
         except Exception:
             logger.warning("app link %s could not be sent to chat %s", url, chat_id, exc_info=True)
 
-    async def _ask_client(
-        self, transport: Pushing, chat_id: str, request: PendingCall, url: str
+    async def _ask(
+        self, transport: Pushing, chat_id: str, session_id: str, call: PendingCall
     ) -> None:
         """Best-effort: an unsent prompt times out into a result the model can act on."""
+        url = answer_url(self._public_url, session_id, call.call_id)
         try:
-            await transport.ask_client(chat_id, request, url)
+            await transport.ask_client(chat_id, call, url)
         except Exception:
-            logger.warning("%s could not be asked of chat %s", request.name, chat_id, exc_info=True)
+            logger.warning("%s could not be asked of chat %s", call.name, chat_id, exc_info=True)
 
     async def _keep_typing(self, transport: Pushing, chat_id: str) -> None:
         """Refresh the typing indicator until cancelled."""

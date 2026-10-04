@@ -67,9 +67,9 @@ stays Pro. Widening it is a one-word edit that quietly cuts the free allowance b
 |---|---|---|
 | Text Search **Pro** — what `search_text` uses | 5,000 | $32/1k |
 | Text Search Enterprise | 1,000 | $35/1k |
-| Place Details **Enterprise** — what `place_details` uses | 1,000 | $20/1k |
+| Place Details **Enterprise** — what `get_place_details` uses | 1,000 | $20/1k |
 
-`place_details` accepts the higher tier deliberately: hours and a phone number
+`get_place_details` accepts the higher tier deliberately: hours and a phone number
 are the point of asking, it is a **separate** SKU with its own allowance, and it
 is only called once a candidate has been chosen. Its description says so, because
 fanning it across candidates is the expensive mistake.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -56,20 +57,26 @@ class StandingGrants(BaseModel):
 
 
 class ApprovalGate:
-    """The listed tools, and the file that remembers which of them no longer ask."""
+    """The tools that ask, and the file that remembers which of them no longer ask."""
 
-    def __init__(self, tools: frozenset[str], grants_path: Path) -> None:
-        self._tools = tools
+    def __init__(
+        self,
+        configured: frozenset[str],
+        writing_tool_names: Callable[[], frozenset[str]],
+        grants_path: Path,
+    ) -> None:
+        self._configured = configured
+        self._writing_tool_names = writing_tool_names
         self._grants_path = grants_path
 
     @property
     def tools(self) -> frozenset[str]:
-        """Every tool that asks unless granted."""
-        return self._tools
+        """The configured tools and the servers' tools that may write; each asks unless granted."""
+        return self._configured | self._writing_tool_names()
 
     def asks(self, name: str) -> bool:
         """Whether a call to `name` must wait for the person."""
-        return name in self._tools and name not in self.granted()
+        return name in self.tools and name not in self.granted()
 
     def granted(self) -> frozenset[str]:
         """What the grants file holds right now; a missing file is empty."""
@@ -80,7 +87,7 @@ class ApprovalGate:
 
     def grant(self, name: str) -> None:
         """Remember that `name` may run without asking."""
-        if name not in self._tools:
+        if name not in self.tools:
             raise ValueError(f"{name!r} is not a tool that asks for approval")
         self._write(self.granted() | {name})
 

@@ -9,13 +9,13 @@ import { useClientTool } from "@/components/answer/useClientTool";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import type { Answer } from "@/lib/types";
 
-const FADE_ABOVE =
+export const FADE_ABOVE =
   "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-8 before:bg-gradient-to-t before:from-surface before:to-transparent before:content-['']";
 
-const OPTION =
+export const OPTION =
   "flex w-full items-start gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm font-medium transition hover:bg-surface-sunken";
 
-const BADGE =
+export const BADGE =
   "flex size-5 shrink-0 items-center justify-center rounded-md border border-line bg-surface-sunken text-xs text-ink-soft";
 
 const OPTION_KEY = /^[1-9]$/;

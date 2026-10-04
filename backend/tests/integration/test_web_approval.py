@@ -30,7 +30,7 @@ def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
 
 def _asking(tmp_path, *steps, ran: list[str]):
     """An app whose model saves a note, then answers."""
-    gate = ApprovalGate(frozenset({WRITE}), tmp_path / "approvals.json")
+    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, gate)
     model = SteppedClient(
         calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"), completed("saved"), *steps

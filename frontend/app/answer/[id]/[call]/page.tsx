@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { use } from "react";
 
-import { ApprovalRequest } from "@/components/answer/ApprovalRequest";
+import { ApprovalPanel } from "@/components/answer/ApprovalPanel";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import { ASK_USER } from "@/components/answer/question";
 import { QuestionPanel } from "@/components/answer/QuestionPanel";
@@ -63,7 +63,7 @@ export default function AnswerPage({
             onAnswered={conversation.wake}
           />
         ) : item.result === null ? (
-          <ApprovalRequest
+          <ApprovalPanel
             item={item}
             conversationId={id}
             onAnswered={conversation.wake}
