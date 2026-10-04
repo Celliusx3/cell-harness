@@ -214,5 +214,16 @@ async def test_a_turn_that_spoke_then_went_blank_is_told_too() -> None:
 
     events = await drain(loop_agent(client, clock_tool(), hooks=TOLD).run("hi", session=session))
 
-    assert events[-1] == AgentCompleted(text="Let me checkTuesday")
+    assert events[-1] == AgentCompleted(text="Tuesday")
     assert _notes(session) == [EMPTY_REPLY_NOTE]
+
+
+async def test_a_turn_answers_with_its_final_reply_not_what_it_said_on_the_way() -> None:
+    client = SteppedClient(
+        calls_tool("get_current_time", text="Let me check"), completed("It is Tuesday.")
+    )
+    session = new_session()
+
+    events = await drain(loop_agent(client, clock_tool()).run("what day", session=session))
+
+    assert events[-1] == AgentCompleted(text="It is Tuesday.")
