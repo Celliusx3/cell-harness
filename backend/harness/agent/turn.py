@@ -60,7 +60,6 @@ class RetryStep:
 async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
     """From an opened turn to its end: its events as they happen, then exactly one terminal."""
     step = 0
-    answer = ""
     outcome: AgentCompleted | AgentPending | AgentFailed
 
     try:
@@ -86,7 +85,6 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
                 outcome = AgentFailed(reason=reply.reason)
                 break
 
-            answer += reply.full_text
             if not reply.tool_calls:
                 decision = await agent.hooks.end_of_step(session=session)
                 if isinstance(decision, GiveUp):
@@ -97,7 +95,7 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
                     _tell(session, turn, step, decision.note)
                     continue
                 _close(session, turn, step, "completed")
-                outcome = AgentCompleted(text=answer)
+                outcome = AgentCompleted(text=reply.full_text)
                 break
 
             pending: ToolPending | None = None

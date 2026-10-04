@@ -152,6 +152,9 @@ class OpenAIClient(LLMClient):
                     except json.JSONDecodeError:
                         logger.warning("skipping unparseable SSE frame: %r", data)
                         continue
+                    if payload.get("error"):
+                        yield Failed(reason=f"provider sent an error: {data}", code=classify(data))
+                        return
                     usage = _usage(payload) or usage
                     delta = _delta(payload)
                     calls.add(delta)

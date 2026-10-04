@@ -44,7 +44,7 @@ async def test_prompt_to_tool_to_answer() -> None:
         "TextChunk",
         "AgentCompleted",
     ]
-    assert events[-1] == AgentCompleted(text="Let me check. The answer is 42.")
+    assert events[-1] == AgentCompleted(text="The answer is 42.")
 
     kinds = [e.type for e in session.events()]
     assert kinds == [

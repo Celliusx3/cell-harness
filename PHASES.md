@@ -17,12 +17,14 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and fourteen insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and sixteen insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
 order 1), 14 asks before it writes (a server's tool asks first unless its
-name has a read verb, build order 2). Their plans were deleted once built; read them with
+name has a read verb, build order 2), 15 helpers inside a turn (`run_subagent`,
+build order 4), 16 long results cut for the model (12,000 characters, build
+order 6). Their plans were deleted once built; read them with
 `git show f9865e4:PHASES.md`.
 
 **Open:** 10, deferred until a second agent is wanted; 15, begun (skills from
@@ -37,10 +39,7 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 
 | # | Feature | Phase | Needs first | Rakazo |
 |---|---|---|---|---|
-| 3 | **Scheduled jobs**: on Telegram, silent when nothing changed | 20 | | `schedule-tools.ts`, `silent-reply.ts` |
-| 4 | **Helpers inside a turn**: up to 4 at once, each reports back | 14, see its note | | `pi-runtime.ts:1069-1119` |
 | 5 | **Connect hosted apps by URL**, with sign-in | | 2 | `remote-mcp.ts`, `mcp-oauth.ts` |
-| 6 | **Huge results don't break a chat**: a tool result is cut at 12,000 characters | | | `pi-runtime-limits.ts:29-63` |
 | 7 | **API keys it never sees**: a masked card stores the key; the server adds it to the request | | | `docs/bot-secrets.md` |
 | 8 | **Charts in chat**: an MCP App draws the chart from the data | | | `builtin-tools.ts:407` |
 | 9 | **Files it hands you**, versioned by name, with a tab to reopen them | | | `thread-artifacts.ts` |
@@ -54,6 +53,17 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 | 17 | **Webhooks start it**: the payload is fenced as untrusted data, and its side effects always ask | | 3, a signed-in public URL | `apps/api/src/webhook-inbound.ts:52-56` |
 | 18 | **It sees its screen** | 19 | 12, a vision model | `pi-runtime.ts` |
 | 19 | **Trusts a server you vouch for**: a server marked trusted in config has its read-only marks honoured, so memory's `build_context` and `recent_activity` stop asking; every other server stays on the name rule | | | none; VS Code's per-server trust and Codex's per-server approval mode |
+| 3 | **Scheduled jobs**: on Telegram, silent when nothing changed | 20 | | `schedule-tools.ts`, `silent-reply.ts` |
+
+Row 3 moved last on 2026-10-04, after helpers (4) and long results (6). When it starts, what
+the research and a review found: the run goes in the conversation that made it,
+as Rakazo's `wakeRoutine` does (`executor.ts:1013-1151`); a due time is written
+past before the run starts, so a restart never runs it twice, and missed times
+collapse into one run; cron is read on local wall time (`croniter`, MIT), so a
+daylight-saving change does not move it an hour; a conversation is busy while a
+chat's last reply is still being sent, not only while a turn runs, or that reply
+goes out twice; compaction must count the routine's opening event as input; and
+`/new` on Telegram leaves the routine with the old conversation.
 
 Also open, outside this order: 12 (files), 13 (commands), 15 (begun) and 16
 (steering), in the optional track below.
@@ -199,11 +209,15 @@ lacks is **rejected loudly**. Layer resolution is global → farthest ancestor �
 nearest; `own()` is chain-blind because capabilities inherit and restrictions
 don't. ~800 lines.
 
-**Rakazo's lighter shape (build order 4).** One `run_subagent(name, task)` tool:
-the helper gets the same tools minus delegation, runs one level deep, at most 4
-at once, and returns its answer as the tool result (`pi-runtime.ts:89`,
-`:1069-1119`). Build order 4 chooses between it and the layered design above,
-and decides how a helper's steps are logged, before it starts.
+**Rakazo's lighter shape, built as insertion 15 (build order 4).** One `run_subagent` call
+carries one to four tasks, `{ tasks: [{ name, task }] }`, run at once inside the
+tool, as Hermes's `delegate_task(tasks=[...])` does; Rakazo instead runs several
+calls of one step at once (`pi-runtime.ts:89`, `:1069-1119`), and our loop runs a
+step's calls in order. A helper starts with no history, gets the tools minus
+`run_subagent`, `ask_user`, `get_location` and the skill writes, and a call that
+needs approval stops it with a reason the parent can act on. Each helper's steps
+are logged in its own session, `subagents/<call id>.<n>.jsonl` beside the sessions
+folder, which the conversation list does not read.
 
 ## Phase 15 — It operates itself *(optional)*
 

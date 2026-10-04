@@ -53,6 +53,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
         skills_at(tmp_path / "skills"),
         client_tools(),
         no_gate(),
+        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
     )
     assert agent.tools is not None
     script = fenced(CREATE_SKILL.read_text(), "ts")
