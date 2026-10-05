@@ -6,8 +6,8 @@ import asyncio
 
 from fastapi import APIRouter
 
+from harness.bots import BotStore
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import OnMissing
 from harness.channels.web.routes import build_router
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
@@ -19,18 +19,23 @@ class WebChannel:
     """HTTP in, the session log out."""
 
     channel = CHANNEL
-    on_missing: OnMissing = "raise"
 
     def __init__(
         self,
         sessions: SessionService,
         runs: RunStore,
         gateway: ChannelGateway,
+        bots: BotStore,
     ) -> None:
         self.sessions = sessions
         self.runs = runs
         self.gateway = gateway
+        self.bots = bots
         self.router: APIRouter = build_router(self)
+
+    def conversation_for(self, chat_id: str) -> str:
+        """A browser chat is named by the conversation it writes into."""
+        return chat_id
 
     async def run(self) -> None:
         """Wait until cancelled."""

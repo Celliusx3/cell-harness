@@ -56,7 +56,7 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
         client, system_prompt="GUIDE", checkpoint=service.flush, compaction=compaction
     )
     runs = RunStore(service, agent, bots)
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
     bots.update(ASSISTANT_ID, "Assistant", "Be brief.")
 
@@ -71,7 +71,7 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
     bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés"))
     runs = RunStore(service, loop_agent(client, pending_tool(), checkpoint=service.flush), bots)
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
     bots.update(ASSISTANT_ID, "Assistant", "Be brief.")
 

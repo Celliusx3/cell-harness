@@ -6,6 +6,7 @@ import asyncio
 
 import pytest
 
+from harness.bots import ASSISTANT_ID
 from harness.runs.store import RunAlreadyActive
 from harness.runs.subscribe import subscribe
 from harness.session.models import (
@@ -36,7 +37,7 @@ async def test_a_subscriber_walking_away_does_not_end_the_run(service) -> None:
         SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done")),
         echo_tool(),
     )
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
     stream = subscribe(run, after=0)
@@ -54,7 +55,7 @@ async def test_a_reconnecting_subscriber_misses_nothing(service) -> None:
         SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done")),
         echo_tool(),
     )
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
     first = subscribe(run, after=0)
@@ -72,7 +73,7 @@ async def test_a_reconnecting_subscriber_misses_nothing(service) -> None:
 
 async def test_subscribing_after_the_turn_ends_replays_everything(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
     await asyncio.wait_for(run._outer, timeout=5)
 
@@ -81,7 +82,7 @@ async def test_subscribing_after_the_turn_ends_replays_everything(service) -> No
 
 async def test_a_settled_run_still_yields_its_last_events(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
     await asyncio.wait_for(run._outer, timeout=5)
 
@@ -93,7 +94,7 @@ async def test_a_settled_run_still_yields_its_last_events(service) -> None:
 
 async def test_a_subscriber_waiting_when_the_run_settles_is_released(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
     collected = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
@@ -104,7 +105,7 @@ async def test_a_subscriber_waiting_when_the_run_settles_is_released(service) ->
 
 async def test_a_second_run_on_one_conversation_is_refused(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     runs.start(session, "first")
 
     with pytest.raises(RunAlreadyActive):
@@ -113,7 +114,7 @@ async def test_a_second_run_on_one_conversation_is_refused(service) -> None:
 
 async def test_a_conversation_is_free_again_once_its_turn_settles(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "first")
     await asyncio.wait_for(run._outer, timeout=5)
 
@@ -123,7 +124,7 @@ async def test_a_conversation_is_free_again_once_its_turn_settles(service) -> No
 
 async def test_starting_is_atomic_against_a_concurrent_start(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
 
     async def attempt() -> str:
         try:
@@ -140,7 +141,7 @@ async def test_starting_is_atomic_against_a_concurrent_start(service) -> None:
 async def test_resume_runs_a_turn_that_starts_with_the_answer(service) -> None:
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés"))
     runs = run_store(service, client, pending_tool())
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     first = runs.start(session, "near me?")
     await asyncio.wait_for(first._outer, timeout=5)
 

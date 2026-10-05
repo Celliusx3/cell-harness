@@ -22,7 +22,6 @@ export interface Conversation {
   events: SessionEvent[];
   /** Messages sent while a turn was running, not yet in the log. */
   queued: string[];
-  title: string;
   running: boolean;
   loading: boolean;
   error: string | null;
@@ -39,7 +38,6 @@ export interface Conversation {
 export function useConversation(conversationId: string): Conversation {
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [queued, setQueued] = useState<string[]>([]);
-  const [title, setTitle] = useState("");
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +62,6 @@ export function useConversation(conversationId: string): Conversation {
         const detail = await getConversation(conversationId);
         if (cancelled) return;
         setEvents(detail.events);
-        setTitle(detail.title);
         setRunning(detail.running);
         setLoading(false);
         cursor.current = detail.next_cursor;
@@ -172,5 +169,5 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId]);
 
-  return { events, queued, title, running, loading, error, send, stop, compact, clear, wake };
+  return { events, queued, running, loading, error, send, stop, compact, clear, wake };
 }

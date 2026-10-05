@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 
 from harness.tools.native.question import QUESTION
-from tests.integration.web_helpers import build, settle
+from tests.integration.web_helpers import assistant_chat, build, settle
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, no_skills
 from tests.webapp import web_app
@@ -30,7 +30,7 @@ def _numbers(body: str) -> list[int]:
 
 
 async def _started(client: httpx.AsyncClient, runs, prompt: str) -> str:
-    cid = (await client.post("/api/conversations", json={"prompt": prompt})).json()["id"]
+    cid = await assistant_chat(client, prompt)
     await settle(runs, cid)
     return cid
 

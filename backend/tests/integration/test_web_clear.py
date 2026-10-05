@@ -9,7 +9,7 @@ import pytest
 
 from harness.bots import ASSISTANT_ID, BotStore
 from harness.runs.store import RunStore
-from tests.integration.web_helpers import settle
+from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, completed
 from tests.unit.helpers import durable_service, loop_agent, no_skills, run_store
 from tests.webapp import web_app
@@ -60,7 +60,7 @@ async def test_clearing_a_running_chat_stops_its_turn(tmp_path) -> None:
     runs = run_store(service, HangingClient("thinking"))
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
-        cid = (await c.post("/api/conversations", json={"prompt": "go"})).json()["id"]
+        cid = await assistant_chat(c, "go")
         run = runs.active(cid)
         while not any(event.type == "assistant/chunk" for event in run.session.events()):
             await asyncio.sleep(0.01)

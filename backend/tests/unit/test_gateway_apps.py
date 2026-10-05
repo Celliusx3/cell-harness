@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from harness.bots import ASSISTANT_ID
 from harness.channels.replies import app_url
 from harness.tools.context import ToolContext
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome, ToolUi
@@ -40,12 +41,12 @@ async def test_a_result_with_an_app_is_delivered_as_a_link_before_the_reply(tmp_
 
     ((chat_id, text, markup),) = bot.linked
     assert (chat_id, text) == (CHAT, "srv__show")
-    assert markup.inline_keyboard[0][0].url == app_url("http://t", "c0", "c1")
+    assert markup.inline_keyboard[0][0].url == app_url("http://t", ASSISTANT_ID, "c1")
     assert bot.sent == [(CHAT, "there it is")]
 
 
 async def test_a_link_the_platform_refuses_does_not_cost_the_reply(tmp_path) -> None:
-    bot, gateway, runs, chats, _ = build(
+    bot, gateway, runs, _, _ = build(
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
         app_tool(),
@@ -58,8 +59,6 @@ async def test_a_link_the_platform_refuses_does_not_cost_the_reply(tmp_path) -> 
 
     assert bot.linked == []
     assert bot.sent == [(CHAT, "there it is")]
-    state = await chats.load("telegram", CHAT)
-    assert state is not None and state.delivered_through > 0
 
 
 async def test_no_public_url_means_no_link(tmp_path) -> None:

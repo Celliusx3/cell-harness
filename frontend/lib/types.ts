@@ -125,13 +125,6 @@ export interface ApprovalGrantEvent {
   tool: string;
 }
 
-export interface ConversationSummary {
-  id: string;
-  created_at: string;
-  /** Empty until the opening turn's first flush stamps it. */
-  title: string;
-}
-
 export interface Bot {
   id: string;
   name: string;
@@ -140,12 +133,16 @@ export interface Bot {
 
 export type BotDraft = Omit<Bot, "id">;
 
-export interface MessageAccepted extends ConversationSummary {
+export interface MessageAccepted {
+  id: string;
+  created_at: string;
   /** True when the message was held behind a turn already running. */
   queued: boolean;
 }
 
-export interface ConversationDetail extends ConversationSummary {
+export interface ConversationDetail {
+  id: string;
+  created_at: string;
   events: SessionEvent[];
   next_cursor: number;
   running: boolean;

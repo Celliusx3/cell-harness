@@ -45,16 +45,25 @@ class Following:
 
     async def turn_for_chat(self, state: ChatState, text: str) -> Run | None:
         """Resolve this chat's conversation and begin a turn in it."""
-        state, session = await session_for(
-            self._repository, self._sessions, self._channels[state.channel].channel, state
-        )
+        session = await session_for(self._repository, self._sessions, state)
         try:
             return self.begin(state, self._runs.start(session, text))
         except RunAlreadyActive:
-            await self._repository.save(
-                state.model_copy(update={"pending": (*state.pending, text)})
-            )
+            await self.queue(state, text)
             return None
+
+    async def queue(self, state: ChatState, text: str) -> None:
+        """Hold `text` until the turn running in this chat's conversation settles."""
+        await self._repository.save(state.model_copy(update={"pending": (*state.pending, text)}))
+        key = ChatKey(state.channel, state.chat_id)
+        running = self._runs.active(state.conversation_id)
+        if running is not None and not self._is_followed_elsewhere(key):
+            self._tasks.start(key, self._wait_out(key, running))
+
+    def _is_followed_elsewhere(self, key: ChatKey) -> bool:
+        """Whether another task of this chat's will drain its queue."""
+        task = self._tasks.get(key)
+        return task is not None and not task.done() and task is not asyncio.current_task()
 
     def begin(self, state: ChatState, run: Run) -> Run:
         key = ChatKey(state.channel, state.chat_id)
@@ -67,10 +76,13 @@ class Following:
         transport = self._channels[channel].channel
         if isinstance(transport, Pushing):
             await self._replies.deliver(transport, channel, chat_id, run)
-        else:
-            async with run.condition:
-                await run.condition.wait_for(lambda: run.settled)
-        await self._drain(channel, chat_id)
+        await self._wait_out(key, run)
+
+    async def _wait_out(self, key: ChatKey, run: Run) -> None:
+        """Wait, sending nothing, for `run` to settle, then start whatever queued behind it."""
+        async with run.condition:
+            await run.condition.wait_for(lambda: run.settled)
+        await self._drain(*key)
 
     async def _drain(self, channel: str, chat_id: str) -> None:
         """Run whatever queued during the last turn, as one turn."""

@@ -3,31 +3,26 @@
 import { BookOpen, BotMessageSquare, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { listBots, listConversations } from "@/lib/api";
-import type { Bot, ConversationSummary } from "@/lib/types";
+import { ArchivedBots } from "@/components/chat/ArchivedBots";
+import { listArchivedBots, listBots } from "@/lib/api";
+import type { Bot } from "@/lib/types";
 
 const STALE = "harness:sidebar-stale";
 
-/** Ask the sidebar to read its bots and chats again, as after a turn that may have changed them. */
+/** Ask the sidebar to read its bots again. */
 export function refreshSidebar(): void {
   window.dispatchEvent(new Event(STALE));
 }
 
-function chatsWithoutBot(rows: ConversationSummary[], bots: Bot[]): ConversationSummary[] {
-  const botIds = new Set(bots.map((bot) => bot.id));
-  return rows.filter((row) => !botIds.has(row.id));
-}
-
-/** The bots, then every chat no bot owns. */
+/** The bots, each a link to its one chat, then the archived ones. */
 export function Sidebar() {
   const [bots, setBots] = useState<Bot[]>([]);
-  const [rows, setRows] = useState<ConversationSummary[]>([]);
+  const [archived, setArchived] = useState<Bot[]>([]);
   const pathname = usePathname();
   const params = useParams<{ id?: string }>();
   const currentId = params?.id;
-  const others = useMemo(() => chatsWithoutBot(rows, bots), [rows, bots]);
   const [stale, setStale] = useState(0);
 
   useEffect(() => {
@@ -38,11 +33,11 @@ export function Sidebar() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([listBots(), listConversations()])
-      .then(([listedBots, listedRows]) => {
+    Promise.all([listBots(), listArchivedBots()])
+      .then(([listedBots, listedArchived]) => {
         if (cancelled) return;
         setBots(listedBots);
-        setRows(listedRows);
+        setArchived(listedArchived);
       })
       .catch(() => {
       });
@@ -97,18 +92,7 @@ export function Sidebar() {
             />
           ))}
         </SidebarSection>
-        {others.length > 0 && (
-          <SidebarSection title="Other chats">
-            {others.map((row) => (
-              <SidebarRow
-                key={row.id}
-                href={`/c/${row.id}`}
-                label={row.title || "Untitled"}
-                current={row.id === currentId}
-              />
-            ))}
-          </SidebarSection>
-        )}
+        {archived.length > 0 && <ArchivedBots bots={archived} onChange={refreshSidebar} />}
       </nav>
     </aside>
   );

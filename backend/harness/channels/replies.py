@@ -1,4 +1,4 @@
-"""Outbound: one turn's replies, sent as they land, behind a cursor."""
+"""Outbound: one turn's replies, sent as they land."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import logging
 from urllib.parse import quote
 
 from harness.channels.protocol import Pushing
-from harness.channels.repository import ChatRepository, ChatState
+from harness.channels.repository import ChatRepository
 from harness.runs.store import Run
 from harness.runs.subscribe import subscribe
 from harness.session.compaction import CompactionEnd
@@ -41,7 +41,7 @@ def _compaction_line(event: CompactionEnd) -> str:
 
 
 class Replies:
-    """Sends a turn's replies to the chat that asked, and remembers how far."""
+    """Sends a turn's replies to the chat that asked, and remembers what it was asked."""
 
     def __init__(self, repository: ChatRepository, *, public_url: str) -> None:
         self._repository = repository
@@ -53,15 +53,13 @@ class Replies:
         """Send this turn's replies as they land."""
         typing = asyncio.create_task(self._keep_typing(transport, chat_id))
         try:
-            state = await self._state(channel, chat_id)
             names: dict[str, str] = {}
             pending: tuple[PendingCall, ...] = ()
-            async for item in subscribe(run, after=state.delivered_through):
+            async for item in subscribe(run, after=run.first_event_number):
                 event = item.event
                 pending = pending_tool_calls(pending, event)
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
-                    continue
                 elif isinstance(event, ToolResultEvent):
                     if event.ui is None or not self._public_url:
                         continue
@@ -79,13 +77,9 @@ class Replies:
                 elif isinstance(event, CompactionEnd):
                     await transport.send_message(chat_id, _compaction_line(event))
                 elif isinstance(event, TurnEnd) and event.reason == "pending":
+                    await self._remember_asked(channel, chat_id, pending)
                     for call in pending:
                         await self._ask(transport, chat_id, run.session.id, call)
-                else:
-                    continue
-                state = await self._state(channel, chat_id)
-                delivered = {"delivered_through": item.number + 1}
-                await self._repository.save(state.model_copy(update=delivered))
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -95,12 +89,15 @@ class Replies:
             with contextlib.suppress(BaseException):
                 await typing
 
-    async def _state(self, channel: str, chat_id: str) -> ChatState:
-        """This chat's stored state, read now."""
+    async def _remember_asked(
+        self, channel: str, chat_id: str, calls: tuple[PendingCall, ...]
+    ) -> None:
+        """Record the calls this chat was asked."""
         stored = await self._repository.load(channel, chat_id)
         if stored is None:
-            raise RuntimeError(f"{channel} chat {chat_id} has no stored state to deliver to")
-        return stored
+            raise RuntimeError(f"{channel} chat {chat_id} has no stored state to be asked in")
+        new = tuple(call.call_id for call in calls if call.call_id not in stored.asked)
+        await self._repository.save(stored.model_copy(update={"asked": (*stored.asked, *new)}))
 
     async def _send_link(self, transport: Pushing, chat_id: str, text: str, url: str) -> None:
         """Best-effort, unlike a reply."""

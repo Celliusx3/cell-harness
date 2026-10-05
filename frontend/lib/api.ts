@@ -6,7 +6,6 @@ import type {
   BotDraft,
   BundledFile,
   ConversationDetail,
-  ConversationSummary,
   ClientOutput,
   Decision,
   MessageAccepted,
@@ -58,9 +57,6 @@ async function detailOf(response: Response): Promise<string> {
   return `request failed (${response.status})`;
 }
 
-export const listConversations = () =>
-  request<ConversationSummary[]>("/conversations");
-
 export const getConversation = (id: string) =>
   request<ConversationDetail>(`/conversations/${id}`);
 
@@ -99,6 +95,8 @@ export const ASSISTANT_ID = "assistant";
 
 export const listBots = () => request<Bot[]>("/bots");
 
+export const listArchivedBots = () => request<Bot[]>("/bots/archived");
+
 export const createBot = (draft: BotDraft) =>
   request<Bot>("/bots", { method: "POST", body: JSON.stringify(draft) });
 
@@ -108,6 +106,15 @@ export const updateBot = (id: string, draft: BotDraft) =>
     body: JSON.stringify(draft),
   });
 
+/** Hide a bot and its chat until it is restored. */
+export const archiveBot = (id: string) =>
+  request<void>(`/bots/${encodeURIComponent(id)}/archive`, { method: "POST" });
+
+/** Bring an archived bot back with its chat as it was. */
+export const restoreBot = (id: string) =>
+  request<void>(`/bots/${encodeURIComponent(id)}/restore`, { method: "POST" });
+
+/** Delete a bot and its chat for good. */
 export const deleteBot = (id: string) =>
   request<void>(`/bots/${encodeURIComponent(id)}`, { method: "DELETE" });
 

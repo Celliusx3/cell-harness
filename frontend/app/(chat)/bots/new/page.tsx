@@ -23,7 +23,7 @@ export default function NewBotPage() {
         <h1 className="min-w-0 truncate text-sm font-medium">New bot</h1>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <BotForm initial={BLANK} onSave={save} onDelete={null} />
+        <BotForm initial={BLANK} onSave={save} onArchive={null} />
       </div>
     </>
   );

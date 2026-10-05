@@ -29,9 +29,6 @@ class NotATool(NamedTuple):
 SECRET = NotATool("a bot token is a secret, and secrets never pass through the model")
 
 ROUTES: dict[str, Tool | NotATool] = {
-    "POST /api/conversations": NotATool(
-        "starting a conversation is the person's; /new does it from every chat"
-    ),
     "POST /api/conversations/{conversation_id}/messages": NotATool(
         "sending is the person's; the model answers in the conversation it is in"
     ),
@@ -62,8 +59,14 @@ ROUTES: dict[str, Tool | NotATool] = {
     "PUT /api/bots/{bot_id}": NotATool(
         "not yet: a bot made from chat has its instructions changed on its page"
     ),
+    "POST /api/bots/{bot_id}/archive": NotATool(
+        "hiding a teammate the person made is the person's call, from its page"
+    ),
+    "POST /api/bots/{bot_id}/restore": NotATool(
+        "bringing a teammate back from the archive is the person's call, from the sidebar"
+    ),
     "DELETE /api/bots/{bot_id}": NotATool(
-        "a bot is the person's to remove; its chat stays and is answered as Assistant"
+        "it erases a teammate and its chat for good; only the person does that"
     ),
 }
 

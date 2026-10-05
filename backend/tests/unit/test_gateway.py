@@ -1,10 +1,11 @@
-"""The channel service: queueing, draining, and the delivery cursor."""
+"""The channel service: queueing, draining, and where delivery starts."""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
 
+from harness.bots import ASSISTANT_ID
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -29,7 +30,7 @@ async def test_a_message_becomes_a_turn_and_a_reply(tmp_path) -> None:
     assert bot.sent == [(CHAT, "hello there")]
 
 
-async def test_first_contact_creates_a_conversation(tmp_path) -> None:
+async def test_first_contact_writes_into_assistants_chat_creating_it(tmp_path) -> None:
     bot, gateway, runs, chats, sessions = build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
@@ -38,8 +39,8 @@ async def test_first_contact_creates_a_conversation(tmp_path) -> None:
     await settle(runs, gateway)
 
     state = await chats.load("telegram", CHAT)
-    assert state is not None
-    assert [h.id for h in await sessions.list()] == [state.conversation_id]
+    assert state is not None and state.conversation_id == ASSISTANT_ID
+    assert [path.stem for path in (tmp_path / "sessions").glob("*.jsonl")] == [ASSISTANT_ID]
 
 
 async def test_a_second_message_continues_the_same_conversation(tmp_path) -> None:
@@ -198,17 +199,20 @@ async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -
     assert bot.sent == [(CHAT, "first done"), (CHAT, "second done")]
 
 
-async def test_delivery_advances_the_cursor(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
-        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+async def test_a_turn_is_delivered_from_its_own_first_event(tmp_path) -> None:
+    bot, gateway, runs, _, sessions = build(
+        tmp_path, SteppedClient(completed("one"), completed("two")), skills=no_skills()
     )
 
-    await gateway.receive(msg("hello", 1))
+    first = await gateway.receive(msg("first", 1))
+    await settle(runs, gateway)
+    second = await gateway.receive(msg("second", 2))
     await settle(runs, gateway)
 
-    state = await chats.load("telegram", CHAT)
-    stored = await sessions.read(state.conversation_id)
-    assert 0 < state.delivered_through <= len(stored.events())
+    stored = await sessions.read(ASSISTANT_ID)
+    assert first.first_event_number < second.first_event_number
+    assert stored.numbered_events_from(second.first_event_number)[0].event.type == "turn/start"
+    assert bot.sent == [(CHAT, "one"), (CHAT, "two")]
 
 
 async def test_a_restart_does_not_resend(tmp_path) -> None:

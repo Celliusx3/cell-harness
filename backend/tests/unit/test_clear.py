@@ -45,20 +45,17 @@ async def _chat_with_history(root: Path) -> tuple[SessionService, Session]:
     return service, await service.read(session.id)
 
 
-async def test_a_clear_keeps_the_id_blanks_the_title_and_numbers_on_past_what_it_wiped(
-    tmp_path,
-) -> None:
+async def test_a_clear_keeps_the_id_and_numbers_on_past_what_it_wiped(tmp_path) -> None:
     service, before = await _chat_with_history(tmp_path / "sessions")
-    assert before.header.title == "q0"
 
     await service.clear(before.id)
 
     after = await service.read(before.id)
     wiped = len(before.events())
     assert after.header == before.header.model_copy(
-        update={"title": "", "numbered_from": before.header.numbered_from + wiped}
+        update={"numbered_from": before.header.numbered_from + wiped}
     )
-    assert (after.id, after.header.title) == ("c0", "")
+    assert after.id == "c0"
     assert after.events() == [ChatCleared()]
 
 

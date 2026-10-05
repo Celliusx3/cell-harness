@@ -7,10 +7,11 @@ import logging
 import discord
 from discord import app_commands
 
+from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, unknown_skill
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import InboundMessage, OnMissing
+from harness.channels.protocol import InboundMessage
 from harness.channels.text import split_message
 from harness.skills import UnknownSkill
 from harness.tools.client import PendingCall
@@ -30,7 +31,6 @@ class DiscordChannel:
     """`Channel` and `Pushing` for Discord: receive, send, show typing."""
 
     channel = CHANNEL
-    on_missing: OnMissing = "recreate"
 
     def __init__(self, token: str, gateway: ChannelGateway) -> None:
         self._token = token
@@ -64,6 +64,10 @@ class DiscordChannel:
         )
         async def compact(interaction: discord.Interaction) -> None:
             await self._on_command(interaction, Command.COMPACT)
+
+    def conversation_for(self, chat_id: str) -> str:
+        """Every Discord chat writes into Assistant's chat."""
+        return ASSISTANT_ID
 
     async def run(self) -> None:
         """Hold the websocket until cancelled."""

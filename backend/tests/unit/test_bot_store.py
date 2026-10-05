@@ -8,8 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, Bot, BotNotFound, BotStore
+from harness.bots import ASSISTANT_ID, Bot, BotNotFound, BotPermanent, BotStore
 from harness.session.models import BotInstructionsEvent
+from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.helpers import durable_service
 
@@ -26,12 +27,12 @@ def bots(tmp_path: Path, service: SessionService) -> BotStore:
     return BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
 
 
-def test_with_no_file_every_conversation_is_answered_by_assistant(
-    tmp_path: Path, service: SessionService
-) -> None:
+def test_with_no_file_assistant_is_the_only_bot(tmp_path: Path, service: SessionService) -> None:
     missing = BotStore(tmp_path / "no" / "bots.json", service, assistant_instructions="Be kind.")
 
-    assert missing.bot_for("any-conversation") == KIND
+    assert missing.bot_for(ASSISTANT_ID) == KIND
+    with pytest.raises(BotNotFound):
+        missing.bot_for("any-conversation")
 
 
 async def test_listing_opens_assistant_s_chat_only_the_first_time(
@@ -45,7 +46,8 @@ async def test_listing_opens_assistant_s_chat_only_the_first_time(
 
 
 def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotStore) -> None:
-    assert bots.bot_for("r1") == KIND
+    with pytest.raises(BotNotFound):
+        bots.bot_for("r1")
 
     (tmp_path / "bots.json").write_text(
         json.dumps({"bots": [{"id": "r1", "name": "Researcher", "instructions": "Cite."}]})
@@ -70,17 +72,92 @@ async def test_a_failed_write_leaves_the_file_as_it_was(
     assert (tmp_path / "bots.json").read_text() == before
 
 
-def test_deleting_a_bot_nobody_made_is_refused(bots: BotStore) -> None:
+async def test_deleting_a_bot_nobody_made_is_refused(bots: BotStore) -> None:
     with pytest.raises(BotNotFound):
-        bots.delete("nope")
+        await bots.delete("nope")
 
 
-async def test_a_deleted_bot_s_chat_is_answered_as_assistant(bots: BotStore) -> None:
+async def test_a_deleted_bot_owns_its_chat_no_more(bots: BotStore) -> None:
     made = await bots.create("Researcher", "Cite.")
 
-    bots.delete(made.id)
+    await bots.delete(made.id)
 
-    assert bots.bot_for(made.id) == KIND
+    with pytest.raises(BotNotFound):
+        bots.bot_for(made.id)
+
+
+async def test_deleting_a_bot_removes_its_chat_for_good(
+    tmp_path: Path, bots: BotStore, service: SessionService
+) -> None:
+    made = await bots.create("Researcher", "Cite.")
+    bots.archive(made.id)
+
+    await bots.delete(made.id)
+
+    assert not (tmp_path / "sessions" / f"{made.id}.jsonl").exists()
+    with pytest.raises(SessionNotFoundError):
+        await service.read(made.id)
+    assert bots.archived() == ()
+
+
+async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
+    bots: BotStore, service: SessionService
+) -> None:
+    first = await bots.create("First", "One.")
+    second = await bots.create("Second", "Two.")
+    chat_before = list((await service.read(first.id)).events())
+
+    bots.archive(second.id)
+    bots.archive(first.id)
+
+    assert await bots.list() == (KIND,)
+    assert bots.archived() == (
+        first.model_copy(update={"archived": True}),
+        second.model_copy(update={"archived": True}),
+    )
+
+    bots.restore(first.id)
+
+    assert await bots.list() == (KIND, first)
+    assert list((await service.read(first.id)).events()) == chat_before
+
+
+async def test_an_archived_bot_owns_no_chat_and_cannot_be_edited(bots: BotStore) -> None:
+    made = await bots.create("Researcher", "Cite.")
+
+    bots.archive(made.id)
+
+    with pytest.raises(BotNotFound):
+        bots.bot_for(made.id)
+    with pytest.raises(BotNotFound):
+        bots.update(made.id, "Renamed", "Be brief.")
+
+
+def test_archiving_or_restoring_a_bot_nobody_made_is_refused(bots: BotStore) -> None:
+    with pytest.raises(BotNotFound):
+        bots.archive("nope")
+    with pytest.raises(BotNotFound):
+        bots.restore("nope")
+
+
+async def test_assistant_can_be_neither_archived_nor_deleted(bots: BotStore) -> None:
+    with pytest.raises(BotPermanent):
+        bots.archive(ASSISTANT_ID)
+    with pytest.raises(BotPermanent):
+        await bots.delete(ASSISTANT_ID)
+
+    assert bots.bot_for(ASSISTANT_ID) == KIND
+
+
+def test_a_bots_file_written_before_archiving_reads_every_bot_as_active(
+    tmp_path: Path, bots: BotStore
+) -> None:
+    (tmp_path / "bots.json").write_text(
+        json.dumps({"bots": [{"id": "r1", "name": "Researcher", "instructions": "Cite."}]})
+    )
+
+    assert bots.bot_for("r1").archived is False
+    assert bots.archived() == ()
 
 
 async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(

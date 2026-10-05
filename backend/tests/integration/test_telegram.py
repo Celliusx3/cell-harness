@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 import httpx
 
 from harness.agent.loop import LoopAgent
+from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.config.settings import Settings
@@ -111,7 +112,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         pass
 
 
-async def test_a_message_becomes_a_conversation_visible_over_http(tmp_path) -> None:
+async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
 
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="hello there"))
@@ -120,16 +121,14 @@ async def test_a_message_becomes_a_conversation_visible_over_http(tmp_path) -> N
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://harness.test"
     ) as http:
-        listed = (await http.get("/api/conversations")).json()
-        assert len(listed) == 1
-        detail = (await http.get(f"/api/conversations/{listed[0]['id']}")).json()
+        detail = (await http.get(f"/api/conversations/{ASSISTANT_ID}")).json()
 
     prompts = [e["message"]["content"] for e in detail["events"] if e["type"] == "user/message"]
     assert prompts == ["hello there"]
     assert bot.sent == [(CHAT, "the answer")]
 
 
-async def test_a_browser_reply_lands_in_the_same_conversation(tmp_path) -> None:
+async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone"))
     await settle(runs, gateway)
@@ -137,17 +136,17 @@ async def test_a_browser_reply_lands_in_the_same_conversation(tmp_path) -> None:
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://harness.test"
     ) as http:
-        conversation_id = (await http.get("/api/conversations")).json()[0]["id"]
         sent = await http.post(
-            f"/api/conversations/{conversation_id}/messages",
+            f"/api/conversations/{ASSISTANT_ID}/messages",
             json={"prompt": "from the browser"},
         )
         assert sent.status_code == 202
         await settle(runs, gateway)
-        detail = (await http.get(f"/api/conversations/{conversation_id}")).json()
+        detail = (await http.get(f"/api/conversations/{ASSISTANT_ID}")).json()
 
     prompts = [e["message"]["content"] for e in detail["events"] if e["type"] == "user/message"]
     assert prompts == ["from my phone", "from the browser"]
+    assert bot.sent == [(CHAT, "the answer")]
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
@@ -157,9 +156,9 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
     )
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
-    assert build_channels(settings, sessions, runs, no_skills(), client_tools())[0].channels == [
-        "web"
-    ]
+    assert build_channels(settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions))[
+        0
+    ].channels == ["web"]
 
 
 async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
@@ -170,9 +169,9 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
 
     settings = Settings(telegram={"bot_token": "   "}, discord={"bot_token": ""})
 
-    assert build_channels(settings, sessions, runs, no_skills(), client_tools())[0].channels == [
-        "web"
-    ]
+    assert build_channels(settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions))[
+        0
+    ].channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
@@ -182,7 +181,9 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
     )
     settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": ""})
 
-    built, _ = build_channels(settings, sessions, runs, no_skills(), client_tools())
+    built, _ = build_channels(
+        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions)
+    )
 
     assert built.channels == ["web", "telegram"]
     await built.aclose()

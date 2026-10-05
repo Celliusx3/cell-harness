@@ -7,6 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 
 from harness.channels.web.channel import WebChannel
+from harness.channels.web.routes import bot_chat_router
 from harness.runs.store import RunAlreadyActive
 from harness.session.repository import SessionNotFoundError
 from harness.tools.client import ClientToolService, Refused
@@ -21,7 +22,7 @@ STATUS = {
 
 def build_router(web: WebChannel, client_tools: ClientToolService) -> APIRouter:
     """The browser's answer to a client tool, resumed through the gateway."""
-    router = APIRouter(prefix="/api/conversations", tags=["client-tools"])
+    router = bot_chat_router(web, tag="client-tools")
 
     @router.post(
         "/{conversation_id}/calls/{call_id}/output", status_code=status.HTTP_204_NO_CONTENT

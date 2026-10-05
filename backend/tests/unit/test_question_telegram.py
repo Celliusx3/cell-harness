@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+from harness.bots import ASSISTANT_ID
 from harness.channels.telegram.asking import ASK_BY_LINK
 from harness.channels.telegram.channel import STALE_TAP
 from harness.session.models import ToolResultEvent, TurnEnd
@@ -85,4 +86,4 @@ async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> Non
 
     ((_, text, markup),) = bot.linked
     assert text == ASK_BY_LINK
-    assert markup.inline_keyboard[0][0].url.endswith(f"/answer/c0/{long_id}")
+    assert markup.inline_keyboard[0][0].url.endswith(f"/answer/{ASSISTANT_ID}/{long_id}")

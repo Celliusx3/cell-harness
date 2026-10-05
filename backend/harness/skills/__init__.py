@@ -1,6 +1,5 @@
 """Skills: instructions the model loads when a task matches them."""
 
-from harness.skills.invocation import display
 from harness.skills.models import (
     InvalidSkill,
     Skill,
@@ -26,7 +25,6 @@ __all__ = [
     "SkillSnapshot",
     "UnknownSkill",
     "UnreadableFile",
-    "display",
     "parse",
     "skill_tool",
     "valid_name",

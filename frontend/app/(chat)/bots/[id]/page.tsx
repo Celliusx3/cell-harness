@@ -5,10 +5,11 @@ import { use } from "react";
 
 import { BotForm } from "@/components/bots/BotForm";
 import { useBot } from "@/components/bots/useBot";
-import { ASSISTANT_ID, deleteBot, updateBot } from "@/lib/api";
+import { refreshSidebar } from "@/components/chat/Sidebar";
+import { ASSISTANT_ID, archiveBot, updateBot } from "@/lib/api";
 import type { BotDraft } from "@/lib/types";
 
-/** One bot's name and instructions; saving or deleting leaves for a chat. */
+/** One bot's name and instructions; saving or archiving leaves for a chat. */
 export default function EditBotPage({
   params,
 }: {
@@ -23,8 +24,9 @@ export default function EditBotPage({
     router.push(`/c/${id}`);
   }
 
-  async function remove() {
-    await deleteBot(id);
+  async function archive() {
+    await archiveBot(id);
+    refreshSidebar();
     router.push(`/c/${ASSISTANT_ID}`);
   }
 
@@ -47,7 +49,7 @@ export default function EditBotPage({
           <BotForm
             initial={lookup.bot}
             onSave={save}
-            onDelete={id === ASSISTANT_ID ? null : remove}
+            onArchive={id === ASSISTANT_ID ? null : archive}
           />
         )}
       </div>

@@ -5,15 +5,13 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from typing import Literal, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
 
 from harness.tools.client import PendingCall
 
 logger = logging.getLogger("harness.channels")
-
-OnMissing = Literal["recreate", "raise"]
 
 
 class InboundMessage(BaseModel):
@@ -42,9 +40,8 @@ class Channel(Protocol):
         """The platform's name, as it appears in stored state and logs."""
         ...
 
-    @property
-    def on_missing(self) -> OnMissing:
-        """What the gateway should do when this chat's conversation is gone."""
+    def conversation_for(self, chat_id: str) -> str:
+        """The conversation this platform chat writes into."""
         ...
 
     async def run(self) -> None:

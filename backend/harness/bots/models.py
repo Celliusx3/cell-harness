@@ -39,6 +39,7 @@ class Bot(BaseModel):
     id: str
     name: str
     instructions: str
+    archived: bool = False
 
 
 class BotsFile(BaseModel):
@@ -57,7 +58,9 @@ class BotNotFound(LookupError):
 
 
 class BotPermanent(PermissionError):
-    """Assistant answers every chat no other bot owns, so it cannot be deleted."""
+    """Assistant cannot be archived or deleted."""
 
     def __init__(self, bot_id: str) -> None:
-        super().__init__(f"{bot_id!r} answers every chat no other bot owns and cannot be deleted")
+        super().__init__(
+            f"{bot_id!r} is the chat every platform writes into and cannot be archived or deleted"
+        )

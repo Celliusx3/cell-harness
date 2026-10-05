@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from harness.bots import ASSISTANT_ID
 from tests.unit.discord_fakes import BOT_ID, build, message, settle
 
 CHAT = "77"
@@ -85,17 +86,19 @@ async def test_a_bot_author_is_ignored(tmp_path) -> None:
     assert await chats.load("discord", CHAT) is None
 
 
-async def test_each_channel_or_thread_is_its_own_conversation(tmp_path) -> None:
-    channel, _, gateway, runs, chats, _ = build(tmp_path)
+async def test_every_channel_or_thread_writes_into_assistants_chat(tmp_path) -> None:
+    channel, client, gateway, runs, chats, sessions = build(tmp_path)
+    first, second = client.chat("1"), client.chat("2")
 
     await channel.on_message(message("1", "one"))
     await settle(gateway, runs)
     await channel.on_message(message("2", "two"))
     await settle(gateway, runs)
 
-    first = await chats.load("discord", "1")
-    second = await chats.load("discord", "2")
-    assert first.conversation_id != second.conversation_id
+    assert (await chats.load("discord", "1")).conversation_id == ASSISTANT_ID
+    assert (await chats.load("discord", "2")).conversation_id == ASSISTANT_ID
+    assert await prompts_of(sessions, chats, "1") == ["one", "two"]
+    assert (first.sent, second.sent) == (["ok"], ["ok"])
 
 
 async def test_a_gateway_failure_is_logged_not_raised(tmp_path, caplog) -> None:
@@ -114,7 +117,7 @@ async def test_a_gateway_failure_is_logged_not_raised(tmp_path, caplog) -> None:
 
 def test_the_transport_names_its_channel(tmp_path) -> None:
     assert build(tmp_path)[0].channel == "discord"
-    assert build(tmp_path)[0].on_missing == "recreate"
+    assert build(tmp_path)[0].conversation_for(CHAT) == ASSISTANT_ID
 
 
 async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path) -> None:

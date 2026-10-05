@@ -8,6 +8,7 @@ from harness.llm.messages import UserMessage
 from harness.session.derive import derive_messages
 from harness.session.models import TurnEnd, TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
+from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, durable_service, loop_agent
@@ -21,7 +22,8 @@ def store(tmp_path) -> SessionService:
 async def test_a_created_session_is_not_stored_until_it_has_something(store) -> None:
     await store.create()
 
-    assert await store.list() == []
+    with pytest.raises(SessionNotFoundError):
+        await store.read("s0")
 
 
 async def test_flush_makes_the_log_durable(store) -> None:
@@ -32,7 +34,6 @@ async def test_flush_makes_the_log_durable(store) -> None:
 
     await store.flush(session)
 
-    assert [h.id for h in await store.list()] == ["s0"]
     resumed = await store.resume("s0")
     assert len(resumed.events()) == 3
 

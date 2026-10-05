@@ -92,21 +92,11 @@ class ChannelGateway:
         content = self._skills.expand(message.text)
 
         state = await self._state(message.channel, message.chat_id)
-        if state.conversation_id and self._runs.active(state.conversation_id) is not None:
-            await self._repository.save(
-                state.model_copy(update={"pending": (*state.pending, message.text)})
-            )
+        if self._runs.active(state.conversation_id) is not None:
+            await self._following.queue(state, message.text)
             return None
 
         return await self._following.turn_for_chat(state, content)
-
-    async def start_turn(self, session: Session, text: str, *, channel: str) -> Run:
-        """Begin a turn for a session the caller already holds."""
-        self._require(channel)
-        content = self._skills.expand(text)
-        state = ChatState(channel=channel, chat_id=session.id, conversation_id=session.id)
-        await self._repository.save(state)
-        return self._following.begin(state, self._runs.start(session, content))
 
     async def clear(self, channel: str, chat_id: str) -> None:
         """Clear this chat in place: stop its turn, then wipe its conversation under the same id."""
@@ -143,35 +133,38 @@ class ChannelGateway:
     async def _state(self, channel: str, chat_id: str) -> ChatState:
         return await state_of(self._repository, self._channels[channel].channel, chat_id)
 
-    async def compact(self, session: Session) -> Run:
-        """Begin a manual compaction, followed by every chat mapped to the conversation."""
+    def compact(self, session: Session, followers: tuple[ChatState, ...]) -> Run:
+        """Begin a manual compaction, followed by `followers` and no other chat."""
         compactor = self._runs.compaction
         if compactor is not None and (reason := compactor.refusal_reason(session)) is not None:
             raise CompactionRefused(reason)
-        states = await self._repository.chats_of(session.id)
         run = self._runs.compact(session)
-        for state in states:
-            if state.channel in self._channels:
-                self._following.begin(state, run)
+        for state in followers:
+            self._following.begin(state, run)
         return run
 
     async def compact_chat(self, channel: str, chat_id: str) -> Run | None:
         """`/compact` from a chat: the run, or `None` when nothing can be compacted now."""
         self._require(channel)
         state = await self._state(channel, chat_id)
-        if not state.conversation_id or self._runs.active(state.conversation_id) is not None:
+        if self._runs.active(state.conversation_id) is not None:
             return None
-        session = await self._sessions.resume(state.conversation_id)
         try:
-            return await self.compact(session)
+            session = await self._sessions.resume(state.conversation_id)
+        except SessionNotFoundError:
+            return None
+        try:
+            return self.compact(session, (state,))
         except (RunAlreadyActive, CompactionRefused):
             return None
 
     async def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
-        """Begin the turn that carries an answer to a client tool, or an approval."""
+        """Begin the turn that carries an answer, followed by the chats that were asked it."""
         states = await self._repository.chats_of(session.id)
         run = self._runs.resume(session, call_id, outcome)
         for state in states:
-            if state.channel in self._channels:
+            if call_id in state.asked and state.channel in self._channels:
+                answered = tuple(asked for asked in state.asked if asked != call_id)
+                await self._repository.save(state.model_copy(update={"asked": answered}))
                 self._following.begin(state, run)
         return run

@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from harness.skills import UnknownSkill, display
-from harness.skills.invocation import MARKER, parse
+from harness.skills import UnknownSkill
+from harness.skills.invocation import MARKER, display, parse
 from tests.unit.helpers import no_skills, skills_at
 from tests.unit.test_skill_tool import write_skill
 

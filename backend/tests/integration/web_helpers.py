@@ -7,20 +7,28 @@ import json
 
 import httpx
 
+from harness.bots import ASSISTANT_ID
 from harness.runs.store import RunStore
 from harness.session.service import SessionService
 from tests.unit.helpers import durable_service, no_skills, run_store
-from tests.webapp import web_app
+from tests.webapp import bots_in, web_app
 
 
 def build(tmp_path, client, *tools) -> tuple[SessionService, RunStore]:
     service = durable_service(tmp_path / "sessions")
-    return service, run_store(service, client, *tools)
+    return service, run_store(service, client, *tools, bots=bots_in(tmp_path, service))
 
 
 def api(tmp_path, service: SessionService, runs: RunStore) -> httpx.AsyncClient:
     app = web_app(tmp_path, service, runs, skills=no_skills())
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://harness.test")
+
+
+async def assistant_chat(client: httpx.AsyncClient, prompt: str) -> str:
+    """Assistant's chat, once `prompt` has been sent to it."""
+    sent = await client.post(f"/api/conversations/{ASSISTANT_ID}/messages", json={"prompt": prompt})
+    assert sent.status_code == 202, sent.text
+    return ASSISTANT_ID
 
 
 async def settle(runs: RunStore, conversation_id: str) -> None:

@@ -79,7 +79,5 @@ export interface Timeline {
   items: TimelineItem[];
   /** True while the last turn is still open */
   openTurn: number | null;
-  /** The opening message, for a header whose stored title is not there yet. */
-  openingMessage: string | null;
 }
 

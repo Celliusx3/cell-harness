@@ -5,7 +5,10 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from harness.agent.compaction import CompactionService
+from harness.bots import ASSISTANT_ID
 from harness.channels.commands import CLEARED, Command, apply, skills_reply, unknown_skill
+from harness.channels.protocol import InboundMessage
 from harness.channels.repository import ChatState
 from harness.skills import Skill
 from tests.unit.fakes import (
@@ -20,32 +23,30 @@ from tests.unit.helpers import no_skills, skills_at
 from tests.unit.test_skill_tool import write_skill
 
 
-async def test_new_clears_the_chat_in_its_own_conversation(tmp_path) -> None:
+async def test_new_clears_assistants_chat_in_place(tmp_path) -> None:
     bot, gateway, runs, chats, sessions = build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
     await gateway.receive(msg("hello", 1))
     await settle(runs, gateway)
-    before = await chats.load("telegram", CHAT)
 
     reply = await apply(gateway, "telegram", CHAT, Command.NEW)
 
-    state = await chats.load("telegram", CHAT)
-    assert state.conversation_id == before.conversation_id != ""
-    assert state.delivered_through == before.delivered_through
-    stored = await sessions.read(state.conversation_id)
+    assert (await chats.load("telegram", CHAT)).conversation_id == ASSISTANT_ID
+    stored = await sessions.read(ASSISTANT_ID)
     assert stored.events()[-1].type == "chat/cleared"
     assert reply == CLEARED
 
 
-async def test_new_on_a_chat_whose_conversation_was_never_written_is_quiet(tmp_path) -> None:
-    bot, gateway, runs, chats, _ = build(
+async def test_new_before_assistants_chat_was_ever_written_is_quiet(tmp_path) -> None:
+    bot, gateway, runs, chats, sessions = build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
-    await chats.save(ChatState(channel="telegram", chat_id=CHAT, conversation_id="unwritten"))
+    await chats.save(ChatState(channel="telegram", chat_id=CHAT, conversation_id="an-old-chat"))
 
     assert await apply(gateway, "telegram", CHAT, Command.NEW) == CLEARED
-    assert (await chats.load("telegram", CHAT)).conversation_id == "unwritten"
+    assert (await chats.load("telegram", CHAT)).conversation_id == ASSISTANT_ID
+    assert list((tmp_path / "sessions").glob("*.jsonl")) == []
 
 
 async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
@@ -176,3 +177,24 @@ async def test_compact_summarizes_this_chats_conversation(tmp_path) -> None:
 async def test_compact_on_an_idle_chat_says_nothing_to_do(tmp_path) -> None:
     bot, gateway, runs, _, _ = build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
     assert await apply(gateway, "telegram", CHAT, Command.COMPACT) == "Nothing to compact yet."
+
+
+async def test_compact_from_a_chat_is_reported_in_that_chat_only(tmp_path) -> None:
+    client = ScriptedClient(completed("SUMMARY"))
+    compactor = CompactionService(
+        client=client, model="m", system_prompt="SYS", context_tokens=None
+    )
+    bot, gateway, runs, _, _ = build(tmp_path, client, skills=no_skills(), compaction=compactor)
+    await gateway.receive(msg("from here", 1))
+    await settle(runs, gateway)
+    await gateway.receive(InboundMessage(channel="telegram", chat_id="5151", text="from there"))
+    await settle(runs, gateway, "5151")
+
+    await apply(gateway, "telegram", CHAT, Command.COMPACT)
+    await settle(runs, gateway)
+
+    assert bot.sent == [
+        (CHAT, "SUMMARY"),
+        ("5151", "SUMMARY"),
+        (CHAT, "Conversation compacted to free up context."),
+    ]

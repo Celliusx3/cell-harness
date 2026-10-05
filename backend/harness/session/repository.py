@@ -21,7 +21,7 @@ class SessionCorruptionError(RuntimeError):
 
 
 class SessionRepository(Protocol):
-    """Store, reload, and list sessions durably."""
+    """Store and reload sessions durably."""
 
     async def create(self, header: SessionHeader) -> None:
         """Register a new session. MAY write nothing until the first append."""
@@ -43,6 +43,6 @@ class SessionRepository(Protocol):
         """Read a session back. Raises if it does not exist or cannot be read."""
         ...
 
-    async def list(self) -> list[SessionHeader]:
-        """Every stored session's metadata, newest first."""
+    async def delete(self, session_id: str) -> None:
+        """Remove a session for good; one never written is already gone."""
         ...

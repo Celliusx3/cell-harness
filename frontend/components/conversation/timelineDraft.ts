@@ -166,14 +166,12 @@ export class TimelineDraft {
   }
 
   toTimeline(): Timeline {
-    const opening = this.items.find((item) => item.kind === "user");
     return {
       items: this.items,
       openTurn:
         this.lastTurn !== null && !this.closed.has(this.lastTurn)
           ? this.lastTurn
           : null,
-      openingMessage: opening ? opening.content : null,
     };
   }
 }

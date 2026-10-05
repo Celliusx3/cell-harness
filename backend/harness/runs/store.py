@@ -27,8 +27,9 @@ class RunAlreadyActive(RuntimeError):
 class Run:
     """One turn in flight, and the log it is writing into."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, first_event_number: int) -> None:
         self.session = session
+        self.first_event_number = first_event_number
         self.settled = False
         self.condition = asyncio.Condition()
         self._inner: asyncio.Task[None] | None = None
@@ -63,7 +64,7 @@ class RunStore:
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
         self._log_instructions(session)
-        run = Run(session)
+        run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
             self._stream(run, self._agent.run(prompt, session=session))
@@ -75,7 +76,7 @@ class RunStore:
         """Begin the turn that answers a client tool — the person's answer as its first event."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        run = Run(session)
+        run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
             self._stream(run, self._agent.resume(call_id, outcome, session=session))
@@ -87,7 +88,7 @@ class RunStore:
         """Begin a manual compaction as its own run — no model turn, just the compaction events."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        run = Run(session)
+        run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(self._stream(run, self._agent.compact(session=session)))
         run._outer = asyncio.create_task(self._drive(run))
