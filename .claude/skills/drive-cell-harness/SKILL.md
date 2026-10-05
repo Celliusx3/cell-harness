@@ -26,7 +26,7 @@ cd frontend && BACKEND_PORT=4996 npx next dev -p 4997 > "$RUN/frontend.log" 2>&1
 echo $! > "$RUN/frontend.pid"; cd ..
 ```
 
-Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/conversations` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The backend connects every MCP server in `backend/config.json` at startup; the first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
+Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The backend connects every MCP server in `backend/config.json` at startup; the first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
 
 Why each variable: the sessions root, grants file and bots file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The bot tokens are blanked because `backend/config.local.json` holds live ones; a copy with them answers the person's real Telegram and Discord chats.
 
@@ -51,7 +51,7 @@ Load the browser tools with ToolSearch (`select:mcp__plugin_everything-claude-co
 4. Click a tool card's name (for example `run_subagent`) to open it: its arguments and its result appear under it.
 5. An approval card offers "Allow once", "Allow for this conversation", "Always allow" and "Deny".
 
-Handles: placeholder "Send a message", labels "Send", "Stop", "Clear", "New bot", "Edit bot", "Skills", "Approvals". Never click by coordinates.
+Handles: placeholder "Send a message", labels "Send", "Stop", "Clear", "New bot", "Edit bot", "Archive", "Archived", "Restore", "Skills", "Approvals". Never click by coordinates.
 
 ## Evidence
 

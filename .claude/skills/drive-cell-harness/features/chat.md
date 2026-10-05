@@ -1,11 +1,11 @@
 # Chat
 
-A sidebar of bots, then other chats, beside the open one. A person types in the box at the bottom, presses Send, and the reply streams in under their message.
+A sidebar of bots, then any archived ones, beside the open bot's chat. A person types in the box at the bottom, presses Send, and the reply streams in under their message.
 
 ## Sub-features
 
 - The home page opens Assistant's chat at `/c/assistant`; any chat is at `/c/<id>`.
-- Other chats: earlier conversations, Telegram and Discord, answered as Assistant.
+- Telegram and Discord write into Assistant's chat; their turns show here after a reload.
 - Stop while a turn runs; a message sent while it runs is answered next.
 - Clear in the header wipes the chat in place after a confirm: the turn stops, every message is deleted, and the model starts fresh. `/new` does the same on Telegram and Discord.
 - `/name` in the box invokes a skill.
