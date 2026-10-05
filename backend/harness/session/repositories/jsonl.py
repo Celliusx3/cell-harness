@@ -1,4 +1,4 @@
-"""A session repository backed by one append-only JSONL file per session."""
+"""A session repository: one JSONL file per session, appended to, replaced whole only by a clear."""
 
 from __future__ import annotations
 
@@ -9,38 +9,18 @@ from pathlib import Path
 
 from pydantic import TypeAdapter, ValidationError
 
-from harness.session.models import (
-    SESSION_FORMAT_VERSION,
-    SessionEvent,
-    SessionHeader,
-    UserMessageEvent,
-)
+from harness.session.models import SESSION_FORMAT_VERSION, SessionEvent, SessionHeader
 from harness.session.repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
     SessionNotFoundError,
 )
-from harness.skills import display
-
-TITLE_MAX_CHARS = 120
 
 _EVENT = TypeAdapter(SessionEvent)
 
 
-def _title_from(events: Sequence[SessionEvent]) -> str:
-    """A label taken from the conversation's first user message."""
-    for event in events:
-        if isinstance(event, UserMessageEvent):
-            content = event.message.content
-            shown = display(content)
-            text = (shown.typed if shown else content).strip()
-            if text:
-                return text[:TITLE_MAX_CHARS]
-    return ""
-
-
 class JsonlSessionRepository:
-    """Stores sessions as one append-only JSONL file each."""
+    """Stores sessions as one JSONL file each, appended to and replaced whole only by a clear."""
 
     def __init__(self, root: Path) -> None:
         self._root = root
@@ -55,6 +35,11 @@ class JsonlSessionRepository:
     async def create(self, header: SessionHeader) -> None:
         """Remember the header; write nothing."""
         self._pending[header.id] = header
+
+    async def restart(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+        """Replace the stored log with `header` and `events`."""
+        _write_first(self._path(header.id), header, events)
+        self._stored_count_single_writer[header.id] = len(events)
 
     async def stored_count(self, session_id: str) -> int:
         """Events already on disk. Counted from the file once, then remembered."""
@@ -71,8 +56,7 @@ class JsonlSessionRepository:
             header = self._pending.get(session_id)
             if header is None:
                 raise SessionNotFoundError(f"session {session_id!r} was never created")
-            titled = header.model_copy(update={"title": header.title or _title_from(events)})
-            _write_first(path, titled, events)
+            _write_first(path, header, events)
             self._pending.pop(session_id, None)
         else:
             _append_lines(path, events)
@@ -112,19 +96,14 @@ class JsonlSessionRepository:
         self._stored_count_single_writer[session_id] = len(events)
         return header, events
 
-    async def list(self) -> list[SessionHeader]:
-        """Every stored session, newest first — reading only line 1 of each file."""
-        if not self._root.exists():
-            return []
-        headers: list[SessionHeader] = []
-        for path in sorted(self._root.glob("*.jsonl")):
-            try:
-                with open(path, encoding="utf-8") as handle:
-                    first = handle.readline()
-                headers.append(_decode_header(first, path))
-            except (OSError, json.JSONDecodeError, ValidationError, SessionFormatUnsupportedError):
-                continue
-        return sorted(headers, key=lambda header: header.created_at, reverse=True)
+    async def delete(self, session_id: str) -> None:
+        """Remove the file and forget the session; one never written is already gone."""
+        path = self._path(session_id)
+        self._pending.pop(session_id, None)
+        self._stored_count_single_writer.pop(session_id, None)
+        if path.exists():
+            path.unlink()
+            _fsync_dir(path.parent)
 
 
 def _encode(events: Sequence[SessionEvent]) -> str:

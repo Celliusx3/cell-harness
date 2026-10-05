@@ -17,6 +17,7 @@ from harness.mcp.store import McpServerStore
 from harness.session.compaction import CompactionEnd
 from harness.session.models import TurnStart
 from harness.session.repositories.jsonl import JsonlSessionRepository
+from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools.definition import Ok
 from harness.tools.native.code import CODE_PROMPT, LIST
@@ -159,7 +160,7 @@ async def test_a_subagents_log_is_saved_before_its_first_request(compose, tmp_pa
     assert client.log_on_disk == [False, True, True]
 
 
-async def test_subagent_logs_sit_beside_the_conversations_and_are_not_listed(
+async def test_subagent_logs_sit_beside_the_conversations_and_are_not_among_them(
     tmp_path: Path,
 ) -> None:
     settings = Settings(
@@ -171,4 +172,5 @@ async def test_subagent_logs_sit_beside_the_conversations_and_are_not_listed(
     await logs.flush(log)
 
     assert (tmp_path / "subagents" / "c1.0.jsonl").exists()
-    assert await build_store(settings).list() == []
+    with pytest.raises(SessionNotFoundError):
+        await build_store(settings).read("c1.0")

@@ -9,27 +9,25 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from harness.session.models import SessionEvent
 
 
-class ConversationSummary(BaseModel):
-    """One row of the conversation list."""
+class ConversationDetail(BaseModel):
+    """A conversation's whole log, and where to pick up streaming from."""
 
     model_config = ConfigDict(frozen=True)
 
     id: str
     created_at: datetime
-    title: str
-
-
-class ConversationDetail(ConversationSummary):
-    """A conversation's whole log, and where to pick up streaming from."""
-
     events: list[SessionEvent]
     next_cursor: int
     running: bool
 
 
-class MessageAccepted(ConversationSummary):
+class MessageAccepted(BaseModel):
     """What `POST /{id}/messages` answers with."""
 
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    created_at: datetime
     queued: bool
 
 

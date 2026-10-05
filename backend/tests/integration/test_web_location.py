@@ -7,7 +7,7 @@ import httpx
 from harness.agent.loop import SKIPPED
 from harness.runs.store import RunStore
 from harness.tools.native.location import LOCATION
-from tests.integration.web_helpers import build, events_from, settle
+from tests.integration.web_helpers import assistant_chat, build, events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, durable_service, no_skills, run_store
 from tests.webapp import web_app
@@ -28,9 +28,7 @@ def _asking(tmp_path, reply: str = "a café 200 m from you"):
 
 async def _pending(client: httpx.AsyncClient, runs: RunStore) -> str:
     """Start the turn and let it end pending."""
-    conversation_id = (
-        await client.post("/api/conversations", json={"prompt": "coffee near me?"})
-    ).json()["id"]
+    conversation_id = await assistant_chat(client, "coffee near me?")
     await settle(runs, conversation_id)
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
     assert detail["running"] is False

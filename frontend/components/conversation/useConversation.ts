@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ApiError,
+  clearConversation,
   compactConversation,
   getConversation,
   sendMessage,
@@ -21,7 +22,6 @@ export interface Conversation {
   events: SessionEvent[];
   /** Messages sent while a turn was running, not yet in the log. */
   queued: string[];
-  title: string;
   running: boolean;
   loading: boolean;
   error: string | null;
@@ -29,6 +29,8 @@ export interface Conversation {
   stop(): Promise<void>;
   /** Compact the conversation now; the summary lands via the stream. */
   compact(): Promise<void>;
+  /** Clear the chat in place; the clear lands via the stream. */
+  clear(): Promise<void>;
   /** A turn was started by something other than `send` */
   wake(): void;
 }
@@ -36,7 +38,6 @@ export interface Conversation {
 export function useConversation(conversationId: string): Conversation {
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [queued, setQueued] = useState<string[]>([]);
-  const [title, setTitle] = useState("");
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +62,6 @@ export function useConversation(conversationId: string): Conversation {
         const detail = await getConversation(conversationId);
         if (cancelled) return;
         setEvents(detail.events);
-        setTitle(detail.title);
         setRunning(detail.running);
         setLoading(false);
         cursor.current = detail.next_cursor;
@@ -79,8 +79,8 @@ export function useConversation(conversationId: string): Conversation {
       for (;;) {
         let ended = false;
         await streamEvents(conversationId, cursor.current, controller.signal, {
-          onEvent(event) {
-            cursor.current += 1;
+          onEvent(event, number) {
+            cursor.current = number + 1;
             setEvents((previous) => [...previous, event]);
             if (event.type === "user/message") setQueued([]);
             setRunning(true);
@@ -147,6 +147,16 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId, wake]);
 
+  const clear = useCallback(async () => {
+    try {
+      await clearConversation(conversationId);
+      setQueued([]);
+      wake();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "could not clear this chat");
+    }
+  }, [conversationId, wake]);
+
   const stop = useCallback(async () => {
     try {
       await stopRun(conversationId);
@@ -159,5 +169,5 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId]);
 
-  return { events, queued, title, running, loading, error, send, stop, compact, wake };
+  return { events, queued, running, loading, error, send, stop, compact, clear, wake };
 }

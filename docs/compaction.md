@@ -98,8 +98,9 @@ this does the same, unbounded (ours are already bounded at load).
 ## Manual `/compact`
 
 A run of its own (`RunStore.compact`), so the busy check, the SSE stream, the
-flush-on-settle, and `stop` come for free, and every chat mapped to the
-conversation follows it. On web it is `POST /api/conversations/{id}/compact` and
+flush-on-settle, and `stop` come for free, and only the chat that asked follows
+it: the browser's button tells no chat app, and `/compact` answers where it was
+typed. On web it is `POST /api/conversations/{id}/compact` and
 a header button; on Telegram and Discord it is `/compact`. The compactor refuses
 out loud — `nothing to compact`, or a client request still unanswered — rather
 than write an empty bracket; the route returns that as a 409.

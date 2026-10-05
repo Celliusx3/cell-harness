@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from harness.bots import ASSISTANT_ID
+from harness.channels.protocol import InboundMessage
 from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
 from harness.llm.messages import ToolCall
-from harness.llm.stream import Completed, ToolCallChunk
+from harness.llm.stream import Completed, StreamEvent, ToolCallChunk
 from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
 from harness.tools.approval import DENIED, ApprovalGate
 from harness.tools.client import ClientToolService
@@ -29,10 +31,12 @@ def _writer(ran: list[str], name: str = WRITE) -> ToolDefinition[EchoArgs]:
     )
 
 
-def _asking(tmp_path, ran: list[str], *, call_id: str = "c1"):
+def _asking(tmp_path, ran: list[str], *before: list[StreamEvent], call_id: str = "c1"):
     gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, gate)
-    model = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id=call_id), completed("saved"))
+    model = SteppedClient(
+        *before, calls_tool(WRITE, '{"value": "Kopi"}', id=call_id), completed("saved")
+    )
     return build(
         tmp_path,
         model,
@@ -92,6 +96,24 @@ async def test_a_tap_answers_the_call_and_edits_the_card_into_a_receipt(tmp_path
     assert bot.sent[-1] == (CHAT, "saved")
 
 
+async def test_a_tap_sends_the_rest_of_the_turn_to_the_asked_chat_only(tmp_path) -> None:
+    ran: list[str] = []
+    bot, gateway, runs, chats, _ = _asking(tmp_path, ran, completed("hello"))
+    channel = gateway._channels["telegram"].channel
+    await gateway.receive(InboundMessage(channel="telegram", chat_id="5151", text="hi"))
+    await settle(runs, gateway, "5151")
+    await gateway.receive(msg("remember Kopi"))
+    await settle(runs, gateway)
+    ((_, card_text, _),) = bot.linked
+
+    await channel._on_decision(decision_update(CHAT, "ap:c1:once", card_text), None)
+    await settle(runs, gateway)
+
+    assert ran == ["Kopi"]
+    assert bot.sent == [("5151", "hello"), (CHAT, "saved")]
+    assert (await chats.load("telegram", CHAT)).asked == ()
+
+
 async def test_a_deny_tap_writes_the_denied_result(tmp_path) -> None:
     ran: list[str] = []
     bot, gateway, runs, chats, sessions = _asking(tmp_path, ran)
@@ -138,7 +160,7 @@ async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> Non
 
     ((_, text, markup),) = bot.linked
     assert text == APPROVE_BY_LINK.format(label="write note")
-    assert markup.inline_keyboard[0][0].url.endswith(f"/answer/c0/{long_id}")
+    assert markup.inline_keyboard[0][0].url.endswith(f"/answer/{ASSISTANT_ID}/{long_id}")
 
 
 async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_path) -> None:

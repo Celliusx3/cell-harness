@@ -4,18 +4,23 @@ from __future__ import annotations
 
 import httpx
 
+from harness.bots import ASSISTANT_ID
+from harness.channels.protocol import InboundMessage
+from harness.llm.stream import StreamEvent
 from harness.runs.store import RunStore
 from harness.tools.approval import DENIED, ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from harness.web.agent import CLIENT_TOOLS
-from tests.integration.web_helpers import events_from, settle
+from tests.integration.web_helpers import assistant_chat, events_from, settle
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
 from tests.unit.helpers import durable_service, no_skills, run_store
-from tests.webapp import web_app
+from tests.webapp import idle, web_app, web_app_with_telegram
 
 WRITE = "memory__write_note"
 PATH = "/api/conversations/{id}/calls/call_7f3a/output"
+CHAT = "909"
+OTHER = "5151"
 
 
 def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
@@ -42,10 +47,26 @@ def _asking(tmp_path, *steps, ran: list[str]):
     return client, runs
 
 
+def _asking_beside_telegram(tmp_path, *scripts: list[StreamEvent], ran: list[str]):
+    """An app whose model runs `scripts` in order, with Telegram on the same gateway."""
+    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, gate)
+    service = durable_service(tmp_path / "sessions")
+    model = SteppedClient(*scripts)
+    runs = run_store(service, model, _writer(ran), *tools.definitions(), gate=gate)
+    app, gateway, bot = web_app_with_telegram(
+        tmp_path, service, runs, skills=no_skills(), client_tools=tools, gate=gate
+    )
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
+    return client, runs, gateway, bot
+
+
+def _telegram(chat_id: str, text: str) -> InboundMessage:
+    return InboundMessage(channel="telegram", chat_id=chat_id, text=text)
+
+
 async def _pending(client: httpx.AsyncClient, runs: RunStore) -> str:
-    conversation_id = (
-        await client.post("/api/conversations", json={"prompt": "remember I like Kopi"})
-    ).json()["id"]
+    conversation_id = await assistant_chat(client, "remember I like Kopi")
     await settle(runs, conversation_id)
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
     assert detail["running"] is False
@@ -137,3 +158,60 @@ async def test_a_client_body_for_a_listed_tool_does_not_fit(tmp_path) -> None:
     assert wrong.status_code == 422
     unknown = await client.post(PATH.format(id=conversation_id), json={"kind": "approved"})
     assert unknown.status_code == 422
+
+
+async def test_an_answer_here_to_a_call_telegram_was_asked_goes_to_that_chat_only(
+    tmp_path,
+) -> None:
+    ran: list[str] = []
+    client, runs, gateway, bot = _asking_beside_telegram(
+        tmp_path,
+        completed("hello"),
+        calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"),
+        completed("saved"),
+        ran=ran,
+    )
+    async with client:
+        await gateway.receive(_telegram(OTHER, "hi"))
+        await idle(runs, gateway)
+        await gateway.receive(_telegram(CHAT, "remember Kopi"))
+        await idle(runs, gateway)
+        assert [chat_id for chat_id, _, _ in bot.linked] == [CHAT]
+
+        answered = await client.post(
+            PATH.format(id=ASSISTANT_ID), json={"kind": "approved", "scope": "once"}
+        )
+        assert answered.status_code == 204
+        await idle(runs, gateway)
+
+    assert ran == ["Kopi"]
+    assert bot.sent == [(OTHER, "hello"), (CHAT, "saved")]
+
+
+async def test_a_browser_turn_answered_here_sends_nothing_to_telegram(tmp_path) -> None:
+    ran: list[str] = []
+    client, runs, gateway, bot = _asking_beside_telegram(
+        tmp_path,
+        completed("hello"),
+        calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"),
+        completed("saved"),
+        ran=ran,
+    )
+    async with client:
+        await gateway.receive(_telegram(CHAT, "hi"))
+        await idle(runs, gateway)
+        sent = await client.post(
+            f"/api/conversations/{ASSISTANT_ID}/messages", json={"prompt": "remember Kopi"}
+        )
+        assert sent.status_code == 202
+        await idle(runs, gateway)
+
+        answered = await client.post(
+            PATH.format(id=ASSISTANT_ID), json={"kind": "approved", "scope": "once"}
+        )
+        assert answered.status_code == 204
+        await idle(runs, gateway)
+
+    assert ran == ["Kopi"]
+    assert bot.sent == [(CHAT, "hello")]
+    assert bot.linked == []

@@ -8,11 +8,11 @@ import type { BotDraft } from "@/lib/types";
 interface BotFormProps {
   initial: BotDraft;
   onSave: (draft: BotDraft) => Promise<void>;
-  onDelete: (() => Promise<void>) | null;
+  onArchive: (() => Promise<void>) | null;
 }
 
 /** A bot's name and instructions, saved whole. */
-export function BotForm({ initial, onSave, onDelete }: BotFormProps) {
+export function BotForm({ initial, onSave, onArchive }: BotFormProps) {
   const [name, setName] = useState(initial.name);
   const [instructions, setInstructions] = useState(initial.instructions);
   const [busy, setBusy] = useState(false);
@@ -68,14 +68,14 @@ export function BotForm({ initial, onSave, onDelete }: BotFormProps) {
       )}
 
       <div className="flex items-center gap-2">
-        {onDelete !== null && (
+        {onArchive !== null && (
           <button
             type="button"
-            onClick={() => void run(onDelete, "Could not delete the bot.")}
+            onClick={() => void run(onArchive, "Could not archive the bot.")}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-danger/40 bg-surface px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger-soft disabled:opacity-35"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink-soft transition hover:bg-line hover:text-ink disabled:opacity-35"
           >
-            Delete
+            Archive
           </button>
         )}
         <button

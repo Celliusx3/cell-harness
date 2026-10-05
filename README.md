@@ -54,10 +54,10 @@ would be a second surface to hold in step with the first. To smoke-test a
 provider without the browser:
 
 ```sh
-curl -sN -X POST localhost:4896/api/conversations \
+curl -s -X POST localhost:4896/api/conversations/assistant/messages \
   -H 'content-type: application/json' \
   -d '{"prompt":"what time is it in Tokyo?"}'
-curl -s localhost:4896/api/conversations
+curl -s localhost:4896/api/conversations/assistant
 ```
 
 ## Telegram
@@ -70,10 +70,11 @@ the token in `backend/config.local.json`:
 ```
 
 `make dev` then polls for messages alongside the web server — no public URL and no
-tunnel, because it long-polls rather than taking a webhook. Text the bot and the
-conversation shows up in the browser sidebar like any other.
+tunnel, because it long-polls rather than taking a webhook. Text the bot and it
+writes into Assistant's chat, the same one the browser shows; Telegram hears only
+the replies to what it sent.
 
-`/new` starts a fresh conversation, `/stop` cancels the current reply. A message
+`/new` clears the chat in place, like the browser's Clear button; `/stop` cancels the current reply. A message
 sent while it is working is answered next rather than refused — and since phase 6
 the browser behaves the same way, because being able to *show* a refusal is not a
 reason to make someone retype what they wrote.

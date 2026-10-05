@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from harness.llm.messages import ApplicationMessage, ToolCall, ToolMessage, UserMessage
+from harness.llm.messages import ToolCall, ToolMessage
 from harness.session.models import (
-    ApplicationMessageEvent,
     ToolCallEvent,
     ToolResultEvent,
     TurnStart,
-    UserMessageEvent,
 )
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
@@ -97,7 +95,6 @@ async def test_create_writes_nothing(store, tmp_path) -> None:
     await store.create(header())
 
     assert not (tmp_path / "sessions" / "s.jsonl").exists()
-    assert await store.list() == []
 
 
 async def test_an_empty_batch_is_a_no_op(store, tmp_path) -> None:
@@ -115,53 +112,6 @@ async def test_appending_to_an_uncreated_session_fails(store) -> None:
 async def test_loading_an_absent_session_fails(store) -> None:
     with pytest.raises(SessionNotFoundError):
         await store.load("ghost")
-
-
-async def test_the_title_comes_from_the_first_user_message(store) -> None:
-    await store.create(header())
-    await store.append("s", a_turn(text="how do generators work?"))
-
-    loaded_header, _ = await store.load("s")
-
-    assert loaded_header.title == "how do generators work?"
-
-
-async def test_a_guardrail_message_never_becomes_the_title(store) -> None:
-    await store.create(header())
-    await store.append(
-        "s",
-        [
-            TurnStart(turn=0),
-            ApplicationMessageEvent(turn=0, message=ApplicationMessage(content="Note: …")),
-            UserMessageEvent(turn=0, message=UserMessage(content="what the human said")),
-        ],
-    )
-
-    loaded_header, _ = await store.load("s")
-
-    assert loaded_header.title == "what the human said"
-
-
-async def test_a_long_first_message_is_capped_but_the_log_keeps_it_whole(store) -> None:
-    long = "x" * 500
-    await store.create(header())
-    await store.append("s", a_turn(text=long))
-
-    loaded_header, events = await store.load("s")
-
-    assert len(loaded_header.title) == 120
-    message = next(e for e in events if isinstance(e, UserMessageEvent))
-    assert message.message.content == long
-
-
-async def test_the_title_is_stamped_once_not_rewritten(store) -> None:
-    await store.create(header())
-    await store.append("s", a_turn(text="first"))
-    await store.append("s", a_turn(1, text="second"))
-
-    loaded_header, _ = await store.load("s")
-
-    assert loaded_header.title == "first"
 
 
 async def test_a_fresh_instance_counts_the_stored_log(store, tmp_path) -> None:
@@ -216,3 +166,12 @@ async def test_files_that_are_not_chats_do_not_break_the_lookup(tmp_path) -> Non
 
     found = await chats.chats_of("c0")
     assert [(s.channel, s.chat_id) for s in found] == [("discord", "9")]
+
+
+async def test_a_restart_counts_only_what_it_wrote(store) -> None:
+    await store.create(header())
+    await store.append("s", a_turn())
+
+    await store.restart(header(), [TurnStart(turn=0)])
+
+    assert await store.stored_count("s") == 1

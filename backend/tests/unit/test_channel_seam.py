@@ -6,6 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 
 from harness.agent.loop import LoopAgent
+from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, apply
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import (
@@ -29,11 +30,13 @@ class FakeWhatsApp:
     """A whole platform in 20 lines."""
 
     channel = WHATSAPP
-    on_missing = "recreate"
 
     def __init__(self) -> None:
         self.sent: list[tuple[str, str]] = []
         self.ran = False
+
+    def conversation_for(self, chat_id: str) -> str:
+        return ASSISTANT_ID
 
     async def run(self) -> None:
         self.ran = True
@@ -100,12 +103,13 @@ async def test_commands_work_on_any_platform(tmp_path) -> None:
     gateway.register(FakeWhatsApp())
     await gateway.receive(message("guild-1", "hello"))
     await settle(runs, gateway, (WHATSAPP, "guild-1"))
-    assert (await chats.load(WHATSAPP, "guild-1")).conversation_id != ""
+    before = (await chats.load(WHATSAPP, "guild-1")).conversation_id
+    assert before != ""
 
     reply = await apply(gateway, WHATSAPP, "guild-1", Command.NEW)
 
-    assert "New conversation" in reply
-    assert (await chats.load(WHATSAPP, "guild-1")).conversation_id == ""
+    assert "cleared" in reply
+    assert (await chats.load(WHATSAPP, "guild-1")).conversation_id == before
 
 
 async def test_a_platform_with_no_typing_indicator_is_fine(tmp_path) -> None:
@@ -135,7 +139,7 @@ async def test_two_platforms_share_one_gateway(tmp_path) -> None:
     assert telegram_bot.sent == [("9", "answered")]
 
 
-async def test_the_same_chat_id_on_two_platforms_stays_separate(tmp_path) -> None:
+async def test_every_platform_writes_into_assistants_chat(tmp_path) -> None:
     gateway, runs, chats = build(tmp_path)
     whatsapp = FakeWhatsApp()
     telegram, _ = telegram_channel(gateway)
@@ -147,9 +151,10 @@ async def test_the_same_chat_id_on_two_platforms_stays_separate(tmp_path) -> Non
     await gateway.receive(InboundMessage(channel="telegram", chat_id="9", text="b"))
     await settle(runs, gateway, ("telegram", "9"))
 
-    whatsapp_state = await chats.load(WHATSAPP, "9")
-    telegram_state = await chats.load("telegram", "9")
-    assert whatsapp_state.conversation_id != telegram_state.conversation_id
+    assert (await chats.load(WHATSAPP, "9")).conversation_id == ASSISTANT_ID
+    assert (await chats.load("telegram", "9")).conversation_id == ASSISTANT_ID
+    stored = await SessionService(JsonlSessionRepository(tmp_path / "sessions")).read(ASSISTANT_ID)
+    assert [e.message.content for e in stored.events() if e.type == "user/message"] == ["a", "b"]
 
 
 async def test_a_message_from_an_unregistered_platform_is_loud(tmp_path) -> None:

@@ -94,16 +94,6 @@ async def test_an_edit_is_logged_once_before_the_next_turn(bots) -> None:
     assert await _logged_instructions(client, bot_id) == [RESEARCHER["instructions"], "Be brief."]
 
 
-async def test_a_chat_that_belongs_to_no_bot_is_answered_as_assistant(bots) -> None:
-    client, model, runs = bots
-
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
-    await settle(runs, conversation_id)
-
-    assert model.seen[0].content == f"{ASSISTANT} {GUIDE}"
-    assert await _logged_instructions(client, conversation_id) == [ASSISTANT]
-
-
 async def test_assistant_cannot_be_deleted_and_another_bot_can(bots) -> None:
     client, _, _ = bots
     bot_id = (await client.post("/api/bots", json=RESEARCHER)).json()["id"]
@@ -114,7 +104,7 @@ async def test_assistant_cannot_be_deleted_and_another_bot_can(bots) -> None:
     assert refused.status_code == 409
     assert deleted.status_code == 204
     assert [b["id"] for b in (await client.get("/api/bots")).json()] == [ASSISTANT_ID]
-    assert (await client.get(f"/api/conversations/{bot_id}")).status_code == 200
+    assert (await client.get(f"/api/conversations/{bot_id}")).status_code == 404
 
 
 async def test_a_blank_name_or_instructions_is_refused(bots) -> None:
@@ -133,3 +123,13 @@ async def test_editing_a_bot_that_does_not_exist_is_not_found(bots) -> None:
     missing = await client.put("/api/bots/nope", json=RESEARCHER)
 
     assert missing.status_code == 404
+
+
+async def test_archiving_restoring_or_deleting_a_bot_that_does_not_exist_is_not_found(
+    bots,
+) -> None:
+    client, _, _ = bots
+
+    assert (await client.post("/api/bots/nope/archive")).status_code == 404
+    assert (await client.post("/api/bots/nope/restore")).status_code == 404
+    assert (await client.delete("/api/bots/nope")).status_code == 404

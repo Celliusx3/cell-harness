@@ -1,11 +1,12 @@
 # Bots
 
-Each bot has a name, instructions and one chat. The sidebar lists them under Bots, Assistant first. Assistant is there from the first start and cannot be deleted.
+Each bot has a name, instructions and one chat. The sidebar lists them under Bots, Assistant first. Assistant is there from the first start and cannot be archived or deleted.
 
 ## Sub-features
 
 - "New bot" in the sidebar header opens a form: Name, Instructions, Save. Saving opens the new bot's empty chat.
-- "Edit bot" in a bot's chat header opens the same form with Delete (not for Assistant). After an edit, the chat shows "Instructions updated" before the next turn.
+- "Edit bot" in a bot's chat header opens the same form with Archive (not for Assistant). After an edit, the chat shows "Instructions updated" before the next turn.
+- Archived in the sidebar, collapsed with a count, lists archived bots with Restore and Delete. An archived bot's chat is a 404; Delete asks first and removes the bot and its chat for good.
 - From chat: ask a bot to make one ("make a bot called Translator that translates into Malay"). It calls `bot_create`, which asks first; after "Allow once" the bot appears in the sidebar when the turn ends.
 
 ## How to get to it (user POV)

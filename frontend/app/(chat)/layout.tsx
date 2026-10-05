@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/chat/Sidebar";
 
-/** The chat: a sidebar of conversations beside the one open. */
+/** The chat: a sidebar of bots beside the chat open. */
 export default function ChatLayout({
   children,
 }: {

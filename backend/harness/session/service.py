@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from harness.session.log import Session
-from harness.session.models import SessionHeader
+from harness.session.models import ChatCleared, SessionHeader
 from harness.session.repair import repair
 from harness.session.repository import SessionRepository
 
@@ -56,6 +56,12 @@ class SessionService:
             return
         await self._repository.append(session.id, events[cursor:])
 
-    async def list(self) -> list[SessionHeader]:
-        """Every stored session, newest first."""
-        return await self._repository.list()
+    async def clear(self, session_id: str) -> None:
+        """Wipe a stored chat: same id, numbering carried on, one `chat/cleared` line."""
+        header, events = await self._repository.load(session_id)
+        wiped = header.model_copy(update={"numbered_from": header.numbered_from + len(events)})
+        await self._repository.restart(wiped, [ChatCleared()])
+
+    async def delete(self, session_id: str) -> None:
+        """Remove a stored chat for good; one never written is already gone."""
+        await self._repository.delete(session_id)

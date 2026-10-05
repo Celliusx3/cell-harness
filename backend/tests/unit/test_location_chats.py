@@ -208,8 +208,6 @@ async def test_an_answer_from_the_page_is_still_delivered_to_the_chat(tmp_path) 
     await settle(runs, gateway)
 
     assert bot.sent == [(CHAT, "a café 200 m away")]
-    refreshed = await chats.load("telegram", CHAT)
-    assert refreshed is not None and refreshed.delivered_through > state.delivered_through
 
 
 async def test_the_ask_is_sent_once_even_though_the_answer_opens_a_new_turn(tmp_path) -> None:

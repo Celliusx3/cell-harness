@@ -18,7 +18,7 @@ class Command(StrEnum):
     COMPACT = "compact"
 
 
-STARTED = "New conversation started."
+CLEARED = "Chat cleared."
 STOPPED = "Stopped."
 NOTHING_TO_STOP = "Nothing is running."
 COMPACTING = "Compacting the conversation to free up context…"
@@ -43,8 +43,8 @@ def skills_reply(skills: Sequence[Skill]) -> str:
 async def apply(gateway: ChannelGateway, channel: str, chat_id: str, command: Command) -> str:
     """Run one command."""
     if command is Command.NEW:
-        await gateway.reset(channel, chat_id)
-        return STARTED
+        await gateway.clear(channel, chat_id)
+        return CLEARED
     if command is Command.STOP:
         return STOPPED if await gateway.stop(channel, chat_id) else NOTHING_TO_STOP
     if command is Command.COMPACT:

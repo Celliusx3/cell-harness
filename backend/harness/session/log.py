@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import NamedTuple
 
 from harness.llm.messages import ToolReference
 from harness.session.models import (
@@ -14,6 +15,13 @@ from harness.session.models import (
     ToolResultEvent,
     TurnStart,
 )
+
+
+class Numbered(NamedTuple):
+    """One event and its number in the chat."""
+
+    number: int
+    event: SessionEvent
 
 
 class Session:
@@ -36,6 +44,19 @@ class Session:
     def events(self) -> Sequence[SessionEvent]:
         """Every event, oldest first."""
         return self._events
+
+    def numbered_events_from(self, number: int) -> list[Numbered]:
+        """The events numbered `number` and up; all of them when `number` predates this file."""
+        first = self.header.numbered_from
+        start = max(number - first, 0)
+        return [
+            Numbered(first + index, event)
+            for index, event in enumerate(self._events[start:], start)
+        ]
+
+    def next_number(self) -> int:
+        """The number the next event will get."""
+        return self.header.numbered_from + len(self._events)
 
     def next_turn(self) -> int:
         """The index the next turn should open with."""

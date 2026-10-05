@@ -115,20 +115,14 @@ export type SessionEvent =
   | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
   | ApprovalGrantEvent
   /** The bot answering from here on, and the instructions its turns are prompted with. */
-  | { type: "bot/instructions"; name: string; instructions: string };
+  | { type: "bot/instructions"; name: string; instructions: string }
+  | { type: "chat/cleared" };
 
 /** The person allowed `tool` to run unasked for the rest of this conversation. */
 export interface ApprovalGrantEvent {
   type: "approval/grant";
   turn: number;
   tool: string;
-}
-
-export interface ConversationSummary {
-  id: string;
-  created_at: string;
-  /** Empty until the opening turn's first flush stamps it. */
-  title: string;
 }
 
 export interface Bot {
@@ -139,12 +133,16 @@ export interface Bot {
 
 export type BotDraft = Omit<Bot, "id">;
 
-export interface MessageAccepted extends ConversationSummary {
+export interface MessageAccepted {
+  id: string;
+  created_at: string;
   /** True when the message was held behind a turn already running. */
   queued: boolean;
 }
 
-export interface ConversationDetail extends ConversationSummary {
+export interface ConversationDetail {
+  id: string;
+  created_at: string;
   events: SessionEvent[];
   next_cursor: number;
   running: boolean;

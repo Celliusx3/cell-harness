@@ -114,7 +114,7 @@ async def test_a_command_is_answered_and_never_batched(tmp_path) -> None:
 
     await channel._on(update(CHAT, "/new", 1), None)
 
-    assert bot.sent == [(CHAT, "New conversation started.")]
+    assert bot.sent == [(CHAT, "Chat cleared.")]
 
 
 async def test_a_command_flushes_whatever_was_batching(tmp_path) -> None:

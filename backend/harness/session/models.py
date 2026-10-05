@@ -30,7 +30,7 @@ class SessionHeader(BaseModel):
     version: int = SESSION_FORMAT_VERSION
     id: str = Field(min_length=1)
     created_at: datetime
-    title: str = ""
+    numbered_from: int = Field(default=0, description="The number of this file's first event.")
 
 
 class TurnStart(BaseModel):
@@ -163,6 +163,14 @@ class BotInstructionsEvent(BaseModel):
     instructions: str
 
 
+class ChatCleared(BaseModel):
+    """The person cleared this chat: the model's history and the timeline start after it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["chat/cleared"] = "chat/cleared"
+
+
 SessionEvent = (
     TurnStart
     | TurnEnd
@@ -179,4 +187,5 @@ SessionEvent = (
     | CompactionPrune
     | ApprovalGrant
     | BotInstructionsEvent
+    | ChatCleared
 )

@@ -7,7 +7,7 @@ import { waitingApproval } from "@/components/answer/approval";
 import { ApprovalBar, ApprovalPanel } from "@/components/answer/ApprovalPanel";
 import { questionOf, waitingQuestion } from "@/components/answer/question";
 import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
-import { useBot, type BotLookup } from "@/components/bots/useBot";
+import { useBot } from "@/components/bots/useBot";
 import { refreshSidebar } from "@/components/chat/Sidebar";
 import { Composer } from "@/components/conversation/Composer";
 import { QueuedBubble } from "@/components/conversation/Message";
@@ -18,7 +18,10 @@ import { useTimeline } from "@/components/conversation/useTimeline";
 
 type Waiting = { kind: "question"; item: ToolItem } | { kind: "approval"; item: ToolItem };
 
-/** One conversation. */
+const CLEAR_CONFIRMATION =
+  "Clear this chat? This permanently removes every message and stops what the bot is doing. The chat stays.";
+
+/** One bot's chat, under the bot's name. */
 export default function ConversationPage({
   params,
 }: {
@@ -27,7 +30,7 @@ export default function ConversationPage({
   const { id } = use(params);
   const conversation = useConversation(id);
   const bot = useBot(id);
-  const { items, openTurn, openingMessage } = useTimeline(conversation.events);
+  const { items, openTurn } = useTimeline(conversation.events);
   const waiting = useMemo(
     () => (conversation.running ? null : waitingCall(items, openTurn)),
     [conversation.running, items, openTurn],
@@ -40,11 +43,15 @@ export default function ConversationPage({
     wasRunning.current = conversation.running;
   }, [conversation.running]);
 
+  if (bot.kind === "none") {
+    return <p className="px-6 py-6 text-sm text-danger">No bot has the id {id}.</p>;
+  }
+
   return (
     <>
       <header className="flex items-center gap-3 border-b border-line px-6 py-3">
         <h1 className="min-w-0 truncate text-sm font-medium">
-          {headerTitle(bot, conversation.title || openingMessage || "Untitled")}
+          {bot.kind === "found" ? bot.bot.name : ""}
         </h1>
         {conversation.running && (
           <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-ink-soft">
@@ -68,6 +75,16 @@ export default function ConversationPage({
             className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink disabled:opacity-40"
           >
             Compact
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(CLEAR_CONFIRMATION)) void conversation.clear();
+            }}
+            title="Start this chat fresh"
+            className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink"
+          >
+            Clear
           </button>
         </div>
       </header>
@@ -122,18 +139,6 @@ export default function ConversationPage({
       )}
     </>
   );
-}
-
-function headerTitle(bot: BotLookup, chatTitle: string): string {
-  switch (bot.kind) {
-    case "found":
-      return bot.bot.name;
-    case "loading":
-      return "";
-    case "none":
-    case "failed":
-      return chatTitle;
-  }
 }
 
 function waitingCall(items: TimelineItem[], openTurn: number | null): Waiting | null {

@@ -144,12 +144,13 @@ def run_store(
     *tools: ToolDefinition,
     compaction: CompactionService | None = None,
     gate: ApprovalGate | None = None,
+    bots: BotStore | None = None,
 ) -> RunStore:
     """Runs over an agent that checkpoints through `service`, as the server wires it."""
     return RunStore(
         service,
         loop_agent(client, *tools, checkpoint=service.flush, compaction=compaction, gate=gate),
-        no_bots(service),
+        bots or no_bots(service),
     )
 
 

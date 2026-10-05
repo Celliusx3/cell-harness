@@ -95,7 +95,7 @@ reset the very detector that wrote it. It reaches the model in the user role —
 puts its reminders — but it is its own event type in the log, not a flag on
 `user/message`: storage, the stream and the UI all discriminate on `type`, and
 a second field is one a reader forgets to check. That is what keeps the note
-out of the conversation's title and out of the person's bubbles.
+out of the person's bubbles.
 
 **No step cap.** The loop had one until phase 9, as a backstop against a bug
 in the loop itself. It was dropped by decision, with the consequence stated:
@@ -123,7 +123,10 @@ a reader can cancel, "close the tab and come back" stops being true.
 **One cursor.** A session sequence number means the same thing to a stored
 snapshot and a live stream. Don't add a second numbering for a subscriber, and
 don't let the UI derive one — that is what makes a replayed conversation and a
-live one the same code path. The browser reads the stream with `fetch`, not
+live one the same code path. Every streamed event carries its number, and a
+clear wipes the file without restarting the numbering, as Rakazo's
+`nextMessageSeq` does, so a reader never counts and a bookmark from before a
+clear still lands on the next event. The browser reads the stream with `fetch`, not
 `EventSource`: its own `Last-Event-ID` reconnect would race the cursor, it
 cannot be aborted precisely, and it treats a clean end as a reason to reconnect.
 

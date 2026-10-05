@@ -25,11 +25,12 @@ from telegram.ext import (
     filters,
 )
 
+from harness.bots import ASSISTANT_ID
 from harness.channels.client import ChatAnswers
 from harness.channels.commands import apply as apply_command
 from harness.channels.commands import unknown_skill
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import InboundMessage, OnMissing
+from harness.channels.protocol import InboundMessage
 from harness.channels.telegram import commands
 from harness.channels.telegram.asking import (
     BUTTONS,
@@ -64,7 +65,6 @@ class TelegramChannel:
     """`Channel` and `Pushing` for Telegram: receive, send, show typing."""
 
     channel = CHANNEL
-    on_missing: OnMissing = "recreate"
 
     def __init__(self, token: str, gateway: ChannelGateway, answers: ChatAnswers) -> None:
         self._gateway = gateway
@@ -80,6 +80,10 @@ class TelegramChannel:
             CallbackQueryHandler(self._on_decision, pattern=rf"^{CALLBACK_PREFIX}:")
         )
         self._app.add_handler(CallbackQueryHandler(self._on_choice, pattern=rf"^{CHOICE_PREFIX}:"))
+
+    def conversation_for(self, chat_id: str) -> str:
+        """Every Telegram chat writes into Assistant's chat."""
+        return ASSISTANT_ID
 
     async def run(self) -> None:
         """Poll until cancelled."""

@@ -64,7 +64,8 @@ collapse into one run; cron is read on local wall time (`croniter`, MIT), so a
 daylight-saving change does not move it an hour; a conversation is busy while a
 chat's last reply is still being sent, not only while a turn runs, or that reply
 goes out twice; compaction must count the routine's opening event as input; and
-`/new` on Telegram leaves the routine with the old conversation.
+`/new` clears the chat in place, so a routine keeps its chat and loses only the
+history before the clear.
 
 Also open, outside this order: 12 (files), 13 (commands), 15 (begun) and 16
 (steering), in the optional track below.
@@ -129,16 +130,30 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
 **Shipped so far.**
 - `bots/` — `Bot` (id, name, instructions) in the file at `bots.path`, read on
   every call. A bot's chat id is the bot's id. Assistant (`"assistant"`) is
-  today's prompt, there from the first start, and cannot be deleted; a chat no
-  bot owns is answered as Assistant.
+  today's prompt, there from the first start, and cannot be archived or deleted.
+  Every chat is a bot's chat: an id that is no bot's is a 404 on every chat route.
 - `bot/instructions` — the event that brings a bot's instructions into its
   chat, logged when a turn starts with instructions that differ from the last
   ones logged. The request and compaction both build the system prompt from it
   (`agent/system_prompt.py`): the instructions, then the fixed guidance.
-- `/api/bots`, the sidebar's Bots and Other chats, the New bot and Edit bot form.
+- `/api/bots`, the sidebar's Bots and Archived, the New bot and Edit bot form.
 - `bot_create` (`tools/native/bots/`) — the form's save as a tool. It asks
   first and is withheld from scripts and helpers; Rakazo's `spawn_bot` does not
   ask (`packages/core/src/action-approval.ts:19`).
+- Clear — the Clear button and `/new` wipe a chat in place, as Rakazo's
+  `clearThread` does (`packages/db/src/events.ts:257-342`): the turn stops, and
+  `SessionService.clear` rewrites the chat's file to one `chat/cleared` line
+  under the same id. Its numbering carries on (`SessionHeader.numbered_from`)
+  and every streamed event carries its number (`id:`), so an open tab or a
+  Telegram chat keeps its place.
+- One chat per bot, as in Rakazo. Telegram and Discord write into Assistant's
+  chat (`Channel.conversation_for`), and a chat app hears only the turns it
+  started or the calls it was asked (`ChatState.asked`; Rakazo
+  `packages/adapters/src/messaging-delivery.ts:87-90`). There is no
+  conversation list, no way to start another chat, and no title.
+- Archive, as in Rakazo (`Bot.archivedAt`): an archived bot and its chat are
+  hidden and refused; the sidebar's Archived section restores one, or deletes
+  it with its chat for good.
 
 **Key contracts.**
 - Model-visible means logged: a request's instructions come from the chat's last
@@ -211,7 +226,7 @@ step's calls in order. A helper starts with no history, gets the tools minus
 `run_subagent`, `ask_user`, `get_location` and the skill writes, and a call that
 needs approval stops it with a reason the parent can act on. Each helper's steps
 are logged in its own session, `subagents/<call id>.<n>.jsonl` beside the sessions
-folder, which the conversation list does not read.
+folder, which no chat route reads.
 
 ## Phase 15 — It operates itself *(optional)*
 

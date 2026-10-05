@@ -2,39 +2,18 @@
 
 from __future__ import annotations
 
-from tests.integration.web_helpers import events_from, frame_names, settle
+from tests.integration.web_helpers import assistant_chat, events_from, frame_names, settle
 from tests.unit.helpers import until
 
 
-async def test_a_created_conversation_is_listed(simple) -> None:
+async def test_a_blank_prompt_is_refused(simple) -> None:
     client, _, runs = simple
-    created = await client.post("/api/conversations", json={"prompt": "hi"})
-    assert created.status_code == 201
-    conversation_id = created.json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
-    listed = await client.get("/api/conversations")
-
-    assert [row["id"] for row in listed.json()] == [conversation_id]
-
-
-async def test_the_list_is_empty_before_anything_is_sent(simple) -> None:
-    client, _, _ = simple
-
-    assert (await client.get("/api/conversations")).json() == []
-
-
-async def test_a_blank_prompt_is_refused_on_both_post_paths(simple) -> None:
-    client, _, runs = simple
-    created = await client.post("/api/conversations", json={"prompt": "hi"})
-    conversation_id = created.json()["id"]
-    await settle(runs, conversation_id)
-
-    assert (await client.post("/api/conversations", json={"prompt": ""})).status_code == 422
-    sent = await client.post(
-        f"/api/conversations/{conversation_id}/messages", json={"prompt": "   "}
-    )
-    assert sent.status_code == 422
+    path = f"/api/conversations/{conversation_id}/messages"
+    assert (await client.post(path, json={"prompt": ""})).status_code == 422
+    assert (await client.post(path, json={"prompt": "   "})).status_code == 422
 
 
 async def test_an_unknown_conversation_is_a_404(simple) -> None:
@@ -48,7 +27,7 @@ async def test_an_unknown_conversation_is_a_404(simple) -> None:
 
 async def test_the_snapshot_carries_the_cursor_to_stream_from(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
@@ -59,7 +38,7 @@ async def test_the_snapshot_carries_the_cursor_to_stream_from(simple) -> None:
 
 async def test_the_snapshot_reads_the_live_log_while_a_turn_runs(slow) -> None:
     client, _, runs = slow
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
+    conversation_id = await assistant_chat(client, "go")
     session = runs.active(conversation_id).session
     await until(lambda: len(session.events()) > 3, what="the turn to get going")
 
@@ -71,7 +50,7 @@ async def test_the_snapshot_reads_the_live_log_while_a_turn_runs(slow) -> None:
 
 async def test_the_snapshot_renders_the_same_events_the_stream_does(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
@@ -82,7 +61,7 @@ async def test_the_snapshot_renders_the_same_events_the_stream_does(simple) -> N
 
 async def test_the_stream_ends_with_an_end_frame(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     body = (await client.get(f"/api/conversations/{conversation_id}/events?after=0")).text
@@ -93,7 +72,7 @@ async def test_the_stream_ends_with_an_end_frame(simple) -> None:
 
 async def test_an_idle_conversation_streams_its_stored_tail(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
     assert runs.active(conversation_id) is None
 
@@ -105,7 +84,7 @@ async def test_an_idle_conversation_streams_its_stored_tail(simple) -> None:
 
 async def test_snapshot_then_stream_reconstructs_the_log_exactly(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
@@ -120,7 +99,7 @@ async def test_snapshot_then_stream_reconstructs_the_log_exactly(simple) -> None
 
 async def test_a_negative_cursor_is_refused(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     streamed = await client.get(f"/api/conversations/{conversation_id}/events?after=-1")

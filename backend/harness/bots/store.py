@@ -33,18 +33,24 @@ class BotStore:
         )
 
     async def list(self) -> tuple[Bot, ...]:
-        """Assistant, then the others in the order they were made; opens Assistant's chat once."""
-        bots = self._bots()
+        """Assistant, then the active others in the order made; opens Assistant's chat once."""
+        bots = self._active()
         try:
             await self._sessions.read(ASSISTANT_ID)
         except SessionNotFoundError:
             await self._open(await self._sessions.create(ASSISTANT_ID), bots[0])
         return bots
 
+    def archived(self) -> tuple[Bot, ...]:
+        """The archived bots, in the order they were made."""
+        return tuple(bot for bot in self._stored() if bot.archived)
+
     def bot_for(self, conversation_id: str) -> Bot:
-        """The bot that owns this conversation, or Assistant when none does."""
-        bots = self._bots()
-        return next((bot for bot in bots if bot.id == conversation_id), bots[0])
+        """The active bot that owns this conversation; `BotNotFound` when none does."""
+        bot = next((bot for bot in self._active() if bot.id == conversation_id), None)
+        if bot is None:
+            raise BotNotFound(conversation_id)
+        return bot
 
     async def create(self, name: str, instructions: str) -> Bot:
         """A new bot, with its chat already holding its instructions."""
@@ -55,29 +61,56 @@ class BotStore:
         return bot
 
     def update(self, bot_id: str, name: str, instructions: str) -> Bot:
-        """Rename a bot or rewrite its instructions; its chat logs them before its next turn."""
+        """Edit an active bot's name or instructions; its chat logs them before its next turn."""
+        updated = self.bot_for(bot_id).model_copy(
+            update={"name": name, "instructions": instructions}
+        )
         stored = self._stored()
-        known = {bot.id for bot in stored}
-        if bot_id != ASSISTANT_ID and bot_id not in known:
-            raise BotNotFound(bot_id)
-        updated = Bot(id=bot_id, name=name, instructions=instructions)
         replaced = tuple(updated if bot.id == bot_id else bot for bot in stored)
-        self._write(replaced if bot_id in known else (updated, *stored))
+        self._write(replaced if bot_id in {bot.id for bot in stored} else (updated, *stored))
         return updated
 
-    def delete(self, bot_id: str) -> None:
-        """Forget a bot; its chat stays, answered as Assistant from then on."""
+    def removable(self, bot_id: str) -> Bot:
+        """The stored bot a person may archive or delete; Assistant is `BotPermanent`."""
         if bot_id == ASSISTANT_ID:
             raise BotPermanent(bot_id)
+        bot = next((bot for bot in self._stored() if bot.id == bot_id), None)
+        if bot is None:
+            raise BotNotFound(bot_id)
+        return bot
+
+    def archive(self, bot_id: str) -> None:
+        """Hide a bot and its chat until it is restored."""
+        self.removable(bot_id)
+        self._set_archived(bot_id, archived=True)
+
+    def restore(self, bot_id: str) -> None:
+        """Bring an archived bot back with its chat as it was; an active one stays as it is."""
+        if bot_id != ASSISTANT_ID:
+            self._set_archived(bot_id, archived=False)
+
+    async def delete(self, bot_id: str) -> None:
+        """Remove a bot and its chat for good."""
+        self.removable(bot_id)
+        self._write(tuple(bot for bot in self._stored() if bot.id != bot_id))
+        await self._sessions.delete(bot_id)
+
+    def _active(self) -> tuple[Bot, ...]:
+        stored = self._stored()
+        assistant = next((bot for bot in stored if bot.id == ASSISTANT_ID), self._assistant)
+        others = (bot for bot in stored if bot.id != ASSISTANT_ID and not bot.archived)
+        return (assistant, *others)
+
+    def _set_archived(self, bot_id: str, *, archived: bool) -> None:
         stored = self._stored()
         if bot_id not in {bot.id for bot in stored}:
             raise BotNotFound(bot_id)
-        self._write(tuple(bot for bot in stored if bot.id != bot_id))
-
-    def _bots(self) -> tuple[Bot, ...]:
-        stored = self._stored()
-        assistant = next((bot for bot in stored if bot.id == ASSISTANT_ID), self._assistant)
-        return (assistant, *(bot for bot in stored if bot.id != ASSISTANT_ID))
+        self._write(
+            tuple(
+                bot.model_copy(update={"archived": archived}) if bot.id == bot_id else bot
+                for bot in stored
+            )
+        )
 
     def _stored(self) -> tuple[Bot, ...]:
         if not self._path.exists():

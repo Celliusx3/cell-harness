@@ -1,14 +1,15 @@
-"""The JSONL backend's files: what a damaged one costs, and what a listing reads."""
+"""The JSONL backend's files: what a damaged one costs, what an old one holds, deleting one."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 import pytest
 
-from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.repository import SessionCorruptionError, SessionFormatUnsupportedError
+from harness.session.repository import (
+    SessionCorruptionError,
+    SessionFormatUnsupportedError,
+    SessionNotFoundError,
+)
 from tests.unit.jsonl_helpers import a_turn, header, repository
 
 
@@ -64,6 +65,21 @@ async def test_an_unknown_format_version_refuses_and_names_the_file(store, tmp_p
         await store.load("s")
 
 
+async def test_a_header_written_with_a_title_still_loads(store, tmp_path) -> None:
+    await store.create(header())
+    await store.append("s", a_turn())
+    path = tmp_path / "sessions" / "s.jsonl"
+    lines = path.read_text().splitlines(keepends=True)
+    lines[0] = lines[0].replace('"version":1', '"version":1,"title":"from before"')
+    path.write_text("".join(lines))
+    assert '"title":"from before"' in path.read_text()
+
+    loaded_header, loaded = await store.load("s")
+
+    assert loaded_header == header()
+    assert len(loaded) == 5
+
+
 async def test_an_empty_file_has_no_header(store, tmp_path) -> None:
     root = tmp_path / "sessions"
     root.mkdir(parents=True)
@@ -79,37 +95,22 @@ async def test_an_unsafe_id_cannot_reach_outside_the_root(store, bad) -> None:
         await store.load(bad)
 
 
-async def test_list_returns_newest_first(store) -> None:
-    for n, day in enumerate([3, 1, 2]):
-        h = SessionHeader(id=f"s{n}", created_at=datetime(2026, 1, day, tzinfo=UTC))
-        await store.create(h)
-        await store.append(f"s{n}", a_turn())
-
-    assert [h.id for h in await store.list()] == ["s0", "s2", "s1"]
-
-
-async def test_list_reads_only_line_one(store, tmp_path) -> None:
+async def test_a_deleted_session_is_gone_and_cannot_be_loaded(store, tmp_path) -> None:
     await store.create(header())
     await store.append("s", a_turn())
-    path = tmp_path / "sessions" / "s.jsonl"
-    lines = path.read_text().splitlines(keepends=True)
-    lines[1] = "{total garbage}\n"
-    path.write_text("".join(lines))
 
-    listed = await store.list()
+    await store.delete("s")
 
-    assert [h.id for h in listed] == ["s"]
-    with pytest.raises(SessionCorruptionError):
+    assert not (tmp_path / "sessions" / "s.jsonl").exists()
+    assert await store.stored_count("s") == 0
+    with pytest.raises(SessionNotFoundError):
         await store.load("s")
 
 
-async def test_one_corrupt_header_does_not_break_the_whole_list(store, tmp_path) -> None:
-    await store.create(header("good"))
-    await store.append("good", a_turn())
-    (tmp_path / "sessions" / "broken.jsonl").write_text("{not a header}\n")
+async def test_deleting_a_session_never_written_is_fine(store, tmp_path) -> None:
+    await store.create(header())
 
-    assert [h.id for h in await store.list()] == ["good"]
+    await store.delete("s")
 
-
-async def test_listing_an_absent_root_is_empty_not_an_error(store) -> None:
-    assert await store.list() == []
+    with pytest.raises(SessionNotFoundError):
+        await store.append("s", a_turn())

@@ -19,8 +19,9 @@ class ChatState(BaseModel):
     channel: str
     chat_id: str
     conversation_id: str = ""
-    delivered_through: int = 0
     pending: tuple[str, ...] = ()
+    asked: tuple[str, ...] = ()
+    """Calls this chat was asked to answer and has not seen answered."""
 
 
 class ChatRepository(Protocol):

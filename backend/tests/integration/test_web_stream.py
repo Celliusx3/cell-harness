@@ -17,6 +17,7 @@ from harness.channels.web import sse as sse_module
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from tests.integration.web_helpers import assistant_chat
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool, hanging_tool
 from tests.unit.helpers import no_bots, no_skills, pipeline_for
 from tests.webapp import web_app
@@ -75,12 +76,6 @@ async def live(tmp_path):
         yield live
 
 
-async def start(client: httpx.AsyncClient) -> str:
-    created = await client.post("/api/conversations", json={"prompt": "go"})
-    assert created.status_code == 201
-    return created.json()["id"]
-
-
 async def until(predicate, *, what: str) -> None:
     for _ in range(int(TIMEOUT / 0.005)):
         if predicate():
@@ -117,7 +112,7 @@ async def read_events(response: httpx.Response, *, count: int) -> list[dict]:
 
 async def test_hanging_up_mid_stream_does_not_cancel_the_run(live) -> None:
     client, _, runs = live
-    conversation_id = await start(client)
+    conversation_id = await assistant_chat(client, "go")
 
     async with client.stream(
         "GET", f"/api/conversations/{conversation_id}/events?after=0"
@@ -137,7 +132,7 @@ async def test_hanging_up_mid_stream_does_not_cancel_the_run(live) -> None:
 async def test_a_silent_turn_still_sends_something_within_the_keep_alive(live, monkeypatch) -> None:
     monkeypatch.setattr(sse_module, "KEEP_ALIVE_SECONDS", 0.05, raising=False)
     client, _, runs = live
-    conversation_id = await start(client)
+    conversation_id = await assistant_chat(client, "go")
     await until(
         lambda: any(e.type == "tool/call" for e in runs.active(conversation_id).session.events()),
         what="the turn to park inside the tool",
@@ -155,7 +150,7 @@ async def test_a_silent_turn_still_sends_something_within_the_keep_alive(live, m
 
 async def test_reconnecting_with_a_cursor_misses_nothing(live) -> None:
     client, _, runs = live
-    conversation_id = await start(client)
+    conversation_id = await assistant_chat(client, "go")
 
     async with client.stream(
         "GET", f"/api/conversations/{conversation_id}/events?after=0"
@@ -183,7 +178,7 @@ async def test_reconnecting_with_a_cursor_misses_nothing(live) -> None:
 
 async def test_several_watchers_see_the_same_stream(live) -> None:
     client, _, runs = live
-    conversation_id = await start(client)
+    conversation_id = await assistant_chat(client, "go")
 
     async def watch() -> list[dict]:
         async with client.stream(
@@ -199,7 +194,7 @@ async def test_several_watchers_see_the_same_stream(live) -> None:
 
 async def test_a_watcher_is_released_when_the_turn_is_stopped(live) -> None:
     client, _, runs = live
-    conversation_id = await start(client)
+    conversation_id = await assistant_chat(client, "go")
 
     async def watch_to_end() -> str:
         response = await client.get(f"/api/conversations/{conversation_id}/events?after=0")
@@ -232,7 +227,7 @@ async def test_a_queued_turn_is_streamed_live_not_delivered_after_it_ends(tmp_pa
         gated_tool(first),
         gated_tool(second, name="gate2"),
     ) as (client, _, runs):
-        conversation_id = await start(client)
+        conversation_id = await assistant_chat(client, "go")
         async with client.stream(
             "GET", f"/api/conversations/{conversation_id}/events?after=0"
         ) as response:

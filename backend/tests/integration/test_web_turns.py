@@ -6,7 +6,14 @@ import asyncio
 
 import httpx
 
-from tests.integration.web_helpers import api, build, events_from, frame_names, settle
+from tests.integration.web_helpers import (
+    api,
+    assistant_chat,
+    build,
+    events_from,
+    frame_names,
+    settle,
+)
 from tests.unit.fakes import (
     SteppedClient,
     calls_tool,
@@ -21,7 +28,7 @@ from tests.webapp import web_app
 
 async def test_a_second_message_while_running_is_queued(slow) -> None:
     client, _, runs = slow
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
+    conversation_id = await assistant_chat(client, "go")
 
     second = await client.post(
         f"/api/conversations/{conversation_id}/messages", json={"prompt": "again"}
@@ -34,7 +41,7 @@ async def test_a_second_message_while_running_is_queued(slow) -> None:
 
 async def test_a_queued_message_does_not_repair_the_running_turn(slow) -> None:
     client, service, runs = slow
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
+    conversation_id = await assistant_chat(client, "go")
     session = runs.active(conversation_id).session
     await until(
         lambda: any(e.type == "tool/call" for e in session.events()),
@@ -50,7 +57,7 @@ async def test_a_queued_message_does_not_repair_the_running_turn(slow) -> None:
 
 async def test_two_simultaneous_messages_start_exactly_one_turn(simple, monkeypatch) -> None:
     client, service, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     released = asyncio.Event()
@@ -92,9 +99,7 @@ async def test_a_stream_follows_the_turn_queued_behind_the_one_it_watched(tmp_pa
         gated_tool(release),
     )
     async with api(tmp_path, service, runs) as client:
-        conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()[
-            "id"
-        ]
+        conversation_id = await assistant_chat(client, "go")
         session = runs.active(conversation_id).session
         await until(
             lambda: any(e.type == "tool/call" for e in session.events()),
@@ -122,7 +127,7 @@ async def test_a_stream_follows_the_turn_queued_behind_the_one_it_watched(tmp_pa
 
 async def test_a_corrupt_log_reports_the_file_it_could_not_read(simple, tmp_path) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
     log = tmp_path / "sessions" / f"{conversation_id}.jsonl"
     lines = log.read_text().splitlines()
@@ -137,7 +142,7 @@ async def test_a_corrupt_log_reports_the_file_it_could_not_read(simple, tmp_path
 
 async def test_a_conversation_accepts_another_message_once_it_settles(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     second = await client.post(
@@ -155,7 +160,7 @@ async def test_a_conversation_accepts_another_message_once_it_settles(simple) ->
 
 async def test_stopping_ends_the_turn_and_answers_every_call(slow) -> None:
     client, service, runs = slow
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
+    conversation_id = await assistant_chat(client, "go")
     session = runs.active(conversation_id).session
     await until(
         lambda: any(e.type == "tool/call" for e in session.events()),
@@ -174,7 +179,7 @@ async def test_stopping_ends_the_turn_and_answers_every_call(slow) -> None:
 
 async def test_stopping_an_idle_conversation_is_a_404(simple) -> None:
     client, _, runs = simple
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "hi"})).json()["id"]
+    conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
 
     assert (await client.delete(f"/api/conversations/{conversation_id}/run")).status_code == 404
@@ -182,7 +187,7 @@ async def test_stopping_an_idle_conversation_is_a_404(simple) -> None:
 
 async def test_a_stream_open_when_a_turn_is_stopped_is_released(slow) -> None:
     client, _, runs = slow
-    conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()["id"]
+    conversation_id = await assistant_chat(client, "go")
     session = runs.active(conversation_id).session
 
     async def read_to_end() -> str:
@@ -208,9 +213,7 @@ async def test_a_tool_using_turn_reaches_the_client(tmp_path) -> None:
         echo_tool(),
     )
     async with api(tmp_path, service, runs) as client:
-        conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()[
-            "id"
-        ]
+        conversation_id = await assistant_chat(client, "go")
 
         body = (await client.get(f"/api/conversations/{conversation_id}/events?after=0")).text
 
@@ -228,9 +231,7 @@ async def test_shutdown_stops_a_running_turn_durably(tmp_path) -> None:
     conversation_id = ""
 
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:
-        conversation_id = (await client.post("/api/conversations", json={"prompt": "go"})).json()[
-            "id"
-        ]
+        conversation_id = await assistant_chat(client, "go")
         session = runs.active(conversation_id).session
         await until(
             lambda: any(e.type == "tool/call" for e in session.events()),

@@ -6,6 +6,7 @@ import asyncio
 
 import pytest
 
+from harness.bots import ASSISTANT_ID, BotStore
 from harness.llm.client import LLMClient
 from harness.runs.subscribe import subscribe
 from harness.session.derive import derive_messages
@@ -35,7 +36,7 @@ def service(tmp_path) -> SessionService:
 
 async def test_stop_ends_the_turn_and_answers_every_dispatched_call(service) -> None:
     runs = run_store(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
     await until(
         lambda: any(isinstance(e, ToolCallEvent) for e in session.events()),
@@ -51,7 +52,7 @@ async def test_stop_ends_the_turn_and_answers_every_dispatched_call(service) -> 
 
 async def test_a_stopped_turn_is_durable(service) -> None:
     runs = run_store(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     runs.start(session, "go")
     await until(
         lambda: any(isinstance(e, ToolCallEvent) for e in session.events()),
@@ -75,7 +76,7 @@ async def test_a_bug_in_the_loop_still_settles_the_run(service) -> None:
             yield
 
     runs = run_store(service, RaisingClient())
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
     await asyncio.wait_for(run._outer, timeout=5)
@@ -88,14 +89,14 @@ async def test_a_bug_in_the_loop_still_settles_the_run(service) -> None:
 
 async def test_stopping_an_idle_conversation_reports_nothing_to_stop(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
 
     assert await runs.stop(session.id) is False
 
 
 async def test_stop_releases_a_waiting_subscriber(service) -> None:
     runs = run_store(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
     collected = asyncio.create_task(drain(subscribe(run, after=0)))
     await until(
@@ -105,14 +106,17 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
 
     await runs.stop(session.id)
 
-    events = await asyncio.wait_for(collected, timeout=5)
-    assert events == list(session.events())
+    items = await asyncio.wait_for(collected, timeout=5)
+    assert items == list(enumerate(session.events()))
 
 
-async def test_aclose_stops_every_run_durably(service) -> None:
-    runs = run_store(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
-    first = await service.create()
-    second = await service.create()
+async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
+    bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
+    runs = run_store(
+        service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), bots=bots
+    )
+    first = await service.create(ASSISTANT_ID)
+    second = await service.resume((await bots.create("Second", "Two.")).id)
     runs.start(first, "go")
     runs.start(second, "go")
     await until(
@@ -131,7 +135,7 @@ async def test_aclose_stops_every_run_durably(service) -> None:
 
 async def test_a_run_records_the_conversation_it_was_asked(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "what is it?")
     await asyncio.wait_for(run._outer, timeout=5)
 
@@ -144,7 +148,7 @@ async def test_a_run_records_the_conversation_it_was_asked(service) -> None:
 
 async def test_a_run_is_durable_without_anyone_subscribing(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
     await asyncio.wait_for(run._outer, timeout=5)
 
@@ -159,19 +163,19 @@ async def test_a_tool_using_turn_streams_through_to_a_subscriber(service) -> Non
         SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
         echo_tool(),
     )
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
-    events = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
+    items = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
 
-    assert any(isinstance(e, ToolCallEvent) for e in events)
-    assert any(isinstance(e, ToolResultEvent) for e in events)
-    assert events == list(session.events())
+    assert any(isinstance(item.event, ToolCallEvent) for item in items)
+    assert any(isinstance(item.event, ToolResultEvent) for item in items)
+    assert items == list(enumerate(session.events()))
 
 
 async def test_the_conversation_id_is_the_session_id(service) -> None:
     runs = run_store(service, ScriptedClient(completed("hello")))
-    session = await service.create()
+    session = await service.create(ASSISTANT_ID)
 
     run = runs.start(session, "go")
 

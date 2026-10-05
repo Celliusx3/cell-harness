@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -25,11 +26,13 @@ class AskingPlatform:
     """Records which calls it was asked about; refuses the ones it is told to."""
 
     channel = PLATFORM
-    on_missing = "recreate"
 
     def __init__(self, refused: frozenset[str] = frozenset()) -> None:
         self.asked: list[str] = []
         self._refused = refused
+
+    def conversation_for(self, chat_id: str) -> str:
+        return ASSISTANT_ID
 
     async def run(self) -> None:
         await asyncio.Event().wait()

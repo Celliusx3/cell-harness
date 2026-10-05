@@ -43,7 +43,7 @@ def build_store(settings: Settings) -> SessionService:
 
 
 def build_subagent_logs(settings: Settings) -> SessionService:
-    """The subagents' own logs, beside the conversations and never listed with them."""
+    """The subagents' own logs, beside the conversations and never among them."""
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
@@ -58,13 +58,14 @@ def build_channels(
     runs: RunStore,
     skills: SkillService,
     client_tools: ClientToolService,
+    bots: BotStore,
 ) -> tuple[ChannelGateway, WebChannel]:
     """The gateway, and a runtime per configured platform."""
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url=settings.web.public_url)
     chat_answers = ChatAnswers(chats, sessions, gateway, client_tools)
 
-    web = WebChannel(sessions, runs, gateway)
+    web = WebChannel(sessions, runs, gateway, bots)
     gateway.register(web)
 
     if settings.telegram.bot_token.strip():
@@ -121,7 +122,7 @@ def create_web_app() -> FastAPI:
         ),
         bots,
     )
-    gateway, web = build_channels(settings, service, runs, skills, client_tools)
+    gateway, web = build_channels(settings, service, runs, skills, client_tools, bots)
     return create_app(runs, gateway, web, mcp, skills, client_tools, gate, bots)
 
 
@@ -153,5 +154,5 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_approvals_router(gate))
     app.include_router(build_compact_router(web))
-    app.include_router(build_bots_router(bots))
+    app.include_router(build_bots_router(bots, runs))
     return app
