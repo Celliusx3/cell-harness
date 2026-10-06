@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from harness.agent.compaction.history import loaded_skills, prunable_ids, summarizable
@@ -42,72 +41,66 @@ class CompactionRefused(Exception):
         self.reason = reason
 
 
-@dataclass(frozen=True)
-class CompactionService:
-    """Summarizes and prunes a session's history, in place, as events."""
+def check_can_compact(session: Session) -> None:
+    """Raise `CompactionRefused` with the reason when a manual compaction cannot run now."""
+    events = session.events()
+    if unanswered(events):
+        raise CompactionRefused(UNANSWERED)
+    if not prunable_ids(events) and not summarizable(events):
+        raise CompactionRefused(NOTHING)
 
-    context_tokens: int | None
 
-    def should_compact(self, session: Session) -> bool:
-        """Is the context past the line?"""
-        if self.context_tokens is None:
-            return False
-        used = session.context_size()
-        return used is not None and used >= int(self.context_tokens * COMPACT_AT)
+def should_compact(agent: LoopAgent, session: Session) -> bool:
+    """Is the context past the line?"""
+    if agent.context_tokens is None:
+        return False
+    used = session.context_size()
+    return used is not None and used >= int(agent.context_tokens * COMPACT_AT)
 
-    def refusal_reason(self, session: Session) -> str | None:
-        """Why a compaction cannot run now, for the manual path, or `None`."""
-        events = session.events()
-        if unanswered(events):
-            return UNANSWERED
-        if not prunable_ids(events) and not summarizable(events):
-            return NOTHING
-        return None
 
-    async def compact(
-        self, agent: LoopAgent, session: Session, *, turn: int | None, trigger: CompactionTrigger
-    ) -> AsyncIterator[CompactionEvent]:
-        """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
-        events = session.events()
-        if ids := prunable_ids(events):
-            prune = CompactionPrune(turn=turn, call_ids=ids)
-            session.append(prune)
-            yield prune
-            return
-        if not summarizable(events):
-            return
-        start = CompactionStart(turn=turn, trigger=trigger, tokens=session.context_size())
-        session.append(start)
-        ended = False
-        try:
-            yield start
-            end = await self._summarize(agent, session, turn=turn)
-            session.append(end)
-            ended = True
-            yield end
-        finally:
-            if not ended:
-                session.append(CompactionEnd(turn=turn, error=INTERRUPTED))
+async def run_compaction(
+    agent: LoopAgent, session: Session, *, turn: int | None, trigger: CompactionTrigger
+) -> AsyncIterator[CompactionEvent]:
+    """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
+    events = session.events()
+    if ids := prunable_ids(events):
+        prune = CompactionPrune(turn=turn, call_ids=ids)
+        session.append(prune)
+        yield prune
+        return
+    if not summarizable(events):
+        return
+    start = CompactionStart(turn=turn, trigger=trigger, tokens=session.context_size())
+    session.append(start)
+    ended = False
+    try:
+        yield start
+        end = await _summarize(agent, session, turn=turn)
+        session.append(end)
+        ended = True
+        yield end
+    finally:
+        if not ended:
+            session.append(CompactionEnd(turn=turn, error=INTERRUPTED))
 
-    async def _summarize(
-        self, agent: LoopAgent, session: Session, *, turn: int | None
-    ) -> CompactionEnd:
-        """One model call, no tools; every way it can go wrong is an `error` end."""
-        messages = [*agent.request_messages(session), UserMessage(content=INSTRUCTION)]
-        completed: Completed | None = None
-        try:
-            async for event in agent.client.stream_completion(messages, agent.model, tools=None):
-                if isinstance(event, Failed):
-                    return CompactionEnd(turn=turn, error=f"summary request failed: {event.reason}")
-                if isinstance(event, Completed):
-                    completed = event
-        except Exception as err:
-            logger.exception("compaction summarizer raised")
-            return CompactionEnd(turn=turn, error=f"summarizer raised: {err}")
-        if completed is None:
-            return CompactionEnd(turn=turn, error="summary request produced no reply")
-        text = completed.full_text.strip()
-        if not text:
-            return CompactionEnd(turn=turn, error="summary request produced no text")
-        content = summary_message(text, loaded_skills(session.events()))
-        return CompactionEnd(turn=turn, message=ApplicationMessage(content=content))
+
+async def _summarize(agent: LoopAgent, session: Session, *, turn: int | None) -> CompactionEnd:
+    """One model call, no tools; every way it can go wrong is an `error` end."""
+    messages = [*agent.request_messages(session), UserMessage(content=INSTRUCTION)]
+    completed: Completed | None = None
+    try:
+        async for event in agent.client.stream_completion(messages, agent.model, tools=None):
+            if isinstance(event, Failed):
+                return CompactionEnd(turn=turn, error=f"summary request failed: {event.reason}")
+            if isinstance(event, Completed):
+                completed = event
+    except Exception as err:
+        logger.exception("compaction summarizer raised")
+        return CompactionEnd(turn=turn, error=f"summarizer raised: {err}")
+    if completed is None:
+        return CompactionEnd(turn=turn, error="summary request produced no reply")
+    text = completed.full_text.strip()
+    if not text:
+        return CompactionEnd(turn=turn, error="summary request produced no text")
+    content = summary_message(text, loaded_skills(session.events()))
+    return CompactionEnd(turn=turn, message=ApplicationMessage(content=content))

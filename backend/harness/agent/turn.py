@@ -8,7 +8,7 @@ from contextlib import aclosing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from harness.agent.compaction import CompactionService
+from harness.agent.compaction import run_compaction, should_compact
 from harness.agent.events import (
     AgentCompleted,
     AgentFailed,
@@ -64,8 +64,8 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
         for step in itertools.count():
             session.append(StepStart(turn=turn, step=step))
 
-            if agent.compaction is not None and agent.compaction.should_compact(session):
-                await _shrink_history(agent, agent.compaction, session, turn=turn, trigger="auto")
+            if should_compact(agent, session):
+                await _shrink_history(agent, session, turn=turn, trigger="auto")
 
             reply: Completed | Failed | RetryStep | None = None
             async with aclosing(_stream_reply(agent, session, turn=turn, step=step)) as chunks:
@@ -145,12 +145,8 @@ async def _stream_reply(
 
         if failed is not None or completed is None:
             failure = failed if failed is not None else Failed(reason=NO_TERMINAL)
-            if (
-                failure.code == CONTEXT_WINDOW_EXCEEDED
-                and agent.compaction is not None
-                and await _shrink_history(
-                    agent, agent.compaction, session, turn=turn, trigger="overflow"
-                )
+            if failure.code == CONTEXT_WINDOW_EXCEEDED and await _shrink_history(
+                agent, session, turn=turn, trigger="overflow"
             ):
                 yield RetryStep()
             else:
@@ -182,16 +178,11 @@ async def _stream_reply(
 
 
 async def _shrink_history(
-    agent: LoopAgent,
-    compaction: CompactionService,
-    session: Session,
-    *,
-    turn: int,
-    trigger: CompactionTrigger,
+    agent: LoopAgent, session: Session, *, turn: int, trigger: CompactionTrigger
 ) -> bool:
     """One compaction, run to its end: `True` when it pruned or wrote a summary."""
     shrank = False
-    async with aclosing(compaction.compact(agent, session, turn=turn, trigger=trigger)) as events:
+    async with aclosing(run_compaction(agent, session, turn=turn, trigger=trigger)) as events:
         async for event in events:
             if isinstance(event, CompactionPrune) or (
                 isinstance(event, CompactionEnd) and event.succeeded

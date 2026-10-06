@@ -5,7 +5,6 @@ from __future__ import annotations
 import dataclasses
 import logging
 
-from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
 from harness.agent.hooks.native.empty_reply import EmptyReplyHook
 from harness.agent.hooks.native.exact_failure import ExactFailureHook
@@ -107,7 +106,7 @@ def build_agent(
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
         system_prompt=GUIDANCE,
         checkpoint=store.flush,
-        compaction=CompactionService(context_tokens=context_tokens),
+        context_tokens=context_tokens,
         hooks=default_hooks(),
     )
     _register_run_subagent(registry, dispatcher, agent, subagent_logs)

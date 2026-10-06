@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from harness.agent.compaction import CompactionRefused
+from harness.agent.compaction import CompactionRefused, check_can_compact
 from harness.channels.chat_tasks import ChatTasks
 from harness.channels.chats import state_of
 from harness.channels.following import Following
@@ -145,9 +145,7 @@ class ChannelGateway:
 
     def compact(self, session: Session, followers: tuple[ChatState, ...]) -> Run:
         """Begin a manual compaction, followed by `followers` and no other chat."""
-        compactor = self._runs.compaction
-        if compactor is not None and (reason := compactor.refusal_reason(session)) is not None:
-            raise CompactionRefused(reason)
+        check_can_compact(session)
         run = self._runs.compact(session)
         for state in followers:
             self._following.begin(state, run)

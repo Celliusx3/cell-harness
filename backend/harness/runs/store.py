@@ -8,7 +8,6 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.agent.compaction import CompactionService
 from harness.agent.loop import LoopAgent
 from harness.bots import BotStore
 from harness.session.log import Session
@@ -54,11 +53,6 @@ class RunStore:
     def active(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)
-
-    @property
-    def compaction(self) -> CompactionService | None:
-        """The agent's compaction service, or `None`."""
-        return self._agent.compaction
 
     def start(self, session: Session, prompt: str) -> Run:
         """Begin a turn on a task this store owns."""

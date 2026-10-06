@@ -5,7 +5,6 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import AsyncIterator
 
-from harness.agent.compaction import CompactionService
 from harness.agent.compaction.prompt import OPEN
 from harness.agent.loop import LoopAgent
 from harness.llm.client import LLMClient
@@ -68,7 +67,7 @@ def agent_with(client: LLMClient, context: int | None) -> LoopAgent:
         model="m",
         client=client,
         system_prompt="SYS",
-        compaction=CompactionService(context_tokens=context),
+        context_tokens=context,
     )
 
 

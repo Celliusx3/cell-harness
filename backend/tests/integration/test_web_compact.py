@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import httpx
 
-from harness.agent.compaction import CompactionService
 from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
 from tests.integration.web_helpers import assistant_chat, settle
@@ -17,8 +16,7 @@ def app_over(tmp_path, *, summary: str = "SUMMARY", context=None):
     """A web app whose agent compacts through the same scripted client."""
     service = durable_service(tmp_path / "sessions")
     client = ScriptedClient(completed(summary))
-    compactor = CompactionService(context_tokens=context)
-    runs = run_store(service, client, compaction=compactor)
+    runs = run_store(service, client, context_tokens=context)
     app = web_app(tmp_path, service, runs, skills=no_skills())
     return service, runs, app
 
@@ -91,8 +89,7 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
                 yield e
 
     client = TwoScripts()
-    compactor = CompactionService(context_tokens=None)
-    runs = run_store(service, client, compaction=compactor)
+    runs = run_store(service, client, context_tokens=None)
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await assistant_chat(c, "hello there")
@@ -108,8 +105,7 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
 async def test_a_browser_compaction_sends_nothing_to_telegram(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
     client = ScriptedClient(completed("SUMMARY"))
-    compactor = CompactionService(context_tokens=None)
-    runs = run_store(service, client, compaction=compactor)
+    runs = run_store(service, client, context_tokens=None)
     app, gateway, bot = web_app_with_telegram(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         await gateway.receive(InboundMessage(channel="telegram", chat_id="909", text="hello"))
