@@ -156,9 +156,7 @@ async def test_compact_summarizes_this_chats_conversation(tmp_path) -> None:
     from tests.unit.gateway_helpers import build as build_gw
 
     client = ScriptedClient(completed("SUMMARY"))
-    compactor = CompactionService(
-        client=client, model="m", system_prompt="SYS", context_tokens=None
-    )
+    compactor = CompactionService(context_tokens=None)
     bot, gateway, runs, chats, sessions = build_gw(
         tmp_path, client, skills=no_skills(), compaction=compactor
     )
@@ -181,9 +179,7 @@ async def test_compact_on_an_idle_chat_says_nothing_to_do(tmp_path) -> None:
 
 async def test_compact_from_a_chat_is_reported_in_that_chat_only(tmp_path) -> None:
     client = ScriptedClient(completed("SUMMARY"))
-    compactor = CompactionService(
-        client=client, model="m", system_prompt="SYS", context_tokens=None
-    )
+    compactor = CompactionService(context_tokens=None)
     bot, gateway, runs, _, _ = build(tmp_path, client, skills=no_skills(), compaction=compactor)
     await gateway.receive(msg("from here", 1))
     await settle(runs, gateway)

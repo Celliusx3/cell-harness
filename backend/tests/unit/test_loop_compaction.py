@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import AsyncIterator
 
 from harness.agent.compaction import CompactionService
 from harness.agent.compaction.prompt import OPEN
 from harness.agent.loop import LoopAgent
 from harness.llm.client import LLMClient
-from harness.llm.messages import AssistantMessage, Message, ToolCall, ToolSpec, UserMessage
+from harness.llm.messages import (
+    AssistantMessage,
+    Message,
+    SystemMessage,
+    ToolCall,
+    ToolSpec,
+    UserMessage,
+)
 from harness.llm.stream import (
     CONTEXT_WINDOW_EXCEEDED,
     Completed,
@@ -25,6 +33,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from tests.unit.fakes import SteppedClient, completed
 from tests.unit.helpers import drain, new_session
 
 
@@ -59,9 +68,7 @@ def agent_with(client: LLMClient, context: int | None) -> LoopAgent:
         model="m",
         client=client,
         system_prompt="SYS",
-        compaction=CompactionService(
-            client=client, model="m", system_prompt="SYS", context_tokens=context
-        ),
+        compaction=CompactionService(context_tokens=context),
     )
 
 
@@ -183,3 +190,15 @@ async def test_an_overflow_with_nothing_to_shrink_fails_the_turn() -> None:
     events = await drain(agent.run("go", session=session))
 
     assert any(e.kind == "agent_failed" for e in events)
+
+
+async def test_an_agent_copied_with_its_own_prompt_summarizes_with_that_prompt() -> None:
+    client = SteppedClient(completed("done"), completed("SUMMARY"))
+    helper = dataclasses.replace(agent_with(client, None), system_prompt="HELPER")
+    session = new_session()
+    await drain(helper.run("do the task", session=session))
+
+    await drain(helper.compact(session=session))
+
+    own, summary = client.seen_per_call
+    assert summary[0] == own[0] == SystemMessage(content="HELPER")

@@ -5,12 +5,11 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from harness.agent.compaction.history import loaded_skills, prunable_ids, summarizable
 from harness.agent.compaction.prompt import INSTRUCTION, summary_message
-from harness.agent.system_prompt import system_text
-from harness.llm.client import LLMClient
-from harness.llm.messages import ApplicationMessage, SystemMessage, UserMessage
+from harness.llm.messages import ApplicationMessage, UserMessage
 from harness.llm.stream import Completed, Failed
 from harness.session.compaction import (
     CompactionEnd,
@@ -18,9 +17,11 @@ from harness.session.compaction import (
     CompactionStart,
     CompactionTrigger,
 )
-from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.repair import unanswered
+
+if TYPE_CHECKING:
+    from harness.agent.loop import LoopAgent
 
 logger = logging.getLogger("harness.agent")
 
@@ -45,9 +46,6 @@ class CompactionRefused(Exception):
 class CompactionService:
     """Summarizes and prunes a session's history, in place, as events."""
 
-    client: LLMClient
-    model: str
-    system_prompt: str
     context_tokens: int | None
 
     def should_compact(self, session: Session) -> bool:
@@ -67,7 +65,7 @@ class CompactionService:
         return None
 
     async def compact(
-        self, session: Session, *, turn: int | None, trigger: CompactionTrigger
+        self, agent: LoopAgent, session: Session, *, turn: int | None, trigger: CompactionTrigger
     ) -> AsyncIterator[CompactionEvent]:
         """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
         events = session.events()
@@ -83,7 +81,7 @@ class CompactionService:
         ended = False
         try:
             yield start
-            end = await self._summarize(session, turn=turn)
+            end = await self._summarize(agent, session, turn=turn)
             session.append(end)
             ended = True
             yield end
@@ -91,16 +89,14 @@ class CompactionService:
             if not ended:
                 session.append(CompactionEnd(turn=turn, error=INTERRUPTED))
 
-    async def _summarize(self, session: Session, *, turn: int | None) -> CompactionEnd:
+    async def _summarize(
+        self, agent: LoopAgent, session: Session, *, turn: int | None
+    ) -> CompactionEnd:
         """One model call, no tools; every way it can go wrong is an `error` end."""
-        messages = [
-            SystemMessage(content=system_text(session, self.system_prompt)),
-            *derive_messages(session.events()),
-            UserMessage(content=INSTRUCTION),
-        ]
+        messages = [*agent.request_messages(session), UserMessage(content=INSTRUCTION)]
         completed: Completed | None = None
         try:
-            async for event in self.client.stream_completion(messages, self.model, tools=None):
+            async for event in agent.client.stream_completion(messages, agent.model, tools=None):
                 if isinstance(event, Failed):
                     return CompactionEnd(turn=turn, error=f"summary request failed: {event.reason}")
                 if isinstance(event, Completed):

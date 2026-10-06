@@ -49,9 +49,7 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     service = durable_service(tmp_path / "sessions")
     bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = ScriptedClient(completed("THE SUMMARY"))
-    compaction = CompactionService(
-        client=client, model="m", system_prompt="GUIDE", context_tokens=None
-    )
+    compaction = CompactionService(context_tokens=None)
     agent = loop_agent(
         client, system_prompt="GUIDE", checkpoint=service.flush, compaction=compaction
     )

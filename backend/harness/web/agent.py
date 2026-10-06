@@ -107,12 +107,7 @@ def build_agent(
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
         system_prompt=GUIDANCE,
         checkpoint=store.flush,
-        compaction=CompactionService(
-            client=client,
-            model=settings.llm.model,
-            system_prompt=GUIDANCE,
-            context_tokens=context_tokens,
-        ),
+        compaction=CompactionService(context_tokens=context_tokens),
         hooks=default_hooks(),
     )
     _register_run_subagent(registry, dispatcher, agent, subagent_logs)

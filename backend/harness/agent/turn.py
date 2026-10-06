@@ -65,7 +65,7 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
             session.append(StepStart(turn=turn, step=step))
 
             if agent.compaction is not None and agent.compaction.should_compact(session):
-                await _shrink_history(agent.compaction, session, turn=turn, trigger="auto")
+                await _shrink_history(agent, agent.compaction, session, turn=turn, trigger="auto")
 
             reply: Completed | Failed | RetryStep | None = None
             async with aclosing(_stream_reply(agent, session, turn=turn, step=step)) as chunks:
@@ -148,7 +148,9 @@ async def _stream_reply(
             if (
                 failure.code == CONTEXT_WINDOW_EXCEEDED
                 and agent.compaction is not None
-                and await _shrink_history(agent.compaction, session, turn=turn, trigger="overflow")
+                and await _shrink_history(
+                    agent, agent.compaction, session, turn=turn, trigger="overflow"
+                )
             ):
                 yield RetryStep()
             else:
@@ -180,11 +182,16 @@ async def _stream_reply(
 
 
 async def _shrink_history(
-    compaction: CompactionService, session: Session, *, turn: int, trigger: CompactionTrigger
+    agent: LoopAgent,
+    compaction: CompactionService,
+    session: Session,
+    *,
+    turn: int,
+    trigger: CompactionTrigger,
 ) -> bool:
     """One compaction, run to its end: `True` when it pruned or wrote a summary."""
     shrank = False
-    async with aclosing(compaction.compact(session, turn=turn, trigger=trigger)) as events:
+    async with aclosing(compaction.compact(agent, session, turn=turn, trigger=trigger)) as events:
         async for event in events:
             if isinstance(event, CompactionPrune) or (
                 isinstance(event, CompactionEnd) and event.succeeded

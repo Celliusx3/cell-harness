@@ -17,9 +17,7 @@ def app_over(tmp_path, *, summary: str = "SUMMARY", context=None):
     """A web app whose agent compacts through the same scripted client."""
     service = durable_service(tmp_path / "sessions")
     client = ScriptedClient(completed(summary))
-    compactor = CompactionService(
-        client=client, model="m", system_prompt="SYS", context_tokens=context
-    )
+    compactor = CompactionService(context_tokens=context)
     runs = run_store(service, client, compaction=compactor)
     app = web_app(tmp_path, service, runs, skills=no_skills())
     return service, runs, app
@@ -93,9 +91,7 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
                 yield e
 
     client = TwoScripts()
-    compactor = CompactionService(
-        client=client, model="m", system_prompt="SYS", context_tokens=None
-    )
+    compactor = CompactionService(context_tokens=None)
     runs = run_store(service, client, compaction=compactor)
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
@@ -112,9 +108,7 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
 async def test_a_browser_compaction_sends_nothing_to_telegram(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
     client = ScriptedClient(completed("SUMMARY"))
-    compactor = CompactionService(
-        client=client, model="m", system_prompt="SYS", context_tokens=None
-    )
+    compactor = CompactionService(context_tokens=None)
     runs = run_store(service, client, compaction=compactor)
     app, gateway, bot = web_app_with_telegram(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:

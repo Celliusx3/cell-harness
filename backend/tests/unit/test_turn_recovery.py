@@ -33,9 +33,7 @@ def asks_for_a_summary(messages, tools) -> bool:
 def compacting(client: LLMClient) -> LoopAgent:
     return loop_agent(
         client,
-        compaction=CompactionService(
-            client=client, model="m", system_prompt="", context_tokens=None
-        ),
+        compaction=CompactionService(context_tokens=None),
     )
 
 
