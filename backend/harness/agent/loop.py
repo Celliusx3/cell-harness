@@ -10,7 +10,7 @@ from harness.agent.compaction import CompactionEvent, CompactionRefused, Compact
 from harness.agent.events import AgentPending
 from harness.agent.hooks import HookChain
 from harness.agent.system_prompt import system_text
-from harness.agent.tool_run import approved_events, settled_result
+from harness.agent.tool_run import run_approved_call, settled_result
 from harness.agent.turn import TurnEvent, drive
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
@@ -79,7 +79,7 @@ class LoopAgent:
                 if answer.scope == "conversation":
                     session.append(ApprovalGrant(turn=turn, tool=call.name))
                 async with aclosing(
-                    approved_events(self, call, session=session, turn=turn)
+                    run_approved_call(self, call, session=session, turn=turn)
                 ) as events:
                     async for event in events:
                         yield event
