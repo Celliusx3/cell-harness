@@ -7,13 +7,18 @@ import contextlib
 from contextlib import aclosing
 from pathlib import Path
 
-from harness.agent.events import AgentCompleted, AgentPending
+from harness.agent.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
 from harness.agent.hooks import HookChain, ToolHook
 from harness.agent.loop import LoopAgent
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
 from harness.sandbox import Bridge, BridgeError
-from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
+from harness.session.models import (
+    ApplicationMessageEvent,
+    ApprovalGrant,
+    ToolResultEvent,
+    TurnEnd,
+)
 from harness.session.repair import REPAIRED
 from harness.tools.approval import DENIED, ApprovalGate, Approved
 from harness.tools.client import Accepted, ClientTools, ClientToolService
@@ -22,7 +27,7 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
 from tests.unit.code_fakes import FakeRunner, build, tool
-from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
+from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed, reporting_tool
 from tests.unit.helpers import drain, new_session
 
 WRITE = "memory__write_note"
@@ -243,3 +248,37 @@ async def test_a_hook_refusal_never_reaches_the_gate(tmp_path) -> None:
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == BLOCKED
     assert events[-1] == AgentCompleted(text="ok")
+
+
+async def test_an_approved_calls_progress_reaches_the_caller_before_its_result(tmp_path) -> None:
+    client = SteppedClient(calls_tool("slow", '{"value": "done"}', id="c1"), completed("ok"))
+    session = new_session()
+    agent = _agent(client, _gate(tmp_path, "slow"), reporting_tool([(50.0, "halfway")]))
+    await drain(agent.run("go", session=session))
+
+    events = await drain(agent.resume("c1", Approved(scope="once"), session=session))
+
+    progress, result = events[0], events[1]
+    assert isinstance(progress, ToolProgress) and progress.message == "halfway"
+    assert isinstance(result, ToolResult) and result.tool_call_id == "c1"
+
+
+async def test_an_approved_calls_note_is_logged_after_its_result(tmp_path) -> None:
+    class Noting(ToolHook):
+        async def pre(self, sig, prior) -> str | None:
+            return None
+
+        async def post(self, sig, outcome, prior) -> str | None:
+            return "careful"
+
+    client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))
+    session = new_session()
+    agent = _agent(client, _gate(tmp_path, WRITE), _writer([]), hooks=HookChain((Noting(),)))
+    await drain(agent.run("remember Kopi", session=session))
+
+    await drain(agent.resume("c1", Approved(scope="once"), session=session))
+
+    kinds = [e.type for e in session.events() if e.type in ("tool/result", "application/message")]
+    assert kinds == ["tool/result", "application/message"]
+    note = next(e for e in session.events() if isinstance(e, ApplicationMessageEvent))
+    assert note.message.content == "careful" and note.turn == 1
