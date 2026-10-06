@@ -2,18 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal, Protocol, runtime_checkable
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
-
-
-@runtime_checkable
-class AgentEvent(Protocol):
-    """`kind` identifies the event; `model_dump_json` puts it on the wire."""
-
-    kind: str
-
-    def model_dump_json(self) -> str: ...
 
 
 class ToolProgress(BaseModel):

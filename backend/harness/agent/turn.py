@@ -18,8 +18,8 @@ from harness.agent.events import (
     ToolResult,
 )
 from harness.agent.hooks import GiveUp, Tell
-from harness.agent.tool_run import tool_events
-from harness.llm.messages import ApplicationMessage, AssistantMessage, ToolCall
+from harness.agent.tool_run import run_tool_calls
+from harness.llm.messages import ApplicationMessage, AssistantMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
 from harness.session.log import Session
@@ -29,11 +29,9 @@ from harness.session.models import (
     AssistantMessageEvent,
     StepEnd,
     StepStart,
-    ToolCallEvent,
     TurnEnd,
     TurnEndReason,
 )
-from harness.session.repair import unknown_result
 
 if TYPE_CHECKING:
     from harness.agent.loop import LoopAgent
@@ -100,7 +98,7 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
 
             pending: ToolPending | None = None
             async with aclosing(
-                _run_tool_calls(agent, reply.tool_calls, session=session, turn=turn, step=step)
+                run_tool_calls(agent, reply.tool_calls, session=session, turn=turn, step=step)
             ) as results:
                 async for event in results:
                     if isinstance(event, ToolPending):
@@ -179,44 +177,6 @@ async def _stream_reply(
                 )
             )
         raise
-
-
-async def _run_tool_calls(
-    agent: LoopAgent, calls: tuple[ToolCall, ...], *, session: Session, turn: int, step: int
-) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
-    """A step's calls in order, then what the hooks wanted the model told."""
-    owed = list(calls)
-    # Providers want the `tool` messages directly behind the `assistant` that asked.
-    notes: list[str] = []
-    try:
-        for call in calls:
-            session.append(ToolCallEvent(turn=turn, step=step, call=call))
-            if agent.checkpoint is not None:
-                await agent.checkpoint(session)
-            async with aclosing(
-                tool_events(
-                    agent,
-                    call,
-                    session=session,
-                    turn=turn,
-                    step=step,
-                    notes=notes,
-                    approved=call.name in session.tools_granted(),
-                )
-            ) as events:
-                async for event in events:
-                    if isinstance(event, (ToolResult, ToolPending)):
-                        owed.remove(call)
-                    yield event
-        if notes:
-            session.append(
-                ApplicationMessageEvent(
-                    turn=turn, message=ApplicationMessage(content="\n\n".join(notes))
-                )
-            )
-    finally:
-        for call in owed:
-            session.append(unknown_result(call.id, turn=turn, step=step))
 
 
 async def _shrink_history(

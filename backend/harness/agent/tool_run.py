@@ -1,4 +1,4 @@
-"""One tool call, from the model's request to its logged result."""
+"""A step's tool calls, from the model's request to their logged results."""
 
 from __future__ import annotations
 
@@ -6,17 +6,25 @@ import asyncio
 import contextlib
 from collections.abc import AsyncIterator
 from contextlib import aclosing
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from harness.agent.events import ToolPending, ToolProgress, ToolResult
 from harness.llm.messages import ApplicationMessage, ToolCall, ToolMessage, render_text
 from harness.session.log import Session
-from harness.session.models import ApplicationMessageEvent, ToolResultEvent
+from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.session.repair import unknown_result
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
     from harness.agent.loop import LoopAgent
+
+
+@dataclass(frozen=True)
+class Reminder:
+    """What a hook wants the model told once the step's calls settle."""
+
+    text: str
 
 
 def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int) -> ToolResultEvent:
@@ -30,23 +38,62 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
     )
 
 
-async def tool_events(
+async def run_tool_calls(
+    agent: LoopAgent, calls: tuple[ToolCall, ...], *, session: Session, turn: int, step: int
+) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
+    """A step's calls in order, then what the hooks wanted the model told."""
+    owed = list(calls)
+    # Providers want the `tool` messages directly behind the `assistant` that asked.
+    notes: list[str] = []
+    try:
+        for call in calls:
+            session.append(ToolCallEvent(turn=turn, step=step, call=call))
+            if agent.checkpoint is not None:
+                await agent.checkpoint(session)
+            async with aclosing(
+                _answer_call(
+                    agent,
+                    call,
+                    session=session,
+                    turn=turn,
+                    step=step,
+                    approved=call.name in session.tools_granted(),
+                )
+            ) as events:
+                async for event in events:
+                    if isinstance(event, Reminder):
+                        notes.append(event.text)
+                        continue
+                    if isinstance(event, (ToolResult, ToolPending)):
+                        owed.remove(call)
+                    yield event
+        if notes:
+            session.append(
+                ApplicationMessageEvent(
+                    turn=turn, message=ApplicationMessage(content="\n\n".join(notes))
+                )
+            )
+    finally:
+        for call in owed:
+            session.append(unknown_result(call.id, turn=turn, step=step))
+
+
+async def _answer_call(
     agent: LoopAgent,
     call: ToolCall,
     *,
     session: Session,
     turn: int,
     step: int,
-    notes: list[str],
     approved: bool,
-) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
-    """One call: zero or more `ToolProgress`, then exactly one `ToolResult` or `ToolPending`."""
+) -> AsyncIterator[ToolProgress | ToolResult | ToolPending | Reminder]:
+    """Any `ToolProgress`, then a `ToolPending`, or an optional `Reminder` then a `ToolResult`."""
     refusal = await agent.hooks.pre_tool_call(call, session=session)
     outcome: ToolOutcome | None = None
     if refusal is not None:
         outcome = Failure(BLOCKED, refusal)
     else:
-        async with aclosing(_run_tool(agent, call, session=session, approved=approved)) as events:
+        async with aclosing(_execute(agent, call, session=session, approved=approved)) as events:
             async for event in events:
                 if isinstance(event, ToolProgress):
                     yield event
@@ -58,7 +105,7 @@ async def tool_events(
             return
         note = await agent.hooks.post_tool_call(call, outcome, session=session)
         if note is not None:
-            notes.append(note)
+            yield Reminder(note)
 
     result = settled_result(call.id, outcome, turn=turn, step=step)
     session.append(result)
@@ -67,7 +114,7 @@ async def tool_events(
     )
 
 
-async def approved_events(
+async def run_approved_call(
     agent: LoopAgent, call: ToolCall, *, session: Session, turn: int
 ) -> AsyncIterator[ToolProgress | ToolResult]:
     """An approved call as the resumed turn's first step; a cancel still leaves it answered."""
@@ -75,7 +122,7 @@ async def approved_events(
     answered = False
     try:
         async with aclosing(
-            tool_events(agent, call, session=session, turn=turn, step=0, notes=notes, approved=True)
+            _answer_call(agent, call, session=session, turn=turn, step=0, approved=True)
         ) as events:
             async for event in events:
                 if isinstance(event, ToolResult):
@@ -83,6 +130,8 @@ async def approved_events(
                     yield event
                 elif isinstance(event, ToolProgress):
                     yield event
+                elif isinstance(event, Reminder):
+                    notes.append(event.text)
         if notes:
             session.append(
                 ApplicationMessageEvent(
@@ -94,7 +143,7 @@ async def approved_events(
             session.append(unknown_result(call.id, turn=turn, step=0))
 
 
-async def _run_tool(
+async def _execute(
     agent: LoopAgent, call: ToolCall, *, session: Session, approved: bool
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""

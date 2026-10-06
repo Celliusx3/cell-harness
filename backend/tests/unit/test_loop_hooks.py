@@ -8,6 +8,7 @@ from dataclasses import replace
 from harness.agent.events import AgentCompleted, ToolResult
 from harness.agent.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK, ExactFailureHook
+from harness.agent.turn import TurnEvent
 from harness.llm.messages import Text, ToolCall
 from harness.llm.stream import Completed, ToolCallChunk
 from harness.session.derive import derive_messages
@@ -159,3 +160,14 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
     )
 
     assert all(e.error is None for e in session.events() if isinstance(e, ToolResultEvent))
+
+
+async def test_a_note_is_logged_but_never_yielded_to_the_caller() -> None:
+    client = SteppedClient(calls_tool("echo", '{"value": "a"}'), completed("ok"))
+    session = new_session()
+    agent = loop_agent(client, echo_tool(), hooks=HookChain((Stub(note="think again"),)))
+
+    events = await drain(agent.run("q", session=session))
+
+    assert any(isinstance(e, ApplicationMessageEvent) for e in session.events())
+    assert all(isinstance(e, TurnEvent) for e in events)
