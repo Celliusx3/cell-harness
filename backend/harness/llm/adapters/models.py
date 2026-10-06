@@ -27,12 +27,12 @@ class _Listing(BaseModel):
     data: list[_Model] = []
 
 
-async def context_length(settings: LLMSettings) -> int | None:
+def context_length(settings: LLMSettings) -> int | None:
     """`context_length` of `settings.model` from the endpoint's listing, or `None`."""
     url = f"{settings.base_url.rstrip('/')}/models"
     try:
-        async with httpx.AsyncClient(timeout=settings.timeout_seconds) as http:
-            response = await http.get(url, headers={"Authorization": f"Bearer {settings.api_key}"})
+        with httpx.Client(timeout=settings.timeout_seconds) as http:
+            response = http.get(url, headers={"Authorization": f"Bearer {settings.api_key}"})
             response.raise_for_status()
             listing = _Listing.model_validate_json(response.content)
     except (httpx.HTTPError, ValidationError) as err:

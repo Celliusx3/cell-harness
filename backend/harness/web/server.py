@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -83,7 +82,7 @@ def _resolve_context_tokens(settings: Settings) -> int | None:
     if configured is not None:
         logger.info("compaction: context window %d tokens (from config)", configured)
         return configured
-    discovered = asyncio.run(context_length(settings.llm))
+    discovered = context_length(settings.llm)
     if discovered is not None:
         logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
     else:
