@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import logging
 
 from harness.agent.compaction import CompactionRefused
@@ -99,14 +98,25 @@ class ChannelGateway:
         return await self._following.turn_for_chat(state, content)
 
     async def clear(self, channel: str, chat_id: str) -> None:
-        """Clear this chat in place: stop its turn, then wipe its conversation under the same id."""
+        """Clear this chat in place, as a run that stops its turn and wipes it under the same id."""
         state = await self._state(channel, chat_id)
         await self._repository.save(state.model_copy(update={"pending": ()}))
         if not state.conversation_id:
             return
-        await self._runs.stop(state.conversation_id)
-        with contextlib.suppress(SessionNotFoundError):
-            await self._sessions.clear(state.conversation_id)
+        in_flight = self._runs.active(state.conversation_id)
+        try:
+            session = (
+                in_flight.session
+                if in_flight is not None
+                else await self._sessions.read(state.conversation_id)
+            )
+        except SessionNotFoundError:
+            return
+        clearing = self._runs.clear(session)
+        async with clearing.condition:
+            await clearing.condition.wait_for(lambda: clearing.settled)
+        if clearing.error is not None:
+            raise clearing.error
 
     async def stop(self, channel: str, chat_id: str) -> bool:
         """Cancel the turn in flight, discarding anything queued behind it."""

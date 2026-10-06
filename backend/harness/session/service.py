@@ -56,11 +56,15 @@ class SessionService:
             return
         await self._repository.append(session.id, events[cursor:])
 
-    async def clear(self, session_id: str) -> None:
-        """Wipe a stored chat: same id, numbering carried on, one `chat/cleared` line."""
+    async def clear(self, session_id: str) -> Session:
+        """The stored chat wiped: same id, numbering carried on, one `chat/cleared` line."""
         header, events = await self._repository.load(session_id)
-        wiped = header.model_copy(update={"numbered_from": header.numbered_from + len(events)})
-        await self._repository.restart(wiped, [ChatCleared()])
+        wiped = Session(
+            header.model_copy(update={"numbered_from": header.numbered_from + len(events)}),
+            [ChatCleared()],
+        )
+        await self._repository.restart(wiped.header, wiped.events())
+        return wiped
 
     async def delete(self, session_id: str) -> None:
         """Remove a stored chat for good; one never written is already gone."""
