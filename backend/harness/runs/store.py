@@ -31,6 +31,7 @@ class Run:
         self.session = session
         self.first_event_number = first_event_number
         self.settled = False
+        self.error: Exception | None = None
         self.condition = asyncio.Condition()
         self._inner: asyncio.Task[None] | None = None
         self._outer: asyncio.Task[None] | None = None
@@ -94,14 +95,20 @@ class RunStore:
         run._outer = asyncio.create_task(self._drive(run))
         return run
 
+    def clear(self, session: Session) -> Run:
+        """Begin wiping this chat as a run of its own, taking over from the turn in flight."""
+        in_flight = self._runs.get(session.id)
+        run = Run(session, session.next_number())
+        self._runs[session.id] = run
+        run._outer = asyncio.create_task(self._end_then_wipe(in_flight, run))
+        return run
+
     async def stop(self, conversation_id: str) -> bool:
         """End a turn early."""
         run = self._runs.get(conversation_id)
         if run is None or run._inner is None:
             return False
-        run._inner.cancel()
-        if run._outer is not None:
-            await asyncio.shield(run._outer)
+        await self._end(run)
         return True
 
     async def aclose(self) -> None:
@@ -116,6 +123,25 @@ class RunStore:
         if session.bot_instructions() != answering:
             session.append(answering)
 
+    async def _end(self, run: Run) -> None:
+        """Cancel `run`'s turn, if it has begun, and wait for the run to settle."""
+        if run._inner is not None:
+            run._inner.cancel()
+        if run._outer is not None:
+            await asyncio.shield(run._outer)
+
+    async def _end_then_wipe(self, in_flight: Run | None, clearing: Run) -> None:
+        """Own the clear: the run in flight ended and settled, then the wipe run as its turn."""
+        if in_flight is not None:
+            await self._end(in_flight)
+        clearing._inner = asyncio.create_task(self._wipe(clearing))
+        await self._drive(clearing)
+
+    async def _wipe(self, run: Run) -> None:
+        """Write the wiped log over the stored one, and show it to whoever watches `run`."""
+        run.session = await self._service.clear(run.conversation_id)
+        await self._wake(run)
+
     async def _stream(self, run: Run, turn: AsyncIterator[object]) -> None:
         """Drive the turn, waking subscribers as the log grows."""
         async with aclosing(turn) as events:
@@ -129,7 +155,8 @@ class RunStore:
             await run._inner
         except asyncio.CancelledError:
             pass
-        except Exception:
+        except Exception as err:
+            run.error = err
             logger.exception("run for conversation %s raised", run.conversation_id)
         finally:
             await self._settle(run)

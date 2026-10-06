@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 
 import httpx
 import pytest
 
 from harness.bots import ASSISTANT_ID, BotStore
+from harness.llm.messages import Message
+from harness.llm.stream import StreamEvent
 from harness.runs.store import RunStore
+from harness.tools.definition import ToolSpec
 from tests.integration.web_helpers import assistant_chat, settle
-from tests.unit.fakes import HangingClient, ScriptedClient, completed
+from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, completed
 from tests.unit.helpers import durable_service, loop_agent, no_skills, run_store
 from tests.webapp import web_app
 
@@ -72,3 +76,69 @@ async def test_clearing_a_running_chat_stops_its_turn(tmp_path) -> None:
     assert runs.active(cid) is None
     assert chat["running"] is False
     assert chat["events"][-1]["type"] == "chat/cleared"
+
+
+class HoldsFirstCall(SteppedClient):
+    """Holds the first call it is asked until it is cancelled, then answers in order."""
+
+    def __init__(self, *replies: str) -> None:
+        super().__init__(*(completed(reply) for reply in replies))
+        self._held = False
+
+    async def stream_completion(
+        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+    ) -> AsyncIterator[StreamEvent]:
+        if not self._held:
+            self._held = True
+            await asyncio.Event().wait()
+        async for event in super().stream_completion(messages, model, tools=tools):
+            yield event
+
+
+async def test_a_message_sent_while_a_clear_stops_the_turn_lands_after_the_clear(tmp_path) -> None:
+    service = durable_service(tmp_path / "sessions")
+    model = HoldsFirstCall("fresh answer")
+    runs = run_store(service, model)
+    app = web_app(tmp_path, service, runs, skills=no_skills())
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
+        cid = await assistant_chat(c, "the secret word is PELICAN")
+        run = runs.active(cid)
+        while not any(event.type == "step/start" for event in run.session.events()):
+            await asyncio.sleep(0.01)
+
+        clearing = asyncio.create_task(c.post(f"/api/conversations/{cid}/clear"))
+        while not run._inner.done():
+            await asyncio.sleep(0)
+        sent = await c.post(f"/api/conversations/{cid}/messages", json={"prompt": "after"})
+        assert (await clearing).status_code == 204
+        for _ in range(300):
+            if runs.active(cid) is None and model.calls == 1:
+                break
+            await asyncio.sleep(0.01)
+        chat = (await c.get(f"/api/conversations/{cid}")).json()
+
+    assert sent.status_code == 202
+    stored = (tmp_path / "sessions" / f"{cid}.jsonl").read_text(encoding="utf-8")
+    assert "PELICAN" not in stored
+    assert chat["events"][0]["type"] == "chat/cleared"
+    prompts = [e["message"]["content"] for e in chat["events"] if e["type"] == "user/message"]
+    assert prompts == ["after"]
+    assert "PELICAN" not in " ".join(str(message.content) for message in model.seen)
+
+
+async def test_a_clear_that_cannot_wipe_the_chat_says_so(tmp_path, monkeypatch) -> None:
+    service = durable_service(tmp_path / "sessions")
+    runs = run_store(service, ScriptedClient(completed("noted")))
+    app = web_app(tmp_path, service, runs, skills=no_skills())
+
+    async def broken(session_id: str) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(service, "clear", broken)
+    transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+    async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
+        cid = await assistant_chat(c, "hello")
+        await settle(runs, cid)
+        cleared = await c.post(f"/api/conversations/{cid}/clear")
+
+    assert cleared.status_code == 500

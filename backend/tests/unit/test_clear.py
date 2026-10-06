@@ -2,11 +2,23 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 from harness.agent.compaction.history import PRUNE_KEEP
 from harness.agent.compaction.service import NOTHING
-from harness.llm.messages import ApplicationMessage, ToolMessage, ToolReference, UserMessage
+from harness.bots import ASSISTANT_ID
+from harness.llm.client import LLMClient
+from harness.llm.messages import (
+    ApplicationMessage,
+    Message,
+    ToolMessage,
+    ToolReference,
+    ToolSpec,
+    UserMessage,
+)
+from harness.llm.stream import StreamEvent, TextChunk
 from harness.session.compaction import CompactionEnd
 from harness.session.log import Numbered, Session
 from harness.session.models import (
@@ -19,7 +31,7 @@ from harness.session.models import (
 )
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import durable_service, loop_agent
+from tests.unit.helpers import durable_service, loop_agent, run_store
 from tests.unit.test_compaction_service import compactor, tool_turn
 
 
@@ -121,3 +133,37 @@ async def test_after_a_clear_nothing_is_left_to_compact_granted_or_selected(tmp_
     assert after.tools_granted() == frozenset()
     assert after.tools_selected() == ()
     assert after.context_size() is None
+
+
+class SlowToLetGo(LLMClient):
+    """Streams a chunk and hangs; once cancelled, takes a few loop turns to let go."""
+
+    async def stream_completion(
+        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+    ) -> AsyncIterator[StreamEvent]:
+        try:
+            yield TextChunk(text="thinking")
+            await asyncio.Event().wait()
+        finally:
+            for _ in range(5):
+                await asyncio.sleep(0)
+
+
+async def test_a_clear_keeps_the_chat_busy_from_its_start_until_it_settles(tmp_path) -> None:
+    service = durable_service(tmp_path / "sessions")
+    runs = run_store(service, SlowToLetGo())
+    session = await service.create(ASSISTANT_ID)
+    turn = runs.start(session, "the secret word is PELICAN")
+    while not any(event.type == "assistant/chunk" for event in session.events()):
+        await asyncio.sleep(0)
+
+    clearing = runs.clear(session)
+    assert not turn.settled
+    while not clearing.settled:
+        assert runs.active(session.id) is clearing
+        await asyncio.sleep(0)
+
+    assert turn.settled
+    assert runs.active(session.id) is None
+    assert clearing.session.events() == [ChatCleared()]
+    assert (await service.read(session.id)).events() == [ChatCleared()]
