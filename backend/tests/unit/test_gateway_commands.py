@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from harness.agent.compaction import CompactionService
 from harness.bots import ASSISTANT_ID
 from harness.channels.commands import CLEARED, Command, apply, skills_reply, unknown_skill
 from harness.channels.protocol import InboundMessage
@@ -152,15 +151,11 @@ def test_no_skills_says_so() -> None:
 
 
 async def test_compact_summarizes_this_chats_conversation(tmp_path) -> None:
-    from harness.agent.compaction import CompactionService
     from tests.unit.gateway_helpers import build as build_gw
 
     client = ScriptedClient(completed("SUMMARY"))
-    compactor = CompactionService(
-        client=client, model="m", system_prompt="SYS", context_tokens=None
-    )
     bot, gateway, runs, chats, sessions = build_gw(
-        tmp_path, client, skills=no_skills(), compaction=compactor
+        tmp_path, client, skills=no_skills(), context_tokens=None
     )
     await gateway.receive(msg("some conversation", 1))
     await settle(runs, gateway)
@@ -181,10 +176,7 @@ async def test_compact_on_an_idle_chat_says_nothing_to_do(tmp_path) -> None:
 
 async def test_compact_from_a_chat_is_reported_in_that_chat_only(tmp_path) -> None:
     client = ScriptedClient(completed("SUMMARY"))
-    compactor = CompactionService(
-        client=client, model="m", system_prompt="SYS", context_tokens=None
-    )
-    bot, gateway, runs, _, _ = build(tmp_path, client, skills=no_skills(), compaction=compactor)
+    bot, gateway, runs, _, _ = build(tmp_path, client, skills=no_skills(), context_tokens=None)
     await gateway.receive(msg("from here", 1))
     await settle(runs, gateway)
     await gateway.receive(InboundMessage(channel="telegram", chat_id="5151", text="from there"))

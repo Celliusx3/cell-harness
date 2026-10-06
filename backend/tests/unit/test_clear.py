@@ -6,6 +6,9 @@ import asyncio
 from collections.abc import AsyncIterator
 from pathlib import Path
 
+import pytest
+
+from harness.agent.compaction import CompactionRefused, check_can_compact
 from harness.agent.compaction.history import PRUNE_KEEP
 from harness.agent.compaction.service import NOTHING
 from harness.bots import ASSISTANT_ID
@@ -32,7 +35,7 @@ from harness.session.models import (
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, loop_agent, run_store
-from tests.unit.test_compaction_service import compactor, tool_turn
+from tests.unit.test_compaction_service import tool_turn
 
 
 async def _chat_with_history(root: Path) -> tuple[SessionService, Session]:
@@ -123,13 +126,15 @@ async def test_after_a_clear_the_model_sees_nothing_from_before(tmp_path) -> Non
 
 async def test_after_a_clear_nothing_is_left_to_compact_granted_or_selected(tmp_path) -> None:
     service, before = await _chat_with_history(tmp_path / "sessions")
-    assert compactor(ScriptedClient([])).refusal_reason(before) is None
+    check_can_compact(before)
     assert before.tools_granted() and before.tools_selected() and before.context_size()
 
     await service.clear(before.id)
 
     after = await service.resume(before.id)
-    assert compactor(ScriptedClient([])).refusal_reason(after) == NOTHING
+    with pytest.raises(CompactionRefused) as refused:
+        check_can_compact(after)
+    assert refused.value.reason == NOTHING
     assert after.tools_granted() == frozenset()
     assert after.tools_selected() == ()
     assert after.context_size() is None

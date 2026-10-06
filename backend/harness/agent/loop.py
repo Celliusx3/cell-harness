@@ -6,7 +6,12 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass
 
-from harness.agent.compaction import CompactionEvent, CompactionRefused, CompactionService
+from harness.agent.compaction import (
+    CompactionEvent,
+    CompactionRefused,
+    check_can_compact,
+    run_compaction,
+)
 from harness.agent.events import AgentPending
 from harness.agent.hooks import HookChain
 from harness.agent.system_prompt import system_text
@@ -46,7 +51,7 @@ class LoopAgent:
     system_prompt: str = ""
     hooks: HookChain = HookChain()
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
-    compaction: CompactionService | None = None
+    context_tokens: int | None = None
 
     def request_messages(self, session: Session) -> list[Message]:
         history = derive_messages(session.events())
@@ -99,13 +104,11 @@ class LoopAgent:
 
     async def compact(self, *, session: Session) -> AsyncIterator[CompactionEvent]:
         """A manual compaction, driven as its own run."""
-        if self.compaction is None:
-            raise CompactionRefused("compaction is not configured")
-        if self.compaction.refusal_reason(session) is not None:
+        try:
+            check_can_compact(session)
+        except CompactionRefused:
             return
-        async with aclosing(
-            self.compaction.compact(session, turn=None, trigger="manual")
-        ) as events:
+        async with aclosing(run_compaction(self, session, turn=None, trigger="manual")) as events:
             async for event in events:
                 yield event
 

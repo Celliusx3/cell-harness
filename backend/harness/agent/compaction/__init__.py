@@ -5,7 +5,15 @@ from __future__ import annotations
 from harness.agent.compaction.service import (
     CompactionEvent,
     CompactionRefused,
-    CompactionService,
+    check_can_compact,
+    run_compaction,
+    should_compact,
 )
 
-__all__ = ["CompactionEvent", "CompactionRefused", "CompactionService"]
+__all__ = [
+    "CompactionEvent",
+    "CompactionRefused",
+    "check_can_compact",
+    "run_compaction",
+    "should_compact",
+]

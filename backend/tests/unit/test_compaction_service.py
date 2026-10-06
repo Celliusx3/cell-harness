@@ -4,10 +4,18 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from harness.agent.compaction import CompactionService
+import pytest
+
+from harness.agent.compaction import (
+    CompactionRefused,
+    check_can_compact,
+    run_compaction,
+    should_compact,
+)
 from harness.agent.compaction.history import PRUNE_KEEP
 from harness.agent.compaction.prompt import INSTRUCTION, PREAMBLE
 from harness.agent.compaction.service import COMPACT_AT
+from harness.agent.loop import LoopAgent
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,
@@ -18,7 +26,7 @@ from harness.llm.messages import (
     ToolSpec,
     UserMessage,
 )
-from harness.llm.stream import Failed, StreamEvent, Usage
+from harness.llm.stream import Failed, StreamEvent, TextChunk, Usage
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.session.derive import derive_messages
 from harness.session.models import (
@@ -31,7 +39,7 @@ from harness.session.models import (
 )
 from harness.skills import SKILL
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import new_session
+from tests.unit.helpers import loop_agent, new_session
 
 SKILL_BODY = '<skill name="find-place">\nWalk the reel to a place.\n</skill>'
 
@@ -62,8 +70,8 @@ def tool_turn(session, turn: int, call_id: str, result: str, name: str = "execut
     session.append(TurnEnd(turn=turn, reason="completed"))
 
 
-def compactor(client: LLMClient, context: int | None = 12_000) -> CompactionService:
-    return CompactionService(client=client, model="m", system_prompt="SYS", context_tokens=context)
+def agent(client: LLMClient, context_tokens: int | None = 12_000) -> LoopAgent:
+    return loop_agent(client, system_prompt="SYS", context_tokens=context_tokens)
 
 
 async def drain(gen: AsyncIterator) -> list:
@@ -76,11 +84,11 @@ def kinds(session) -> list[str]:
 
 def test_should_compact_needs_a_window_and_a_measurement() -> None:
     session = new_session()
-    assert not compactor(ScriptedClient([])).should_compact(session)
+    assert not should_compact(agent(ScriptedClient([])), session)
     tool_turn(session, 0, "c0", "r")
-    assert not compactor(ScriptedClient([]), context=None).should_compact(session)
-    assert not compactor(ScriptedClient([]), context=20_000).should_compact(session)
-    assert compactor(ScriptedClient([]), context=12_000).should_compact(session)
+    assert not should_compact(agent(ScriptedClient([]), context_tokens=None), session)
+    assert not should_compact(agent(ScriptedClient([]), context_tokens=20_000), session)
+    assert should_compact(agent(ScriptedClient([]), context_tokens=12_000), session)
     assert COMPACT_AT == 0.8
 
 
@@ -90,7 +98,7 @@ async def test_when_due_old_tool_results_are_pruned_before_any_summary() -> None
         tool_turn(session, turn, f"c{turn}", "big")
     client = ScriptedClient(completed("never"))
 
-    yielded = await drain(compactor(client).compact(session, turn=9, trigger="auto"))
+    yielded = await drain(run_compaction(agent(client), session, turn=9, trigger="auto"))
 
     assert client.calls == 0
     assert yielded == [CompactionPrune(turn=9, call_ids=("c0", "c1"))]
@@ -103,7 +111,7 @@ async def test_exactly_the_kept_number_of_results_is_not_pruned() -> None:
         tool_turn(session, turn, f"c{turn}", "big")
 
     yielded = await drain(
-        compactor(ScriptedClient(completed("S"))).compact(session, turn=9, trigger="auto")
+        run_compaction(agent(ScriptedClient(completed("S"))), session, turn=9, trigger="auto")
     )
 
     assert [e.type for e in yielded] == ["compaction/start", "compaction/end"]
@@ -115,7 +123,9 @@ async def test_skill_results_are_never_pruned() -> None:
     for turn in range(1, PRUNE_KEEP + 3):
         tool_turn(session, turn, f"c{turn}", "big")
 
-    yielded = await drain(compactor(ScriptedClient([])).compact(session, turn=9, trigger="auto"))
+    yielded = await drain(
+        run_compaction(agent(ScriptedClient([])), session, turn=9, trigger="auto")
+    )
 
     assert yielded == [CompactionPrune(turn=9, call_ids=("c1", "c2"))]
 
@@ -126,7 +136,7 @@ async def test_with_nothing_to_prune_it_summarizes() -> None:
     tool_turn(session, 1, "c1", "recent")
     client = ScriptedClient(completed("THE SUMMARY"))
 
-    yielded = await drain(compactor(client).compact(session, turn=2, trigger="auto"))
+    yielded = await drain(run_compaction(agent(client), session, turn=2, trigger="auto"))
 
     assert client.calls == 1
     assert client.seen_tools is None
@@ -161,7 +171,9 @@ async def test_a_skill_typed_as_a_slash_command_is_retained_too() -> None:
     )
     session.append(TurnEnd(turn=0, reason="completed"))
 
-    await drain(compactor(ScriptedClient(completed("S"))).compact(session, turn=1, trigger="auto"))
+    await drain(
+        run_compaction(agent(ScriptedClient(completed("S"))), session, turn=1, trigger="auto")
+    )
 
     end = session.events()[-1]
     assert isinstance(end, CompactionEnd) and end.message is not None
@@ -174,7 +186,9 @@ async def test_a_failed_summary_is_logged_and_changes_nothing() -> None:
     before = derive_messages(session.events())
 
     yielded = await drain(
-        compactor(ScriptedClient([Failed(reason="boom")])).compact(session, turn=1, trigger="auto")
+        run_compaction(
+            agent(ScriptedClient([Failed(reason="boom")])), session, turn=1, trigger="auto"
+        )
     )
 
     assert [e.type for e in yielded] == ["compaction/start", "compaction/end"]
@@ -186,10 +200,20 @@ async def test_an_empty_summary_is_a_failure() -> None:
     session = new_session()
     tool_turn(session, 0, "c0", "r")
     yielded = await drain(
-        compactor(ScriptedClient(completed("   "))).compact(session, turn=1, trigger="auto")
+        run_compaction(agent(ScriptedClient(completed("   "))), session, turn=1, trigger="auto")
     )
     assert isinstance(yielded[1], CompactionEnd) and yielded[1].message is None
     assert yielded[1].error is not None
+
+
+async def test_a_summary_request_that_ends_without_a_reply_is_a_failure() -> None:
+    session = new_session()
+    tool_turn(session, 0, "c0", "r")
+    halted = ScriptedClient([TextChunk(text="half")])
+
+    yielded = await drain(run_compaction(agent(halted), session, turn=1, trigger="auto"))
+
+    assert yielded[1] == CompactionEnd(turn=1, error="summary request produced no reply")
 
 
 async def test_a_summarizer_that_raises_fails_open() -> None:
@@ -202,7 +226,7 @@ async def test_a_summarizer_that_raises_fails_open() -> None:
 
     session = new_session()
     tool_turn(session, 0, "c0", "r")
-    yielded = await drain(compactor(Broken()).compact(session, turn=1, trigger="auto"))
+    yielded = await drain(run_compaction(agent(Broken()), session, turn=1, trigger="auto"))
     assert isinstance(yielded[1], CompactionEnd) and "adapter bug" in (yielded[1].error or "")
 
 
@@ -210,12 +234,14 @@ async def test_a_summary_of_only_a_summary_is_refused() -> None:
     session = new_session()
     tool_turn(session, 0, "c0", "r")
     client = ScriptedClient(completed("S"))
-    await drain(compactor(client).compact(session, turn=1, trigger="auto"))
+    await drain(run_compaction(agent(client), session, turn=1, trigger="auto"))
     assert client.calls == 1
 
-    assert await drain(compactor(client).compact(session, turn=1, trigger="overflow")) == []
+    assert await drain(run_compaction(agent(client), session, turn=1, trigger="overflow")) == []
     assert client.calls == 1
-    assert compactor(client).refusal_reason(session) == "nothing to compact"
+    with pytest.raises(CompactionRefused) as refused:
+        check_can_compact(session)
+    assert refused.value.reason == "nothing to compact"
 
 
 async def test_an_unanswered_call_is_a_refusal() -> None:
@@ -233,9 +259,10 @@ async def test_an_unanswered_call_is_a_refusal() -> None:
     )
     session.append(ToolCallEvent(turn=0, step=0, call=call))
     session.append(TurnEnd(turn=0, reason="pending"))
-    client = ScriptedClient(completed("S"))
 
-    assert compactor(client).refusal_reason(session) == "a client request is still unanswered"
+    with pytest.raises(CompactionRefused) as refused:
+        check_can_compact(session)
+    assert refused.value.reason == "a client request is still unanswered"
 
 
 async def test_recover_ignores_the_line_and_manual_says_so() -> None:
@@ -244,13 +271,13 @@ async def test_recover_ignores_the_line_and_manual_says_so() -> None:
     client = ScriptedClient(completed("S"))
 
     yielded = await drain(
-        compactor(client, context=1_000_000).compact(session, turn=1, trigger="overflow")
+        run_compaction(agent(client, context_tokens=1_000_000), session, turn=1, trigger="overflow")
     )
     assert isinstance(yielded[0], CompactionStart) and yielded[0].trigger == "overflow"
 
     tool_turn(session, 1, "c1", "r")
     yielded = await drain(
-        compactor(client, context=None).compact(session, turn=None, trigger="manual")
+        run_compaction(agent(client, context_tokens=None), session, turn=None, trigger="manual")
     )
     assert yielded[0] == CompactionStart(turn=None, trigger="manual", tokens=10_100)
     assert isinstance(yielded[1], CompactionEnd) and yielded[1].message is not None
@@ -261,7 +288,7 @@ async def test_closing_the_generator_mid_summary_closes_the_bracket() -> None:
 
     session = new_session()
     tool_turn(session, 0, "c0", "r")
-    gen = compactor(HangingClient("")).compact(session, turn=1, trigger="auto")
+    gen = run_compaction(agent(HangingClient("")), session, turn=1, trigger="auto")
     first = await gen.__anext__()
     assert isinstance(first, CompactionStart)
     await gen.aclose()

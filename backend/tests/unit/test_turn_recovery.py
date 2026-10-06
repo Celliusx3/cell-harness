@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 
-from harness.agent.compaction import CompactionService
 from harness.agent.events import AgentCompleted, AgentFailed
 from harness.agent.loop import LoopAgent
 from harness.llm.client import LLMClient
@@ -33,9 +32,7 @@ def asks_for_a_summary(messages, tools) -> bool:
 def compacting(client: LLMClient) -> LoopAgent:
     return loop_agent(
         client,
-        compaction=CompactionService(
-            client=client, model="m", system_prompt="", context_tokens=None
-        ),
+        context_tokens=None,
     )
 
 

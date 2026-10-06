@@ -9,7 +9,6 @@ from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.agent.compaction import CompactionService
 from harness.agent.hooks import HookChain
 from harness.agent.loop import LoopAgent
 from harness.bots import BotStore
@@ -81,7 +80,7 @@ def loop_agent(
     system_prompt: str = "",
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
-    compaction: CompactionService | None = None,
+    context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
 ) -> LoopAgent:
     """An agent over `tools`, with no pipeline at all when there are none."""
@@ -93,7 +92,7 @@ def loop_agent(
         system_prompt=system_prompt,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
-        compaction=compaction,
+        context_tokens=context_tokens,
     )
 
 
@@ -142,14 +141,16 @@ def run_store(
     service: SessionService,
     client,
     *tools: ToolDefinition,
-    compaction: CompactionService | None = None,
+    context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
     bots: BotStore | None = None,
 ) -> RunStore:
     """Runs over an agent that checkpoints through `service`, as the server wires it."""
     return RunStore(
         service,
-        loop_agent(client, *tools, checkpoint=service.flush, compaction=compaction, gate=gate),
+        loop_agent(
+            client, *tools, checkpoint=service.flush, context_tokens=context_tokens, gate=gate
+        ),
         bots or no_bots(service),
     )
 

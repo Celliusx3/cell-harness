@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from harness.agent.compaction import CompactionService
 from harness.bots import ASSISTANT_ID, BotStore
 from harness.llm.messages import ApplicationMessage, SystemMessage, UserMessage
 from harness.runs.store import RunStore
@@ -49,12 +48,7 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     service = durable_service(tmp_path / "sessions")
     bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = ScriptedClient(completed("THE SUMMARY"))
-    compaction = CompactionService(
-        client=client, model="m", system_prompt="GUIDE", context_tokens=None
-    )
-    agent = loop_agent(
-        client, system_prompt="GUIDE", checkpoint=service.flush, compaction=compaction
-    )
+    agent = loop_agent(client, system_prompt="GUIDE", checkpoint=service.flush, context_tokens=None)
     runs = RunStore(service, agent, bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)

@@ -58,7 +58,7 @@ counting.
 
 ## The trigger
 
-`CompactionService.should_compact` compares the context size against a line:
+`should_compact` compares the context size against a line:
 
 ```
 threshold = floor(context_tokens × 0.8)          # COMPACT_AT; dsh's ratio
