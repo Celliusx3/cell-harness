@@ -18,7 +18,7 @@ from harness.llm.messages import (
     ToolSpec,
     UserMessage,
 )
-from harness.llm.stream import Failed, StreamEvent, Usage
+from harness.llm.stream import Failed, StreamEvent, TextChunk, Usage
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.session.derive import derive_messages
 from harness.session.models import (
@@ -190,6 +190,16 @@ async def test_an_empty_summary_is_a_failure() -> None:
     )
     assert isinstance(yielded[1], CompactionEnd) and yielded[1].message is None
     assert yielded[1].error is not None
+
+
+async def test_a_summary_request_that_ends_without_a_reply_is_a_failure() -> None:
+    session = new_session()
+    tool_turn(session, 0, "c0", "r")
+    halted = ScriptedClient([TextChunk(text="half")])
+
+    yielded = await drain(compactor(halted).compact(session, turn=1, trigger="auto"))
+
+    assert yielded[1] == CompactionEnd(turn=1, error="summary request produced no reply")
 
 
 async def test_a_summarizer_that_raises_fails_open() -> None:
