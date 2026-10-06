@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 from collections.abc import AsyncIterator
 from contextlib import aclosing
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from harness.agent.events import ToolPending, ToolProgress, ToolResult
@@ -17,6 +18,13 @@ from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome,
 
 if TYPE_CHECKING:
     from harness.agent.loop import LoopAgent
+
+
+@dataclass(frozen=True)
+class Reminder:
+    """What a hook wants the model told once the step's calls settle."""
+
+    text: str
 
 
 def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int) -> ToolResultEvent:
@@ -49,11 +57,13 @@ async def run_tool_calls(
                     session=session,
                     turn=turn,
                     step=step,
-                    notes=notes,
                     approved=call.name in session.tools_granted(),
                 )
             ) as events:
                 async for event in events:
+                    if isinstance(event, Reminder):
+                        notes.append(event.text)
+                        continue
                     if isinstance(event, (ToolResult, ToolPending)):
                         owed.remove(call)
                     yield event
@@ -75,10 +85,9 @@ async def _answer_call(
     session: Session,
     turn: int,
     step: int,
-    notes: list[str],
     approved: bool,
-) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
-    """One call: zero or more `ToolProgress`, then exactly one `ToolResult` or `ToolPending`."""
+) -> AsyncIterator[ToolProgress | ToolResult | ToolPending | Reminder]:
+    """Any `ToolProgress`, then a `ToolPending`, or an optional `Reminder` then a `ToolResult`."""
     refusal = await agent.hooks.pre_tool_call(call, session=session)
     outcome: ToolOutcome | None = None
     if refusal is not None:
@@ -96,7 +105,7 @@ async def _answer_call(
             return
         note = await agent.hooks.post_tool_call(call, outcome, session=session)
         if note is not None:
-            notes.append(note)
+            yield Reminder(note)
 
     result = settled_result(call.id, outcome, turn=turn, step=step)
     session.append(result)
@@ -113,9 +122,7 @@ async def run_approved_call(
     answered = False
     try:
         async with aclosing(
-            _answer_call(
-                agent, call, session=session, turn=turn, step=0, notes=notes, approved=True
-            )
+            _answer_call(agent, call, session=session, turn=turn, step=0, approved=True)
         ) as events:
             async for event in events:
                 if isinstance(event, ToolResult):
@@ -123,6 +130,8 @@ async def run_approved_call(
                     yield event
                 elif isinstance(event, ToolProgress):
                     yield event
+                elif isinstance(event, Reminder):
+                    notes.append(event.text)
         if notes:
             session.append(
                 ApplicationMessageEvent(
