@@ -6,7 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from harness.agent.service import LoopAgent
+from harness.agent.service import Agent
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -120,7 +120,7 @@ def build(tmp_path, client: LLMClient | None = None):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = LoopAgent(
+    agent = Agent(
         model="m",
         client=client or ScriptedClient(completed("ok")),
         checkpoint=sessions.flush,

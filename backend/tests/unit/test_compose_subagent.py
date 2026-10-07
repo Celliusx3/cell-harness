@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.service import LoopAgent
+from harness.agent.service import Agent
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import SystemMessage, ToolCall, ToolMessage
@@ -36,7 +36,7 @@ from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_s
 def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """The real object graph, answering through `client`."""
 
-    def build(client) -> tuple[LoopAgent, SessionService]:
+    def build(client) -> tuple[Agent, SessionService]:
         monkeypatch.setattr(composition, "OpenAIClient", lambda _settings: client)
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))

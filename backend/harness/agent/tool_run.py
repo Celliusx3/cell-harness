@@ -17,7 +17,7 @@ from harness.session.repair import unknown_result
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
-    from harness.agent.service import LoopAgent
+    from harness.agent.service import Agent
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
 
 
 async def run_tool_calls(
-    agent: LoopAgent, calls: tuple[ToolCall, ...], *, session: Session, turn: int, step: int
+    agent: Agent, calls: tuple[ToolCall, ...], *, session: Session, turn: int, step: int
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
     """A step's calls in order, then what the hooks wanted the model told."""
     owed = list(calls)
@@ -79,7 +79,7 @@ async def run_tool_calls(
 
 
 async def _answer_call(
-    agent: LoopAgent,
+    agent: Agent,
     call: ToolCall,
     *,
     session: Session,
@@ -115,7 +115,7 @@ async def _answer_call(
 
 
 async def run_approved_call(
-    agent: LoopAgent, call: ToolCall, *, session: Session, turn: int
+    agent: Agent, call: ToolCall, *, session: Session, turn: int
 ) -> AsyncIterator[ToolProgress | ToolResult]:
     """An approved call as the resumed turn's first step; a cancel still leaves it answered."""
     notes: list[str] = []
@@ -144,7 +144,7 @@ async def run_approved_call(
 
 
 async def _execute(
-    agent: LoopAgent, call: ToolCall, *, session: Session, approved: bool
+    agent: Agent, call: ToolCall, *, session: Session, approved: bool
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()

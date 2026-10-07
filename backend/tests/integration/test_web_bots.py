@@ -9,7 +9,7 @@ from harness.bots import ASSISTANT_ID, BotStore
 from harness.runs.store import RunStore
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import durable_service, loop_agent, no_skills
+from tests.unit.helpers import agent_over, durable_service, no_skills
 from tests.webapp import web_app
 
 GUIDE = "GUIDE"
@@ -22,7 +22,7 @@ async def bots(tmp_path):
     model = ScriptedClient(completed("hello"))
     service = durable_service(tmp_path / "sessions")
     store = BotStore(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT)
-    agent = loop_agent(model, system_prompt=GUIDE, checkpoint=service.flush)
+    agent = agent_over(model, system_prompt=GUIDE, checkpoint=service.flush)
     runs = RunStore(service, agent, store)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)

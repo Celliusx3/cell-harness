@@ -22,7 +22,7 @@ from tests.unit.fakes import (
     completed,
     hanging_tool,
 )
-from tests.unit.helpers import drain, durable_service, loop_agent, unanswered_calls
+from tests.unit.helpers import agent_over, drain, durable_service, unanswered_calls
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ async def _drive(agent_, session) -> None:
 
 async def test_resume_repairs_a_turn_killed_mid_tool(store, tmp_path) -> None:
     session = await store.create()
-    agent_ = loop_agent(
+    agent_ = agent_over(
         SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
     )
 
@@ -65,7 +65,7 @@ async def test_resume_repairs_a_turn_killed_mid_tool(store, tmp_path) -> None:
 
 async def test_a_repaired_call_tells_the_model_it_may_have_run(store, tmp_path) -> None:
     session = await store.create()
-    agent_ = loop_agent(
+    agent_ = agent_over(
         SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
     )
 
@@ -78,7 +78,7 @@ async def test_a_repaired_call_tells_the_model_it_may_have_run(store, tmp_path) 
 
 async def test_resuming_twice_does_not_stack_closers(store, tmp_path) -> None:
     session = await store.create()
-    agent_ = loop_agent(
+    agent_ = agent_over(
         SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
     )
 
@@ -91,7 +91,7 @@ async def test_resuming_twice_does_not_stack_closers(store, tmp_path) -> None:
 
 async def test_a_repaired_session_can_take_another_turn(store, tmp_path) -> None:
     session = await store.create()
-    agent_ = loop_agent(
+    agent_ = agent_over(
         SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
     )
 
@@ -99,7 +99,7 @@ async def test_a_repaired_session_can_take_another_turn(store, tmp_path) -> None
     resumed = await reopened.resume("s0")
     next_client = ScriptedClient(completed("carrying on"))
     events = await drain(
-        loop_agent(next_client, checkpoint=reopened.flush).run("what happened?", session=resumed)
+        agent_over(next_client, checkpoint=reopened.flush).run("what happened?", session=resumed)
     )
 
     assert events[-1] == AgentCompleted(text="carrying on")
@@ -108,7 +108,7 @@ async def test_a_repaired_session_can_take_another_turn(store, tmp_path) -> None
 
 async def test_read_shows_a_crashed_log_unrepaired(store, tmp_path) -> None:
     session = await store.create()
-    agent_ = loop_agent(
+    agent_ = agent_over(
         SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
     )
 
@@ -120,7 +120,7 @@ async def test_read_shows_a_crashed_log_unrepaired(store, tmp_path) -> None:
 
 async def test_read_writes_nothing(store, tmp_path) -> None:
     session = await store.create()
-    agent_ = loop_agent(
+    agent_ = agent_over(
         SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), checkpoint=store.flush
     )
     reopened = await crash_during_tool(agent_, session, store, tmp_path)

@@ -6,7 +6,7 @@ import dataclasses
 from collections.abc import AsyncIterator
 
 from harness.agent.compaction.prompt import OPEN
-from harness.agent.service import LoopAgent
+from harness.agent.service import Agent
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,
@@ -61,8 +61,8 @@ class SizedClient(LLMClient):
         yield Completed(full_text="ok", usage=Usage(input_tokens=used, output_tokens=10))
 
 
-def agent_with(client: LLMClient, context: int | None) -> LoopAgent:
-    return LoopAgent(
+def agent_with(client: LLMClient, context: int | None) -> Agent:
+    return Agent(
         model="m",
         client=client,
         system_prompt="SYS",

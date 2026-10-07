@@ -11,7 +11,7 @@ from harness.agent.hooks.native.exact_failure import ExactFailureHook
 from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.service import LoopAgent
+from harness.agent.service import Agent
 from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm.messages import ToolCall
@@ -33,7 +33,7 @@ WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
 def compose(tmp_path: Path):
     """The real object graph, with a store that is never started."""
 
-    def build() -> LoopAgent:
+    def build() -> Agent:
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})

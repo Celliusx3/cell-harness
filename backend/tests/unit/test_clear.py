@@ -34,7 +34,7 @@ from harness.session.models import (
 )
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import durable_service, loop_agent, run_store
+from tests.unit.helpers import agent_over, durable_service, run_store
 from tests.unit.test_compaction_service import tool_turn
 
 
@@ -114,7 +114,7 @@ async def test_clearing_twice_keeps_counting_up(tmp_path) -> None:
 
 async def test_after_a_clear_the_model_sees_nothing_from_before(tmp_path) -> None:
     service, before = await _chat_with_history(tmp_path / "sessions")
-    agent = loop_agent(ScriptedClient([]))
+    agent = agent_over(ScriptedClient([]))
     assert UserMessage(content="SUMMARY") in agent.request_messages(before)
 
     await service.clear(before.id)

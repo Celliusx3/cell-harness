@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.agent.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
 from harness.agent.hooks import HookChain, ToolHook
-from harness.agent.service import LoopAgent
+from harness.agent.service import Agent
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
 from harness.sandbox import Bridge, BridgeError
@@ -49,12 +49,12 @@ def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
 
 def _agent(
     client, gate: ApprovalGate, *tools: ToolDefinition, hooks: HookChain | None = None
-) -> LoopAgent:
+) -> Agent:
     registry = ToolRegistry(tools)
     pipeline = ToolPipeline(
         registry, ToolDispatcher(registry, gate), default_tools=[t.name for t in tools]
     )
-    return LoopAgent(model="m", client=client, tools=pipeline, hooks=hooks or HookChain())
+    return Agent(model="m", client=client, tools=pipeline, hooks=hooks or HookChain())
 
 
 def _types(session) -> list[str]:

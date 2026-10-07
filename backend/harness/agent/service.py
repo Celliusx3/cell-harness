@@ -1,4 +1,4 @@
-"""`LoopAgent` — gather context, act, repeat until nothing is owed."""
+"""`Agent` — gather context, act, repeat until nothing is owed."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ SKIPPED_RESULT = (
 
 
 @dataclass(frozen=True)
-class LoopAgent:
+class Agent:
     """An agent that answers by running the tool loop."""
 
     model: str
