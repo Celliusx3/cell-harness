@@ -34,7 +34,7 @@ def pipeline(*tools: ToolDefinition) -> ToolPipeline:
     registry = ToolRegistry(tools)
     dispatcher = ToolDispatcher(registry, no_gate())
     for made in code_mode_tools(
-        registry=registry, dispatcher=dispatcher, runtime=FakeRunner(), withheld=frozenset()
+        registry=registry, dispatcher=dispatcher, runner=FakeRunner(), withheld=frozenset()
     ):
         registry.register(made)
     return ToolPipeline(registry, dispatcher, DEFAULTS)

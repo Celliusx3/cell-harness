@@ -68,7 +68,7 @@ def code_mode_tools(
     *,
     registry: ToolRegistry,
     dispatcher: ToolDispatcher,
-    runtime: Runner,
+    runner: Runner,
     withheld: frozenset[str],
 ) -> list[ToolDefinition]:
     """The three tools, sharing one view of the catalog."""
@@ -81,7 +81,7 @@ def code_mode_tools(
     return [
         _list_tool(available),
         _details_tool(available),
-        _execute_tool(available, dispatcher, runtime, kept_out),
+        _execute_tool(available, dispatcher, runner, kept_out),
     ]
 
 
@@ -121,12 +121,12 @@ def _details_tool(available: Catalog) -> ToolDefinition[DetailsArgs]:
 
 
 def _execute_tool(
-    available: Catalog, dispatcher: ToolDispatcher, runtime: Runner, kept_out: frozenset[str]
+    available: Catalog, dispatcher: ToolDispatcher, runner: Runner, kept_out: frozenset[str]
 ) -> ToolDefinition[ExecuteArgs]:
     async def execute(args: ExecuteArgs, context: ToolContext) -> ToolOutcome:
         names = [tool.name for tool in available()]
         try:
-            script = await runtime.run(
+            script = await runner.run(
                 args.code, names=names, bridge=_bridge(dispatcher, context.progress, kept_out)
             )
         except DenoUnavailableError as err:

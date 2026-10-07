@@ -88,13 +88,13 @@ class Built:
 
 def build(
     *tools: ToolDefinition,
-    runtime: FakeRunner | None = None,
+    runner: FakeRunner | None = None,
     withheld: frozenset[str] = frozenset(),
     gate: ApprovalGate | None = None,
 ) -> Built:
     registry = ToolRegistry(tools)
     dispatcher = RecordingDispatcher(registry, gate or no_gate())
     built = code_mode_tools(
-        registry=registry, dispatcher=dispatcher, runtime=runtime or FakeRunner(), withheld=withheld
+        registry=registry, dispatcher=dispatcher, runner=runner or FakeRunner(), withheld=withheld
     )
     return Built(tools=built, registry=registry, dispatcher=dispatcher)

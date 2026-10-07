@@ -189,7 +189,7 @@ async def test_a_script_calling_a_listed_tool_is_refused_and_told_to_call_it_dir
         except BridgeError as err:
             raised.append(err)
 
-    built = build(tool(WRITE), runtime=FakeRunner(script=script), gate=_gate(tmp_path, WRITE))
+    built = build(tool(WRITE), runner=FakeRunner(script=script), gate=_gate(tmp_path, WRITE))
 
     listed = await built.run("list_functions", "{}")
     assert isinstance(listed, Ok) and WRITE in listed.text

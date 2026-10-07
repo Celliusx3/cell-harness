@@ -59,7 +59,7 @@ def build_channels(
     client_tools: ClientToolService,
     bots: BotStore,
 ) -> tuple[ChannelGateway, WebChannel]:
-    """The gateway, and a runtime per configured platform."""
+    """The gateway with a channel registered per configured platform, and the web channel."""
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url=settings.web.public_url)
     chat_answers = ChatAnswers(chats, sessions, gateway, client_tools)

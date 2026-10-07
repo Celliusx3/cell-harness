@@ -117,7 +117,7 @@ def _register_code_mode(
     for tool in code_mode_tools(
         registry=registry,
         dispatcher=dispatcher,
-        runtime=DenoRunner(
+        runner=DenoRunner(
             deno_path=settings.code.deno_path,
             timeout_seconds=settings.code.timeout_seconds,
         ),
