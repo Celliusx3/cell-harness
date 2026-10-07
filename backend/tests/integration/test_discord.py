@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from harness.agent.service import Runtime
 from harness.config.settings import Settings
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels

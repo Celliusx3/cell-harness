@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from contextlib import aclosing
 
-from harness.agent.events import AgentCompleted
-from harness.agent.hooks import HookChain, ToolHook
 from harness.llm.messages import ToolCall
 from harness.llm.stream import Completed, TextChunk, ToolCallChunk
+from harness.runtime.events import AgentCompleted
+from harness.runtime.hooks import HookChain, ToolHook
 from harness.session.log import Session
 from harness.session.models import (
     ApplicationMessageEvent,

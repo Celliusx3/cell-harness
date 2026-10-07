@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.subagents import Subagents
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Failed
+from harness.runtime.subagents import Subagents
 from harness.session.models import TurnEnd, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

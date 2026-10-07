@@ -9,12 +9,12 @@ from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.agent.hooks import HookChain
-from harness.agent.service import Runtime
 from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.runs.store import RunStore
+from harness.runtime.hooks import HookChain
+from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository

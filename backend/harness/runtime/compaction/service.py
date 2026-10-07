@@ -6,10 +6,10 @@ import logging
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
-from harness.agent.compaction.history import loaded_skills, prunable_ids, summarizable
-from harness.agent.compaction.prompt import INSTRUCTION, summary_message
 from harness.llm.messages import ApplicationMessage, UserMessage
 from harness.llm.stream import Completed, Failed
+from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
+from harness.runtime.compaction.prompt import INSTRUCTION, summary_message
 from harness.session.compaction import (
     CompactionEnd,
     CompactionPrune,
@@ -20,9 +20,9 @@ from harness.session.log import Session
 from harness.session.repair import unanswered
 
 if TYPE_CHECKING:
-    from harness.agent.service import Runtime
+    from harness.runtime.service import Runtime
 
-logger = logging.getLogger("harness.agent")
+logger = logging.getLogger("harness.runtime")
 
 COMPACT_AT = 0.8
 

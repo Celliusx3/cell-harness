@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import asyncio
 
-from harness.agent.events import AgentCompleted, AgentFailed
-from harness.agent.service import Runtime
 from harness.llm.client import LLMClient
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, Usage
+from harness.runtime.events import AgentCompleted, AgentFailed
+from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
 from harness.session.log import Session
 from harness.session.models import (

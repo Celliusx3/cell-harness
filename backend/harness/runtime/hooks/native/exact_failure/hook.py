@@ -5,13 +5,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from harness.agent.hooks.calls import (
+from harness.runtime.hooks.calls import (
     CompletedCall,
     Signature,
     failures_since_success,
     last_failure_text,
 )
-from harness.agent.hooks.service import ToolHook
+from harness.runtime.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 EXACT_FAILURE_WARN_AT, EXACT_FAILURE_BLOCK_AT = 2, 5

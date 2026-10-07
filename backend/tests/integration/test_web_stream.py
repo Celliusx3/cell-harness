@@ -12,9 +12,9 @@ import httpx
 import pytest
 import uvicorn
 
-from harness.agent.service import Runtime
 from harness.channels.web import sse as sse_module
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.integration.web_helpers import assistant_chat

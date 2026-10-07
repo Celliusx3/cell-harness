@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.agent.compaction.service import (
+from harness.runtime.compaction.service import (
     CompactionEvent,
     CompactionRefused,
     check_can_compact,

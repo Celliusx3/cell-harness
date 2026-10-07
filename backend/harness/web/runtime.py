@@ -5,18 +5,18 @@ from __future__ import annotations
 import dataclasses
 import logging
 
-from harness.agent.hooks import HookChain
-from harness.agent.hooks.native.empty_reply import EmptyReplyHook
-from harness.agent.hooks.native.exact_failure import ExactFailureHook
-from harness.agent.hooks.native.no_progress import NoProgressHook
-from harness.agent.hooks.native.repeated_call import RepeatedCallHook
-from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.service import Runtime
-from harness.agent.subagents import Subagents
 from harness.bots import BotStore
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.store import McpServerStore
+from harness.runtime.hooks import HookChain
+from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
+from harness.runtime.hooks.native.exact_failure import ExactFailureHook
+from harness.runtime.hooks.native.no_progress import NoProgressHook
+from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
+from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
+from harness.runtime.service import Runtime
+from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool

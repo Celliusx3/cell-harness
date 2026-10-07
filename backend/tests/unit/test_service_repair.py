@@ -8,8 +8,8 @@ from contextlib import aclosing
 
 import pytest
 
-from harness.agent.events import AgentCompleted
 from harness.llm.messages import UserMessage
+from harness.runtime.events import AgentCompleted
 from harness.session.derive import derive_messages
 from harness.session.models import ToolCallEvent, TurnEnd, TurnStart, UserMessageEvent
 from harness.session.repair import TOOL_OUTCOME_UNKNOWN

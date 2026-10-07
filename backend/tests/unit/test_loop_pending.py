@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from harness.agent.events import AgentCompleted, AgentPending
-from harness.agent.service import SKIPPED
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
+from harness.runtime.events import AgentCompleted, AgentPending
+from harness.runtime.service import SKIPPED
 from harness.session.models import ToolResultEvent, TurnEnd
 from harness.tools.definition import Ok
 from tests.unit.fakes import (

@@ -6,12 +6,12 @@ import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from harness.agent.service import Runtime
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm.client import LLMClient
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed

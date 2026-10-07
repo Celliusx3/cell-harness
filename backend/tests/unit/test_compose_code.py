@@ -6,16 +6,16 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.hooks.native.empty_reply import EmptyReplyHook
-from harness.agent.hooks.native.exact_failure import ExactFailureHook
-from harness.agent.hooks.native.no_progress import NoProgressHook
-from harness.agent.hooks.native.repeated_call import RepeatedCallHook
-from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.service import Runtime
 from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
+from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
+from harness.runtime.hooks.native.exact_failure import ExactFailureHook
+from harness.runtime.hooks.native.no_progress import NoProgressHook
+from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
+from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL

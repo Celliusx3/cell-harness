@@ -9,15 +9,15 @@ from contextlib import aclosing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from harness.agent.events import ToolPending, ToolProgress, ToolResult
 from harness.llm.messages import ApplicationMessage, ToolCall, ToolMessage, render_text
+from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.log import Session
 from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.session.repair import unknown_result
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
-    from harness.agent.service import Runtime
+    from harness.runtime.service import Runtime
 
 
 @dataclass(frozen=True)

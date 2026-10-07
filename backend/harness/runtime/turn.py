@@ -8,18 +8,18 @@ from contextlib import aclosing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from harness.agent.compaction import run_compaction, should_compact
-from harness.agent.events import (
+from harness.llm.messages import ApplicationMessage, AssistantMessage
+from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
+from harness.runtime.compaction import run_compaction, should_compact
+from harness.runtime.events import (
     AgentCompleted,
     AgentFailed,
     AgentPending,
     ToolPending,
     TurnEvent,
 )
-from harness.agent.hooks import GiveUp, Tell
-from harness.agent.tool_run import run_tool_calls
-from harness.llm.messages import ApplicationMessage, AssistantMessage
-from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
+from harness.runtime.hooks import GiveUp, Tell
+from harness.runtime.tool_run import run_tool_calls
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
 from harness.session.log import Session
 from harness.session.models import (
@@ -33,7 +33,7 @@ from harness.session.models import (
 )
 
 if TYPE_CHECKING:
-    from harness.agent.service import Runtime
+    from harness.runtime.service import Runtime
 
 NO_TERMINAL = "stream ended without a terminal event"
 

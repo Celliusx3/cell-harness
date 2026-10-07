@@ -8,8 +8,8 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.agent.service import Runtime
 from harness.bots import BotStore
+from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent
 from harness.session.service import SessionService

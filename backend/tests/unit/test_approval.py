@@ -7,11 +7,11 @@ import contextlib
 from contextlib import aclosing
 from pathlib import Path
 
-from harness.agent.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
-from harness.agent.hooks import HookChain, ToolHook
-from harness.agent.service import Runtime
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
+from harness.runtime.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
+from harness.runtime.hooks import HookChain, ToolHook
+from harness.runtime.service import Runtime
 from harness.sandbox import Bridge, BridgeError
 from harness.session.models import (
     ApplicationMessageEvent,

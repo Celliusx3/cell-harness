@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-from harness.agent.service import Runtime
 from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, apply
 from harness.channels.gateway import ChannelGateway
@@ -16,6 +15,7 @@ from harness.channels.protocol import (
 )
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.client import PendingCall

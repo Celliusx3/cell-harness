@@ -6,16 +6,6 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from harness.agent.compaction import (
-    CompactionRefused,
-    check_can_compact,
-    run_compaction,
-    should_compact,
-)
-from harness.agent.compaction.history import PRUNE_KEEP
-from harness.agent.compaction.prompt import INSTRUCTION, PREAMBLE
-from harness.agent.compaction.service import COMPACT_AT
-from harness.agent.service import Runtime
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,
@@ -27,6 +17,16 @@ from harness.llm.messages import (
     UserMessage,
 )
 from harness.llm.stream import Failed, StreamEvent, TextChunk, Usage
+from harness.runtime.compaction import (
+    CompactionRefused,
+    check_can_compact,
+    run_compaction,
+    should_compact,
+)
+from harness.runtime.compaction.history import PRUNE_KEEP
+from harness.runtime.compaction.prompt import INSTRUCTION, PREAMBLE
+from harness.runtime.compaction.service import COMPACT_AT
+from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.session.derive import derive_messages
 from harness.session.models import (

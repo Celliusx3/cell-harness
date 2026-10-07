@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import httpx
 
-from harness.agent.service import SKIPPED
 from harness.runs.store import RunStore
+from harness.runtime.service import SKIPPED
 from harness.tools.native.location import LOCATION
 from tests.integration.web_helpers import assistant_chat, build, events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed

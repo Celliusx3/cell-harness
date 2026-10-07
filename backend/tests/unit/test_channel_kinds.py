@@ -7,13 +7,13 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.agent.service import Runtime
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, Pushing
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed

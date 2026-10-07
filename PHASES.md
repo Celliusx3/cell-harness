@@ -135,7 +135,7 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
 - `bot/instructions` — the event that brings a bot's instructions into its
   chat, logged when a turn starts with instructions that differ from the last
   ones logged. The request and compaction both build the system prompt from it
-  (`agent/system_prompt.py`): the instructions, then the fixed guidance.
+  (`runtime/system_prompt.py`): the instructions, then the fixed guidance.
 - `/api/bots`, the sidebar's Bots and Archived, the New bot and Edit bot form.
 - `bot_create` (`tools/native/bots/`) — the form's save as a tool. It asks
   first and is withheld from scripts and helpers; Rakazo's `spawn_bot` does not
@@ -331,8 +331,8 @@ has no caller: nothing runs in the background and reports back later. Only
 **Depends on.** 4.
 
 **Ships.**
-- `agent/inbox.py` — one inbox, `InboxTarget`, wakeup flag
-- `agent/handle.py` — `send`, `followup`, `steer`, `inject`, `when_idle`
+- `runtime/inbox.py` — one inbox, `InboxTarget`, wakeup flag
+- `runtime/handle.py` — `send`, `followup`, `steer`, `inject`, `when_idle`
 - `frontend/` — send-while-running affordance
 
 **Key contracts.**
@@ -386,7 +386,7 @@ app" link shows that desktop live.
     endpoint, for the view only
   - `ui://computer/screen` — an MCP App that redraws `screen()` through
     `tools/call`, sysmon's pattern; view only in this phase
-- `agent/compaction/` — old pages trimmed on every step, not only at 80% of the
+- `runtime/compaction/` — old pages trimmed on every step, not only at 80% of the
   window: the newest 3 page results over 1,000 characters stay, a failure never
   counts, and the rest are cleared by the `compaction/prune` event compaction
   already writes (`pi-runtime.ts:1413-1466`). The page tools are named in config;

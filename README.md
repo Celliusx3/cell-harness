@@ -107,7 +107,7 @@ so the bot never sees a channel's traffic it was not addressed in. `/new`, `/sto
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the event log, its models, repository/, service, repair
-  agent/        the turn loop, its events, and hooks/ — the chain + native/<hook>/
+  runtime/      the turn loop, its events, and hooks/ — the chain + native/<hook>/
   tools/        definition, registry, dispatcher, pipeline, progress, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   mcp/          the MCP client — one owning task per server, namespaced tools

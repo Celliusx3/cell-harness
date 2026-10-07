@@ -7,13 +7,13 @@ from contextlib import aclosing
 
 import pytest
 
-from harness.agent.events import AgentCompleted, AgentFailed
-from harness.agent.hooks import HookChain
-from harness.agent.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE, EmptyReplyHook
-from harness.agent.service import Runtime
-from harness.agent.turn import NO_TERMINAL
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk
+from harness.runtime.events import AgentCompleted, AgentFailed
+from harness.runtime.hooks import HookChain
+from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE, EmptyReplyHook
+from harness.runtime.service import Runtime
+from harness.runtime.turn import NO_TERMINAL
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantChunk,

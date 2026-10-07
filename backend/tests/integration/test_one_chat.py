@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 
 import httpx
 
-from harness.agent.service import Runtime
 from harness.bots import ASSISTANT_ID, BotStore
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
@@ -18,6 +17,7 @@ from harness.llm.client import LLMClient
 from harness.llm.messages import Message, ToolSpec
 from harness.llm.stream import StreamEvent
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import create_app

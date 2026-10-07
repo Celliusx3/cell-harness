@@ -58,7 +58,7 @@ and only its `env` secrets go in `config.local.json`.
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the event log, its models, repository/, service, repair
-  agent/        the turn loop, its events, and hooks/ — the chain + native/<hook>/
+  runtime/      the turn loop, its events, and hooks/ — the chain + native/<hook>/
   tools/        definition, registry, dispatcher, pipeline, progress, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   runs/         a turn that outlives its connection — store, subscribe

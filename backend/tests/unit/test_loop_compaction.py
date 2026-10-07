@@ -5,8 +5,6 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import AsyncIterator
 
-from harness.agent.compaction.prompt import OPEN
-from harness.agent.service import Runtime
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,
@@ -24,6 +22,8 @@ from harness.llm.stream import (
     TextChunk,
     Usage,
 )
+from harness.runtime.compaction.prompt import OPEN
+from harness.runtime.service import Runtime
 from harness.session.derive import derive_messages
 from harness.session.models import (
     AssistantMessageEvent,

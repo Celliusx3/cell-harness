@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harness.agent.service import Runtime
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.batching import (
@@ -18,6 +17,7 @@ from harness.channels.telegram.batching import (
     batch_delay,
 )
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService

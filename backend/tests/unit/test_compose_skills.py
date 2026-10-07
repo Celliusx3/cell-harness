@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.service import Runtime
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
