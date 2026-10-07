@@ -6,7 +6,7 @@ import dataclasses
 from collections.abc import AsyncIterator
 
 from harness.agent.compaction.prompt import OPEN
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,
@@ -61,8 +61,8 @@ class SizedClient(LLMClient):
         yield Completed(full_text="ok", usage=Usage(input_tokens=used, output_tokens=10))
 
 
-def agent_with(client: LLMClient, context: int | None) -> Agent:
-    return Agent(
+def runtime_with(client: LLMClient, context: int | None) -> Runtime:
+    return Runtime(
         model="m",
         client=client,
         guidance="SYS",
@@ -72,11 +72,11 @@ def agent_with(client: LLMClient, context: int | None) -> Agent:
 
 async def test_a_long_conversation_compacts_and_keeps_going() -> None:
     client = SizedClient(per_turn=2_000)
-    agent = agent_with(client, context=20_000)
+    runtime = runtime_with(client, context=20_000)
     session = new_session()
 
     for i in range(200):
-        await drain(agent.run(f"message {i}", session=session))
+        await drain(runtime.run(f"message {i}", session=session))
 
     assert client.summaries >= 1
     users = [e for e in session.events() if e.type == "user/message"]
@@ -86,11 +86,11 @@ async def test_a_long_conversation_compacts_and_keeps_going() -> None:
 
 async def test_the_summary_survives_into_the_next_turn() -> None:
     client = SizedClient(per_turn=6_000)
-    agent = agent_with(client, context=10_000)
+    runtime = runtime_with(client, context=10_000)
     session = new_session()
 
-    await drain(agent.run("first", session=session))
-    await drain(agent.run("second", session=session))
+    await drain(runtime.run("first", session=session))
+    await drain(runtime.run("second", session=session))
 
     messages = derive_messages(session.events())
     assert isinstance(messages[0], UserMessage) and OPEN in messages[0].content
@@ -98,11 +98,11 @@ async def test_the_summary_survives_into_the_next_turn() -> None:
 
 async def test_a_step_below_the_line_writes_no_compaction_event() -> None:
     client = SizedClient(per_turn=100)
-    agent = agent_with(client, context=1_000_000)
+    runtime = runtime_with(client, context=1_000_000)
     session = new_session()
 
     for i in range(5):
-        await drain(agent.run(f"message {i}", session=session))
+        await drain(runtime.run(f"message {i}", session=session))
 
     assert client.summaries == 0
     assert not any(e.type.startswith("compaction/") for e in session.events())
@@ -110,7 +110,7 @@ async def test_a_step_below_the_line_writes_no_compaction_event() -> None:
 
 async def test_a_refused_manual_compaction_yields_nothing() -> None:
     client = SizedClient(per_turn=100)
-    agent = agent_with(client, context=None)
+    runtime = runtime_with(client, context=None)
     session = new_session()
     call = ToolCall(id="p1", name="get_location", arguments="{}")
     session.append(TurnStart(turn=0))
@@ -123,7 +123,7 @@ async def test_a_refused_manual_compaction_yields_nothing() -> None:
     session.append(ToolCallEvent(turn=0, step=0, call=call))
     session.append(TurnEnd(turn=0, reason="pending"))
 
-    assert await drain(agent.compact(session=session)) == []
+    assert await drain(runtime.compact(session=session)) == []
     assert client.summaries == 0
     assert not any(e.type.startswith("compaction/") for e in session.events())
 
@@ -153,7 +153,7 @@ class OverflowingClient(LLMClient):
 
 async def test_an_overflow_is_recovered_and_the_step_retried() -> None:
     client = OverflowingClient()
-    agent = agent_with(client, context=None)
+    runtime = runtime_with(client, context=None)
     session = new_session()
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="old")))
@@ -167,7 +167,7 @@ async def test_an_overflow_is_recovered_and_the_step_retried() -> None:
     )
     session.append(TurnEnd(turn=0, reason="completed"))
 
-    events = await drain(agent.run("go", session=session))
+    events = await drain(runtime.run("go", session=session))
 
     assert client.answered
     assert any(e.kind == "agent_completed" for e in events)
@@ -183,16 +183,16 @@ async def test_an_overflow_with_nothing_to_shrink_fails_the_turn() -> None:
             yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
 
     client = AlwaysOverflows()
-    agent = agent_with(client, context=None)
+    runtime = runtime_with(client, context=None)
     session = new_session()
-    events = await drain(agent.run("go", session=session))
+    events = await drain(runtime.run("go", session=session))
 
     assert any(e.kind == "agent_failed" for e in events)
 
 
 async def test_an_agent_copied_with_its_own_prompt_summarizes_with_that_prompt() -> None:
     client = SteppedClient(completed("done"), completed("SUMMARY"))
-    helper = dataclasses.replace(agent_with(client, None), guidance="HELPER")
+    helper = dataclasses.replace(runtime_with(client, None), guidance="HELPER")
     session = new_session()
     await drain(helper.run("do the task", session=session))
 

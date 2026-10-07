@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 
 from harness.agent.events import AgentCompleted, AgentFailed
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.llm.client import LLMClient
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, Usage
@@ -20,7 +20,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from tests.unit.helpers import agent_over, cancel_mid_turn, drain, new_session
+from tests.unit.helpers import cancel_mid_turn, drain, new_session, runtime_over
 
 
 def asks_for_a_summary(messages, tools) -> bool:
@@ -29,8 +29,8 @@ def asks_for_a_summary(messages, tools) -> bool:
     )
 
 
-def compacting(client: LLMClient) -> Agent:
-    return agent_over(
+def compacting(client: LLMClient) -> Runtime:
+    return runtime_over(
         client,
         context_tokens=None,
     )

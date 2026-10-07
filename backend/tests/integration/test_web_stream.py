@@ -12,7 +12,7 @@ import httpx
 import pytest
 import uvicorn
 
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.channels.web import sse as sse_module
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -56,8 +56,10 @@ async def served(
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = Agent(model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush)
-    runs = RunStore(service, agent, no_bots(service))
+    runtime = Runtime(
+        model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
+    )
+    runs = RunStore(service, runtime, no_bots(service))
     async with (
         serving(web_app(tmp_path, service, runs, skills=no_skills())) as base_url,
         httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as http,

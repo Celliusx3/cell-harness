@@ -12,7 +12,7 @@ from harness.llm.messages import ToolCall, ToolMessage
 from harness.session.log import Session
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.definition import BLOCKED, EXECUTION_ERROR, REFUSED, Failure, Ok
-from harness.web.agent import default_hooks
+from harness.web.runtime import default_hooks
 from tests.unit.helpers import new_session
 
 GUARD = default_hooks()

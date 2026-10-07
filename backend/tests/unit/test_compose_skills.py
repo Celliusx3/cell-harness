@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import ToolCall
@@ -18,7 +18,7 @@ from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.native.code import EXECUTE, LIST
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
-from harness.web.agent import DEFAULT_TOOLS, build_agent
+from harness.web.runtime import DEFAULT_TOOLS, build_runtime
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, skills_at
 
 COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
@@ -35,11 +35,11 @@ def compose(tmp_path: Path):
     root = tmp_path / "skills"
     root.mkdir()
 
-    def build() -> Agent:
+    def build() -> Runtime:
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(
+        return build_runtime(
             settings,
             sessions,
             mcp,
@@ -55,27 +55,27 @@ def compose(tmp_path: Path):
 
 def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
     build, root = compose
-    agent = build()
-    assert agent.tools is not None
+    runtime = build()
+    assert runtime.tools is not None
 
-    assert SKILL not in [s.name for s in agent.tools.specs()]
+    assert SKILL not in [s.name for s in runtime.tools.specs()]
 
     directory = write_skill(root, "pdf")
-    offered = [s.name for s in agent.tools.specs()]
+    offered = [s.name for s in runtime.tools.specs()]
     assert SKILL in offered
     assert offered == list(DEFAULT_TOOLS)
 
     (directory / "SKILL.md").unlink()
-    assert SKILL not in [s.name for s in agent.tools.specs()]
+    assert SKILL not in [s.name for s in runtime.tools.specs()]
 
 
 async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
     build, root = compose
     write_skill(root, "pdf")
-    agent = build()
-    assert agent.tools is not None
+    runtime = build()
+    assert runtime.tools is not None
 
-    outcome = await agent.tools.execute(
+    outcome = await runtime.tools.execute(
         ToolCall(id="c1", name=SKILL, arguments=json.dumps({"name": "pdf"})), progress=no_progress
     )
 
@@ -85,15 +85,15 @@ async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
 async def test_a_script_cannot_reach_it(compose) -> None:
     build, root = compose
     write_skill(root, "pdf")
-    agent = build()
-    assert agent.tools is not None
+    runtime = build()
+    assert runtime.tools is not None
 
-    listed = await agent.tools.execute(
+    listed = await runtime.tools.execute(
         ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
     )
     assert isinstance(listed, Ok) and "skill" not in listed.text
 
-    ran = await agent.tools.execute(
+    ran = await runtime.tools.execute(
         ToolCall(
             id="c2",
             name=EXECUTE,
@@ -108,25 +108,25 @@ async def test_a_script_cannot_reach_it(compose) -> None:
 
 def test_a_skill_saved_through_the_editor_is_offered_next_request(compose) -> None:
     build, root = compose
-    agent = build()
-    assert agent.tools is not None
-    assert SKILL not in [s.name for s in agent.tools.specs()]
+    runtime = build()
+    assert runtime.tools is not None
+    assert SKILL not in [s.name for s in runtime.tools.specs()]
 
     skills_at(root).save("notes", "---\ndescription: Notes.\n---\nWrite them.\n")
 
-    (spec,) = [s for s in agent.tools.specs() if s.name == SKILL]
+    (spec,) = [s for s in runtime.tools.specs() if s.name == SKILL]
     assert spec.input_schema["properties"]["name"]["enum"] == ["notes"]
 
     skills_at(root).delete("notes")
-    assert SKILL not in [s.name for s in agent.tools.specs()]
+    assert SKILL not in [s.name for s in runtime.tools.specs()]
 
 
 def test_every_skill_write_is_offered_before_any_skill_exists(compose) -> None:
     build, _ = compose
-    agent = build()
-    assert agent.tools is not None
+    runtime = build()
+    assert runtime.tools is not None
 
-    offered = [s.name for s in agent.tools.specs()]
+    offered = [s.name for s in runtime.tools.specs()]
 
     assert {SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE} <= set(offered)
 
@@ -134,16 +134,16 @@ def test_every_skill_write_is_offered_before_any_skill_exists(compose) -> None:
 async def test_a_script_cannot_write_a_skill(compose) -> None:
     build, root = compose
     write_skill(root, "pdf")
-    agent = build()
-    assert agent.tools is not None
+    runtime = build()
+    assert runtime.tools is not None
 
-    listed = await agent.tools.execute(
+    listed = await runtime.tools.execute(
         ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
     )
     assert isinstance(listed, Ok)
     assert not any(name in listed.text for name in (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE))
 
-    ran = await agent.tools.execute(
+    ran = await runtime.tools.execute(
         ToolCall(
             id="c2",
             name=EXECUTE,
@@ -165,11 +165,11 @@ def test_the_committed_config_asks_before_any_skill_write() -> None:
 
 async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
     build, root = compose
-    agent = build()
-    assert agent.tools is not None
+    runtime = build()
+    assert runtime.tools is not None
     skills_at(root).save("convert", "---\ndescription: Converts km to miles.\n---\nRun it.\n")
 
-    wrote = await agent.tools.execute(
+    wrote = await runtime.tools.execute(
         ToolCall(
             id="c1",
             name=SKILL_WRITE_FILE,
@@ -185,7 +185,7 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
     )
     assert isinstance(wrote, Ok)
 
-    read = await agent.tools.execute(
+    read = await runtime.tools.execute(
         ToolCall(
             id="c2", name=SKILL, arguments=json.dumps({"name": "convert", "path": "scripts/km.ts"})
         ),
@@ -194,7 +194,7 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
     assert isinstance(read, Ok)
     script = read.text.split("\n", 1)[1].rsplit("\n</skill_file>", 1)[0]
 
-    ran = await agent.tools.execute(
+    ran = await runtime.tools.execute(
         ToolCall(
             id="c3",
             name=EXECUTE,

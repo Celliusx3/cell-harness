@@ -6,7 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -120,12 +120,12 @@ def build(tmp_path, client: LLMClient | None = None):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = Agent(
+    runtime = Runtime(
         model="m",
         client=client or ScriptedClient(completed("ok")),
         checkpoint=sessions.flush,
     )
-    runs = RunStore(sessions, agent, no_bots(sessions))
+    runs = RunStore(sessions, runtime, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     channel, fake = discord_channel(gateway)

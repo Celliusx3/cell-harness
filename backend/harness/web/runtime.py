@@ -1,4 +1,4 @@
-"""The agent the server composes: a model, the native tools, the guardrail."""
+"""The runtime the server composes: a model, the native tools, the guardrail."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from harness.agent.hooks.native.exact_failure import ExactFailureHook
 from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.agent.subagents import Subagents
 from harness.bots import BotStore
 from harness.config.settings import Settings
@@ -67,7 +67,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
 )
 
 
-def build_agent(
+def build_runtime(
     settings: Settings,
     store: SessionService,
     mcp: McpServerStore,
@@ -78,8 +78,8 @@ def build_agent(
     *,
     bots: BotStore,
     subagent_logs: SessionService,
-) -> Agent:
-    """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
+) -> Runtime:
+    """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
     registry = ToolRegistry(
         [
             clock_tool(),
@@ -98,7 +98,7 @@ def build_agent(
     _register_code_mode(registry, dispatcher, settings)
 
     client = OpenAIClient(settings.llm)
-    agent = Agent(
+    runtime = Runtime(
         model=settings.llm.model,
         client=client,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
@@ -107,8 +107,8 @@ def build_agent(
         context_tokens=context_tokens,
         hooks=default_hooks(),
     )
-    _register_run_subagent(registry, dispatcher, agent, subagent_logs)
-    return agent
+    _register_run_subagent(registry, dispatcher, runtime, subagent_logs)
+    return runtime
 
 
 def _register_code_mode(
@@ -127,10 +127,10 @@ def _register_code_mode(
 
 
 def _register_run_subagent(
-    registry: ToolRegistry, dispatcher: ToolDispatcher, agent: Agent, logs: SessionService
+    registry: ToolRegistry, dispatcher: ToolDispatcher, runtime: Runtime, logs: SessionService
 ) -> None:
     subagent = dataclasses.replace(
-        agent,
+        runtime,
         tools=ToolPipeline(registry, dispatcher, SUBAGENT_TOOLS),
         guidance=CODE_PROMPT,
     )

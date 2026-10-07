@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import httpx
 
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
@@ -31,12 +31,12 @@ def build(tmp_path):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = Agent(
+    runtime = Runtime(
         model="m",
         client=ScriptedClient(completed("the answer")),
         checkpoint=sessions.flush,
     )
-    runs = RunStore(sessions, agent, no_bots(sessions))
+    runs = RunStore(sessions, runtime, no_bots(sessions))
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
@@ -97,7 +97,7 @@ async def test_the_lifespan_starts_and_stops_the_gateway(tmp_path) -> None:
 
 async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunStore(sessions, Agent(model="m", client=ScriptedClient([])), no_bots(sessions))
+    runs = RunStore(sessions, Runtime(model="m", client=ScriptedClient([])), no_bots(sessions))
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     wired = create_app(
@@ -148,7 +148,7 @@ async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_pat
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunStore(sessions, Agent(model="m", client=ScriptedClient([])), no_bots(sessions))
+    runs = RunStore(sessions, Runtime(model="m", client=ScriptedClient([])), no_bots(sessions))
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
     assert build_channels(settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions))[
@@ -158,7 +158,7 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
 
 async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunStore(sessions, Agent(model="m", client=ScriptedClient([])), no_bots(sessions))
+    runs = RunStore(sessions, Runtime(model="m", client=ScriptedClient([])), no_bots(sessions))
 
     settings = Settings(telegram={"bot_token": "   "}, discord={"bot_token": ""})
 
@@ -169,7 +169,7 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunStore(sessions, Agent(model="m", client=ScriptedClient([])), no_bots(sessions))
+    runs = RunStore(sessions, Runtime(model="m", client=ScriptedClient([])), no_bots(sessions))
     settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": ""})
 
     built, _ = build_channels(

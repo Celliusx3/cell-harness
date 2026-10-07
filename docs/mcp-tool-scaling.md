@@ -213,7 +213,7 @@ construct it does not understand degrades to `unknown`. DeepSeek's
 
 ### What is offered every request
 
-`DEFAULT_TOOLS` in `web/agent.py` is the list to edit. Everything registered
+`DEFAULT_TOOLS` in `web/runtime.py` is the list to edit. Everything registered
 and not named there is still callable from a program; it is simply not
 described in the request, which is what keeps its schema from being re-uploaded
 with every message. To stop the model writing a program just to read the

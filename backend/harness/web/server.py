@@ -24,7 +24,6 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
-from harness.web.agent import CLIENT_TOOLS, build_agent
 from harness.web.logs import configure_logging
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
@@ -32,6 +31,7 @@ from harness.web.routes.client import build_router as build_client_router
 from harness.web.routes.compact import build_router as build_compact_router
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.skills import build_router as build_skills_router
+from harness.web.runtime import CLIENT_TOOLS, build_runtime
 
 logger = logging.getLogger("harness.web")
 
@@ -108,7 +108,7 @@ def create_web_app() -> FastAPI:
     bots = BotStore(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
     runs = RunStore(
         service,
-        build_agent(
+        build_runtime(
             settings,
             service,
             mcp,

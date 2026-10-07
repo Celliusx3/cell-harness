@@ -9,7 +9,7 @@ from harness.session.derive import RESULT_LIMIT, derive_messages
 from harness.session.models import ToolResultEvent
 from harness.tools.definition import Ok, ToolDefinition
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
-from tests.unit.helpers import agent_over, new_session
+from tests.unit.helpers import new_session, runtime_over
 
 
 def _result(*blocks: Text | ToolReference) -> ToolResultEvent:
@@ -76,7 +76,7 @@ async def test_the_log_keeps_the_whole_result_and_the_model_sees_the_cut() -> No
     client = SteppedClient(calls_tool("big", '{"value": "v"}'), completed("done"))
     session = new_session()
 
-    async with aclosing(agent_over(client, big).run("go", session=session)) as events:
+    async with aclosing(runtime_over(client, big).run("go", session=session)) as events:
         async for _ in events:
             pass
 

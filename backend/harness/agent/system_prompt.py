@@ -1,4 +1,4 @@
-"""The system message's text: a conversation's logged bot instructions, then the agent's own."""
+"""The system message's text: a conversation's logged bot instructions, then the runtime's own."""
 
 from __future__ import annotations
 

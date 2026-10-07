@@ -17,7 +17,7 @@ from harness.session.repair import unknown_result
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
-    from harness.agent.service import Agent
+    from harness.agent.service import Runtime
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
 
 
 async def run_tool_calls(
-    agent: Agent, calls: tuple[ToolCall, ...], *, session: Session, turn: int, step: int
+    runtime: Runtime, calls: tuple[ToolCall, ...], *, session: Session, turn: int, step: int
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
     """A step's calls in order, then what the hooks wanted the model told."""
     owed = list(calls)
@@ -48,11 +48,11 @@ async def run_tool_calls(
     try:
         for call in calls:
             session.append(ToolCallEvent(turn=turn, step=step, call=call))
-            if agent.checkpoint is not None:
-                await agent.checkpoint(session)
+            if runtime.checkpoint is not None:
+                await runtime.checkpoint(session)
             async with aclosing(
                 _answer_call(
-                    agent,
+                    runtime,
                     call,
                     session=session,
                     turn=turn,
@@ -79,7 +79,7 @@ async def run_tool_calls(
 
 
 async def _answer_call(
-    agent: Agent,
+    runtime: Runtime,
     call: ToolCall,
     *,
     session: Session,
@@ -88,12 +88,12 @@ async def _answer_call(
     approved: bool,
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending | Reminder]:
     """Any `ToolProgress`, then a `ToolPending`, or an optional `Reminder` then a `ToolResult`."""
-    refusal = await agent.hooks.pre_tool_call(call, session=session)
+    refusal = await runtime.hooks.pre_tool_call(call, session=session)
     outcome: ToolOutcome | None = None
     if refusal is not None:
         outcome = Failure(BLOCKED, refusal)
     else:
-        async with aclosing(_execute(agent, call, session=session, approved=approved)) as events:
+        async with aclosing(_execute(runtime, call, session=session, approved=approved)) as events:
             async for event in events:
                 if isinstance(event, ToolProgress):
                     yield event
@@ -103,7 +103,7 @@ async def _answer_call(
         if isinstance(outcome, Pending):
             yield ToolPending(tool_call_id=call.id, name=call.name)
             return
-        note = await agent.hooks.post_tool_call(call, outcome, session=session)
+        note = await runtime.hooks.post_tool_call(call, outcome, session=session)
         if note is not None:
             yield Reminder(note)
 
@@ -115,14 +115,14 @@ async def _answer_call(
 
 
 async def run_approved_call(
-    agent: Agent, call: ToolCall, *, session: Session, turn: int
+    runtime: Runtime, call: ToolCall, *, session: Session, turn: int
 ) -> AsyncIterator[ToolProgress | ToolResult]:
     """An approved call as the resumed turn's first step; a cancel still leaves it answered."""
     notes: list[str] = []
     answered = False
     try:
         async with aclosing(
-            _answer_call(agent, call, session=session, turn=turn, step=0, approved=True)
+            _answer_call(runtime, call, session=session, turn=turn, step=0, approved=True)
         ) as events:
             async for event in events:
                 if isinstance(event, ToolResult):
@@ -144,7 +144,7 @@ async def run_approved_call(
 
 
 async def _execute(
-    agent: Agent, call: ToolCall, *, session: Session, approved: bool
+    runtime: Runtime, call: ToolCall, *, session: Session, approved: bool
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
@@ -156,10 +156,10 @@ async def _execute(
 
     async def run() -> ToolOutcome:
         try:
-            assert agent.tools is not None
+            assert runtime.tools is not None
             if approved:
-                return await agent.tools.approve(call, progress=report)
-            return await agent.tools.execute(
+                return await runtime.tools.approve(call, progress=report)
+            return await runtime.tools.execute(
                 call, progress=report, tools_selected=session.tools_selected()
             )
         finally:

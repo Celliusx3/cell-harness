@@ -13,7 +13,7 @@ from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, TurnStart, UserMessageEvent
 from harness.tools.definition import Ok
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool
-from tests.unit.helpers import agent_over, durable_service, new_session
+from tests.unit.helpers import durable_service, new_session, runtime_over
 
 
 def _logged(session: Session) -> list[str]:
@@ -28,7 +28,7 @@ def test_the_last_instructions_logged_prompt_the_turn_even_behind_a_compaction()
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="q")))
     session.append(CompactionEnd(turn=0, message=ApplicationMessage(content="SUMMARY")))
 
-    messages = agent_over(ScriptedClient([]), guidance="GUIDE").request_messages(session)
+    messages = runtime_over(ScriptedClient([]), guidance="GUIDE").request_messages(session)
 
     assert messages == [SystemMessage(content="Cite. GUIDE"), UserMessage(content="SUMMARY")]
 
@@ -37,7 +37,7 @@ def test_an_agent_with_no_prompt_of_its_own_sends_the_instructions_alone() -> No
     session = new_session()
     session.append(BotInstructionsEvent(name="Researcher", instructions="Cite."))
 
-    system = agent_over(ScriptedClient([])).request_messages(session)[0]
+    system = runtime_over(ScriptedClient([])).request_messages(session)[0]
 
     assert system == SystemMessage(content="Cite.")
 
@@ -48,8 +48,8 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     service = durable_service(tmp_path / "sessions")
     bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = ScriptedClient(completed("THE SUMMARY"))
-    agent = agent_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
-    runs = RunStore(service, agent, bots)
+    runtime = runtime_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
+    runs = RunStore(service, runtime, bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
     bots.update(ASSISTANT_ID, "Assistant", "Be brief.")
@@ -64,7 +64,7 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
     service = durable_service(tmp_path / "sessions")
     bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés"))
-    runs = RunStore(service, agent_over(client, pending_tool(), checkpoint=service.flush), bots)
+    runs = RunStore(service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
     bots.update(ASSISTANT_ID, "Assistant", "Be brief.")

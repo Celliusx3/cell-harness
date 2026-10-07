@@ -10,7 +10,7 @@ import pytest
 from harness.agent.events import AgentCompleted, AgentFailed
 from harness.agent.hooks import HookChain
 from harness.agent.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE, EmptyReplyHook
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.agent.turn import NO_TERMINAL
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk
@@ -26,14 +26,14 @@ from harness.session.models import (
 )
 from harness.tools.native.clock import clock_tool
 from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, calls_tool, completed
-from tests.unit.helpers import agent_over, new_session
+from tests.unit.helpers import new_session, runtime_over
 
 NO_HOOKS = HookChain()
 TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
-def agent(client, *, guidance: str = "", hooks: HookChain = NO_HOOKS) -> Agent:
-    return Agent(model="m", client=client, guidance=guidance, hooks=hooks)
+def runtime_with(client, *, guidance: str = "", hooks: HookChain = NO_HOOKS) -> Runtime:
+    return Runtime(model="m", client=client, guidance=guidance, hooks=hooks)
 
 
 async def drain(gen) -> list:
@@ -44,7 +44,7 @@ async def test_streams_a_reply_and_records_the_turn() -> None:
     client = ScriptedClient(completed("hello"))
     session = new_session()
 
-    events = await drain(agent(client).run("hi", session=session))
+    events = await drain(runtime_with(client).run("hi", session=session))
 
     assert events == [TextChunk(text="hello"), AgentCompleted(text="hello")]
     types = [type(e) for e in session.events()]
@@ -65,9 +65,9 @@ async def test_history_comes_from_the_log_not_an_accumulated_list() -> None:
     client = ScriptedClient(completed("one"))
     session = new_session()
 
-    await drain(agent(client).run("first", session=session))
+    await drain(runtime_with(client).run("first", session=session))
     client._script = completed("two")
-    await drain(agent(client).run("second", session=session))
+    await drain(runtime_with(client).run("second", session=session))
 
     assert [(m.role, m.content) for m in client.seen] == [
         ("user", "first"),
@@ -80,7 +80,7 @@ async def test_system_prompt_is_prepended_and_never_logged() -> None:
     client = ScriptedClient(completed("ok"))
     session = new_session()
 
-    await drain(agent(client, guidance="be brief").run("hi", session=session))
+    await drain(runtime_with(client, guidance="be brief").run("hi", session=session))
 
     assert client.seen[0] == SystemMessage(content="be brief")
     assert not any("be brief" in str(e) for e in session.events())
@@ -90,7 +90,9 @@ async def test_provider_failure_ends_the_turn_without_hanging() -> None:
     client = ScriptedClient([TextChunk(text="par"), Failed(reason="502 upstream")])
     session = new_session()
 
-    events = await asyncio.wait_for(drain(agent(client).run("hi", session=session)), timeout=1)
+    events = await asyncio.wait_for(
+        drain(runtime_with(client).run("hi", session=session)), timeout=1
+    )
 
     assert events[-1] == AgentFailed(reason="502 upstream")
     assert session.events()[-1] == TurnEnd(turn=0, reason="failed")
@@ -101,7 +103,7 @@ async def test_stream_without_a_terminal_is_a_failure_not_a_success() -> None:
     client = ScriptedClient([TextChunk(text="half")])
     session = new_session()
 
-    events = await drain(agent(client).run("hi", session=session))
+    events = await drain(runtime_with(client).run("hi", session=session))
 
     assert events[-1] == AgentFailed(reason=NO_TERMINAL)
     assert session.events()[-1].reason == "failed"
@@ -111,7 +113,7 @@ async def test_cancelled_turn_finalizes_the_prefix_the_user_saw() -> None:
     client = HangingClient("partial answer")
     session = new_session()
 
-    async with aclosing(agent(client).run("hi", session=session)) as run:
+    async with aclosing(runtime_with(client).run("hi", session=session)) as run:
         first = await run.__anext__()
         assert first == TextChunk(text="partial answer")
 
@@ -126,7 +128,7 @@ async def test_cancelled_before_any_text_records_no_assistant_message() -> None:
     client = HangingClient("")
     session = new_session()
 
-    async with aclosing(agent(client).run("hi", session=session)) as run:
+    async with aclosing(runtime_with(client).run("hi", session=session)) as run:
         await run.__anext__()
 
     assert not any(isinstance(e, AssistantMessageEvent) for e in session.events())
@@ -137,7 +139,7 @@ async def test_a_turn_is_closed_exactly_once() -> None:
     client = ScriptedClient(completed("ok"))
     session = new_session()
 
-    await drain(agent(client).run("hi", session=session))
+    await drain(runtime_with(client).run("hi", session=session))
 
     assert sum(isinstance(e, TurnEnd) for e in session.events()) == 1
 
@@ -148,7 +150,7 @@ async def test_turn_numbers_are_derived_from_the_log(turns: int) -> None:
     session = new_session()
 
     for _ in range(turns):
-        await drain(agent(client).run("hi", session=session))
+        await drain(runtime_with(client).run("hi", session=session))
 
     starts = [e.turn for e in session.events() if isinstance(e, TurnStart)]
     assert starts == list(range(turns))
@@ -161,7 +163,7 @@ async def test_usage_travels_with_the_assistant_message() -> None:
     client = ScriptedClient([TextChunk(text="ok"), Completed(full_text="ok", usage=usage)])
     session = new_session()
 
-    await drain(agent(client).run("hi", session=session))
+    await drain(runtime_with(client).run("hi", session=session))
 
     message = next(e for e in session.events() if isinstance(e, AssistantMessageEvent))
     assert message.usage == usage
@@ -175,7 +177,7 @@ async def test_an_empty_reply_is_told_once_and_the_next_text_completes() -> None
     client = SteppedClient(completed(""), completed("hello"))
     session = new_session()
 
-    events = await drain(agent(client, hooks=TOLD).run("hi", session=session))
+    events = await drain(runtime_with(client, hooks=TOLD).run("hi", session=session))
 
     assert events[-1] == AgentCompleted(text="hello")
     assert _notes(session) == [EMPTY_REPLY_NOTE]
@@ -188,7 +190,7 @@ async def test_two_empty_replies_fail_the_turn() -> None:
     client = SteppedClient(completed(""), completed(""))
     session = new_session()
 
-    events = await drain(agent(client, hooks=TOLD).run("hi", session=session))
+    events = await drain(runtime_with(client, hooks=TOLD).run("hi", session=session))
 
     assert events[-1] == AgentFailed(reason=EMPTY_REPLY)
     assert _notes(session) == [EMPTY_REPLY_NOTE]
@@ -200,7 +202,7 @@ async def test_with_no_step_hook_an_empty_reply_completes_as_before() -> None:
     client = SteppedClient(completed(""))
     session = new_session()
 
-    events = await drain(agent(client).run("hi", session=session))
+    events = await drain(runtime_with(client).run("hi", session=session))
 
     assert events[-1] == AgentCompleted(text="")
     assert _notes(session) == []
@@ -212,7 +214,7 @@ async def test_a_turn_that_spoke_then_went_blank_is_told_too() -> None:
     )
     session = new_session()
 
-    events = await drain(agent_over(client, clock_tool(), hooks=TOLD).run("hi", session=session))
+    events = await drain(runtime_over(client, clock_tool(), hooks=TOLD).run("hi", session=session))
 
     assert events[-1] == AgentCompleted(text="Tuesday")
     assert _notes(session) == [EMPTY_REPLY_NOTE]
@@ -224,6 +226,6 @@ async def test_a_turn_answers_with_its_final_reply_not_what_it_said_on_the_way()
     )
     session = new_session()
 
-    events = await drain(agent_over(client, clock_tool()).run("what day", session=session))
+    events = await drain(runtime_over(client, clock_tool()).run("what day", session=session))
 
     assert events[-1] == AgentCompleted(text="It is Tuesday.")

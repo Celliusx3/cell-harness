@@ -1,4 +1,4 @@
-"""Subagents: one task each, run to its end by a copy of an agent, in a session log of its own."""
+"""Subagents: one task each, run to its end by a copy of a runtime, in a session log of its own."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.agent.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.session.service import SessionService
 from harness.tools.native.subagent import (
     SubagentAnswered,
@@ -18,7 +18,7 @@ from harness.tools.native.subagent import (
 
 
 def _subagent_intro(name: str) -> str:
-    """What a subagent is told ahead of the agent's own guidance."""
+    """What a subagent is told ahead of the runtime's own guidance."""
     return (
         f"You are a helper named {name}, started by the main assistant to do one task as part "
         "of its answer to the user. Nobody will read your questions, so do not ask any: do the "
@@ -29,17 +29,17 @@ def _subagent_intro(name: str) -> str:
 
 @dataclass(frozen=True)
 class Subagents:
-    """Runs each subagent as `agent`, logging its steps in `sessions` under the subagent's id."""
+    """Runs each subagent as `runtime`, logging its steps in `sessions` under the subagent's id."""
 
-    agent: Agent
+    runtime: Runtime
     sessions: SessionService
 
     async def __call__(self, subagent_id: str, task: SubagentTask) -> SubagentOutcome:
         """Run `task` in a new session `subagent_id`, and report how its turn ended."""
         session = await self.sessions.create(subagent_id)
         subagent = dataclasses.replace(
-            self.agent,
-            guidance=_subagent_intro(task.name) + self.agent.guidance,
+            self.runtime,
+            guidance=_subagent_intro(task.name) + self.runtime.guidance,
             checkpoint=self.sessions.flush,
         )
         last: TurnEvent | None = None

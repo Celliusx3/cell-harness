@@ -33,7 +33,7 @@ from harness.session.models import (
 )
 
 if TYPE_CHECKING:
-    from harness.agent.service import Agent
+    from harness.agent.service import Runtime
 
 NO_TERMINAL = "stream ended without a terminal event"
 
@@ -43,7 +43,7 @@ class RetryStep:
     """The history was shrunk after a size refusal: run the same step again."""
 
 
-async def run_turn(agent: Agent, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
+async def run_turn(runtime: Runtime, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
     """From an opened turn to its end: its events as they happen, then exactly one terminal."""
     step = 0
     outcome: AgentCompleted | AgentPending | AgentFailed
@@ -52,11 +52,11 @@ async def run_turn(agent: Agent, session: Session, turn: int) -> AsyncIterator[T
         for step in itertools.count():
             session.append(StepStart(turn=turn, step=step))
 
-            if should_compact(agent, session):
-                await _shrink_history(agent, session, turn=turn, trigger="auto")
+            if should_compact(runtime, session):
+                await _shrink_history(runtime, session, turn=turn, trigger="auto")
 
             reply: Completed | Failed | RetryStep | None = None
-            async with aclosing(_stream_reply(agent, session, turn=turn, step=step)) as chunks:
+            async with aclosing(_stream_reply(runtime, session, turn=turn, step=step)) as chunks:
                 async for event in chunks:
                     if isinstance(event, (TextChunk, ToolCallChunk)):
                         yield event
@@ -72,7 +72,7 @@ async def run_turn(agent: Agent, session: Session, turn: int) -> AsyncIterator[T
                 break
 
             if not reply.tool_calls:
-                decision = await agent.hooks.end_of_step(session=session)
+                decision = await runtime.hooks.end_of_step(session=session)
                 if isinstance(decision, GiveUp):
                     _close(session, turn, step, "failed")
                     outcome = AgentFailed(reason=decision.reason)
@@ -86,7 +86,7 @@ async def run_turn(agent: Agent, session: Session, turn: int) -> AsyncIterator[T
 
             pending: ToolPending | None = None
             async with aclosing(
-                run_tool_calls(agent, reply.tool_calls, session=session, turn=turn, step=step)
+                run_tool_calls(runtime, reply.tool_calls, session=session, turn=turn, step=step)
             ) as results:
                 async for event in results:
                     if isinstance(event, ToolPending):
@@ -104,20 +104,20 @@ async def run_turn(agent: Agent, session: Session, turn: int) -> AsyncIterator[T
 
 
 async def _stream_reply(
-    agent: Agent, session: Session, *, turn: int, step: int
+    runtime: Runtime, session: Session, *, turn: int, step: int
 ) -> AsyncIterator[TextChunk | ToolCallChunk | Completed | Failed | RetryStep]:
     """One model request: its chunks as they stream, then `Completed`, `Failed` or `RetryStep`."""
-    specs = agent.tools.specs(session.tools_selected()) if agent.tools else None
-    messages = agent.request_messages(session)
-    if agent.checkpoint is not None:
-        await agent.checkpoint(session)
+    specs = runtime.tools.specs(session.tools_selected()) if runtime.tools else None
+    messages = runtime.request_messages(session)
+    if runtime.checkpoint is not None:
+        await runtime.checkpoint(session)
 
     completed: Completed | None = None
     failed: Failed | None = None
     partial = ""
     try:
         async with aclosing(
-            agent.client.stream_completion(messages, agent.model, tools=specs)
+            runtime.client.stream_completion(messages, runtime.model, tools=specs)
         ) as stream:
             async for event in stream:
                 session.append(AssistantChunk(turn=turn, step=step, chunk=event))
@@ -134,7 +134,7 @@ async def _stream_reply(
         if failed is not None or completed is None:
             failure = failed if failed is not None else Failed(reason=NO_TERMINAL)
             if failure.code == CONTEXT_WINDOW_EXCEEDED and await _shrink_history(
-                agent, session, turn=turn, trigger="overflow"
+                runtime, session, turn=turn, trigger="overflow"
             ):
                 yield RetryStep()
             else:
@@ -166,11 +166,11 @@ async def _stream_reply(
 
 
 async def _shrink_history(
-    agent: Agent, session: Session, *, turn: int, trigger: CompactionTrigger
+    runtime: Runtime, session: Session, *, turn: int, trigger: CompactionTrigger
 ) -> bool:
     """One compaction, run to its end: `True` when it pruned or wrote a summary."""
     shrank = False
-    async with aclosing(run_compaction(agent, session, turn=turn, trigger=trigger)) as events:
+    async with aclosing(run_compaction(runtime, session, turn=turn, trigger=trigger)) as events:
         async for event in events:
             if isinstance(event, CompactionPrune) or (
                 isinstance(event, CompactionEnd) and event.succeeded

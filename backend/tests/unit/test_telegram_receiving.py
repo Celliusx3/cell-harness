@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.batching import (
@@ -36,8 +36,8 @@ def build(tmp_path, *, skills: SkillService):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = Agent(model="m", client=ScriptedClient(completed("ok")), checkpoint=sessions.flush)
-    runs = RunStore(sessions, agent, no_bots(sessions))
+    runtime = Runtime(model="m", client=ScriptedClient(completed("ok")), checkpoint=sessions.flush)
+    runs = RunStore(sessions, runtime, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url="http://t")
     channel, bot = telegram_channel(gateway)

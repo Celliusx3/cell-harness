@@ -26,7 +26,7 @@ from tests.unit.fakes import (
     hanging_tool,
     pending_tool,
 )
-from tests.unit.helpers import agent_over, cancel_mid_turn, drain, new_session
+from tests.unit.helpers import cancel_mid_turn, drain, new_session, runtime_over
 
 
 class Noting(ToolHook):
@@ -54,7 +54,7 @@ async def test_a_tool_turn_checkpoints_before_each_request_and_after_each_call()
     client = SteppedClient(calls_tool("echo", '{"value": "a"}'), completed("done"))
     session = new_session()
 
-    await drain(agent_over(client, echo_tool(), checkpoint=checkpoint).run("q", session=session))
+    await drain(runtime_over(client, echo_tool(), checkpoint=checkpoint).run("q", session=session))
 
     assert seen == ["step/start", "tool/call", "step/start"]
 
@@ -65,7 +65,7 @@ async def test_cancelling_mid_step_answers_only_the_calls_still_open() -> None:
     client = SteppedClient(two_calls(first, second))
     session = new_session()
 
-    await cancel_mid_turn(agent_over(client, echo_tool(), hanging_tool()), session)
+    await cancel_mid_turn(runtime_over(client, echo_tool(), hanging_tool()), session)
 
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     assert [(r.message.tool_call_id, r.message.text, r.error) for r in results] == [
@@ -81,7 +81,7 @@ async def test_cancelling_inside_the_first_call_answers_the_undispatched_second_
     client = SteppedClient(two_calls(first, second))
     session = new_session()
 
-    await cancel_mid_turn(agent_over(client, echo_tool(), hanging_tool()), session)
+    await cancel_mid_turn(runtime_over(client, echo_tool(), hanging_tool()), session)
 
     assert [e.call.id for e in session.events() if isinstance(e, ToolCallEvent)] == ["c1"]
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
@@ -98,7 +98,7 @@ async def test_a_pending_call_then_a_cancel_in_one_step_is_a_cancel() -> None:
     client = SteppedClient(two_calls(first, second))
     session = new_session()
 
-    await cancel_mid_turn(agent_over(client, pending_tool(), hanging_tool()), session)
+    await cancel_mid_turn(runtime_over(client, pending_tool(), hanging_tool()), session)
 
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     assert [r.message.tool_call_id for r in results] == ["c2"]
@@ -110,9 +110,9 @@ async def test_a_note_gathered_before_a_cancel_is_dropped() -> None:
     second = ToolCall(id="c2", name="hang", arguments='{"value": "b"}')
     client = SteppedClient(two_calls(first, second))
     session = new_session()
-    agent_ = agent_over(client, echo_tool(), hanging_tool(), hooks=HookChain((Noting(),)))
+    runtime = runtime_over(client, echo_tool(), hanging_tool(), hooks=HookChain((Noting(),)))
 
-    await cancel_mid_turn(agent_, session)
+    await cancel_mid_turn(runtime, session)
 
     assert not any(isinstance(e, ApplicationMessageEvent) for e in session.events())
 
@@ -122,9 +122,9 @@ async def test_a_note_is_logged_before_a_pending_turn_ends() -> None:
     second = ToolCall(id="c2", name="ask", arguments='{"value": "?"}')
     client = SteppedClient(two_calls(first, second))
     session = new_session()
-    agent_ = agent_over(client, echo_tool(), pending_tool(), hooks=HookChain((Noting(),)))
+    runtime = runtime_over(client, echo_tool(), pending_tool(), hooks=HookChain((Noting(),)))
 
-    await drain(agent_.run("q", session=session))
+    await drain(runtime.run("q", session=session))
 
     assert [e.type for e in session.events()][-4:] == [
         "tool/call",
@@ -139,7 +139,7 @@ async def test_closing_at_the_terminal_does_not_close_the_turn_twice() -> None:
     session = new_session()
 
     async with aclosing(
-        agent_over(SteppedClient(completed("ok"))).run("q", session=session)
+        runtime_over(SteppedClient(completed("ok"))).run("q", session=session)
     ) as events:
         async for event in events:
             if isinstance(event, AgentCompleted):
@@ -169,7 +169,7 @@ async def test_an_interrupted_second_step_is_stamped_with_its_own_step() -> None
     client = HangsOnStepOne()
     session = new_session()
 
-    async with aclosing(agent_over(client, echo_tool()).run("q", session=session)) as events:
+    async with aclosing(runtime_over(client, echo_tool()).run("q", session=session)) as events:
         async for event in events:
             if isinstance(event, TextChunk):
                 break

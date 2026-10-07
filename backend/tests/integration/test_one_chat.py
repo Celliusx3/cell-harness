@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 import httpx
 
-from harness.agent.service import Agent
+from harness.agent.service import Runtime
 from harness.bots import ASSISTANT_ID, BotStore
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
@@ -55,8 +55,8 @@ def build_on(tmp_path, model: LLMClient):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
     )
     bots = BotStore(tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT")
-    agent = Agent(model="m", client=model, checkpoint=sessions.flush)
-    runs = RunStore(sessions, agent, bots)
+    runtime = Runtime(model="m", client=model, checkpoint=sessions.flush)
+    runs = RunStore(sessions, runtime, bots)
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)

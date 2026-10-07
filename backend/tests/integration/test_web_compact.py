@@ -13,7 +13,7 @@ from tests.webapp import idle, web_app, web_app_with_telegram
 
 
 def app_over(tmp_path, *, summary: str = "SUMMARY", context=None):
-    """A web app whose agent compacts through the same scripted client."""
+    """A web app whose runtime compacts through the same scripted client."""
     service = durable_service(tmp_path / "sessions")
     client = ScriptedClient(completed(summary))
     runs = run_store(service, client, context_tokens=context)

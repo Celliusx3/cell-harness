@@ -1,4 +1,4 @@
-"""`Agent` — gather context, act, repeat until nothing is owed."""
+"""`Runtime` — gather context, act, repeat until nothing is owed."""
 
 from __future__ import annotations
 
@@ -41,8 +41,8 @@ SKIPPED_RESULT = (
 
 
 @dataclass(frozen=True)
-class Agent:
-    """An agent that answers by running the tool loop."""
+class Runtime:
+    """A runtime that answers by running the tool loop."""
 
     model: str
     client: LLMClient
