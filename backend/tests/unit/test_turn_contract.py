@@ -1,4 +1,4 @@
-"""What `drive` commits to: checkpoints, and the repair after a step cut short."""
+"""What `run_turn` commits to: checkpoints, and the repair after a step cut short."""
 
 from __future__ import annotations
 

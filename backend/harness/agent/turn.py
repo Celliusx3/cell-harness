@@ -14,8 +14,7 @@ from harness.agent.events import (
     AgentFailed,
     AgentPending,
     ToolPending,
-    ToolProgress,
-    ToolResult,
+    TurnEvent,
 )
 from harness.agent.hooks import GiveUp, Tell
 from harness.agent.tool_run import run_tool_calls
@@ -38,24 +37,13 @@ if TYPE_CHECKING:
 
 NO_TERMINAL = "stream ended without a terminal event"
 
-TurnEvent = (
-    TextChunk
-    | ToolCallChunk
-    | ToolProgress
-    | ToolResult
-    | ToolPending
-    | AgentCompleted
-    | AgentPending
-    | AgentFailed
-)
-
 
 @dataclass(frozen=True)
 class RetryStep:
     """The history was shrunk after a size refusal: run the same step again."""
 
 
-async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
+async def run_turn(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
     """From an opened turn to its end: its events as they happen, then exactly one terminal."""
     step = 0
     outcome: AgentCompleted | AgentPending | AgentFailed

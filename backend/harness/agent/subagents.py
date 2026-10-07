@@ -6,9 +6,8 @@ import dataclasses
 from contextlib import aclosing
 from dataclasses import dataclass
 
-from harness.agent.events import AgentCompleted, AgentFailed, AgentPending
+from harness.agent.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
 from harness.agent.loop import LoopAgent
-from harness.agent.turn import TurnEvent
 from harness.session.service import SessionService
 from harness.tools.native.subagent import (
     SubagentAnswered,

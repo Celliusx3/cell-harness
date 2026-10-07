@@ -5,10 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import replace
 
-from harness.agent.events import AgentCompleted, ToolResult
+from harness.agent.events import AgentCompleted, ToolResult, TurnEvent
 from harness.agent.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
-from harness.agent.turn import TurnEvent
 from harness.llm.messages import Text, ToolCall
 from harness.llm.stream import Completed, ToolCallChunk
 from harness.session.derive import derive_messages

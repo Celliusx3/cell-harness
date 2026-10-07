@@ -12,11 +12,11 @@ from harness.agent.compaction import (
     check_can_compact,
     run_compaction,
 )
-from harness.agent.events import AgentPending
+from harness.agent.events import AgentPending, TurnEvent
 from harness.agent.hooks import HookChain
 from harness.agent.system_prompt import system_text
 from harness.agent.tool_run import run_approved_call, settled_result
-from harness.agent.turn import TurnEvent, drive
+from harness.agent.turn import run_turn
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
 from harness.session.derive import derive_messages
@@ -65,7 +65,7 @@ class LoopAgent:
         turn = session.next_turn()
         session.append(TurnStart(turn=turn))
         session.append(UserMessageEvent(turn=turn, message=UserMessage(content=user_input)))
-        async with aclosing(drive(self, session, turn)) as events:
+        async with aclosing(run_turn(self, session, turn)) as events:
             async for event in events:
                 yield event
 
@@ -97,7 +97,7 @@ class LoopAgent:
         except BaseException:
             session.append(TurnEnd(turn=turn, reason="cancelled"))
             raise
-        async with aclosing(drive(self, session, turn)) as events:
+        async with aclosing(run_turn(self, session, turn)) as events:
             async for event in events:
                 yield event
 

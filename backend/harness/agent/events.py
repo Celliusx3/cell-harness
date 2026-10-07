@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from harness.llm.stream import TextChunk, ToolCallChunk
+
 
 class ToolProgress(BaseModel):
     """A running tool reporting how far along it is."""
@@ -66,3 +68,15 @@ class AgentFailed(BaseModel):
 
     kind: Literal["agent_failed"] = "agent_failed"
     reason: str
+
+
+TurnEvent = (
+    TextChunk
+    | ToolCallChunk
+    | ToolProgress
+    | ToolResult
+    | ToolPending
+    | AgentCompleted
+    | AgentPending
+    | AgentFailed
+)
