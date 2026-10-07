@@ -19,7 +19,7 @@ from harness.agent.hooks import (
     ToolHook,
     completed_calls,
 )
-from harness.agent.hooks import chain as chain_module
+from harness.agent.hooks import service as service_module
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.definition import BLOCKED, Ok, ToolOutcome
@@ -130,7 +130,7 @@ async def test_a_raising_decision_hook_refuses_nothing_and_suppresses_nothing(
 async def test_a_hook_exceeding_the_timeout_is_skipped_and_logged(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    monkeypatch.setattr(chain_module, "HOOK_TIMEOUT_S", 0.01)
+    monkeypatch.setattr(service_module, "HOOK_TIMEOUT_S", 0.01)
     chain = HookChain((Hangs(), Says(refusal="after")))
 
     with caplog.at_level(logging.WARNING, logger="harness.agent"):

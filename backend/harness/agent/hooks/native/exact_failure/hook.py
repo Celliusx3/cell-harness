@@ -11,7 +11,7 @@ from harness.agent.hooks.calls import (
     failures_since_success,
     last_failure_text,
 )
-from harness.agent.hooks.chain import ToolHook
+from harness.agent.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 EXACT_FAILURE_WARN_AT, EXACT_FAILURE_BLOCK_AT = 2, 5

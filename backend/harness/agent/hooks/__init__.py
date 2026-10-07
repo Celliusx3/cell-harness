@@ -1,7 +1,7 @@
 """Hooks around a tool call, and the machinery that runs them."""
 
 from harness.agent.hooks.calls import CompletedCall, Signature, completed_calls
-from harness.agent.hooks.chain import (
+from harness.agent.hooks.service import (
     GiveUp,
     HookChain,
     StepDecision,

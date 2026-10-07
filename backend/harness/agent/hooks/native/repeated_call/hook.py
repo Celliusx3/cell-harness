@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from harness.agent.hooks.calls import CompletedCall, Signature
-from harness.agent.hooks.chain import ToolHook
+from harness.agent.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 REPEATED_CALL_NOTE_AT = (3, 5, 8)
