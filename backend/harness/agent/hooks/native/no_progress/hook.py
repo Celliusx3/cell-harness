@@ -6,11 +6,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from harness.agent.hooks.calls import CompletedCall, Signature
-from harness.agent.hooks.chain import ToolHook
+from harness.agent.hooks.service import ToolHook
 from harness.llm.messages import render_text
 from harness.tools.definition import Ok, ToolOutcome
 
-NO_PROGRESS_WARN, NO_PROGRESS_BLOCK = 2, 5
+NO_PROGRESS_WARN_AT, NO_PROGRESS_BLOCK_AT = 2, 5
 
 NO_PROGRESS_WARNING = (
     "Note: this is the same call to {name} as before, and the result is identical — "
@@ -28,15 +28,15 @@ NO_PROGRESS_REFUSAL = (
 class NoProgressHook(ToolHook):
     """The same call keeps returning the identical result."""
 
-    warn: int = NO_PROGRESS_WARN
-    block: int = NO_PROGRESS_BLOCK
+    warn_at: int = NO_PROGRESS_WARN_AT
+    block_at: int = NO_PROGRESS_BLOCK_AT
 
     async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
         last = next((e for e in reversed(prior) if sig.is_same_call(e)), None)
         if last is None or last.failed:
             return None
         identical = _identical_results_in_a_row(sig, last.text, prior)
-        if identical + 1 < self.block:
+        if identical + 1 < self.block_at:
             return None
         return NO_PROGRESS_REFUSAL.format(name=sig.name, n=identical)
 
@@ -46,7 +46,7 @@ class NoProgressHook(ToolHook):
         if not isinstance(outcome, Ok):
             return None
         n = _identical_results_in_a_row(sig, render_text(outcome.content), prior) + 1
-        return NO_PROGRESS_WARNING.format(name=sig.name, n=n) if n >= self.warn else None
+        return NO_PROGRESS_WARNING.format(name=sig.name, n=n) if n >= self.warn_at else None
 
 
 def _identical_results_in_a_row(sig: Signature, text: str, calls: Sequence[CompletedCall]) -> int:

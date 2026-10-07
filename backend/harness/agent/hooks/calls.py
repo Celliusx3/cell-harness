@@ -35,7 +35,7 @@ class Signature:
 
     @classmethod
     def of(cls, call: ToolCall) -> Signature:
-        return cls(name=call.name, args=normalise(call.arguments))
+        return cls(name=call.name, args=_normalise(call.arguments))
 
     def is_same_call(self, entry: CompletedCall) -> bool:
         return (entry.name, entry.args) == (self.name, self.args)
@@ -44,7 +44,7 @@ class Signature:
         return entry.name == self.name
 
 
-def normalise(arguments: str) -> str:
+def _normalise(arguments: str) -> str:
     """The same arguments spelled the same way, whatever the model's key order or whitespace."""
     if not arguments.strip():
         return "{}"
@@ -70,7 +70,7 @@ def completed_calls(session: Session) -> tuple[CompletedCall, ...]:
             completed.append(
                 CompletedCall(
                     name=call.name,
-                    args=normalise(call.arguments),
+                    args=_normalise(call.arguments),
                     error=event.error,
                     text=render_text(event.message.content),
                 )

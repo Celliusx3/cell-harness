@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from harness.agent.hooks import HookChain
-from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK
-from harness.agent.hooks.native.no_progress import NO_PROGRESS_BLOCK
+from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT
+from harness.agent.hooks.native.no_progress import NO_PROGRESS_BLOCK_AT
 from harness.agent.hooks.native.same_tool_failure import (
-    SAME_TOOL_FAILURE_BLOCK,
+    SAME_TOOL_FAILURE_BLOCK_AT,
 )
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.session.log import Session
@@ -79,7 +79,7 @@ async def test_the_second_identical_failure_is_warned_with_its_count() -> None:
 
 async def test_the_fifth_identical_failing_call_is_refused_before_it_runs() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK - 2)
+    failing(session, EXACT_FAILURE_BLOCK_AT - 2)
     assert await pre(GUARD, session) is None
 
     failing(session, 1)
@@ -92,7 +92,7 @@ async def test_the_fifth_identical_failing_call_is_refused_before_it_runs() -> N
 
 async def test_a_refusal_carries_the_last_failures_own_advice() -> None:
     session = turn()
-    for _ in range(EXACT_FAILURE_BLOCK - 1):
+    for _ in range(EXACT_FAILURE_BLOCK_AT - 1):
         settle(session, text="error: read its schema with get_function_details", error=REFUSED)
 
     reason = await pre(GUARD, session)
@@ -102,7 +102,7 @@ async def test_a_refusal_carries_the_last_failures_own_advice() -> None:
 
 async def test_a_success_resets_the_failure_count() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK - 1)
+    failing(session, EXACT_FAILURE_BLOCK_AT - 1)
     settle(session, text="fixed")
     failing(session, 1)
 
@@ -119,13 +119,13 @@ async def test_a_succeeding_call_is_never_refused() -> None:
 
 async def test_the_guardrails_own_refusals_are_not_counted() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK - 1)
+    failing(session, EXACT_FAILURE_BLOCK_AT - 1)
     settle(session, text="error: was not run", error=BLOCKED)
     settle(session, text="error: was not run", error=BLOCKED)
 
     reason = await pre(GUARD, session)
 
-    assert reason is not None and f"{EXACT_FAILURE_BLOCK - 1} times" in reason
+    assert reason is not None and f"{EXACT_FAILURE_BLOCK_AT - 1} times" in reason
 
 
 async def test_the_same_tool_failing_with_different_arguments_is_warned_at_three() -> None:
@@ -140,7 +140,7 @@ async def test_the_same_tool_failing_with_different_arguments_is_warned_at_three
 
 async def test_the_eighth_failure_of_one_tool_is_refused_whatever_the_arguments() -> None:
     session = turn()
-    for i in range(SAME_TOOL_FAILURE_BLOCK - 1):
+    for i in range(SAME_TOOL_FAILURE_BLOCK_AT - 1):
         failing(session, 1, arguments=f'{{"a": {i}}}')
 
     reason = await pre(GUARD, session, call(arguments='{"a": 99}'))
@@ -150,19 +150,19 @@ async def test_the_eighth_failure_of_one_tool_is_refused_whatever_the_arguments(
 
 async def test_a_same_tool_refusal_quotes_its_last_failure() -> None:
     session = turn()
-    for i in range(SAME_TOOL_FAILURE_BLOCK - 1):
+    for i in range(SAME_TOOL_FAILURE_BLOCK_AT - 1):
         settle(
             session, arguments=f'{{"a": {i}}}', text=f"error: no file {i}", error=EXECUTION_ERROR
         )
 
     reason = await pre(GUARD, session, call(arguments='{"a": 99}'))
 
-    assert reason is not None and f"error: no file {SAME_TOOL_FAILURE_BLOCK - 2}" in reason
+    assert reason is not None and f"error: no file {SAME_TOOL_FAILURE_BLOCK_AT - 2}" in reason
 
 
 async def test_another_tools_failures_do_not_count() -> None:
     session = turn()
-    failing(session, SAME_TOOL_FAILURE_BLOCK, name="other")
+    failing(session, SAME_TOOL_FAILURE_BLOCK_AT, name="other")
 
     assert await pre(GUARD, session) is None
 
@@ -188,7 +188,7 @@ async def test_a_different_result_is_progress() -> None:
 
 async def test_the_fifth_identical_call_is_refused_whatever_the_tool() -> None:
     session = turn()
-    for _ in range(NO_PROGRESS_BLOCK - 1):
+    for _ in range(NO_PROGRESS_BLOCK_AT - 1):
         settle(session, "read", text="same")
         settle(session, "write", text="same")
 
@@ -199,7 +199,7 @@ async def test_the_fifth_identical_call_is_refused_whatever_the_tool() -> None:
 
 async def test_the_fourth_identical_call_still_runs() -> None:
     session = turn()
-    for _ in range(NO_PROGRESS_BLOCK - 2):
+    for _ in range(NO_PROGRESS_BLOCK_AT - 2):
         settle(session, text="same")
 
     assert await pre(GUARD, session) is None
@@ -228,7 +228,7 @@ async def test_an_intervening_call_breaks_the_run() -> None:
 
 async def test_an_earlier_turns_failures_do_not_count() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK)
+    failing(session, EXACT_FAILURE_BLOCK_AT)
     session.append(TurnStart(turn=1))
 
     assert await pre(GUARD, session) is None
@@ -236,7 +236,7 @@ async def test_an_earlier_turns_failures_do_not_count() -> None:
 
 async def test_the_call_in_flight_has_no_result_and_is_ignored() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK - 2)
+    failing(session, EXACT_FAILURE_BLOCK_AT - 2)
     session.append(ToolCallEvent(turn=0, step=0, call=call(id="running")))
 
     assert await pre(GUARD, session, call(id="running")) is None
@@ -244,20 +244,20 @@ async def test_the_call_in_flight_has_no_result_and_is_ignored() -> None:
 
 async def test_arguments_are_compared_by_value_not_spelling() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK - 1, arguments='{"b": 2, "a": 1}')
+    failing(session, EXACT_FAILURE_BLOCK_AT - 1, arguments='{"b": 2, "a": 1}')
 
     assert await pre(GUARD, session, call(arguments='{"a":1,"b":2}')) is not None
 
 
 async def test_empty_arguments_are_an_empty_object() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK - 1, arguments="{}")
+    failing(session, EXACT_FAILURE_BLOCK_AT - 1, arguments="{}")
 
     assert await pre(GUARD, session, call(arguments="")) is not None
 
 
 async def test_unparsable_arguments_still_compare_as_text() -> None:
     session = turn()
-    failing(session, EXACT_FAILURE_BLOCK - 1, arguments="not json")
+    failing(session, EXACT_FAILURE_BLOCK_AT - 1, arguments="not json")
 
     assert await pre(GUARD, session, call(arguments="not json")) is not None

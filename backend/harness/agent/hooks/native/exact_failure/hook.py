@@ -11,10 +11,10 @@ from harness.agent.hooks.calls import (
     failures_since_success,
     last_failure_text,
 )
-from harness.agent.hooks.chain import ToolHook
+from harness.agent.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
-EXACT_FAILURE_WARN, EXACT_FAILURE_BLOCK = 2, 5
+EXACT_FAILURE_WARN_AT, EXACT_FAILURE_BLOCK_AT = 2, 5
 
 NEXT_STEP = "Change the arguments, use another tool, or tell the user what is blocking you."
 
@@ -32,12 +32,12 @@ EXACT_FAILURE_REFUSAL = (
 class ExactFailureHook(ToolHook):
     """The same tool with the same arguments keeps failing."""
 
-    warn: int = EXACT_FAILURE_WARN
-    block: int = EXACT_FAILURE_BLOCK
+    warn_at: int = EXACT_FAILURE_WARN_AT
+    block_at: int = EXACT_FAILURE_BLOCK_AT
 
     async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
         failed = failures_since_success(prior, sig.is_same_call)
-        if failed + 1 < self.block:
+        if failed + 1 < self.block_at:
             return None
         return EXACT_FAILURE_REFUSAL.format(
             name=sig.name, n=failed, last=last_failure_text(prior, sig.is_same_call)
@@ -49,4 +49,4 @@ class ExactFailureHook(ToolHook):
         if isinstance(outcome, Ok):
             return None
         n = failures_since_success(prior, sig.is_same_call) + 1
-        return EXACT_FAILURE_WARNING.format(name=sig.name, n=n) if n >= self.warn else None
+        return EXACT_FAILURE_WARNING.format(name=sig.name, n=n) if n >= self.warn_at else None

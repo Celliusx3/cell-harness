@@ -11,11 +11,11 @@ from harness.agent.hooks.calls import (
     failures_since_success,
     last_failure_text,
 )
-from harness.agent.hooks.chain import ToolHook
 from harness.agent.hooks.native.exact_failure.hook import NEXT_STEP
+from harness.agent.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
-SAME_TOOL_FAILURE_WARN, SAME_TOOL_FAILURE_BLOCK = 3, 8
+SAME_TOOL_FAILURE_WARN_AT, SAME_TOOL_FAILURE_BLOCK_AT = 3, 8
 
 SAME_TOOL_FAILURE_WARNING = (
     "Note: {name} has now failed {n} times in this turn across different arguments. "
@@ -31,12 +31,12 @@ SAME_TOOL_FAILURE_REFUSAL = (
 class SameToolFailureHook(ToolHook):
     """The same tool keeps failing, whatever it is asked."""
 
-    warn: int = SAME_TOOL_FAILURE_WARN
-    block: int = SAME_TOOL_FAILURE_BLOCK
+    warn_at: int = SAME_TOOL_FAILURE_WARN_AT
+    block_at: int = SAME_TOOL_FAILURE_BLOCK_AT
 
     async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
         failed = failures_since_success(prior, sig.is_same_tool)
-        if failed + 1 < self.block:
+        if failed + 1 < self.block_at:
             return None
         return SAME_TOOL_FAILURE_REFUSAL.format(
             name=sig.name, n=failed, last=last_failure_text(prior, sig.is_same_tool)
@@ -48,4 +48,4 @@ class SameToolFailureHook(ToolHook):
         if isinstance(outcome, Ok):
             return None
         n = failures_since_success(prior, sig.is_same_tool) + 1
-        return SAME_TOOL_FAILURE_WARNING.format(name=sig.name, n=n) if n >= self.warn else None
+        return SAME_TOOL_FAILURE_WARNING.format(name=sig.name, n=n) if n >= self.warn_at else None
