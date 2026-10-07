@@ -21,7 +21,7 @@ PROMPT_BEFORE_BOTS = (
 
 
 def test_assistant_s_system_prompt_is_byte_for_byte_the_one_before_bots() -> None:
-    agent = agent_over(ScriptedClient(completed("x")), system_prompt=GUIDANCE)
+    agent = agent_over(ScriptedClient(completed("x")), guidance=GUIDANCE)
     session = Session(SessionHeader(id="s", created_at=datetime(2026, 1, 1, tzinfo=UTC)))
     session.append(BotInstructionsEvent(name="Assistant", instructions=ASSISTANT_INSTRUCTIONS))
 
@@ -31,7 +31,7 @@ def test_assistant_s_system_prompt_is_byte_for_byte_the_one_before_bots() -> Non
 
 
 def test_a_session_with_no_instructions_logged_keeps_the_agent_s_own_prompt() -> None:
-    agent = agent_over(ScriptedClient(completed("x")), system_prompt="only this")
+    agent = agent_over(ScriptedClient(completed("x")), guidance="only this")
     session = Session(SessionHeader(id="s", created_at=datetime(2026, 1, 1, tzinfo=UTC)))
 
     system = agent.request_messages(session)[0]

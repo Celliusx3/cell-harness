@@ -70,7 +70,7 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
 
 
 def test_the_prompt_explains_the_three_tools(compose) -> None:
-    assert CODE_PROMPT in compose().system_prompt
+    assert CODE_PROMPT in compose().guidance
 
 
 def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:

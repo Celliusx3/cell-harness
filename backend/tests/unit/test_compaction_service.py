@@ -71,7 +71,7 @@ def tool_turn(session, turn: int, call_id: str, result: str, name: str = "execut
 
 
 def agent(client: LLMClient, context_tokens: int | None = 12_000) -> Agent:
-    return agent_over(client, system_prompt="SYS", context_tokens=context_tokens)
+    return agent_over(client, guidance="SYS", context_tokens=context_tokens)
 
 
 async def drain(gen: AsyncIterator) -> list:

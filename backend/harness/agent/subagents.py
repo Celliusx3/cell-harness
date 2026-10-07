@@ -18,7 +18,7 @@ from harness.tools.native.subagent import (
 
 
 def _subagent_intro(name: str) -> str:
-    """What a subagent is told ahead of the agent's own prompt."""
+    """What a subagent is told ahead of the agent's own guidance."""
     return (
         f"You are a helper named {name}, started by the main assistant to do one task as part "
         "of its answer to the user. Nobody will read your questions, so do not ask any: do the "
@@ -39,7 +39,7 @@ class Subagents:
         session = await self.sessions.create(subagent_id)
         subagent = dataclasses.replace(
             self.agent,
-            system_prompt=_subagent_intro(task.name) + self.agent.system_prompt,
+            guidance=_subagent_intro(task.name) + self.agent.guidance,
             checkpoint=self.sessions.flush,
         )
         last: TurnEvent | None = None

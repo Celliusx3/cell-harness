@@ -28,7 +28,7 @@ def test_the_last_instructions_logged_prompt_the_turn_even_behind_a_compaction()
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="q")))
     session.append(CompactionEnd(turn=0, message=ApplicationMessage(content="SUMMARY")))
 
-    messages = agent_over(ScriptedClient([]), system_prompt="GUIDE").request_messages(session)
+    messages = agent_over(ScriptedClient([]), guidance="GUIDE").request_messages(session)
 
     assert messages == [SystemMessage(content="Cite. GUIDE"), UserMessage(content="SUMMARY")]
 
@@ -48,7 +48,7 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     service = durable_service(tmp_path / "sessions")
     bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = ScriptedClient(completed("THE SUMMARY"))
-    agent = agent_over(client, system_prompt="GUIDE", checkpoint=service.flush, context_tokens=None)
+    agent = agent_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
     runs = RunStore(service, agent, bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)

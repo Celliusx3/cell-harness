@@ -47,14 +47,14 @@ class Agent:
     model: str
     client: LLMClient
     tools: ToolPipeline | None = None
-    system_prompt: str = ""
+    guidance: str = ""
     hooks: HookChain = HookChain()
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
     context_tokens: int | None = None
 
     def request_messages(self, session: Session) -> list[Message]:
         history = derive_messages(session.events())
-        system = system_text(session, self.system_prompt)
+        system = system_text(session, self.guidance)
         if not system:
             return history
         return [SystemMessage(content=system), *history]

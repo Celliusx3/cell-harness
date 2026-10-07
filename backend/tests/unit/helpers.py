@@ -77,7 +77,7 @@ def pipeline_for(
 def agent_over(
     client,
     *tools: ToolDefinition,
-    system_prompt: str = "",
+    guidance: str = "",
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     context_tokens: int | None = None,
@@ -88,7 +88,7 @@ def agent_over(
         model="m",
         client=client,
         tools=pipeline_for(*tools, gate=gate) if tools else None,
-        system_prompt=system_prompt,
+        guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
         context_tokens=context_tokens,

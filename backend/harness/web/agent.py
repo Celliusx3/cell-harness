@@ -102,7 +102,7 @@ def build_agent(
         model=settings.llm.model,
         client=client,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
-        system_prompt=GUIDANCE,
+        guidance=GUIDANCE,
         checkpoint=store.flush,
         context_tokens=context_tokens,
         hooks=default_hooks(),
@@ -132,7 +132,7 @@ def _register_run_subagent(
     subagent = dataclasses.replace(
         agent,
         tools=ToolPipeline(registry, dispatcher, SUBAGENT_TOOLS),
-        system_prompt=CODE_PROMPT,
+        guidance=CODE_PROMPT,
     )
     registry.register(run_subagent_tool(Subagents(subagent, logs)))
 

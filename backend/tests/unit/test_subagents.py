@@ -37,7 +37,7 @@ async def test_a_subagent_answers_from_a_log_of_its_own(
     sessions: SessionService, tmp_path: Path
 ) -> None:
     client = ScriptedClient(completed("AAPL grew 2%."))
-    subagents = Subagents(agent_over(client, system_prompt="BASE"), sessions)
+    subagents = Subagents(agent_over(client, guidance="BASE"), sessions)
 
     outcome = await subagents("call-9.0", TASK)
 
@@ -54,7 +54,7 @@ async def test_a_subagent_is_told_its_name_and_keeps_the_base_prompt(
 ) -> None:
     client = ScriptedClient(completed("done"))
 
-    await Subagents(agent_over(client, system_prompt="BASE"), sessions)("c.0", TASK)
+    await Subagents(agent_over(client, guidance="BASE"), sessions)("c.0", TASK)
 
     system = client.seen[0]
     assert isinstance(system, SystemMessage)

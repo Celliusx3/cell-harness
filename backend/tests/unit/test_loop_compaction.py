@@ -65,7 +65,7 @@ def agent_with(client: LLMClient, context: int | None) -> Agent:
     return Agent(
         model="m",
         client=client,
-        system_prompt="SYS",
+        guidance="SYS",
         context_tokens=context,
     )
 
@@ -192,7 +192,7 @@ async def test_an_overflow_with_nothing_to_shrink_fails_the_turn() -> None:
 
 async def test_an_agent_copied_with_its_own_prompt_summarizes_with_that_prompt() -> None:
     client = SteppedClient(completed("done"), completed("SUMMARY"))
-    helper = dataclasses.replace(agent_with(client, None), system_prompt="HELPER")
+    helper = dataclasses.replace(agent_with(client, None), guidance="HELPER")
     session = new_session()
     await drain(helper.run("do the task", session=session))
 

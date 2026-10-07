@@ -22,7 +22,7 @@ async def bots(tmp_path):
     model = ScriptedClient(completed("hello"))
     service = durable_service(tmp_path / "sessions")
     store = BotStore(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT)
-    agent = agent_over(model, system_prompt=GUIDE, checkpoint=service.flush)
+    agent = agent_over(model, guidance=GUIDE, checkpoint=service.flush)
     runs = RunStore(service, agent, store)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)

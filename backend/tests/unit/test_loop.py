@@ -32,8 +32,8 @@ NO_HOOKS = HookChain()
 TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
-def agent(client, *, system_prompt: str = "", hooks: HookChain = NO_HOOKS) -> Agent:
-    return Agent(model="m", client=client, system_prompt=system_prompt, hooks=hooks)
+def agent(client, *, guidance: str = "", hooks: HookChain = NO_HOOKS) -> Agent:
+    return Agent(model="m", client=client, guidance=guidance, hooks=hooks)
 
 
 async def drain(gen) -> list:
@@ -80,7 +80,7 @@ async def test_system_prompt_is_prepended_and_never_logged() -> None:
     client = ScriptedClient(completed("ok"))
     session = new_session()
 
-    await drain(agent(client, system_prompt="be brief").run("hi", session=session))
+    await drain(agent(client, guidance="be brief").run("hi", session=session))
 
     assert client.seen[0] == SystemMessage(content="be brief")
     assert not any("be brief" in str(e) for e in session.events())
