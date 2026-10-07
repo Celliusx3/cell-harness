@@ -11,7 +11,7 @@ from pathlib import Path
 
 from harness.agent.hooks import HookChain
 from harness.agent.service import Agent
-from harness.bots import BotStore
+from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.runs.store import RunStore
@@ -27,7 +27,7 @@ from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolProvider, ToolRegistry
-from harness.web.agent import ASSISTANT_INSTRUCTIONS, CLIENT_TOOLS
+from harness.web.agent import CLIENT_TOOLS
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:

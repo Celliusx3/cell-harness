@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ASSISTANT_ID = "assistant"
 ASSISTANT_NAME = "Assistant"
+ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
 
 
 class BotDraft(BaseModel):

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from harness.bots import ASSISTANT_INSTRUCTIONS
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, SessionHeader
 from harness.tools.native.code import CODE_PROMPT
-from harness.web.agent import ASSISTANT_INSTRUCTIONS, GUIDANCE
+from harness.web.agent import GUIDANCE
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import agent_over
 

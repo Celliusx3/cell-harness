@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-from harness.bots import BotStore
+from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
@@ -19,7 +19,6 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
-from harness.web.agent import ASSISTANT_INSTRUCTIONS
 from harness.web.server import create_app
 from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import no_bots, no_gate

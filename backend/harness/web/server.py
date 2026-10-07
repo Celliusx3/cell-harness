@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from harness.bots import BotStore
+from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
 from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
@@ -24,7 +24,7 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
-from harness.web.agent import ASSISTANT_INSTRUCTIONS, CLIENT_TOOLS, build_agent
+from harness.web.agent import CLIENT_TOOLS, build_agent
 from harness.web.logs import configure_logging
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router

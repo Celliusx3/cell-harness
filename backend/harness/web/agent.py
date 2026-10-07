@@ -42,7 +42,6 @@ from harness.tools.registry import ToolRegistry
 
 logger = logging.getLogger("harness.web")
 
-ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
 GUIDANCE = (
     "When a tool can answer the user's question, "
     "call it instead of guessing. You have a long-term memory in the memory "
