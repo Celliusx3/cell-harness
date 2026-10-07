@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import ToolCall
@@ -35,7 +35,7 @@ def compose(tmp_path: Path):
     root = tmp_path / "skills"
     root.mkdir()
 
-    def build() -> LoopAgent:
+    def build() -> Agent:
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})

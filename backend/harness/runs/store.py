@@ -8,7 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.bots import BotStore
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent
@@ -44,7 +44,7 @@ class Run:
 class RunStore:
     """Starts and stops turns, and knows which conversations are busy."""
 
-    def __init__(self, service: SessionService, agent: LoopAgent, bots: BotStore) -> None:
+    def __init__(self, service: SessionService, agent: Agent, bots: BotStore) -> None:
         self._service = service
         self._agent = agent
         self._bots = bots

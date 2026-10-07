@@ -20,7 +20,7 @@ from harness.session.log import Session
 from harness.session.repair import unanswered
 
 if TYPE_CHECKING:
-    from harness.agent.loop import LoopAgent
+    from harness.agent.service import Agent
 
 logger = logging.getLogger("harness.agent")
 
@@ -50,7 +50,7 @@ def check_can_compact(session: Session) -> None:
         raise CompactionRefused(NOTHING)
 
 
-def should_compact(agent: LoopAgent, session: Session) -> bool:
+def should_compact(agent: Agent, session: Session) -> bool:
     """Is the context past the line?"""
     if agent.context_tokens is None:
         return False
@@ -59,7 +59,7 @@ def should_compact(agent: LoopAgent, session: Session) -> bool:
 
 
 async def run_compaction(
-    agent: LoopAgent, session: Session, *, turn: int | None, trigger: CompactionTrigger
+    agent: Agent, session: Session, *, turn: int | None, trigger: CompactionTrigger
 ) -> AsyncIterator[CompactionEvent]:
     """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
     events = session.events()
@@ -84,7 +84,7 @@ async def run_compaction(
             session.append(CompactionEnd(turn=turn, error=INTERRUPTED))
 
 
-async def _summarize(agent: LoopAgent, session: Session, *, turn: int | None) -> CompactionEnd:
+async def _summarize(agent: Agent, session: Session, *, turn: int | None) -> CompactionEnd:
     """One model call, no tools; every way it can go wrong is an `error` end."""
     messages = [*agent.request_messages(session), UserMessage(content=INSTRUCTION)]
     completed: Completed | None = None

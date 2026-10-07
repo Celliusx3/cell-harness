@@ -6,9 +6,8 @@ import dataclasses
 from contextlib import aclosing
 from dataclasses import dataclass
 
-from harness.agent.events import AgentCompleted, AgentFailed, AgentPending
-from harness.agent.loop import LoopAgent
-from harness.agent.turn import TurnEvent
+from harness.agent.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
+from harness.agent.service import Agent
 from harness.session.service import SessionService
 from harness.tools.native.subagent import (
     SubagentAnswered,
@@ -32,7 +31,7 @@ def _subagent_intro(name: str) -> str:
 class Subagents:
     """Runs each subagent as `agent`, logging its steps in `sessions` under the subagent's id."""
 
-    agent: LoopAgent
+    agent: Agent
     sessions: SessionService
 
     async def __call__(self, subagent_id: str, task: SubagentTask) -> SubagentOutcome:

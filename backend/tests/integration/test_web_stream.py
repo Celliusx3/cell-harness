@@ -12,7 +12,7 @@ import httpx
 import pytest
 import uvicorn
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.channels.web import sse as sse_module
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -56,9 +56,7 @@ async def served(
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = LoopAgent(
-        name="t", model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
-    )
+    agent = Agent(model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush)
     runs = RunStore(service, agent, no_bots(service))
     async with (
         serving(web_app(tmp_path, service, runs, skills=no_skills())) as base_url,

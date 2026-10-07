@@ -11,7 +11,7 @@ from harness.agent.hooks.native.exact_failure import ExactFailureHook
 from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.agent.subagents import Subagents
 from harness.bots import BotStore
 from harness.config.settings import Settings
@@ -79,7 +79,7 @@ def build_agent(
     *,
     bots: BotStore,
     subagent_logs: SessionService,
-) -> LoopAgent:
+) -> Agent:
     """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
     registry = ToolRegistry(
         [
@@ -99,8 +99,7 @@ def build_agent(
     _register_code_mode(registry, dispatcher, settings)
 
     client = OpenAIClient(settings.llm)
-    agent = LoopAgent(
-        name="default",
+    agent = Agent(
         model=settings.llm.model,
         client=client,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
@@ -129,11 +128,10 @@ def _register_code_mode(
 
 
 def _register_run_subagent(
-    registry: ToolRegistry, dispatcher: ToolDispatcher, agent: LoopAgent, logs: SessionService
+    registry: ToolRegistry, dispatcher: ToolDispatcher, agent: Agent, logs: SessionService
 ) -> None:
     subagent = dataclasses.replace(
         agent,
-        name="subagent",
         tools=ToolPipeline(registry, dispatcher, SUBAGENT_TOOLS),
         system_prompt=CODE_PROMPT,
     )

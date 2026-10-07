@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from contextlib import aclosing
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.llm.adapters.openai_wire import wire_message
 from harness.llm.messages import Text, ToolCall, ToolMessage, ToolReference
 from harness.session.models import ToolResultEvent
@@ -143,7 +143,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    agent = LoopAgent(name="t", model="m", client=client, tools=pipeline(echo_tool("a")))
+    agent = Agent(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(agent.run("go", session=session)) as events:
@@ -161,7 +161,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    agent = LoopAgent(name="t", model="m", client=client, tools=pipeline(echo_tool("a")))
+    agent = Agent(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(agent.run("go", session=session)) as events:

@@ -5,17 +5,16 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import replace
 
-from harness.agent.events import AgentCompleted, ToolResult
+from harness.agent.events import AgentCompleted, ToolResult, TurnEvent
 from harness.agent.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
-from harness.agent.turn import TurnEvent
 from harness.llm.messages import Text, ToolCall
 from harness.llm.stream import Completed, ToolCallChunk
 from harness.session.derive import derive_messages
 from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.tools.definition import BLOCKED, Ok, ToolOutcome
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool, raising_tool
-from tests.unit.helpers import drain, loop_agent, new_session, unanswered_calls
+from tests.unit.helpers import agent_over, drain, new_session, unanswered_calls
 
 
 class Stub(ToolHook):
@@ -55,7 +54,7 @@ async def test_a_refused_call_is_logged_but_never_run() -> None:
     session = new_session()
 
     events = await drain(
-        loop_agent(client, tool, hooks=HookChain((hook,))).run("q", session=session)
+        agent_over(client, tool, hooks=HookChain((hook,))).run("q", session=session)
     )
 
     assert runs == []
@@ -87,7 +86,7 @@ async def test_a_note_is_logged_as_a_guardrail_message_after_the_steps_calls() -
     session = new_session()
 
     events = await drain(
-        loop_agent(client, echo_tool(), hooks=HookChain((hook,))).run("q", session=session)
+        agent_over(client, echo_tool(), hooks=HookChain((hook,))).run("q", session=session)
     )
 
     kinds = [
@@ -126,7 +125,7 @@ async def test_a_step_without_notes_logs_no_guardrail_message() -> None:
     session = new_session()
 
     await drain(
-        loop_agent(client, echo_tool(), hooks=HookChain((Stub(),))).run("q", session=session)
+        agent_over(client, echo_tool(), hooks=HookChain((Stub(),))).run("q", session=session)
     )
 
     assert not [e for e in session.events() if isinstance(e, ApplicationMessageEvent)]
@@ -141,7 +140,7 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
     session = new_session()
 
     events = await drain(
-        loop_agent(SteppedClient(*scripts, completed("gave up")), boom, hooks=guardrail).run(
+        agent_over(SteppedClient(*scripts, completed("gave up")), boom, hooks=guardrail).run(
             "q", session=session
         )
     )
@@ -159,7 +158,7 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
         calls_tool("echo", '{"value": "x"}', id=f"c{i}") for i in range(EXACT_FAILURE_BLOCK_AT + 1)
     ]
     await drain(
-        loop_agent(SteppedClient(*ok, completed("done")), echo_tool(), hooks=guardrail).run(
+        agent_over(SteppedClient(*ok, completed("done")), echo_tool(), hooks=guardrail).run(
             "q", session=session
         )
     )
@@ -170,7 +169,7 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
 async def test_a_note_is_logged_but_never_yielded_to_the_caller() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "a"}'), completed("ok"))
     session = new_session()
-    agent = loop_agent(client, echo_tool(), hooks=HookChain((Stub(note="think again"),)))
+    agent = agent_over(client, echo_tool(), hooks=HookChain((Stub(note="think again"),)))
 
     events = await drain(agent.run("q", session=session))
 

@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.agent.hooks import HookChain
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.bots import BotStore
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
@@ -74,7 +74,7 @@ def pipeline_for(
     return ToolPipeline(registry, ToolDispatcher(registry, gate or no_gate()), default_tools=names)
 
 
-def loop_agent(
+def agent_over(
     client,
     *tools: ToolDefinition,
     system_prompt: str = "",
@@ -82,10 +82,9 @@ def loop_agent(
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
-) -> LoopAgent:
+) -> Agent:
     """An agent over `tools`, with no pipeline at all when there are none."""
-    return LoopAgent(
-        name="t",
+    return Agent(
         model="m",
         client=client,
         tools=pipeline_for(*tools, gate=gate) if tools else None,
@@ -148,7 +147,7 @@ def run_store(
     """Runs over an agent that checkpoints through `service`, as the server wires it."""
     return RunStore(
         service,
-        loop_agent(
+        agent_over(
             client, *tools, checkpoint=service.flush, context_tokens=context_tokens, gate=gate
         ),
         bots or no_bots(service),

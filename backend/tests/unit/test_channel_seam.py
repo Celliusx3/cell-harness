@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, apply
 from harness.channels.gateway import ChannelGateway
@@ -62,8 +62,7 @@ def build(tmp_path):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = LoopAgent(
-        name="t",
+    agent = Agent(
         model="m",
         client=ScriptedClient(completed("answered")),
         checkpoint=sessions.flush,

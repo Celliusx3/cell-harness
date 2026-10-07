@@ -14,8 +14,7 @@ from harness.agent.events import (
     AgentFailed,
     AgentPending,
     ToolPending,
-    ToolProgress,
-    ToolResult,
+    TurnEvent,
 )
 from harness.agent.hooks import GiveUp, Tell
 from harness.agent.tool_run import run_tool_calls
@@ -34,20 +33,9 @@ from harness.session.models import (
 )
 
 if TYPE_CHECKING:
-    from harness.agent.loop import LoopAgent
+    from harness.agent.service import Agent
 
 NO_TERMINAL = "stream ended without a terminal event"
-
-TurnEvent = (
-    TextChunk
-    | ToolCallChunk
-    | ToolProgress
-    | ToolResult
-    | ToolPending
-    | AgentCompleted
-    | AgentPending
-    | AgentFailed
-)
 
 
 @dataclass(frozen=True)
@@ -55,7 +43,7 @@ class RetryStep:
     """The history was shrunk after a size refusal: run the same step again."""
 
 
-async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
+async def run_turn(agent: Agent, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
     """From an opened turn to its end: its events as they happen, then exactly one terminal."""
     step = 0
     outcome: AgentCompleted | AgentPending | AgentFailed
@@ -116,7 +104,7 @@ async def drive(agent: LoopAgent, session: Session, turn: int) -> AsyncIterator[
 
 
 async def _stream_reply(
-    agent: LoopAgent, session: Session, *, turn: int, step: int
+    agent: Agent, session: Session, *, turn: int, step: int
 ) -> AsyncIterator[TextChunk | ToolCallChunk | Completed | Failed | RetryStep]:
     """One model request: its chunks as they stream, then `Completed`, `Failed` or `RetryStep`."""
     specs = agent.tools.specs(session.tools_selected()) if agent.tools else None
@@ -178,7 +166,7 @@ async def _stream_reply(
 
 
 async def _shrink_history(
-    agent: LoopAgent, session: Session, *, turn: int, trigger: CompactionTrigger
+    agent: Agent, session: Session, *, turn: int, trigger: CompactionTrigger
 ) -> bool:
     """One compaction, run to its end: `True` when it pruned or wrote a summary."""
     shrank = False

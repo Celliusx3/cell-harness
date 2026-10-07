@@ -15,7 +15,7 @@ from harness.agent.compaction import (
 from harness.agent.compaction.history import PRUNE_KEEP
 from harness.agent.compaction.prompt import INSTRUCTION, PREAMBLE
 from harness.agent.compaction.service import COMPACT_AT
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,
@@ -39,7 +39,7 @@ from harness.session.models import (
 )
 from harness.skills import SKILL
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import loop_agent, new_session
+from tests.unit.helpers import agent_over, new_session
 
 SKILL_BODY = '<skill name="find-place">\nWalk the reel to a place.\n</skill>'
 
@@ -70,8 +70,8 @@ def tool_turn(session, turn: int, call_id: str, result: str, name: str = "execut
     session.append(TurnEnd(turn=turn, reason="completed"))
 
 
-def agent(client: LLMClient, context_tokens: int | None = 12_000) -> LoopAgent:
-    return loop_agent(client, system_prompt="SYS", context_tokens=context_tokens)
+def agent(client: LLMClient, context_tokens: int | None = 12_000) -> Agent:
+    return agent_over(client, system_prompt="SYS", context_tokens=context_tokens)
 
 
 async def drain(gen: AsyncIterator) -> list:

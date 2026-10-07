@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.config.settings import Settings
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -14,7 +14,7 @@ from tests.unit.helpers import client_tools, no_bots, no_skills
 
 def _stores(tmp_path) -> tuple[SessionService, RunStore]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    agent = LoopAgent(name="t", model="m", client=ScriptedClient([]))
+    agent = Agent(model="m", client=ScriptedClient([]))
     return sessions, RunStore(sessions, agent, no_bots(sessions))
 
 

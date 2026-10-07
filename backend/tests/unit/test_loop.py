@@ -10,7 +10,7 @@ import pytest
 from harness.agent.events import AgentCompleted, AgentFailed
 from harness.agent.hooks import HookChain
 from harness.agent.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE, EmptyReplyHook
-from harness.agent.loop import LoopAgent
+from harness.agent.service import Agent
 from harness.agent.turn import NO_TERMINAL
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk
@@ -26,14 +26,14 @@ from harness.session.models import (
 )
 from harness.tools.native.clock import clock_tool
 from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, calls_tool, completed
-from tests.unit.helpers import loop_agent, new_session
+from tests.unit.helpers import agent_over, new_session
 
 NO_HOOKS = HookChain()
 TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
-def agent(client, *, system_prompt: str = "", hooks: HookChain = NO_HOOKS) -> LoopAgent:
-    return LoopAgent(name="t", model="m", client=client, system_prompt=system_prompt, hooks=hooks)
+def agent(client, *, system_prompt: str = "", hooks: HookChain = NO_HOOKS) -> Agent:
+    return Agent(model="m", client=client, system_prompt=system_prompt, hooks=hooks)
 
 
 async def drain(gen) -> list:
@@ -212,7 +212,7 @@ async def test_a_turn_that_spoke_then_went_blank_is_told_too() -> None:
     )
     session = new_session()
 
-    events = await drain(loop_agent(client, clock_tool(), hooks=TOLD).run("hi", session=session))
+    events = await drain(agent_over(client, clock_tool(), hooks=TOLD).run("hi", session=session))
 
     assert events[-1] == AgentCompleted(text="Tuesday")
     assert _notes(session) == [EMPTY_REPLY_NOTE]
@@ -224,6 +224,6 @@ async def test_a_turn_answers_with_its_final_reply_not_what_it_said_on_the_way()
     )
     session = new_session()
 
-    events = await drain(loop_agent(client, clock_tool()).run("what day", session=session))
+    events = await drain(agent_over(client, clock_tool()).run("what day", session=session))
 
     assert events[-1] == AgentCompleted(text="It is Tuesday.")

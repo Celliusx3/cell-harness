@@ -90,7 +90,7 @@ Same three tiers; the catalog is in the system prompt.
 2. **Nobody logs the catalog into the conversation.** Every client rebuilds it
    per request in the system prompt or the tool description. This harness
    already does exactly that with the tool list (`ToolPipeline.specs`) and the
-   system prompt (`LoopAgent._request_messages`), neither of which is written to
+   system prompt (`Agent.request_messages`), neither of which is written to
    the log. PHASES.md's original "catalog message + digest + empty envelope +
    re-establish after compaction" was DeepSeek Harness's design and the outlier
    — it exists there because dsh injects the catalog as a user-role message and
