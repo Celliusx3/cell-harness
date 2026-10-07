@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from contextlib import aclosing
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.llm.adapters.openai_wire import wire_message
 from harness.llm.messages import Text, ToolCall, ToolMessage, ToolReference
 from harness.session.models import ToolResultEvent

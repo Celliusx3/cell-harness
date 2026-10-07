@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.agent.events import AgentCompleted, AgentPending
-from harness.agent.loop import SKIPPED
+from harness.agent.service import SKIPPED
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
 from harness.session.models import ToolResultEvent, TurnEnd

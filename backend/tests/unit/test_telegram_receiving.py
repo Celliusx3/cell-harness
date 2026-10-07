@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.batching import (

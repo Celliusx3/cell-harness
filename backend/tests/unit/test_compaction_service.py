@@ -15,7 +15,7 @@ from harness.agent.compaction import (
 from harness.agent.compaction.history import PRUNE_KEEP
 from harness.agent.compaction.prompt import INSTRUCTION, PREAMBLE
 from harness.agent.compaction.service import COMPACT_AT
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,

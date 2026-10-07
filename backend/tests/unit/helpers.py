@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.agent.hooks import HookChain
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.bots import BotStore
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage

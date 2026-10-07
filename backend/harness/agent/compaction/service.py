@@ -20,7 +20,7 @@ from harness.session.log import Session
 from harness.session.repair import unanswered
 
 if TYPE_CHECKING:
-    from harness.agent.loop import LoopAgent
+    from harness.agent.service import LoopAgent
 
 logger = logging.getLogger("harness.agent")
 

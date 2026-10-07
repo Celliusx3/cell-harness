@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.agent.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
 from harness.agent.hooks import HookChain, ToolHook
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
 from harness.sandbox import Bridge, BridgeError

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from harness.agent.events import AgentCompleted, ToolProgress, ToolResult
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage
 from harness.llm.stream import Completed, TextChunk, ToolCallChunk
 from harness.session.derive import derive_messages

@@ -11,7 +11,7 @@ from harness.agent.hooks.native.exact_failure import ExactFailureHook
 from harness.agent.hooks.native.no_progress import NoProgressHook
 from harness.agent.hooks.native.repeated_call import RepeatedCallHook
 from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.agent.subagents import Subagents
 from harness.bots import BotStore
 from harness.config.settings import Settings

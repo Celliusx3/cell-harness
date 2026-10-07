@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import SystemMessage, ToolCall, ToolMessage

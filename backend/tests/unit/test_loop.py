@@ -10,7 +10,7 @@ import pytest
 from harness.agent.events import AgentCompleted, AgentFailed
 from harness.agent.hooks import HookChain
 from harness.agent.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE, EmptyReplyHook
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.agent.turn import NO_TERMINAL
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk

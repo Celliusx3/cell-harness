@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import httpx
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage

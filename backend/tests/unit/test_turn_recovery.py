@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 
 from harness.agent.events import AgentCompleted, AgentFailed
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.llm.client import LLMClient
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, Usage

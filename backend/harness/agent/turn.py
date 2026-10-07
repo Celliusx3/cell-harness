@@ -33,7 +33,7 @@ from harness.session.models import (
 )
 
 if TYPE_CHECKING:
-    from harness.agent.loop import LoopAgent
+    from harness.agent.service import LoopAgent
 
 NO_TERMINAL = "stream ended without a terminal event"
 

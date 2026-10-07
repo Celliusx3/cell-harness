@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import discord
 
-from harness.agent.loop import SKIPPED
+from harness.agent.service import SKIPPED
 from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import ASK_BY_LINK as DISCORD_ASK
 from harness.channels.discord.channel import NO_ANSWER_PAGE as DISCORD_NO_PAGE

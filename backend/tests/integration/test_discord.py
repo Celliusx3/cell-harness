@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.config.settings import Settings
 from harness.runs.store import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository

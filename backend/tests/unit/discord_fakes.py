@@ -6,7 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository

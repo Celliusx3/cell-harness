@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, apply
 from harness.channels.gateway import ChannelGateway

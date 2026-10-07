@@ -6,7 +6,7 @@ import dataclasses
 from collections.abc import AsyncIterator
 
 from harness.agent.compaction.prompt import OPEN
-from harness.agent.loop import LoopAgent
+from harness.agent.service import LoopAgent
 from harness.llm.client import LLMClient
 from harness.llm.messages import (
     AssistantMessage,

@@ -17,7 +17,7 @@ from harness.session.repair import unknown_result
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
-    from harness.agent.loop import LoopAgent
+    from harness.agent.service import LoopAgent
 
 
 @dataclass(frozen=True)
