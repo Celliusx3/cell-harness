@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from harness.agent.hooks.chain import GiveUp, StepDecision, StepHook, Tell
 
-EMPTY_REPLY_TELL, EMPTY_REPLY_FAIL = 1, 2
+EMPTY_REPLY_TELL_AT, EMPTY_REPLY_FAIL_AT = 1, 2
 
 EMPTY_REPLY_NOTE = (
     "Your last reply was empty: no text and no tool call. Answer the user's last "
@@ -19,12 +19,12 @@ EMPTY_REPLY = "the model returned no text, and again after being told"
 class EmptyReplyHook(StepHook):
     """Told once, then the turn fails."""
 
-    tell: int = EMPTY_REPLY_TELL
-    fail: int = EMPTY_REPLY_FAIL
+    tell_at: int = EMPTY_REPLY_TELL_AT
+    fail_at: int = EMPTY_REPLY_FAIL_AT
 
     async def end_of_step(self, empties: int) -> StepDecision | None:
-        if empties >= self.fail:
+        if empties >= self.fail_at:
             return GiveUp(EMPTY_REPLY)
-        if empties >= self.tell:
+        if empties >= self.tell_at:
             return Tell(EMPTY_REPLY_NOTE)
         return None

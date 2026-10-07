@@ -7,7 +7,7 @@ from dataclasses import replace
 
 from harness.agent.events import AgentCompleted, ToolResult
 from harness.agent.hooks import CompletedCall, HookChain, Signature, ToolHook
-from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK, ExactFailureHook
+from harness.agent.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
 from harness.agent.turn import TurnEvent
 from harness.llm.messages import Text, ToolCall
 from harness.llm.stream import Completed, ToolCallChunk
@@ -135,7 +135,9 @@ async def test_a_step_without_notes_logs_no_guardrail_message() -> None:
 async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_never() -> None:
     guardrail = HookChain((ExactFailureHook(),))
     boom, runs = counting(raising_tool())
-    scripts = [calls_tool("boom", '{"value": "x"}', id=f"c{i}") for i in range(EXACT_FAILURE_BLOCK)]
+    scripts = [
+        calls_tool("boom", '{"value": "x"}', id=f"c{i}") for i in range(EXACT_FAILURE_BLOCK_AT)
+    ]
     session = new_session()
 
     events = await drain(
@@ -145,14 +147,17 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
     )
 
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
-    assert [r.error for r in results] == ["EXECUTION_ERROR"] * (EXACT_FAILURE_BLOCK - 1) + [BLOCKED]
-    assert len(runs) == EXACT_FAILURE_BLOCK - 1
+    expected = ["EXECUTION_ERROR"] * (EXACT_FAILURE_BLOCK_AT - 1) + [BLOCKED]
+    assert [r.error for r in results] == expected
+    assert len(runs) == EXACT_FAILURE_BLOCK_AT - 1
     warned = [e for e in session.events() if isinstance(e, ApplicationMessageEvent)]
-    assert len(warned) == EXACT_FAILURE_BLOCK - 2
+    assert len(warned) == EXACT_FAILURE_BLOCK_AT - 2
     assert isinstance(events[-1], AgentCompleted)
 
     session = new_session()
-    ok = [calls_tool("echo", '{"value": "x"}', id=f"c{i}") for i in range(EXACT_FAILURE_BLOCK + 1)]
+    ok = [
+        calls_tool("echo", '{"value": "x"}', id=f"c{i}") for i in range(EXACT_FAILURE_BLOCK_AT + 1)
+    ]
     await drain(
         loop_agent(SteppedClient(*ok, completed("done")), echo_tool(), hooks=guardrail).run(
             "q", session=session
