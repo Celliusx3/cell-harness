@@ -121,7 +121,6 @@ def build(tmp_path, client: LLMClient | None = None):
         new_id=lambda: next(ids),
     )
     agent = LoopAgent(
-        name="t",
         model="m",
         client=client or ScriptedClient(completed("ok")),
         checkpoint=sessions.flush,

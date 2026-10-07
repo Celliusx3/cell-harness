@@ -57,7 +57,7 @@ async def served(
         new_id=lambda: next(ids),
     )
     agent = LoopAgent(
-        name="t", model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
+        model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
     )
     runs = RunStore(service, agent, no_bots(service))
     async with (

@@ -28,7 +28,6 @@ def build(tmp_path: Path):
         new_id=lambda: next(ids),
     )
     agent = LoopAgent(
-        name="t",
         model="m",
         client=ScriptedClient(completed("answered")),
         checkpoint=sessions.flush,

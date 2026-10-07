@@ -14,7 +14,7 @@ from tests.unit.helpers import client_tools, no_bots, no_skills
 
 def _stores(tmp_path) -> tuple[SessionService, RunStore]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    agent = LoopAgent(name="t", model="m", client=ScriptedClient([]))
+    agent = LoopAgent(model="m", client=ScriptedClient([]))
     return sessions, RunStore(sessions, agent, no_bots(sessions))
 
 

@@ -85,7 +85,6 @@ def loop_agent(
 ) -> LoopAgent:
     """An agent over `tools`, with no pipeline at all when there are none."""
     return LoopAgent(
-        name="t",
         model="m",
         client=client,
         tools=pipeline_for(*tools, gate=gate) if tools else None,

@@ -100,7 +100,6 @@ def build_agent(
 
     client = OpenAIClient(settings.llm)
     agent = LoopAgent(
-        name="default",
         model=settings.llm.model,
         client=client,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
@@ -133,7 +132,6 @@ def _register_run_subagent(
 ) -> None:
     subagent = dataclasses.replace(
         agent,
-        name="subagent",
         tools=ToolPipeline(registry, dispatcher, SUBAGENT_TOOLS),
         system_prompt=CODE_PROMPT,
     )

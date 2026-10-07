@@ -44,7 +44,6 @@ SKIPPED_RESULT = (
 class LoopAgent:
     """An agent that answers by running the tool loop."""
 
-    name: str
     model: str
     client: LLMClient
     tools: ToolPipeline | None = None

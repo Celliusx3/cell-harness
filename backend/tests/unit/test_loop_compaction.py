@@ -63,7 +63,6 @@ class SizedClient(LLMClient):
 
 def agent_with(client: LLMClient, context: int | None) -> LoopAgent:
     return LoopAgent(
-        name="t",
         model="m",
         client=client,
         system_prompt="SYS",

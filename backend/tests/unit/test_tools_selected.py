@@ -143,7 +143,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    agent = LoopAgent(name="t", model="m", client=client, tools=pipeline(echo_tool("a")))
+    agent = LoopAgent(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(agent.run("go", session=session)) as events:
@@ -161,7 +161,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    agent = LoopAgent(name="t", model="m", client=client, tools=pipeline(echo_tool("a")))
+    agent = LoopAgent(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(agent.run("go", session=session)) as events:

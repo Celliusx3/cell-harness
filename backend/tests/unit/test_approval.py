@@ -54,7 +54,7 @@ def _agent(
     pipeline = ToolPipeline(
         registry, ToolDispatcher(registry, gate), default_tools=[t.name for t in tools]
     )
-    return LoopAgent(name="t", model="m", client=client, tools=pipeline, hooks=hooks or HookChain())
+    return LoopAgent(model="m", client=client, tools=pipeline, hooks=hooks or HookChain())
 
 
 def _types(session) -> list[str]:

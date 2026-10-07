@@ -33,7 +33,7 @@ TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
 def agent(client, *, system_prompt: str = "", hooks: HookChain = NO_HOOKS) -> LoopAgent:
-    return LoopAgent(name="t", model="m", client=client, system_prompt=system_prompt, hooks=hooks)
+    return LoopAgent(model="m", client=client, system_prompt=system_prompt, hooks=hooks)
 
 
 async def drain(gen) -> list:
