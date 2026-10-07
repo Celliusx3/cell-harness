@@ -53,9 +53,7 @@ class Raises(ToolHook):
 
 
 class RaisesAtStepEnd(StepHook):
-    async def end_of_step(
-        self, empties: int, prior: Sequence[CompletedCall]
-    ) -> StepDecision | None:
+    async def end_of_step(self, empties: int) -> StepDecision | None:
         raise RuntimeError("bug in a step hook")
 
 
@@ -63,9 +61,7 @@ class RaisesAtStepEnd(StepHook):
 class SaysAtStepEnd(StepHook):
     decision: StepDecision | None = None
 
-    async def end_of_step(
-        self, empties: int, prior: Sequence[CompletedCall]
-    ) -> StepDecision | None:
+    async def end_of_step(self, empties: int) -> StepDecision | None:
         return self.decision
 
 

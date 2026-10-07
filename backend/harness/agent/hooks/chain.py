@@ -59,9 +59,7 @@ class StepHook(ABC):
     """Something consulted when a step ends without a tool call: the model has answered."""
 
     @abstractmethod
-    async def end_of_step(
-        self, empties: int, prior: Sequence[CompletedCall]
-    ) -> StepDecision | None:
+    async def end_of_step(self, empties: int) -> StepDecision | None:
         """What to do after the turn's `empties`-th blank reply, or `None` to accept the answer."""
 
 
@@ -89,9 +87,9 @@ class HookChain:
         )
 
     async def end_of_step(self, *, session: Session) -> StepDecision | None:
-        empties, calls = empty_replies_in_a_row(session), completed_calls(session)
+        empties = empty_replies_in_a_row(session)
         return await self._first_decision(
-            self.step_hooks, lambda hook: hook.end_of_step(empties, calls), "end_of_step"
+            self.step_hooks, lambda hook: hook.end_of_step(empties), "end_of_step"
         )
 
     async def _first_decision(
