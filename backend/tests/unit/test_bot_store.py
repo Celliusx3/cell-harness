@@ -30,16 +30,16 @@ def bots(tmp_path: Path, service: SessionService) -> BotService:
 def test_with_no_file_assistant_is_the_only_bot(tmp_path: Path, service: SessionService) -> None:
     missing = BotService(tmp_path / "no" / "bots.json", service, assistant_instructions="Be kind.")
 
-    assert missing.bot_for(ASSISTANT_ID) == KIND
+    assert missing.find(ASSISTANT_ID) == KIND
     with pytest.raises(BotNotFound):
-        missing.bot_for("any-conversation")
+        missing.find("any-conversation")
 
 
 async def test_listing_opens_assistant_s_chat_only_the_first_time(
     bots: BotService, service: SessionService
 ) -> None:
-    await bots.list()
-    await bots.list()
+    await bots.active_bots()
+    await bots.active_bots()
 
     chat = await service.read(ASSISTANT_ID)
     assert list(chat.events()) == [BotInstructionsEvent(name="Assistant", instructions="Be kind.")]
@@ -47,13 +47,13 @@ async def test_listing_opens_assistant_s_chat_only_the_first_time(
 
 def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotService) -> None:
     with pytest.raises(BotNotFound):
-        bots.bot_for("r1")
+        bots.find("r1")
 
     (tmp_path / "bots.json").write_text(
         json.dumps({"bots": [{"id": "r1", "name": "Researcher", "instructions": "Cite."}]})
     )
 
-    assert bots.bot_for("r1") == Bot(id="r1", name="Researcher", instructions="Cite.")
+    assert bots.find("r1") == Bot(id="r1", name="Researcher", instructions="Cite.")
 
 
 async def test_a_failed_write_leaves_the_file_as_it_was(
@@ -83,7 +83,7 @@ async def test_a_deleted_bot_owns_its_chat_no_more(bots: BotService) -> None:
     await bots.delete(made.id)
 
     with pytest.raises(BotNotFound):
-        bots.bot_for(made.id)
+        bots.find(made.id)
 
 
 async def test_deleting_a_bot_removes_its_chat_for_good(
@@ -97,7 +97,7 @@ async def test_deleting_a_bot_removes_its_chat_for_good(
     assert not (tmp_path / "sessions" / f"{made.id}.jsonl").exists()
     with pytest.raises(SessionNotFoundError):
         await service.read(made.id)
-    assert bots.archived() == ()
+    assert bots.archived_bots() == ()
 
 
 async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
@@ -110,15 +110,15 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
     bots.archive(second.id)
     bots.archive(first.id)
 
-    assert await bots.list() == (KIND,)
-    assert bots.archived() == (
+    assert await bots.active_bots() == (KIND,)
+    assert bots.archived_bots() == (
         first.model_copy(update={"archived": True}),
         second.model_copy(update={"archived": True}),
     )
 
     bots.restore(first.id)
 
-    assert await bots.list() == (KIND, first)
+    assert await bots.active_bots() == (KIND, first)
     assert list((await service.read(first.id)).events()) == chat_before
 
 
@@ -128,7 +128,7 @@ async def test_an_archived_bot_owns_no_chat_and_cannot_be_edited(bots: BotServic
     bots.archive(made.id)
 
     with pytest.raises(BotNotFound):
-        bots.bot_for(made.id)
+        bots.find(made.id)
     with pytest.raises(BotNotFound):
         bots.update(made.id, "Renamed", "Be brief.")
 
@@ -146,7 +146,7 @@ async def test_assistant_can_be_neither_archived_nor_deleted(bots: BotService) -
     with pytest.raises(BotPermanent):
         await bots.delete(ASSISTANT_ID)
 
-    assert bots.bot_for(ASSISTANT_ID) == KIND
+    assert bots.find(ASSISTANT_ID) == KIND
 
 
 def test_a_bots_file_written_before_archiving_reads_every_bot_as_active(
@@ -156,8 +156,8 @@ def test_a_bots_file_written_before_archiving_reads_every_bot_as_active(
         json.dumps({"bots": [{"id": "r1", "name": "Researcher", "instructions": "Cite."}]})
     )
 
-    assert bots.bot_for("r1").archived is False
-    assert bots.archived() == ()
+    assert bots.find("r1").archived is False
+    assert bots.archived_bots() == ()
 
 
 async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
@@ -169,7 +169,7 @@ async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
     bots.update(first.id, "First", "Uno.")
     bots.update(ASSISTANT_ID, "Helper", "Be terse.")
 
-    assert await bots.list() == (
+    assert await bots.active_bots() == (
         Bot(id=ASSISTANT_ID, name="Helper", instructions="Be terse."),
         Bot(id=first.id, name="First", instructions="Uno."),
         second,

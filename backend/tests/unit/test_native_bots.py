@@ -30,7 +30,7 @@ async def call(store: BotService, **arguments):
 async def test_a_bot_made_from_chat_is_the_one_the_form_makes(store: BotService) -> None:
     outcome = await call(store, name="Researcher", instructions="You find sources.")
 
-    made = (await store.list())[1]
+    made = (await store.active_bots())[1]
     assert isinstance(outcome, Ok)
     assert (made.name, made.instructions) == ("Researcher", "You find sources.")
     assert made.id in outcome.text
@@ -41,7 +41,7 @@ async def test_a_blank_name_is_refused_as_the_form_refuses_it(store: BotService)
 
     assert isinstance(outcome, Failure)
     assert outcome.code == INVALID_ARGUMENTS
-    assert [bot.name for bot in await store.list()] == ["Assistant"]
+    assert [bot.name for bot in await store.active_bots()] == ["Assistant"]
 
 
 def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:

@@ -46,7 +46,7 @@ def bot_chat_router(web: WebChannel, *, tag: str) -> APIRouter:
 
     async def owning_bot(conversation_id: str) -> Bot:
         try:
-            return web.bots.bot_for(conversation_id)
+            return web.bots.find(conversation_id)
         except BotNotFound as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
 
