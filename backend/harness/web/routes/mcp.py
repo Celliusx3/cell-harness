@@ -12,7 +12,7 @@ from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
 from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpServerStore
 from harness.mcp.tool import app_visible, ui_resource_uri
 
 logger = logging.getLogger("harness.mcp")

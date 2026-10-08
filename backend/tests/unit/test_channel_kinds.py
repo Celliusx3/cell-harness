@@ -12,7 +12,7 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, Pushing
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

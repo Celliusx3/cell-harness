@@ -16,7 +16,7 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, ToolSpec
 from harness.llm.stream import StreamEvent
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

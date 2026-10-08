@@ -9,7 +9,7 @@ from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService

@@ -252,7 +252,7 @@ Four properties, verified against Deno 2.8.3 in
 | a script cannot read the filesystem | `readTextFileSync` throws |
 | a runaway or cancelled script leaves no process | proved by pid |
 
-That last one matters because there is no SDK here to reap the child — `mcp/store.py`
+That last one matters because there is no SDK here to reap the child — `mcp/service.py`
 never kills anything because the MCP transport does it. Here a `finally` must.
 
 **Every call goes through `ToolDispatcher.dispatch`.** A script reaches exactly what

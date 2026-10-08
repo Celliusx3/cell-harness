@@ -12,7 +12,7 @@ from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import SystemMessage, ToolCall, ToolMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpServerStore
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
 from harness.session.models import TurnStart

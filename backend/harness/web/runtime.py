@@ -8,7 +8,7 @@ import logging
 from harness.bots import BotStore
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpServerStore
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook

@@ -112,7 +112,7 @@ backend/harness/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   mcp/          the MCP client — one owning task per server, namespaced tools
   skills/       the catalog read from ranked roots, and the one `skill` tool
-  runs/         a turn that outlives its connection — store, subscribe
+  runs/         a turn that outlives its connection — service, subscribe
   channels/     every way in and out — telegram/, discord/, web/, and per-chat state
   web/          server — the composition root (the HTTP surface is channels/web/)
   config/       one Settings: config.json + config.local.json + env

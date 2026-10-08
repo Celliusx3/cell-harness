@@ -7,7 +7,7 @@ from pathlib import Path
 
 from harness.bots import ASSISTANT_ID, BotStore
 from harness.llm.messages import ApplicationMessage, SystemMessage, UserMessage
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.session.compaction import CompactionEnd
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, TurnStart, UserMessageEvent

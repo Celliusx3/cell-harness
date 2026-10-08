@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import bot_chat_router
-from harness.runs.store import RunAlreadyActive
+from harness.runs.service import RunAlreadyActive
 from harness.runtime.compaction import CompactionRefused
 from harness.session.repository import SessionNotFoundError
 

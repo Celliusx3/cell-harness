@@ -7,7 +7,7 @@ import asyncio
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.runs.store import RunAlreadyActive
+from harness.runs.service import RunAlreadyActive
 from harness.runs.subscribe import subscribe
 from harness.session.models import (
     ToolResultEvent,

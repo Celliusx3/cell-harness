@@ -8,7 +8,7 @@ import pytest
 
 from harness.mcp import connection as connection_module
 from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpServerStore
 from tests.unit.mcp_fakes import FakeFactory, html_resource, servers, tool
 
 

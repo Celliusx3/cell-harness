@@ -61,7 +61,7 @@ backend/harness/
   runtime/      the turn loop, its events, and hooks/ — the chain + native/<hook>/
   tools/        definition, registry, dispatcher, pipeline, progress, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
-  runs/         a turn that outlives its connection — store, subscribe
+  runs/         a turn that outlives its connection — service, subscribe
   channels/     every way in and out — telegram/, discord/, web/, and per-chat state
   web/          server — the composition root (the HTTP surface is channels/web/)
   config/       one Settings: config.json + config.local.json + env

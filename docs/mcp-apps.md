@@ -112,7 +112,7 @@ consent, and is not part of the conversation the model sees.
   draws and a reloaded conversation must draw the same thing.
 - **`resources/read` is one more command on the store's loop.** `_Read` beside
   `_Call`, same owner task, same timeout, same error mapping — the anyio
-  task-affinity constraint in `store.py` applies to every request kind.
+  task-affinity constraint in `service.py` applies to every request kind.
 - **Two browser endpoints, `harness/web/routes/mcp.py`.**
   `GET /api/mcp/{server}/resources?uri=` returns the HTML and a CSP string the
   harness composed (spec defaults, widened only by the https origins the

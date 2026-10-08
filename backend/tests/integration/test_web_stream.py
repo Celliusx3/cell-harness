@@ -13,7 +13,7 @@ import pytest
 import uvicorn
 
 from harness.channels.web import sse as sse_module
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

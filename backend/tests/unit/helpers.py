@@ -12,7 +12,7 @@ from pathlib import Path
 from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.runtime.hooks import HookChain
 from harness.runtime.service import Runtime
 from harness.session.log import Session

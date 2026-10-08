@@ -8,7 +8,7 @@ import json
 import httpx
 
 from harness.bots import ASSISTANT_ID
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.session.service import SessionService
 from tests.unit.helpers import durable_service, no_skills, run_store
 from tests.webapp import bots_in, web_app

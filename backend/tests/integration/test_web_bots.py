@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from harness.bots import ASSISTANT_ID, BotStore
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, runtime_over

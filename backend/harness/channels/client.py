@@ -9,7 +9,7 @@ from harness.channels.chats import state_of
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import Channel
 from harness.channels.repository import ChatRepository
-from harness.runs.store import RunAlreadyActive
+from harness.runs.service import RunAlreadyActive
 from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService

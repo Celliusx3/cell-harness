@@ -11,7 +11,7 @@ import pytest
 from harness.bots import ASSISTANT_ID, BotStore
 from harness.llm.messages import Message
 from harness.llm.stream import StreamEvent
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.tools.definition import ToolSpec
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, completed

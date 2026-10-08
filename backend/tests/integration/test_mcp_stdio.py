@@ -12,7 +12,7 @@ from mcp.server.apps import APP_MIME_TYPE
 
 from harness.config.sections import McpServer
 from harness.mcp import connection as connection_module
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpServerStore
 from harness.tools.definition import Failure, Ok, ToolUi
 from harness.tools.registry import ToolRegistry
 from tests.unit.helpers import context_for

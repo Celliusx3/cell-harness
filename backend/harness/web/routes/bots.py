@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 
 from harness.bots import Bot, BotDraft, BotNotFound, BotPermanent, BotStore
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 
 logger = logging.getLogger(__name__)
 

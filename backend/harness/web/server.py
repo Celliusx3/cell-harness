@@ -17,8 +17,8 @@ from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.llm.adapters.models import context_length
-from harness.mcp.store import McpServerStore
-from harness.runs.store import RunStore
+from harness.mcp.service import McpServerStore
+from harness.runs.service import RunStore
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService

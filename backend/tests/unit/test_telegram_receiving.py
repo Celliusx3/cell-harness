@@ -16,7 +16,7 @@ from harness.channels.telegram.batching import (
     SPLIT_DELAY_SECONDS,
     batch_delay,
 )
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

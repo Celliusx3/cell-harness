@@ -17,7 +17,7 @@ from harness.channels.protocol import (
 )
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
-from harness.runs.store import Run, RunAlreadyActive, RunStore
+from harness.runs.service import Run, RunAlreadyActive, RunStore
 from harness.runtime.compaction import CompactionRefused, check_can_compact
 from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError

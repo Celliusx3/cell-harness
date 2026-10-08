@@ -6,7 +6,7 @@ import json
 
 import httpx
 
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.runtime.service import SKIPPED
 from harness.tools.native.question import QUESTION
 from tests.integration.web_helpers import assistant_chat, build, events_from, settle

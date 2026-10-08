@@ -9,7 +9,7 @@ from fastapi import APIRouter
 from harness.bots import BotStore
 from harness.channels.gateway import ChannelGateway
 from harness.channels.web.routes import build_router
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.session.service import SessionService
 
 CHANNEL = "web"

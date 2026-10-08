@@ -11,7 +11,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.config.settings import Settings
-from harness.runs.store import RunStore
+from harness.runs.service import RunStore
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
