@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
+from harness.bots import ASSISTANT_INSTRUCTIONS, BotService
 from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
@@ -17,8 +17,8 @@ from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.llm.adapters.models import context_length
-from harness.mcp.store import McpServerStore
-from harness.runs.store import RunStore
+from harness.mcp.service import McpService
+from harness.runs.service import RunService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
@@ -46,18 +46,18 @@ def build_subagent_logs(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
-def build_mcp(settings: Settings) -> McpServerStore:
+def build_mcp(settings: Settings) -> McpService:
     """Connections to whatever `config.json` declares under `mcp.servers`."""
-    return McpServerStore(settings.mcp.servers)
+    return McpService(settings.mcp.servers)
 
 
 def build_channels(
     settings: Settings,
     sessions: SessionService,
-    runs: RunStore,
+    runs: RunService,
     skills: SkillService,
     client_tools: ClientToolService,
-    bots: BotStore,
+    bots: BotService,
 ) -> tuple[ChannelGateway, WebChannel]:
     """The gateway with a channel registered per configured platform, and the web channel."""
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
@@ -105,8 +105,8 @@ def create_web_app() -> FastAPI:
     )
     client_tools = ClientToolService(CLIENT_TOOLS, gate)
     context_tokens = _resolve_context_tokens(settings)
-    bots = BotStore(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
-    runs = RunStore(
+    bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
+    runs = RunService(
         service,
         build_runtime(
             settings,
@@ -126,14 +126,14 @@ def create_web_app() -> FastAPI:
 
 
 def create_app(
-    runs: RunStore,
+    runs: RunService,
     gateway: ChannelGateway,
     web: WebChannel,
-    mcp: McpServerStore,
+    mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
     gate: ApprovalGate,
-    bots: BotStore,
+    bots: BotService,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 

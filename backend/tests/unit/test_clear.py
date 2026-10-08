@@ -34,7 +34,7 @@ from harness.session.models import (
 )
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import durable_service, run_store, runtime_over
+from tests.unit.helpers import durable_service, run_service, runtime_over
 from tests.unit.test_compaction_service import tool_turn
 
 
@@ -156,7 +156,7 @@ class SlowToLetGo(LLMClient):
 
 async def test_a_clear_keeps_the_chat_busy_from_its_start_until_it_settles(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
-    runs = run_store(service, SlowToLetGo())
+    runs = run_service(service, SlowToLetGo())
     session = await service.create(ASSISTANT_ID)
     turn = runs.start(session, "the secret word is PELICAN")
     while not any(event.type == "assistant/chunk" for event in session.events()):

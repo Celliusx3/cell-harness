@@ -10,7 +10,7 @@ from harness.channels.chats import session_for, state_of
 from harness.channels.protocol import Pushing, RunningChannel
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
-from harness.runs.store import Run, RunAlreadyActive, RunStore
+from harness.runs.service import Run, RunAlreadyActive, RunService
 from harness.session.service import SessionService
 from harness.skills import SkillService, UnknownSkill
 
@@ -25,7 +25,7 @@ class Following:
     def __init__(
         self,
         repository: ChatRepository,
-        runs: RunStore,
+        runs: RunService,
         sessions: SessionService,
         skills: SkillService,
         channels: dict[str, RunningChannel],

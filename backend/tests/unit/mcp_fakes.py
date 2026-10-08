@@ -51,7 +51,7 @@ def html_resource(
 
 
 def servers(*ids: str, **overrides) -> dict[str, McpServer]:
-    """A `settings.mcp.servers` mapping, for a store under test."""
+    """A `settings.mcp.servers` mapping, for a service under test."""
     return {name: McpServer(command="does-not-run", **overrides) for name in (ids or ("stub",))}
 
 

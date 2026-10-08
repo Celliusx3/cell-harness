@@ -1,4 +1,4 @@
-"""`Run` and `RunStore` — driving a turn on a task nobody's connection owns."""
+"""`Run` and `RunService` — driving a turn on a task nobody's connection owns."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.bots import BotStore
+from harness.bots import BotService
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent
@@ -41,10 +41,10 @@ class Run:
         return self.session.id
 
 
-class RunStore:
+class RunService:
     """Starts and stops turns, and knows which conversations are busy."""
 
-    def __init__(self, service: SessionService, runtime: Runtime, bots: BotStore) -> None:
+    def __init__(self, service: SessionService, runtime: Runtime, bots: BotService) -> None:
         self._service = service
         self._runtime = runtime
         self._bots = bots
@@ -55,7 +55,7 @@ class RunStore:
         return self._runs.get(conversation_id)
 
     def start(self, session: Session, prompt: str) -> Run:
-        """Begin a turn on a task this store owns."""
+        """Begin a turn on a task this service owns."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
         self._log_instructions(session)

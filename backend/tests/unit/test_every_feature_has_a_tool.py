@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from harness.config.settings import Settings
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.native.bots import BOT_CREATE
@@ -109,7 +109,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
     runtime = build_runtime(
         Settings(llm={"model": "m", "api_key": "k"}),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpServerStore({}),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_gate(),

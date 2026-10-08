@@ -15,7 +15,7 @@ from harness.tools.approval import ApprovalGate
 from harness.tools.client import PendingCall
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from tests.unit.fakes import EchoArgs, SteppedClient, completed
-from tests.unit.helpers import durable_service, no_skills, run_store
+from tests.unit.helpers import durable_service, no_skills, run_service
 
 PLATFORM = "fake"
 CHAT = "7"
@@ -66,7 +66,7 @@ async def _two_waiting(tmp_path: Path, platform: AskingPlatform) -> None:
     step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
     sessions = durable_service(tmp_path / "sessions")
     gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
-    runs = run_store(sessions, SteppedClient(step, completed("never")), _writer(), gate=gate)
+    runs = run_service(sessions, SteppedClient(step, completed("never")), _writer(), gate=gate)
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     gateway.register(platform)

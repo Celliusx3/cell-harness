@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.bots import BotDraft, BotStore
+from harness.bots import BotDraft, BotService
 from harness.tools.context import ToolContext
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 
@@ -15,7 +15,7 @@ _DESCRIPTION = (
 )
 
 
-def bot_create_tool(bots: BotStore) -> ToolDefinition[BotDraft]:
+def bot_create_tool(bots: BotService) -> ToolDefinition[BotDraft]:
     """The tool that makes a bot through the same save as the New bot form."""
 
     async def execute(args: BotDraft, _context: ToolContext) -> ToolOutcome:

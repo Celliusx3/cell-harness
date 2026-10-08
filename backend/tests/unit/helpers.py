@@ -9,10 +9,10 @@ from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
+from harness.bots import ASSISTANT_INSTRUCTIONS, BotService
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
-from harness.runs.store import RunStore
+from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.service import Runtime
 from harness.session.log import Session
@@ -136,16 +136,16 @@ def durable_service(root: Path, *, prefix: str = "c") -> SessionService:
     )
 
 
-def run_store(
+def run_service(
     service: SessionService,
     client,
     *tools: ToolDefinition,
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
-    bots: BotStore | None = None,
-) -> RunStore:
+    bots: BotService | None = None,
+) -> RunService:
     """Runs over a runtime that checkpoints through `service`, as the server wires it."""
-    return RunStore(
+    return RunService(
         service,
         runtime_over(
             client, *tools, checkpoint=service.flush, context_tokens=context_tokens, gate=gate
@@ -154,9 +154,9 @@ def run_store(
     )
 
 
-def no_bots(service: SessionService) -> BotStore:
+def no_bots(service: SessionService) -> BotService:
     """Only Assistant, over a bots file that cannot exist."""
-    return BotStore(
+    return BotService(
         Path("/nonexistent/cell-harness-bots.json"),
         service,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,

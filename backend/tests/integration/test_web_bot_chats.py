@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID, BotStore
+from harness.bots import ASSISTANT_ID, BotService
 from harness.llm.messages import UserMessage
 from harness.session.models import UserMessageEvent
 from tests.integration.web_helpers import build
@@ -27,7 +27,7 @@ ROUTES = (
 @pytest.fixture
 async def chats(tmp_path):
     service, runs = build(tmp_path, ScriptedClient(completed("hello")))
-    bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
+    bots = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:

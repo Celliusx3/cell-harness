@@ -5,8 +5,8 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID, BotStore
-from harness.runs.store import RunStore
+from harness.bots import ASSISTANT_ID, BotService
+from harness.runs.service import RunService
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, runtime_over
@@ -21,16 +21,16 @@ RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every
 async def bots(tmp_path):
     model = ScriptedClient(completed("hello"))
     service = durable_service(tmp_path / "sessions")
-    store = BotStore(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT)
+    store = BotService(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT)
     runtime = runtime_over(model, guidance=GUIDE, checkpoint=service.flush)
-    runs = RunStore(service, runtime, store)
+    runs = RunService(service, runtime, store)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:
         yield client, model, runs
 
 
-async def _say(client: httpx.AsyncClient, runs: RunStore, conversation_id: str) -> None:
+async def _say(client: httpx.AsyncClient, runs: RunService, conversation_id: str) -> None:
     sent = await client.post(
         f"/api/conversations/{conversation_id}/messages", json={"prompt": "hi"}
     )

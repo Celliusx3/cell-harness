@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 from harness.channels.protocol import Pushing
 from harness.channels.repository import ChatRepository
-from harness.runs.store import Run
+from harness.runs.service import Run
 from harness.runs.subscribe import subscribe
 from harness.session.compaction import CompactionEnd
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnEnd

@@ -12,7 +12,7 @@ from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
 from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpService
 from harness.mcp.tool import app_visible, ui_resource_uri
 
 logger = logging.getLogger("harness.mcp")
@@ -82,7 +82,7 @@ def _origins(values: object) -> list[str]:
     return origins
 
 
-def build_router(mcp: McpServerStore) -> APIRouter:
+def build_router(mcp: McpService) -> APIRouter:
     router = APIRouter(prefix="/api/mcp", tags=["mcp"])
 
     def known(server: str) -> None:

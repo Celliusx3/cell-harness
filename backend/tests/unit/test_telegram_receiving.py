@@ -16,7 +16,7 @@ from harness.channels.telegram.batching import (
     SPLIT_DELAY_SECONDS,
     batch_delay,
 )
-from harness.runs.store import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -37,7 +37,7 @@ def build(tmp_path, *, skills: SkillService):
         new_id=lambda: next(ids),
     )
     runtime = Runtime(model="m", client=ScriptedClient(completed("ok")), checkpoint=sessions.flush)
-    runs = RunStore(sessions, runtime, no_bots(sessions))
+    runs = RunService(sessions, runtime, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url="http://t")
     channel, bot = telegram_channel(gateway)

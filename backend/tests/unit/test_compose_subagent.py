@@ -12,7 +12,7 @@ from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import SystemMessage, ToolCall, ToolMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
-from harness.mcp.store import McpServerStore
+from harness.mcp.service import McpService
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
 from harness.session.models import TurnStart
@@ -41,7 +41,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
-        mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
+        mcp = McpService({"stub": McpServer(command="does-not-run")})
         runtime = build_runtime(
             settings,
             sessions,

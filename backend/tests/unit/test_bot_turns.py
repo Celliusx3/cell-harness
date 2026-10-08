@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from harness.bots import ASSISTANT_ID, BotStore
+from harness.bots import ASSISTANT_ID, BotService
 from harness.llm.messages import ApplicationMessage, SystemMessage, UserMessage
-from harness.runs.store import RunStore
+from harness.runs.service import RunService
 from harness.session.compaction import CompactionEnd
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, TurnStart, UserMessageEvent
@@ -46,10 +46,10 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     tmp_path: Path,
 ) -> None:
     service = durable_service(tmp_path / "sessions")
-    bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
+    bots = BotService(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = ScriptedClient(completed("THE SUMMARY"))
     runtime = runtime_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
-    runs = RunStore(service, runtime, bots)
+    runs = RunService(service, runtime, bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
     bots.update(ASSISTANT_ID, "Assistant", "Be brief.")
@@ -62,9 +62,9 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
 
 async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path) -> None:
     service = durable_service(tmp_path / "sessions")
-    bots = BotStore(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
+    bots = BotService(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés"))
-    runs = RunStore(service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots)
+    runs = RunService(service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
     bots.update(ASSISTANT_ID, "Assistant", "Be brief.")

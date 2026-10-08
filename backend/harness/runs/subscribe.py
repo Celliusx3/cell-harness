@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from functools import partial
 
-from harness.runs.store import Run
+from harness.runs.service import Run
 from harness.session.log import Numbered
 
 
