@@ -12,7 +12,7 @@ from mcp.server.apps import APP_MIME_TYPE
 
 from harness.config.sections import McpServer
 from harness.mcp import connection as connection_module
-from harness.mcp.service import McpServerStore
+from harness.mcp.service import McpService
 from harness.tools.definition import Failure, Ok, ToolUi
 from harness.tools.registry import ToolRegistry
 from tests.unit.helpers import context_for
@@ -27,11 +27,11 @@ def stub(**env: str) -> dict[str, McpServer]:
 
 @pytest.fixture
 async def live():
-    """Start a store and wait for it to connect; close it however the test ends."""
-    made: list[McpServerStore] = []
+    """Start a service and wait for it to connect; close it however the test ends."""
+    made: list[McpService] = []
 
     async def start(servers: dict[str, McpServer]):
-        store = McpServerStore(servers)
+        store = McpService(servers)
         registry = ToolRegistry()
         registry.add_provider(store.tools)
         made.append(store)

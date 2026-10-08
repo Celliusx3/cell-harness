@@ -8,18 +8,18 @@ import json
 import httpx
 
 from harness.bots import ASSISTANT_ID
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.session.service import SessionService
-from tests.unit.helpers import durable_service, no_skills, run_store
+from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.webapp import bots_in, web_app
 
 
-def build(tmp_path, client, *tools) -> tuple[SessionService, RunStore]:
+def build(tmp_path, client, *tools) -> tuple[SessionService, RunService]:
     service = durable_service(tmp_path / "sessions")
-    return service, run_store(service, client, *tools, bots=bots_in(tmp_path, service))
+    return service, run_service(service, client, *tools, bots=bots_in(tmp_path, service))
 
 
-def api(tmp_path, service: SessionService, runs: RunStore) -> httpx.AsyncClient:
+def api(tmp_path, service: SessionService, runs: RunService) -> httpx.AsyncClient:
     app = web_app(tmp_path, service, runs, skills=no_skills())
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://harness.test")
 
@@ -31,7 +31,7 @@ async def assistant_chat(client: httpx.AsyncClient, prompt: str) -> str:
     return ASSISTANT_ID
 
 
-async def settle(runs: RunStore, conversation_id: str) -> None:
+async def settle(runs: RunService, conversation_id: str) -> None:
     run = runs.active(conversation_id)
     if run is not None:
         await asyncio.wait_for(run._outer, timeout=5)

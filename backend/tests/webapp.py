@@ -7,14 +7,14 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
+from harness.bots import ASSISTANT_INSTRUCTIONS, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.config.sections import McpServer
 from harness.mcp.client import ClientFactory, open_client
-from harness.mcp.service import McpServerStore
-from harness.runs.service import RunStore
+from harness.mcp.service import McpService
+from harness.runs.service import RunService
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
@@ -25,18 +25,20 @@ from tests.unit.helpers import no_bots, no_gate
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 
-def bots_in(tmp_path: Path, service: SessionService) -> BotStore:
+def bots_in(tmp_path: Path, service: SessionService) -> BotService:
     """Assistant and any bot a test makes, kept in a bots file under `tmp_path`."""
-    return BotStore(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
+    return BotService(
+        tmp_path / "bots.json", service, assistant_instructions=ASSISTANT_INSTRUCTIONS
+    )
 
 
 def web_gateway(
     tmp_path: Path,
     service: SessionService,
-    runs: RunStore,
+    runs: RunService,
     *,
     skills: SkillService,
-    bots: BotStore | None = None,
+    bots: BotService | None = None,
 ) -> tuple[ChannelGateway, WebChannel]:
     """A gateway with only the browser registered."""
     gateway = ChannelGateway(
@@ -55,21 +57,21 @@ def web_mcp(
     servers: dict[str, McpServer] | None = None,
     *,
     client_factory: ClientFactory = open_client,
-) -> McpServerStore:
-    """A store over whatever servers a test declares — none, by default."""
-    return McpServerStore(servers or {}, client_factory=client_factory)
+) -> McpService:
+    """A service over whatever servers a test declares — none, by default."""
+    return McpService(servers or {}, client_factory=client_factory)
 
 
 def web_app(
     tmp_path: Path,
     service: SessionService,
-    runs: RunStore,
+    runs: RunService,
     *,
-    mcp: McpServerStore | None = None,
+    mcp: McpService | None = None,
     skills: SkillService,
     client_tools: ClientToolService | None = None,
     gate: ApprovalGate | None = None,
-    bots: BotStore | None = None,
+    bots: BotService | None = None,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
@@ -83,7 +85,7 @@ def web_app(
 def web_app_with_telegram(
     tmp_path: Path,
     service: SessionService,
-    runs: RunStore,
+    runs: RunService,
     *,
     skills: SkillService,
     client_tools: ClientToolService | None = None,
@@ -107,7 +109,7 @@ def web_app_with_telegram(
     return app, gateway, bot
 
 
-async def idle(runs: RunStore, gateway: ChannelGateway) -> None:
+async def idle(runs: RunService, gateway: ChannelGateway) -> None:
     """Wait for every turn and every chat's delivery to finish."""
     for _ in range(300):
         if not gateway._tasks.running() and not runs._runs:

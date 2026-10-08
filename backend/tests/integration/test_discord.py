@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.config.settings import Settings
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -12,14 +12,14 @@ from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools, no_bots, no_skills
 
 
-def _stores(tmp_path) -> tuple[SessionService, RunStore]:
+def _services(tmp_path) -> tuple[SessionService, RunService]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runtime = Runtime(model="m", client=ScriptedClient([]))
-    return sessions, RunStore(sessions, runtime, no_bots(sessions))
+    return sessions, RunService(sessions, runtime, no_bots(sessions))
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    sessions, runs = _stores(tmp_path)
+    sessions, runs = _services(tmp_path)
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
     assert build_channels(settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions))[
@@ -28,7 +28,7 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
 
 
 async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
-    sessions, runs = _stores(tmp_path)
+    sessions, runs = _services(tmp_path)
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": "  "})
 
     assert build_channels(settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions))[
@@ -37,7 +37,7 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
-    sessions, runs = _stores(tmp_path)
+    sessions, runs = _services(tmp_path)
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": "abc"})
 
     built, _ = build_channels(
@@ -49,7 +49,7 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
 
 
 async def test_both_bots_share_one_gateway(tmp_path) -> None:
-    sessions, runs = _stores(tmp_path)
+    sessions, runs = _services(tmp_path)
     settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": "abc"})
 
     built, _ = build_channels(

@@ -6,13 +6,13 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from harness.bots import Bot, BotDraft, BotNotFound, BotPermanent, BotStore
-from harness.runs.service import RunStore
+from harness.bots import Bot, BotDraft, BotNotFound, BotPermanent, BotService
+from harness.runs.service import RunService
 
 logger = logging.getLogger(__name__)
 
 
-def build_router(bots: BotStore, runs: RunStore) -> APIRouter:
+def build_router(bots: BotService, runs: RunService) -> APIRouter:
     """Every bot, and the changes a person can make; archiving or deleting one stops its turn."""
     router = APIRouter(prefix="/api/bots", tags=["bots"])
 

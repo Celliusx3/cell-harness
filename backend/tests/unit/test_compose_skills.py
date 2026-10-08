@@ -10,7 +10,7 @@ import pytest
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import ToolCall
-from harness.mcp.service import McpServerStore
+from harness.mcp.service import McpService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -38,7 +38,7 @@ def compose(tmp_path: Path):
     def build() -> Runtime:
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-        mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
+        mcp = McpService({"stub": McpServer(command="does-not-run")})
         return build_runtime(
             settings,
             sessions,

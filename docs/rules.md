@@ -115,7 +115,7 @@ session's stored count in memory after the first read, so a second process
 appending to the same root would land its next write at a stale offset. Two
 writers need a lock, not a bigger cache.
 
-**A watcher owns nothing.** A turn belongs to the run store, never to a
+**A watcher owns nothing.** A turn belongs to the run service, never to a
 connection. Anything reading a run — an SSE response, a future WebSocket — only
 reads, so a client hanging up has no ownership to propagate through. The moment
 a reader can cancel, "close the tab and come back" stops being true.

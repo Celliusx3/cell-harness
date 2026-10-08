@@ -8,7 +8,7 @@ from harness.bots.models import (
     BotNotFound,
     BotPermanent,
 )
-from harness.bots.service import BotStore
+from harness.bots.service import BotService
 
 __all__ = [
     "ASSISTANT_ID",
@@ -17,5 +17,5 @@ __all__ = [
     "BotDraft",
     "BotNotFound",
     "BotPermanent",
-    "BotStore",
+    "BotService",
 ]

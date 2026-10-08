@@ -110,7 +110,7 @@ consent, and is not part of the conversation the model sees.
   is untouched; `derive.py` reads only `message`. `data` is the result's
   `structuredContent`, logged beside the reference because it is what the view
   draws and a reloaded conversation must draw the same thing.
-- **`resources/read` is one more command on the store's loop.** `_Read` beside
+- **`resources/read` is one more command on the service's loop.** `_Read` beside
   `_Call`, same owner task, same timeout, same error mapping — the anyio
   task-affinity constraint in `service.py` applies to every request kind.
 - **Two browser endpoints, `harness/web/routes/mcp.py`.**
@@ -124,7 +124,7 @@ consent, and is not part of the conversation the model sees.
   offer and refusals to give, and an app has neither. A first version went
   through the dispatcher and the model-shaped `Ok`; it re-spelt the name,
   serialised the arguments to parse them again, and flattened the result to
-  text — five steps to arrive where the store already was. Not a session
+  text — five steps to arrive where the service already was. Not a session
   event: nothing the model sees results from it.
 - **What guards an app's call, and where.** The survey below is unanimous:
   nobody routes it through the model's tool layer, and the guards sit at the

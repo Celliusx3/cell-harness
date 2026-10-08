@@ -7,7 +7,7 @@ import asyncio
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID, BotStore
+from harness.bots import ASSISTANT_ID, BotService
 from harness.session.models import TurnEnd, UserMessageEvent
 from tests.integration.web_helpers import build, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, completed
@@ -20,7 +20,7 @@ RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every
 @pytest.fixture
 async def bots(tmp_path):
     service, runs = build(tmp_path, ScriptedClient(completed("hello")))
-    store = BotStore(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
+    store = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
@@ -84,7 +84,7 @@ async def test_assistant_can_be_neither_archived_nor_deleted(bots) -> None:
 
 async def test_archiving_a_bot_stops_its_running_turn_and_keeps_its_chat_whole(tmp_path) -> None:
     service, runs = build(tmp_path, HangingClient("thinking"))
-    store = BotStore(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
+    store = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         bot_id = (await c.post("/api/bots", json=RESEARCHER)).json()["id"]

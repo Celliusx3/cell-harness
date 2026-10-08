@@ -14,7 +14,7 @@ from harness.channels.protocol import (
     UnknownChannelError,
 )
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -67,7 +67,7 @@ def build(tmp_path):
         client=ScriptedClient(completed("answered")),
         checkpoint=sessions.flush,
     )
-    runs = RunStore(sessions, runtime, no_bots(sessions))
+    runs = RunService(sessions, runtime, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t"), runs, chats
 

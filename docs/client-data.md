@@ -96,13 +96,13 @@ datum:
   what the client was shown, so the log decides — `ClientToolService`
   accepts by call id (the browser) or by tool name (a chat) through the same
   checks, and hands back what the resumed turn opens with; the route and
-  `ChatAnswers` then call `RunStore.resume` (a chat's through the gateway, so
+  `ChatAnswers` then call `RunService.resume` (a chat's through the gateway, so
   the reply is delivered).
 
 **The acceptance criterion.** A second datum is `tools/native/<x>/{models,
 tool}.py`, one entry in `CLIENT_TOOLS` (`web/runtime.py`), and one entry in the
 browser's handler map — and no line in `tools/client/`, `routes/client.py`,
-`channels/client.py`, `Replies`, the loop or the run store. `test_client_tools.py` proves the spine on
+`channels/client.py`, `Replies`, the loop or the run service. `test_client_tools.py` proves the spine on
 a throwaway declaration so that stays true without a second real tool.
 
 ## 3. One request, three deliveries
@@ -195,7 +195,7 @@ run when the model calls it. `can_write` in `mcp/tool.py` decides the second
 from the tool's own name alone: a name with a read verb (get, list, search,
 find, read, fetch) runs, every other name asks. A server's annotations are not
 consulted, because a public server's marks cannot be trusted; honouring them
-per trusted server is build order 19. `McpServerStore.writing_tool_names` is
+per trusted server is build order 19. `McpService.writing_tool_names` is
 read on every check, so a server that connects after startup is covered. The
 dispatcher
 answers `Pending` instead, so the loop, the log, repair, the browser card, the

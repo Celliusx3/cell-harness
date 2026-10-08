@@ -9,12 +9,12 @@ from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
 from tests.unit.helpers import client_tools as default_client_tools
-from tests.unit.helpers import durable_service, run_store
+from tests.unit.helpers import durable_service, run_service
 from tests.unit.telegram_fakes import telegram_channel
 
 CHAT = "4242"
@@ -31,7 +31,7 @@ def build(
     gate: ApprovalGate | None = None,
 ):
     sessions = durable_service(tmp_path / "sessions")
-    runs = run_store(sessions, model, *tools, context_tokens=context_tokens, gate=gate)
+    runs = run_service(sessions, model, *tools, context_tokens=context_tokens, gate=gate)
     chats = JsonlChatRepository(tmp_path / "chats")
     client_tools = client_tools or default_client_tools()
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url=public_url)
@@ -45,7 +45,7 @@ def msg(text: str, _seq: int = 0) -> InboundMessage:
     return InboundMessage(channel="telegram", chat_id=CHAT, text=text)
 
 
-async def settle(runs: RunStore, gateway: ChannelGateway, chat_id: int = CHAT) -> None:
+async def settle(runs: RunService, gateway: ChannelGateway, chat_id: int = CHAT) -> None:
     """Let the turn, its delivery, and any drained follow-on finish."""
     for _ in range(200):
         task = gateway._tasks.get(("telegram", chat_id))

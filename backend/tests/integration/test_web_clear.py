@@ -8,14 +8,14 @@ from collections.abc import AsyncIterator
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID, BotStore
+from harness.bots import ASSISTANT_ID, BotService
 from harness.llm.messages import Message
 from harness.llm.stream import StreamEvent
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.tools.definition import ToolSpec
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, completed
-from tests.unit.helpers import durable_service, no_skills, run_store, runtime_over
+from tests.unit.helpers import durable_service, no_skills, run_service, runtime_over
 from tests.webapp import web_app
 
 
@@ -23,8 +23,8 @@ from tests.webapp import web_app
 async def assistant(tmp_path):
     model = ScriptedClient(completed("noted"))
     service = durable_service(tmp_path / "sessions")
-    store = BotStore(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
-    runs = RunStore(service, runtime_over(model, checkpoint=service.flush), store)
+    store = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
+    runs = RunService(service, runtime_over(model, checkpoint=service.flush), store)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:
@@ -32,7 +32,7 @@ async def assistant(tmp_path):
         yield client, model, runs
 
 
-async def _say(client: httpx.AsyncClient, runs: RunStore, prompt: str) -> None:
+async def _say(client: httpx.AsyncClient, runs: RunService, prompt: str) -> None:
     sent = await client.post(f"/api/conversations/{ASSISTANT_ID}/messages", json={"prompt": prompt})
     assert sent.status_code == 202
     await settle(runs, ASSISTANT_ID)
@@ -61,7 +61,7 @@ async def test_clearing_an_unknown_chat_is_a_404(assistant) -> None:
 
 async def test_clearing_a_running_chat_stops_its_turn(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
-    runs = run_store(service, HangingClient("thinking"))
+    runs = run_service(service, HangingClient("thinking"))
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await assistant_chat(c, "go")
@@ -98,7 +98,7 @@ class HoldsFirstCall(SteppedClient):
 async def test_a_message_sent_while_a_clear_stops_the_turn_lands_after_the_clear(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
     model = HoldsFirstCall("fresh answer")
-    runs = run_store(service, model)
+    runs = run_service(service, model)
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await assistant_chat(c, "the secret word is PELICAN")
@@ -128,7 +128,7 @@ async def test_a_message_sent_while_a_clear_stops_the_turn_lands_after_the_clear
 
 async def test_a_clear_that_cannot_wipe_the_chat_says_so(tmp_path, monkeypatch) -> None:
     service = durable_service(tmp_path / "sessions")
-    runs = run_store(service, ScriptedClient(completed("noted")))
+    runs = run_service(service, ScriptedClient(completed("noted")))
     app = web_app(tmp_path, service, runs, skills=no_skills())
 
     async def broken(session_id: str) -> None:

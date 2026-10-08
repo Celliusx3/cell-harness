@@ -7,14 +7,14 @@ import httpx
 from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
 from harness.llm.stream import StreamEvent
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.tools.approval import DENIED, ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import assistant_chat, events_from, settle
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
-from tests.unit.helpers import durable_service, no_skills, run_store
+from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.webapp import idle, web_app, web_app_with_telegram
 
 WRITE = "memory__write_note"
@@ -41,7 +41,7 @@ def _asking(tmp_path, *steps, ran: list[str]):
         calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"), completed("saved"), *steps
     )
     service = durable_service(tmp_path / "sessions")
-    runs = run_store(service, model, _writer(ran), *tools.definitions(), gate=gate)
+    runs = run_service(service, model, _writer(ran), *tools.definitions(), gate=gate)
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, gate=gate)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
     return client, runs
@@ -53,7 +53,7 @@ def _asking_beside_telegram(tmp_path, *scripts: list[StreamEvent], ran: list[str
     tools = ClientToolService(CLIENT_TOOLS, gate)
     service = durable_service(tmp_path / "sessions")
     model = SteppedClient(*scripts)
-    runs = run_store(service, model, _writer(ran), *tools.definitions(), gate=gate)
+    runs = run_service(service, model, _writer(ran), *tools.definitions(), gate=gate)
     app, gateway, bot = web_app_with_telegram(
         tmp_path, service, runs, skills=no_skills(), client_tools=tools, gate=gate
     )
@@ -65,7 +65,7 @@ def _telegram(chat_id: str, text: str) -> InboundMessage:
     return InboundMessage(channel="telegram", chat_id=chat_id, text=text)
 
 
-async def _pending(client: httpx.AsyncClient, runs: RunStore) -> str:
+async def _pending(client: httpx.AsyncClient, runs: RunService) -> str:
     conversation_id = await assistant_chat(client, "remember I like Kopi")
     await settle(runs, conversation_id)
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()

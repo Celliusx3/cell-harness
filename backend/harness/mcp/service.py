@@ -14,7 +14,7 @@ from harness.mcp.tool import can_write, namespaced
 from harness.tools.definition import ToolDefinition
 
 
-class McpServerStore:
+class McpService:
     """The live connections to the configured servers, and their tools."""
 
     def __init__(

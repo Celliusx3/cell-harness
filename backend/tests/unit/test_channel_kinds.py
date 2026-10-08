@@ -12,7 +12,7 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, Pushing
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -33,7 +33,7 @@ def build(tmp_path: Path):
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)
-    runs = RunStore(sessions, runtime, bots)
+    runs = RunService(sessions, runtime, bots)
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     web = WebChannel(sessions, runs, gateway, bots)
@@ -41,7 +41,7 @@ def build(tmp_path: Path):
     return gateway, web, runs, chats, sessions
 
 
-async def settle(runs: RunStore, gateway: ChannelGateway, key) -> None:
+async def settle(runs: RunService, gateway: ChannelGateway, key) -> None:
     for _ in range(300):
         task = gateway._tasks.get(key)
         busy = task is not None and not task.done()

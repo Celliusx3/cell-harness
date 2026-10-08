@@ -17,7 +17,7 @@ from harness.channels.protocol import (
 )
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
-from harness.runs.service import Run, RunAlreadyActive, RunStore
+from harness.runs.service import Run, RunAlreadyActive, RunService
 from harness.runtime.compaction import CompactionRefused, check_can_compact
 from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError
@@ -35,7 +35,7 @@ class ChannelGateway:
     def __init__(
         self,
         repository: ChatRepository,
-        runs: RunStore,
+        runs: RunService,
         sessions: SessionService,
         skills: SkillService,
         *,
@@ -71,7 +71,7 @@ class ChannelGateway:
         return list(self._channels)
 
     @property
-    def runs(self) -> RunStore:
+    def runs(self) -> RunService:
         """Which conversations are busy — for a chat deciding whether an answer can open a turn."""
         return self._runs
 

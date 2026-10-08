@@ -6,7 +6,7 @@ import json
 
 import httpx
 
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import SKIPPED
 from harness.tools.native.question import QUESTION
 from tests.integration.web_helpers import assistant_chat, build, events_from, settle
@@ -27,7 +27,7 @@ def _asking(tmp_path, reply: str = "searching Shopee"):
     return client, runs
 
 
-async def _pending(client: httpx.AsyncClient, runs: RunStore) -> str:
+async def _pending(client: httpx.AsyncClient, runs: RunService) -> str:
     conversation_id = await assistant_chat(client, "find me a Pokémon ETB")
     await settle(runs, conversation_id)
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()

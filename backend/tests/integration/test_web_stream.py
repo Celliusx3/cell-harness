@@ -13,7 +13,7 @@ import pytest
 import uvicorn
 
 from harness.channels.web import sse as sse_module
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -48,7 +48,7 @@ async def serving(app) -> AsyncIterator[str]:
 @asynccontextmanager
 async def served(
     tmp_path, client, *tools
-) -> AsyncIterator[tuple[httpx.AsyncClient, SessionService, RunStore]]:
+) -> AsyncIterator[tuple[httpx.AsyncClient, SessionService, RunService]]:
     """A real server over `client`'s script and `tools`, and a client on it."""
     ids = iter(f"c{n}" for n in range(100))
     service = SessionService(
@@ -59,7 +59,7 @@ async def served(
     runtime = Runtime(
         model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
     )
-    runs = RunStore(service, runtime, no_bots(service))
+    runs = RunService(service, runtime, no_bots(service))
     async with (
         serving(web_app(tmp_path, service, runs, skills=no_skills())) as base_url,
         httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as http,

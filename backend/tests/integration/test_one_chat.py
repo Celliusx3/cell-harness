@@ -9,14 +9,14 @@ from datetime import UTC, datetime
 
 import httpx
 
-from harness.bots import ASSISTANT_ID, BotStore
+from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, ToolSpec
 from harness.llm.stream import StreamEvent
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -54,9 +54,9 @@ def build_on(tmp_path, model: LLMClient):
         JsonlSessionRepository(tmp_path / "sessions"),
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
     )
-    bots = BotStore(tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT")
+    bots = BotService(tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT")
     runtime = Runtime(model="m", client=model, checkpoint=sessions.flush)
-    runs = RunStore(sessions, runtime, bots)
+    runs = RunService(sessions, runtime, bots)
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
@@ -65,7 +65,7 @@ def build_on(tmp_path, model: LLMClient):
     return bot, http, gateway, runs
 
 
-async def settle(runs: RunStore, gateway: ChannelGateway) -> None:
+async def settle(runs: RunService, gateway: ChannelGateway) -> None:
     for _ in range(300):
         task = gateway._tasks.get(("telegram", CHAT))
         busy = task is not None and not task.done()

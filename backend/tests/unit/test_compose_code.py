@@ -9,7 +9,7 @@ import pytest
 from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm.messages import ToolCall
-from harness.mcp.service import McpServerStore
+from harness.mcp.service import McpService
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
 from harness.runtime.hooks.native.no_progress import NoProgressHook
@@ -31,12 +31,12 @@ WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
 
 @pytest.fixture
 def compose(tmp_path: Path):
-    """The real object graph, with a store that is never started."""
+    """The real object graph, with a service that is never started."""
 
     def build() -> Runtime:
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path))
-        mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
+        mcp = McpService({"stub": McpServer(command="does-not-run")})
         return build_runtime(
             settings,
             sessions,

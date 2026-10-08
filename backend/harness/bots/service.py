@@ -20,7 +20,7 @@ from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 
 
-class BotStore:
+class BotService:
     """Every bot, Assistant first, and the one chat each owns."""
 
     def __init__(

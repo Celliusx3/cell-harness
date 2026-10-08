@@ -5,10 +5,10 @@ from __future__ import annotations
 import dataclasses
 import logging
 
-from harness.bots import BotStore
+from harness.bots import BotService
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
-from harness.mcp.service import McpServerStore
+from harness.mcp.service import McpService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
@@ -70,13 +70,13 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
 def build_runtime(
     settings: Settings,
     store: SessionService,
-    mcp: McpServerStore,
+    mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
     gate: ApprovalGate,
     context_tokens: int | None = None,
     *,
-    bots: BotStore,
+    bots: BotService,
     subagent_logs: SessionService,
 ) -> Runtime:
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import httpx
 
-from harness.runs.service import RunStore
+from harness.runs.service import RunService
 from harness.runtime.service import SKIPPED
 from harness.tools.native.location import LOCATION
 from tests.integration.web_helpers import assistant_chat, build, events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
-from tests.unit.helpers import client_tools, durable_service, no_skills, run_store
+from tests.unit.helpers import client_tools, durable_service, no_skills, run_service
 from tests.webapp import web_app
 
 SHARED = {"kind": "shared", "data": {"latitude": 3.139, "longitude": 101.6869, "accuracy_m": 25}}
@@ -26,7 +26,7 @@ def _asking(tmp_path, reply: str = "a café 200 m from you"):
     return client, service, runs
 
 
-async def _pending(client: httpx.AsyncClient, runs: RunStore) -> str:
+async def _pending(client: httpx.AsyncClient, runs: RunService) -> str:
     """Start the turn and let it end pending."""
     conversation_id = await assistant_chat(client, "coffee near me?")
     await settle(runs, conversation_id)
@@ -148,7 +148,7 @@ async def test_a_restart_between_the_ask_and_the_answer_changes_nothing(tmp_path
     tools = client_tools()
     reborn = durable_service(tmp_path / "sessions", prefix="d")
     model = SteppedClient(completed("a café 200 m from you"))
-    runs2 = run_store(reborn, model, *tools.definitions())
+    runs2 = run_service(reborn, model, *tools.definitions())
     app2 = web_app(tmp_path, reborn, runs2, skills=no_skills(), client_tools=tools)
     client2 = httpx.AsyncClient(transport=httpx.ASGITransport(app=app2), base_url="http://h.test")
 

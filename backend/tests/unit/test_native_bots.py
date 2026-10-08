@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import BotStore
+from harness.bots import BotService
 from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
@@ -17,17 +17,17 @@ CONFIG = Path(__file__).resolve().parents[2] / "config.json"
 
 
 @pytest.fixture
-def store(tmp_path: Path) -> BotStore:
-    return BotStore(
+def store(tmp_path: Path) -> BotService:
+    return BotService(
         tmp_path / "bots.json", durable_service(tmp_path / "sessions"), assistant_instructions="A."
     )
 
 
-async def call(store: BotStore, **arguments):
+async def call(store: BotService, **arguments):
     return await bot_create_tool(store).invoke(json.dumps(arguments), context=context_for())
 
 
-async def test_a_bot_made_from_chat_is_the_one_the_form_makes(store: BotStore) -> None:
+async def test_a_bot_made_from_chat_is_the_one_the_form_makes(store: BotService) -> None:
     outcome = await call(store, name="Researcher", instructions="You find sources.")
 
     made = (await store.list())[1]
@@ -36,7 +36,7 @@ async def test_a_bot_made_from_chat_is_the_one_the_form_makes(store: BotStore) -
     assert made.id in outcome.text
 
 
-async def test_a_blank_name_is_refused_as_the_form_refuses_it(store: BotStore) -> None:
+async def test_a_blank_name_is_refused_as_the_form_refuses_it(store: BotService) -> None:
     outcome = await call(store, name="  ", instructions="You find sources.")
 
     assert isinstance(outcome, Failure)

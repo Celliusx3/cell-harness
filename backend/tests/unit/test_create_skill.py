@@ -10,7 +10,7 @@ from pathlib import Path
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import ToolCall
-from harness.mcp.service import McpServerStore
+from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import parse
@@ -49,7 +49,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
     runtime = build_runtime(
         Settings(llm={"model": "m", "api_key": "k"}),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpServerStore({"stub": McpServer(command="does-not-run")}),
+        McpService({"stub": McpServer(command="does-not-run")}),
         skills_at(tmp_path / "skills"),
         client_tools(),
         no_gate(),
