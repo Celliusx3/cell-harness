@@ -7,11 +7,11 @@ import contextlib
 from contextlib import aclosing
 from pathlib import Path
 
-from harness.agent.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
-from harness.agent.hooks import HookChain, ToolHook
-from harness.agent.service import Agent
 from harness.llm.messages import ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
+from harness.runtime.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
+from harness.runtime.hooks import HookChain, ToolHook
+from harness.runtime.service import Runtime
 from harness.sandbox import Bridge, BridgeError
 from harness.session.models import (
     ApplicationMessageEvent,
@@ -47,14 +47,14 @@ def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
     )
 
 
-def _agent(
+def _runtime(
     client, gate: ApprovalGate, *tools: ToolDefinition, hooks: HookChain | None = None
-) -> Agent:
+) -> Runtime:
     registry = ToolRegistry(tools)
     pipeline = ToolPipeline(
         registry, ToolDispatcher(registry, gate), default_tools=[t.name for t in tools]
     )
-    return Agent(model="m", client=client, tools=pipeline, hooks=hooks or HookChain())
+    return Runtime(model="m", client=client, tools=pipeline, hooks=hooks or HookChain())
 
 
 def _types(session) -> list[str]:
@@ -71,7 +71,7 @@ async def test_a_listed_tool_ends_the_turn_pending_and_does_not_run(tmp_path) ->
     session = new_session()
 
     events = await drain(
-        _agent(client, _gate(tmp_path, WRITE), _writer(ran)).run("remember Kopi", session=session)
+        _runtime(client, _gate(tmp_path, WRITE), _writer(ran)).run("remember Kopi", session=session)
     )
 
     assert ran == []
@@ -86,10 +86,10 @@ async def test_allow_once_runs_the_call_in_the_next_turn_and_the_model_sees_its_
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))
     session = new_session()
-    agent = _agent(client, _gate(tmp_path, WRITE), _writer(ran))
-    await drain(agent.run("remember Kopi", session=session))
+    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
+    await drain(runtime.run("remember Kopi", session=session))
 
-    events = await drain(agent.resume("c1", Approved(scope="once"), session=session))
+    events = await drain(runtime.resume("c1", Approved(scope="once"), session=session))
 
     assert ran == ["Kopi"]
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
@@ -104,14 +104,14 @@ async def test_deny_writes_a_denied_result_the_model_reads(tmp_path) -> None:
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("not saved"))
     session = new_session()
-    agent = _agent(client, _gate(tmp_path, WRITE), _writer(ran))
-    await drain(agent.run("remember Kopi", session=session))
+    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
+    await drain(runtime.run("remember Kopi", session=session))
     service = ClientToolService(ClientTools(()), _gate(tmp_path, WRITE))
     accepted = service.accept_call(session, "c1", {"kind": "denied"})
     assert isinstance(accepted, Accepted) and isinstance(accepted.outcome, Failure)
     assert accepted.outcome.code == DENIED
 
-    await drain(agent.resume("c1", accepted.outcome, session=session))
+    await drain(runtime.resume("c1", accepted.outcome, session=session))
 
     assert ran == []
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
@@ -131,11 +131,11 @@ async def test_allow_for_the_conversation_writes_a_grant_and_the_next_call_runs_
         completed("saved again"),
     )
     session = new_session()
-    agent = _agent(client, _gate(tmp_path, WRITE), _writer(ran))
-    await drain(agent.run("remember Kopi", session=session))
+    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
+    await drain(runtime.run("remember Kopi", session=session))
 
-    await drain(agent.resume("c1", Approved(scope="conversation"), session=session))
-    events = await drain(agent.run("and Teh", session=session))
+    await drain(runtime.resume("c1", Approved(scope="conversation"), session=session))
+    events = await drain(runtime.run("and Teh", session=session))
 
     assert ran == ["Kopi", "Teh"]
     grants = [e for e in session.events() if isinstance(e, ApprovalGrant)]
@@ -158,12 +158,12 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     client = SteppedClient(_step_with(*calls), completed("both saved"))
     session = new_session()
     gate = _gate(tmp_path, WRITE)
-    agent = _agent(client, gate, _writer(ran))
+    runtime = _runtime(client, gate, _writer(ran))
     service = ClientToolService(ClientTools(()), gate)
-    await drain(agent.run("remember both", session=session))
+    await drain(runtime.run("remember both", session=session))
     assert {p.call_id for p in service.pending(session)} == {"c1", "c2"}
 
-    first = await drain(agent.resume("c1", Approved(scope="once"), session=session))
+    first = await drain(runtime.resume("c1", Approved(scope="once"), session=session))
 
     assert ran == ["Kopi"]
     assert first[-1] == AgentPending(tool_call_id="c2", name=WRITE)
@@ -171,7 +171,7 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     assert [p.call_id for p in service.pending(session)] == ["c2"]
     assert client.calls == 1
 
-    second = await drain(agent.resume("c2", Approved(scope="once"), session=session))
+    second = await drain(runtime.resume("c2", Approved(scope="once"), session=session))
 
     assert ran == ["Kopi", "Teh"]
     assert second[-1] == AgentCompleted(text="both saved")
@@ -189,7 +189,7 @@ async def test_a_script_calling_a_listed_tool_is_refused_and_told_to_call_it_dir
         except BridgeError as err:
             raised.append(err)
 
-    built = build(tool(WRITE), runtime=FakeRunner(script=script), gate=_gate(tmp_path, WRITE))
+    built = build(tool(WRITE), runner=FakeRunner(script=script), gate=_gate(tmp_path, WRITE))
 
     listed = await built.run("list_functions", "{}")
     assert isinstance(listed, Ok) and WRITE in listed.text
@@ -210,11 +210,13 @@ async def test_cancel_during_an_approved_run_closes_the_turn(tmp_path) -> None:
     )
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("never"))
     session = new_session()
-    agent = _agent(client, _gate(tmp_path, WRITE), slow)
-    await drain(agent.run("remember Kopi", session=session))
+    runtime = _runtime(client, _gate(tmp_path, WRITE), slow)
+    await drain(runtime.run("remember Kopi", session=session))
 
     async def consume() -> None:
-        async with aclosing(agent.resume("c1", Approved(scope="once"), session=session)) as events:
+        async with aclosing(
+            runtime.resume("c1", Approved(scope="once"), session=session)
+        ) as events:
             async for _ in events:
                 pass
 
@@ -241,9 +243,9 @@ async def test_a_hook_refusal_never_reaches_the_gate(tmp_path) -> None:
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("ok"))
     session = new_session()
-    agent = _agent(client, _gate(tmp_path, WRITE), _writer(ran), hooks=HookChain((Refuse(),)))
+    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran), hooks=HookChain((Refuse(),)))
 
-    events = await drain(agent.run("remember Kopi", session=session))
+    events = await drain(runtime.run("remember Kopi", session=session))
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == BLOCKED
@@ -253,10 +255,10 @@ async def test_a_hook_refusal_never_reaches_the_gate(tmp_path) -> None:
 async def test_an_approved_calls_progress_reaches_the_caller_before_its_result(tmp_path) -> None:
     client = SteppedClient(calls_tool("slow", '{"value": "done"}', id="c1"), completed("ok"))
     session = new_session()
-    agent = _agent(client, _gate(tmp_path, "slow"), reporting_tool([(50.0, "halfway")]))
-    await drain(agent.run("go", session=session))
+    runtime = _runtime(client, _gate(tmp_path, "slow"), reporting_tool([(50.0, "halfway")]))
+    await drain(runtime.run("go", session=session))
 
-    events = await drain(agent.resume("c1", Approved(scope="once"), session=session))
+    events = await drain(runtime.resume("c1", Approved(scope="once"), session=session))
 
     progress, result = events[0], events[1]
     assert isinstance(progress, ToolProgress) and progress.message == "halfway"
@@ -273,10 +275,10 @@ async def test_an_approved_calls_note_is_logged_after_its_result(tmp_path) -> No
 
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))
     session = new_session()
-    agent = _agent(client, _gate(tmp_path, WRITE), _writer([]), hooks=HookChain((Noting(),)))
-    await drain(agent.run("remember Kopi", session=session))
+    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer([]), hooks=HookChain((Noting(),)))
+    await drain(runtime.run("remember Kopi", session=session))
 
-    await drain(agent.resume("c1", Approved(scope="once"), session=session))
+    await drain(runtime.resume("c1", Approved(scope="once"), session=session))
 
     kinds = [e.type for e in session.events() if e.type in ("tool/result", "application/message")]
     assert kinds == ["tool/result", "application/message"]

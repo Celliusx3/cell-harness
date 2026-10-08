@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-from harness.agent.service import Agent
 from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, apply
 from harness.channels.gateway import ChannelGateway
@@ -16,6 +15,7 @@ from harness.channels.protocol import (
 )
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.client import PendingCall
@@ -62,12 +62,12 @@ def build(tmp_path):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = Agent(
+    runtime = Runtime(
         model="m",
         client=ScriptedClient(completed("answered")),
         checkpoint=sessions.flush,
     )
-    runs = RunStore(sessions, agent, no_bots(sessions))
+    runs = RunStore(sessions, runtime, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t"), runs, chats
 

@@ -9,17 +9,17 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
-from harness.agent.hooks.calls import (
+from harness.llm.messages import ToolCall
+from harness.runtime.hooks.calls import (
     CompletedCall,
     Signature,
     completed_calls,
     empty_replies_in_a_row,
 )
-from harness.llm.messages import ToolCall
 from harness.session.log import Session
 from harness.tools.definition import ToolOutcome
 
-logger = logging.getLogger("harness.agent")
+logger = logging.getLogger("harness.runtime")
 
 HOOK_TIMEOUT_S = 5.0
 

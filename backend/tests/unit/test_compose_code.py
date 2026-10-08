@@ -6,24 +6,24 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.hooks.native.empty_reply import EmptyReplyHook
-from harness.agent.hooks.native.exact_failure import ExactFailureHook
-from harness.agent.hooks.native.no_progress import NoProgressHook
-from harness.agent.hooks.native.repeated_call import RepeatedCallHook
-from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.service import Agent
 from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm.messages import ToolCall
 from harness.mcp.store import McpServerStore
+from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
+from harness.runtime.hooks.native.exact_failure import ExactFailureHook
+from harness.runtime.hooks.native.no_progress import NoProgressHook
+from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
+from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import CODE_PROMPT, LIST
-from harness.web import agent as composition
-from harness.web.agent import CLIENT_TOOLS, DEFAULT_TOOLS, build_agent
+from harness.web import runtime as composition
+from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
@@ -33,11 +33,11 @@ WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
 def compose(tmp_path: Path):
     """The real object graph, with a store that is never started."""
 
-    def build() -> Agent:
+    def build() -> Runtime:
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        return build_agent(
+        return build_runtime(
             settings,
             sessions,
             mcp,
@@ -52,17 +52,17 @@ def compose(tmp_path: Path):
 
 
 def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> None:
-    agent = compose()
+    runtime = compose()
 
-    assert agent.tools is not None
-    assert [spec.name for spec in agent.tools.specs()] == WITHOUT_SKILLS
+    assert runtime.tools is not None
+    assert [spec.name for spec in runtime.tools.specs()] == WITHOUT_SKILLS
 
 
 async def test_the_three_tools_actually_dispatch(compose) -> None:
-    agent = compose()
-    assert agent.tools is not None
+    runtime = compose()
+    assert runtime.tools is not None
 
-    outcome = await agent.tools.execute(
+    outcome = await runtime.tools.execute(
         ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
     )
 
@@ -70,7 +70,7 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
 
 
 def test_the_prompt_explains_the_three_tools(compose) -> None:
-    assert CODE_PROMPT in compose().system_prompt
+    assert CODE_PROMPT in compose().guidance
 
 
 def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:
@@ -98,24 +98,24 @@ def test_exactly_one_dispatcher_is_built(compose, monkeypatch) -> None:
 
 
 def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
-    agent = compose()
+    runtime = compose()
 
-    assert [type(hook) for hook in agent.hooks.tool_hooks] == [
+    assert [type(hook) for hook in runtime.hooks.tool_hooks] == [
         ExactFailureHook,
         SameToolFailureHook,
         NoProgressHook,
         RepeatedCallHook,
     ]
-    assert [type(hook) for hook in agent.hooks.step_hooks] == [EmptyReplyHook]
+    assert [type(hook) for hook in runtime.hooks.step_hooks] == [EmptyReplyHook]
 
 
 async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:
-    agent = compose()
-    assert agent.tools is not None
-    offered = {spec.name for spec in agent.tools.specs()}
+    runtime = compose()
+    assert runtime.tools is not None
+    offered = {spec.name for spec in runtime.tools.specs()}
     assert CLIENT_TOOLS.names <= offered
 
-    listed = await agent.tools.execute(
+    listed = await runtime.tools.execute(
         ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
     )
     assert isinstance(listed, Ok)

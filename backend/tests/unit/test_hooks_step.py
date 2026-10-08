@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from harness.agent.hooks import GiveUp, Tell
-from harness.agent.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE
 from harness.llm.messages import AssistantMessage, ToolCall
+from harness.runtime.hooks import GiveUp, Tell
+from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE
 from harness.session.log import Session
 from harness.session.models import AssistantMessageEvent, TurnStart
 from tests.unit.test_hooks_native import GUARD, call, turn

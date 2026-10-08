@@ -16,7 +16,7 @@ from harness.session.service import SessionService
 from harness.skills import parse
 from harness.tools.definition import Ok
 from harness.tools.native.code import EXECUTE
-from harness.web.agent import build_agent
+from harness.web.runtime import build_runtime
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, skills_at
 
 PROJECT_SKILLS = Path(__file__).parents[3] / ".agents" / "skills"
@@ -46,7 +46,7 @@ def test_the_example_skill_it_teaches_is_one_the_page_would_save() -> None:
 
 
 async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -> None:
-    agent = build_agent(
+    runtime = build_runtime(
         Settings(llm={"model": "m", "api_key": "k"}),
         SessionService(JsonlSessionRepository(tmp_path)),
         McpServerStore({"stub": McpServer(command="does-not-run")}),
@@ -56,10 +56,10 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
     )
-    assert agent.tools is not None
+    assert runtime.tools is not None
     script = fenced(CREATE_SKILL.read_text(), "ts")
 
-    ran = await agent.tools.execute(
+    ran = await runtime.tools.execute(
         ToolCall(
             id="c1",
             name=EXECUTE,

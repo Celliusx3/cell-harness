@@ -11,7 +11,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.native.bots import BOT_CREATE
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE
-from harness.web.agent import build_agent
+from harness.web.runtime import build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
@@ -106,7 +106,7 @@ def test_every_config_section_names_its_tool_or_a_reason() -> None:
 
 
 def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> None:
-    agent = build_agent(
+    runtime = build_runtime(
         Settings(llm={"model": "m", "api_key": "k"}),
         SessionService(JsonlSessionRepository(tmp_path)),
         McpServerStore({}),
@@ -116,9 +116,9 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
     )
-    assert agent.tools is not None
+    assert runtime.tools is not None
 
-    offered = {spec.name for spec in agent.tools.specs()}
+    offered = {spec.name for spec in runtime.tools.specs()}
     named = {
         entry.name for entry in (*ROUTES.values(), *CONFIG.values()) if isinstance(entry, Tool)
     }

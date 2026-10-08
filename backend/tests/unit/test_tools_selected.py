@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from contextlib import aclosing
 
-from harness.agent.service import Agent
 from harness.llm.adapters.openai_wire import wire_message
 from harness.llm.messages import Text, ToolCall, ToolMessage, ToolReference
+from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.tools.definition import Ok, ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
@@ -34,7 +34,7 @@ def pipeline(*tools: ToolDefinition) -> ToolPipeline:
     registry = ToolRegistry(tools)
     dispatcher = ToolDispatcher(registry, no_gate())
     for made in code_mode_tools(
-        registry=registry, dispatcher=dispatcher, runtime=FakeRunner(), withheld=frozenset()
+        registry=registry, dispatcher=dispatcher, runner=FakeRunner(), withheld=frozenset()
     ):
         registry.register(made)
     return ToolPipeline(registry, dispatcher, DEFAULTS)
@@ -143,10 +143,10 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    agent = Agent(model="m", client=client, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
-    async with aclosing(agent.run("go", session=session)) as events:
+    async with aclosing(runtime.run("go", session=session)) as events:
         async for _ in events:
             pass
 
@@ -161,10 +161,10 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    agent = Agent(model="m", client=client, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
-    async with aclosing(agent.run("go", session=session)) as events:
+    async with aclosing(runtime.run("go", session=session)) as events:
         async for _ in events:
             pass
 

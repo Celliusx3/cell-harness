@@ -11,7 +11,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import agent_over, drain, durable_service
+from tests.unit.helpers import drain, durable_service, runtime_over
 
 
 @pytest.fixture
@@ -71,7 +71,7 @@ async def test_a_turn_is_durable_before_its_request_is_sent(store) -> None:
         await store.flush(session)
 
     session = await store.create()
-    await drain(agent_over(client, checkpoint=checkpoint).run("hi", session=session))
+    await drain(runtime_over(client, checkpoint=checkpoint).run("hi", session=session))
 
     assert seen == [3]
     stored = await store.resume("s0")
@@ -81,7 +81,7 @@ async def test_a_turn_is_durable_before_its_request_is_sent(store) -> None:
 async def test_a_turn_survives_the_process_it_ran_in(store, tmp_path) -> None:
     client = ScriptedClient(completed("the answer is 42"))
     session = await store.create()
-    await drain(agent_over(client, checkpoint=store.flush).run("what is it?", session=session))
+    await drain(runtime_over(client, checkpoint=store.flush).run("what is it?", session=session))
     await store.flush(session)
 
     reopened = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
@@ -96,12 +96,12 @@ async def test_a_turn_survives_the_process_it_ran_in(store, tmp_path) -> None:
 async def test_a_resumed_session_continues_its_turn_numbering(store) -> None:
     client = ScriptedClient(completed("one"))
     session = await store.create()
-    await drain(agent_over(client, checkpoint=store.flush).run("first", session=session))
+    await drain(runtime_over(client, checkpoint=store.flush).run("first", session=session))
     await store.flush(session)
 
     resumed = await store.resume("s0")
     client._script = completed("two")
-    await drain(agent_over(client, checkpoint=store.flush).run("second", session=resumed))
+    await drain(runtime_over(client, checkpoint=store.flush).run("second", session=resumed))
 
     assert [(m.role, m.content) for m in client.seen] == [
         ("user", "first"),

@@ -55,7 +55,7 @@ that folder in Obsidian to see and edit what the model remembers.
 
 ## What the model is told
 
-`GUIDANCE` (`web/agent.py`): search before answering about anything the
+`GUIDANCE` (`web/runtime.py`): search before answering about anything the
 person said in an earlier conversation, and save what they ask to remember.
 The `remember` skill names the four functions, the `directory` for each kind
 of note (`places`, `people`, `notes`), what never to save unasked (health,

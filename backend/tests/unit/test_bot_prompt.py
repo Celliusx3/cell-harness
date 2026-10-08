@@ -1,15 +1,16 @@
-"""Assistant's request is what the one agent's was before bots existed."""
+"""Assistant's request is what the one runtime's was before bots existed."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from harness.bots import ASSISTANT_INSTRUCTIONS
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, SessionHeader
 from harness.tools.native.code import CODE_PROMPT
-from harness.web.agent import ASSISTANT_INSTRUCTIONS, GUIDANCE
+from harness.web.runtime import GUIDANCE
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import agent_over
+from tests.unit.helpers import runtime_over
 
 PROMPT_BEFORE_BOTS = (
     "You are a helpful assistant. When a tool can answer the user's question, "
@@ -20,19 +21,19 @@ PROMPT_BEFORE_BOTS = (
 
 
 def test_assistant_s_system_prompt_is_byte_for_byte_the_one_before_bots() -> None:
-    agent = agent_over(ScriptedClient(completed("x")), system_prompt=GUIDANCE)
+    runtime = runtime_over(ScriptedClient(completed("x")), guidance=GUIDANCE)
     session = Session(SessionHeader(id="s", created_at=datetime(2026, 1, 1, tzinfo=UTC)))
     session.append(BotInstructionsEvent(name="Assistant", instructions=ASSISTANT_INSTRUCTIONS))
 
-    system = agent.request_messages(session)[0]
+    system = runtime.request_messages(session)[0]
 
     assert system.content == PROMPT_BEFORE_BOTS
 
 
 def test_a_session_with_no_instructions_logged_keeps_the_agent_s_own_prompt() -> None:
-    agent = agent_over(ScriptedClient(completed("x")), system_prompt="only this")
+    runtime = runtime_over(ScriptedClient(completed("x")), guidance="only this")
     session = Session(SessionHeader(id="s", created_at=datetime(2026, 1, 1, tzinfo=UTC)))
 
-    system = agent.request_messages(session)[0]
+    system = runtime.request_messages(session)[0]
 
     assert system.content == "only this"

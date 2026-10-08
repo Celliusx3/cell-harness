@@ -1,6 +1,6 @@
 """The same call keeps returning the identical result."""
 
-from harness.agent.hooks.native.no_progress.hook import (
+from harness.runtime.hooks.native.no_progress.hook import (
     NO_PROGRESS_BLOCK_AT,
     NoProgressHook,
 )

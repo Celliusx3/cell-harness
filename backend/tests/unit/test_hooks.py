@@ -9,7 +9,8 @@ from dataclasses import dataclass
 
 import pytest
 
-from harness.agent.hooks import (
+from harness.llm.messages import ToolCall, ToolMessage
+from harness.runtime.hooks import (
     CompletedCall,
     HookChain,
     Signature,
@@ -19,8 +20,7 @@ from harness.agent.hooks import (
     ToolHook,
     completed_calls,
 )
-from harness.agent.hooks import service as service_module
-from harness.llm.messages import ToolCall, ToolMessage
+from harness.runtime.hooks import service as service_module
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.definition import BLOCKED, Ok, ToolOutcome
 from tests.unit.helpers import new_session
@@ -119,7 +119,7 @@ async def test_a_raising_decision_hook_refuses_nothing_and_suppresses_nothing(
 ) -> None:
     chain = HookChain((Raises(), Says(refusal="ok", note="note")))
 
-    with caplog.at_level(logging.ERROR, logger="harness.agent"):
+    with caplog.at_level(logging.ERROR, logger="harness.runtime"):
         assert await chain.pre_tool_call(CALL, session=new_session()) == "ok"
         assert await chain.post_tool_call(CALL, Ok(content="x"), session=new_session()) == "note"
 
@@ -133,7 +133,7 @@ async def test_a_hook_exceeding_the_timeout_is_skipped_and_logged(
     monkeypatch.setattr(service_module, "HOOK_TIMEOUT_S", 0.01)
     chain = HookChain((Hangs(), Says(refusal="after")))
 
-    with caplog.at_level(logging.WARNING, logger="harness.agent"):
+    with caplog.at_level(logging.WARNING, logger="harness.runtime"):
         assert await chain.pre_tool_call(CALL, session=new_session()) == "after"
 
     assert "Hangs.pre exceeded" in caplog.text
@@ -202,7 +202,7 @@ async def test_a_raising_step_hook_decides_nothing_and_the_next_one_is_asked(
 ) -> None:
     chain = HookChain(step_hooks=(RaisesAtStepEnd(), SaysAtStepEnd(Tell("answer"))))
 
-    with caplog.at_level(logging.ERROR, logger="harness.agent"):
+    with caplog.at_level(logging.ERROR, logger="harness.runtime"):
         assert await chain.end_of_step(session=new_session()) == Tell("answer")
 
     assert "RaisesAtStepEnd.end_of_step raised" in caplog.text

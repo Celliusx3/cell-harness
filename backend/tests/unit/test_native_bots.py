@@ -10,7 +10,7 @@ import pytest
 from harness.bots import BotStore
 from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
-from harness.web.agent import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
+from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
 from tests.unit.helpers import context_for, durable_service
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"

@@ -15,7 +15,7 @@ from harness.runs.store import RunStore
 from harness.tools.definition import ToolSpec
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, completed
-from tests.unit.helpers import agent_over, durable_service, no_skills, run_store
+from tests.unit.helpers import durable_service, no_skills, run_store, runtime_over
 from tests.webapp import web_app
 
 
@@ -24,7 +24,7 @@ async def assistant(tmp_path):
     model = ScriptedClient(completed("noted"))
     service = durable_service(tmp_path / "sessions")
     store = BotStore(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
-    runs = RunStore(service, agent_over(model, checkpoint=service.flush), store)
+    runs = RunStore(service, runtime_over(model, checkpoint=service.flush), store)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:

@@ -11,7 +11,7 @@ from harness.runs.store import RunStore
 from harness.tools.approval import DENIED, ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
-from harness.web.agent import CLIENT_TOOLS
+from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import assistant_chat, events_from, settle
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
 from tests.unit.helpers import durable_service, no_skills, run_store

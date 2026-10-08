@@ -117,7 +117,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
     for built in code_mode_tools(
         registry=registry,
         dispatcher=dispatcher,
-        runtime=DenoRunner(deno_path="deno", timeout_seconds=30),
+        runner=DenoRunner(deno_path="deno", timeout_seconds=30),
         withheld=frozenset(),
     ):
         registry.register(built)

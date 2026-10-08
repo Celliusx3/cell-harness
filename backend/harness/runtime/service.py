@@ -1,4 +1,4 @@
-"""`Agent` — gather context, act, repeat until nothing is owed."""
+"""`Runtime` — gather context, act, repeat until nothing is owed."""
 
 from __future__ import annotations
 
@@ -6,19 +6,19 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass
 
-from harness.agent.compaction import (
+from harness.llm.client import LLMClient
+from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
+from harness.runtime.compaction import (
     CompactionEvent,
     CompactionRefused,
     check_can_compact,
     run_compaction,
 )
-from harness.agent.events import AgentPending, TurnEvent
-from harness.agent.hooks import HookChain
-from harness.agent.system_prompt import system_text
-from harness.agent.tool_run import run_approved_call, settled_result
-from harness.agent.turn import run_turn
-from harness.llm.client import LLMClient
-from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
+from harness.runtime.events import AgentPending, TurnEvent
+from harness.runtime.hooks import HookChain
+from harness.runtime.system_prompt import system_text
+from harness.runtime.tool_run import run_approved_call, settled_result
+from harness.runtime.turn import run_turn
 from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.models import (
@@ -41,20 +41,20 @@ SKIPPED_RESULT = (
 
 
 @dataclass(frozen=True)
-class Agent:
-    """An agent that answers by running the tool loop."""
+class Runtime:
+    """A runtime that answers by running the tool loop."""
 
     model: str
     client: LLMClient
     tools: ToolPipeline | None = None
-    system_prompt: str = ""
+    guidance: str = ""
     hooks: HookChain = HookChain()
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
     context_tokens: int | None = None
 
     def request_messages(self, session: Session) -> list[Message]:
         history = derive_messages(session.events())
-        system = system_text(session, self.system_prompt)
+        system = system_text(session, self.guidance)
         if not system:
             return history
         return [SystemMessage(content=system), *history]

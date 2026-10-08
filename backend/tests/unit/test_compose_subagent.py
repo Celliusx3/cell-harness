@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.service import Agent
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm.messages import SystemMessage, ToolCall, ToolMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
 from harness.mcp.store import McpServerStore
+from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
 from harness.session.models import TurnStart
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -25,8 +25,8 @@ from harness.tools.native.location import LOCATION
 from harness.tools.native.question import QUESTION
 from harness.tools.native.skills import SKILL_SAVE
 from harness.tools.native.subagent import RUN_SUBAGENT
-from harness.web import agent as composition
-from harness.web.agent import build_agent
+from harness.web import runtime as composition
+from harness.web.runtime import build_runtime
 from harness.web.server import build_store, build_subagent_logs
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
@@ -36,13 +36,13 @@ from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_s
 def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """The real object graph, answering through `client`."""
 
-    def build(client) -> tuple[Agent, SessionService]:
+    def build(client) -> tuple[Runtime, SessionService]:
         monkeypatch.setattr(composition, "OpenAIClient", lambda _settings: client)
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
         mcp = McpServerStore({"stub": McpServer(command="does-not-run")})
-        agent = build_agent(
+        runtime = build_runtime(
             settings,
             sessions,
             mcp,
@@ -52,23 +52,23 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=subagent_logs,
         )
-        return agent, sessions
+        return runtime, sessions
 
     return build
 
 
 def test_the_bot_is_offered_run_subagent(compose) -> None:
-    agent, _ = compose(SteppedClient(completed("hi")))
-    assert agent.tools is not None
+    runtime, _ = compose(SteppedClient(completed("hi")))
+    assert runtime.tools is not None
 
-    assert RUN_SUBAGENT in [spec.name for spec in agent.tools.specs()]
+    assert RUN_SUBAGENT in [spec.name for spec in runtime.tools.specs()]
 
 
 async def test_a_script_cannot_reach_run_subagent(compose) -> None:
-    agent, _ = compose(SteppedClient(completed("hi")))
-    assert agent.tools is not None
+    runtime, _ = compose(SteppedClient(completed("hi")))
+    assert runtime.tools is not None
 
-    listed = await agent.tools.execute(
+    listed = await runtime.tools.execute(
         ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
     )
 
@@ -83,10 +83,10 @@ async def test_a_subagent_cannot_delegate_ask_or_write_a_skill(compose, tmp_path
         completed("AAPL grew 2%."),
         completed("Apple grew 2%."),
     )
-    agent, sessions = compose(client)
+    runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(agent.run("compare", session=session)) as events:
+    async with aclosing(runtime.run("compare", session=session)) as events:
         async for _ in events:
             pass
 
@@ -114,10 +114,10 @@ async def test_a_subagent_that_overflows_compacts_like_the_bot_and_answers(
         completed("AAPL grew 2%."),
         completed("Apple grew 2%."),
     )
-    agent, sessions = compose(client)
+    runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(agent.run("compare", session=session)) as events:
+    async with aclosing(runtime.run("compare", session=session)) as events:
         async for _ in events:
             pass
 
@@ -150,10 +150,10 @@ async def test_a_subagents_log_is_saved_before_its_first_request(compose, tmp_pa
         completed("AAPL grew 2%."),
         completed("Apple grew 2%."),
     )
-    agent, sessions = compose(client)
+    runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(agent.run("compare", session=session)) as events:
+    async with aclosing(runtime.run("compare", session=session)) as events:
         async for _ in events:
             pass
 

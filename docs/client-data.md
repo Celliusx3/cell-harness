@@ -57,12 +57,12 @@ datum:
   runs, nothing waits in memory, there is no timer. The card is on screen
   because the log holds an unanswered call; `runs.active()` is false, so the
   composer is free and Stop is hidden.
-- **The answer opens the next turn.** `Agent.resume(call_id, outcome)`
+- **The answer opens the next turn.** `Runtime.resume(call_id, outcome)`
   opens a turn whose first event is the `tool/result` for the pending call;
   the request it builds carries `assistant(tool_calls) → tool(result)` — the
   sequence providers require — because `derive_messages` ignores turn
   boundaries. The model continues as if the tool had simply taken a while.
-- **Typing instead skips it.** `Agent.run()` first answers every
+- **Typing instead skips it.** `Runtime.run()` first answers every
   unanswered call in the log as `SKIPPED` ("the user continued without
   answering this; do not ask again unless they return to it"), then opens the
   turn with the message. Not optional: a provider rejects a history with a
@@ -100,7 +100,7 @@ datum:
   the reply is delivered).
 
 **The acceptance criterion.** A second datum is `tools/native/<x>/{models,
-tool}.py`, one entry in `CLIENT_TOOLS` (`web/agent.py`), and one entry in the
+tool}.py`, one entry in `CLIENT_TOOLS` (`web/runtime.py`), and one entry in the
 browser's handler map — and no line in `tools/client/`, `routes/client.py`,
 `channels/client.py`, `Replies`, the loop or the run store. `test_client_tools.py` proves the spine on
 a throwaway declaration so that stays true without a second real tool.
@@ -202,7 +202,7 @@ answers `Pending` instead, so the loop, the log, repair, the browser card, the
 `/answer` page and a chat's ask all behave exactly as for `get_location`. The
 difference is what the person's answer is: for a location it *is* the result;
 for an approval it is a decision, and the result still has to come from running
-the tool. `Agent.resume` therefore takes `Ok | Failure | Approved`: the
+the tool. `Runtime.resume` therefore takes `Ok | Failure | Approved`: the
 first two are written as the result (a shared location, a declined one, a
 denied write); `Approved` runs the held call as approved and writes what it
 returned, closing the turn `cancelled` with an `INTERRUPTED` result if the run

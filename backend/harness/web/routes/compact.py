@@ -6,10 +6,10 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from harness.agent.compaction import CompactionRefused
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import bot_chat_router
 from harness.runs.store import RunAlreadyActive
+from harness.runtime.compaction import CompactionRefused
 from harness.session.repository import SessionNotFoundError
 
 logger = logging.getLogger("harness.web")

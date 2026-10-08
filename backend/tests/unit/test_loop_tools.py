@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from harness.agent.events import AgentCompleted, ToolProgress, ToolResult
-from harness.agent.service import Agent
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage
 from harness.llm.stream import Completed, TextChunk, ToolCallChunk
+from harness.runtime.events import AgentCompleted, ToolProgress, ToolResult
+from harness.runtime.service import Runtime
 from harness.session.derive import derive_messages
 from harness.session.models import (
     StepEnd,
@@ -25,7 +25,7 @@ from tests.unit.fakes import (
     echo_tool,
     reporting_tool,
 )
-from tests.unit.helpers import agent_over, drain, new_session, unanswered_calls
+from tests.unit.helpers import drain, new_session, runtime_over, unanswered_calls
 
 
 async def test_prompt_to_tool_to_answer() -> None:
@@ -35,7 +35,7 @@ async def test_prompt_to_tool_to_answer() -> None:
     )
     session = new_session()
 
-    events = await drain(agent_over(client, echo_tool()).run("what is it?", session=session))
+    events = await drain(runtime_over(client, echo_tool()).run("what is it?", session=session))
 
     assert [type(e).__name__ for e in events] == [
         "TextChunk",
@@ -72,7 +72,7 @@ async def test_the_tool_result_reaches_the_model_via_the_log() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
     session = new_session()
 
-    await drain(agent_over(client, echo_tool()).run("q", session=session))
+    await drain(runtime_over(client, echo_tool()).run("q", session=session))
 
     second_request = client.seen_per_call[1]
     assert [type(m).__name__ for m in second_request] == [
@@ -87,7 +87,7 @@ async def test_tool_schemas_reach_the_wire_each_step() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
     session = new_session()
 
-    await drain(agent_over(client, echo_tool()).run("q", session=session))
+    await drain(runtime_over(client, echo_tool()).run("q", session=session))
 
     assert client.seen_tools is not None
     assert [s.name for s in client.seen_tools] == ["echo"]
@@ -95,7 +95,7 @@ async def test_tool_schemas_reach_the_wire_each_step() -> None:
 
 async def test_an_agent_with_no_tools_sends_none_not_an_empty_list() -> None:
     client = SteppedClient(completed("hi"))
-    bare = Agent(model="m", client=client)
+    bare = Runtime(model="m", client=client)
 
     await drain(bare.run("q", session=new_session()))
 
@@ -107,7 +107,7 @@ async def test_progress_interleaves_and_the_result_always_comes_last() -> None:
     session = new_session()
     tool = reporting_tool([(10.0, "starting"), (90.0, "nearly")])
 
-    events = await drain(agent_over(client, tool).run("q", session=session))
+    events = await drain(runtime_over(client, tool).run("q", session=session))
 
     progress = [e for e in events if isinstance(e, ToolProgress)]
     assert [(p.percent, p.message) for p in progress] == [(10.0, "starting"), (90.0, "nearly")]
@@ -119,7 +119,7 @@ async def test_progress_is_not_logged() -> None:
     client = SteppedClient(calls_tool("slow", '{"value": "done"}'), completed("ok"))
     session = new_session()
 
-    await drain(agent_over(client, reporting_tool([(50.0, "half")])).run("q", session=session))
+    await drain(runtime_over(client, reporting_tool([(50.0, "half")])).run("q", session=session))
 
     assert not any("progress" in e.type for e in session.events())
 
@@ -136,7 +136,7 @@ async def test_a_tool_bound_to_an_app_logs_the_binding_but_never_shows_the_model
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
     session = new_session()
 
-    await drain(agent_over(client, tool).run("q", session=session))
+    await drain(runtime_over(client, tool).run("q", session=session))
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.ui == ui
@@ -147,7 +147,7 @@ async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:
     client = SteppedClient(calls_tool("echo", "{bad json"), completed("recovered"))
     session = new_session()
 
-    events = await drain(agent_over(client, echo_tool()).run("q", session=session))
+    events = await drain(runtime_over(client, echo_tool()).run("q", session=session))
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == "INVALID_ARGUMENTS"
@@ -159,7 +159,7 @@ async def test_steps_are_numbered_within_their_turn() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
     session = new_session()
 
-    await drain(agent_over(client, echo_tool()).run("q", session=session))
+    await drain(runtime_over(client, echo_tool()).run("q", session=session))
 
     starts = [e.step for e in session.events() if isinstance(e, StepStart)]
     ends = [e.step for e in session.events() if isinstance(e, StepEnd)]
@@ -171,7 +171,7 @@ async def test_assistant_message_carries_the_calls_it_requested() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
     session = new_session()
 
-    await drain(agent_over(client, echo_tool()).run("q", session=session))
+    await drain(runtime_over(client, echo_tool()).run("q", session=session))
 
     history = derive_messages(session.events())
     assistant = next(m for m in history if isinstance(m, AssistantMessage) and m.tool_calls)
@@ -193,7 +193,7 @@ async def test_two_calls_in_one_step_both_settle() -> None:
     )
     session = new_session()
 
-    events = await drain(agent_over(client, echo_tool()).run("q", session=session))
+    events = await drain(runtime_over(client, echo_tool()).run("q", session=session))
 
     results = [e for e in events if isinstance(e, ToolResult)]
     assert [(r.tool_call_id, r.content) for r in results] == [("c1", "a"), ("c2", "b")]
@@ -211,7 +211,7 @@ async def test_the_executor_receives_a_parsed_model_not_a_raw_dict() -> None:
     typed = replace(tool, execute=execute)
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
 
-    await drain(agent_over(client, typed).run("q", session=new_session()))
+    await drain(runtime_over(client, typed).run("q", session=new_session()))
 
     assert isinstance(seen[0], EchoArgs)
     assert seen[0].value == "42"
@@ -227,7 +227,7 @@ async def test_arguments_the_schema_rejects_never_reach_the_executor() -> None:
     typed = replace(echo_tool(), execute=execute)
     client = SteppedClient(calls_tool("echo", '{"value": 42}'), completed("recovered"))
 
-    events = await drain(agent_over(client, typed).run("q", session=new_session()))
+    events = await drain(runtime_over(client, typed).run("q", session=new_session()))
 
     assert seen == []
     assert isinstance(events[-1], AgentCompleted)
@@ -237,7 +237,7 @@ async def test_text_only_turns_still_work() -> None:
     client = SteppedClient(completed("just talking"))
     session = new_session()
 
-    events = await drain(agent_over(client, echo_tool()).run("hi", session=session))
+    events = await drain(runtime_over(client, echo_tool()).run("hi", session=session))
 
     assert events == [TextChunk(text="just talking"), AgentCompleted(text="just talking")]
     assert sum(isinstance(e, StepStart) for e in session.events()) == 1
@@ -253,6 +253,6 @@ async def test_a_tool_is_told_which_call_it_is_running() -> None:
     typed = replace(echo_tool(), execute=execute)
     client = SteppedClient(calls_tool("echo", '{"value": "42"}', id="call_7f3a"), completed("ok"))
 
-    await drain(agent_over(client, typed).run("q", session=new_session()))
+    await drain(runtime_over(client, typed).run("q", session=new_session()))
 
     assert seen == ["call_7f3a"]

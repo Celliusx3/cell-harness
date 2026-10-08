@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from harness.agent.compaction import CompactionRefused, check_can_compact
 from harness.channels.chat_tasks import ChatTasks
 from harness.channels.chats import state_of
 from harness.channels.following import Following
@@ -19,6 +18,7 @@ from harness.channels.protocol import (
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.store import Run, RunAlreadyActive, RunStore
+from harness.runtime.compaction import CompactionRefused, check_can_compact
 from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService

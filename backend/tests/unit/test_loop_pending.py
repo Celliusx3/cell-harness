@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from harness.agent.events import AgentCompleted, AgentPending
-from harness.agent.service import SKIPPED
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage
 from harness.llm.stream import Completed, ToolCallChunk
+from harness.runtime.events import AgentCompleted, AgentPending
+from harness.runtime.service import SKIPPED
 from harness.session.models import ToolResultEvent, TurnEnd
 from harness.tools.definition import Ok
 from tests.unit.fakes import (
@@ -15,7 +15,7 @@ from tests.unit.fakes import (
     echo_tool,
     pending_tool,
 )
-from tests.unit.helpers import agent_over, drain, new_session
+from tests.unit.helpers import drain, new_session, runtime_over
 
 
 def _types(session) -> list[str]:
@@ -26,7 +26,7 @@ async def test_a_pending_tool_ends_the_turn_without_a_result() -> None:
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("never"))
     session = new_session()
 
-    events = await drain(agent_over(client, pending_tool()).run("near me?", session=session))
+    events = await drain(runtime_over(client, pending_tool()).run("near me?", session=session))
 
     assert _types(session)[-4:] == ["assistant/message", "tool/call", "step/end", "turn/end"]
     assert session.events()[-1] == TurnEnd(turn=0, reason="pending")
@@ -45,7 +45,9 @@ async def test_a_parallel_ordinary_call_still_gets_its_result() -> None:
     client = SteppedClient(script, completed("never"))
     session = new_session()
 
-    events = await drain(agent_over(client, echo_tool(), pending_tool()).run("q", session=session))
+    events = await drain(
+        runtime_over(client, echo_tool(), pending_tool()).run("q", session=session)
+    )
 
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     assert [r.message.tool_call_id for r in results] == ["c1"]
@@ -61,10 +63,10 @@ async def test_a_parallel_ordinary_call_still_gets_its_result() -> None:
 async def test_resume_opens_a_turn_with_the_result_and_the_model_sees_it_in_order() -> None:
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés nearby"))
     session = new_session()
-    agent = agent_over(client, pending_tool())
-    await drain(agent.run("near me?", session=session))
+    runtime = runtime_over(client, pending_tool())
+    await drain(runtime.run("near me?", session=session))
 
-    events = await drain(agent.resume("c1", Ok(content='{"lat": 3.1}'), session=session))
+    events = await drain(runtime.resume("c1", Ok(content='{"lat": 3.1}'), session=session))
 
     types = _types(session)
     opened = types.index("turn/start", 1)
@@ -82,10 +84,10 @@ async def test_a_new_message_first_answers_the_dangling_call_as_skipped() -> Non
         calls_tool("ask", '{"value": "?"}', id="c1"), completed("it is 9pm in Tokyo")
     )
     session = new_session()
-    agent = agent_over(client, pending_tool())
-    await drain(agent.run("near me?", session=session))
+    runtime = runtime_over(client, pending_tool())
+    await drain(runtime.run("near me?", session=session))
 
-    await drain(agent.run("never mind, time in Tokyo?", session=session))
+    await drain(runtime.run("never mind, time in Tokyo?", session=session))
 
     skipped = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert skipped.error == SKIPPED
@@ -105,8 +107,8 @@ async def test_a_new_message_first_answers_the_dangling_call_as_skipped() -> Non
 async def test_an_ordinary_turn_writes_no_skips() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
     session = new_session()
-    agent = agent_over(client, echo_tool())
-    await drain(agent.run("q", session=session))
-    await drain(agent.run("again", session=session))
+    runtime = runtime_over(client, echo_tool())
+    await drain(runtime.run("q", session=session))
+    await drain(runtime.run("again", session=session))
 
     assert [e.error for e in session.events() if isinstance(e, ToolResultEvent)] == [None]

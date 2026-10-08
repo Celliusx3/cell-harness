@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent.subagents import Subagents
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Failed
+from harness.runtime.subagents import Subagents
 from harness.session.models import TurnEnd, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -23,7 +23,7 @@ from tests.unit.fakes import (
     completed,
     pending_tool,
 )
-from tests.unit.helpers import agent_over
+from tests.unit.helpers import runtime_over
 
 TASK = SubagentTask(name="aapl", task="Get AAPL revenue for four years and give the growth.")
 
@@ -37,7 +37,7 @@ async def test_a_subagent_answers_from_a_log_of_its_own(
     sessions: SessionService, tmp_path: Path
 ) -> None:
     client = ScriptedClient(completed("AAPL grew 2%."))
-    subagents = Subagents(agent_over(client, system_prompt="BASE"), sessions)
+    subagents = Subagents(runtime_over(client, guidance="BASE"), sessions)
 
     outcome = await subagents("call-9.0", TASK)
 
@@ -54,7 +54,7 @@ async def test_a_subagent_is_told_its_name_and_keeps_the_base_prompt(
 ) -> None:
     client = ScriptedClient(completed("done"))
 
-    await Subagents(agent_over(client, system_prompt="BASE"), sessions)("c.0", TASK)
+    await Subagents(runtime_over(client, guidance="BASE"), sessions)("c.0", TASK)
 
     system = client.seen[0]
     assert isinstance(system, SystemMessage)
@@ -66,7 +66,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
     sessions: SessionService,
 ) -> None:
     client = SteppedClient(calls_tool("save_note", '{"value": "x"}'))
-    subagents = Subagents(agent_over(client, pending_tool("save_note")), sessions)
+    subagents = Subagents(runtime_over(client, pending_tool("save_note")), sessions)
 
     outcome = await subagents("c.0", TASK)
 
@@ -77,7 +77,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
 async def test_a_subagent_whose_turn_fails_says_why(sessions: SessionService) -> None:
     client = ScriptedClient([Failed(reason="provider down")])
 
-    outcome = await Subagents(agent_over(client), sessions)("c.0", TASK)
+    outcome = await Subagents(runtime_over(client), sessions)("c.0", TASK)
 
     assert isinstance(outcome, SubagentStopped)
     assert "provider down" in outcome.reason
@@ -86,7 +86,7 @@ async def test_a_subagent_whose_turn_fails_says_why(sessions: SessionService) ->
 async def test_a_stopped_subagent_leaves_its_log_closed_as_cancelled(
     sessions: SessionService,
 ) -> None:
-    subagents = Subagents(agent_over(HangingClient("partial")), sessions)
+    subagents = Subagents(runtime_over(HangingClient("partial")), sessions)
 
     running = asyncio.create_task(subagents("c.0", TASK))
     for _ in range(50):

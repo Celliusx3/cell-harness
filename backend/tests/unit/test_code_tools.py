@@ -17,14 +17,14 @@ async def test_a_withheld_tool_is_unlisted_unbound_and_refused() -> None:
         except BridgeError as err:
             raised.append(err)
 
-    runtime = FakeRunner(script=script)
-    built = build(tool("skill"), tool("yt__a"), runtime=runtime, withheld=frozenset({"skill"}))
+    runner = FakeRunner(script=script)
+    built = build(tool("skill"), tool("yt__a"), runner=runner, withheld=frozenset({"skill"}))
 
     listed = await built.run(LIST, "{}")
     assert isinstance(listed, Ok) and "skill" not in listed.text
 
     await built.run(EXECUTE, '{"code": "…", "description": "d"}')
-    assert runtime.seen_names == ["yt__a"]
+    assert runner.seen_names == ["yt__a"]
     assert "cannot be called from inside a script" in str(raised[0])
     assert built.dispatched == []
 
@@ -82,17 +82,17 @@ async def test_details_for_nothing_real_is_ok_not_a_failure() -> None:
 
 
 async def test_the_script_is_given_every_available_name() -> None:
-    runtime = FakeRunner()
-    built = build(tool("yt__a"), tool("jobs__b"), runtime=runtime)
+    runner = FakeRunner()
+    built = build(tool("yt__a"), tool("jobs__b"), runner=runner)
 
     await built.run(EXECUTE, '{"code": "return 1", "description": "d"}')
 
-    assert sorted(runtime.seen_names) == ["jobs__b", "yt__a"]
+    assert sorted(runner.seen_names) == ["jobs__b", "yt__a"]
 
 
 async def test_logs_and_the_return_value_both_reach_the_model() -> None:
-    runtime = FakeRunner(outcome=Script(result={"n": 2}, logs=("first", "second")))
-    built = build(runtime=runtime)
+    runner = FakeRunner(outcome=Script(result={"n": 2}, logs=("first", "second")))
+    built = build(runner=runner)
 
     outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -103,8 +103,8 @@ async def test_logs_and_the_return_value_both_reach_the_model() -> None:
 
 
 async def test_a_failed_script_keeps_what_it_printed() -> None:
-    runtime = FakeRunner(outcome=Script(logs=("step one done",), error="boom"))
-    built = build(runtime=runtime)
+    runner = FakeRunner(outcome=Script(logs=("step one done",), error="boom"))
+    built = build(runner=runner)
 
     outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -115,7 +115,7 @@ async def test_a_failed_script_keeps_what_it_printed() -> None:
 
 
 async def test_a_script_that_returns_nothing_says_so() -> None:
-    built = build(runtime=FakeRunner(outcome=Script()))
+    built = build(runner=FakeRunner(outcome=Script()))
 
     outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -125,7 +125,7 @@ async def test_a_script_that_returns_nothing_says_so() -> None:
 
 
 async def test_a_missing_sandbox_is_reported_as_a_failure_not_a_crash() -> None:
-    built = build(runtime=FakeRunner(unavailable=True))
+    built = build(runner=FakeRunner(unavailable=True))
 
     outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -139,7 +139,7 @@ async def test_a_call_from_a_script_goes_through_the_ordinary_pipeline() -> None
     async def script(bridge: Bridge) -> None:
         seen.append(await bridge("yt__a", {"url": "x"}))
 
-    built = build(tool("yt__a"), runtime=FakeRunner(script=script))
+    built = build(tool("yt__a"), runner=FakeRunner(script=script))
 
     await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -155,7 +155,7 @@ async def test_a_tool_that_publishes_json_as_text_reaches_the_script_as_an_objec
 
     text_json = tool("srv__json")
     object.__setattr__(text_json, "execute", returns(Ok('{"jobs": [{"t": "a"}]}')))
-    built = build(text_json, runtime=FakeRunner(script=script))
+    built = build(text_json, runner=FakeRunner(script=script))
 
     await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -170,7 +170,7 @@ async def test_text_that_is_not_json_reaches_the_script_untouched() -> None:
 
     prose = tool("srv__prose")
     object.__setattr__(prose, "execute", returns(Ok("2026-09-07T10:31:49+09:00")))
-    built = build(prose, runtime=FakeRunner(script=script))
+    built = build(prose, runner=FakeRunner(script=script))
 
     await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -183,7 +183,7 @@ async def test_inner_calls_get_ids_a_provider_could_never_issue() -> None:
         await bridge("yt__a", {})
         await bridge("yt__a", {})
 
-    built = build(tool("yt__a"), runtime=FakeRunner(script=script))
+    built = build(tool("yt__a"), runner=FakeRunner(script=script))
 
     await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 
@@ -199,7 +199,7 @@ async def test_the_bridge_refuses_code_mode_itself() -> None:
         except BridgeError as err:
             raised.append(err)
 
-    built = build(runtime=FakeRunner(script=script))
+    built = build(runner=FakeRunner(script=script))
 
     await built.run(EXECUTE, '{"code": "…", "description": "d"}')
 

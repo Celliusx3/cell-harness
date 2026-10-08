@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from harness.agent.service import Agent
 from harness.config.settings import Settings
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels
@@ -14,8 +14,8 @@ from tests.unit.helpers import client_tools, no_bots, no_skills
 
 def _stores(tmp_path) -> tuple[SessionService, RunStore]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    agent = Agent(model="m", client=ScriptedClient([]))
-    return sessions, RunStore(sessions, agent, no_bots(sessions))
+    runtime = Runtime(model="m", client=ScriptedClient([]))
+    return sessions, RunStore(sessions, runtime, no_bots(sessions))
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:

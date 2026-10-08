@@ -6,10 +6,10 @@ import logging
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
-from harness.agent.compaction.history import loaded_skills, prunable_ids, summarizable
-from harness.agent.compaction.prompt import INSTRUCTION, summary_message
 from harness.llm.messages import ApplicationMessage, UserMessage
 from harness.llm.stream import Completed, Failed
+from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
+from harness.runtime.compaction.prompt import INSTRUCTION, summary_message
 from harness.session.compaction import (
     CompactionEnd,
     CompactionPrune,
@@ -20,9 +20,9 @@ from harness.session.log import Session
 from harness.session.repair import unanswered
 
 if TYPE_CHECKING:
-    from harness.agent.service import Agent
+    from harness.runtime.service import Runtime
 
-logger = logging.getLogger("harness.agent")
+logger = logging.getLogger("harness.runtime")
 
 COMPACT_AT = 0.8
 
@@ -50,16 +50,16 @@ def check_can_compact(session: Session) -> None:
         raise CompactionRefused(NOTHING)
 
 
-def should_compact(agent: Agent, session: Session) -> bool:
+def should_compact(runtime: Runtime, session: Session) -> bool:
     """Is the context past the line?"""
-    if agent.context_tokens is None:
+    if runtime.context_tokens is None:
         return False
     used = session.context_size()
-    return used is not None and used >= int(agent.context_tokens * COMPACT_AT)
+    return used is not None and used >= int(runtime.context_tokens * COMPACT_AT)
 
 
 async def run_compaction(
-    agent: Agent, session: Session, *, turn: int | None, trigger: CompactionTrigger
+    runtime: Runtime, session: Session, *, turn: int | None, trigger: CompactionTrigger
 ) -> AsyncIterator[CompactionEvent]:
     """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
     events = session.events()
@@ -75,7 +75,7 @@ async def run_compaction(
     ended = False
     try:
         yield start
-        end = await _summarize(agent, session, turn=turn)
+        end = await _summarize(runtime, session, turn=turn)
         session.append(end)
         ended = True
         yield end
@@ -84,12 +84,12 @@ async def run_compaction(
             session.append(CompactionEnd(turn=turn, error=INTERRUPTED))
 
 
-async def _summarize(agent: Agent, session: Session, *, turn: int | None) -> CompactionEnd:
+async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) -> CompactionEnd:
     """One model call, no tools; every way it can go wrong is an `error` end."""
-    messages = [*agent.request_messages(session), UserMessage(content=INSTRUCTION)]
+    messages = [*runtime.request_messages(session), UserMessage(content=INSTRUCTION)]
     completed: Completed | None = None
     try:
-        async for event in agent.client.stream_completion(messages, agent.model, tools=None):
+        async for event in runtime.client.stream_completion(messages, runtime.model, tools=None):
             if isinstance(event, Failed):
                 return CompactionEnd(turn=turn, error=f"summary request failed: {event.reason}")
             if isinstance(event, Completed):

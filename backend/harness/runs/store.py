@@ -8,8 +8,8 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.agent.service import Agent
 from harness.bots import BotStore
+from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent
 from harness.session.service import SessionService
@@ -44,9 +44,9 @@ class Run:
 class RunStore:
     """Starts and stops turns, and knows which conversations are busy."""
 
-    def __init__(self, service: SessionService, agent: Agent, bots: BotStore) -> None:
+    def __init__(self, service: SessionService, runtime: Runtime, bots: BotStore) -> None:
         self._service = service
-        self._agent = agent
+        self._runtime = runtime
         self._bots = bots
         self._runs: dict[str, Run] = {}
 
@@ -62,7 +62,7 @@ class RunStore:
         run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
-            self._stream(run, self._agent.run(prompt, session=session))
+            self._stream(run, self._runtime.run(prompt, session=session))
         )
         run._outer = asyncio.create_task(self._drive(run))
         return run
@@ -74,7 +74,7 @@ class RunStore:
         run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
-            self._stream(run, self._agent.resume(call_id, outcome, session=session))
+            self._stream(run, self._runtime.resume(call_id, outcome, session=session))
         )
         run._outer = asyncio.create_task(self._drive(run))
         return run
@@ -85,7 +85,7 @@ class RunStore:
             raise RunAlreadyActive(session.id)
         run = Run(session, session.next_number())
         self._runs[session.id] = run
-        run._inner = asyncio.create_task(self._stream(run, self._agent.compact(session=session)))
+        run._inner = asyncio.create_task(self._stream(run, self._runtime.compact(session=session)))
         run._outer = asyncio.create_task(self._drive(run))
         return run
 

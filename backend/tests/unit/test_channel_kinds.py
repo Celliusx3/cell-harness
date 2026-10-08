@@ -7,13 +7,13 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.agent.service import Agent
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, Pushing
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.runs.store import RunStore
+from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
@@ -27,13 +27,13 @@ def build(tmp_path: Path):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    agent = Agent(
+    runtime = Runtime(
         model="m",
         client=ScriptedClient(completed("answered")),
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)
-    runs = RunStore(sessions, agent, bots)
+    runs = RunStore(sessions, runtime, bots)
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     web = WebChannel(sessions, runs, gateway, bots)

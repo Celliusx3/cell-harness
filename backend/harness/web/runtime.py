@@ -1,22 +1,22 @@
-"""The agent the server composes: a model, the native tools, the guardrail."""
+"""The runtime the server composes: a model, the native tools, the guardrail."""
 
 from __future__ import annotations
 
 import dataclasses
 import logging
 
-from harness.agent.hooks import HookChain
-from harness.agent.hooks.native.empty_reply import EmptyReplyHook
-from harness.agent.hooks.native.exact_failure import ExactFailureHook
-from harness.agent.hooks.native.no_progress import NoProgressHook
-from harness.agent.hooks.native.repeated_call import RepeatedCallHook
-from harness.agent.hooks.native.same_tool_failure import SameToolFailureHook
-from harness.agent.service import Agent
-from harness.agent.subagents import Subagents
 from harness.bots import BotStore
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.store import McpServerStore
+from harness.runtime.hooks import HookChain
+from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
+from harness.runtime.hooks.native.exact_failure import ExactFailureHook
+from harness.runtime.hooks.native.no_progress import NoProgressHook
+from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
+from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
+from harness.runtime.service import Runtime
+from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
@@ -42,7 +42,6 @@ from harness.tools.registry import ToolRegistry
 
 logger = logging.getLogger("harness.web")
 
-ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
 GUIDANCE = (
     "When a tool can answer the user's question, "
     "call it instead of guessing. You have a long-term memory in the memory "
@@ -68,7 +67,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
 )
 
 
-def build_agent(
+def build_runtime(
     settings: Settings,
     store: SessionService,
     mcp: McpServerStore,
@@ -79,8 +78,8 @@ def build_agent(
     *,
     bots: BotStore,
     subagent_logs: SessionService,
-) -> Agent:
-    """The default agent: a model, the native tools, the guardrail, and a durability checkpoint."""
+) -> Runtime:
+    """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
     registry = ToolRegistry(
         [
             clock_tool(),
@@ -99,17 +98,17 @@ def build_agent(
     _register_code_mode(registry, dispatcher, settings)
 
     client = OpenAIClient(settings.llm)
-    agent = Agent(
+    runtime = Runtime(
         model=settings.llm.model,
         client=client,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
-        system_prompt=GUIDANCE,
+        guidance=GUIDANCE,
         checkpoint=store.flush,
         context_tokens=context_tokens,
         hooks=default_hooks(),
     )
-    _register_run_subagent(registry, dispatcher, agent, subagent_logs)
-    return agent
+    _register_run_subagent(registry, dispatcher, runtime, subagent_logs)
+    return runtime
 
 
 def _register_code_mode(
@@ -118,7 +117,7 @@ def _register_code_mode(
     for tool in code_mode_tools(
         registry=registry,
         dispatcher=dispatcher,
-        runtime=DenoRunner(
+        runner=DenoRunner(
             deno_path=settings.code.deno_path,
             timeout_seconds=settings.code.timeout_seconds,
         ),
@@ -128,12 +127,12 @@ def _register_code_mode(
 
 
 def _register_run_subagent(
-    registry: ToolRegistry, dispatcher: ToolDispatcher, agent: Agent, logs: SessionService
+    registry: ToolRegistry, dispatcher: ToolDispatcher, runtime: Runtime, logs: SessionService
 ) -> None:
     subagent = dataclasses.replace(
-        agent,
+        runtime,
         tools=ToolPipeline(registry, dispatcher, SUBAGENT_TOOLS),
-        system_prompt=CODE_PROMPT,
+        guidance=CODE_PROMPT,
     )
     registry.register(run_subagent_tool(Subagents(subagent, logs)))
 

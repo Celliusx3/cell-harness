@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from harness.agent.hooks.service import GiveUp, StepDecision, StepHook, Tell
+from harness.runtime.hooks.service import GiveUp, StepDecision, StepHook, Tell
 
 EMPTY_REPLY_TELL_AT, EMPTY_REPLY_FAIL_AT = 1, 2
 

@@ -9,12 +9,12 @@ from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.agent.hooks import HookChain
-from harness.agent.service import Agent
-from harness.bots import BotStore
+from harness.bots import ASSISTANT_INSTRUCTIONS, BotStore
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.runs.store import RunStore
+from harness.runtime.hooks import HookChain
+from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -27,7 +27,7 @@ from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolProvider, ToolRegistry
-from harness.web.agent import ASSISTANT_INSTRUCTIONS, CLIENT_TOOLS
+from harness.web.runtime import CLIENT_TOOLS
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -74,21 +74,21 @@ def pipeline_for(
     return ToolPipeline(registry, ToolDispatcher(registry, gate or no_gate()), default_tools=names)
 
 
-def agent_over(
+def runtime_over(
     client,
     *tools: ToolDefinition,
-    system_prompt: str = "",
+    guidance: str = "",
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
-) -> Agent:
-    """An agent over `tools`, with no pipeline at all when there are none."""
-    return Agent(
+) -> Runtime:
+    """A runtime over `tools`, with no pipeline at all when there are none."""
+    return Runtime(
         model="m",
         client=client,
         tools=pipeline_for(*tools, gate=gate) if tools else None,
-        system_prompt=system_prompt,
+        guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
         context_tokens=context_tokens,
@@ -101,11 +101,11 @@ async def drain(gen) -> list:
         return [event async for event in gen]
 
 
-async def cancel_mid_turn(agent_, session: Session, user_input: str = "q") -> None:
+async def cancel_mid_turn(runtime, session: Session, user_input: str = "q") -> None:
     """Run a turn in its own task and cancel it once it is blocked."""
 
     async def consume() -> None:
-        async with aclosing(agent_.run(user_input, session=session)) as events:
+        async with aclosing(runtime.run(user_input, session=session)) as events:
             async for _ in events:
                 pass
 
@@ -144,10 +144,10 @@ def run_store(
     gate: ApprovalGate | None = None,
     bots: BotStore | None = None,
 ) -> RunStore:
-    """Runs over an agent that checkpoints through `service`, as the server wires it."""
+    """Runs over a runtime that checkpoints through `service`, as the server wires it."""
     return RunStore(
         service,
-        agent_over(
+        runtime_over(
             client, *tools, checkpoint=service.flush, context_tokens=context_tokens, gate=gate
         ),
         bots or no_bots(service),

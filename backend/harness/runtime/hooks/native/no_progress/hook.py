@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from harness.agent.hooks.calls import CompletedCall, Signature
-from harness.agent.hooks.service import ToolHook
 from harness.llm.messages import render_text
+from harness.runtime.hooks.calls import CompletedCall, Signature
+from harness.runtime.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 NO_PROGRESS_WARN_AT, NO_PROGRESS_BLOCK_AT = 2, 5

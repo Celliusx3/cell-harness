@@ -13,14 +13,14 @@ from harness.session.log import Session
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnEnd
 from harness.session.repair import TOOL_OUTCOME_UNKNOWN
 from tests.unit.fakes import SteppedClient, calls_tool, echo_tool, hanging_tool
-from tests.unit.helpers import agent_over, new_session, unanswered_calls
+from tests.unit.helpers import new_session, runtime_over, unanswered_calls
 
 
-async def interrupt_during_tool(agent_, session: Session) -> None:
+async def interrupt_during_tool(runtime, session: Session) -> None:
     """Cancel a turn while a dispatched tool is still running."""
 
     async def consume() -> None:
-        async with aclosing(agent_.run("q", session=session)) as events:
+        async with aclosing(runtime.run("q", session=session)) as events:
             async for _ in events:
                 pass
 
@@ -35,7 +35,7 @@ async def test_every_dispatched_call_gets_a_result_even_when_interrupted() -> No
     client = SteppedClient(calls_tool("hang", '{"value": "a"}'))
     session = new_session()
 
-    await interrupt_during_tool(agent_over(client, hanging_tool()), session)
+    await interrupt_during_tool(runtime_over(client, hanging_tool()), session)
 
     calls = [e for e in session.events() if isinstance(e, ToolCallEvent)]
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
@@ -49,7 +49,7 @@ async def test_an_interrupted_call_records_a_recoverable_error() -> None:
     client = SteppedClient(calls_tool("hang", '{"value": "a"}'))
     session = new_session()
 
-    await interrupt_during_tool(agent_over(client, hanging_tool()), session)
+    await interrupt_during_tool(runtime_over(client, hanging_tool()), session)
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.message.text == TOOL_OUTCOME_UNKNOWN
@@ -60,7 +60,7 @@ async def test_stopping_before_any_call_exists_owes_nothing() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "a"}'))
     session = new_session()
 
-    async with aclosing(agent_over(client, echo_tool()).run("q", session=session)) as events:
+    async with aclosing(runtime_over(client, echo_tool()).run("q", session=session)) as events:
         async for event in events:
             if isinstance(event, ToolCallChunk):
                 break
