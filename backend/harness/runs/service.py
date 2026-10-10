@@ -112,7 +112,7 @@ class RunService:
 
     def _log_instructions(self, session: Session) -> None:
         """Log the answering bot's instructions when they are not the ones logged last."""
-        bot = self._bots.bot_for(session.id)
+        bot = self._bots.find(session.id)
         answering = BotInstructionsEvent(name=bot.name, instructions=bot.instructions)
         if session.bot_instructions() != answering:
             session.append(answering)

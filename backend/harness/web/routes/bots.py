@@ -18,11 +18,11 @@ def build_router(bots: BotService, runs: RunService) -> APIRouter:
 
     @router.get("", response_model=list[Bot])
     async def list_bots() -> list[Bot]:
-        return list(await bots.list())
+        return list(await bots.active_bots())
 
     @router.get("/archived", response_model=list[Bot])
     async def list_archived_bots() -> list[Bot]:
-        return list(bots.archived())
+        return list(bots.archived_bots())
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=Bot)
     async def create_bot(body: BotDraft) -> Bot:
@@ -40,7 +40,7 @@ def build_router(bots: BotService, runs: RunService) -> APIRouter:
     @router.post("/{bot_id}/archive", status_code=status.HTTP_204_NO_CONTENT)
     async def archive_bot(bot_id: str) -> Response:
         try:
-            bots.removable(bot_id)
+            bots.check_removable(bot_id)
             await runs.stop(bot_id)
             bots.archive(bot_id)
         except BotPermanent as err:
@@ -62,7 +62,7 @@ def build_router(bots: BotService, runs: RunService) -> APIRouter:
     @router.delete("/{bot_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_bot(bot_id: str) -> Response:
         try:
-            bots.removable(bot_id)
+            bots.check_removable(bot_id)
             await runs.stop(bot_id)
             await bots.delete(bot_id)
         except BotPermanent as err:
