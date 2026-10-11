@@ -1,4 +1,4 @@
-"""The model's way to make a bot, through the New bot form's own save."""
+"""The model's way to make a bot, through the same save as `POST /api/bots`."""
 
 from harness.tools.native.bots.tools import BOT_CREATE, bot_create_tool
 

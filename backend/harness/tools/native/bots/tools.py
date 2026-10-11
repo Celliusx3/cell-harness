@@ -1,4 +1,4 @@
-"""The New bot form's save, offered to the model as a tool."""
+"""The save behind `POST /api/bots`, offered to the model as a tool."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ _DESCRIPTION = (
 
 
 def bot_create_tool(bots: BotService) -> ToolDefinition[BotDraft]:
-    """The tool that makes a bot through the same save as the New bot form."""
+    """The tool that makes a bot through the same save as `POST /api/bots`."""
 
     async def execute(args: BotDraft, _context: ToolContext) -> ToolOutcome:
         bot = await bots.create(args.name, args.instructions)

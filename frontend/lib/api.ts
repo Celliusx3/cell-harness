@@ -93,12 +93,11 @@ export const sendToolOutput = <T>(
 
 export const ASSISTANT_ID = "assistant";
 
+export const BUILDER_ID = "builder";
+
 export const listBots = () => request<Bot[]>("/bots");
 
 export const listArchivedBots = () => request<Bot[]>("/bots/archived");
-
-export const createBot = (draft: BotDraft) =>
-  request<Bot>("/bots", { method: "POST", body: JSON.stringify(draft) });
 
 export const updateBot = (id: string, draft: BotDraft) =>
   request<Bot>(`/bots/${encodeURIComponent(id)}`, {
