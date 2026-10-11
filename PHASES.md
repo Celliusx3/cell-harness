@@ -117,8 +117,8 @@ only needed when a plugin registers into one agent's world — which is subagent
 
 # Phase 10 — Bots, each with its own instructions and one chat
 
-**Demo.** You make "Researcher" with the New bot form, or ask Assistant for one
-in chat. It appears under Bots in the sidebar with its own chat and answers
+**Demo.** You press New bot, pick a kind, finish the sentence and answer Bot
+builder's questions, or ask Assistant for a bot in chat. It appears under Bots in the sidebar with its own chat and answers
 there by its instructions.
 
 **Reshaped on 2026-10-04, after Rakazo.** The router this phase planned (one
@@ -131,13 +131,19 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
 - `bots/` — `Bot` (id, name, instructions) in the file at `bots.path`, read on
   every call. A bot's chat id is the bot's id. Assistant (`"assistant"`) is
   today's prompt, there from the first start, and cannot be archived or deleted.
+  Bot builder (`"builder"`) is built in the same way and left out of the sidebar.
   Every chat is a bot's chat: an id that is no bot's is a 404 on every chat route.
 - `bot/instructions` — the event that brings a bot's instructions into its
   chat, logged when a turn starts with instructions that differ from the last
   ones logged. The request and compaction both build the system prompt from it
   (`runtime/system_prompt.py`): the instructions, then the fixed guidance.
-- `/api/bots`, the sidebar's Bots and Archived, the New bot and Edit bot form.
-- `bot_create` (`tools/native/bots/`) — the form's save as a tool. It asks
+- `/api/bots`, the sidebar's Bots and Archived, the Edit bot form.
+- New bot — four kinds of bot to start from, as Rakazo's focus card offers four
+  (`apps/api/src/onboarding.ts:32-61`); a pick puts a sentence in the message
+  box to finish. Sending clears Bot builder's chat and sends it there. Its
+  instructions ask up to two questions with `ask_user`, then call `bot_create`.
+  Rakazo's card is scripted; Bot builder's questions come from the model.
+- `bot_create` (`tools/native/bots/`) — `POST /api/bots`'s save as a tool. It asks
   first and is withheld from scripts and helpers; Rakazo's `spawn_bot` does not
   ask (`packages/core/src/action-approval.ts:19`).
 - Clear — the Clear button and `/new` wipe a chat in place, as Rakazo's
