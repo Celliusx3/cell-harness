@@ -3,6 +3,9 @@
 from harness.bots.models import (
     ASSISTANT_ID,
     ASSISTANT_INSTRUCTIONS,
+    BUILDER_ID,
+    BUILDER_INSTRUCTIONS,
+    BUILDER_NAME,
     Bot,
     BotDraft,
     BotNotFound,
@@ -13,6 +16,9 @@ from harness.bots.service import BotService
 __all__ = [
     "ASSISTANT_ID",
     "ASSISTANT_INSTRUCTIONS",
+    "BUILDER_ID",
+    "BUILDER_INSTRUCTIONS",
+    "BUILDER_NAME",
     "Bot",
     "BotDraft",
     "BotNotFound",

@@ -8,13 +8,23 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, Bot, BotNotFound, BotPermanent, BotService
+from harness.bots import (
+    ASSISTANT_ID,
+    BUILDER_ID,
+    BUILDER_INSTRUCTIONS,
+    BUILDER_NAME,
+    Bot,
+    BotNotFound,
+    BotPermanent,
+    BotService,
+)
 from harness.session.models import BotInstructionsEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.helpers import durable_service
 
 KIND = Bot(id=ASSISTANT_ID, name="Assistant", instructions="Be kind.")
+BUILDER = Bot(id=BUILDER_ID, name=BUILDER_NAME, instructions=BUILDER_INSTRUCTIONS)
 
 
 @pytest.fixture
@@ -27,10 +37,12 @@ def bots(tmp_path: Path, service: SessionService) -> BotService:
     return BotService(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
 
 
-def test_with_no_file_assistant_is_the_only_bot(tmp_path: Path, service: SessionService) -> None:
+async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
+    tmp_path: Path, service: SessionService
+) -> None:
     missing = BotService(tmp_path / "no" / "bots.json", service, assistant_instructions="Be kind.")
 
-    assert missing.find(ASSISTANT_ID) == KIND
+    assert await missing.active_bots() == (KIND, BUILDER)
     with pytest.raises(BotNotFound):
         missing.find("any-conversation")
 
@@ -110,7 +122,7 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
     bots.archive(second.id)
     bots.archive(first.id)
 
-    assert await bots.active_bots() == (KIND,)
+    assert await bots.active_bots() == (KIND, BUILDER)
     assert bots.archived_bots() == (
         first.model_copy(update={"archived": True}),
         second.model_copy(update={"archived": True}),
@@ -118,7 +130,7 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
 
     bots.restore(first.id)
 
-    assert await bots.active_bots() == (KIND, first)
+    assert await bots.active_bots() == (KIND, BUILDER, first)
     assert list((await service.read(first.id)).events()) == chat_before
 
 
@@ -171,6 +183,7 @@ async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
 
     assert await bots.active_bots() == (
         Bot(id=ASSISTANT_ID, name="Helper", instructions="Be terse."),
+        BUILDER,
         Bot(id=first.id, name="First", instructions="Uno."),
         second,
     )

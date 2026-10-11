@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, BUILDER_ID, BUILDER_INSTRUCTIONS, BotService
 from harness.runs.service import RunService
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed
@@ -49,7 +49,8 @@ async def test_assistant_is_there_from_the_first_start(bots) -> None:
     listed = (await client.get("/api/bots")).json()
 
     assert [(b["id"], b["name"], b["instructions"]) for b in listed] == [
-        (ASSISTANT_ID, "Assistant", ASSISTANT)
+        (ASSISTANT_ID, "Assistant", ASSISTANT),
+        (BUILDER_ID, "Bot builder", BUILDER_INSTRUCTIONS),
     ]
 
 
@@ -64,6 +65,7 @@ async def test_a_new_bot_has_a_chat_that_opens_with_its_instructions(bots) -> No
     assert await _logged_instructions(client, bot["id"]) == [RESEARCHER["instructions"]]
     assert [b["name"] for b in (await client.get("/api/bots")).json()] == [
         "Assistant",
+        "Bot builder",
         "Researcher",
     ]
 
@@ -103,7 +105,7 @@ async def test_assistant_cannot_be_deleted_and_another_bot_can(bots) -> None:
 
     assert refused.status_code == 409
     assert deleted.status_code == 204
-    assert [b["id"] for b in (await client.get("/api/bots")).json()] == [ASSISTANT_ID]
+    assert [b["id"] for b in (await client.get("/api/bots")).json()] == [ASSISTANT_ID, BUILDER_ID]
     assert (await client.get(f"/api/conversations/{bot_id}")).status_code == 404
 
 

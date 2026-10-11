@@ -7,6 +7,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 ASSISTANT_ID = "assistant"
 ASSISTANT_NAME = "Assistant"
 ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
+BUILDER_ID = "builder"
+BUILDER_NAME = "Bot builder"
+BUILDER_INSTRUCTIONS = (
+    "You are Bot builder. You help the user make a new bot. Find out what it is for, then ask "
+    "at most two more questions, each with ask_user, never as a list in your reply. Then call "
+    'bot_create once. Its instructions speak to the bot as "you" and carry every answer the '
+    "user gave, in their words. If the user denies it, ask what to change."
+)
 
 
 class BotDraft(BaseModel):
@@ -59,9 +67,7 @@ class BotNotFound(LookupError):
 
 
 class BotPermanent(PermissionError):
-    """Assistant cannot be archived or deleted."""
+    """A built-in bot cannot be archived or deleted."""
 
     def __init__(self, bot_id: str) -> None:
-        super().__init__(
-            f"{bot_id!r} is the chat every platform writes into and cannot be archived or deleted"
-        )
+        super().__init__(f"{bot_id!r} is built in and cannot be archived or deleted")

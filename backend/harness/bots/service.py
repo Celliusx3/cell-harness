@@ -9,6 +9,9 @@ from pathlib import Path
 from harness.bots.models import (
     ASSISTANT_ID,
     ASSISTANT_NAME,
+    BUILDER_ID,
+    BUILDER_INSTRUCTIONS,
+    BUILDER_NAME,
     Bot,
     BotNotFound,
     BotPermanent,
@@ -21,24 +24,27 @@ from harness.session.service import SessionService
 
 
 class BotService:
-    """Every bot, Assistant first, and the one chat each owns."""
+    """Every bot, Assistant and Bot builder first, and the one chat each owns."""
 
     def __init__(
         self, path: Path, sessions: SessionService, *, assistant_instructions: str
     ) -> None:
         self._path = path
         self._sessions = sessions
-        self._assistant = Bot(
-            id=ASSISTANT_ID, name=ASSISTANT_NAME, instructions=assistant_instructions
+        self._built_ins = (
+            Bot(id=ASSISTANT_ID, name=ASSISTANT_NAME, instructions=assistant_instructions),
+            Bot(id=BUILDER_ID, name=BUILDER_NAME, instructions=BUILDER_INSTRUCTIONS),
         )
+        self._built_in_ids = frozenset(bot.id for bot in self._built_ins)
 
     async def active_bots(self) -> tuple[Bot, ...]:
-        """Assistant, then the active others in the order made; opens Assistant's chat once."""
+        """The built-ins, then the active others in the order made; opens a built-in's chat once."""
         bots = self._active_bots()
-        try:
-            await self._sessions.read(ASSISTANT_ID)
-        except SessionNotFoundError:
-            await self._log_instructions(await self._sessions.create(ASSISTANT_ID), bots[0])
+        for bot in bots[: len(self._built_ins)]:
+            try:
+                await self._sessions.read(bot.id)
+            except SessionNotFoundError:
+                await self._log_instructions(await self._sessions.create(bot.id), bot)
         return bots
 
     def archived_bots(self) -> tuple[Bot, ...]:
@@ -69,8 +75,8 @@ class BotService:
         return updated
 
     def check_removable(self, bot_id: str) -> None:
-        """Refuse Assistant with `BotPermanent` and an unknown bot with `BotNotFound`."""
-        if bot_id == ASSISTANT_ID:
+        """Refuse a built-in with `BotPermanent` and an unknown bot with `BotNotFound`."""
+        if bot_id in self._built_in_ids:
             raise BotPermanent(bot_id)
         if bot_id not in {bot.id for bot in self._stored_bots()}:
             raise BotNotFound(bot_id)
@@ -82,7 +88,7 @@ class BotService:
 
     def restore(self, bot_id: str) -> None:
         """Bring an archived bot back with its chat as it was; an active one stays as it is."""
-        if bot_id != ASSISTANT_ID:
+        if bot_id not in self._built_in_ids:
             self._set_archived(bot_id, archived=False)
 
     async def delete(self, bot_id: str) -> None:
@@ -93,9 +99,12 @@ class BotService:
 
     def _active_bots(self) -> tuple[Bot, ...]:
         stored = self._stored_bots()
-        assistant = next((bot for bot in stored if bot.id == ASSISTANT_ID), self._assistant)
-        others = (bot for bot in stored if bot.id != ASSISTANT_ID and not bot.archived)
-        return (assistant, *others)
+        built_ins = (
+            next((bot for bot in stored if bot.id == default.id), default)
+            for default in self._built_ins
+        )
+        others = (bot for bot in stored if bot.id not in self._built_in_ids and not bot.archived)
+        return (*built_ins, *others)
 
     def _set_archived(self, bot_id: str, *, archived: bool) -> None:
         stored = self._stored_bots()
