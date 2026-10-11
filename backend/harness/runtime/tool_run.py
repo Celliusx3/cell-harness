@@ -39,7 +39,13 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
 
 
 async def run_tool_calls(
-    runtime: Runtime, calls: tuple[ToolCall, ...], *, session: Session, turn: int, step: int
+    runtime: Runtime,
+    calls: tuple[ToolCall, ...],
+    *,
+    session: Session,
+    turn: int,
+    step: int,
+    bot_id: str,
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending]:
     """A step's calls in order, then what the hooks wanted the model told."""
     owed = list(calls)
@@ -58,6 +64,7 @@ async def run_tool_calls(
                     turn=turn,
                     step=step,
                     approved=call.name in session.tools_granted(),
+                    bot_id=bot_id,
                 )
             ) as events:
                 async for event in events:
@@ -86,6 +93,7 @@ async def _answer_call(
     turn: int,
     step: int,
     approved: bool,
+    bot_id: str,
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending | Reminder]:
     """Any `ToolProgress`, then a `ToolPending`, or an optional `Reminder` then a `ToolResult`."""
     refusal = await runtime.hooks.pre_tool_call(call, session=session)
@@ -93,7 +101,9 @@ async def _answer_call(
     if refusal is not None:
         outcome = Failure(BLOCKED, refusal)
     else:
-        async with aclosing(_execute(runtime, call, session=session, approved=approved)) as events:
+        async with aclosing(
+            _execute(runtime, call, session=session, approved=approved, bot_id=bot_id)
+        ) as events:
             async for event in events:
                 if isinstance(event, ToolProgress):
                     yield event
@@ -115,14 +125,16 @@ async def _answer_call(
 
 
 async def run_approved_call(
-    runtime: Runtime, call: ToolCall, *, session: Session, turn: int
+    runtime: Runtime, call: ToolCall, *, session: Session, turn: int, bot_id: str
 ) -> AsyncIterator[ToolProgress | ToolResult]:
     """An approved call as the resumed turn's first step; a cancel still leaves it answered."""
     notes: list[str] = []
     answered = False
     try:
         async with aclosing(
-            _answer_call(runtime, call, session=session, turn=turn, step=0, approved=True)
+            _answer_call(
+                runtime, call, session=session, turn=turn, step=0, approved=True, bot_id=bot_id
+            )
         ) as events:
             async for event in events:
                 if isinstance(event, ToolResult):
@@ -144,7 +156,7 @@ async def run_approved_call(
 
 
 async def _execute(
-    runtime: Runtime, call: ToolCall, *, session: Session, approved: bool
+    runtime: Runtime, call: ToolCall, *, session: Session, approved: bool, bot_id: str
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
@@ -158,9 +170,12 @@ async def _execute(
         try:
             assert runtime.tools is not None
             if approved:
-                return await runtime.tools.approve(call, progress=report)
+                return await runtime.tools.approve(call, progress=report, bot_id=bot_id)
             return await runtime.tools.execute(
-                call, progress=report, tools_selected=session.tools_selected()
+                call,
+                progress=report,
+                bot_id=bot_id,
+                tools_selected=session.tools_selected(),
             )
         finally:
             queue.put_nowait(None)

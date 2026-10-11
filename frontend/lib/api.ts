@@ -9,6 +9,7 @@ import type {
   ClientOutput,
   Decision,
   MessageAccepted,
+  SecretSummary,
   SkillFile,
   SkillList,
   SkillSummary,
@@ -91,6 +92,16 @@ export const sendToolOutput = <T>(
     },
   );
 
+/** The key the person typed on an `ask_for_secret` card; the model gets back only its name. */
+export const saveSecret = (id: string, callId: string, value: string) =>
+  request<void>(
+    `/conversations/${id}/calls/${encodeURIComponent(callId)}/secret`,
+    {
+      method: "POST",
+      body: JSON.stringify({ value }),
+    },
+  );
+
 export const ASSISTANT_ID = "assistant";
 
 export const BUILDER_ID = "builder";
@@ -116,6 +127,20 @@ export const restoreBot = (id: string) =>
 /** Delete a bot and its chat for good. */
 export const deleteBot = (id: string) =>
   request<void>(`/bots/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+/** Let the bot use exactly these saved keys. */
+export const setBotSecrets = (botId: string, names: string[]) =>
+  request<Bot>(`/bots/${encodeURIComponent(botId)}/secrets`, {
+    method: "PUT",
+    body: JSON.stringify({ names }),
+  });
+
+/** Every saved key, by name, with the bots allowed to use it. */
+export const listSecrets = () => request<SecretSummary[]>("/secrets");
+
+/** Remove a key from the keyring and from every bot's list. */
+export const deleteSecret = (name: string) =>
+  request<void>(`/secrets/${encodeURIComponent(name)}`, { method: "DELETE" });
 
 export const listSkills = () => request<SkillList>("/skills");
 

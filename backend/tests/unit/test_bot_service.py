@@ -57,6 +57,20 @@ async def test_listing_opens_assistant_s_chat_only_the_first_time(
     assert list(chat.events()) == [BotInstructionsEvent(name="Assistant", instructions="Be kind.")]
 
 
+async def test_a_chat_belongs_to_the_bot_whose_chat_it_is(bots: BotService) -> None:
+    made = await bots.create("Researcher", "Cite.")
+
+    assert bots.bot_for_chat("c0") == made
+    with pytest.raises(BotNotFound):
+        bots.bot_for_chat("c9")
+
+
+async def test_a_bot_answers_in_the_chat_that_belongs_to_it(bots: BotService) -> None:
+    made = await bots.create("Researcher", "Cite.")
+
+    assert bots.bot_for_chat(bots.chat_of(made.id)) == made
+
+
 def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotService) -> None:
     with pytest.raises(BotNotFound):
         bots.find("r1")

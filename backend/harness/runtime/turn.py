@@ -43,7 +43,9 @@ class RetryStep:
     """The history was shrunk after a size refusal: run the same step again."""
 
 
-async def run_turn(runtime: Runtime, session: Session, turn: int) -> AsyncIterator[TurnEvent]:
+async def run_turn(
+    runtime: Runtime, session: Session, turn: int, *, bot_id: str
+) -> AsyncIterator[TurnEvent]:
     """From an opened turn to its end: its events as they happen, then exactly one terminal."""
     step = 0
     outcome: AgentCompleted | AgentPending | AgentFailed
@@ -86,7 +88,14 @@ async def run_turn(runtime: Runtime, session: Session, turn: int) -> AsyncIterat
 
             pending: ToolPending | None = None
             async with aclosing(
-                run_tool_calls(runtime, reply.tool_calls, session=session, turn=turn, step=step)
+                run_tool_calls(
+                    runtime,
+                    reply.tool_calls,
+                    session=session,
+                    turn=turn,
+                    step=step,
+                    bot_id=bot_id,
+                )
             ) as results:
                 async for event in results:
                     if isinstance(event, ToolPending):

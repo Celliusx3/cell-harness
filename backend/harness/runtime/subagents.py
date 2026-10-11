@@ -34,8 +34,10 @@ class Subagents:
     runtime: Runtime
     sessions: SessionService
 
-    async def __call__(self, subagent_id: str, task: SubagentTask) -> SubagentOutcome:
-        """Run `task` in a new session `subagent_id`, and report how its turn ended."""
+    async def __call__(
+        self, subagent_id: str, task: SubagentTask, *, bot_id: str
+    ) -> SubagentOutcome:
+        """Run `task` for `bot_id` in a new session `subagent_id`, and report how its turn ended."""
         session = await self.sessions.create(subagent_id)
         subagent = dataclasses.replace(
             self.runtime,
@@ -44,7 +46,7 @@ class Subagents:
         )
         last: TurnEvent | None = None
         try:
-            async with aclosing(subagent.run(task.task, session=session)) as events:
+            async with aclosing(subagent.run(task.task, session=session, bot_id=bot_id)) as events:
                 async for event in events:
                     last = event
         finally:

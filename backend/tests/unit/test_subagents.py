@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -14,16 +16,25 @@ from harness.runtime.subagents import Subagents
 from harness.session.models import TurnEnd, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.native.subagent import SubagentAnswered, SubagentStopped, SubagentTask
+from harness.tools.context import ToolContext
+from harness.tools.definition import Ok, ToolOutcome
+from harness.tools.native.subagent import (
+    SubagentAnswered,
+    SubagentStopped,
+    SubagentTask,
+    run_subagent_tool,
+)
 from tests.unit.fakes import (
+    EchoArgs,
     HangingClient,
     ScriptedClient,
     SteppedClient,
     calls_tool,
     completed,
+    echo_tool,
     pending_tool,
 )
-from tests.unit.helpers import runtime_over
+from tests.unit.helpers import context_for, runtime_over
 
 TASK = SubagentTask(name="aapl", task="Get AAPL revenue for four years and give the growth.")
 
@@ -39,7 +50,7 @@ async def test_a_subagent_answers_from_a_log_of_its_own(
     client = ScriptedClient(completed("AAPL grew 2%."))
     subagents = Subagents(runtime_over(client, guidance="BASE"), sessions)
 
-    outcome = await subagents("call-9.0", TASK)
+    outcome = await subagents("call-9.0", TASK, bot_id="b")
 
     assert outcome == SubagentAnswered(text="AAPL grew 2%.")
     assert (tmp_path / "call-9.0.jsonl").exists()
@@ -54,7 +65,7 @@ async def test_a_subagent_is_told_its_name_and_keeps_the_base_prompt(
 ) -> None:
     client = ScriptedClient(completed("done"))
 
-    await Subagents(runtime_over(client, guidance="BASE"), sessions)("c.0", TASK)
+    await Subagents(runtime_over(client, guidance="BASE"), sessions)("c.0", TASK, bot_id="b")
 
     system = client.seen[0]
     assert isinstance(system, SystemMessage)
@@ -68,7 +79,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
     client = SteppedClient(calls_tool("save_note", '{"value": "x"}'))
     subagents = Subagents(runtime_over(client, pending_tool("save_note")), sessions)
 
-    outcome = await subagents("c.0", TASK)
+    outcome = await subagents("c.0", TASK, bot_id="b")
 
     assert isinstance(outcome, SubagentStopped)
     assert "save_note" in outcome.reason
@@ -77,7 +88,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
 async def test_a_subagent_whose_turn_fails_says_why(sessions: SessionService) -> None:
     client = ScriptedClient([Failed(reason="provider down")])
 
-    outcome = await Subagents(runtime_over(client), sessions)("c.0", TASK)
+    outcome = await Subagents(runtime_over(client), sessions)("c.0", TASK, bot_id="b")
 
     assert isinstance(outcome, SubagentStopped)
     assert "provider down" in outcome.reason
@@ -88,7 +99,7 @@ async def test_a_stopped_subagent_leaves_its_log_closed_as_cancelled(
 ) -> None:
     subagents = Subagents(runtime_over(HangingClient("partial")), sessions)
 
-    running = asyncio.create_task(subagents("c.0", TASK))
+    running = asyncio.create_task(subagents("c.0", TASK, bot_id="b"))
     for _ in range(50):
         await asyncio.sleep(0)
     running.cancel()
@@ -98,3 +109,21 @@ async def test_a_stopped_subagent_leaves_its_log_closed_as_cancelled(
     assert running.cancelled()
     stored = await sessions.read("c.0")
     assert stored.events()[-1] == TurnEnd(turn=0, reason="cancelled")
+
+
+async def test_a_helper_runs_its_tools_for_the_bot_that_called_it(
+    sessions: SessionService,
+) -> None:
+    seen: list[str] = []
+
+    async def record(args: EchoArgs, context: ToolContext) -> ToolOutcome:
+        seen.append(context.bot_id)
+        return Ok(content=args.value)
+
+    client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))
+    helpers = Subagents(runtime_over(client, replace(echo_tool(), execute=record)), sessions)
+    tasks = json.dumps({"tasks": [{"name": "aapl", "task": "Look up AAPL."}]})
+
+    await run_subagent_tool(helpers).invoke(tasks, context=context_for("c", bot_id="notion"))
+
+    assert seen == ["notion"]

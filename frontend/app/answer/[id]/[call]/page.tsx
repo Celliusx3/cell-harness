@@ -81,5 +81,6 @@ export default function AnswerPage({
 function heading(item: ToolItem): string {
   if (item.call.name === "get_location") return "Share your location";
   if (item.call.name === "ask_user") return "Answer a question";
+  if (item.call.name === "ask_for_secret") return "Save a key";
   return `Approve ${humanise(item.call.name).label}?`;
 }

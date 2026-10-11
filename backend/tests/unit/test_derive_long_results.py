@@ -76,7 +76,7 @@ async def test_the_log_keeps_the_whole_result_and_the_model_sees_the_cut() -> No
     client = SteppedClient(calls_tool("big", '{"value": "v"}'), completed("done"))
     session = new_session()
 
-    async with aclosing(runtime_over(client, big).run("go", session=session)) as events:
+    async with aclosing(runtime_over(client, big).run("go", session=session, bot_id="b")) as events:
         async for _ in events:
             pass
 

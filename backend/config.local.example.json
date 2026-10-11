@@ -8,6 +8,9 @@
   "discord": {
     "bot_token": ""
   },
+  "secrets": {
+    "encryption_key": "… (openssl rand -hex 32)"
+  },
   "mcp": {
     "servers": {
       "instagram": {

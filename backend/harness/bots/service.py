@@ -58,6 +58,14 @@ class BotService:
             raise BotNotFound(bot_id)
         return bot
 
+    def bot_for_chat(self, chat_id: str) -> Bot:
+        """The active bot that answers in this chat, whose id is the chat's; `BotNotFound` else."""
+        return self.find(chat_id)
+
+    def chat_of(self, bot_id: str) -> str:
+        """The id of the one chat the bot answers in, which is the bot's own id."""
+        return bot_id
+
     async def create(self, name: str, instructions: str) -> Bot:
         """A new bot, with its chat already holding its instructions."""
         session = await self._sessions.create()
@@ -68,11 +76,30 @@ class BotService:
 
     def update(self, bot_id: str, name: str, instructions: str) -> Bot:
         """Edit an active bot's name or instructions; its chat logs them before its next turn."""
-        updated = self.find(bot_id).model_copy(update={"name": name, "instructions": instructions})
+        bot = self.find(bot_id)
+        return self._store(bot.model_copy(update={"name": name, "instructions": instructions}))
+
+    def allow_secret(self, bot_id: str, name: str) -> Bot:
+        """Add the saved key `name` to the keys an active bot may use."""
+        bot = self.find(bot_id)
+        return self._store(
+            bot.model_copy(update={"secret_names": _once_each((*bot.secret_names, name))})
+        )
+
+    def set_allowed_secrets(self, bot_id: str, names: tuple[str, ...]) -> Bot:
+        """Make `names` the saved keys an active bot may use, and no others."""
+        bot = self.find(bot_id)
+        return self._store(bot.model_copy(update={"secret_names": _once_each(names)}))
+
+    def forget_secret(self, name: str) -> None:
+        """Take the key `name` off the list of every stored bot, archived ones too."""
         stored = self._stored_bots()
-        replaced = tuple(updated if bot.id == bot_id else bot for bot in stored)
-        self._write(replaced if bot_id in {bot.id for bot in stored} else (updated, *stored))
-        return updated
+        kept = tuple(
+            bot.model_copy(update={"secret_names": tuple(n for n in bot.secret_names if n != name)})
+            for bot in stored
+        )
+        if kept != stored:
+            self._write(kept)
 
     def check_removable(self, bot_id: str) -> None:
         """Refuse a built-in with `BotPermanent` and an unknown bot with `BotNotFound`."""
@@ -106,6 +133,12 @@ class BotService:
         others = (bot for bot in stored if bot.id not in self._built_in_ids and not bot.archived)
         return (*built_ins, *others)
 
+    def _store(self, updated: Bot) -> Bot:
+        stored = self._stored_bots()
+        replaced = tuple(updated if bot.id == updated.id else bot for bot in stored)
+        self._write(replaced if updated.id in {bot.id for bot in stored} else (updated, *stored))
+        return updated
+
     def _set_archived(self, bot_id: str, *, archived: bool) -> None:
         stored = self._stored_bots()
         if bot_id not in {bot.id for bot in stored}:
@@ -132,3 +165,7 @@ class BotService:
     async def _log_instructions(self, session: Session, bot: Bot) -> None:
         session.append(BotInstructionsEvent(name=bot.name, instructions=bot.instructions))
         await self._sessions.flush(session)
+
+
+def _once_each(names: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(names))

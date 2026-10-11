@@ -20,7 +20,7 @@ async def interrupt_during_tool(runtime, session: Session) -> None:
     """Cancel a turn while a dispatched tool is still running."""
 
     async def consume() -> None:
-        async with aclosing(runtime.run("q", session=session)) as events:
+        async with aclosing(runtime.run("q", session=session, bot_id="b")) as events:
             async for _ in events:
                 pass
 
@@ -60,7 +60,9 @@ async def test_stopping_before_any_call_exists_owes_nothing() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "a"}'))
     session = new_session()
 
-    async with aclosing(runtime_over(client, echo_tool()).run("q", session=session)) as events:
+    async with aclosing(
+        runtime_over(client, echo_tool()).run("q", session=session, bot_id="b")
+    ) as events:
         async for event in events:
             if isinstance(event, ToolCallChunk):
                 break

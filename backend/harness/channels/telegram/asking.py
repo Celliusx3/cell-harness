@@ -18,7 +18,10 @@ MAX_CALLBACK_BYTES = 64
 
 ASK = {LOCATION: "The assistant needs your location to answer. Share it?"}
 SHARE_LABEL = "Share my location"
-ASK_BY_LINK = "The assistant needs something from your device. Open the page to answer."
+ASK_BY_LINK = (
+    "The assistant needs an answer from you. Open the page to give it there; "
+    "never paste a key or password into this chat."
+)
 APPROVE_BY_LINK = "The assistant wants to run {label}. Open the page to allow or deny."
 NO_ANSWER_PAGE = "(Answering from Telegram needs `web.public_url` to be set.)"
 

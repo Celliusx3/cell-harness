@@ -8,7 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.bots import BotService
+from harness.bots import Bot, BotService
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent
@@ -58,11 +58,12 @@ class RunService:
         """Begin a turn on a task this service owns."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        self._log_instructions(session)
+        bot = self._bots.bot_for_chat(session.id)
+        self._log_instructions(session, bot)
         run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
-            self._stream(run, self._runtime.run(prompt, session=session))
+            self._stream(run, self._runtime.run(prompt, session=session, bot_id=bot.id))
         )
         run._outer = asyncio.create_task(self._drive(run))
         return run
@@ -71,10 +72,13 @@ class RunService:
         """Begin the turn that answers a client tool — the person's answer as its first event."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
+        bot = self._bots.bot_for_chat(session.id)
         run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
-            self._stream(run, self._runtime.resume(call_id, outcome, session=session))
+            self._stream(
+                run, self._runtime.resume(call_id, outcome, session=session, bot_id=bot.id)
+            )
         )
         run._outer = asyncio.create_task(self._drive(run))
         return run
@@ -110,9 +114,8 @@ class RunService:
         for conversation_id in list(self._runs):
             await self.stop(conversation_id)
 
-    def _log_instructions(self, session: Session) -> None:
+    def _log_instructions(self, session: Session, bot: Bot) -> None:
         """Log the answering bot's instructions when they are not the ones logged last."""
-        bot = self._bots.find(session.id)
         answering = BotInstructionsEvent(name=bot.name, instructions=bot.instructions)
         if session.bot_instructions() != answering:
             session.append(answering)

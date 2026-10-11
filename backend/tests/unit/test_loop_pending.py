@@ -26,7 +26,9 @@ async def test_a_pending_tool_ends_the_turn_without_a_result() -> None:
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("never"))
     session = new_session()
 
-    events = await drain(runtime_over(client, pending_tool()).run("near me?", session=session))
+    events = await drain(
+        runtime_over(client, pending_tool()).run("near me?", session=session, bot_id="b")
+    )
 
     assert _types(session)[-4:] == ["assistant/message", "tool/call", "step/end", "turn/end"]
     assert session.events()[-1] == TurnEnd(turn=0, reason="pending")
@@ -46,7 +48,7 @@ async def test_a_parallel_ordinary_call_still_gets_its_result() -> None:
     session = new_session()
 
     events = await drain(
-        runtime_over(client, echo_tool(), pending_tool()).run("q", session=session)
+        runtime_over(client, echo_tool(), pending_tool()).run("q", session=session, bot_id="b")
     )
 
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
@@ -64,9 +66,11 @@ async def test_resume_opens_a_turn_with_the_result_and_the_model_sees_it_in_orde
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés nearby"))
     session = new_session()
     runtime = runtime_over(client, pending_tool())
-    await drain(runtime.run("near me?", session=session))
+    await drain(runtime.run("near me?", session=session, bot_id="b"))
 
-    events = await drain(runtime.resume("c1", Ok(content='{"lat": 3.1}'), session=session))
+    events = await drain(
+        runtime.resume("c1", Ok(content='{"lat": 3.1}'), session=session, bot_id="b")
+    )
 
     types = _types(session)
     opened = types.index("turn/start", 1)
@@ -85,9 +89,9 @@ async def test_a_new_message_first_answers_the_dangling_call_as_skipped() -> Non
     )
     session = new_session()
     runtime = runtime_over(client, pending_tool())
-    await drain(runtime.run("near me?", session=session))
+    await drain(runtime.run("near me?", session=session, bot_id="b"))
 
-    await drain(runtime.run("never mind, time in Tokyo?", session=session))
+    await drain(runtime.run("never mind, time in Tokyo?", session=session, bot_id="b"))
 
     skipped = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert skipped.error == SKIPPED
@@ -108,7 +112,7 @@ async def test_an_ordinary_turn_writes_no_skips() -> None:
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
     session = new_session()
     runtime = runtime_over(client, echo_tool())
-    await drain(runtime.run("q", session=session))
-    await drain(runtime.run("again", session=session))
+    await drain(runtime.run("q", session=session, bot_id="b"))
+    await drain(runtime.run("again", session=session, bot_id="b"))
 
     assert [e.error for e in session.events() if isinstance(e, ToolResultEvent)] == [None]

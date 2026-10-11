@@ -70,9 +70,11 @@ SubagentOutcome = SubagentAnswered | SubagentStopped
 
 
 class SubagentRunner(Protocol):
-    """Runs one task as the subagent `subagent_id`, to its end."""
+    """Runs one task as the subagent `subagent_id` for the bot `bot_id`, to its end."""
 
-    async def __call__(self, subagent_id: str, task: SubagentTask) -> SubagentOutcome: ...
+    async def __call__(
+        self, subagent_id: str, task: SubagentTask, *, bot_id: str
+    ) -> SubagentOutcome: ...
 
 
 def run_subagent_tool(runner: SubagentRunner) -> ToolDefinition[SubagentArgs]:
@@ -82,7 +84,9 @@ def run_subagent_tool(runner: SubagentRunner) -> ToolDefinition[SubagentArgs]:
         try:
             async with asyncio.TaskGroup() as group:
                 running = [
-                    group.create_task(runner(f"{context.call_id}.{index}", task))
+                    group.create_task(
+                        runner(f"{context.call_id}.{index}", task, bot_id=context.bot_id)
+                    )
                     for index, task in enumerate(args.tasks)
                 ]
         except ExceptionGroup as broken:

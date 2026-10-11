@@ -19,7 +19,7 @@ from harness.web.server import build_channels, create_app
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import web_gateway, web_mcp
+from tests.webapp import secrets_in, web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -42,7 +42,15 @@ def build(tmp_path):
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
     app = create_app(
-        runs, gateway, web, web_mcp(), no_skills(), tools, no_gate(), no_bots(sessions)
+        runs,
+        gateway,
+        web,
+        web_mcp(),
+        no_skills(),
+        tools,
+        no_gate(),
+        no_bots(sessions),
+        secrets_in(tmp_path),
     )
     return bot, app, gateway, runs, sessions
 
@@ -101,7 +109,15 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     wired = create_app(
-        runs, gateway, web, web_mcp(), no_skills(), tools, no_gate(), no_bots(sessions)
+        runs,
+        gateway,
+        web,
+        web_mcp(),
+        no_skills(),
+        tools,
+        no_gate(),
+        no_bots(sessions),
+        secrets_in(tmp_path),
     )
 
     assert gateway.channels == ["web"]

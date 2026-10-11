@@ -59,18 +59,20 @@ class Runtime:
             return history
         return [SystemMessage(content=system), *history]
 
-    async def run(self, user_input: str, *, session: Session) -> AsyncIterator[TurnEvent]:
+    async def run(
+        self, user_input: str, *, session: Session, bot_id: str
+    ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = session.next_turn()
         session.append(TurnStart(turn=turn))
         session.append(UserMessageEvent(turn=turn, message=UserMessage(content=user_input)))
-        async with aclosing(run_turn(self, session, turn)) as events:
+        async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
 
     async def resume(
-        self, call_id: str, answer: Ok | Failure | Approved, *, session: Session
+        self, call_id: str, answer: Ok | Failure | Approved, *, session: Session, bot_id: str
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person's answer to a client tool, or their approval of a call."""
         turn = session.next_turn()
@@ -83,7 +85,7 @@ class Runtime:
                 if answer.scope == "conversation":
                     session.append(ApprovalGrant(turn=turn, tool=call.name))
                 async with aclosing(
-                    run_approved_call(self, call, session=session, turn=turn)
+                    run_approved_call(self, call, session=session, turn=turn, bot_id=bot_id)
                 ) as events:
                     async for event in events:
                         yield event
@@ -97,7 +99,7 @@ class Runtime:
         except BaseException:
             session.append(TurnEnd(turn=turn, reason="cancelled"))
             raise
-        async with aclosing(run_turn(self, session, turn)) as events:
+        async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
 

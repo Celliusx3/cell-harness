@@ -47,9 +47,9 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
     return None
 
 
-def context_for(call_id: str = "call-1") -> ToolContext:
+def context_for(call_id: str = "call-1", bot_id: str = "s") -> ToolContext:
     """A context for invoking a tool directly, outside the dispatcher."""
-    return ToolContext(call_id=call_id, progress=no_progress)
+    return ToolContext(call_id=call_id, progress=no_progress, bot_id=bot_id)
 
 
 def new_session(session_id: str = "s") -> Session:
@@ -105,7 +105,7 @@ async def cancel_mid_turn(runtime, session: Session, user_input: str = "q") -> N
     """Run a turn in its own task and cancel it once it is blocked."""
 
     async def consume() -> None:
-        async with aclosing(runtime.run(user_input, session=session)) as events:
+        async with aclosing(runtime.run(user_input, session=session, bot_id="b")) as events:
             async for _ in events:
                 pass
 

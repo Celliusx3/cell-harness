@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import discord
 
 from harness.channels.client import ChatAnswers
@@ -14,11 +16,20 @@ from harness.runtime.service import SKIPPED
 from harness.session.models import ToolResultEvent, TurnEnd
 from harness.tools.client import PendingCall, Refused
 from harness.tools.native.location import LOCATION
+from harness.tools.native.secrets import ASK_FOR_SECRET
 from tests.unit.discord_fakes import discord_channel
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
 from tests.unit.helpers import client_tools, no_skills
 from tests.unit.telegram_fakes import location_update, telegram_channel
+
+SITE = "https://api.github.com"
+KEY_ASK = PendingCall(
+    ASK_FOR_SECRET,
+    "c1",
+    json.dumps({"name": "github", "origin": SITE, "auth": "bearer", "label": "GitHub token"}),
+)
+KEEPS_KEYS_OUT = "never paste a key or password into this chat"
 
 
 def _asks_then_answers(answer: str = "a café 200 m away") -> SteppedClient:
@@ -150,6 +161,33 @@ async def test_discord_without_a_public_url_is_told_why() -> None:
 
     assert chat.linked == []
     assert chat.sent == [f"{DISCORD_ASK} {DISCORD_NO_PAGE}"]
+
+
+async def test_telegram_asks_for_a_key_by_the_generic_link() -> None:
+    channel, bot = telegram_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
+
+    await channel.ask_client("42", KEY_ASK, answer_url("http://t", "c0", "c1"))
+
+    ((chat_id, text, markup),) = bot.linked
+    assert (chat_id, text) == ("42", ASK_BY_LINK)
+    assert KEEPS_KEYS_OUT in text
+    assert markup.inline_keyboard[0][0].url == "http://t/answer/c0/c1"
+
+
+async def test_discord_asks_for_a_key_by_the_generic_link() -> None:
+    channel, client = discord_channel(
+        ChannelGateway(None, None, None, no_skills(), public_url="http://t")
+    )
+    chat = client.chat("42")
+
+    await channel.ask_client("42", KEY_ASK, answer_url("http://t", "c0", "c1"))
+
+    ((text, view),) = chat.linked
+    assert text == DISCORD_ASK
+    assert KEEPS_KEYS_OUT in text
+    assert view.children[0].url == "http://t/answer/c0/c1"
 
 
 def test_the_answer_page_is_addressed_like_an_app_page() -> None:

@@ -23,7 +23,10 @@ CHANNEL = "discord"
 MAX_MESSAGE_CHARS = 2000
 
 OPEN_LABEL = "Open"
-ASK_BY_LINK = "The assistant needs something from your device. Open the page to answer."
+ASK_BY_LINK = (
+    "The assistant needs an answer from you. Open the page to give it there; "
+    "never paste a key or password into this chat."
+)
 NO_ANSWER_PAGE = "(Answering from Discord needs `web.public_url` to be set.)"
 
 

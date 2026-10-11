@@ -62,9 +62,11 @@ class RecordingDispatcher(ToolDispatcher):
         super().__init__(registry, gate)
         self.calls: list[ToolCall] = []
 
-    async def dispatch(self, call: ToolCall, *, progress, approved: bool) -> ToolOutcome:
+    async def dispatch(
+        self, call: ToolCall, *, progress, approved: bool, bot_id: str
+    ) -> ToolOutcome:
         self.calls.append(call)
-        return await super().dispatch(call, progress=progress, approved=approved)
+        return await super().dispatch(call, progress=progress, approved=approved, bot_id=bot_id)
 
 
 @dataclass

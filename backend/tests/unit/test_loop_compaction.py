@@ -76,7 +76,7 @@ async def test_a_long_conversation_compacts_and_keeps_going() -> None:
     session = new_session()
 
     for i in range(200):
-        await drain(runtime.run(f"message {i}", session=session))
+        await drain(runtime.run(f"message {i}", session=session, bot_id="b"))
 
     assert client.summaries >= 1
     users = [e for e in session.events() if e.type == "user/message"]
@@ -89,8 +89,8 @@ async def test_the_summary_survives_into_the_next_turn() -> None:
     runtime = runtime_with(client, context=10_000)
     session = new_session()
 
-    await drain(runtime.run("first", session=session))
-    await drain(runtime.run("second", session=session))
+    await drain(runtime.run("first", session=session, bot_id="b"))
+    await drain(runtime.run("second", session=session, bot_id="b"))
 
     messages = derive_messages(session.events())
     assert isinstance(messages[0], UserMessage) and OPEN in messages[0].content
@@ -102,7 +102,7 @@ async def test_a_step_below_the_line_writes_no_compaction_event() -> None:
     session = new_session()
 
     for i in range(5):
-        await drain(runtime.run(f"message {i}", session=session))
+        await drain(runtime.run(f"message {i}", session=session, bot_id="b"))
 
     assert client.summaries == 0
     assert not any(e.type.startswith("compaction/") for e in session.events())
@@ -167,7 +167,7 @@ async def test_an_overflow_is_recovered_and_the_step_retried() -> None:
     )
     session.append(TurnEnd(turn=0, reason="completed"))
 
-    events = await drain(runtime.run("go", session=session))
+    events = await drain(runtime.run("go", session=session, bot_id="b"))
 
     assert client.answered
     assert any(e.kind == "agent_completed" for e in events)
@@ -185,7 +185,7 @@ async def test_an_overflow_with_nothing_to_shrink_fails_the_turn() -> None:
     client = AlwaysOverflows()
     runtime = runtime_with(client, context=None)
     session = new_session()
-    events = await drain(runtime.run("go", session=session))
+    events = await drain(runtime.run("go", session=session, bot_id="b"))
 
     assert any(e.kind == "agent_failed" for e in events)
 
@@ -194,7 +194,7 @@ async def test_an_agent_copied_with_its_own_prompt_summarizes_with_that_prompt()
     client = SteppedClient(completed("done"), completed("SUMMARY"))
     helper = dataclasses.replace(runtime_with(client, None), guidance="HELPER")
     session = new_session()
-    await drain(helper.run("do the task", session=session))
+    await drain(helper.run("do the task", session=session, bot_id="b"))
 
     await drain(helper.compact(session=session))
 

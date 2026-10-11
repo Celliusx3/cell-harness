@@ -54,7 +54,11 @@ async def test_a_tool_turn_checkpoints_before_each_request_and_after_each_call()
     client = SteppedClient(calls_tool("echo", '{"value": "a"}'), completed("done"))
     session = new_session()
 
-    await drain(runtime_over(client, echo_tool(), checkpoint=checkpoint).run("q", session=session))
+    await drain(
+        runtime_over(client, echo_tool(), checkpoint=checkpoint).run(
+            "q", session=session, bot_id="b"
+        )
+    )
 
     assert seen == ["step/start", "tool/call", "step/start"]
 
@@ -124,7 +128,7 @@ async def test_a_note_is_logged_before_a_pending_turn_ends() -> None:
     session = new_session()
     runtime = runtime_over(client, echo_tool(), pending_tool(), hooks=HookChain((Noting(),)))
 
-    await drain(runtime.run("q", session=session))
+    await drain(runtime.run("q", session=session, bot_id="b"))
 
     assert [e.type for e in session.events()][-4:] == [
         "tool/call",
@@ -139,7 +143,7 @@ async def test_closing_at_the_terminal_does_not_close_the_turn_twice() -> None:
     session = new_session()
 
     async with aclosing(
-        runtime_over(SteppedClient(completed("ok"))).run("q", session=session)
+        runtime_over(SteppedClient(completed("ok"))).run("q", session=session, bot_id="b")
     ) as events:
         async for event in events:
             if isinstance(event, AgentCompleted):
@@ -169,7 +173,9 @@ async def test_an_interrupted_second_step_is_stamped_with_its_own_step() -> None
     client = HangsOnStepOne()
     session = new_session()
 
-    async with aclosing(runtime_over(client, echo_tool()).run("q", session=session)) as events:
+    async with aclosing(
+        runtime_over(client, echo_tool()).run("q", session=session, bot_id="b")
+    ) as events:
         async for event in events:
             if isinstance(event, TextChunk):
                 break

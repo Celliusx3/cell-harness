@@ -54,7 +54,7 @@ async def test_a_refused_call_is_logged_but_never_run() -> None:
     session = new_session()
 
     events = await drain(
-        runtime_over(client, tool, hooks=HookChain((hook,))).run("q", session=session)
+        runtime_over(client, tool, hooks=HookChain((hook,))).run("q", session=session, bot_id="b")
     )
 
     assert runs == []
@@ -86,7 +86,9 @@ async def test_a_note_is_logged_as_a_guardrail_message_after_the_steps_calls() -
     session = new_session()
 
     events = await drain(
-        runtime_over(client, echo_tool(), hooks=HookChain((hook,))).run("q", session=session)
+        runtime_over(client, echo_tool(), hooks=HookChain((hook,))).run(
+            "q", session=session, bot_id="b"
+        )
     )
 
     kinds = [
@@ -125,7 +127,9 @@ async def test_a_step_without_notes_logs_no_guardrail_message() -> None:
     session = new_session()
 
     await drain(
-        runtime_over(client, echo_tool(), hooks=HookChain((Stub(),))).run("q", session=session)
+        runtime_over(client, echo_tool(), hooks=HookChain((Stub(),))).run(
+            "q", session=session, bot_id="b"
+        )
     )
 
     assert not [e for e in session.events() if isinstance(e, ApplicationMessageEvent)]
@@ -141,7 +145,7 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
 
     events = await drain(
         runtime_over(SteppedClient(*scripts, completed("gave up")), boom, hooks=guardrail).run(
-            "q", session=session
+            "q", session=session, bot_id="b"
         )
     )
 
@@ -159,7 +163,7 @@ async def test_the_fifth_identical_failing_call_is_refused_and_a_succeeding_one_
     ]
     await drain(
         runtime_over(SteppedClient(*ok, completed("done")), echo_tool(), hooks=guardrail).run(
-            "q", session=session
+            "q", session=session, bot_id="b"
         )
     )
 
@@ -171,7 +175,7 @@ async def test_a_note_is_logged_but_never_yielded_to_the_caller() -> None:
     session = new_session()
     runtime = runtime_over(client, echo_tool(), hooks=HookChain((Stub(note="think again"),)))
 
-    events = await drain(runtime.run("q", session=session))
+    events = await drain(runtime.run("q", session=session, bot_id="b"))
 
     assert any(isinstance(e, ApplicationMessageEvent) for e in session.events())
     assert all(isinstance(e, TurnEvent) for e in events)

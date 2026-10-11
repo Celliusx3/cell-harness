@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID
+from harness.bots import ASSISTANT_ID, ASSISTANT_INSTRUCTIONS, Bot, BotService
 from harness.runs.service import RunAlreadyActive
 from harness.runs.subscribe import subscribe
 from harness.session.models import (
@@ -14,8 +16,10 @@ from harness.session.models import (
     TurnEnd,
 )
 from harness.session.service import SessionService
-from harness.tools.definition import Ok
+from harness.tools.context import ToolContext
+from harness.tools.definition import Ok, ToolOutcome
 from tests.unit.fakes import (
+    EchoArgs,
     ScriptedClient,
     SteppedClient,
     calls_tool,
@@ -155,3 +159,26 @@ async def test_resume_runs_a_turn_that_starts_with_the_answer(service) -> None:
     assert runs.active(session.id) is None
     stored = await service.read(session.id)
     assert [e.reason for e in stored.events() if e.type == "turn/end"] == ["pending", "completed"]
+
+
+class _ChatsOfNotion(BotService):
+    def bot_for_chat(self, chat_id: str) -> Bot:
+        return Bot(id="notion", name="Notion", instructions="Read Notion.")
+
+
+async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> None:
+    seen: list[str] = []
+
+    async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
+        seen.append(context.bot_id)
+        return Ok(content=args.value)
+
+    bots = _ChatsOfNotion(
+        Path("/nonexistent/bots.json"), service, assistant_instructions=ASSISTANT_INSTRUCTIONS
+    )
+    client = SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done"))
+    runs = run_service(service, client, replace(echo_tool(), execute=execute), bots=bots)
+    run = runs.start(await service.create(ASSISTANT_ID), "go")
+    await asyncio.wait_for(run._outer, timeout=5)
+
+    assert seen == ["notion"]
