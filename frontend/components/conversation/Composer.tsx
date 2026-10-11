@@ -1,19 +1,25 @@
 "use client";
 
 import { ArrowUp, Square } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   running: boolean;
   onSend(prompt: string): void;
   onStop(): void;
   autoFocus?: boolean;
+  initialDraft?: string;
 }
 
 /** The composer, and the stop button beside it while a turn runs. */
-export function Composer({ running, onSend, onStop, autoFocus }: Props) {
-  const [draft, setDraft] = useState("");
+export function Composer({ running, onSend, onStop, autoFocus, initialDraft }: Props) {
+  const [draft, setDraft] = useState(initialDraft ?? "");
   const box = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!autoFocus || initialDraft === undefined) return;
+    box.current?.setSelectionRange(initialDraft.length, initialDraft.length);
+  }, [autoFocus, initialDraft]);
 
   const submit = () => {
     const prompt = draft.trim();

@@ -6,7 +6,7 @@ import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ArchivedBots } from "@/components/chat/ArchivedBots";
-import { listArchivedBots, listBots } from "@/lib/api";
+import { BUILDER_ID, listArchivedBots, listBots } from "@/lib/api";
 import type { Bot } from "@/lib/types";
 
 const STALE = "harness:sidebar-stale";
@@ -83,14 +83,16 @@ export function Sidebar() {
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 pb-4">
         <SidebarSection title="Bots">
-          {bots.map((bot) => (
-            <SidebarRow
-              key={bot.id}
-              href={`/c/${bot.id}`}
-              label={bot.name}
-              current={bot.id === currentId}
-            />
-          ))}
+          {bots
+            .filter((bot) => bot.id !== BUILDER_ID)
+            .map((bot) => (
+              <SidebarRow
+                key={bot.id}
+                href={`/c/${bot.id}`}
+                label={bot.name}
+                current={bot.id === currentId}
+              />
+            ))}
         </SidebarSection>
         {archived.length > 0 && <ArchivedBots bots={archived} onChange={refreshSidebar} />}
       </nav>
