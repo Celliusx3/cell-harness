@@ -27,6 +27,7 @@ phase ordering.
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
+# and secrets.encryption_key (`openssl rand -hex 32`), which seals the keys bots save
 # everything else — model, endpoint, sessions root, MCP servers — is in
 # backend/config.json (committed); a server's `env` secrets go in config.local.json
 make install                           # uv sync the backend package + dev deps
