@@ -217,6 +217,7 @@ name = "cell-harness"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cryptography" },
     { name = "discord-py" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -240,6 +241,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", specifier = ">=50" },
     { name = "discord-py", specifier = ">=2.7" },
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "httpx", specifier = ">=0.27" },

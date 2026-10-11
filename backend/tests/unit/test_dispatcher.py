@@ -20,7 +20,7 @@ def call(name: str, arguments: str = '{"value": "hi"}') -> ToolCall:
 
 async def test_a_known_tool_runs() -> None:
     outcome = await dispatcher(echo_tool()).dispatch(
-        call("echo"), progress=no_progress, approved=False
+        call("echo"), progress=no_progress, bot_id="s", approved=False
     )
 
     assert outcome == Ok(content="hi")
@@ -28,7 +28,7 @@ async def test_a_known_tool_runs() -> None:
 
 async def test_an_unknown_tool_is_a_failure_that_names_the_alternatives() -> None:
     outcome = await dispatcher(echo_tool()).dispatch(
-        call("nope"), progress=no_progress, approved=False
+        call("nope"), progress=no_progress, bot_id="s", approved=False
     )
 
     assert isinstance(outcome, Failure)
@@ -37,7 +37,9 @@ async def test_an_unknown_tool_is_a_failure_that_names_the_alternatives() -> Non
 
 
 async def test_an_empty_registry_says_none_rather_than_nothing() -> None:
-    outcome = await dispatcher().dispatch(call("nope"), progress=no_progress, approved=False)
+    outcome = await dispatcher().dispatch(
+        call("nope"), progress=no_progress, bot_id="s", approved=False
+    )
 
     assert isinstance(outcome, Failure)
     assert "none" in outcome.message

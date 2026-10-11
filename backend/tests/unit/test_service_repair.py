@@ -46,7 +46,7 @@ async def crash_during_tool(runtime, session, store, tmp_path) -> SessionService
 
 
 async def _drive(runtime, session) -> None:
-    async with aclosing(runtime.run("go", session=session)) as events:
+    async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
         async for _ in events:
             pass
 
@@ -99,7 +99,9 @@ async def test_a_repaired_session_can_take_another_turn(store, tmp_path) -> None
     resumed = await reopened.resume("s0")
     next_client = ScriptedClient(completed("carrying on"))
     events = await drain(
-        runtime_over(next_client, checkpoint=reopened.flush).run("what happened?", session=resumed)
+        runtime_over(next_client, checkpoint=reopened.flush).run(
+            "what happened?", session=resumed, bot_id="b"
+        )
     )
 
     assert events[-1] == AgentCompleted(text="carrying on")

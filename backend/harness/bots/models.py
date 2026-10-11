@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from harness.secrets import SecretName
+
 ASSISTANT_ID = "assistant"
 ASSISTANT_NAME = "Assistant"
 ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
@@ -41,7 +43,7 @@ class BotDraft(BaseModel):
 
 
 class Bot(BaseModel):
-    """A name, the instructions it answers with, and its one chat, whose id is the bot's."""
+    """A name, its instructions, the saved keys it may use, and its one chat, whose id is its id."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -49,6 +51,7 @@ class Bot(BaseModel):
     name: str
     instructions: str
     archived: bool = False
+    secret_names: tuple[SecretName, ...] = ()
 
 
 class BotsFile(BaseModel):

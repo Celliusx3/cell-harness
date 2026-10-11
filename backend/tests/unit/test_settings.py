@@ -95,7 +95,7 @@ def test_the_refusal_names_the_files_to_edit(config_file) -> None:
 
 def test_load_returns_settings_when_both_are_present(config_file) -> None:
     write_committed, _ = config_file
-    write_committed({"llm": {"model": "m", "api_key": "k"}})
+    write_committed({"llm": {"model": "m", "api_key": "k"}, "secrets": {"encryption_key": "e"}})
 
     assert load().llm.model == "m"
 
@@ -162,7 +162,7 @@ def test_the_environment_beats_config_local_json(config_file, monkeypatch) -> No
 
 def test_a_missing_local_file_is_normal(config_file) -> None:
     write_committed, _ = config_file
-    write_committed({"llm": {"model": "m", "api_key": "k"}})
+    write_committed({"llm": {"model": "m", "api_key": "k"}, "secrets": {"encryption_key": "e"}})
 
     assert load().llm.model == "m"
 
@@ -173,6 +173,20 @@ def test_the_refusal_points_at_the_local_file_for_the_key(config_file) -> None:
 
     with pytest.raises(MissingConfigError, match="config.local.json"):
         load()
+
+
+@pytest.mark.parametrize("secrets", [{}, {"encryption_key": ""}, {"encryption_key": "   "}])
+def test_load_refuses_a_blank_encryption_key_and_points_at_the_local_file(
+    config_file, monkeypatch, secrets
+) -> None:
+    write_committed, _ = config_file
+    monkeypatch.delenv("HARNESS_SECRETS__ENCRYPTION_KEY", raising=False)
+    write_committed({"llm": {"model": "m", "api_key": "k"}, "secrets": secrets})
+
+    with pytest.raises(MissingConfigError, match="config.local.json") as refused:
+        load()
+
+    assert "secrets.encryption_key" in str(refused.value)
 
 
 def test_skill_roots_resolve_relative_paths_against_the_project(config_file, tmp_path) -> None:

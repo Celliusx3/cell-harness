@@ -30,6 +30,7 @@ from harness.web.runtime import build_runtime
 from harness.web.server import build_store, build_subagent_logs
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
+from tests.webapp import secrets_in
 
 
 @pytest.fixture
@@ -51,6 +52,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             no_gate(),
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=subagent_logs,
+            secrets=secrets_in(tmp_path),
         )
         return runtime, sessions
 
@@ -69,7 +71,7 @@ async def test_a_script_cannot_reach_run_subagent(compose) -> None:
     assert runtime.tools is not None
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
+        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, bot_id="s"
     )
 
     assert isinstance(listed, Ok)
@@ -86,7 +88,7 @@ async def test_a_subagent_cannot_delegate_ask_or_write_a_skill(compose, tmp_path
     runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session)) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
         async for _ in events:
             pass
 
@@ -117,7 +119,7 @@ async def test_a_subagent_that_overflows_compacts_like_the_bot_and_answers(
     runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session)) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
         async for _ in events:
             pass
 
@@ -153,7 +155,7 @@ async def test_a_subagents_log_is_saved_before_its_first_request(compose, tmp_pa
     runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session)) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
         async for _ in events:
             pass
 

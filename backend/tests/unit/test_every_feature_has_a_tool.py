@@ -15,7 +15,7 @@ from harness.web.runtime import build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
-from tests.webapp import web_app
+from tests.webapp import secrets_in, web_app
 
 
 class Tool(NamedTuple):
@@ -44,6 +44,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/conversations/{conversation_id}/calls/{call_id}/output": NotATool(
         "the person's answer to a card; a model that could send it would approve itself"
     ),
+    "POST /api/conversations/{conversation_id}/calls/{call_id}/secret": NotATool(
+        "the person types the key on the card; it never passes the model"
+    ),
     "POST /api/skills": NotATool(
         "a zip is bytes the model does not have; skill_save and skill_write_file write its files"
     ),
@@ -68,6 +71,12 @@ ROUTES: dict[str, Tool | NotATool] = {
     "DELETE /api/bots/{bot_id}": NotATool(
         "it erases a teammate and its chat for good; only the person does that"
     ),
+    "PUT /api/bots/{bot_id}/secrets": NotATool(
+        "which keys a bot may use is the person's call; a bot never gives itself a key"
+    ),
+    "DELETE /api/secrets/{name}": NotATool(
+        "removing a key is the person's call, from the Keys page"
+    ),
 }
 
 CONFIG: dict[str, Tool | NotATool] = {
@@ -82,6 +91,9 @@ CONFIG: dict[str, Tool | NotATool] = {
     "skills": NotATool("where skills live; skill_save and skill_delete work in the editable one"),
     "approval": NotATool("what the model must ask before doing; it never edits its own list"),
     "bots": NotATool("where the bots are kept; moving it while running loses them"),
+    "secrets": NotATool(
+        "where keys are kept and the key that locks them; neither ever passes the model"
+    ),
 }
 
 
@@ -115,6 +127,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         no_gate(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
+        secrets=secrets_in(tmp_path),
     )
     assert runtime.tools is not None
 

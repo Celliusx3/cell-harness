@@ -125,7 +125,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
 
     async def run(name: str, arguments: str) -> ToolOutcome:
         call = ToolCall(id="c1", name=name, arguments=arguments)
-        return await pipeline.execute(call, progress=no_progress)
+        return await pipeline.execute(call, progress=no_progress, bot_id="s")
 
     assert [spec.name for spec in pipeline.specs()] == [LIST, DETAILS, EXECUTE]
 

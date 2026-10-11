@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { use } from "react";
 
 import { BotForm } from "@/components/bots/BotForm";
+import { BotKeys } from "@/components/bots/BotKeys";
 import { useBot } from "@/components/bots/useBot";
 import { refreshSidebar } from "@/components/chat/Sidebar";
 import { ASSISTANT_ID, archiveBot, updateBot } from "@/lib/api";
 import type { BotDraft } from "@/lib/types";
 
-/** One bot's name and instructions; saving or archiving leaves for a chat. */
+/** One bot's name, instructions and keys; saving or archiving leaves for a chat. */
 export default function EditBotPage({
   params,
 }: {
@@ -46,11 +47,14 @@ export default function EditBotPage({
           <p className="px-6 py-6 text-sm text-danger">{lookup.message}</p>
         )}
         {lookup.kind === "found" && (
-          <BotForm
-            initial={lookup.bot}
-            onSave={save}
-            onArchive={id === ASSISTANT_ID ? null : archive}
-          />
+          <>
+            <BotForm
+              initial={lookup.bot}
+              onSave={save}
+              onArchive={id === ASSISTANT_ID ? null : archive}
+            />
+            <BotKeys bot={lookup.bot} />
+          </>
         )}
       </div>
     </>

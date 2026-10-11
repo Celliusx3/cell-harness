@@ -86,10 +86,11 @@ datum:
   (Claude's share sheet, "add to calendar") is the same shape with an empty
   `data_model`; documented, not built.
 - **A tool learns its call id.** `execute(args, context)` with
-  `ToolContext(call_id, progress)`, built by the dispatcher from the
-  `ToolCall` it holds. A tool whose answer arrives from outside the process
-  must know which call it is; nothing else needed to, which is why the
-  context arrived with its first consumer and not before. dsh's tools take
+  `ToolContext(call_id, progress, bot_id)`, built by the dispatcher
+  from the `ToolCall` it holds. A tool whose answer arrives from outside the
+  process must know which call it is, which is why the context arrived with
+  its first consumer and not before; `bot_id` arrived the same way,
+  with `fetch_with_secret`, which checks the calling bot may use the key. dsh's tools take
   `exec`, FastMCP's take `ctx`.
 - **Which call may be answered is read off the log.** `pending_call(session,
   names)`: the current turn's unanswered call to a client tool. The log is
@@ -178,14 +179,19 @@ kept precise.
   prompt and a `time-context` plugin injects it per step. Worth its own note
   when a date question goes wrong. It would be a session event on the user
   message, additive to this design, not a change to it.
-- **A third client tool.** The question came second: `ask_user` (2026-10-04,
+- **A fourth client tool.** The question came second: `ask_user` (2026-10-04,
   Rakazo's shape: one question, two to four labels, typing is the other
   answer) was `tools/native/question/`, one entry in `CLIENT_TOOLS` and one in
-  the browser's map, and no line in the spine, which held §2's bar. Whichever
+  the browser's map, and no line in the spine, which held §2's bar. The key
+  card came third: `ask_for_secret` (2026-10-11) held the bar too, but its
+  answer must never be logged, so the browser posts the key to a route of its
+  own (`web/routes/secret_card.py`) that seals it and resumes the call with the
+  name alone. Telegram and Discord link to it with the line every client
+  tool gets, which says a key never goes in the chat. Whichever
   comes next — a contact (Telegram's `request_contact` is the exact twin of
   `request_location`), a photo (needs image content in messages first) — is the
-  same. A tool without a browser permission of its own will need an app-level
-  per-tool setting for Claude's tri-state; that day, not this one.
+  same as `ask_user`. A tool without a browser permission of its own will need
+  an app-level per-tool setting for Claude's tri-state; that day, not this one.
 
 ## 8. The same spine, for a decision: the approval gate
 

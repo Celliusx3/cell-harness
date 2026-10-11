@@ -129,9 +129,19 @@ export interface Bot {
   id: string;
   name: string;
   instructions: string;
+  secret_names: string[];
 }
 
-export type BotDraft = Omit<Bot, "id">;
+export type BotDraft = Pick<Bot, "name" | "instructions">;
+
+/** `GET /api/secrets`: one saved key, its site, and the bots allowed to use it; never its value. */
+export interface SecretSummary {
+  name: string;
+  origin: string;
+  auth: "bearer" | "header";
+  header_name: string | null;
+  bots: { id: string; name: string }[];
+}
 
 export interface MessageAccepted {
   id: string;

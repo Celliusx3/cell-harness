@@ -18,7 +18,12 @@ class ToolDispatcher:
         self._gate = gate
 
     async def dispatch(
-        self, call: ToolCall, *, progress: ToolProgressReporter, approved: bool
+        self,
+        call: ToolCall,
+        *,
+        progress: ToolProgressReporter,
+        approved: bool,
+        bot_id: str,
     ) -> ToolOutcome:
         """Run one call, whether the model made it or a script did — unless it must ask first."""
         if not approved and self._gate.asks(call.name):
@@ -26,7 +31,7 @@ class ToolDispatcher:
         tool = self._registry.get(call.name)
         if tool is None:
             return Failure(UNKNOWN_TOOL, self._unknown(call.name))
-        context = ToolContext(call_id=call.id, progress=progress)
+        context = ToolContext(call_id=call.id, progress=progress, bot_id=bot_id)
         return await tool.invoke(call.arguments, context=context)
 
     def _unknown(self, name: str) -> str:

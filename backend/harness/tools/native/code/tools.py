@@ -30,7 +30,6 @@ from harness.tools.native.code.prompts import (
     LIST_DESCRIPTION,
 )
 from harness.tools.native.code.typescript import declarations
-from harness.tools.progress import ToolProgressReporter
 from harness.tools.registry import ToolRegistry
 
 Catalog = Callable[[], list[ToolDefinition]]
@@ -127,7 +126,7 @@ def _execute_tool(
         names = [tool.name for tool in available()]
         try:
             script = await runner.run(
-                args.code, names=names, bridge=_bridge(dispatcher, context.progress, kept_out)
+                args.code, names=names, bridge=_bridge(dispatcher, context, kept_out)
             )
         except DenoUnavailableError as err:
             logger.error("the sandbox is unusable: %s", err)
@@ -139,7 +138,7 @@ def _execute_tool(
     )
 
 
-def _bridge(dispatcher: ToolDispatcher, progress: ToolProgressReporter, kept_out: frozenset[str]):
+def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozenset[str]):
     """One call from inside a script, dispatched as if the model made it."""
     counter = 0
 
@@ -149,7 +148,12 @@ def _bridge(dispatcher: ToolDispatcher, progress: ToolProgressReporter, kept_out
             raise BridgeError(f"{name} cannot be called from inside a script")
         counter += 1
         call = ToolCall(id=f"sub:{counter}", name=name, arguments=json.dumps(arguments))
-        outcome = await dispatcher.dispatch(call, progress=progress, approved=False)
+        outcome = await dispatcher.dispatch(
+            call,
+            progress=context.progress,
+            approved=False,
+            bot_id=context.bot_id,
+        )
         if isinstance(outcome, Ok):
             return outcome.data if outcome.data is not None else _as_value(outcome.text)
         if isinstance(outcome, Pending):

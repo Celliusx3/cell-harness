@@ -15,6 +15,7 @@ from harness.config.sections import McpServer
 from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.service import McpService
 from harness.runs.service import RunService
+from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
@@ -23,6 +24,13 @@ from harness.web.server import create_app
 from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import no_bots, no_gate
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
+
+TEST_ENCRYPTION_KEY = "test-encryption-key"
+
+
+def secrets_in(tmp_path: Path) -> SecretService:
+    """Keys a test saves, sealed in a secrets file under `tmp_path`."""
+    return SecretService(tmp_path / "secrets.json", encryption_key=TEST_ENCRYPTION_KEY)
 
 
 def bots_in(tmp_path: Path, service: SessionService) -> BotService:
@@ -72,13 +80,22 @@ def web_app(
     client_tools: ClientToolService | None = None,
     gate: ApprovalGate | None = None,
     bots: BotService | None = None,
+    secrets: SecretService | None = None,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
     bots = bots or bots_in(tmp_path, service)
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots)
     return create_app(
-        runs, gateway, web, mcp or web_mcp(), skills, client_tools, gate or no_gate(), bots
+        runs,
+        gateway,
+        web,
+        mcp or web_mcp(),
+        skills,
+        client_tools,
+        gate or no_gate(),
+        bots,
+        secrets or secrets_in(tmp_path),
     )
 
 
@@ -90,6 +107,7 @@ def web_app_with_telegram(
     skills: SkillService,
     client_tools: ClientToolService | None = None,
     gate: ApprovalGate | None = None,
+    secrets: SecretService | None = None,
 ) -> tuple[FastAPI, ChannelGateway, FakeBot]:
     """`web_app` with a fake Telegram on the same gateway: the app, the gateway, and the bot."""
     bots = no_bots(service)
@@ -105,6 +123,7 @@ def web_app_with_telegram(
         client_tools or default_client_tools(),
         gate or no_gate(),
         bots,
+        secrets or secrets_in(tmp_path),
     )
     return app, gateway, bot
 

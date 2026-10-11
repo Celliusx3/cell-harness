@@ -22,6 +22,7 @@ from harness.config.sections import (
     DiscordSettings,
     LLMSettings,
     McpSettings,
+    SecretSettings,
     SessionSettings,
     TelegramSettings,
     WebSettings,
@@ -91,6 +92,7 @@ class Settings(BaseSettings):
     skills: SkillSettings = Field(default_factory=SkillSettings)
     approval: ApprovalSettings = Field(default_factory=ApprovalSettings)
     bots: BotSettings = Field(default_factory=BotSettings)
+    secrets: SecretSettings = Field(default_factory=SecretSettings)
 
     @classmethod
     def settings_customise_sources(
@@ -135,5 +137,11 @@ def load() -> Settings:
             f"{names} {verb} not set. Non-secret values belong in {_CONFIG_JSON}; "
             f"the API key belongs in {_LOCAL_JSON} (gitignored) as "
             f'{{"llm": {{"api_key": "…"}}}}, or in HARNESS_LLM__API_KEY.'
+        )
+    if not settings.secrets.encryption_key.strip():
+        raise MissingConfigError(
+            f"secrets.encryption_key is not set. It belongs in {_LOCAL_JSON} (gitignored) as "
+            f'{{"secrets": {{"encryption_key": "…"}}}}, or in HARNESS_SECRETS__ENCRYPTION_KEY. '
+            "Make one with `openssl rand -hex 32`. Changing it makes every saved key unreadable."
         )
     return settings

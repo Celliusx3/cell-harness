@@ -98,7 +98,7 @@ async def test_a_retried_step_leaves_the_refused_one_without_an_end() -> None:
 
     session = seeded()
 
-    events = await drain(compacting(Overflows()).run("go", session=session))
+    events = await drain(compacting(Overflows()).run("go", session=session, bot_id="b"))
 
     assert events[-1] == AgentCompleted(text="recovered")
     assert since_the_last_turn_start(session) == [
@@ -153,7 +153,7 @@ async def test_a_failure_without_a_code_is_not_retried_even_with_compaction() ->
 
     session = seeded()
 
-    events = await drain(compacting(Refuses()).run("go", session=session))
+    events = await drain(compacting(Refuses()).run("go", session=session, bot_id="b"))
 
     assert events[-1] == AgentFailed(reason="502 upstream")
     assert not any(e.type.startswith("compaction/") for e in session.events())
@@ -173,7 +173,7 @@ async def test_an_overflow_recovered_by_a_prune_retries_the_step() -> None:
 
     session = with_finished_results(4)
 
-    events = await drain(compacting(OverflowsOnce()).run("go", session=session))
+    events = await drain(compacting(OverflowsOnce()).run("go", session=session, bot_id="b"))
 
     assert events[-1] == AgentCompleted(text="recovered")
     types = since_the_last_turn_start(session)
@@ -191,7 +191,7 @@ async def test_an_overflow_whose_summary_fails_fails_the_turn() -> None:
 
     session = seeded()
 
-    events = await drain(compacting(SummaryBreaks()).run("go", session=session))
+    events = await drain(compacting(SummaryBreaks()).run("go", session=session, bot_id="b"))
 
     assert events[-1] == AgentFailed(reason="too long")
     ends = [e for e in session.events() if isinstance(e, CompactionEnd)]

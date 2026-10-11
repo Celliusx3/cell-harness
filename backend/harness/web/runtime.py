@@ -5,6 +5,8 @@ from __future__ import annotations
 import dataclasses
 import logging
 
+import httpx
+
 from harness.bots import BotService
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
@@ -18,6 +20,7 @@ from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.service import Runtime
 from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
+from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
 from harness.tools.approval import ApprovalGate
@@ -28,6 +31,11 @@ from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.location import LOCATION_TOOL
 from harness.tools.native.question import QUESTION_TOOL
+from harness.tools.native.secrets import (
+    ASK_FOR_SECRET_TOOL,
+    FETCH_WITH_SECRET,
+    fetch_with_secret_tool,
+)
 from harness.tools.native.skills import (
     SKILL_DELETE,
     SKILL_SAVE,
@@ -49,7 +57,7 @@ GUIDANCE = (
     "an earlier conversation, and save what they ask you to remember."
 ) + CODE_PROMPT
 
-CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL))
+CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL, ASK_FOR_SECRET_TOOL))
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 DEFAULT_TOOLS = (
     LIST,
@@ -59,11 +67,12 @@ DEFAULT_TOOLS = (
     *SKILL_WRITES,
     BOT_CREATE,
     RUN_SUBAGENT,
+    FETCH_WITH_SECRET,
     *sorted(CLIENT_TOOLS.names),
 )
 SUBAGENT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL)
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
-    {SKILL, *SKILL_WRITES, BOT_CREATE, RUN_SUBAGENT, *CLIENT_TOOLS.names}
+    {SKILL, *SKILL_WRITES, BOT_CREATE, RUN_SUBAGENT, FETCH_WITH_SECRET, *CLIENT_TOOLS.names}
 )
 
 
@@ -78,6 +87,7 @@ def build_runtime(
     *,
     bots: BotService,
     subagent_logs: SessionService,
+    secrets: SecretService,
 ) -> Runtime:
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
     registry = ToolRegistry(
@@ -87,6 +97,7 @@ def build_runtime(
             skill_delete_tool(skills),
             skill_write_file_tool(skills),
             bot_create_tool(bots),
+            fetch_with_secret_tool(secrets, bots, httpx.AsyncHTTPTransport()),
             *client_tools.definitions(),
         ]
     )

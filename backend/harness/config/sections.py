@@ -52,6 +52,18 @@ class BotSettings(BaseModel):
         return value.expanduser()
 
 
+class SecretSettings(BaseModel):
+    """Where the API keys bots ask for are kept, and the key that locks them."""
+
+    path: Path = Path.home() / ".harness" / "secrets.json"
+    encryption_key: str = ""
+
+    @field_validator("path")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
+
+
 class TelegramSettings(BaseModel):
     """The bot to answer as, if any."""
 

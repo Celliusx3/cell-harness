@@ -13,3 +13,4 @@ class ToolContext:
 
     call_id: str
     progress: ToolProgressReporter
+    bot_id: str

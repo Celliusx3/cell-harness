@@ -25,6 +25,7 @@ from harness.tools.native.code import CODE_PROMPT, LIST
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
+from tests.webapp import secrets_in
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
 
@@ -46,6 +47,7 @@ def compose(tmp_path: Path):
             no_gate(),
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
+            secrets=secrets_in(tmp_path),
         )
 
     return build
@@ -63,7 +65,7 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
     assert runtime.tools is not None
 
     outcome = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
+        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, bot_id="s"
     )
 
     assert isinstance(outcome, Ok)
@@ -116,7 +118,7 @@ async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> No
     assert CLIENT_TOOLS.names <= offered
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress
+        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, bot_id="s"
     )
     assert isinstance(listed, Ok)
     assert not any(name in listed.text for name in CLIENT_TOOLS.names)

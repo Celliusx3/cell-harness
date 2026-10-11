@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from harness.sandbox import Bridge, BridgeError, Script
-from harness.tools.definition import EXECUTION_ERROR, Failure, Ok
+from harness.tools.context import ToolContext
+from harness.tools.definition import EXECUTION_ERROR, Failure, Ok, ToolDefinition, ToolOutcome
 from harness.tools.native.code import DETAILS, EXECUTE, LIST
 from tests.unit.code_fakes import FakeRunner, build, returns, tool
+from tests.unit.helpers import context_for
 
 
 async def test_a_withheld_tool_is_unlisted_unbound_and_refused() -> None:
@@ -205,3 +207,28 @@ async def test_the_bridge_refuses_code_mode_itself() -> None:
 
     assert "cannot be called from inside a script" in str(raised[0])
     assert built.dispatched == []
+
+
+async def test_a_tool_a_script_calls_runs_for_the_calling_bot() -> None:
+    seen: list[str] = []
+
+    async def record(args: dict, context: ToolContext) -> ToolOutcome:
+        seen.append(context.bot_id)
+        return Ok("recorded")
+
+    recorder = ToolDefinition(
+        name="srv__record",
+        description="Records the bot it ran for.",
+        input_schema={"type": "object", "properties": {}},
+        parse=lambda raw: raw,
+        execute=record,
+    )
+
+    async def script(bridge: Bridge) -> None:
+        await bridge("srv__record", {})
+
+    built = build(recorder, runner=FakeRunner(script=script))
+    code = '{"code": "await srv__record({})", "description": "d"}'
+    await built.tool(EXECUTE).invoke(code, context=context_for(bot_id="bot-7"))
+
+    assert seen == ["bot-7"]

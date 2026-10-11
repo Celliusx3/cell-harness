@@ -17,15 +17,18 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and sixteen insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and seventeen insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
 order 1), 14 asks before it writes (a server's tool asks first unless its
 name has a read verb, build order 2), 15 helpers inside a turn (`run_subagent`,
 build order 4), 16 long results cut for the model (12,000 characters, build
-order 6). Their plans were deleted once built; read them with
-`git show f9865e4:PHASES.md`.
+order 6), 17 API keys it never sees (`ask_for_secret` saves a key into one
+keyring, sealed as Rakazo seals it, and lets the asking bot use it; the Keys
+page lists every key and each bot's page the keys it may use;
+`fetch_with_secret` sends a key only to its site, build order 7). Their plans
+were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
 from a form or from chat); 15, begun (skills from chat, the route ↔ tool
@@ -41,7 +44,6 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 | # | Feature | Phase | Needs first | Rakazo |
 |---|---|---|---|---|
 | 5 | **Connect hosted apps by URL**, with sign-in | | 2 | `remote-mcp.ts`, `mcp-oauth.ts` |
-| 7 | **API keys it never sees**: a masked card stores the key; the server adds it to the request | | | `docs/bot-secrets.md` |
 | 8 | **Charts in chat**: an MCP App draws the chart from the data | | | `builtin-tools.ts:407` |
 | 9 | **Files it hands you**, versioned by name, with a tab to reopen them | | | `thread-artifacts.ts` |
 | 10 | **Reminds you when it is waiting** on you, then gives up | | 3 | `stuck-work.ts` |
@@ -128,8 +130,9 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
 `VISION.md:59`).
 
 **Shipped so far.**
-- `bots/` — `Bot` (id, name, instructions) in the file at `bots.path`, read on
-  every call. A bot's chat id is the bot's id. Assistant (`"assistant"`) is
+- `bots/` — `Bot` (id, name, instructions, the keys it may use) in the file at `bots.path`, read on
+  every call. A bot's chat id is the bot's id; only `BotService.bot_for_chat`
+  and `chat_of` rely on that. Assistant (`"assistant"`) is
   today's prompt, there from the first start, and cannot be archived or deleted.
   Bot builder (`"builder"`) is built in the same way and left out of the sidebar.
   Every chat is a bot's chat: an id that is no bot's is a 404 on every chat route.

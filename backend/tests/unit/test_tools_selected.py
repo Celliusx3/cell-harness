@@ -50,6 +50,7 @@ async def test_details_states_what_it_made_callable() -> None:
     outcome = await built.execute(
         ToolCall(id="c1", name=DETAILS, arguments=json.dumps({"names": ["a", "ghost"]})),
         progress=no_progress,
+        bot_id="s",
     )
 
     assert isinstance(outcome, Ok)
@@ -130,8 +131,8 @@ async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_se
     built = pipeline(echo_tool("a"))
     call = ToolCall(id="c1", name="a", arguments='{"value": "hi"}')
 
-    refused = await built.execute(call, progress=no_progress)
-    allowed = await built.execute(call, progress=no_progress, tools_selected=("a",))
+    refused = await built.execute(call, progress=no_progress, bot_id="s")
+    allowed = await built.execute(call, progress=no_progress, bot_id="s", tools_selected=("a",))
 
     assert "get_function_details" in str(refused)
     assert isinstance(allowed, Ok) and allowed.text == "hi"
@@ -146,7 +147,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
     runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
-    async with aclosing(runtime.run("go", session=session)) as events:
+    async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
         async for _ in events:
             pass
 
@@ -164,7 +165,7 @@ async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
     session = new_session()
 
-    async with aclosing(runtime.run("go", session=session)) as events:
+    async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
         async for _ in events:
             pass
 
