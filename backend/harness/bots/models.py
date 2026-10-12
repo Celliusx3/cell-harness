@@ -1,4 +1,4 @@
-"""What a bot is, what the bots file holds, and how a change to them is refused."""
+"""What a bot and a group are, what the bots file holds, and how a change to them is refused."""
 
 from __future__ import annotations
 
@@ -17,6 +17,8 @@ BUILDER_INSTRUCTIONS = (
     'bot_create once. Its instructions speak to the bot as "you" and carry every answer the '
     "user gave, in their words. If the user denies it, ask what to change."
 )
+MIN_MEMBERS = 2
+MAX_MEMBERS = 6
 
 
 class BotDraft(BaseModel):
@@ -54,12 +56,58 @@ class Bot(BaseModel):
     secret_names: tuple[SecretName, ...] = ()
 
 
+class GroupDraft(BaseModel):
+    """A group's name, stripped and not blank, and two to six different bots' ids."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    member_ids: tuple[str, ...] = Field(min_length=MIN_MEMBERS, max_length=MAX_MEMBERS)
+
+    @field_validator("name")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        """Strip the name, and refuse what is left empty."""
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("must not be blank")
+        return stripped
+
+    @field_validator("member_ids")
+    @classmethod
+    def _once_each(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        """Refuse a bot named twice."""
+        if len(set(value)) != len(value):
+            raise ValueError("each bot can be a member once")
+        return value
+
+
+class Group(BaseModel):
+    """Bots sharing one chat, whose id is the group's id; they answer in `member_ids` order."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+    member_ids: tuple[str, ...]
+
+
+class ChatMembers(BaseModel):
+    """Who answers in one chat: a bot's own chat has no group and that one bot."""
+
+    model_config = ConfigDict(frozen=True)
+
+    group: Group | None
+    bots: tuple[Bot, ...]
+
+
 class BotsFile(BaseModel):
-    """The bots file: every stored bot, in the order each was made."""
+    """The bots file: every stored bot and every group, each in the order it was made."""
 
     model_config = ConfigDict(frozen=True)
 
     bots: tuple[Bot, ...] = ()
+    groups: tuple[Group, ...] = ()
 
 
 class BotNotFound(LookupError):
@@ -74,3 +122,10 @@ class BotPermanent(PermissionError):
 
     def __init__(self, bot_id: str) -> None:
         super().__init__(f"{bot_id!r} is built in and cannot be archived or deleted")
+
+
+class GroupEmpty(LookupError):
+    """Every member of this group has been archived or deleted."""
+
+    def __init__(self, group_id: str) -> None:
+        super().__init__(f"every member of group {group_id!r} is archived or deleted")

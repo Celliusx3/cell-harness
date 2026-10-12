@@ -65,8 +65,16 @@ class Runtime:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = session.next_turn()
-        session.append(TurnStart(turn=turn))
+        session.append(TurnStart(turn=turn, bot_id=bot_id))
         session.append(UserMessageEvent(turn=turn, message=UserMessage(content=user_input)))
+        async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
+            async for event in events:
+                yield event
+
+    async def speak(self, *, session: Session, bot_id: str) -> AsyncIterator[TurnEvent]:
+        """A turn opened for the next bot in line, with no new message from the person."""
+        turn = session.next_turn()
+        session.append(TurnStart(turn=turn, bot_id=bot_id))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
@@ -76,7 +84,7 @@ class Runtime:
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person's answer to a client tool, or their approval of a call."""
         turn = session.next_turn()
-        session.append(TurnStart(turn=turn))
+        session.append(TurnStart(turn=turn, bot_id=bot_id))
         if self.checkpoint is not None:
             await self.checkpoint(session)
         try:

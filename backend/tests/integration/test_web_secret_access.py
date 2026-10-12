@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 
-from harness.bots import ASSISTANT_ID
+from harness.bots import ASSISTANT_ID, GroupDraft
 from harness.secrets import SecretService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
@@ -15,7 +15,7 @@ from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetc
 from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
-from tests.unit.helpers import durable_service, no_skills, run_service
+from tests.unit.helpers import client_tools, durable_service, no_skills, run_service
 from tests.webapp import bots_in, web_app
 
 KEY = "tok-9Zx=7Lm/q+Abc"
@@ -133,3 +133,47 @@ async def test_a_bot_cannot_be_allowed_a_key_that_is_not_saved(tmp_path: Path) -
 
     assert response.status_code == 404
     assert "nope" in response.json()["detail"]
+
+
+async def _launch(tmp_path: Path):
+    """A group of Researcher then Writer, where Writer asks for a key on its turn."""
+    service = durable_service(tmp_path / "sessions")
+    bots = bots_in(tmp_path, service)
+    tools = client_tools()
+    model = SteppedClient(
+        completed("Sources."), calls_tool(ASK_FOR_SECRET, ASK, id="call_ask"), completed("Saved.")
+    )
+    runs = run_service(service, model, *tools.definitions(), bots=bots)
+    app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, bots=bots)
+    researcher = await bots.create("Researcher", "Cite.")
+    writer = await bots.create("Writer", "Post.")
+    group = await bots.create_group(
+        GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
+    )
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
+    return client, runs, group.id, researcher.id, writer.id
+
+
+async def test_in_a_group_the_saved_key_goes_to_the_bot_that_asked_for_it(tmp_path: Path) -> None:
+    client, runs, group, researcher, writer = await _launch(tmp_path)
+    async with client:
+        await _post(client, runs, group, "/messages", {"prompt": "post it on GitHub"})
+        await _post(client, runs, group, "/calls/call_ask/secret", {"value": KEY})
+        allowed = await _bots_allowed(client)
+
+    assert allowed[writer] == ["github"]
+    assert allowed[researcher] == []
+
+
+async def test_a_key_for_a_bot_archived_since_it_asked_is_refused(tmp_path: Path) -> None:
+    client, runs, group, _, writer = await _launch(tmp_path)
+    async with client:
+        await _post(client, runs, group, "/messages", {"prompt": "post it on GitHub"})
+        assert (await client.post(f"/api/bots/{writer}/archive")).status_code == 204
+        saved = await client.post(
+            f"/api/conversations/{group}/calls/call_ask/secret", json={"value": KEY}
+        )
+        keys = (await client.get("/api/secrets")).json()
+
+    assert saved.status_code == 409
+    assert keys == []

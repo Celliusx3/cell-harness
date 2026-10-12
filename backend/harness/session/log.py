@@ -10,11 +10,14 @@ from harness.session.models import (
     ApprovalGrant,
     AssistantMessageEvent,
     BotInstructionsEvent,
+    GroupMembersEvent,
     SessionEvent,
     SessionHeader,
+    ToolCallEvent,
     ToolResultEvent,
     TurnStart,
 )
+from harness.session.speakers import last_speaker, turn_speakers
 
 
 class Numbered(NamedTuple):
@@ -62,11 +65,24 @@ class Session:
         """The index the next turn should open with."""
         return sum(1 for event in self._events if isinstance(event, TurnStart))
 
+    def speaker_id(self) -> str | None:
+        """The bot that opened the last turn; `None` when it names none or no turn was opened."""
+        return last_speaker(self._events)
+
+    def speaker_of_call(self, call_id: str) -> str | None:
+        """The bot whose turn asked for call `call_id`; `None` when that turn names none."""
+        speakers = turn_speakers(self._events)
+        for event in self._events:
+            if isinstance(event, ToolCallEvent) and event.call.id == call_id:
+                return speakers.get(event.turn)
+        return None
+
     def tools_selected(self) -> tuple[str, ...]:
-        """The tools this conversation has selected, oldest first, no repeats."""
+        """The tools the last turn's speaker has selected, oldest first, no repeats."""
+        others = self._turns_of_others()
         order: dict[str, None] = {}
         for event in self._events:
-            if isinstance(event, ToolResultEvent):
+            if isinstance(event, ToolResultEvent) and event.turn not in others:
                 for block in event.message.content:
                     if isinstance(block, ToolReference):
                         order.pop(block.tool_name, None)
@@ -74,13 +90,23 @@ class Session:
         return tuple(order)
 
     def tools_granted(self) -> frozenset[str]:
-        """The tools this conversation has allowed to run unasked."""
-        return frozenset(e.tool for e in self._events if isinstance(e, ApprovalGrant))
+        """The tools the person allowed the last turn's speaker to run unasked."""
+        others = self._turns_of_others()
+        return frozenset(
+            e.tool for e in self._events if isinstance(e, ApprovalGrant) and e.turn not in others
+        )
 
-    def bot_instructions(self) -> BotInstructionsEvent | None:
-        """The bot instructions this conversation logged last, compacted or not, or `None`."""
+    def bot_instructions(self, bot_id: str | None) -> BotInstructionsEvent | None:
+        """The instructions logged last for `bot_id` or for no bot, compacted or not, or `None`."""
         for event in reversed(self._events):
-            if isinstance(event, BotInstructionsEvent):
+            if isinstance(event, BotInstructionsEvent) and event.bot_id in (bot_id, None):
+                return event
+        return None
+
+    def group_members(self) -> GroupMembersEvent | None:
+        """The group's name and members as logged last; `None` in a bot's own chat."""
+        for event in reversed(self._events):
+            if isinstance(event, GroupMembersEvent):
                 return event
         return None
 
@@ -90,3 +116,10 @@ class Session:
             if isinstance(event, AssistantMessageEvent) and event.usage is not None:
                 return event.usage.input_tokens + event.usage.output_tokens
         return None
+
+    def _turns_of_others(self) -> frozenset[int]:
+        """The turns a bot other than the last turn's speaker opened."""
+        speaker = self.speaker_id()
+        return frozenset(
+            turn for turn, bot_id in turn_speakers(self._events).items() if bot_id != speaker
+        )

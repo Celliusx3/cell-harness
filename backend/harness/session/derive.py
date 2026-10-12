@@ -1,29 +1,53 @@
-"""Project model history from the log."""
+"""Project model history from the log, as the bot that opened its last turn should see it."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping, Sequence
+from dataclasses import dataclass
 
 from harness.llm.messages import Block, Message, Text, ToolMessage, UserMessage
 from harness.session.compaction import PRUNED, boundary, pruned_ids
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
+    BotInstructionsEvent,
     SessionEvent,
     ToolResultEvent,
+    TurnEnd,
+    TurnStart,
     UserMessageEvent,
 )
+from harness.session.speakers import last_speaker, turn_speakers
 
 RESULT_LIMIT = 12_000
 CUT_NOTE = (
     "\n\n[cut: this result was {total:,} characters and only the first {limit:,} are shown. "
     "If you need what was cut, ask for a smaller part, such as a narrower query or fewer rows.]"
 )
+NO_RESPONSE = "NO_RESPONSE"
+SPEAKER_TAG = '<speaker name="{name}" />\n{text}'
+
+
+@dataclass(frozen=True)
+class Voices:
+    """Which bot opened each turn, what each bot is called, and the bot the history is for."""
+
+    speakers: Mapping[int, str]
+    names: Mapping[str, str]
+    listener: str | None
+
+    def other_speaker(self, turn: int) -> str | None:
+        """The name, or else the id, of the bot that opened `turn` when it is not the listener."""
+        bot_id = self.speakers.get(turn)
+        if bot_id is None or bot_id == self.listener:
+            return None
+        return self.names.get(bot_id, bot_id)
 
 
 def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
-    """The conversation as the model should see it."""
+    """The conversation as the bot that opened its last turn should see it."""
     log = tuple(events)
+    voices = Voices(turn_speakers(log), _bot_names(log), last_speaker(log))
     pruned = pruned_ids(log)
     messages: list[Message] = []
     start = boundary(log)
@@ -32,21 +56,61 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
         assert summary.message is not None
         messages.append(UserMessage(content=summary.message.content))
         log = log[start + 1 :]
-    for event in log:
-        if isinstance(event, UserMessageEvent):
-            messages.append(event.message)
-        elif isinstance(event, ApplicationMessageEvent):
-            messages.append(UserMessage(content=event.message.content))
-        elif isinstance(event, AssistantMessageEvent):
-            messages.append(event.message)
-        elif isinstance(event, ToolResultEvent):
-            if event.message.tool_call_id in pruned:
-                messages.append(
-                    ToolMessage(tool_call_id=event.message.tool_call_id, content=PRUNED)
-                )
-            else:
-                messages.append(_limited(event.message))
+    messages.extend(_as_heard(log, voices, pruned))
     return messages
+
+
+def _as_heard(
+    tail: Sequence[SessionEvent], voices: Voices, pruned: frozenset[str]
+) -> Iterator[Message]:
+    """Every event as the listener's own, but another bot's turn only as what it said, tagged."""
+    heard: tuple[str, ...] = ()
+    speaker = ""
+    for event in tail:
+        if isinstance(event, (TurnStart, TurnEnd)) and heard:
+            yield _speaker_message(speaker, heard)
+            heard = ()
+        if isinstance(event, UserMessageEvent):
+            yield event.message
+        elif isinstance(event, (ApplicationMessageEvent, AssistantMessageEvent, ToolResultEvent)):
+            other = voices.other_speaker(event.turn)
+            if other is None:
+                yield _own_message(event, pruned)
+            elif isinstance(event, AssistantMessageEvent) and _is_said(event.message.content):
+                speaker, heard = other, (*heard, event.message.content.strip())
+    if heard:
+        yield _speaker_message(speaker, heard)
+
+
+def _own_message(
+    event: ApplicationMessageEvent | AssistantMessageEvent | ToolResultEvent, pruned: frozenset[str]
+) -> Message:
+    if isinstance(event, ApplicationMessageEvent):
+        return UserMessage(content=event.message.content)
+    if isinstance(event, AssistantMessageEvent):
+        return event.message
+    if event.message.tool_call_id in pruned:
+        return ToolMessage(tool_call_id=event.message.tool_call_id, content=PRUNED)
+    return _limited(event.message)
+
+
+def _is_said(text: str) -> bool:
+    """Whether a reply has something in it for the others to read."""
+    stripped = text.strip()
+    return bool(stripped) and stripped != NO_RESPONSE
+
+
+def _speaker_message(name: str, said: tuple[str, ...]) -> UserMessage:
+    return UserMessage(content=SPEAKER_TAG.format(name=name, text="\n\n".join(said)))
+
+
+def _bot_names(events: Sequence[SessionEvent]) -> Mapping[str, str]:
+    """Each bot's name as the last instructions logged for it give it."""
+    return {
+        event.bot_id: event.name
+        for event in events
+        if isinstance(event, BotInstructionsEvent) and event.bot_id is not None
+    }
 
 
 def _limited(message: ToolMessage) -> ToolMessage:

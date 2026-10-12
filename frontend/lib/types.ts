@@ -76,7 +76,8 @@ export type TurnEndReason = "completed" | "failed" | "cancelled" | "pending";
 export type CompactionTrigger = "auto" | "manual" | "overflow";
 
 export type SessionEvent =
-  | { type: "turn/start"; turn: number }
+  /** `bot_id` is the bot speaking this turn; null in older logs. */
+  | { type: "turn/start"; turn: number; bot_id?: string | null }
   | { type: "turn/end"; turn: number; reason: TurnEndReason }
   | { type: "user/message"; turn: number; message: UserMessage }
   | { type: "application/message"; turn: number; message: ApplicationMessage }
@@ -114,8 +115,10 @@ export type SessionEvent =
   /** These results are cleared from the model's view; the log and the screen keep them. */
   | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
   | ApprovalGrantEvent
-  /** The bot answering from here on, and the instructions its turns are prompted with. */
-  | { type: "bot/instructions"; name: string; instructions: string }
+  /** A bot answering from here on, and the instructions its turns are prompted with. */
+  | { type: "bot/instructions"; name: string; instructions: string; bot_id?: string | null }
+  /** The group this chat belongs to, and its members' names. */
+  | { type: "group/members"; name: string; members: string[] }
   | { type: "chat/cleared" };
 
 /** The person allowed `tool` to run unasked for the rest of this conversation. */

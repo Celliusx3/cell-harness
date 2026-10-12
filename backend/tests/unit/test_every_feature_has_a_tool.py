@@ -71,6 +71,7 @@ ROUTES: dict[str, Tool | NotATool] = {
     "DELETE /api/bots/{bot_id}": NotATool(
         "it erases a teammate and its chat for good; only the person does that"
     ),
+    "POST /api/groups": NotATool("not yet: making a group from chat is the next piece"),
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
     ),

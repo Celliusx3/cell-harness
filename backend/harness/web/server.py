@@ -30,6 +30,7 @@ from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
 from harness.web.routes.compact import build_router as build_compact_router
+from harness.web.routes.groups import build_router as build_groups_router
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.secret_card import build_router as build_secret_card_router
 from harness.web.routes.secrets import build_router as build_secrets_router
@@ -162,4 +163,5 @@ def create_app(
     app.include_router(build_approvals_router(gate))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))
+    app.include_router(build_groups_router(bots))
     return app

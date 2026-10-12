@@ -8,10 +8,12 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.bots import Bot, BotService
+from harness.bots import BotService, GroupEmpty
+from harness.bots.discussion import first_line
+from harness.runs.chain import discussion, log_speaker
+from harness.runtime.events import TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.log import Session
-from harness.session.models import BotInstructionsEvent
 from harness.session.service import SessionService
 from harness.tools.approval import Approved
 from harness.tools.definition import Failure, Ok
@@ -54,34 +56,33 @@ class RunService:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)
 
+    def chats_spoken_in(self, bot_id: str) -> tuple[str, ...]:
+        """The conversations whose run is in a turn of `bot_id`'s right now."""
+        return tuple(
+            chat_id for chat_id, run in self._runs.items() if run.session.speaker_id() == bot_id
+        )
+
     def start(self, session: Session, prompt: str) -> Run:
-        """Begin a turn on a task this service owns."""
+        """Begin the discussion the person's message opens; `GroupEmpty` when nobody can answer."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        bot = self._bots.bot_for_chat(session.id)
-        self._log_instructions(session, bot)
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
-        run._inner = asyncio.create_task(
-            self._stream(run, self._runtime.run(prompt, session=session, bot_id=bot.id))
+        members = self._bots.members_of_chat(session.id)
+        line = first_line(prompt, members.bots)
+        if not line:
+            raise GroupEmpty(session.id)
+        log_speaker(session, members, line[0])
+        return self._converse(
+            session, self._runtime.run(prompt, session=session, bot_id=line[0].id)
         )
-        run._outer = asyncio.create_task(self._drive(run))
-        return run
 
     def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
-        """Begin the turn that answers a client tool — the person's answer as its first event."""
+        """Begin the turn that answers a client tool for the bot that asked, then the line's."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        bot = self._bots.bot_for_chat(session.id)
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
-        run._inner = asyncio.create_task(
-            self._stream(
-                run, self._runtime.resume(call_id, outcome, session=session, bot_id=bot.id)
-            )
+        bot = self._bots.asker(session, call_id)
+        return self._converse(
+            session, self._runtime.resume(call_id, outcome, session=session, bot_id=bot.id)
         )
-        run._outer = asyncio.create_task(self._drive(run))
-        return run
 
     def compact(self, session: Session) -> Run:
         """Begin a manual compaction as its own run — no model turn, just the compaction events."""
@@ -114,11 +115,15 @@ class RunService:
         for conversation_id in list(self._runs):
             await self.stop(conversation_id)
 
-    def _log_instructions(self, session: Session, bot: Bot) -> None:
-        """Log the answering bot's instructions when they are not the ones logged last."""
-        answering = BotInstructionsEvent(name=bot.name, instructions=bot.instructions)
-        if session.bot_instructions() != answering:
-            session.append(answering)
+    def _converse(self, session: Session, opening: AsyncIterator[TurnEvent]) -> Run:
+        """Run `opening` and the discussion after it on a task this service owns."""
+        run = Run(session, session.next_number())
+        self._runs[session.id] = run
+        run._inner = asyncio.create_task(
+            self._stream(run, discussion(self._runtime, self._bots, session, opening))
+        )
+        run._outer = asyncio.create_task(self._drive(run))
+        return run
 
     async def _end(self, run: Run) -> None:
         """Cancel `run`'s turn, if it has begun, and wait for the run to settle."""

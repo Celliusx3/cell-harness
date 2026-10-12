@@ -1,4 +1,4 @@
-"""A bot's chat: read, send, stream, stop, clear."""
+"""A bot's or a group's chat: read, send, stream, stop, clear."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import StreamingResponse
 
-from harness.bots import Bot, BotNotFound
+from harness.bots import BotNotFound, ChatMembers, GroupEmpty
 from harness.channels.commands import unknown_skill
 from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage
@@ -41,16 +41,16 @@ def _accepted(session: Session, *, queued: bool) -> MessageAccepted:
     return MessageAccepted(id=header.id, created_at=header.created_at, queued=queued)
 
 
-def bot_chat_router(web: WebChannel, *, tag: str) -> APIRouter:
-    """A router under `/api/conversations` whose every route is a 404 for an id that is no bot's."""
+def chat_router(web: WebChannel, *, tag: str) -> APIRouter:
+    """A router under `/api/conversations` whose every route 404s an id no bot or group has."""
 
-    async def owning_bot(conversation_id: str) -> Bot:
+    async def answering(conversation_id: str) -> ChatMembers:
         try:
-            return web.bots.bot_for_chat(conversation_id)
+            return web.bots.members_of_chat(conversation_id)
         except BotNotFound as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
 
-    return APIRouter(prefix="/api/conversations", tags=[tag], dependencies=[Depends(owning_bot)])
+    return APIRouter(prefix="/api/conversations", tags=[tag], dependencies=[Depends(answering)])
 
 
 async def _load(service: SessionService, conversation_id: str, *, for_writing: bool) -> Session:
@@ -67,7 +67,7 @@ async def _load(service: SessionService, conversation_id: str, *, for_writing: b
 
 def build_router(web: WebChannel) -> APIRouter:
     """The browser's endpoints, bound to one channel."""
-    router = bot_chat_router(web, tag="conversations")
+    router = chat_router(web, tag="conversations")
 
     @router.get("/{conversation_id}", response_model=ConversationDetail)
     async def get_conversation(conversation_id: str) -> ConversationDetail:
@@ -103,6 +103,8 @@ def build_router(web: WebChannel) -> APIRouter:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
         except UnknownSkill as err:
             raise _unknown_skill(web, err) from err
+        except GroupEmpty as err:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
 
         if run is not None:
             return _accepted(run.session, queued=False)
