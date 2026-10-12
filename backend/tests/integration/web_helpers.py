@@ -4,14 +4,28 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 import httpx
 
-from harness.bots import ASSISTANT_ID
+from harness.bots import ASSISTANT_ID, BotService
+from harness.llm.stream import StreamEvent
+from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
+from harness.runtime.service import Runtime
 from harness.session.service import SessionService
-from tests.unit.helpers import durable_service, no_skills, run_service
+from harness.tools.definition import ToolDefinition
+from harness.tools.dispatcher import ToolDispatcher
+from harness.tools.native.bots import MESSAGE_BOT
+from harness.tools.pipeline import ToolPipeline
+from harness.tools.registry import ToolRegistry
+from harness.web.runtime import attach_bot_messages
+from tests.unit.fakes import PerBotClient
+from tests.unit.helpers import durable_service, no_gate, no_skills, run_service
 from tests.webapp import bots_in, web_app
+
+ASSISTANT_START = "ASSISTANT"
 
 
 def build(tmp_path, client, *tools) -> tuple[SessionService, RunService]:
@@ -53,3 +67,59 @@ def frame_names(body: str) -> list[str]:
         for block in body.split("\n\n")
         if block.strip()
     ]
+
+
+@dataclass(frozen=True)
+class Messaging:
+    """An app whose bots can message each other, and the parts a test reaches into."""
+
+    client: httpx.AsyncClient
+    model: PerBotClient
+    runs: RunService
+    messages: BotMessages
+    service: SessionService
+
+
+def messaging_app(
+    tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]]], *tools: ToolDefinition
+) -> Messaging:
+    """Assistant and the bots a test makes, each answered from `scripts`."""
+    model = PerBotClient(scripts)
+    service = durable_service(tmp_path / "sessions")
+    bots = BotService(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT_START)
+    registry = ToolRegistry(tools)
+    offered = (MESSAGE_BOT, *(tool.name for tool in tools))
+    runtime = Runtime(
+        model="m",
+        client=model,
+        tools=ToolPipeline(registry, ToolDispatcher(registry, no_gate()), offered),
+        guidance="GUIDE",
+        checkpoint=service.flush,
+    )
+    runs = RunService(service, runtime, bots)
+    messages = attach_bot_messages(registry, service, bots, runs)
+    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots)
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
+    return Messaging(client, model, runs, messages, service)
+
+
+async def send(client: httpx.AsyncClient, chat: str, prompt: str) -> None:
+    """Send `prompt` to `chat` as the person."""
+    sent = await client.post(f"/api/conversations/{chat}/messages", json={"prompt": prompt})
+    assert sent.status_code == 202, sent.text
+
+
+async def once_said(client: httpx.AsyncClient, chat: str, said: str) -> list[dict]:
+    """The chat's events once its last reply is `said` and no turn is running."""
+    for _ in range(500):
+        detail = (await client.get(f"/api/conversations/{chat}")).json()
+        replies = [e for e in detail["events"] if e["type"] == "assistant/message"]
+        if not detail["running"] and replies and replies[-1]["message"]["content"] == said:
+            return detail["events"]
+        await asyncio.sleep(0.01)
+    raise AssertionError(f"{chat} never said {said!r}")
+
+
+def of_type(events: list[dict], kind: str) -> list[dict]:
+    """The events of one `type`, in order."""
+    return [event for event in events if event["type"] == kind]

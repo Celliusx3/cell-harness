@@ -22,7 +22,7 @@ class ToolPipeline:
         dispatcher: ToolDispatcher,
         default_tools: Sequence[str],
     ) -> None:
-        self._registry = registry
+        self.registry = registry
         self._dispatcher = dispatcher
         self._default = tuple(default_tools)
 
@@ -31,7 +31,7 @@ class ToolPipeline:
         return [tool.spec() for tool in self._offered(tools_selected)]
 
     def _offered(self, tools_selected: Sequence[str]) -> list[ToolDefinition]:
-        by_name = {t.name: t for t in self._registry.all()}
+        by_name = {t.name: t for t in self.registry.all()}
         offered = [by_name[n] for n in self._default if n in by_name]
         chosen = {tool.name for tool in offered}
         recent = tuple(tools_selected)[-MAX_TOOLS_SELECTED:]

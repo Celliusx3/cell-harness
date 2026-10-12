@@ -23,6 +23,19 @@ GROUP_NOTE = (
     f"reply with exactly {NO_RESPONSE} and nothing else; it is not shown to anyone."
 )
 
+BOT_MESSAGE_REQUEST = (
+    '<message from="{name}">\n{text}\n</message>\n'
+    "{name} is another of the user's bots, not the user. Do what it asks. Your final reply "
+    "is sent back to {name} on its own, so write it for {name}."
+)
+BOT_MESSAGE_RESULT = (
+    '<message from="{name}">\n{text}\n</message>\n'
+    "This is {name}'s answer to the message you sent it with message_bot. Tell the user what "
+    "it means for them. Your reply is not sent back to {name}."
+)
+BOT_WAITING_ON_USER = "{name} is waiting for the user to answer it in its own chat."
+BOT_DID_NOT_FINISH = "{name} stopped before it finished, and has no answer."
+
 CODE_PROMPT = (
     "\n\nMost of your capabilities are not in your tool list yet. Discover them "
     "with `list_functions`, then read the ones you need with `get_function_details` — from then on "

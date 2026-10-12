@@ -68,9 +68,8 @@ def build_router(bots: BotService, runs: RunService, secrets: SecretService) -> 
     @router.post("/{bot_id}/archive", status_code=status.HTTP_204_NO_CONTENT)
     async def archive_bot(bot_id: str) -> Response:
         try:
-            bots.check_removable(bot_id)
-            await stop_speaking(bot_id)
             bots.archive(bot_id)
+            await stop_speaking(bot_id)
         except BotPermanent as err:
             raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
         except BotNotFound as err:
@@ -90,7 +89,7 @@ def build_router(bots: BotService, runs: RunService, secrets: SecretService) -> 
     @router.delete("/{bot_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_bot(bot_id: str) -> Response:
         try:
-            bots.check_removable(bot_id)
+            bots.archive(bot_id)
             await stop_speaking(bot_id)
             await bots.delete(bot_id)
         except BotPermanent as err:

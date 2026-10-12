@@ -19,6 +19,7 @@ from harness.config.settings import Settings, load
 from harness.llm.adapters.models import context_length
 from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
+from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.secrets import SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -36,7 +37,7 @@ from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.secret_card import build_router as build_secret_card_router
 from harness.web.routes.secrets import build_router as build_secrets_router
 from harness.web.routes.skills import build_router as build_skills_router
-from harness.web.runtime import CLIENT_TOOLS, build_runtime
+from harness.web.runtime import CLIENT_TOOLS, attach_bot_messages, build_runtime
 
 logger = logging.getLogger("harness.web")
 
@@ -112,24 +113,23 @@ def create_web_app() -> FastAPI:
     context_tokens = _resolve_context_tokens(settings)
     bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
     secrets = SecretService(settings.secrets.path, encryption_key=settings.secrets.encryption_key)
-    runs = RunService(
+    runtime = build_runtime(
+        settings,
         service,
-        build_runtime(
-            settings,
-            service,
-            mcp,
-            skills,
-            client_tools,
-            gate,
-            context_tokens,
-            bots=bots,
-            subagent_logs=build_subagent_logs(settings),
-            secrets=secrets,
-        ),
-        bots,
+        mcp,
+        skills,
+        client_tools,
+        gate,
+        context_tokens,
+        bots=bots,
+        subagent_logs=build_subagent_logs(settings),
+        secrets=secrets,
     )
+    runs = RunService(service, runtime, bots)
+    assert runtime.tools is not None
+    messages = attach_bot_messages(runtime.tools.registry, service, bots, runs)
     gateway, web = build_channels(settings, service, runs, skills, client_tools, bots)
-    return create_app(runs, gateway, web, mcp, skills, client_tools, gate, bots, secrets)
+    return create_app(runs, gateway, web, mcp, skills, client_tools, gate, bots, secrets, messages)
 
 
 def create_app(
@@ -142,6 +142,7 @@ def create_app(
     gate: ApprovalGate,
     bots: BotService,
     secrets: SecretService,
+    messages: BotMessages,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -151,6 +152,7 @@ def create_app(
         await gateway.start()
         yield
         await gateway.aclose()
+        await messages.aclose()
         await runs.aclose()
         await mcp.aclose()
 

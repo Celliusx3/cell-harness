@@ -16,6 +16,7 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, ToolSpec
 from harness.llm.stream import StreamEvent
+from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -70,6 +71,7 @@ def build_on(tmp_path, model: LLMClient):
         no_gate(),
         bots,
         secrets_in(tmp_path),
+        BotMessages(sessions, bots, runs),
     )
     http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return bot, http, gateway, runs

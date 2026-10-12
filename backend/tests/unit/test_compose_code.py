@@ -22,13 +22,14 @@ from harness.session.service import SessionService
 from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.dispatcher import ToolDispatcher
+from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code import DETAILS, EXECUTE, LIST
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
 from tests.webapp import secrets_in
 
-WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name != SKILL]
+WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT)]
 
 
 @pytest.fixture
