@@ -114,7 +114,8 @@ Trustworthy, and checkable:
 - [LiveMCPBench](https://arxiv.org/abs/2508.01780) (70 servers, 527 tools) —
   **retrieval errors are about half of all failures.** Discoverability is the
   risk deferral introduces, not availability. It is why the three tool
-  descriptions and `CODE_PROMPT` in `tools/native/code/tools.py` are treated as code.
+  descriptions in `tools/native/code/prompts.py` and `CODE_PROMPT` in `prompts.py` are
+  treated as code.
 
 Assertions and myths — do not repeat these as measurements:
 

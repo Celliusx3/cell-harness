@@ -10,7 +10,6 @@ from harness.bots.models import (
     ASSISTANT_ID,
     ASSISTANT_NAME,
     BUILDER_ID,
-    BUILDER_INSTRUCTIONS,
     BUILDER_NAME,
     Bot,
     BotNotFound,
@@ -20,6 +19,7 @@ from harness.bots.models import (
     Group,
     GroupDraft,
 )
+from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, GroupMembersEvent
 from harness.session.repository import SessionNotFoundError

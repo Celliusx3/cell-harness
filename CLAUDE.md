@@ -65,6 +65,7 @@ backend/harness/
   channels/     every way in and out — telegram/, discord/, web/, and per-chat state
   web/          server — the composition root (the HTTP surface is channels/web/)
   config/       one Settings: config.json + config.local.json + env
+  prompts.py    every prompt the harness writes; a tool's description stays with its tool
 backend/tests/  unit/ and integration/
 mcp-servers/    the capabilities we build — one uv project each, own tests
 frontend/       Next.js chat — app/, components/, lib/

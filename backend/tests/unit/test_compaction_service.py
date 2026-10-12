@@ -17,6 +17,7 @@ from harness.llm.messages import (
     UserMessage,
 )
 from harness.llm.stream import Failed, StreamEvent, TextChunk, Usage
+from harness.prompts import COMPACTION_INSTRUCTION, COMPACTION_PREAMBLE
 from harness.runtime.compaction import (
     CompactionRefused,
     check_can_compact,
@@ -24,7 +25,6 @@ from harness.runtime.compaction import (
     should_compact,
 )
 from harness.runtime.compaction.history import PRUNE_KEEP
-from harness.runtime.compaction.prompt import INSTRUCTION, PREAMBLE
 from harness.runtime.compaction.service import COMPACT_AT
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
@@ -140,13 +140,13 @@ async def test_with_nothing_to_prune_it_summarizes() -> None:
     assert client.calls == 1
     assert client.seen_tools is None
     assert client.seen[0] == SystemMessage(content="SYS")
-    assert client.seen[-1] == UserMessage(content=INSTRUCTION)
+    assert client.seen[-1] == UserMessage(content=COMPACTION_INSTRUCTION)
     assert client.seen[1:-1] == derive_messages(session.events()[:-2])
     assert [e.type for e in yielded] == ["compaction/start", "compaction/end"]
     start, end = yielded
     assert start == CompactionStart(turn=2, trigger="auto", tokens=10_100)
     assert isinstance(end, CompactionEnd) and end.message is not None
-    assert end.message.content.startswith(PREAMBLE)
+    assert end.message.content.startswith(COMPACTION_PREAMBLE)
     assert "<compacted-summary>\nTHE SUMMARY\n</compacted-summary>" in end.message.content
     assert SKILL_BODY in end.message.content
     assert derive_messages(session.events()) == [UserMessage(content=end.message.content)]

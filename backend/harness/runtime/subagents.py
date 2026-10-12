@@ -6,6 +6,7 @@ import dataclasses
 from contextlib import aclosing
 from dataclasses import dataclass
 
+from harness.prompts import SUBAGENT_INTRO
 from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
@@ -15,16 +16,6 @@ from harness.tools.native.subagent import (
     SubagentStopped,
     SubagentTask,
 )
-
-
-def _subagent_intro(name: str) -> str:
-    """What a subagent is told ahead of the runtime's own guidance."""
-    return (
-        f"You are a helper named {name}, started by the main assistant to do one task as part "
-        "of its answer to the user. Nobody will read your questions, so do not ask any: do the "
-        "task with your tools, then reply with a short result. That reply is all the main "
-        "assistant receives."
-    )
 
 
 @dataclass(frozen=True)
@@ -41,7 +32,7 @@ class Subagents:
         session = await self.sessions.create(subagent_id)
         subagent = dataclasses.replace(
             self.runtime,
-            guidance=_subagent_intro(task.name) + self.runtime.guidance,
+            guidance=SUBAGENT_INTRO.format(name=task.name) + self.runtime.guidance,
             checkpoint=self.sessions.flush,
         )
         last: TurnEvent | None = None

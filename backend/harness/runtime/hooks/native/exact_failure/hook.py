@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from harness.prompts import EXACT_FAILURE_REFUSAL, EXACT_FAILURE_WARNING
 from harness.runtime.hooks.calls import (
     CompletedCall,
     Signature,
@@ -15,17 +16,6 @@ from harness.runtime.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 EXACT_FAILURE_WARN_AT, EXACT_FAILURE_BLOCK_AT = 2, 5
-
-NEXT_STEP = "Change the arguments, use another tool, or tell the user what is blocking you."
-
-EXACT_FAILURE_WARNING = (
-    "Note: {name} has now failed {n} times in this turn with these same arguments. "
-    "Repeating it unchanged will not help. " + NEXT_STEP
-)
-EXACT_FAILURE_REFUSAL = (
-    "{name} has already failed {n} times in this turn with these same arguments, "
-    "most recently: {last}. This call was not run. " + NEXT_STEP
-)
 
 
 @dataclass(frozen=True)

@@ -10,13 +10,13 @@ import pytest
 
 from harness.bots import (
     ASSISTANT_ID,
-    ASSISTANT_INSTRUCTIONS,
     Bot,
     BotService,
     ChatMembers,
     GroupDraft,
     GroupEmpty,
 )
+from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.service import RunAlreadyActive
 from harness.runs.subscribe import subscribe
 from harness.session.log import Session

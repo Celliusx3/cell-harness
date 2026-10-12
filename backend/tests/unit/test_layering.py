@@ -87,3 +87,15 @@ def test_the_sandbox_imports_nothing_from_the_harness() -> None:
             ]
 
     assert leaks == [], leaks
+
+
+def test_the_prompts_import_nothing() -> None:
+    tree = ast.parse((HARNESS / "prompts.py").read_text())
+    imported = [
+        node.module or "" if isinstance(node, ast.ImportFrom) else alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        for alias in node.names
+    ]
+
+    assert imported == ["__future__"], imported

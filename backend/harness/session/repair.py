@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from harness.llm.messages import ToolCall, ToolMessage
+from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.compaction import CompactionEnd, open_start
 from harness.session.models import (
     AssistantMessageEvent,
@@ -12,12 +13,6 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
     TurnStart,
-)
-
-TOOL_OUTCOME_UNKNOWN = (
-    "error: this tool call was interrupted and its outcome is unknown. It may have "
-    "completed. Retry only read-only or idempotent work; otherwise verify whether "
-    "it took effect, or ask the user."
 )
 
 REPAIRED = "INTERRUPTED_BY_CRASH"

@@ -38,7 +38,7 @@ one repo, no plugin framework, every load-bearing idea intact.
 | Three-mode tool selection (all/selected/except) | cell-bot | **Take.** |
 | Skills as progressive disclosure + generated `Literal` enum | cell-bot | **Take.** |
 | MCP command-loop manager | cell-bot | **Take** near-verbatim; the anyio problem is real. |
-| Prompts as Jinja + `StrictUndefined` + enum-addressed | cell-bot | **Take.** |
+| Prompts in one place | cell-bot | **Take** the one place, as constants in `prompts.py`; no Jinja, since nothing needs a loader and the session code may not read files. Tool descriptions stay with their tools. |
 | One implementation, two surfaces (native tool + MCP) | cell-bot | **Take.** |
 | Satellite MCP servers | cell-bot | **Take** as the capability-packaging default. |
 | Adaptive inbound batching (a client-split paste is one turn) | hermes-agent | **Take**, with its tuned delays. |
@@ -92,9 +92,7 @@ cell_harness/
                 pipeline.py   pre_execute / execute / post_execute middleware
                 progress.py   ToolProgressReporter + the queue fan-in pattern
                 native/       read, write, edit, glob, grep, bash, todo_write
-  prompt/       assembly.py   ordered named sections, `complete` override
-                render.py     {{variable}} interpolation
-                templates/    *.jinja, enum-addressed, StrictUndefined
+  prompts.py    every prompt the harness writes, as named constants
   agent/        base.py       BaseAgent: name, model, run()
                 handle.py     Agent: send/followup/steer/inject, cancel, whenIdle
                 inbox.py      one inbox, three targets, wakeup flag

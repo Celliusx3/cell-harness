@@ -74,7 +74,11 @@ async def test_the_second_identical_failure_is_warned_with_its_count() -> None:
 
     note = await post(GUARD, session, Failure(EXECUTION_ERROR, "boom"))
 
-    assert note is not None and "2 times" in note
+    assert note == (
+        "Note: read has now failed 2 times in this turn with these same arguments. "
+        "Repeating it unchanged will not help. "
+        "Change the arguments, use another tool, or tell the user what is blocking you."
+    )
 
 
 async def test_the_fifth_identical_failing_call_is_refused_before_it_runs() -> None:
@@ -85,9 +89,11 @@ async def test_the_fifth_identical_failing_call_is_refused_before_it_runs() -> N
     failing(session, 1)
     reason = await pre(GUARD, session)
 
-    assert reason is not None
-    assert "4 times" in reason
-    assert "was not run" in reason
+    assert reason == (
+        "read has already failed 4 times in this turn with these same arguments, "
+        "most recently: error: boom. This call was not run. "
+        "Change the arguments, use another tool, or tell the user what is blocking you."
+    )
 
 
 async def test_a_refusal_carries_the_last_failures_own_advice() -> None:
@@ -215,6 +221,19 @@ async def test_consecutive_calls_with_changing_results_are_noted_at_three_five_a
         settle(session, "write", text=f"poll {i}")
 
     assert noted == [3, 5, 8]
+
+
+async def test_a_run_of_the_same_call_is_told_its_number_and_what_to_do() -> None:
+    session = turn()
+    settle(session, "write", text="1")
+    settle(session, "write", text="2")
+
+    note = await post(GUARD, session, Ok(content="3"), call("write"))
+
+    assert note == (
+        "Note: this is call number 3 in a row to write with these same arguments. "
+        "If you are waiting for something to change, say so; otherwise use what you have."
+    )
 
 
 async def test_an_intervening_call_breaks_the_run() -> None:

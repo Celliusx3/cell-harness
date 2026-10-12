@@ -9,9 +9,10 @@ import pytest
 
 from harness.llm.messages import SystemMessage
 from harness.llm.stream import Completed, Failed, TextChunk
+from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.hooks import HookChain
-from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE, EmptyReplyHook
+from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EmptyReplyHook
 from harness.runtime.service import Runtime
 from harness.runtime.turn import NO_TERMINAL
 from harness.session.models import (

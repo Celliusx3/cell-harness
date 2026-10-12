@@ -6,6 +6,7 @@ from contextlib import aclosing
 
 from harness.llm.messages import ToolCall
 from harness.llm.stream import Completed, TextChunk, ToolCallChunk
+from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
 from harness.runtime.hooks import HookChain, ToolHook
 from harness.session.log import Session
@@ -16,7 +17,6 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
 )
-from harness.session.repair import TOOL_OUTCOME_UNKNOWN
 from tests.unit.fakes import (
     HangingClient,
     SteppedClient,

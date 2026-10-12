@@ -6,22 +6,12 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from harness.llm.messages import render_text
+from harness.prompts import NO_PROGRESS_REFUSAL, NO_PROGRESS_WARNING
 from harness.runtime.hooks.calls import CompletedCall, Signature
 from harness.runtime.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 NO_PROGRESS_WARN_AT, NO_PROGRESS_BLOCK_AT = 2, 5
-
-NO_PROGRESS_WARNING = (
-    "Note: this is the same call to {name} as before, and the result is identical — "
-    "{n} times now. Calling it again will not answer differently. "
-    "Use the result you already have, or do something else."
-)
-NO_PROGRESS_REFUSAL = (
-    "{name} has returned this identical result for these same arguments {n} times "
-    "in this turn, so this call was not run. Use the result you already have, "
-    "or do something else."
-)
 
 
 @dataclass(frozen=True)

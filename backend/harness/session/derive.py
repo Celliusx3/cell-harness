@@ -6,7 +6,8 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
 from harness.llm.messages import Block, Message, Text, ToolMessage, UserMessage
-from harness.session.compaction import PRUNED, boundary, pruned_ids
+from harness.prompts import CUT_NOTE, NO_RESPONSE, PRUNED, SPEAKER_TAG
+from harness.session.compaction import boundary, pruned_ids
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
@@ -20,12 +21,6 @@ from harness.session.models import (
 from harness.session.speakers import last_speaker, turn_speakers
 
 RESULT_LIMIT = 12_000
-CUT_NOTE = (
-    "\n\n[cut: this result was {total:,} characters and only the first {limit:,} are shown. "
-    "If you need what was cut, ask for a smaller part, such as a narrower query or fewer rows.]"
-)
-NO_RESPONSE = "NO_RESPONSE"
-SPEAKER_TAG = '<speaker name="{name}" />\n{text}'
 
 
 @dataclass(frozen=True)

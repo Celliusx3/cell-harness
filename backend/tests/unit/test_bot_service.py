@@ -11,7 +11,6 @@ import pytest
 from harness.bots import (
     ASSISTANT_ID,
     BUILDER_ID,
-    BUILDER_INSTRUCTIONS,
     BUILDER_NAME,
     Bot,
     BotNotFound,
@@ -19,6 +18,7 @@ from harness.bots import (
     BotService,
     ChatMembers,
 )
+from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.models import BotInstructionsEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService

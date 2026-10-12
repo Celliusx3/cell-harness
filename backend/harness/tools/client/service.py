@@ -8,8 +8,9 @@ from enum import Enum
 
 from pydantic import ValidationError
 
+from harness.prompts import DENIED_RESULT
 from harness.session.log import Session
-from harness.tools.approval import DENIED, DENIED_RESULT, ApprovalGate, Approved, parse_decision
+from harness.tools.approval import DENIED, ApprovalGate, Approved, parse_decision
 from harness.tools.client.catalog import ClientTools
 from harness.tools.client.pending import PendingCall, pending_calls
 from harness.tools.definition import Failure, Ok, ToolDefinition

@@ -5,16 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from harness.prompts import REPEATED_CALL_NOTE
 from harness.runtime.hooks.calls import CompletedCall, Signature
 from harness.runtime.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 REPEATED_CALL_NOTE_AT = (3, 5, 8)
-
-REPEATED_CALL_NOTE = (
-    "Note: this is call number {n} in a row to {name} with these same arguments. "
-    "If you are waiting for something to change, say so; otherwise use what you have."
-)
 
 
 @dataclass(frozen=True)

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from harness.llm.messages import AssistantMessage, ToolCall
+from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.hooks import GiveUp, Tell
-from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EMPTY_REPLY_NOTE
+from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY
 from harness.session.log import Session
 from harness.session.models import AssistantMessageEvent, TurnStart
 from tests.unit.test_hooks_native import GUARD, call, turn

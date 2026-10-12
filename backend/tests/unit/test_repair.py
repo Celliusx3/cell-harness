@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
+from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.derive import derive_messages
 from harness.session.models import (
     AssistantMessageEvent,
@@ -15,7 +16,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.repair import REPAIRED, TOOL_OUTCOME_UNKNOWN, repair
+from harness.session.repair import REPAIRED, repair
 from tests.unit.helpers import unanswered_calls
 
 

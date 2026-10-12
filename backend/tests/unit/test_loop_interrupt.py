@@ -8,10 +8,10 @@ from contextlib import aclosing
 
 from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.llm.stream import ToolCallChunk
+from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnEnd
-from harness.session.repair import TOOL_OUTCOME_UNKNOWN
 from tests.unit.fakes import SteppedClient, calls_tool, echo_tool, hanging_tool
 from tests.unit.helpers import new_session, runtime_over, unanswered_calls
 

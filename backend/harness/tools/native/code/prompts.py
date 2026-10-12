@@ -1,4 +1,4 @@
-"""What the model is told about code mode — the three descriptions and the prompt."""
+"""What the model is told about code mode — the three tool names and their descriptions."""
 
 from __future__ import annotations
 
@@ -36,13 +36,4 @@ EXECUTE_DESCRIPTION = (
     "- Only what you `return` or `console.log` comes back. Everything else stays "
     "in the sandbox, so fetch freely and extract just what you need.\n"
     "- There is no network and no filesystem. The functions are the only way out."
-)
-
-CODE_PROMPT = (
-    "\n\nMost of your capabilities are not in your tool list yet. Discover them "
-    f"with `{LIST}`, then read the ones you need with `{DETAILS}` — from then on "
-    "they are in your tool list and you call them directly, like any tool. Write "
-    f"a program for `{EXECUTE}` only when one would save round trips: many calls "
-    "at once, or a large result you want to filter before you see it. Never tell "
-    "the user you lack a capability without listing the functions first."
 )

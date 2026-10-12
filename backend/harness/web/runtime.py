@@ -11,6 +11,7 @@ from harness.bots import BotService
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.service import McpService
+from harness.prompts import CODE_PROMPT, GUIDANCE
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
@@ -28,7 +29,7 @@ from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
 from harness.tools.native.clock import clock_tool
-from harness.tools.native.code import CODE_PROMPT, DETAILS, EXECUTE, LIST, code_mode_tools
+from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.location import LOCATION_TOOL
 from harness.tools.native.question import QUESTION_TOOL
 from harness.tools.native.secrets import (
@@ -49,13 +50,6 @@ from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
 
 logger = logging.getLogger("harness.web")
-
-GUIDANCE = (
-    "When a tool can answer the user's question, "
-    "call it instead of guessing. You have a long-term memory in the memory "
-    "functions: search it before answering about anything the user told you in "
-    "an earlier conversation, and save what they ask you to remember."
-) + CODE_PROMPT
 
 CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL, ASK_FOR_SECRET_TOOL))
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
