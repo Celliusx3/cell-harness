@@ -108,10 +108,17 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         break;
 
       case "bot/instructions":
-        draft.onBotInstructions(`b${index}`);
+        draft.onBotInstructions(`b${index}`, event.bot_id ?? null, event.name);
+        break;
+
+      case "group/members":
+        draft.onGroupMembers();
         break;
 
       case "turn/start":
+        draft.onTurnStart(event.turn, event.bot_id ?? null);
+        break;
+
       case "step/start":
       case "step/end":
       case "chat/cleared":

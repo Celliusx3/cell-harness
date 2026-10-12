@@ -137,6 +137,15 @@ export interface Bot {
 
 export type BotDraft = Pick<Bot, "name" | "instructions">;
 
+/** Two to six bots sharing one chat, whose id is the group's; they take turns in member order. */
+export interface Group {
+  id: string;
+  name: string;
+  member_ids: string[];
+}
+
+export type GroupDraft = Pick<Group, "name" | "member_ids">;
+
 /** `GET /api/secrets`: one saved key, its site, and the bots allowed to use it; never its value. */
 export interface SecretSummary {
   name: string;

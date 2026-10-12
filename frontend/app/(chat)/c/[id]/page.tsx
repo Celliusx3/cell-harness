@@ -7,21 +7,22 @@ import { waitingApproval } from "@/components/answer/approval";
 import { ApprovalBar, ApprovalPanel } from "@/components/answer/ApprovalPanel";
 import { questionOf, waitingQuestion } from "@/components/answer/question";
 import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
-import { useBot } from "@/components/bots/useBot";
 import { refreshSidebar } from "@/components/chat/Sidebar";
+import { useFound } from "@/components/chat/useFound";
 import { Composer } from "@/components/conversation/Composer";
 import { QueuedBubble } from "@/components/conversation/Message";
 import { Timeline } from "@/components/conversation/Timeline";
 import type { TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { useConversation } from "@/components/conversation/useConversation";
 import { useTimeline } from "@/components/conversation/useTimeline";
+import { listBots, listGroups } from "@/lib/api";
 
 type Waiting = { kind: "question"; item: ToolItem } | { kind: "approval"; item: ToolItem };
 
 const CLEAR_CONFIRMATION =
   "Clear this chat? This permanently removes every message and stops what the bot is doing. The chat stays.";
 
-/** One bot's chat, under the bot's name. */
+/** One bot's or one group's chat, under its name. */
 export default function ConversationPage({
   params,
 }: {
@@ -29,8 +30,9 @@ export default function ConversationPage({
 }) {
   const { id } = use(params);
   const conversation = useConversation(id);
-  const bot = useBot(id);
-  const { items, openTurn } = useTimeline(conversation.events);
+  const bot = useFound(listBots, id, "Could not load bots.");
+  const group = useFound(listGroups, id, "Could not load groups.");
+  const { items, openTurn, speakers } = useTimeline(conversation.events);
   const waiting = useMemo(
     () => (conversation.running ? null : waitingCall(items, openTurn)),
     [conversation.running, items, openTurn],
@@ -43,15 +45,15 @@ export default function ConversationPage({
     wasRunning.current = conversation.running;
   }, [conversation.running]);
 
-  if (bot.kind === "none") {
-    return <p className="px-6 py-6 text-sm text-danger">No bot has the id {id}.</p>;
+  if (bot.kind === "none" && group.kind === "none") {
+    return <p className="px-6 py-6 text-sm text-danger">No bot or group has the id {id}.</p>;
   }
 
   return (
     <>
       <header className="flex items-center gap-3 border-b border-line px-6 py-3">
         <h1 className="min-w-0 truncate text-sm font-medium">
-          {bot.kind === "found" ? bot.bot.name : ""}
+          {bot.kind === "found" ? bot.item.name : group.kind === "found" ? group.item.name : ""}
         </h1>
         {conversation.running && (
           <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-ink-soft">
@@ -97,6 +99,7 @@ export default function ConversationPage({
             <Timeline
               items={items}
               openTurn={openTurn}
+              speakers={speakers}
               onAnswered={conversation.wake}
             />
             {conversation.queued.length > 0 && (

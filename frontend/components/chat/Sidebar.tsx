@@ -1,13 +1,13 @@
 "use client";
 
-import { BookOpen, BotMessageSquare, KeyRound, ShieldCheck } from "lucide-react";
+import { BookOpen, BotMessageSquare, KeyRound, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ArchivedBots } from "@/components/chat/ArchivedBots";
-import { BUILDER_ID, listArchivedBots, listBots } from "@/lib/api";
-import type { Bot } from "@/lib/types";
+import { BUILDER_ID, listArchivedBots, listBots, listGroups } from "@/lib/api";
+import type { Bot, Group } from "@/lib/types";
 
 const STALE = "harness:sidebar-stale";
 
@@ -16,10 +16,11 @@ export function refreshSidebar(): void {
   window.dispatchEvent(new Event(STALE));
 }
 
-/** The bots, each a link to its one chat, then the archived ones. */
+/** The bots, each a link to its one chat, the groups, then the archived bots. */
 export function Sidebar() {
   const [bots, setBots] = useState<Bot[]>([]);
   const [archived, setArchived] = useState<Bot[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const pathname = usePathname();
   const params = useParams<{ id?: string }>();
   const currentId = params?.id;
@@ -33,11 +34,12 @@ export function Sidebar() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([listBots(), listArchivedBots()])
-      .then(([listedBots, listedArchived]) => {
+    Promise.all([listBots(), listArchivedBots(), listGroups()])
+      .then(([listedBots, listedArchived, listedGroups]) => {
         if (cancelled) return;
         setBots(listedBots);
         setArchived(listedArchived);
+        setGroups(listedGroups);
       })
       .catch(() => {
       });
@@ -87,6 +89,15 @@ export function Sidebar() {
           >
             <BotMessageSquare size={18} />
           </Link>
+          <Link
+            href="/groups/new"
+            aria-label="New group"
+            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
+              pathname === "/groups/new" ? "bg-accent-soft text-ink" : "text-ink-soft"
+            }`}
+          >
+            <Users size={18} />
+          </Link>
         </div>
       </div>
 
@@ -103,6 +114,18 @@ export function Sidebar() {
               />
             ))}
         </SidebarSection>
+        {groups.length > 0 && (
+          <SidebarSection title="Groups">
+            {groups.map((group) => (
+              <SidebarRow
+                key={group.id}
+                href={`/c/${group.id}`}
+                label={group.name}
+                current={group.id === currentId}
+              />
+            ))}
+          </SidebarSection>
+        )}
         {archived.length > 0 && <ArchivedBots bots={archived} onChange={refreshSidebar} />}
       </nav>
     </aside>
