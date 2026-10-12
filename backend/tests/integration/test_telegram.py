@@ -11,6 +11,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.config.settings import Settings
+from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -51,6 +52,7 @@ def build(tmp_path):
         no_gate(),
         no_bots(sessions),
         secrets_in(tmp_path),
+        BotMessages(sessions, no_bots(sessions), runs),
     )
     return bot, app, gateway, runs, sessions
 
@@ -118,6 +120,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         no_gate(),
         no_bots(sessions),
         secrets_in(tmp_path),
+        BotMessages(sessions, no_bots(sessions), runs),
     )
 
     assert gateway.channels == ["web"]

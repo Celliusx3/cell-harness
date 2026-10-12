@@ -15,6 +15,7 @@ from harness.config.sections import McpServer
 from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
+from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
@@ -97,6 +98,7 @@ def web_app(
         gate or no_gate(),
         bots,
         secrets or secrets_in(tmp_path),
+        BotMessages(service, bots, runs),
     )
 
 
@@ -125,6 +127,7 @@ def web_app_with_telegram(
         gate or no_gate(),
         bots,
         secrets or secrets_in(tmp_path),
+        BotMessages(service, bots, runs),
     )
     return app, gateway, bot
 

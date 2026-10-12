@@ -50,6 +50,10 @@ class BotService:
                 await self._log_instructions(await self._sessions.create(bot.id), bot)
         return bots
 
+    def names(self) -> tuple[str, ...]:
+        """The active bots' names, built-ins first, read without opening any chat."""
+        return tuple(bot.name for bot in self._active_bots())
+
     def archived_bots(self) -> tuple[Bot, ...]:
         """The archived bots, in the order they were made."""
         return tuple(bot for bot in self._stored_bots() if bot.archived)

@@ -12,6 +12,8 @@ from harness.config.settings import Settings
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
+from harness.runs.bot_messages import BotMessages
+from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
@@ -27,7 +29,7 @@ from harness.skills import SKILL, SkillService, skill_tool
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.native.bots import BOT_CREATE, bot_create_tool
+from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.location import LOCATION_TOOL
@@ -60,13 +62,22 @@ DEFAULT_TOOLS = (
     SKILL,
     *SKILL_WRITES,
     BOT_CREATE,
+    MESSAGE_BOT,
     RUN_SUBAGENT,
     FETCH_WITH_SECRET,
     *sorted(CLIENT_TOOLS.names),
 )
 SUBAGENT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL)
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
-    {SKILL, *SKILL_WRITES, BOT_CREATE, RUN_SUBAGENT, FETCH_WITH_SECRET, *CLIENT_TOOLS.names}
+    {
+        SKILL,
+        *SKILL_WRITES,
+        BOT_CREATE,
+        MESSAGE_BOT,
+        RUN_SUBAGENT,
+        FETCH_WITH_SECRET,
+        *CLIENT_TOOLS.names,
+    }
 )
 
 
@@ -140,6 +151,15 @@ def _register_run_subagent(
         guidance=CODE_PROMPT,
     )
     registry.register(run_subagent_tool(Subagents(subagent, logs)))
+
+
+def attach_bot_messages(
+    registry: ToolRegistry, sessions: SessionService, bots: BotService, runs: RunService
+) -> BotMessages:
+    """`message_bot` offered from `registry`, sending through the `BotMessages` it returns."""
+    messages = BotMessages(sessions, bots, runs)
+    registry.add_provider(lambda: [message_bot_tool(bots, messages)])
+    return messages
 
 
 def default_hooks() -> HookChain:

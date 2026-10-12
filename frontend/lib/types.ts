@@ -80,6 +80,17 @@ export type SessionEvent =
   | { type: "turn/start"; turn: number; bot_id?: string | null }
   | { type: "turn/end"; turn: number; reason: TurnEndReason }
   | { type: "user/message"; turn: number; message: UserMessage }
+  | {
+      type: "bot/message";
+      turn: number;
+      message: {
+        from_bot_id: string;
+        from_name: string;
+        text: string;
+        hop: number;
+        intent: "request" | "result";
+      };
+    }
   | { type: "application/message"; turn: number; message: ApplicationMessage }
   | { type: "step/start"; turn: number; step: number }
   | { type: "step/end"; turn: number; step: number }

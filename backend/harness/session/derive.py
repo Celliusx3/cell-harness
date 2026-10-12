@@ -6,12 +6,22 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
 from harness.llm.messages import Block, Message, Text, ToolMessage, UserMessage
-from harness.prompts import CUT_NOTE, NO_RESPONSE, PRUNED, SPEAKER_TAG
+from harness.prompts import (
+    BOT_MESSAGE_REQUEST,
+    BOT_MESSAGE_RESULT,
+    CUT_NOTE,
+    NO_RESPONSE,
+    PRUNED,
+    SPEAKER_TAG,
+)
 from harness.session.compaction import boundary, pruned_ids
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
     BotInstructionsEvent,
+    BotMessage,
+    BotMessageEvent,
+    BotMessageIntent,
     SessionEvent,
     ToolResultEvent,
     TurnEnd,
@@ -21,6 +31,11 @@ from harness.session.models import (
 from harness.session.speakers import last_speaker, turn_speakers
 
 RESULT_LIMIT = 12_000
+
+BOT_MESSAGE_TEMPLATES: Mapping[BotMessageIntent, str] = {
+    "request": BOT_MESSAGE_REQUEST,
+    "result": BOT_MESSAGE_RESULT,
+}
 
 
 @dataclass(frozen=True)
@@ -67,6 +82,8 @@ def _as_heard(
             heard = ()
         if isinstance(event, UserMessageEvent):
             yield event.message
+        elif isinstance(event, BotMessageEvent):
+            yield _bot_message(event.message)
         elif isinstance(event, (ApplicationMessageEvent, AssistantMessageEvent, ToolResultEvent)):
             other = voices.other_speaker(event.turn)
             if other is None:
@@ -87,6 +104,12 @@ def _own_message(
     if event.message.tool_call_id in pruned:
         return ToolMessage(tool_call_id=event.message.tool_call_id, content=PRUNED)
     return _limited(event.message)
+
+
+def _bot_message(message: BotMessage) -> UserMessage:
+    """Another bot's message as the listener hears it, worded for why it was sent."""
+    template = BOT_MESSAGE_TEMPLATES[message.intent]
+    return UserMessage(content=template.format(name=message.from_name, text=message.text))
 
 
 def _is_said(text: str) -> bool:

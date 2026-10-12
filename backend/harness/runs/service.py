@@ -14,6 +14,7 @@ from harness.runs.chain import discussion, log_speaker
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.log import Session
+from harness.session.models import BotMessage, ToolCallEvent
 from harness.session.service import SessionService
 from harness.tools.approval import Approved
 from harness.tools.definition import Failure, Ok
@@ -62,6 +63,12 @@ class RunService:
             chat_id for chat_id, run in self._runs.items() if run.session.speaker_id() == bot_id
         )
 
+    def session_of_call(self, call_id: str) -> Session | None:
+        """The log of the run in flight that asked for call `call_id`; `None` when none did."""
+        return next(
+            (run.session for run in self._runs.values() if _has_call(run.session, call_id)), None
+        )
+
     def start(self, session: Session, prompt: str) -> Run:
         """Begin the discussion the person's message opens; `GroupEmpty` when nobody can answer."""
         if session.id in self._runs:
@@ -74,6 +81,15 @@ class RunService:
         return self._converse(
             session, self._runtime.run(prompt, session=session, bot_id=line[0].id)
         )
+
+    def hear(self, session: Session, message: BotMessage) -> Run:
+        """Begin the turn in which a bot's own chat answers another bot's message."""
+        if session.id in self._runs:
+            raise RunAlreadyActive(session.id)
+        members = self._bots.members_of_chat(session.id)
+        (bot,) = members.bots
+        log_speaker(session, members, bot)
+        return self._converse(session, self._runtime.hear(message, session=session, bot_id=bot.id))
 
     def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
         """Begin the turn that answers a client tool for the bot that asked, then the line's."""
@@ -176,3 +192,9 @@ class RunService:
     async def _wake(self, run: Run) -> None:
         async with run.condition:
             run.condition.notify_all()
+
+
+def _has_call(session: Session, call_id: str) -> bool:
+    return any(
+        isinstance(event, ToolCallEvent) and event.call.id == call_id for event in session.events()
+    )

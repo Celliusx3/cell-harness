@@ -18,6 +18,14 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         draft.onUserMessage(`u${index}`, event.turn, event.message.content);
         break;
 
+      case "bot/message":
+        draft.onUserMessage(
+          `u${index}`,
+          event.turn,
+          `Message from ${event.message.from_name}:\n\n${event.message.text}`,
+        );
+        break;
+
       case "application/message":
         draft.addNotice({
           key: `n${index}`,

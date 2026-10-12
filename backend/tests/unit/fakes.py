@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Mapping, Sequence
 
 from pydantic import BaseModel, Field
 
 from harness.llm.client import LLMClient
-from harness.llm.messages import Message, ToolCall, ToolSpec
+from harness.llm.messages import Message, SystemMessage, ToolCall, ToolSpec
 from harness.llm.stream import Completed, StreamEvent, TextChunk, ToolCallChunk
 from harness.tools.context import ToolContext
 from harness.tools.definition import Ok, Pending, ToolDefinition, ToolOutcome
@@ -54,6 +54,25 @@ class SteppedClient(LLMClient):
         script = self._scripts[min(self.calls, len(self._scripts) - 1)]
         self.calls += 1
         for event in script:
+            yield event
+
+
+class PerBotClient(LLMClient):
+    """Answers each bot from its own scripts, told apart by how its system message starts."""
+
+    def __init__(self, scripts: Mapping[str, Sequence[Sequence[StreamEvent]]]) -> None:
+        self._scripts = {start: [list(s) for s in steps] for start, steps in scripts.items()}
+        self.seen_by: dict[str, list[list[Message]]] = {start: [] for start in scripts}
+
+    async def stream_completion(
+        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+    ) -> AsyncIterator[StreamEvent]:
+        system = messages[0].content if isinstance(messages[0], SystemMessage) else ""
+        start = next(start for start in self._scripts if system.startswith(start))
+        seen = self.seen_by[start]
+        seen.append(list(messages))
+        steps = self._scripts[start]
+        for event in steps[min(len(seen), len(steps)) - 1]:
             yield event
 
 

@@ -16,6 +16,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
 from harness.tools.definition import Ok
+from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code import EXECUTE, LIST
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
 from harness.web.runtime import DEFAULT_TOOLS, build_runtime
@@ -65,7 +66,7 @@ def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
     directory = write_skill(root, "pdf")
     offered = [s.name for s in runtime.tools.specs()]
     assert SKILL in offered
-    assert offered == list(DEFAULT_TOOLS)
+    assert offered == [name for name in DEFAULT_TOOLS if name != MESSAGE_BOT]
 
     (directory / "SKILL.md").unlink()
     assert SKILL not in [s.name for s in runtime.tools.specs()]

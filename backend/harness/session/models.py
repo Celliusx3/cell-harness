@@ -66,6 +66,31 @@ class UserMessageEvent(BaseModel):
     message: UserMessage
 
 
+BotMessageIntent = Literal["request", "result"]
+
+
+class BotMessage(BaseModel):
+    """What one bot sent another: who from, the text, how many hops it has come, and why."""
+
+    model_config = ConfigDict(frozen=True)
+
+    from_bot_id: str
+    from_name: str
+    text: str
+    hop: int
+    intent: BotMessageIntent
+
+
+class BotMessageEvent(BaseModel):
+    """Another bot's message entering this chat, opening the turn that answers it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["bot/message"] = "bot/message"
+    turn: int
+    message: BotMessage
+
+
 class ApplicationMessageEvent(BaseModel):
     """Context this process injected into the model-visible history."""
 
@@ -189,6 +214,7 @@ SessionEvent = (
     | StepStart
     | StepEnd
     | UserMessageEvent
+    | BotMessageEvent
     | ApplicationMessageEvent
     | AssistantChunk
     | AssistantMessageEvent

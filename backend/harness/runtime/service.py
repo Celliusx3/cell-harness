@@ -24,6 +24,8 @@ from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.models import (
     ApprovalGrant,
+    BotMessage,
+    BotMessageEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
@@ -64,6 +66,18 @@ class Runtime:
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
         session.append(UserMessageEvent(turn=turn, message=UserMessage(content=user_input)))
+        async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
+            async for event in events:
+                yield event
+
+    async def hear(
+        self, message: BotMessage, *, session: Session, bot_id: str
+    ) -> AsyncIterator[TurnEvent]:
+        """A turn opened by another bot's message: its events as they happen, then one terminal."""
+        _skip_calls_walked_past(session)
+        turn = session.next_turn()
+        session.append(TurnStart(turn=turn, bot_id=bot_id))
+        session.append(BotMessageEvent(turn=turn, message=message))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
