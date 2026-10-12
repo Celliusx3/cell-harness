@@ -5,9 +5,9 @@ import { use } from "react";
 
 import { BotForm } from "@/components/bots/BotForm";
 import { BotKeys } from "@/components/bots/BotKeys";
-import { useBot } from "@/components/bots/useBot";
 import { refreshSidebar } from "@/components/chat/Sidebar";
-import { ASSISTANT_ID, archiveBot, updateBot } from "@/lib/api";
+import { useFound } from "@/components/chat/useFound";
+import { ASSISTANT_ID, archiveBot, listBots, updateBot } from "@/lib/api";
 import type { BotDraft } from "@/lib/types";
 
 /** One bot's name, instructions and keys; saving or archiving leaves for a chat. */
@@ -18,7 +18,7 @@ export default function EditBotPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const lookup = useBot(id);
+  const lookup = useFound(listBots, id, "Could not load bots.");
 
   async function save(draft: BotDraft) {
     await updateBot(id, draft);
@@ -49,11 +49,11 @@ export default function EditBotPage({
         {lookup.kind === "found" && (
           <>
             <BotForm
-              initial={lookup.bot}
+              initial={lookup.item}
               onSave={save}
               onArchive={id === ASSISTANT_ID ? null : archive}
             />
-            <BotKeys bot={lookup.bot} />
+            <BotKeys bot={lookup.item} />
           </>
         )}
       </div>

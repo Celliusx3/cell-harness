@@ -50,7 +50,9 @@ async def test_listing_opens_the_builder_s_chat_only_the_first_time(
 
     chat = await service.read(BUILDER_ID)
     assert list(chat.events()) == [
-        BotInstructionsEvent(name=BUILDER_NAME, instructions=BUILDER_INSTRUCTIONS)
+        BotInstructionsEvent(
+            name=BUILDER_NAME, instructions=BUILDER_INSTRUCTIONS, bot_id=BUILDER_ID
+        )
     ]
 
 

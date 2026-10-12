@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.routes import bot_chat_router
+from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
 from harness.runtime.compaction import CompactionRefused
 from harness.session.repository import SessionNotFoundError
@@ -16,7 +16,7 @@ logger = logging.getLogger("harness.web")
 
 
 def build_router(web: WebChannel) -> APIRouter:
-    router = bot_chat_router(web, tag="compaction")
+    router = chat_router(web, tag="compaction")
 
     @router.post("/{conversation_id}/compact", status_code=status.HTTP_202_ACCEPTED)
     async def compact(conversation_id: str) -> Response:

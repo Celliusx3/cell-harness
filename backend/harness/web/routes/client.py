@@ -6,8 +6,9 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Response, status
 
+from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.routes import bot_chat_router
+from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
 from harness.session.repository import SessionNotFoundError
 from harness.tools.client import ClientToolService, Refused
@@ -22,7 +23,7 @@ STATUS = {
 
 def build_router(web: WebChannel, client_tools: ClientToolService) -> APIRouter:
     """The browser's answer to a client tool, resumed through the gateway."""
-    router = bot_chat_router(web, tag="client-tools")
+    router = chat_router(web, tag="client-tools")
 
     @router.post(
         "/{conversation_id}/calls/{call_id}/output", status_code=status.HTTP_204_NO_CONTENT
@@ -45,6 +46,8 @@ def build_router(web: WebChannel, client_tools: ClientToolService) -> APIRouter:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"call {call_id!r} was already answered"
             ) from err
+        except BotNotFound as err:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
         logger.info("call %s in %s answered by the browser", call_id, conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 

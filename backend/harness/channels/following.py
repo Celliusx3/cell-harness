@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from harness.bots import GroupEmpty
 from harness.channels.chat_tasks import ChatKey, ChatTasks
 from harness.channels.chats import session_for, state_of
 from harness.channels.protocol import Pushing, RunningChannel
@@ -97,7 +98,10 @@ class Following:
         except UnknownSkill as err:
             logger.warning("queued /%s no longer names a skill; sent as text", err.name)
             content = text
-        await self.turn_for_chat(cleared, content)
+        try:
+            await self.turn_for_chat(cleared, content)
+        except GroupEmpty as err:
+            logger.warning("queued message dropped, nobody is left to answer it: %s", err)
 
     async def drained(self, channel: str, chat_id: str) -> None:
         """Wait while this chat is between turns."""

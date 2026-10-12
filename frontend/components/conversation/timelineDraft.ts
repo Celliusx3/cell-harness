@@ -3,6 +3,7 @@
 import { display } from "@/components/conversation/invocation";
 import type {
   NoticeItem,
+  Speaker,
   Timeline,
   TimelineItem,
 } from "@/components/conversation/timelineItems";
@@ -39,10 +40,21 @@ export class TimelineDraft {
   private readonly closed = new Set<number>();
   private compactionAt: number | null = null;
   private lastTurn: number | null = null;
-  private hasInstructions = false;
+  private readonly instructed = new Set<string>();
+  private readonly names = new Map<string, string>();
+  private readonly speakers = new Map<number, string>();
+  private inGroup = false;
 
   rememberTurn(turn: number): void {
     this.lastTurn = turn;
+  }
+
+  onTurnStart(turn: number, botId: string | null): void {
+    if (botId !== null) this.speakers.set(turn, botId);
+  }
+
+  onGroupMembers(): void {
+    this.inGroup = true;
   }
 
   onUserMessage(key: string, turn: number, content: string): void {
@@ -156,9 +168,22 @@ export class TimelineDraft {
     this.compactionAt = null;
   }
 
-  onBotInstructions(key: string): void {
-    if (this.hasInstructions) this.items.push({ kind: "instructions", key });
-    this.hasInstructions = true;
+  onBotInstructions(key: string, botId: string | null, name: string): void {
+    const whose = this.inGroup && botId !== null ? botId : "";
+    if (this.instructed.has(whose)) this.items.push({ kind: "instructions", key });
+    this.instructed.add(whose);
+    if (botId !== null) this.names.set(botId, name);
+  }
+
+  /** In a group's chat, each turn's bot; empty in a bot's own chat. */
+  private spokenBy(): ReadonlyMap<number, Speaker> {
+    const named = new Map<number, Speaker>();
+    if (!this.inGroup) return named;
+    for (const [turn, id] of this.speakers) {
+      const name = this.names.get(id);
+      if (name !== undefined) named.set(turn, { id, name });
+    }
+    return named;
   }
 
   onTurnEnd(turn: number): void {
@@ -168,6 +193,7 @@ export class TimelineDraft {
   toTimeline(): Timeline {
     return {
       items: this.items,
+      speakers: this.spokenBy(),
       openTurn:
         this.lastTurn !== null && !this.closed.has(this.lastTurn)
           ? this.lastTurn

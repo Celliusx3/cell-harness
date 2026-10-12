@@ -79,5 +79,12 @@ export interface Timeline {
   items: TimelineItem[];
   /** True while the last turn is still open */
   openTurn: number | null;
+  /** In a group's chat, the bot that spoke each turn. */
+  speakers: ReadonlyMap<number, Speaker>;
+}
+
+export interface Speaker {
+  id: string;
+  name: string;
 }
 

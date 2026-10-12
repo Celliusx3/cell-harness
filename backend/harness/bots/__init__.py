@@ -1,4 +1,4 @@
-"""Bots: a name, the instructions it answers with, and the one chat it answers in."""
+"""Bots: a name, the instructions it answers with, its own chat, and the groups it is in."""
 
 from harness.bots.models import (
     ASSISTANT_ID,
@@ -10,8 +10,12 @@ from harness.bots.models import (
     BotDraft,
     BotNotFound,
     BotPermanent,
+    ChatMembers,
+    Group,
+    GroupDraft,
+    GroupEmpty,
 )
-from harness.bots.service import BotService
+from harness.bots.service import BotService, roster
 
 __all__ = [
     "ASSISTANT_ID",
@@ -24,4 +28,9 @@ __all__ = [
     "BotNotFound",
     "BotPermanent",
     "BotService",
+    "ChatMembers",
+    "Group",
+    "GroupDraft",
+    "GroupEmpty",
+    "roster",
 ]

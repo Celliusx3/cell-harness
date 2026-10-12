@@ -60,11 +60,16 @@ def build_router(bots: BotService, runs: RunService, secrets: SecretService) -> 
         logger.info("bot %s may use %s", bot_id, list(bot.secret_names))
         return bot
 
+    async def stop_speaking(bot_id: str) -> None:
+        """End the bot's own chat's turn, and the discussion of any group it is speaking in."""
+        for chat_id in {bots.chat_of(bot_id), *runs.chats_spoken_in(bot_id)}:
+            await runs.stop(chat_id)
+
     @router.post("/{bot_id}/archive", status_code=status.HTTP_204_NO_CONTENT)
     async def archive_bot(bot_id: str) -> Response:
         try:
             bots.check_removable(bot_id)
-            await runs.stop(bots.chat_of(bot_id))
+            await stop_speaking(bot_id)
             bots.archive(bot_id)
         except BotPermanent as err:
             raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
@@ -86,7 +91,7 @@ def build_router(bots: BotService, runs: RunService, secrets: SecretService) -> 
     async def delete_bot(bot_id: str) -> Response:
         try:
             bots.check_removable(bot_id)
-            await runs.stop(bots.chat_of(bot_id))
+            await stop_speaking(bot_id)
             await bots.delete(bot_id)
         except BotPermanent as err:
             raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err

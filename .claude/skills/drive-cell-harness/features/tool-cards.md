@@ -1,6 +1,6 @@
 # Tool cards
 
-Each tool call shows as a one-line card with the tool's name and "running…", "done" or an error code. Opening it shows the arguments and the result.
+Each tool call shows as a one-line card with the tool's name and "running…", "done" or an error code. Opening it shows the arguments and the result. A turn's cards, the text between them and its notes sit behind one "Working… · N tools" line that folds to "Done · N tools" when the turn ends; a client tool's card (a question, a location, a key), an approval waiting for you and an app view stay outside it.
 
 ## Sub-features
 
@@ -14,7 +14,7 @@ Ask something that needs a tool, for example "Compare Apple, Microsoft, Nvidia a
 
 ## Driving it with Playwright MCP
 
-After the turn ends, `browser_snapshot`, then `browser_click` the card's name button (for example `run_subagent`) and snapshot again to read its result.
+After the turn ends, `browser_snapshot`, `browser_click` "Done · N tools" to unfold the turn, then `browser_click` the card's name button (for example `run_subagent`) and snapshot again to read its result.
 
 ## Gotchas
 

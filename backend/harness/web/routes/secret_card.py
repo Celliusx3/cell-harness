@@ -7,8 +7,9 @@ import logging
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.routes import bot_chat_router
+from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
 from harness.secrets import SECRET_VALUE_RULE, SecretRefused, SecretService, SecretValue
 from harness.session.repository import SessionNotFoundError
@@ -31,7 +32,7 @@ def build_router(
     web: WebChannel, client_tools: ClientToolService, secrets: SecretService
 ) -> APIRouter:
     """The card's save: the key is sealed, the bot may use it, the waiting call gets its name."""
-    router = bot_chat_router(web, tag="secrets")
+    router = chat_router(web, tag="secrets")
 
     @router.post(
         "/{conversation_id}/calls/{call_id}/secret", status_code=status.HTTP_204_NO_CONTENT
@@ -64,7 +65,10 @@ def build_router(
                 status.HTTP_404_NOT_FOUND, detail=f"call {call_id!r} is not waiting for a key"
             )
         ask = SecretAsk.model_validate_json(asked.arguments)
-        bot = web.bots.bot_for_chat(conversation_id)
+        try:
+            bot = web.bots.asker(session, call_id)
+        except BotNotFound as err:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
         try:
             secrets.save(ask.name, ask.destination, entry.value)
         except SecretRefused as err:

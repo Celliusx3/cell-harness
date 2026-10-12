@@ -8,12 +8,23 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, ASSISTANT_INSTRUCTIONS, Bot, BotService
+from harness.bots import (
+    ASSISTANT_ID,
+    ASSISTANT_INSTRUCTIONS,
+    Bot,
+    BotService,
+    ChatMembers,
+    GroupDraft,
+    GroupEmpty,
+)
 from harness.runs.service import RunAlreadyActive
 from harness.runs.subscribe import subscribe
+from harness.session.log import Session
 from harness.session.models import (
+    ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
+    TurnStart,
 )
 from harness.session.service import SessionService
 from harness.tools.context import ToolContext
@@ -25,9 +36,11 @@ from tests.unit.fakes import (
     calls_tool,
     completed,
     echo_tool,
+    hanging_tool,
     pending_tool,
 )
-from tests.unit.helpers import drain, durable_service, run_service
+from tests.unit.helpers import drain, durable_service, run_service, until
+from tests.webapp import bots_in
 
 
 @pytest.fixture
@@ -162,8 +175,10 @@ async def test_resume_runs_a_turn_that_starts_with_the_answer(service) -> None:
 
 
 class _ChatsOfNotion(BotService):
-    def bot_for_chat(self, chat_id: str) -> Bot:
-        return Bot(id="notion", name="Notion", instructions="Read Notion.")
+    def members_of_chat(self, chat_id: str) -> ChatMembers:
+        return ChatMembers(
+            group=None, bots=(Bot(id="notion", name="Notion", instructions="Read Notion."),)
+        )
 
 
 async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> None:
@@ -182,3 +197,73 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
     await asyncio.wait_for(run._outer, timeout=5)
 
     assert seen == ["notion"]
+
+
+async def _group_chat(
+    bots: BotService, service: SessionService, *names: str
+) -> tuple[Session, tuple[Bot, ...]]:
+    """A group of new bots called `names`, and its chat."""
+    members = tuple([await bots.create(name, f"You are {name}.") for name in names])
+    group = await bots.create_group(
+        GroupDraft(name="Launch", member_ids=tuple(bot.id for bot in members))
+    )
+    return await service.resume(group.id), members
+
+
+def _speakers(session: Session) -> list[str | None]:
+    return [e.bot_id for e in session.events() if isinstance(e, TurnStart)]
+
+
+async def test_the_line_carries_on_once_the_person_answers_the_bot_that_asked(
+    tmp_path, service
+) -> None:
+    bots = bots_in(tmp_path, service)
+    chat, (researcher, writer) = await _group_chat(bots, service, "Researcher", "Writer")
+    client = SteppedClient(
+        calls_tool("ask", '{"value": "?"}', id="c1"), completed("Got it."), completed("Draft.")
+    )
+    runs = run_service(service, client, pending_tool(), bots=bots)
+    await asyncio.wait_for(runs.start(chat, "go")._outer, timeout=5)
+
+    assert _speakers(chat) == [researcher.id]
+    await asyncio.wait_for(runs.resume(chat, "c1", Ok(content="2024"))._outer, timeout=5)
+
+    assert _speakers(chat) == [researcher.id, researcher.id, writer.id]
+    assert [e.reason for e in chat.events() if isinstance(e, TurnEnd)] == [
+        "pending",
+        "completed",
+        "completed",
+    ]
+
+
+async def test_stopping_a_group_ends_the_round_in_one_settled_run(tmp_path, service) -> None:
+    bots = bots_in(tmp_path, service)
+    chat, (researcher, writer, _) = await _group_chat(bots, service, "Researcher", "Writer", "Ed")
+    client = SteppedClient(completed("Sources."), calls_tool("hang", '{"value": "x"}'))
+    runs = run_service(service, client, hanging_tool(), bots=bots)
+    run = runs.start(chat, "go")
+    await until(
+        lambda: any(isinstance(e, ToolCallEvent) for e in chat.events()),
+        what="the second speaker's call",
+    )
+
+    assert await runs.stop(chat.id) is True
+
+    assert run.settled and runs.active(chat.id) is None
+    assert _speakers(chat) == [researcher.id, writer.id]
+    assert [e.reason for e in chat.events() if isinstance(e, TurnEnd)] == [
+        "completed",
+        "cancelled",
+    ]
+
+
+async def test_a_group_with_no_active_member_starts_nothing(tmp_path, service) -> None:
+    bots = bots_in(tmp_path, service)
+    chat, members = await _group_chat(bots, service, "Researcher", "Writer")
+    for bot in members:
+        bots.archive(bot.id)
+    runs = run_service(service, ScriptedClient(completed("x")), bots=bots)
+
+    with pytest.raises(GroupEmpty):
+        runs.start(chat, "anyone?")
+    assert runs.active(chat.id) is None

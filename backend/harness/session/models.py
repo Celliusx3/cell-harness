@@ -34,12 +34,13 @@ class SessionHeader(BaseModel):
 
 
 class TurnStart(BaseModel):
-    """Opens turn `turn`, before any input is claimed."""
+    """Opens turn `turn` for the bot `bot_id`, before any input is claimed."""
 
     model_config = ConfigDict(frozen=True)
 
     type: Literal["turn/start"] = "turn/start"
     turn: int
+    bot_id: str | None = Field(default=None, description="The speaker; None in older logs.")
 
 
 TurnEndReason = Literal["completed", "failed", "cancelled", "pending"]
@@ -154,13 +155,24 @@ class ApprovalGrant(BaseModel):
 
 
 class BotInstructionsEvent(BaseModel):
-    """The bot answering in this conversation, as its turns from here on are prompted."""
+    """A bot answering in this conversation, as its turns from here on are prompted."""
 
     model_config = ConfigDict(frozen=True)
 
     type: Literal["bot/instructions"] = "bot/instructions"
     name: str
     instructions: str
+    bot_id: str | None = Field(default=None, description="The bot; None in older logs.")
+
+
+class GroupMembersEvent(BaseModel):
+    """The group this conversation belongs to, and its members' names, as its bots are told."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["group/members"] = "group/members"
+    name: str
+    members: tuple[str, ...]
 
 
 class ChatCleared(BaseModel):
@@ -187,5 +199,6 @@ SessionEvent = (
     | CompactionPrune
     | ApprovalGrant
     | BotInstructionsEvent
+    | GroupMembersEvent
     | ChatCleared
 )

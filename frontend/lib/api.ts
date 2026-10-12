@@ -8,6 +8,8 @@ import type {
   ConversationDetail,
   ClientOutput,
   Decision,
+  Group,
+  GroupDraft,
   MessageAccepted,
   SecretSummary,
   SkillFile,
@@ -134,6 +136,12 @@ export const setBotSecrets = (botId: string, names: string[]) =>
     method: "PUT",
     body: JSON.stringify({ names }),
   });
+
+export const listGroups = () => request<Group[]>("/groups");
+
+/** Make a group of two to six bots; its chat's id is the group's id. */
+export const createGroup = (draft: GroupDraft) =>
+  request<Group>("/groups", { method: "POST", body: JSON.stringify(draft) });
 
 /** Every saved key, by name, with the bots allowed to use it. */
 export const listSecrets = () => request<SecretSummary[]>("/secrets");

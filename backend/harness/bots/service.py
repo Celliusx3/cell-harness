@@ -1,4 +1,4 @@
-"""The bots file, read on every call, and the chat each bot answers in."""
+"""The bots file, read on every call, and who answers in each chat."""
 
 from __future__ import annotations
 
@@ -16,15 +16,18 @@ from harness.bots.models import (
     BotNotFound,
     BotPermanent,
     BotsFile,
+    ChatMembers,
+    Group,
+    GroupDraft,
 )
 from harness.session.log import Session
-from harness.session.models import BotInstructionsEvent
+from harness.session.models import BotInstructionsEvent, GroupMembersEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 
 
 class BotService:
-    """Every bot, Assistant and Bot builder first, and the one chat each owns."""
+    """Every bot, Assistant and Bot builder first, the one chat each owns, and every group."""
 
     def __init__(
         self, path: Path, sessions: SessionService, *, assistant_instructions: str
@@ -58,9 +61,43 @@ class BotService:
             raise BotNotFound(bot_id)
         return bot
 
-    def bot_for_chat(self, chat_id: str) -> Bot:
-        """The active bot that answers in this chat, whose id is the chat's; `BotNotFound` else."""
-        return self.find(chat_id)
+    def members_of_chat(self, chat_id: str) -> ChatMembers:
+        """A bot's chat's bot, or a group's active members in order; `BotNotFound` for neither."""
+        active = self._active_bots()
+        own = next((bot for bot in active if bot.id == chat_id), None)
+        if own is not None:
+            return ChatMembers(group=None, bots=(own,))
+        group = next((group for group in self.groups() if group.id == chat_id), None)
+        if group is None:
+            raise BotNotFound(chat_id)
+        by_id = {bot.id: bot for bot in active}
+        return ChatMembers(
+            group=group, bots=tuple(by_id[bot_id] for bot_id in group.member_ids if bot_id in by_id)
+        )
+
+    def asker(self, session: Session, call_id: str) -> Bot:
+        """The member whose turn asked for `call_id`; the chat's only bot in an older log."""
+        members = self.members_of_chat(session.id).bots
+        bot_id = session.speaker_of_call(call_id)
+        asking = members if bot_id is None else tuple(bot for bot in members if bot.id == bot_id)
+        if len(asking) != 1:
+            raise BotNotFound(bot_id if bot_id is not None else session.id)
+        return asking[0]
+
+    def groups(self) -> tuple[Group, ...]:
+        """Every group, in the order each was made."""
+        return self._stored().groups
+
+    async def create_group(self, draft: GroupDraft) -> Group:
+        """A new group of active bots, its chat holding its members; `BotNotFound` for any other."""
+        members = tuple(self.find(bot_id) for bot_id in draft.member_ids)
+        session = await self._sessions.create()
+        group = Group(id=session.id, name=draft.name, member_ids=draft.member_ids)
+        session.append(roster(group, members))
+        await self._sessions.flush(session)
+        stored = self._stored()
+        self._save(stored.model_copy(update={"groups": (*stored.groups, group)}))
+        return group
 
     def chat_of(self, bot_id: str) -> str:
         """The id of the one chat the bot answers in, which is the bot's own id."""
@@ -150,21 +187,34 @@ class BotService:
             )
         )
 
-    def _stored_bots(self) -> tuple[Bot, ...]:
+    def _stored(self) -> BotsFile:
         if not self._path.exists():
-            return ()
-        return BotsFile.model_validate_json(self._path.read_text(encoding="utf-8")).bots
+            return BotsFile()
+        return BotsFile.model_validate_json(self._path.read_text(encoding="utf-8"))
+
+    def _stored_bots(self) -> tuple[Bot, ...]:
+        return self._stored().bots
 
     def _write(self, bots: tuple[Bot, ...]) -> None:
+        self._save(self._stored().model_copy(update={"bots": bots}))
+
+    def _save(self, stored: BotsFile) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         handle, temp = tempfile.mkstemp(dir=self._path.parent, suffix=".tmp")
         with os.fdopen(handle, "w", encoding="utf-8") as file:
-            file.write(BotsFile(bots=bots).model_dump_json(indent=2))
+            file.write(stored.model_dump_json(indent=2))
         os.replace(temp, self._path)
 
     async def _log_instructions(self, session: Session, bot: Bot) -> None:
-        session.append(BotInstructionsEvent(name=bot.name, instructions=bot.instructions))
+        session.append(
+            BotInstructionsEvent(name=bot.name, instructions=bot.instructions, bot_id=bot.id)
+        )
         await self._sessions.flush(session)
+
+
+def roster(group: Group, members: tuple[Bot, ...]) -> GroupMembersEvent:
+    """The group's name and its members' names, as its chat logs them for its bots."""
+    return GroupMembersEvent(name=group.name, members=tuple(bot.name for bot in members))
 
 
 def _once_each(names: tuple[str, ...]) -> tuple[str, ...]:

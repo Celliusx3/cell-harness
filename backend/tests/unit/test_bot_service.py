@@ -17,6 +17,7 @@ from harness.bots import (
     BotNotFound,
     BotPermanent,
     BotService,
+    ChatMembers,
 )
 from harness.session.models import BotInstructionsEvent
 from harness.session.repository import SessionNotFoundError
@@ -54,21 +55,23 @@ async def test_listing_opens_assistant_s_chat_only_the_first_time(
     await bots.active_bots()
 
     chat = await service.read(ASSISTANT_ID)
-    assert list(chat.events()) == [BotInstructionsEvent(name="Assistant", instructions="Be kind.")]
+    assert list(chat.events()) == [
+        BotInstructionsEvent(name="Assistant", instructions="Be kind.", bot_id=ASSISTANT_ID)
+    ]
 
 
 async def test_a_chat_belongs_to_the_bot_whose_chat_it_is(bots: BotService) -> None:
     made = await bots.create("Researcher", "Cite.")
 
-    assert bots.bot_for_chat("c0") == made
+    assert bots.members_of_chat("c0") == ChatMembers(group=None, bots=(made,))
     with pytest.raises(BotNotFound):
-        bots.bot_for_chat("c9")
+        bots.members_of_chat("c9")
 
 
 async def test_a_bot_answers_in_the_chat_that_belongs_to_it(bots: BotService) -> None:
     made = await bots.create("Researcher", "Cite.")
 
-    assert bots.bot_for_chat(bots.chat_of(made.id)) == made
+    assert bots.members_of_chat(bots.chat_of(made.id)).bots == (made,)
 
 
 def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotService) -> None:
