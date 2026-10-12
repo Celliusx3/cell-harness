@@ -50,8 +50,8 @@ Load the browser tools with ToolSearch (`select:mcp__plugin_everything-claude-co
 
 1. `browser_navigate` to `http://localhost:4997`.
 2. `browser_snapshot`, find the textbox with placeholder "Send a message", `browser_type` the prompt into it, `browser_click` the button labelled "Send".
-3. The URL becomes `/c/<conversation id>`. While a turn runs, the Stop button (label "Stop") shows and tool cards say "running…"; when it ends they say "done" or an error code.
-4. Click a tool card's name (for example `run_subagent`) to open it: its arguments and its result appear under it.
+3. The URL becomes `/c/<conversation id>`. While a turn runs, the Stop button (label "Stop") shows, and the turn's tool cards sit open under a "Working… · N tools" line; when it ends the line reads "Done · N tools" and folds them away.
+4. Click "Done · N tools" to unfold a finished turn's cards, then click a tool card's name (for example `run_subagent`) to open it: its arguments and its result appear under it.
 5. An approval card offers "Allow once", "Allow for this conversation", "Always allow" and "Deny".
 
 Handles: placeholder "Send a message", labels "Send", "Stop", "Clear", "New bot", "Edit bot", "Archive", "Archived", "Restore", "Skills", "Approvals", "Keys", "Remove". Never click by coordinates.

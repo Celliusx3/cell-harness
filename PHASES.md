@@ -31,7 +31,7 @@ page lists every key and each bot's page the keys it may use;
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
-from a form or from chat); 15, begun (skills from chat, the route ↔ tool
+from a form or from chat, and groups of them that take turns); 15, begun (skills from chat, the route ↔ tool
 table); and the build order below.
 
 ## Build order
@@ -131,15 +131,18 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
 
 **Shipped so far.**
 - `bots/` — `Bot` (id, name, instructions, the keys it may use) in the file at `bots.path`, read on
-  every call. A bot's chat id is the bot's id; only `BotService.bot_for_chat`
+  every call. A bot's chat id is the bot's id; only `BotService.members_of_chat`
   and `chat_of` rely on that. Assistant (`"assistant"`) is
   today's prompt, there from the first start, and cannot be archived or deleted.
   Bot builder (`"builder"`) is built in the same way and left out of the sidebar.
-  Every chat is a bot's chat: an id that is no bot's is a 404 on every chat route.
+  Every chat is a bot's or a group's: an id that is neither is a 404 on every
+  chat route.
 - `bot/instructions` — the event that brings a bot's instructions into its
   chat, logged when a turn starts with instructions that differ from the last
-  ones logged. The request and compaction both build the system prompt from it
-  (`runtime/system_prompt.py`): the instructions, then the fixed guidance.
+  ones logged for that bot. It and `turn/start` carry the bot's id. The request
+  and compaction both build the system prompt from it
+  (`runtime/system_prompt.py`): the speaker's instructions, in a group the
+  group note, then the fixed guidance.
 - `/api/bots`, the sidebar's Bots and Archived, the Edit bot form.
 - New bot — four kinds of bot to start from, as Rakazo's focus card offers four
   (`apps/api/src/onboarding.ts:32-61`); a pick puts a sentence in the message
@@ -163,19 +166,44 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
 - Archive, as in Rakazo (`Bot.archivedAt`): an archived bot and its chat are
   hidden and refused; the sidebar's Archived section restores one, or deletes
   it with its chat for good.
+- Groups — two to six bots sharing one chat, kept in the bots file, made from
+  the New group page. Your message lines up who speaks: the members you
+  @mention, else every member in order, as Grok Bot's group "wakes each member
+  in turn". They answer one after another inside one run, so Stop ends the
+  discussion. A reply that @mentions a member puts it at the back of the line,
+  at most 6 per message of yours (Rakazo's hop limit,
+  `packages/core/src/bot-messages.ts:14`); a reply of exactly `NO_RESPONSE`
+  is shown to nobody (Rakazo's `silent-reply.ts`). Who is next is worked out
+  from the log each time (`bots/discussion.py`). Each bot reads your messages,
+  its own turns in full, and the others' replies as your-side text tagged
+  `<speaker name="…" />`, as LobeChat's `GroupRoleTransform` does; the
+  `group/members` event carries the roster its group note is built from.
+  Approvals and the tools a bot has read count per bot. Archiving or deleting a
+  bot stops a discussion it is speaking in, as Rakazo's archive cancels the
+  bot's runs (`packages/adapters/src/child-bots.ts:274-288`). In the chat each
+  turn sits under the bot's name and colored initial, and its tool calls fold
+  behind one "Done · N tools" line, as Rakazo's `ToolActivityDisclosure` does.
 
 **Key contracts.**
 - Model-visible means logged: a request's instructions come from the chat's last
   `bot/instructions` event, never from the bots file.
-- An old conversation's request is byte-for-byte what it was before bots
+- An old conversation's request is byte-for-byte what it was before bots, and
+  a bot's own chat sends the same request once turns carry bot ids
   (`tests/unit/test_bot_prompt.py`).
+- Who speaks next in a group is a fold over the log, never stored
+  (`tests/unit/test_discussion.py`).
 
 **Next.**
 - `message_bot` (build order 16): a bot writes into another bot's chat and wakes
   it, the reply returns to the sender on its own, and a chain stops after 6 hops
   (Rakazo `packages/core/src/bot-messages.ts:10-14`). It needs a turn no person
   started, as row 3 does; so does `bot_create` with a first task.
-- Group chats, answered by @mention, with `handoff_to_bot`.
+- A lead per group: only the lead answers your message and @mentions whoever
+  it needs, as OpenMaus's lead mode does; taking turns stays the default.
+- Rename a group, change its members, archive or delete it; an @ picker in the
+  composer.
+- Compaction in a group summarizes from the view of the bot that hit the
+  limit; a neutral summary is its own piece.
 - Per-bot model, skills and tools: every bot sees every skill today, so a skill
   that matches a message can pull a small model off its bot's instructions.
 
