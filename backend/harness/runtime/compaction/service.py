@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING
 
 from harness.llm.messages import ApplicationMessage, UserMessage
 from harness.llm.stream import Completed, Failed
+from harness.prompts import COMPACTION_INSTRUCTION
 from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
-from harness.runtime.compaction.prompt import INSTRUCTION, summary_message
+from harness.runtime.compaction.prompt import summary_message
 from harness.session.compaction import (
     CompactionEnd,
     CompactionPrune,
@@ -86,7 +87,7 @@ async def run_compaction(
 
 async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) -> CompactionEnd:
     """One model call, no tools; every way it can go wrong is an `error` end."""
-    messages = [*runtime.request_messages(session), UserMessage(content=INSTRUCTION)]
+    messages = [*runtime.request_messages(session), UserMessage(content=COMPACTION_INSTRUCTION)]
     completed: Completed | None = None
     try:
         async for event in runtime.client.stream_completion(messages, runtime.model, tools=None):

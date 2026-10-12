@@ -5,26 +5,17 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from harness.prompts import SAME_TOOL_FAILURE_REFUSAL, SAME_TOOL_FAILURE_WARNING
 from harness.runtime.hooks.calls import (
     CompletedCall,
     Signature,
     failures_since_success,
     last_failure_text,
 )
-from harness.runtime.hooks.native.exact_failure.hook import NEXT_STEP
 from harness.runtime.hooks.service import ToolHook
 from harness.tools.definition import Ok, ToolOutcome
 
 SAME_TOOL_FAILURE_WARN_AT, SAME_TOOL_FAILURE_BLOCK_AT = 3, 8
-
-SAME_TOOL_FAILURE_WARNING = (
-    "Note: {name} has now failed {n} times in this turn across different arguments. "
-    "It may not be able to do what you are asking. " + NEXT_STEP
-)
-SAME_TOOL_FAILURE_REFUSAL = (
-    "{name} has already failed {n} times in this turn across different arguments, "
-    "most recently: {last}. This call was not run. " + NEXT_STEP
-)
 
 
 @dataclass(frozen=True)

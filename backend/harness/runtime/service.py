@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
+from harness.prompts import SKIPPED_RESULT
 from harness.runtime.compaction import (
     CompactionEvent,
     CompactionRefused,
@@ -30,14 +31,10 @@ from harness.session.models import (
 )
 from harness.session.repair import unanswered
 from harness.tools.approval import Approved
-from harness.tools.definition import ERROR_PREFIX, Failure, Ok
+from harness.tools.definition import Failure, Ok
 from harness.tools.pipeline import ToolPipeline
 
 SKIPPED = "SKIPPED"
-SKIPPED_RESULT = (
-    f"{ERROR_PREFIX}the user continued without answering this; do not ask again "
-    "unless they return to it, and do not wait for it."
-)
 
 
 @dataclass(frozen=True)

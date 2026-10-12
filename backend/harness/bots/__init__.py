@@ -2,9 +2,7 @@
 
 from harness.bots.models import (
     ASSISTANT_ID,
-    ASSISTANT_INSTRUCTIONS,
     BUILDER_ID,
-    BUILDER_INSTRUCTIONS,
     BUILDER_NAME,
     Bot,
     BotDraft,
@@ -19,9 +17,7 @@ from harness.bots.service import BotService, roster
 
 __all__ = [
     "ASSISTANT_ID",
-    "ASSISTANT_INSTRUCTIONS",
     "BUILDER_ID",
-    "BUILDER_INSTRUCTIONS",
     "BUILDER_NAME",
     "Bot",
     "BotDraft",

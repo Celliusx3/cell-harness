@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from harness.bots import ASSISTANT_INSTRUCTIONS
 from harness.llm.messages import (
     ApplicationMessage,
     AssistantMessage,
@@ -15,6 +14,7 @@ from harness.llm.messages import (
     ToolReference,
     UserMessage,
 )
+from harness.prompts import ASSISTANT_INSTRUCTIONS, CODE_PROMPT, GUIDANCE
 from harness.session.log import Session
 from harness.session.models import (
     ApplicationMessageEvent,
@@ -30,8 +30,6 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.tools.native.code import CODE_PROMPT
-from harness.web.runtime import GUIDANCE
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import runtime_over
 

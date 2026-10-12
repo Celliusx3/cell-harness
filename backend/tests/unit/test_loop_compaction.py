@@ -22,7 +22,7 @@ from harness.llm.stream import (
     TextChunk,
     Usage,
 )
-from harness.runtime.compaction.prompt import OPEN
+from harness.prompts import SUMMARY_OPEN
 from harness.runtime.service import Runtime
 from harness.session.derive import derive_messages
 from harness.session.models import (
@@ -81,7 +81,7 @@ async def test_a_long_conversation_compacts_and_keeps_going() -> None:
     assert client.summaries >= 1
     users = [e for e in session.events() if e.type == "user/message"]
     assert len(users) == 200
-    assert any(OPEN in m.content for m in client.seen if isinstance(m, UserMessage))
+    assert any(SUMMARY_OPEN in m.content for m in client.seen if isinstance(m, UserMessage))
 
 
 async def test_the_summary_survives_into_the_next_turn() -> None:
@@ -93,7 +93,7 @@ async def test_the_summary_survives_into_the_next_turn() -> None:
     await drain(runtime.run("second", session=session, bot_id="b"))
 
     messages = derive_messages(session.events())
-    assert isinstance(messages[0], UserMessage) and OPEN in messages[0].content
+    assert isinstance(messages[0], UserMessage) and SUMMARY_OPEN in messages[0].content
 
 
 async def test_a_step_below_the_line_writes_no_compaction_event() -> None:

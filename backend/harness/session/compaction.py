@@ -12,8 +12,6 @@ from harness.llm.messages import ApplicationMessage
 if TYPE_CHECKING:
     from harness.session.models import SessionEvent
 
-PRUNED = "[old tool result cleared to save context; call the tool again if you still need it]"
-
 CompactionTrigger = Literal["auto", "manual", "overflow"]
 
 

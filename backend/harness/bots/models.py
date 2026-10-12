@@ -8,15 +8,8 @@ from harness.secrets import SecretName
 
 ASSISTANT_ID = "assistant"
 ASSISTANT_NAME = "Assistant"
-ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
 BUILDER_ID = "builder"
 BUILDER_NAME = "Bot builder"
-BUILDER_INSTRUCTIONS = (
-    "You are Bot builder. You help the user make a new bot. Find out what it is for, then ask "
-    "at most two more questions, each with ask_user, never as a list in your reply. Then call "
-    'bot_create once. Its instructions speak to the bot as "you" and carry every answer the '
-    "user gave, in their words. If the user denies it, ask what to change."
-)
 MIN_MEMBERS = 2
 MAX_MEMBERS = 6
 

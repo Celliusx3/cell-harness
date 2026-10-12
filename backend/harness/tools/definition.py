@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from harness.llm.messages import Block, Text, ToolSpec, render_text
+from harness.prompts import ERROR_PREFIX
 from harness.tools.context import ToolContext
 
 NAMESPACE = "__"
@@ -18,8 +19,6 @@ UNKNOWN_TOOL = "UNKNOWN_TOOL"
 EXECUTION_ERROR = "EXECUTION_ERROR"
 REFUSED = "REFUSED"
 BLOCKED = "BLOCKED"
-
-ERROR_PREFIX = "error: "
 
 
 class ToolUi(BaseModel):

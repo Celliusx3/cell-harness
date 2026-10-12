@@ -5,7 +5,8 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID, BUILDER_ID, BUILDER_INSTRUCTIONS, BotService
+from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
+from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.runs.service import RunService
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed

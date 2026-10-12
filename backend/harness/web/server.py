@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from harness.bots import ASSISTANT_INSTRUCTIONS, BotService
+from harness.bots import BotService
 from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
@@ -18,6 +18,7 @@ from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.llm.adapters.models import context_length
 from harness.mcp.service import McpService
+from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.service import RunService
 from harness.secrets import SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository

@@ -14,12 +14,7 @@ from harness.llm.messages import (
     ToolSpec,
     render_text,
 )
-
-REFERENCES_NOTE = (
-    "Now in your tool list, callable directly: {names}. Call each as a tool for "
-    "one step at a time; write a program only to batch many calls or to filter a "
-    "large result before you see it."
-)
+from harness.prompts import REFERENCES_NOTE
 
 
 def wire_message(message: Message) -> dict:

@@ -9,9 +9,10 @@ from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.bots import ASSISTANT_INSTRUCTIONS, BotService
+from harness.bots import BotService
 from harness.config.settings import SkillSettings
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
+from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.service import Runtime

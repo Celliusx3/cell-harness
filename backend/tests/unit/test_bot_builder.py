@@ -8,12 +8,12 @@ import pytest
 
 from harness.bots import (
     BUILDER_ID,
-    BUILDER_INSTRUCTIONS,
     BUILDER_NAME,
     Bot,
     BotPermanent,
     BotService,
 )
+from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.models import BotInstructionsEvent
 from harness.session.service import SessionService
 from harness.tools.native.bots import BOT_CREATE

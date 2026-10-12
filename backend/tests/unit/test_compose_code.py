@@ -10,6 +10,7 @@ from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm.messages import ToolCall
 from harness.mcp.service import McpService
+from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
 from harness.runtime.hooks.native.no_progress import NoProgressHook
@@ -21,7 +22,7 @@ from harness.session.service import SessionService
 from harness.skills import SKILL
 from harness.tools.definition import Ok
 from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.native.code import CODE_PROMPT, LIST
+from harness.tools.native.code import DETAILS, EXECUTE, LIST
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
@@ -73,6 +74,12 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
 
 def test_the_prompt_explains_the_three_tools(compose) -> None:
     assert CODE_PROMPT in compose().guidance
+
+
+def test_the_code_prompt_names_each_code_mode_tool() -> None:
+    unnamed = [name for name in (LIST, DETAILS, EXECUTE) if f"`{name}`" not in CODE_PROMPT]
+
+    assert unnamed == []
 
 
 def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:

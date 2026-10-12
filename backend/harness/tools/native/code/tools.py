@@ -9,6 +9,7 @@ from collections.abc import Callable
 from pydantic import BaseModel, Field
 
 from harness.llm.messages import Text, ToolCall, ToolReference, render_text
+from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
 from harness.tools.context import ToolContext
 from harness.tools.definition import (
@@ -38,10 +39,6 @@ logger = logging.getLogger("harness.tools.code")
 
 
 RESERVED = frozenset({LIST, DETAILS, EXECUTE})
-NOTHING_CAME_BACK = (
-    "The script ran but returned nothing and printed nothing, so nothing came "
-    "back to you — no data has been fetched."
-)
 
 
 class DetailsArgs(BaseModel):

@@ -2,19 +2,9 @@
 
 from __future__ import annotations
 
-from harness.session.derive import NO_RESPONSE
+from harness.prompts import GROUP_NOTE
 from harness.session.log import Session
 from harness.session.models import GroupMembersEvent
-
-GROUP_NOTE = (
-    'You are {name}, one of the bots in the group chat "{group}", '
-    "talking with the person and {others}. "
-    "A message from another bot starts with a speaker tag naming who wrote it; "
-    "the person's messages have no tag. "
-    "To ask another bot in this group to respond, write @ followed by its name. "
-    "When a message is not addressed to you and you have nothing useful to add, "
-    f"reply with exactly {NO_RESPONSE} and nothing else; it is not shown to anyone."
-)
 
 
 def system_text(session: Session, guidance: str) -> str:

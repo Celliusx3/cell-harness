@@ -13,6 +13,7 @@ from harness.config.settings import Settings
 from harness.llm.messages import SystemMessage, ToolCall, ToolMessage
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
 from harness.mcp.service import McpService
+from harness.prompts import CODE_PROMPT
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
 from harness.session.models import TurnStart
@@ -20,7 +21,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools.definition import Ok
-from harness.tools.native.code import CODE_PROMPT, LIST
+from harness.tools.native.code import LIST
 from harness.tools.native.location import LOCATION
 from harness.tools.native.question import QUESTION
 from harness.tools.native.skills import SKILL_SAVE

@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.hooks.service import GiveUp, StepDecision, StepHook, Tell
 
 EMPTY_REPLY_TELL_AT, EMPTY_REPLY_FAIL_AT = 1, 2
 
-EMPTY_REPLY_NOTE = (
-    "Your last reply was empty: no text and no tool call. Answer the user's last "
-    "message now, in words, or call the tool you need."
-)
 EMPTY_REPLY = "the model returned no text, and again after being told"
 
 

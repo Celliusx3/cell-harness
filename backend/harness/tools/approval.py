@@ -12,11 +12,6 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 DENIED = "DENIED"
-DENIED_RESULT = (
-    "the user pressed Deny, so this call did not run and nothing changed. This is their "
-    "decision, not a fault: do not retry it or work around it. Tell them you did not do it "
-    "because they denied it."
-)
 
 Scope = Literal["once", "conversation", "always"]
 

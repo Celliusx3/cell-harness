@@ -10,8 +10,8 @@ from harness.llm.messages import (
     UserMessage,
 )
 from harness.llm.stream import Usage
+from harness.prompts import PRUNED
 from harness.session.compaction import (
-    PRUNED,
     CompactionEnd,
     CompactionPrune,
     CompactionStart,
