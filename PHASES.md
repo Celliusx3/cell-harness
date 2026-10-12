@@ -31,7 +31,7 @@ page lists every key and each bot's page the keys it may use;
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
-from a form or from chat, and groups of them that take turns); 15, begun (skills from chat, the route ↔ tool
+from a form or from chat, groups of them that take turns, and bots that message each other); 15, begun (skills from chat, the route ↔ tool
 table); and the build order below.
 
 ## Build order
@@ -52,7 +52,6 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 | 13 | **You take over its browser** for a captcha, then press Done | 18 | 12 | `takeover-resume.ts` |
 | 14 | **Saved website logins**, typed only on their own site | | 7, 13 | `docs/bot-secrets.md` |
 | 15 | **Teach it by showing**: you do a task once, it does it next time | | 13 | `teaching-session.ts` |
-| 16 | **Several bots that talk** and hand work over | 10 | bots (10, begun) | `builtin-tools.ts:889-1008` |
 | 17 | **Webhooks start it**: the payload is fenced as untrusted data, and its side effects always ask | | 3, a signed-in public URL | `apps/api/src/webhook-inbound.ts:52-56` |
 | 18 | **It sees its screen** | 19 | 12, a vision model | `pi-runtime.ts` |
 | 19 | **Trusts a server you vouch for**: a server marked trusted in config has its read-only marks honoured, so memory's `build_context` and `recent_activity` stop asking; every other server stays on the name rule | | | none; VS Code's per-server trust and Codex's per-server approval mode |
@@ -107,7 +106,7 @@ only needed when a plugin registers into one agent's world — which is subagent
 **Dependency graph** of the open phases:
 
 ```
-10 ── 16 (build order: message_bot, groups)
+10                  (begun: its Next list)
 12 ── 13 ── 14      (optional track)
 16                  (optional)
 17 ─┬─ 18           (computer track, needs Docker)
@@ -183,6 +182,19 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
   bot's runs (`packages/adapters/src/child-bots.ts:274-288`). In the chat each
   turn sits under the bot's name and colored initial, and its tool calls fold
   behind one "Done · N tools" line, as Rakazo's `ToolActivityDisclosure` does.
+- Bot messages — `message_bot` writes a message into another bot's own chat,
+  where a `bot/message` event opens a turn, and returns at once, as Rakazo's
+  `message_bot` does (`packages/adapters/src/bot-messages.ts`). When that turn
+  ends, its final reply goes back once into the sender's own chat as a
+  `bot/message` of intent `result` and wakes it; nothing replies to a result.
+  A chat busy with a turn takes the message when the turn ends. Each message
+  carries its hop: a turn you started is 0, and a send past 6 is refused
+  (Rakazo's `BOT_MESSAGE_MAX_HOPS`); the answer going back never is. The tool
+  offers the active bots by name, rebuilt each request; it never asks first,
+  is withheld from scripts and helpers, and refuses the sender itself and a
+  group chat, where Rakazo hides it. A bot archived or deleted while a message
+  waits for it drops the message with a warning (`runs/bot_messages.py`). The
+  chat shows each one as "Message from X".
 
 **Key contracts.**
 - Model-visible means logged: a request's instructions come from the chat's last
@@ -192,12 +204,23 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
   (`tests/unit/test_bot_prompt.py`).
 - Who speaks next in a group is a fold over the log, never stored
   (`tests/unit/test_discussion.py`).
+- A bot's message is logged in the chat it enters, and a turn's hop is read
+  from the `bot/message` that opened it, never stored
+  (`tests/unit/test_bot_messages.py`, `tests/integration/test_web_bot_messages.py`).
 
 **Next.**
-- `message_bot` (build order 16): a bot writes into another bot's chat and wakes
-  it, the reply returns to the sender on its own, and a chain stops after 6 hops
-  (Rakazo `packages/core/src/bot-messages.ts:10-14`). It needs a turn no person
-  started, as row 3 does; so does `bot_create` with a first task.
+- An open chat shows a turn a bot's message started without a reload; today a
+  tab follows only the turns it sent. Then a bot's message drawn as its own
+  bubble, not the person's.
+- Telegram and Discord hear Assistant when a bot's answer wakes it; a chat app
+  hears only the turns it started.
+- A message waiting for a busy chat survives a restart, as Rakazo's job
+  reconciler retries it; today it lives in memory.
+- A bot's message arriving while its chat waits on you skips that card, as
+  your typing does; the hop count starts over after an approval; a dropped
+  message tells the sender nothing.
+- `message_bot` from a group chat, and Rakazo's `fyi` and `status` intents.
+- `bot_create` with a first task, which needs the same turn no person started.
 - A lead per group: only the lead answers your message and @mentions whoever
   it needs, as OpenMaus's lead mode does; taking turns stays the default.
 - Rename a group, change its members, archive or delete it; an @ picker in the
@@ -572,7 +595,6 @@ duplicates one, delivery reaches the chat, and creating a routine asks first. A
 **Later, not phases yet.**
 - A computer per conversation or per agent — the harness must first pass the
   conversation on an MCP call.
-- Teammates that hand work to each other — build order 4 and 16.
 - A phone per bot — declined in the decision gates below.
 
 ---
