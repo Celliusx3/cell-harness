@@ -100,6 +100,28 @@ async def test_a_subagent_cannot_delegate_ask_or_write_a_skill(compose, tmp_path
     assert (tmp_path / "subagents" / "c1.0.jsonl").exists()
 
 
+async def test_a_subagent_is_told_it_is_a_helper_ahead_of_code_mode(compose) -> None:
+    tasks = json.dumps({"tasks": [{"name": "aapl", "task": "Look up AAPL."}]})
+    client = SteppedClient(
+        calls_tool(RUN_SUBAGENT, tasks, id="c1"),
+        completed("AAPL grew 2%."),
+        completed("Apple grew 2%."),
+    )
+    runtime, sessions = compose(client)
+    session = await sessions.create()
+
+    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
+        async for _ in events:
+            pass
+
+    assert client.seen_per_call[1][0] == SystemMessage(
+        content="You are a helper named aapl, started by the main assistant to do one task as "
+        "part of its answer to the user. Nobody will read your questions, so do not ask any: do "
+        "the task with your tools, then reply with a short result. That reply is all the main "
+        "assistant receives." + CODE_PROMPT
+    )
+
+
 async def test_a_subagent_that_overflows_compacts_like_the_bot_and_answers(
     compose, tmp_path: Path
 ) -> None:
