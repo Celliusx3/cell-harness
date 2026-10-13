@@ -10,3 +10,5 @@ One file per thing a person can see in the browser chat. Add a file when a featu
 - [groups.md](groups.md): two to six bots in one chat, taking turns, each turn under the bot's name with its tool calls folded
 - [bot-messages.md](bot-messages.md): a bot messages another with `message_bot`, and the answer wakes it in its own chat
 - [secrets.md](secrets.md): a card that saves an API key the model never sees, the Keys page, each bot's keys, and the fetch that uses one
+- [computer.md](computer.md): the Computer page: the shared computer's live screen, control on open, a terminal and files
+- [hand-over.md](hand-over.md): a "Needs you" card when a bot needs a step only you should do on the computer
