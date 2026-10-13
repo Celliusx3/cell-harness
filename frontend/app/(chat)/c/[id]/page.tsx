@@ -5,6 +5,8 @@ import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { waitingApproval } from "@/components/answer/approval";
 import { ApprovalBar, ApprovalPanel } from "@/components/answer/ApprovalPanel";
+import { handOverOf, waitingHandOver } from "@/components/answer/handOver";
+import { HandOverBar, HandOverPanel } from "@/components/answer/HandOverPanel";
 import { questionOf, waitingQuestion } from "@/components/answer/question";
 import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
 import { refreshSidebar } from "@/components/chat/Sidebar";
@@ -17,7 +19,10 @@ import { useConversation } from "@/components/conversation/useConversation";
 import { useTimeline } from "@/components/conversation/useTimeline";
 import { listBots, listGroups } from "@/lib/api";
 
-type Waiting = { kind: "question"; item: ToolItem } | { kind: "approval"; item: ToolItem };
+type Waiting =
+  | { kind: "question"; item: ToolItem }
+  | { kind: "hand_over"; item: ToolItem }
+  | { kind: "approval"; item: ToolItem };
 
 const CLEAR_CONFIRMATION =
   "Clear this chat? This permanently removes every message and stops what the bot is doing. The chat stays.";
@@ -147,6 +152,8 @@ export default function ConversationPage({
 function waitingCall(items: TimelineItem[], openTurn: number | null): Waiting | null {
   const question = waitingQuestion(items, openTurn);
   if (question !== null) return { kind: "question", item: question };
+  const handOver = waitingHandOver(items, openTurn);
+  if (handOver !== null) return { kind: "hand_over", item: handOver };
   const approval = waitingApproval(items, openTurn);
   if (approval !== null) return { kind: "approval", item: approval };
   return null;
@@ -167,6 +174,15 @@ function WaitingPanel({
   switch (waiting.kind) {
     case "question":
       return <QuestionPanel {...props} />;
+    case "hand_over":
+      return (
+        <HandOverPanel
+          item={waiting.item}
+          conversationId={conversationId}
+          onAnswered={onAnswered}
+          onFold={onSkip}
+        />
+      );
     case "approval":
       return <ApprovalPanel {...props} />;
   }
@@ -179,6 +195,13 @@ function WaitingBar({ waiting, onUnfold }: { waiting: Waiting; onUnfold: () => v
         <QuestionBar
           question={questionOf(waiting.item)?.question ?? "A question"}
           onAnswer={onUnfold}
+        />
+      );
+    case "hand_over":
+      return (
+        <HandOverBar
+          step={handOverOf(waiting.item)?.step ?? "A step on the computer"}
+          onShow={onUnfold}
         />
       );
     case "approval":

@@ -6,6 +6,8 @@ import { use } from "react";
 
 import { ApprovalPanel } from "@/components/answer/ApprovalPanel";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
+import { HAND_OVER } from "@/components/answer/handOver";
+import { HandOverPanel } from "@/components/answer/HandOverPanel";
 import { ASK_USER } from "@/components/answer/question";
 import { QuestionPanel } from "@/components/answer/QuestionPanel";
 import type { ToolItem } from "@/components/conversation/timelineItems";
@@ -56,6 +58,12 @@ export default function AnswerPage({
             conversationId={id}
             onAnswered={conversation.wake}
           />
+        ) : item.call.name === HAND_OVER && item.result === null ? (
+          <HandOverPanel
+            item={item}
+            conversationId={id}
+            onAnswered={conversation.wake}
+          />
         ) : Handler !== undefined ? (
           <Handler
             item={item}
@@ -82,5 +90,6 @@ function heading(item: ToolItem): string {
   if (item.call.name === "get_location") return "Share your location";
   if (item.call.name === "ask_user") return "Answer a question";
   if (item.call.name === "ask_for_secret") return "Save a key";
+  if (item.call.name === HAND_OVER) return "Do one step on the computer";
   return `Approve ${humanise(item.call.name).label}?`;
 }

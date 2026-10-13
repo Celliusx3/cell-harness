@@ -32,6 +32,7 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
+from harness.tools.native.hand_over import HAND_OVER_TOOL
 from harness.tools.native.location import LOCATION_TOOL
 from harness.tools.native.question import QUESTION_TOOL
 from harness.tools.native.secrets import (
@@ -53,7 +54,7 @@ from harness.tools.registry import ToolRegistry
 
 logger = logging.getLogger("harness.web")
 
-CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL, ASK_FOR_SECRET_TOOL))
+CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL))
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 DEFAULT_TOOLS = (
     LIST,
