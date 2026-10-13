@@ -16,6 +16,7 @@ dependencies = [
     "pyyaml>=6",
     "python-multipart>=0.0.20",
     "cryptography>=50",
+    "websockets>=15",
 ]
 
 [dependency-groups]
