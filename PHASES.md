@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and seventeen insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and eighteen insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -27,12 +27,18 @@ build order 4), 16 long results cut for the model (12,000 characters, build
 order 6), 17 API keys it never sees (`ask_for_secret` saves a key into one
 keyring, sealed as Rakazo seals it, and lets the asking bot use it; the Keys
 page lists every key and each bot's page the keys it may use;
-`fetch_with_secret` sends a key only to its site, build order 7). Their plans
+`fetch_with_secret` sends a key only to its site, build order 7), 18 a computer
+the bots share (Rakazo's image in Docker on this machine; the bots read and click
+pages as text; the Computer page streams its screen over VNC through the app's
+relay, so any device can watch it, and takes control on open; `hand_over` pauses
+a bot for a step only you should do; a terminal and files beside the screen;
+build order 12 and 13, phases 17 and 18). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
 from a form or from chat, groups of them that take turns, and bots that message each other); 15, begun (skills from chat, the route ↔ tool
-table); and the build order below.
+table); 17, begun (old pages trimmed on every step, and the `browse-web`
+skill); and the build order below.
 
 ## Build order
 
@@ -48,8 +54,6 @@ when it starts; the ones that already have one name it. Rakazo paths are under
 | 9 | **Files it hands you**, versioned by name, with a tab to reopen them | | | `thread-artifacts.ts` |
 | 10 | **Reminds you when it is waiting** on you, then gives up | | 3 | `stuck-work.ts` |
 | 11 | **A second opinion**: a cheap model checks a risky call and can only make it ask | | 2 | `auto-review.ts` |
-| 12 | **It browses on its own computer**, live view in the app | 17 | Docker | `computer-*.ts`, `browser-tools.ts` |
-| 13 | **You take over its browser** for a captcha, then press Done | 18 | 12 | `takeover-resume.ts` |
 | 14 | **Saved website logins**, typed only on their own site | | 7, 13 | `docs/bot-secrets.md` |
 | 15 | **Teach it by showing**: you do a task once, it does it next time | | 13 | `teaching-session.ts` |
 | 17 | **Webhooks start it**: the payload is fenced as untrusted data, and its side effects always ask | | 3, a signed-in public URL | `apps/api/src/webhook-inbound.ts:52-56` |
@@ -109,8 +113,7 @@ only needed when a plugin registers into one agent's world — which is subagent
 10                  (begun: its Next list)
 12 ── 13 ── 14      (optional track)
 16                  (optional)
-17 ─┬─ 18           (computer track, needs Docker)
-    └─ 19           (needs a vision model)
+17 ── 19            (computer track: 17 begun; 19 needs a vision model)
 20                  (needs nothing open)
 ```
 
@@ -418,113 +421,30 @@ has no caller: nothing runs in the background and reports back later. Only
 
 What [Rakazo](./docs/rakazo.md) does — a bot with its own Linux desktop and
 Chrome, a live view of it, and a person who can take over — reached the way every
-capability is reached here: an MCP server, a skill, and an MCP App.
-`backend/harness/` gains code only in 17 (trimming old pages), 18 (one client
-tool), 19 (an image block) and 20 (a scheduler). Docker is a requirement of the
+capability is reached here: an MCP server, a skill, and a page in the app.
+`backend/harness/` gained a relay (a tool result's loopback page and its live
+connection, served under `/api/relay` to any device) and one client tool
+(`hand_over`); it gains code again only in 17 (trimming old pages), 19 (an image
+block) and 20 (a scheduler). Docker is a requirement of the
 `computer` server, not of the harness: without it the server fails to connect and
 the rest of the product runs. 20 needs no computer; it is here because Rakazo is
 where it comes from. Rakazo paths below are under `packages/adapters/src/`.
 
-## Phase 17 — It browses on its own computer
+## Phase 17 — It browses on its own computer *(begun)*
 
-**Demo.** "Find the cheapest Pokémon 30th Celebration ETB on Lazada." The bot
-opens a real Chrome on its own desktop, reads the results as text, clicks into
-listings by their refs and answers with prices and links. The tool card's "Open
-app" link shows that desktop live.
+Built: `mcp-servers/computer/` and the Computer page (see Status, insertion 18).
+What is left of the phase:
 
-**Depends on.** 7, insertion 6 (MCP Apps).
-
-**Ships.**
-- `mcp-servers/computer/` — one uv project, its own 80% gate:
-  - the container: Rakazo's published image, started on the first call and reused
-    after; stopped after `idle_minutes` without a call; Chrome profile and home on
-    a named volume, so a login survives a stop
-  - `browser_navigate(url)`, `browser_snapshot()`, `browser_act(actions)` — up to
-    24 `click`, `fill` or `type` steps, each on a ref (`builtin-tools.ts:221`) —
-    `docker exec` of the image's own `rakazo-page-browser`, text in and text out
-  - `screen()` and `click(x, y)` / `type(text)` / `key(name)` — the image's control
-    endpoint, for the view only
-  - `ui://computer/screen` — an MCP App that redraws `screen()` through
-    `tools/call`, sysmon's pattern; view only in this phase
 - `runtime/compaction/` — old pages trimmed on every step, not only at 80% of the
   window: the newest 3 page results over 1,000 characters stay, a failure never
   counts, and the rest are cleared by the `compaction/prune` event compaction
   already writes (`pi-runtime.ts:1413-1466`). The page tools are named in config;
   the harness knows no server's tools.
-- `skills/browse-web/` — when to browse and when `exa` is enough; snapshot before
-  acting; a captcha or a login means stop and say so
-- `config.json` declares `computer`; its control token goes in `config.local.json`
+- `skills/browse-web/` — when to browse and when `exa` is enough; read the page
+  before acting; a captcha or a login means `hand_over`, never a password in chat.
 
-**Key contracts.**
-- **Text first; the model sees no screenshot.** `browser_snapshot` returns page
-  text and up to 80 numbered elements, which a text-only model such as
-  `ilmu-glm-5.1` can act on. Screenshots for the model are phase 19.
-- **One computer, shared by every conversation.** An MCP call carries no
-  conversation, and this is a one-person product. A computer per conversation or
-  per agent is a later phase, not a parameter now.
-- **The control path never depends on the viewer.** The server reaches its
-  container through ports it published on `127.0.0.1` when it created it.
-  Rakazo's supervisor joins a computer's network only when a viewer opens, and
-  its bots' clicks failed until then ([docs/rakazo.md §4](./docs/rakazo.md)).
-- **We reap what we spawn**, for containers too: stopped on shutdown, and one left
-  by a previous run is found by its label and reused, never duplicated.
-- **A failed step is never repeated blindly.** The result says which steps
-  completed and whether the outcome is uncertain; the model looks at the page
-  before going on (`browser-tools.ts:93-100`).
-- **The view asks for the next screen only after the last one arrives**, never on
-  a timer: its calls and the model's share one connection that serves one call at
-  a time ([mcp-servers/README.md](./mcp-servers/README.md)), so a timer would queue
-  screens in front of the bot's next click.
-- The view's tools say "App-only" in their description, as sysmon's do; keeping
-  them out of `list_functions` is mcp-apps.md §7's deferred item, and this is its
-  second caller.
-
-**Acceptance.**
-- With a fake Docker client: the first call starts one container, the second
-  reuses it, the idle stop fires, shutdown stops it, a labelled leftover is reused.
-- A fixture page's snapshot lists its elements with refs; acting on a stale ref is
-  a typed failure, never a guess; 25 steps in one `browser_act` are refused.
-- Ten snapshots in one turn leave three in the request; a failed one is not counted.
-- `screen()` returns one PNG `ImageContent`, and the view is served under the
-  default CSP: it declares no `connectDomains`.
-
-~700 lines.
-
-## Phase 18 — You can take over its browser
-
-**Demo.** The page shows a captcha. The bot stops and says why; the chat shows a
-card with "Open computer" and Done — a button on Telegram. You solve the captcha
-in the app, press Done, and the bot carries on.
-
-**Depends on.** 17, insertion 8 (client tools), insertion 11 (the card).
-
-**Ships.**
-- `tools/client/hand_over.py` — `hand_over(reason)`, a client tool whose outcome
-  is `Pending`, as `get_location`'s is
-- `mcp-servers/computer/` — `hold(on)` for the view; while held, the model's
-  browser tools answer "the person has the computer" and send no input, and the
-  app turns interactive: a click becomes `click`, a keypress `type` or `key`
-- the card in `frontend/`, and the button on Telegram and Discord
-
-**Key contracts.**
-- **Done resumes with "snapshot before acting", nothing else.** What the person
-  did on the page is read again, never assumed.
-- **It ends one of two ways**, as Rakazo's does (`takeover-resume.ts:18-34`). Done:
-  "The user finished. Continue from where you left off. Do not request takeover
-  again." Typing instead, or the hold expiring: the user skipped, so continue
-  without treating the login as complete.
-- **Held belongs to the server**, cleared by Done or after `hold_minutes` without
-  input, so a closed tab cannot strand the bot.
-- A password is never asked for in chat; `browse-web` says hand over instead.
-
-**Acceptance.**
-- `hand_over` ends the turn `pending`; Done resumes it; typing a message instead
-  writes `SKIPPED`, as for every client tool, and the model is told the login is
-  not complete.
-- While held, `browser_act` returns the held message and the fake container
-  received no input.
-
-~400 lines.
+**Acceptance.** Ten page reads in one turn leave three in the request; a failed one
+is not counted.
 
 ## Phase 19 — It sees its screen
 
@@ -606,5 +526,6 @@ duplicates one, delivery reaches the chat, and creating a routine asks first. A
 | Phase 12 | Build the optional track at all | **Defer** until the product asks |
 | Phase 15 | Which mutations the model may make without an approval gate | ~~Skills only~~ **None** — skill writes ask first too, the person's call once insertion 11's gate existed |
 | Phase 17 | Reuse Rakazo's computer image or build our own | **Reuse** `ghcr.io/elie222/rakazo/computer` (Apache-2.0, published); fork it only when we need a change it will not take |
+| Phase 17 | Where the computer runs | **This machine, in Docker** (chosen 2026-10-12 over a Boat cloud computer); on a server, the whole harness moves with it |
 | Phase 19 | Which vision model | **None** — the phase does not start until `llm` points at a model that accepts images |
 | — | A phone per bot | **No** — 0.8–3.2 GB per phone measured against 0.6 GB for the desktop ([docs/rakazo.md §5](./docs/rakazo.md)); mobile websites go through phase 17's browser |

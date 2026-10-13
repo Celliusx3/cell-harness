@@ -12,6 +12,7 @@ from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
 from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
+from harness.mcp.relay import Relays, with_relay_url
 from harness.mcp.service import McpService
 from harness.mcp.tool import app_visible, ui_resource_uri
 
@@ -82,7 +83,7 @@ def _origins(values: object) -> list[str]:
     return origins
 
 
-def build_router(mcp: McpService) -> APIRouter:
+def build_router(mcp: McpService, relays: Relays) -> APIRouter:
     router = APIRouter(prefix="/api/mcp", tags=["mcp"])
 
     def known(server: str) -> None:
@@ -135,6 +136,7 @@ def build_router(mcp: McpService) -> APIRouter:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(err)) from err
         except (McpTimeoutError, McpConnectionError) as err:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=str(err)) from err
-        return JSONResponse(result.model_dump(mode="json", by_alias=True, exclude_none=True))
+        rewritten = with_relay_url(result, relays)
+        return JSONResponse(rewritten.model_dump(mode="json", by_alias=True, exclude_none=True))
 
     return router

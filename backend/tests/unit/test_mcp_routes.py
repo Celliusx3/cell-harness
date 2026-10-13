@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import threading
+from collections.abc import Iterator
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import httpx
 import pytest
@@ -16,6 +19,32 @@ from tests.unit.mcp_fakes import FakeClient, FakeFactory, html_resource, servers
 from tests.webapp import web_app, web_mcp
 
 APP = "ui://stub/app.html"
+RELAY_META = "io.cell-harness/relay"
+EMBED = "/embed.html?path=websockify%3Ftoken%3DZk3_q-9x&view_only=1"
+
+
+class Embed(BaseHTTPRequestHandler):
+    """A loopback page a tool result asks the harness to relay."""
+
+    def do_GET(self) -> None:
+        body = f"<p>{self.path}</p>".encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format: str, *args: object) -> None:
+        return
+
+
+@pytest.fixture
+def embed_port() -> Iterator[int]:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Embed)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield server.server_address[1]
+    server.shutdown()
+    server.server_close()
 
 
 @pytest.fixture
@@ -27,6 +56,7 @@ async def api(tmp_path):
             tool("model-only", meta={"ui": {"visibility": ["model"]}}),
             tool("other-app", meta={"ui": {"resourceUri": "ui://stub/other.html"}}),
             tool("boom"),
+            tool("screen-session", meta={"ui": {"visibility": ["app"]}}),
         ],
         behaviour={
             "get-info": CallToolResult(
@@ -224,3 +254,37 @@ def test_only_https_origins_survive_into_the_policy() -> None:
     assert "frame-src https://frames.example" in csp
     assert "plain.example" not in csp
     assert "unsafe-eval" not in csp
+
+
+def relay_result(url: str) -> CallToolResult:
+    return CallToolResult(
+        content=[TextContent(type="text", text="{}")], _meta={RELAY_META: {"url": url}, "ts": 1}
+    )
+
+
+async def test_a_loopback_page_in_a_result_is_rewritten_to_a_relay_the_browser_can_open(
+    api, embed_port: int
+) -> None:
+    http, _, client = api
+    client.behaviour["screen-session"] = relay_result(f"http://127.0.0.1:{embed_port}{EMBED}")
+
+    body = (await http.post("/api/mcp/stub/tools/screen-session", json=call())).json()
+    url = body["_meta"][RELAY_META]["url"]
+    page = await http.get(url)
+
+    assert url.startswith("/api/relay/")
+    assert url.endswith(EMBED)
+    assert body["_meta"]["ts"] == 1
+    assert page.status_code == 200
+    assert page.text == f"<p>{EMBED}</p>"
+    assert page.headers["access-control-allow-origin"] == "*"
+
+
+@pytest.mark.parametrize("url", [f"http://example.com{EMBED}", f"http://10.0.0.5:6080{EMBED}"])
+async def test_a_page_on_another_host_is_dropped_from_the_result(api, url: str) -> None:
+    http, _, client = api
+    client.behaviour["screen-session"] = relay_result(url)
+
+    body = (await http.post("/api/mcp/stub/tools/screen-session", json=call())).json()
+
+    assert body["_meta"] == {"ts": 1}

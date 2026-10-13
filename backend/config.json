@@ -84,6 +84,19 @@
           "MARKETS_MAX_ROWS": "70"
         }
       },
+      "computer": {
+        "command": "uv",
+        "args": [
+          "run",
+          "--quiet",
+          "--project",
+          "../mcp-servers/computer",
+          "computer"
+        ],
+        "env": {
+          "COMPUTER_IDLE_MINUTES": "10"
+        }
+      },
       "sysmon": {
         "command": "npx",
         "args": [

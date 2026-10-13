@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Computer</title>
+<style>
+  html { overflow: hidden; }
+  body { margin: 0; font: 13px/1.5 system-ui, sans-serif; color: #888; }
+  #status { margin: 0; padding: 12px 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  img { display: block; width: 100%; height: auto; user-select: none; }
+  body.fullscreen { display: flex; flex-direction: column; height: 100vh; }
+  body.fullscreen img { flex: 1; min-height: 0; object-fit: contain; }
+</style>
+</head>
+<body>
+<p id="status">Starting the computer…</p>
+<script>
+"use strict";
+
+const PROTOCOL_VERSION = "2026-01-26";
+const APP_INFO = { name: "computer-screen", version: "0.1.0" };
+const MIN_GAP_MS = 500;
+const RETRY_MS = 2000;
+
+const status = document.getElementById("status");
+const pending = new Map();
+let nextId = 1;
+let shown = null;
+let reportedHeight = -1;
+
+function post(message) {
+  window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
+}
+
+function request(method, params) {
+  const id = nextId++;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    post({ id, method, params });
+  });
+}
+
+function settle(message) {
+  const waiter = pending.get(message.id);
+  if (waiter === undefined) return;
+  pending.delete(message.id);
+  if (message.error !== undefined) {
+    waiter.reject(new Error(message.error.message || "The host refused the request."));
+  } else {
+    waiter.resolve(message.result);
+  }
+}
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window.parent) return;
+  const message = event.data;
+  if (message === null || typeof message !== "object" || message.jsonrpc !== "2.0") return;
+  if (typeof message.method === "string") {
+    if ("id" in message) post({ id: message.id, result: {} });
+    return;
+  }
+  settle(message);
+});
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+}
+
+function messageOf(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function say(text) {
+  status.textContent = text;
+  status.hidden = false;
+}
+
+function reportHeight() {
+  const height = Math.ceil(document.body.getBoundingClientRect().height);
+  if (height === reportedHeight) return;
+  reportedHeight = height;
+  post({ method: "ui/notifications/size-changed", params: { height } });
+}
+
+function textOf(result) {
+  const said = (result.content || [])
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("\n");
+  return said || "The computer sent no picture.";
+}
+
+async function draw(image) {
+  const next = new Image();
+  next.alt = "The computer's screen";
+  next.draggable = false;
+  next.src = `data:${image.mimeType};base64,${image.data}`;
+  await next.decode();
+  if (shown === null) document.body.append(next);
+  else shown.replaceWith(next);
+  shown = next;
+  status.hidden = true;
+}
+
+async function show(result) {
+  const blocks = result.isError ? [] : result.content || [];
+  const image = blocks.find((block) => block.type === "image");
+  if (image === undefined) throw new Error(textOf(result));
+  await draw(image);
+}
+
+async function look() {
+  await show(await request("tools/call", { name: "screenshot", arguments: {} }));
+}
+
+async function watch() {
+  const initialized = await request("ui/initialize", {
+    protocolVersion: PROTOCOL_VERSION,
+    appInfo: APP_INFO,
+    appCapabilities: {},
+  });
+  post({ method: "ui/notifications/initialized", params: {} });
+  if (initialized?.hostContext?.displayMode === "fullscreen") {
+    document.body.classList.add("fullscreen");
+  } else {
+    new ResizeObserver(reportHeight).observe(document.body);
+  }
+  for (;;) {
+    const started = Date.now();
+    try {
+      await look();
+      await wait(MIN_GAP_MS - (Date.now() - started));
+    } catch (error) {
+      say(messageOf(error));
+      await wait(RETRY_MS);
+    }
+  }
+}
+
+watch().catch((error) => say(messageOf(error)));
+</script>
+</body>
+</html>

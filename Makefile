@@ -52,7 +52,7 @@ test-unit:
 test-integration:
 	$(BACKEND) pytest tests/integration --no-cov
 
-MCP_SERVERS = mcp-servers/instagram mcp-servers/places mcp-servers/markets
+MCP_SERVERS = mcp-servers/instagram mcp-servers/places mcp-servers/markets mcp-servers/computer
 
 test-mcp-servers:
 	@for s in $(MCP_SERVERS); do (cd $$s && uv run pytest) || exit 1; done

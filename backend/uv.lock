@@ -229,6 +229,7 @@ dependencies = [
     { name = "python-telegram-bot", extra = ["rate-limiter"] },
     { name = "pyyaml" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -253,6 +254,7 @@ requires-dist = [
     { name = "python-telegram-bot", extras = ["rate-limiter"], specifier = ">=22.8" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.52.4" },
+    { name = "websockets", specifier = ">=15" },
 ]
 
 [package.metadata.requires-dev]

@@ -233,6 +233,16 @@ export interface Answer {
   choice: string;
 }
 
+/** What `hand_over` is called with: the one step the person has to do. */
+export interface HandOver {
+  step: string;
+}
+
+/** `hand_over`'s datum: true for I'm done, false for Skip. */
+export interface HandOverAnswer {
+  finished: boolean;
+}
+
 /** How long an approval holds */
 export type Scope = "once" | "conversation" | "always";
 
