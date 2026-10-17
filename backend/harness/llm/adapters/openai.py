@@ -10,9 +10,10 @@ import httpx
 
 from harness.config.sections import LLMSettings
 from harness.llm.adapters.errors import classify
+from harness.llm.adapters.openai_calls import ToolCallAccumulator
 from harness.llm.adapters.openai_wire import wire_message, wire_tool
 from harness.llm.client import LLMClient
-from harness.llm.messages import Message, ToolCall, ToolSpec
+from harness.llm.messages import Message, ToolSpec
 from harness.llm.stream import (
     Completed,
     Failed,
@@ -54,51 +55,6 @@ def _text(delta: dict) -> str:
     return content if isinstance(content, str) else ""
 
 
-class _ToolCallAccumulator:
-    """Reassembles tool calls that arrive in fragments."""
-
-    def __init__(self) -> None:
-        self._by_index: dict[int, dict[str, str]] = {}
-
-    def add(self, delta: dict) -> None:
-        fragments = delta.get("tool_calls")
-        if not isinstance(fragments, list):
-            return
-        for fragment in fragments:
-            if not isinstance(fragment, dict):
-                continue
-            index = fragment.get("index")
-            if not isinstance(index, int):
-                logger.warning("tool call fragment with no index: %r", fragment)
-                continue
-            call = self._by_index.setdefault(index, {"id": "", "name": "", "arguments": ""})
-            if isinstance(fragment.get("id"), str):
-                call["id"] = fragment["id"]
-            function = fragment.get("function")
-            if isinstance(function, dict):
-                if isinstance(function.get("name"), str):
-                    call["name"] = function["name"]
-                if isinstance(function.get("arguments"), str):
-                    call["arguments"] += function["arguments"]
-
-    def drain(self) -> list[ToolCall]:
-        """Every assembled call, in the index order the provider used."""
-        calls = []
-        for index in sorted(self._by_index):
-            call = self._by_index[index]
-            if not call["name"]:
-                logger.warning("dropping tool call fragment with no name: %r", call)
-                continue
-            calls.append(
-                ToolCall(
-                    id=call["id"] or f"call_{index}",
-                    name=call["name"],
-                    arguments=call["arguments"],
-                )
-            )
-        return calls
-
-
 class OpenAIClient(LLMClient):
     """Streams completions from an OpenAI-compatible endpoint."""
 
@@ -122,7 +78,7 @@ class OpenAIClient(LLMClient):
 
         accumulated = ""
         usage: Usage | None = None
-        calls = _ToolCallAccumulator()
+        calls = ToolCallAccumulator()
         try:
             async with (
                 httpx.AsyncClient(timeout=settings.timeout_seconds) as http,

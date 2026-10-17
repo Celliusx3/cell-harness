@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
+
+ExtraContent = dict[str, JsonValue]
 
 
 class ToolCall(BaseModel):
@@ -15,6 +17,8 @@ class ToolCall(BaseModel):
     id: str
     name: str
     arguments: str
+    extra_content: ExtraContent | None = None
+    """What the provider attached to this call and needs back with it; only its adapter reads it."""
 
 
 class ToolSpec(BaseModel):

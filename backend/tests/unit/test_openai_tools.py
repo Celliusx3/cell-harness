@@ -84,6 +84,40 @@ async def test_arguments_are_never_parsed_by_the_adapter(monkeypatch) -> None:
     assert events[-1].tool_calls[0].arguments == "{not json"
 
 
+def whole_call(id: str, name: str) -> str:
+    """One frame carrying a whole call with no `index`, the way Gemini sends each call."""
+    piece = {"id": id, "type": "function", "function": {"name": name, "arguments": "{}"}}
+    return json.dumps({"choices": [{"delta": {"tool_calls": [piece]}}]})
+
+
+async def test_calls_sent_whole_with_no_index_are_kept_in_arrival_order(monkeypatch) -> None:
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, content=sse(whole_call("g1", "first"), whole_call("g2", "second"), "[DONE]")
+        )
+
+    events = await collect(monkeypatch, handler)
+
+    assert events[-1].tool_calls == (
+        ToolCall(id="g1", name="first", arguments="{}"),
+        ToolCall(id="g2", name="second", arguments="{}"),
+    )
+
+
+async def test_pieces_of_a_call_sent_with_no_index_join_by_its_id(monkeypatch) -> None:
+    first = {"id": "g1", "type": "function", "function": {"name": "t", "arguments": '{"a"'}}
+    rest = {"id": "g1", "function": {"arguments": ": 1}"}}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        frames = [json.dumps({"choices": [{"delta": {"tool_calls": [p]}}]}) for p in (first, rest)]
+        return httpx.Response(200, content=sse(*frames, "[DONE]"))
+
+    events = await collect(monkeypatch, handler)
+
+    assert events[-1].tool_calls == (ToolCall(id="g1", name="t", arguments='{"a": 1}'),)
+
+
 async def test_a_call_with_no_name_is_dropped(monkeypatch) -> None:
 
     def handler(request: httpx.Request) -> httpx.Response:
