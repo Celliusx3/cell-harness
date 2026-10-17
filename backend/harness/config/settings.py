@@ -20,6 +20,7 @@ from harness.config.sections import (
     CodeModeSettings,
     CompactionSettings,
     DiscordSettings,
+    FileSettings,
     LLMSettings,
     McpSettings,
     SecretSettings,
@@ -93,6 +94,7 @@ class Settings(BaseSettings):
     approval: ApprovalSettings = Field(default_factory=ApprovalSettings)
     bots: BotSettings = Field(default_factory=BotSettings)
     secrets: SecretSettings = Field(default_factory=SecretSettings)
+    files: FileSettings = Field(default_factory=FileSettings)
 
     @classmethod
     def settings_customise_sources(

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from harness.llm.messages import Block, Message, Text, ToolMessage, UserMessage
 from harness.prompts import (
+    ATTACHED_FILE,
     BOT_MESSAGE_REQUEST,
     BOT_MESSAGE_RESULT,
     CUT_NOTE,
@@ -81,7 +82,7 @@ def _as_heard(
             yield _speaker_message(speaker, heard)
             heard = ()
         if isinstance(event, UserMessageEvent):
-            yield event.message
+            yield _person_message(event)
         elif isinstance(event, BotMessageEvent):
             yield _bot_message(event.message)
         elif isinstance(event, (ApplicationMessageEvent, AssistantMessageEvent, ToolResultEvent)):
@@ -104,6 +105,19 @@ def _own_message(
     if event.message.tool_call_id in pruned:
         return ToolMessage(tool_call_id=event.message.tool_call_id, content=PRUNED)
     return _limited(event.message)
+
+
+def _person_message(event: UserMessageEvent) -> UserMessage:
+    """The person's text, then a line for each file they attached; the text alone without one."""
+    if not event.files:
+        return event.message
+    lines = "\n".join(
+        ATTACHED_FILE.format(
+            name=file.name, media_type=file.media_type, size=file.size, path=file.path
+        )
+        for file in event.files
+    )
+    return UserMessage(content=f"{event.message.content}\n\n{lines}")
 
 
 def _bot_message(message: BotMessage) -> UserMessage:

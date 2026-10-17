@@ -7,16 +7,27 @@ import remarkGfm from "remark-gfm";
 import { useState } from "react";
 
 import { CodeBlock } from "@/components/conversation/CodeBlock";
+import { FileList } from "@/components/conversation/FileList";
 import type { Invocation } from "@/components/conversation/invocation";
 import type { AssistantItem, UserItem } from "@/components/conversation/timelineItems";
 
-export function UserBubble({ item }: { item: UserItem }) {
-  if (item.invoked) return <InvokedBubble item={item} invoked={item.invoked} />;
-  return (
+export function UserBubble({ item, chatId }: { item: UserItem; chatId: string }) {
+  const said = item.invoked ? (
+    <InvokedBubble item={item} invoked={item.invoked} />
+  ) : (
     <div className="flex justify-end">
       <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
         {item.content}
       </div>
+    </div>
+  );
+  if (item.files.length === 0) return said;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="ml-auto max-w-[80%]">
+        <FileList chatId={chatId} files={item.files} align="end" />
+      </div>
+      {said}
     </div>
   );
 }

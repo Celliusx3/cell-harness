@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.config import settings as settings_module
-from harness.config.sections import LLMSettings
+from harness.config.sections import FileSettings, LLMSettings
 from harness.config.settings import MissingConfigError, Settings, load
 
 
@@ -224,3 +224,23 @@ def test_a_trailing_slash_on_the_public_url_is_dropped(config_file) -> None:
     write_committed({"web": {"public_url": "https://h.example/"}})
 
     assert Settings().web.public_url == "https://h.example"
+
+
+def test_the_files_root_expands_a_tilde() -> None:
+    root = FileSettings(root="~/files").root
+
+    assert "~" not in str(root)
+    assert str(root).startswith("/")
+
+
+def test_an_upload_limit_of_nothing_is_refused() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        FileSettings(max_bytes=0)
+
+
+def test_the_committed_config_sets_where_files_go_and_how_big_one_may_be(config_file) -> None:
+    committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
+
+    assert committed["files"] == {"root": "~/.harness/files", "max_bytes": 209715200}

@@ -20,7 +20,7 @@ from harness.web.server import build_channels, create_app
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import secrets_in, web_gateway, web_mcp
+from tests.webapp import files_in, secrets_in, web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -170,9 +170,9 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
     runs = RunService(sessions, Runtime(model="m", client=ScriptedClient([])), no_bots(sessions))
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
-    assert build_channels(settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions))[
-        0
-    ].channels == ["web"]
+    assert build_channels(
+        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files_in(tmp_path)
+    )[0].channels == ["web"]
 
 
 async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
@@ -181,9 +181,9 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
 
     settings = Settings(telegram={"bot_token": "   "}, discord={"bot_token": ""})
 
-    assert build_channels(settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions))[
-        0
-    ].channels == ["web"]
+    assert build_channels(
+        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files_in(tmp_path)
+    )[0].channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
@@ -192,7 +192,7 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
     settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": ""})
 
     built, _ = build_channels(
-        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions)
+        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files_in(tmp_path)
     )
 
     assert built.channels == ["web", "telegram"]
