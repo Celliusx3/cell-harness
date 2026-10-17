@@ -7,7 +7,7 @@ import type {
   Timeline,
   TimelineItem,
 } from "@/components/conversation/timelineItems";
-import type { ContentBlock, ToolCall, ToolUi, Usage } from "@/lib/types";
+import type { ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
 
 const stepKey = (turn: number, step: number): string => `${turn}:${step}`;
 
@@ -16,6 +16,13 @@ interface Notice {
   turn: number;
   tone: NoticeItem["tone"];
   text: string;
+}
+
+interface PersonMessage {
+  key: string;
+  turn: number;
+  content: string;
+  files: ChatFile[];
 }
 
 interface AssistantMessage {
@@ -57,13 +64,14 @@ export class TimelineDraft {
     this.inGroup = true;
   }
 
-  onUserMessage(key: string, turn: number, content: string): void {
+  onUserMessage({ key, turn, content, files }: PersonMessage): void {
     this.items.push({
       kind: "user",
       key,
       turn,
       content,
       invoked: display(content),
+      files,
     });
   }
 

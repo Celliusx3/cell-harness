@@ -9,6 +9,7 @@ from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
 
+from harness.files import ChatFile
 from harness.tools.client import PendingCall
 
 logger = logging.getLogger("harness.channels")
@@ -22,6 +23,7 @@ class InboundMessage(BaseModel):
     channel: str
     chat_id: str
     text: str
+    files: tuple[ChatFile, ...] = ()
 
 
 class DuplicateChannelError(RuntimeError):

@@ -15,15 +15,21 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
 
     switch (event.type) {
       case "user/message":
-        draft.onUserMessage(`u${index}`, event.turn, event.message.content);
+        draft.onUserMessage({
+          key: `u${index}`,
+          turn: event.turn,
+          content: event.message.content,
+          files: event.files,
+        });
         break;
 
       case "bot/message":
-        draft.onUserMessage(
-          `u${index}`,
-          event.turn,
-          `Message from ${event.message.from_name}:\n\n${event.message.text}`,
-        );
+        draft.onUserMessage({
+          key: `u${index}`,
+          turn: event.turn,
+          content: `Message from ${event.message.from_name}:\n\n${event.message.text}`,
+          files: [],
+        });
         break;
 
       case "application/message":

@@ -10,6 +10,7 @@ from contextlib import aclosing
 
 from harness.bots import BotService, GroupEmpty
 from harness.bots.discussion import first_speakers
+from harness.files import ChatFile
 from harness.runs.chain import discussion, log_speaker
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import Runtime
@@ -69,7 +70,7 @@ class RunService:
             (run.session for run in self._runs.values() if _has_call(run.session, call_id)), None
         )
 
-    def start(self, session: Session, prompt: str) -> Run:
+    def start(self, session: Session, prompt: str, *, files: tuple[ChatFile, ...] = ()) -> Run:
         """Begin the discussion the person's message opens; `GroupEmpty` when nobody can answer."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
@@ -79,7 +80,7 @@ class RunService:
             raise GroupEmpty(session.id)
         log_speaker(session, members, speakers[0])
         return self._converse(
-            session, self._runtime.run(prompt, session=session, bot_id=speakers[0].id)
+            session, self._runtime.run(prompt, session=session, bot_id=speakers[0].id, files=files)
         )
 
     def hear(self, session: Session, message: BotMessage) -> Run:

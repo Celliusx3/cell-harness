@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass
 
+from harness.files import ChatFile
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
 from harness.prompts import SKIPPED_RESULT
@@ -59,13 +60,19 @@ class Runtime:
         return [SystemMessage(content=system), *history]
 
     async def run(
-        self, user_input: str, *, session: Session, bot_id: str
+        self,
+        user_input: str,
+        *,
+        session: Session,
+        bot_id: str,
+        files: tuple[ChatFile, ...] = (),
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
-        session.append(UserMessageEvent(turn=turn, message=UserMessage(content=user_input)))
+        message = UserMessage(content=user_input)
+        session.append(UserMessageEvent(turn=turn, message=message, files=files))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event

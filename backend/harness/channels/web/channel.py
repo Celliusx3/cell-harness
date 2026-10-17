@@ -9,8 +9,7 @@ from fastapi import APIRouter
 from harness.bots import BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.web.routes import build_router
-from harness.runs.service import RunService
-from harness.session.service import SessionService
+from harness.files import ChatFileService
 
 CHANNEL = "web"
 
@@ -22,15 +21,15 @@ class WebChannel:
 
     def __init__(
         self,
-        sessions: SessionService,
-        runs: RunService,
         gateway: ChannelGateway,
         bots: BotService,
+        files: ChatFileService,
     ) -> None:
-        self.sessions = sessions
-        self.runs = runs
+        self.sessions = gateway.sessions
+        self.runs = gateway.runs
         self.gateway = gateway
         self.bots = bots
+        self.files = files
         self.router: APIRouter = build_router(self)
 
     def conversation_for(self, chat_id: str) -> str:

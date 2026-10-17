@@ -35,6 +35,10 @@
   "secrets": {
     "path": "~/.harness/secrets.json"
   },
+  "files": {
+    "root": "~/.harness/files",
+    "max_bytes": 209715200
+  },
   "mcp": {
     "servers": {
       "instagram": {
