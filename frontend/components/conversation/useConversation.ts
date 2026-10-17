@@ -11,7 +11,7 @@ import {
   stopRun,
 } from "@/lib/api";
 import { streamEvents } from "@/lib/stream";
-import type { SessionEvent } from "@/lib/types";
+import type { SessionEvent, ChatFile } from "@/lib/types";
 
 /** One conversation: its events, whether a turn is running, and how to act on it. */
 
@@ -25,7 +25,7 @@ export interface Conversation {
   running: boolean;
   loading: boolean;
   error: string | null;
-  send(prompt: string): Promise<void>;
+  send(prompt: string, files: ChatFile[]): Promise<void>;
   stop(): Promise<void>;
   /** Compact the conversation now; the summary lands via the stream. */
   compact(): Promise<void>;
@@ -121,10 +121,10 @@ export function useConversation(conversationId: string): Conversation {
   }, []);
 
   const send = useCallback(
-    async (prompt: string) => {
+    async (prompt: string, files: ChatFile[]) => {
       setError(null);
       try {
-        const accepted = await sendMessage(conversationId, prompt);
+        const accepted = await sendMessage(conversationId, prompt, files);
         if (accepted.queued) setQueued((previous) => [...previous, prompt]);
         wake();
       } catch (err) {

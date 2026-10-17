@@ -6,6 +6,8 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 
+from harness.files import ChatFile
+
 
 class ChatStateError(RuntimeError):
     """Chat state could not be read or written."""
@@ -20,6 +22,8 @@ class ChatState(BaseModel):
     chat_id: str
     conversation_id: str = ""
     pending: tuple[str, ...] = ()
+    pending_files: tuple[ChatFile, ...] = ()
+    """The files the queued messages carry, in the order they were queued."""
     asked: tuple[str, ...] = ()
     """Calls this chat was asked to answer and has not seen answered."""
 
