@@ -13,6 +13,8 @@ BUILDER_INSTRUCTIONS = (
 NO_RESPONSE = "NO_RESPONSE"
 SPEAKER_TAG = '<speaker name="{name}" />\n{text}'
 
+ATTACHED_FILE = 'The person attached "{name}" ({media_type}, {size} bytes), saved at {path}.'
+
 GROUP_NOTE = (
     'You are {name}, one of the bots in the group chat "{group}", '
     "talking with the person and {others}. "

@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator
 from contextlib import aclosing
 
 from harness.bots import BotService
+from harness.files import ChatFile
 from harness.runs.chain import discussion_events
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import Runtime
@@ -68,13 +69,13 @@ class RunService:
             (run.session for run in self._runs.values() if _has_call(run.session, call_id)), None
         )
 
-    def start(self, session: Session, prompt: str) -> Run:
+    def start(self, session: Session, prompt: str, *, files: tuple[ChatFile, ...] = ()) -> Run:
         """Begin the discussion the person's message opens; `GroupEmpty` when nobody can answer."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
         speaker = self._bots.first_speaker(session, prompt)
         return self._converse(
-            session, self._runtime.run(prompt, session=session, bot_id=speaker.id)
+            session, self._runtime.run(prompt, session=session, bot_id=speaker.id, files=files)
         )
 
     def hear(self, session: Session, message: BotMessage) -> Run:

@@ -47,6 +47,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/conversations/{conversation_id}/calls/{call_id}/secret": NotATool(
         "the person types the key on the card; it never passes the model"
     ),
+    "POST /api/conversations/{conversation_id}/files": NotATool(
+        "the bytes are on the person's device; a tool hands its own files back in its result"
+    ),
     "POST /api/skills": NotATool(
         "a zip is bytes the model does not have; skill_save and skill_write_file write its files"
     ),
@@ -95,6 +98,7 @@ CONFIG: dict[str, Tool | NotATool] = {
     "secrets": NotATool(
         "where keys are kept and the key that locks them; neither ever passes the model"
     ),
+    "files": NotATool("where each chat's files are kept and the upload limit; the person's"),
 }
 
 

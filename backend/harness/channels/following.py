@@ -11,6 +11,7 @@ from harness.channels.chats import session_for, state_of
 from harness.channels.protocol import Pushing, RunningChannel
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
+from harness.files import ChatFile
 from harness.runs.service import Run, RunAlreadyActive, RunService
 from harness.session.service import SessionService
 from harness.skills import SkillService, UnknownSkill
@@ -44,18 +45,27 @@ class Following:
     async def _state(self, channel: str, chat_id: str) -> ChatState:
         return await state_of(self._repository, self._channels[channel].channel, chat_id)
 
-    async def turn_for_chat(self, state: ChatState, text: str) -> Run | None:
+    async def turn_for_chat(
+        self, state: ChatState, text: str, files: tuple[ChatFile, ...]
+    ) -> Run | None:
         """Resolve this chat's conversation and begin a turn in it."""
         session = await session_for(self._repository, self._sessions, state)
         try:
-            return self.begin(state, self._runs.start(session, text))
+            return self.begin(state, self._runs.start(session, text, files=files))
         except RunAlreadyActive:
-            await self.queue(state, text)
+            await self.queue(state, text, files)
             return None
 
-    async def queue(self, state: ChatState, text: str) -> None:
-        """Hold `text` until the turn running in this chat's conversation settles."""
-        await self._repository.save(state.model_copy(update={"pending": (*state.pending, text)}))
+    async def queue(self, state: ChatState, text: str, files: tuple[ChatFile, ...]) -> None:
+        """Hold `text` and its `files` until the turn running in this chat's conversation ends."""
+        await self._repository.save(
+            state.model_copy(
+                update={
+                    "pending": (*state.pending, text),
+                    "pending_files": (*state.pending_files, *files),
+                }
+            )
+        )
         key = ChatKey(state.channel, state.chat_id)
         running = self._runs.active(state.conversation_id)
         if running is not None and not self._is_followed_elsewhere(key):
@@ -91,7 +101,7 @@ class Following:
         if not state.pending:
             return
         text = QUEUE_JOIN.join(state.pending)
-        cleared = state.model_copy(update={"pending": ()})
+        cleared = state.model_copy(update={"pending": (), "pending_files": ()})
         await self._repository.save(cleared)
         try:
             content = self._skills.expand(text)
@@ -99,7 +109,7 @@ class Following:
             logger.warning("queued /%s no longer names a skill; sent as text", err.name)
             content = text
         try:
-            await self.turn_for_chat(cleared, content)
+            await self.turn_for_chat(cleared, content, state.pending_files)
         except GroupEmpty as err:
             logger.warning("queued message dropped, nobody is left to answer it: %s", err)
 

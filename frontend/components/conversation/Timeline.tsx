@@ -108,7 +108,7 @@ export function Timeline({
 function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
   switch (item.kind) {
     case "user":
-      return <UserBubble item={item} />;
+      return <UserBubble item={item} chatId={conversationId} />;
     case "assistant":
       return <AssistantBubble item={item} />;
     case "tool": {

@@ -64,6 +64,20 @@ class SecretSettings(BaseModel):
         return value.expanduser()
 
 
+class FileSettings(BaseModel):
+    """Where each chat's files are kept, and the most one upload may be."""
+
+    model_config = ConfigDict(frozen=True)
+
+    root: Path = Path.home() / ".harness" / "files"
+    max_bytes: int = Field(default=200 * 1024 * 1024, gt=0)
+
+    @field_validator("root")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
+
+
 class TelegramSettings(BaseModel):
     """The bot to answer as, if any."""
 
