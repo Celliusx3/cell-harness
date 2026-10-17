@@ -139,8 +139,9 @@ export default function ConversationPage({
           )}
           <Composer
             autoFocus
+            chatId={id}
             running={conversation.running}
-            onSend={(prompt) => void conversation.send(prompt)}
+            onSend={(prompt, files) => void conversation.send(prompt, files)}
             onStop={() => void conversation.stop()}
           />
         </>

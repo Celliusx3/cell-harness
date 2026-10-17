@@ -54,6 +54,14 @@ export interface ToolMessage {
   content: ContentBlock[];
 }
 
+/** A file in a chat's folder: where it is on disk, its name, type and size. */
+export interface ChatFile {
+  path: string;
+  name: string;
+  media_type: string;
+  size: number;
+}
+
 /** An MCP App bound to a tool result */
 export interface ToolUi {
   server: string;
@@ -79,7 +87,8 @@ export type SessionEvent =
   /** `bot_id` is the bot speaking this turn; null in older logs. */
   | { type: "turn/start"; turn: number; bot_id?: string | null }
   | { type: "turn/end"; turn: number; reason: TurnEndReason }
-  | { type: "user/message"; turn: number; message: UserMessage }
+  /** `files` are what the person attached, each in the chat's folder. */
+  | { type: "user/message"; turn: number; message: UserMessage; files: ChatFile[] }
   | {
       type: "bot/message";
       turn: number;
