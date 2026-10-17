@@ -7,6 +7,7 @@ import json
 from harness.llm.messages import (
     AssistantMessage,
     Block,
+    ExtraContent,
     Message,
     Text,
     ToolMessage,
@@ -28,6 +29,7 @@ def wire_message(message: Message) -> dict:
                     "id": call.id,
                     "type": "function",
                     "function": {"name": call.name, "arguments": _wire_arguments(call.arguments)},
+                    **_extra_field(call.extra_content),
                 }
                 for call in message.tool_calls
             ],
@@ -42,6 +44,13 @@ def wire_message(message: Message) -> dict:
             "content": _tool_content(message.content),
         }
     return message.model_dump()
+
+
+def _extra_field(extra: ExtraContent | None) -> dict[str, ExtraContent]:
+    """The field that hands a call's extra content back to its provider, or none without any."""
+    if extra is None:
+        return {}
+    return {"extra_content": extra}
 
 
 def _wire_arguments(arguments: str) -> str:
