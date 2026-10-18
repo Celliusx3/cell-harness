@@ -10,6 +10,7 @@ Every bot shares one Linux desktop with Chrome (Rakazo's image, a Docker contain
 - Terminal (only while holding control) opens a login shell on the computer beside the screen; Release closes it.
 - Files lists the computer's home folder, previews text and images, downloads; Upload only while holding control, 10 MiB a file.
 - A `computer__browser_navigate` tool card has "Open app": a watch-only preview made of screenshots.
+- `computer__shell` runs a command for a bot (it asks once per chat). The chat's files and the skill folders sit at their own Mac paths inside the computer. A skill can declare a Mac program in its `SKILL.md` metadata (`host-service`, `host-service-env`); the computer starts it and hands each command its address and token as `<NAME>_ADDR` and `<NAME>_TOKEN`, under the name the skill gives. A command still running after 15 seconds answers `running`; the same call again waits on.
 - The page pings `keep_awake` every minute, so the 10-minute idle stop waits while it is open.
 
 ## How to get to it (user POV)
@@ -22,4 +23,4 @@ Click the screen icon in the sidebar, or go to `/computer`. Docker must be runni
 
 ## Gotchas
 
-The computer is one container for everyone: what you type, and the tabs and logins you leave, are the bots' too. The first page call on a freshly created computer sometimes takes more than 25 seconds and fails while Chrome starts. Watch-only ignores the keyboard by design: "I cannot type" is usually a page that is not holding control. A copy of the app started before this feature has no relay route; restart its backend.
+The computer is one container for everyone: what you type, and the tabs and logins you leave, are the bots' too. The first page call on a freshly created computer sometimes takes more than 25 seconds and fails while Chrome starts. Watch-only ignores the keyboard by design: "I cannot type" is usually a page that is not holding control. A copy of the app started before this feature has no relay route; restart its backend. The computer can reach every port on this Mac through `host.docker.internal`, and the app has no login: a command run with `computer__shell` can call the app's API as the person.

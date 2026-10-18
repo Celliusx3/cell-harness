@@ -14,19 +14,21 @@ from computer.docker import DockerError
 from computer.files import Files, FilesError
 from computer.live_screen import LiveScreen
 from computer.machine import Machine
+from computer.shell import Shell, ShellError
 
 PREVIEW_URI = "ui://computer/screen"
 
 
 @dataclass(frozen=True)
 class Computer:
-    """What the tools reach: the machine, its Chrome, its screenshots, live screen and files."""
+    """What the tools reach: the machine, its Chrome, screenshots, live screen, files and shell."""
 
     machine: Machine
     browser: Browser
     desktop: Desktop
     live_screen: LiveScreen
     files: Files
+    shell: Shell
 
 
 @asynccontextmanager
@@ -37,5 +39,5 @@ async def computer_for_one_call(machine: Machine) -> AsyncIterator[None]:
             yield
     except DockerError as err:
         raise ToolError(f"The computer is not available: {err}") from err
-    except (BrowserError, DesktopError, FilesError) as err:
+    except (BrowserError, DesktopError, FilesError, ShellError) as err:
         raise ToolError(str(err)) from err
