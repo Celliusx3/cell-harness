@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator
 from contextlib import aclosing
 
 from harness.bots import BotService, GroupEmpty
-from harness.bots.discussion import first_line
+from harness.bots.discussion import first_speakers
 from harness.runs.chain import discussion, log_speaker
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import Runtime
@@ -74,12 +74,12 @@ class RunService:
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
         members = self._bots.members_of_chat(session.id)
-        line = first_line(prompt, members.bots)
-        if not line:
+        speakers = first_speakers(prompt, members.bots)
+        if not speakers:
             raise GroupEmpty(session.id)
-        log_speaker(session, members, line[0])
+        log_speaker(session, members, speakers[0])
         return self._converse(
-            session, self._runtime.run(prompt, session=session, bot_id=line[0].id)
+            session, self._runtime.run(prompt, session=session, bot_id=speakers[0].id)
         )
 
     def hear(self, session: Session, message: BotMessage) -> Run:
@@ -92,7 +92,7 @@ class RunService:
         return self._converse(session, self._runtime.hear(message, session=session, bot_id=bot.id))
 
     def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
-        """Begin the turn that answers a client tool for the bot that asked, then the line's."""
+        """Begin the turn that answers a client tool for the bot that asked, then the queue's."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
         bot = self._bots.asker(session, call_id)

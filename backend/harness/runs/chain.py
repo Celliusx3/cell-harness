@@ -1,4 +1,4 @@
-"""A discussion: the turn that opens it, then each member the line says is next, as one run."""
+"""A discussion: the turn that opens it, then each member the queue says is next, as one run."""
 
 from __future__ import annotations
 
