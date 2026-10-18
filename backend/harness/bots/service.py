@@ -42,7 +42,7 @@ class BotService:
 
     async def active_bots(self) -> tuple[Bot, ...]:
         """The built-ins, then the active others in the order made; opens a built-in's chat once."""
-        bots = self._active_bots()
+        bots = self._active_bots_in(self._read_file())
         for bot in bots[: len(self._built_ins)]:
             try:
                 await self._sessions.read(bot.id)
@@ -52,26 +52,24 @@ class BotService:
 
     def names(self) -> tuple[str, ...]:
         """The active bots' names, built-ins first, read without opening any chat."""
-        return tuple(bot.name for bot in self._active_bots())
+        return tuple(bot.name for bot in self._active_bots_in(self._read_file()))
 
     def archived_bots(self) -> tuple[Bot, ...]:
         """The archived bots, in the order they were made."""
-        return tuple(bot for bot in self._stored_bots() if bot.archived)
+        return tuple(bot for bot in self._read_file().bots if bot.archived)
 
     def find(self, bot_id: str) -> Bot:
         """The active bot with this id; `BotNotFound` when there is none."""
-        bot = next((bot for bot in self._active_bots() if bot.id == bot_id), None)
-        if bot is None:
-            raise BotNotFound(bot_id)
-        return bot
+        return self._active_bot_in(self._read_file(), bot_id)
 
     def members_of_chat(self, chat_id: str) -> ChatMembers:
         """A bot's chat's bot, or a group's active members in order; `BotNotFound` for neither."""
-        active = self._active_bots()
+        stored = self._read_file()
+        active = self._active_bots_in(stored)
         own = next((bot for bot in active if bot.id == chat_id), None)
         if own is not None:
             return ChatMembers(group=None, bots=(own,))
-        group = next((group for group in self.groups() if group.id == chat_id), None)
+        group = next((group for group in stored.groups if group.id == chat_id), None)
         if group is None:
             raise BotNotFound(chat_id)
         by_id = {bot.id: bot for bot in active}
@@ -90,17 +88,18 @@ class BotService:
 
     def groups(self) -> tuple[Group, ...]:
         """Every group, in the order each was made."""
-        return self._stored().groups
+        return self._read_file().groups
 
     async def create_group(self, draft: GroupDraft) -> Group:
         """A new group of active bots, its chat holding its members; `BotNotFound` for any other."""
-        members = tuple(self.find(bot_id) for bot_id in draft.member_ids)
+        before = self._read_file()
+        members = tuple(self._active_bot_in(before, bot_id) for bot_id in draft.member_ids)
         session = await self._sessions.create()
         group = Group(id=session.id, name=draft.name, member_ids=draft.member_ids)
         session.append(roster(group, members))
         await self._sessions.flush(session)
-        stored = self._stored()
-        self._save(stored.model_copy(update={"groups": (*stored.groups, group)}))
+        stored = self._read_file()
+        self._write_file(stored.model_copy(update={"groups": (*stored.groups, group)}))
         return group
 
     def chat_of(self, bot_id: str) -> str:
@@ -112,97 +111,108 @@ class BotService:
         session = await self._sessions.create()
         bot = Bot(id=session.id, name=name, instructions=instructions)
         await self._log_instructions(session, bot)
-        self._write((*self._stored_bots(), bot))
+        stored = self._read_file()
+        self._write_file(stored.model_copy(update={"bots": (*stored.bots, bot)}))
         return bot
 
     def update(self, bot_id: str, name: str, instructions: str) -> Bot:
         """Edit an active bot's name or instructions; its chat logs them before its next turn."""
-        bot = self.find(bot_id)
-        return self._store(bot.model_copy(update={"name": name, "instructions": instructions}))
+        stored = self._read_file()
+        bot = self._active_bot_in(stored, bot_id)
+        return self._save_bot(
+            stored, bot.model_copy(update={"name": name, "instructions": instructions})
+        )
 
     def allow_secret(self, bot_id: str, name: str) -> Bot:
         """Add the saved key `name` to the keys an active bot may use."""
-        bot = self.find(bot_id)
-        return self._store(
-            bot.model_copy(update={"secret_names": _once_each((*bot.secret_names, name))})
+        stored = self._read_file()
+        bot = self._active_bot_in(stored, bot_id)
+        return self._save_bot(
+            stored,
+            bot.model_copy(update={"secret_names": _without_repeats((*bot.secret_names, name))}),
         )
 
     def set_allowed_secrets(self, bot_id: str, names: tuple[str, ...]) -> Bot:
         """Make `names` the saved keys an active bot may use, and no others."""
-        bot = self.find(bot_id)
-        return self._store(bot.model_copy(update={"secret_names": _once_each(names)}))
+        stored = self._read_file()
+        bot = self._active_bot_in(stored, bot_id)
+        return self._save_bot(
+            stored, bot.model_copy(update={"secret_names": _without_repeats(names)})
+        )
 
     def forget_secret(self, name: str) -> None:
         """Take the key `name` off the list of every stored bot, archived ones too."""
-        stored = self._stored_bots()
+        stored = self._read_file()
         kept = tuple(
             bot.model_copy(update={"secret_names": tuple(n for n in bot.secret_names if n != name)})
-            for bot in stored
+            for bot in stored.bots
         )
-        if kept != stored:
-            self._write(kept)
-
-    def check_removable(self, bot_id: str) -> None:
-        """Refuse a built-in with `BotPermanent` and an unknown bot with `BotNotFound`."""
-        if bot_id in self._built_in_ids:
-            raise BotPermanent(bot_id)
-        if bot_id not in {bot.id for bot in self._stored_bots()}:
-            raise BotNotFound(bot_id)
+        if kept != stored.bots:
+            self._write_file(stored.model_copy(update={"bots": kept}))
 
     def archive(self, bot_id: str) -> None:
         """Hide a bot and its chat until it is restored."""
-        self.check_removable(bot_id)
-        self._set_archived(bot_id, archived=True)
+        stored = self._read_file()
+        self._check_removable(stored, bot_id)
+        self._set_archived(stored, bot_id, archived=True)
 
     def restore(self, bot_id: str) -> None:
         """Bring an archived bot back with its chat as it was; an active one stays as it is."""
         if bot_id not in self._built_in_ids:
-            self._set_archived(bot_id, archived=False)
+            self._set_archived(self._read_file(), bot_id, archived=False)
 
     async def delete(self, bot_id: str) -> None:
         """Remove a bot and its chat for good."""
-        self.check_removable(bot_id)
-        self._write(tuple(bot for bot in self._stored_bots() if bot.id != bot_id))
+        stored = self._read_file()
+        self._check_removable(stored, bot_id)
+        kept = tuple(bot for bot in stored.bots if bot.id != bot_id)
+        self._write_file(stored.model_copy(update={"bots": kept}))
         await self._sessions.delete(bot_id)
 
-    def _active_bots(self) -> tuple[Bot, ...]:
-        stored = self._stored_bots()
+    def _active_bots_in(self, stored: BotsFile) -> tuple[Bot, ...]:
         built_ins = (
-            next((bot for bot in stored if bot.id == default.id), default)
+            next((bot for bot in stored.bots if bot.id == default.id), default)
             for default in self._built_ins
         )
-        others = (bot for bot in stored if bot.id not in self._built_in_ids and not bot.archived)
+        others = (
+            bot for bot in stored.bots if bot.id not in self._built_in_ids and not bot.archived
+        )
         return (*built_ins, *others)
 
-    def _store(self, updated: Bot) -> Bot:
-        stored = self._stored_bots()
-        replaced = tuple(updated if bot.id == updated.id else bot for bot in stored)
-        self._write(replaced if updated.id in {bot.id for bot in stored} else (updated, *stored))
-        return updated
-
-    def _set_archived(self, bot_id: str, *, archived: bool) -> None:
-        stored = self._stored_bots()
-        if bot_id not in {bot.id for bot in stored}:
+    def _active_bot_in(self, stored: BotsFile, bot_id: str) -> Bot:
+        bot = next((bot for bot in self._active_bots_in(stored) if bot.id == bot_id), None)
+        if bot is None:
             raise BotNotFound(bot_id)
-        self._write(
-            tuple(
-                bot.model_copy(update={"archived": archived}) if bot.id == bot_id else bot
-                for bot in stored
-            )
-        )
+        return bot
 
-    def _stored(self) -> BotsFile:
+    def _check_removable(self, stored: BotsFile, bot_id: str) -> None:
+        """Refuse a built-in with `BotPermanent` and an unknown bot with `BotNotFound`."""
+        if bot_id in self._built_in_ids:
+            raise BotPermanent(bot_id)
+        if bot_id not in {bot.id for bot in stored.bots}:
+            raise BotNotFound(bot_id)
+
+    def _save_bot(self, stored: BotsFile, bot: Bot) -> Bot:
+        replaced = tuple(bot if saved.id == bot.id else saved for saved in stored.bots)
+        bots = replaced if bot.id in {saved.id for saved in stored.bots} else (bot, *stored.bots)
+        self._write_file(stored.model_copy(update={"bots": bots}))
+        return bot
+
+    def _set_archived(self, stored: BotsFile, bot_id: str, *, archived: bool) -> None:
+        if bot_id not in {bot.id for bot in stored.bots}:
+            raise BotNotFound(bot_id)
+        bots = tuple(
+            bot.model_copy(update={"archived": archived}) if bot.id == bot_id else bot
+            for bot in stored.bots
+        )
+        self._write_file(stored.model_copy(update={"bots": bots}))
+
+    def _read_file(self) -> BotsFile:
         if not self._path.exists():
             return BotsFile()
         return BotsFile.model_validate_json(self._path.read_text(encoding="utf-8"))
 
-    def _stored_bots(self) -> tuple[Bot, ...]:
-        return self._stored().bots
-
-    def _write(self, bots: tuple[Bot, ...]) -> None:
-        self._save(self._stored().model_copy(update={"bots": bots}))
-
-    def _save(self, stored: BotsFile) -> None:
+    def _write_file(self, stored: BotsFile) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         handle, temp = tempfile.mkstemp(dir=self._path.parent, suffix=".tmp")
         with os.fdopen(handle, "w", encoding="utf-8") as file:
@@ -221,5 +231,5 @@ def roster(group: Group, members: tuple[Bot, ...]) -> GroupMembersEvent:
     return GroupMembersEvent(name=group.name, members=tuple(bot.name for bot in members))
 
 
-def _once_each(names: tuple[str, ...]) -> tuple[str, ...]:
+def _without_repeats(names: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(names))
