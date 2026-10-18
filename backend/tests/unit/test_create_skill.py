@@ -15,7 +15,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import parse
 from harness.tools import Ok
-from harness.tools.native.code import EXECUTE
+from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT
 from harness.web.runtime import build_runtime
 from tests.unit.helpers import ORIGIN, client_tools, no_bots, no_gate, no_progress, skills_at
 from tests.webapp import files_in, images_in, secrets_in
@@ -66,7 +66,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
     ran = await runtime.tools.execute(
         ToolCall(
             id="c1",
-            name=EXECUTE,
+            name=EXECUTE_TYPESCRIPT,
             arguments=json.dumps({"code": script, "description": "the example script"}),
         ),
         progress=no_progress,

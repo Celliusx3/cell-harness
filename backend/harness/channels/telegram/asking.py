@@ -10,13 +10,13 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton,
 from harness.channels.protocol import Pushing
 from harness.channels.text import split_message
 from harness.tools.client import PendingCall
-from harness.tools.native.location import LOCATION
-from harness.tools.native.question import QUESTION, Question
+from harness.tools.native.location import GET_LOCATION
+from harness.tools.native.question import ASK_USER, Question
 
 MAX_MESSAGE_CHARS = 4096
 MAX_CALLBACK_BYTES = 64
 
-ASK = {LOCATION: "The assistant needs your location to answer. Share it?"}
+ASK = {GET_LOCATION: "The assistant needs your location to answer. Share it?"}
 SHARE_LABEL = "Share my location"
 ASK_BY_LINK = (
     "The assistant needs an answer from you. Open the page to give it there; "
@@ -45,10 +45,10 @@ async def ask_client(
     gated: frozenset[str],
 ) -> None:
     """Put `request` to the chat: a location keyboard, options, an approval card, or the page."""
-    if request.name == LOCATION:
+    if request.name == GET_LOCATION:
         await _ask_location(bot, chat_id)
         return
-    question = _question(request.arguments) if request.name == QUESTION else None
+    question = _question(request.arguments) if request.name == ASK_USER else None
     if question is not None and _choices_fit(request.call_id, question):
         await _ask_question(bot, chat_id, request.call_id, question)
         return
@@ -159,6 +159,6 @@ async def _ask_location(bot, chat_id: str) -> None:
     button = KeyboardButton(SHARE_LABEL, request_location=True)
     await bot.send_message(
         chat_id=int(chat_id),
-        text=ASK[LOCATION],
+        text=ASK[GET_LOCATION],
         reply_markup=ReplyKeyboardMarkup([[button]], one_time_keyboard=True, resize_keyboard=True),
     )

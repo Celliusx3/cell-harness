@@ -41,7 +41,7 @@ class Ok:
     content: tuple[Block, ...]
     data: object | None = None
     ui: ToolUi | None = None
-    hand_over_paths: tuple[str, ...] = ()
+    paths_to_send: tuple[str, ...] = ()
     images: tuple[ReturnedImage, ...] = ()
 
     def __post_init__(self) -> None:

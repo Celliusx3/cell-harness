@@ -10,13 +10,18 @@ from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.tools import Ok, ToolDefinition, ToolDispatcher, ToolPipeline, ToolRegistry
-from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
+from harness.tools.native.code_mode import (
+    EXECUTE_TYPESCRIPT,
+    GET_FUNCTION_DETAILS,
+    LIST_FUNCTIONS,
+    code_mode_tools,
+)
 from harness.tools.pipeline import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
 from tests.unit.helpers import ORIGIN, new_session, no_gate, no_progress
 
-DEFAULTS = (LIST, DETAILS, EXECUTE)
+DEFAULTS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
 
 
 def selected(*names: str, call_id: str = "d") -> ToolResultEvent:
@@ -46,7 +51,9 @@ async def test_details_states_what_it_made_callable() -> None:
     built = pipeline(echo_tool("a"), echo_tool("b"))
 
     outcome = await built.execute(
-        ToolCall(id="c1", name=DETAILS, arguments=json.dumps({"names": ["a", "ghost"]})),
+        ToolCall(
+            id="c1", name=GET_FUNCTION_DETAILS, arguments=json.dumps({"names": ["a", "ghost"]})
+        ),
         progress=no_progress,
         origin=ORIGIN,
     )
@@ -138,7 +145,7 @@ async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_se
 
 async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> None:
     client = SteppedClient(
-        calls_tool(DETAILS, json.dumps({"names": ["a"]})),
+        calls_tool(GET_FUNCTION_DETAILS, json.dumps({"names": ["a"]})),
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )

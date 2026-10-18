@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
 from harness.tools import (
     EXECUTION_ERROR,
-    NAMESPACE,
+    NAMESPACE_SEPARATOR,
     UNKNOWN_TOOL,
     Failure,
     Ok,
@@ -52,7 +52,7 @@ class ReturnedFile(BaseModel):
 
 def namespaced(server: str, tool: str) -> str:
     """`yt` + `get_subtitles` -> `yt__get_subtitles`."""
-    return f"{server}{NAMESPACE}{tool.replace('-', '_')}"
+    return f"{server}{NAMESPACE_SEPARATOR}{tool.replace('-', '_')}"
 
 
 def build_tools(server: str, tools: Iterable[Tool], call: CallTool) -> list[ToolDefinition[dict]]:
@@ -141,7 +141,7 @@ def outcome_of(
         content=rendered,
         data=result.structured_content,
         ui=ui,
-        hand_over_paths=returned_paths(result, name=name),
+        paths_to_send=returned_paths(result, name=name),
         images=returned_images(result.content, name=name),
     )
 

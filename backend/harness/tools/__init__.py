@@ -1,7 +1,7 @@
 """Tools, and the machinery that offers and runs them."""
 
 from harness.tools.approval import ApprovalGate
-from harness.tools.definition import NAMESPACE, ToolDefinition
+from harness.tools.definition import NAMESPACE_SEPARATOR, ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.models.context import CallOrigin, ToolContext
 from harness.tools.models.decision import Approved
@@ -25,7 +25,7 @@ __all__ = [
     "BLOCKED",
     "EXECUTION_ERROR",
     "INVALID_ARGUMENTS",
-    "NAMESPACE",
+    "NAMESPACE_SEPARATOR",
     "REFUSED",
     "UNKNOWN_TOOL",
     "ApprovalGate",

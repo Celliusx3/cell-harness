@@ -12,7 +12,7 @@ from harness.llm import ToolSpec
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import EXECUTION_ERROR, INVALID_ARGUMENTS, Failure, ToolOutcome
 
-NAMESPACE = "__"
+NAMESPACE_SEPARATOR = "__"
 
 
 @dataclass(frozen=True)

@@ -43,7 +43,7 @@ from harness.channels.telegram.batching import JOIN, Batch, batch_delay
 from harness.channels.text import split_message
 from harness.skills import UnknownSkill
 from harness.tools.client import PendingCall
-from harness.tools.native.location import LOCATION
+from harness.tools.native.location import GET_LOCATION
 
 logger = logging.getLogger("harness.channels.telegram")
 
@@ -149,7 +149,7 @@ class TelegramChannel:
                 "accuracy_m": pin.horizontal_accuracy or 0.0,
             },
         }
-        if await self._answers.answer(self, chat_id, LOCATION, shared):
+        if await self._answers.answer(self, chat_id, GET_LOCATION, shared):
             return
         await self._flush(chat_id)
         text = f"(shared location: {pin.latitude}, {pin.longitude})"

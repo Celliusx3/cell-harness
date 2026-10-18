@@ -16,7 +16,7 @@ from harness.tools import (
     ToolOutcome,
     ToolRegistry,
 )
-from harness.tools.native.code import code_mode_tools
+from harness.tools.native.code_mode import code_mode_tools
 from tests.unit.helpers import context_for, no_gate
 
 

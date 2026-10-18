@@ -30,9 +30,9 @@ class Denied(BaseModel):
 
 Decision = Approved | Denied
 
-_DECISION = TypeAdapter(Annotated[Decision, Field(discriminator="kind")])
+_DECISION_ADAPTER = TypeAdapter(Annotated[Decision, Field(discriminator="kind")])
 
 
 def parse_decision(raw: object) -> Decision:
     """A posted body as the person's decision; `ValidationError` when it is not one."""
-    return _DECISION.validate_python(raw)
+    return _DECISION_ADAPTER.validate_python(raw)

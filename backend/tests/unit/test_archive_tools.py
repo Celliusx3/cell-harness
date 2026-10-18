@@ -13,7 +13,7 @@ from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import ApprovalGate, Failure, Ok
-from harness.tools.native.code import EXECUTE, LIST
+from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.files import (
     EXTRACT_ARCHIVE,
     MAKE_ARCHIVE,
@@ -103,7 +103,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
     )
     script = (
         'await extract_archive({path: "/tmp/a.cbz"}); '
@@ -112,7 +112,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
     ran = await runtime.tools.execute(
         ToolCall(
             id="c2",
-            name=EXECUTE,
+            name=EXECUTE_TYPESCRIPT,
             arguments=json.dumps({"code": script, "description": "try"}),
         ),
         progress=no_progress,

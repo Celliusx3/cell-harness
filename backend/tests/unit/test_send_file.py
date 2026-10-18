@@ -27,7 +27,7 @@ from harness.tools import (
     ToolDefinition,
     ToolOutcome,
 )
-from harness.tools.native.code import EXECUTE, LIST
+from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.files import SEND_FILE, send_file_tool
 from harness.web.runtime import (
     DEFAULT_TOOLS,
@@ -144,7 +144,7 @@ async def test_any_tool_s_refused_path_is_named_after_its_own_words(tmp_path: Pa
     drawn = await files.save("s", "drawn.png", chunks_of(PNG_HEADER))
 
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
-        return Ok("drew it", hand_over_paths=(drawn.path, "/etc/hosts"))
+        return Ok("drew it", paths_to_send=(drawn.path, "/etc/hosts"))
 
     draw = ToolDefinition.from_model(
         name="draw", description="Draw.", args_model=NoArgs, execute=execute
@@ -229,12 +229,12 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     assert SEND_FILE in [spec.name for spec in runtime.tools.specs()]
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
     )
     ran = await runtime.tools.execute(
         ToolCall(
             id="c2",
-            name=EXECUTE,
+            name=EXECUTE_TYPESCRIPT,
             arguments=json.dumps(
                 {"code": 'return await send_file({paths: ["/etc/hosts"]});', "description": "try"}
             ),

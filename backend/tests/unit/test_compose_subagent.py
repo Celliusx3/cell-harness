@@ -20,9 +20,9 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools import Ok
-from harness.tools.native.code import LIST
-from harness.tools.native.location import LOCATION
-from harness.tools.native.question import QUESTION
+from harness.tools.native.code_mode import LIST_FUNCTIONS
+from harness.tools.native.location import GET_LOCATION
+from harness.tools.native.question import ASK_USER
 from harness.tools.native.skills import SKILL_SAVE
 from harness.tools.native.subagent import RUN_SUBAGENT
 from harness.web import runtime as composition
@@ -73,7 +73,7 @@ async def test_a_script_cannot_reach_run_subagent(compose) -> None:
     assert runtime.tools is not None
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
     )
 
     assert isinstance(listed, Ok)
@@ -95,7 +95,7 @@ async def test_a_subagent_cannot_delegate_ask_or_write_a_skill(compose, tmp_path
             pass
 
     subagent_tools = {spec.name for spec in client.seen_tools_per_call[1] or []}
-    assert subagent_tools.isdisjoint({RUN_SUBAGENT, QUESTION, LOCATION, SKILL_SAVE})
+    assert subagent_tools.isdisjoint({RUN_SUBAGENT, ASK_USER, GET_LOCATION, SKILL_SAVE})
     subagent_system = client.seen_per_call[1][0]
     assert isinstance(subagent_system, SystemMessage)
     assert CODE_PROMPT.strip() in subagent_system.content

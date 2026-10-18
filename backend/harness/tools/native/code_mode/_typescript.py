@@ -7,7 +7,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
-from harness.tools.definition import NAMESPACE, ToolDefinition
+from harness.tools.definition import NAMESPACE_SEPARATOR, ToolDefinition
 
 logger = logging.getLogger("harness.tools.code")
 
@@ -28,8 +28,8 @@ def declarations(tools: Sequence[ToolDefinition], *, types: bool) -> str:
     """Every tool as a `declare function`, grouped by the server that owns it."""
     groups: dict[str, list[str]] = {}
     for tool in sorted(tools, key=lambda t: t.name):
-        server, _, _ = tool.name.partition(NAMESPACE)
-        owner = server if NAMESPACE in tool.name else ""
+        server, _, _ = tool.name.partition(NAMESPACE_SEPARATOR)
+        owner = server if NAMESPACE_SEPARATOR in tool.name else ""
         groups.setdefault(owner, []).append(_declare(tool, types=types))
 
     blocks: list[str] = []

@@ -11,7 +11,7 @@ import pytest
 from harness.bots import BotService
 from harness.llm import SystemMessage, UserMessage
 from harness.runs.service import RunService
-from harness.tools.native.question import QUESTION
+from harness.tools.native.question import ASK_USER
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, hanging_tool
 from tests.unit.helpers import client_tools, durable_service, no_skills, runtime_over
@@ -134,7 +134,7 @@ async def test_a_group_s_member_list_is_written_again_once_a_member_leaves(tmp_p
 
 async def test_answering_a_bot_that_was_archived_since_it_asked_is_refused(tmp_path) -> None:
     client, _, runs, chat, researcher, _ = await _group(
-        tmp_path, calls_tool(QUESTION, ASKED, id="call_q"), completed("Calm it is.")
+        tmp_path, calls_tool(ASK_USER, ASKED, id="call_q"), completed("Calm it is.")
     )
     async with client:
         await _send(client, runs, chat, "pick a tone")

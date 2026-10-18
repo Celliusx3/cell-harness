@@ -19,16 +19,16 @@ from harness.tools.models.outcome import (
     Pending,
     ToolOutcome,
 )
-from harness.tools.native.code._typescript import declarations
-from harness.tools.native.code.models import DetailsArgs, ExecuteArgs, NoArgs
-from harness.tools.native.code.prompts import (
-    DETAILS,
-    DETAILS_DESCRIPTION,
-    EXECUTE,
-    EXECUTE_DESCRIPTION,
+from harness.tools.native.code_mode._typescript import declarations
+from harness.tools.native.code_mode.models import DetailsArgs, ExecuteArgs, NoArgs
+from harness.tools.native.code_mode.prompts import (
+    EXECUTE_TYPESCRIPT,
+    EXECUTE_TYPESCRIPT_DESCRIPTION,
+    GET_FUNCTION_DETAILS,
+    GET_FUNCTION_DETAILS_DESCRIPTION,
     IMAGES_STAY_OUT,
-    LIST,
-    LIST_DESCRIPTION,
+    LIST_FUNCTIONS,
+    LIST_FUNCTIONS_DESCRIPTION,
 )
 from harness.tools.registry import ToolRegistry
 
@@ -37,7 +37,7 @@ Catalog = Callable[[], list[ToolDefinition]]
 logger = logging.getLogger("harness.tools.code")
 
 
-RESERVED = frozenset({LIST, DETAILS, EXECUTE})
+RESERVED = frozenset({LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT})
 
 
 def code_mode_tools(
@@ -69,7 +69,10 @@ def _list_tool(available: Catalog) -> ToolDefinition[NoArgs]:
         return Ok(declarations(found, types=False))
 
     return ToolDefinition.from_model(
-        name=LIST, description=LIST_DESCRIPTION, args_model=NoArgs, execute=execute
+        name=LIST_FUNCTIONS,
+        description=LIST_FUNCTIONS_DESCRIPTION,
+        args_model=NoArgs,
+        execute=execute,
     )
 
 
@@ -79,7 +82,9 @@ def _details_tool(available: Catalog) -> ToolDefinition[DetailsArgs]:
         found = [tool for tool in available() if tool.name in wanted]
         missing = sorted(wanted - {tool.name for tool in found})
         if not found:
-            return Ok(f"No functions named {', '.join(missing)}. Run {LIST} to see what exists.")
+            return Ok(
+                f"No functions named {', '.join(missing)}. Run {LIST_FUNCTIONS} to see what exists."
+            )
         note = f"\n\n// not found: {', '.join(missing)}" if missing else ""
         return Ok(
             (
@@ -89,7 +94,10 @@ def _details_tool(available: Catalog) -> ToolDefinition[DetailsArgs]:
         )
 
     return ToolDefinition.from_model(
-        name=DETAILS, description=DETAILS_DESCRIPTION, args_model=DetailsArgs, execute=execute
+        name=GET_FUNCTION_DETAILS,
+        description=GET_FUNCTION_DETAILS_DESCRIPTION,
+        args_model=DetailsArgs,
+        execute=execute,
     )
 
 
@@ -108,7 +116,10 @@ def _execute_tool(
         return _rendered(script)
 
     return ToolDefinition.from_model(
-        name=EXECUTE, description=EXECUTE_DESCRIPTION, args_model=ExecuteArgs, execute=execute
+        name=EXECUTE_TYPESCRIPT,
+        description=EXECUTE_TYPESCRIPT_DESCRIPTION,
+        args_model=ExecuteArgs,
+        execute=execute,
     )
 
 
@@ -135,7 +146,7 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
         if isinstance(outcome, Pending):
             raise BridgeError(
                 f"{name} waits for the user's approval, so a script cannot call it. "
-                f"Read it with {DETAILS}, then call it directly as a tool."
+                f"Read it with {GET_FUNCTION_DETAILS}, then call it directly as a tool."
             )
         raise BridgeError(text_of(outcome.content))
 

@@ -8,7 +8,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.telegram.asking import ASK_BY_LINK
 from harness.channels.telegram.channel import STALE_TAP
 from harness.session.models import ToolResultEvent, TurnEnd
-from harness.tools.native.question import QUESTION
+from harness.tools.native.question import ASK_USER
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
 from tests.unit.helpers import client_tools, no_skills
@@ -19,7 +19,7 @@ ASKED = json.dumps({"question": "Which shop?", "options": ["Lazada", "Shopee"]})
 
 def _asking(tmp_path, *, call_id: str = "c1"):
     tools = client_tools()
-    model = SteppedClient(calls_tool(QUESTION, ASKED, id=call_id), completed("searching Shopee"))
+    model = SteppedClient(calls_tool(ASK_USER, ASKED, id=call_id), completed("searching Shopee"))
     return build(tmp_path, model, *tools.definitions(), skills=no_skills(), client_tools=tools)
 
 

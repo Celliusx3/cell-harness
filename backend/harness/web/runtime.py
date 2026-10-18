@@ -32,7 +32,12 @@ from harness.tools import ApprovalGate, ToolDispatcher, ToolPipeline, ToolRegist
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
-from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
+from harness.tools.native.code_mode import (
+    EXECUTE_TYPESCRIPT,
+    GET_FUNCTION_DETAILS,
+    LIST_FUNCTIONS,
+    code_mode_tools,
+)
 from harness.tools.native.files import (
     EXTRACT_ARCHIVE,
     MAKE_ARCHIVE,
@@ -44,8 +49,8 @@ from harness.tools.native.files import (
     view_image_tool,
 )
 from harness.tools.native.hand_over import HAND_OVER_TOOL
-from harness.tools.native.location import LOCATION_TOOL
-from harness.tools.native.question import QUESTION_TOOL
+from harness.tools.native.location import GET_LOCATION_TOOL
+from harness.tools.native.question import ASK_USER_TOOL
 from harness.tools.native.secrets import (
     ASK_FOR_SECRET_TOOL,
     FETCH_WITH_SECRET,
@@ -63,12 +68,12 @@ from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 
 logger = logging.getLogger("harness.web")
 
-CLIENT_TOOLS = ClientTools((LOCATION_TOOL, QUESTION_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL))
+CLIENT_TOOLS = ClientTools((GET_LOCATION_TOOL, ASK_USER_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL))
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 DEFAULT_TOOLS = (
-    LIST,
-    DETAILS,
-    EXECUTE,
+    LIST_FUNCTIONS,
+    GET_FUNCTION_DETAILS,
+    EXECUTE_TYPESCRIPT,
     SKILL,
     *SKILL_WRITES,
     BOT_CREATE,
@@ -81,7 +86,7 @@ DEFAULT_TOOLS = (
     VIEW_IMAGE,
     *sorted(CLIENT_TOOLS.names),
 )
-SUBAGENT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL)
+SUBAGENT_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,

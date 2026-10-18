@@ -15,7 +15,7 @@ from harness.channels.telegram.asking import ASK, ASK_BY_LINK, NO_ANSWER_PAGE, S
 from harness.runtime.service import SKIPPED
 from harness.session.models import ToolResultEvent, TurnEnd
 from harness.tools.client import PendingCall, Refused
-from harness.tools.native.location import LOCATION
+from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.secrets import ASK_FOR_SECRET
 from tests.unit.discord_fakes import discord_channel
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed
@@ -33,7 +33,7 @@ KEEPS_KEYS_OUT = "never paste a key or password into this chat"
 
 
 def _asks_then_answers(answer: str = "a café 200 m away") -> SteppedClient:
-    return SteppedClient(calls_tool(LOCATION, "{}"), completed(answer))
+    return SteppedClient(calls_tool(GET_LOCATION, "{}"), completed(answer))
 
 
 async def _log(sessions, chats, chat_id: str):
@@ -52,7 +52,7 @@ async def test_telegram_is_asked_with_its_own_share_button_and_the_turn_ends(tmp
     await settle(runs, gateway)
 
     ((chat_id, text, markup),) = bot.linked
-    assert (chat_id, text) == (CHAT, ASK[LOCATION])
+    assert (chat_id, text) == (CHAT, ASK[GET_LOCATION])
     button = markup.keyboard[0][0]
     assert (button.text, button.request_location) == (SHARE_LABEL, True)
     assert markup.one_time_keyboard is True
@@ -143,7 +143,7 @@ async def test_discord_is_sent_the_page_that_asks_the_browser() -> None:
     chat = client.chat("42")
 
     await channel.ask_client(
-        "42", PendingCall(LOCATION, "c1", "{}"), answer_url("http://t", "c0", "c1")
+        "42", PendingCall(GET_LOCATION, "c1", "{}"), answer_url("http://t", "c0", "c1")
     )
 
     ((text, view),) = chat.linked
@@ -157,7 +157,9 @@ async def test_discord_without_a_public_url_is_told_why() -> None:
     channel, client = discord_channel(ChannelGateway(None, None, None, no_skills(), public_url=""))
     chat = client.chat("42")
 
-    await channel.ask_client("42", PendingCall(LOCATION, "c1", "{}"), answer_url("", "c0", "c1"))
+    await channel.ask_client(
+        "42", PendingCall(GET_LOCATION, "c1", "{}"), answer_url("", "c0", "c1")
+    )
 
     assert chat.linked == []
     assert chat.sent == [f"{DISCORD_ASK} {DISCORD_NO_PAGE}"]
@@ -204,11 +206,11 @@ async def test_a_chat_with_nothing_pending_refuses_an_answer(tmp_path) -> None:
     resolver = ChatAnswers(chats, sessions, gateway, tools)
     declined = {"kind": "declined"}
 
-    assert await resolver.answer(channel, CHAT, LOCATION, declined) is False
+    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
     await gateway.receive(msg("hi"))
-    assert await resolver.answer(channel, CHAT, LOCATION, declined) is False
+    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
     await settle(runs, gateway)
-    assert await resolver.answer(channel, CHAT, LOCATION, declined) is False
+    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
 
 
 async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
@@ -221,9 +223,11 @@ async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
     await gateway.receive(msg("what's near me"))
     await settle(runs, gateway)
 
-    assert await resolver.answer(channel, CHAT, LOCATION, {"kind": "shared", "data": {}}) is False
+    assert (
+        await resolver.answer(channel, CHAT, GET_LOCATION, {"kind": "shared", "data": {}}) is False
+    )
     assert await resolver.answer(channel, CHAT, "get_battery", {"kind": "declined"}) is False
-    assert await resolver.answer(channel, CHAT, LOCATION, {"kind": "declined"}) is True
+    assert await resolver.answer(channel, CHAT, GET_LOCATION, {"kind": "declined"}) is True
     await settle(runs, gateway)
     events = await _log(sessions, chats, CHAT)
     assert [e.reason for e in events if isinstance(e, TurnEnd)] == ["pending", "completed"]

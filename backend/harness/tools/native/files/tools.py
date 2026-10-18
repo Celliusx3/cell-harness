@@ -29,7 +29,7 @@ def send_file_tool() -> ToolDefinition[SendFileArgs]:
     """The tool that names files to hand over."""
 
     async def execute(args: SendFileArgs, _context: ToolContext) -> ToolOutcome:
-        return Ok(content=(), hand_over_paths=tuple(args.paths))
+        return Ok(content=(), paths_to_send=tuple(args.paths))
 
     return ToolDefinition.from_model(
         name=SEND_FILE,

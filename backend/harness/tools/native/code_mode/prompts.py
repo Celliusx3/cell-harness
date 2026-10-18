@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 
-LIST = "list_functions"
-DETAILS = "get_function_details"
-EXECUTE = "execute_typescript"
+LIST_FUNCTIONS = "list_functions"
+GET_FUNCTION_DETAILS = "get_function_details"
+EXECUTE_TYPESCRIPT = "execute_typescript"
 
-LIST_DESCRIPTION = (
+LIST_FUNCTIONS_DESCRIPTION = (
     "List every capability available, as TypeScript function signatures grouped "
     "by the server that provides them. Argument types are omitted — call "
-    f"`{DETAILS}` for the ones you intend to use."
+    f"`{GET_FUNCTION_DETAILS}` for the ones you intend to use."
 )
 
-DETAILS_DESCRIPTION = (
+GET_FUNCTION_DETAILS_DESCRIPTION = (
     "Get full argument types for named functions. From then on those functions "
     "are in your tool list and callable directly, for the rest of this "
     "conversation. Ask for the few you need, not everything: the point of the "
     "two steps is that you never load the rest."
 )
 
-EXECUTE_DESCRIPTION = (
+EXECUTE_TYPESCRIPT_DESCRIPTION = (
     "Run one TypeScript program over the capabilities you have read. For when a "
     "program saves round trips: many calls at once, a loop over many items, or "
     "a large result to filter before you see it. A single call is a direct tool "

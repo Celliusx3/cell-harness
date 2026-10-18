@@ -55,7 +55,7 @@ def _files_handed_over(
     files: ChatFileService | None, chat_id: str, outcome: Ok | Failure
 ) -> HandedOver:
     """Each path a result names: kept when it is a file in this chat's folder, else refused."""
-    paths = outcome.hand_over_paths if isinstance(outcome, Ok) else ()
+    paths = outcome.paths_to_send if isinstance(outcome, Ok) else ()
     kept: list[ChatFile] = []
     lines: list[str] = []
     for path in paths:
