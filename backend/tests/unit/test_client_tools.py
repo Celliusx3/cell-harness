@@ -138,10 +138,12 @@ def test_the_service_accepts_by_call_id_or_by_tool_name() -> None:
     service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     body = {"kind": "shared", "data": {"percent": 80}}
 
-    assert service.accept_call(_session_with_pending(), "c1", body) == Accepted(
+    assert service.accept_by_call_id(_session_with_pending(), "c1", body) == Accepted(
         "c1", Ok(content='{"percent":80}')
     )
-    accepted = service.accept_tool(_session_with_pending("c2"), "get_battery", {"kind": "declined"})
+    accepted = service.accept_by_tool_name(
+        _session_with_pending("c2"), "get_battery", {"kind": "declined"}
+    )
     assert isinstance(accepted, Accepted) and accepted.call_id == "c2"
     assert isinstance(accepted.outcome, Failure) and accepted.outcome.code == DECLINED
 
@@ -150,15 +152,17 @@ def test_each_refusal_is_its_own_answer() -> None:
     service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     body = {"kind": "shared", "data": {"percent": 80}}
 
-    assert service.accept_call(new_session(), "c1", body) is Refused.NOT_PENDING
+    assert service.accept_by_call_id(new_session(), "c1", body) is Refused.NOT_PENDING
     session = _session_with_pending()
-    assert service.accept_call(session, "c9", body) is Refused.NOT_PENDING
-    assert service.accept_tool(session, "get_location", body) is Refused.NOT_PENDING
-    assert service.accept_call(session, "c1", {"kind": "lost"}) is Refused.DOES_NOT_FIT
+    assert service.accept_by_call_id(session, "c9", body) is Refused.NOT_PENDING
+    assert service.accept_by_tool_name(session, "get_location", body) is Refused.NOT_PENDING
+    assert service.accept_by_call_id(session, "c1", {"kind": "lost"}) is Refused.DOES_NOT_FIT
 
 
 def test_the_service_exposes_what_composition_needs() -> None:
     service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     assert service.names == NAMES
     assert [tool.name for tool in service.definitions()] == ["get_battery"]
-    assert service.pending(_session_with_pending()) == (PendingCall("get_battery", "c1", "{}"),)
+    assert service.answerable_calls(_session_with_pending()) == (
+        PendingCall("get_battery", "c1", "{}"),
+    )

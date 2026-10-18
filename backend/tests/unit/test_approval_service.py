@@ -57,7 +57,7 @@ def test_the_service_grants_always_before_the_turn_resumes(tmp_path) -> None:
     session.append(TurnStart(turn=0))
     session.append(_call("c1"))
 
-    accepted = service.accept_call(session, "c1", {"kind": "approved", "scope": "always"})
+    accepted = service.accept_by_call_id(session, "c1", {"kind": "approved", "scope": "always"})
 
     assert accepted == Accepted("c1", Approved(scope="always"))
     assert gate.granted_tools() == frozenset({WRITE})
@@ -86,15 +86,16 @@ def test_the_service_parses_a_decision_for_a_listed_tool_and_refuses_a_client_bo
     session.append(TurnStart(turn=0))
     session.append(_call("c1"))
 
-    assert service.accept_call(session, "c1", {"kind": "approved", "scope": "once"}) == Accepted(
-        "c1", Approved(scope="once")
-    )
+    assert service.accept_by_call_id(
+        session, "c1", {"kind": "approved", "scope": "once"}
+    ) == Accepted("c1", Approved(scope="once"))
     assert (
-        service.accept_call(session, "c1", {"kind": "shared", "data": {}}) is Refused.DOES_NOT_FIT
+        service.accept_by_call_id(session, "c1", {"kind": "shared", "data": {}})
+        is Refused.DOES_NOT_FIT
     )
-    assert service.accept_call(session, "c9", {"kind": "denied"}) is Refused.NOT_PENDING
+    assert service.accept_by_call_id(session, "c9", {"kind": "denied"}) is Refused.NOT_PENDING
     assert isinstance(Denied(), Denied)
-    assert service.awaited == frozenset({WRITE})
+    assert service.awaited_tools == frozenset({WRITE})
 
 
 def test_a_name_that_is_both_client_and_listed_is_refused_at_construction(tmp_path) -> None:

@@ -34,9 +34,9 @@ class ChatAnswers:
         self._client_tools = client_tools
 
     @property
-    def gated(self) -> frozenset[str]:
+    def gated_tools(self) -> frozenset[str]:
         """The tools a chat asks with Allow and Deny buttons."""
-        return self._client_tools.gated
+        return self._client_tools.gated_tools
 
     async def answer(self, channel: Channel, chat_id: str, name: str, raw: object) -> bool:
         """Hand a platform's answer to the tool `name` to this chat's pending call."""
@@ -44,7 +44,7 @@ class ChatAnswers:
             channel,
             chat_id,
             name,
-            lambda session: self._client_tools.accept_tool(session, name, raw),
+            lambda session: self._client_tools.accept_by_tool_name(session, name, raw),
         )
 
     async def answer_call(self, channel: Channel, chat_id: str, call_id: str, raw: object) -> bool:
@@ -53,7 +53,7 @@ class ChatAnswers:
             channel,
             chat_id,
             call_id,
-            lambda session: self._client_tools.accept_call(session, call_id, raw),
+            lambda session: self._client_tools.accept_by_call_id(session, call_id, raw),
         )
 
     async def _resume_with(

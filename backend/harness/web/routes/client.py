@@ -33,7 +33,7 @@ def build_router(web: WebChannel, client_tools: ClientToolService) -> APIRouter:
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
         session = await web.sessions.resume(conversation_id)
-        accepted = client_tools.accept_call(session, call_id, body)
+        accepted = client_tools.accept_by_call_id(session, call_id, body)
         if isinstance(accepted, Refused):
             raise HTTPException(STATUS[accepted], detail=f"call {call_id!r}: {accepted.value}")
         try:

@@ -118,7 +118,7 @@ async def test_deny_writes_a_denied_result_the_model_reads(tmp_path) -> None:
     runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
     service = ClientToolService(ClientTools(()), _gate(tmp_path, WRITE))
-    accepted = service.accept_call(session, "c1", {"kind": "denied"})
+    accepted = service.accept_by_call_id(session, "c1", {"kind": "denied"})
     assert isinstance(accepted, Accepted) and isinstance(accepted.outcome, Failure)
     assert accepted.outcome.code == DENIED
 
@@ -172,14 +172,14 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     runtime = _runtime(client, gate, _writer(ran))
     service = ClientToolService(ClientTools(()), gate)
     await drain(runtime.run("remember both", session=session, bot_id="b"))
-    assert {p.call_id for p in service.pending(session)} == {"c1", "c2"}
+    assert {p.call_id for p in service.answerable_calls(session)} == {"c1", "c2"}
 
     first = await drain(runtime.resume("c1", Approved(scope="once"), session=session, bot_id="b"))
 
     assert ran == ["Kopi"]
     assert first[-1] == AgentPending(tool_call_id="c2", name=WRITE)
     assert session.events()[-1] == TurnEnd(turn=1, reason="pending")
-    assert [p.call_id for p in service.pending(session)] == ["c2"]
+    assert [p.call_id for p in service.answerable_calls(session)] == ["c2"]
     assert client.calls == 1
 
     second = await drain(runtime.resume("c2", Approved(scope="once"), session=session, bot_id="b"))

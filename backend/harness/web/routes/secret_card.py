@@ -51,7 +51,7 @@ def build_router(
         asked = next(
             (
                 pending
-                for pending in client_tools.pending(session)
+                for pending in client_tools.answerable_calls(session)
                 if pending.call_id == call_id and pending.name == ASK_FOR_SECRET
             ),
             None,

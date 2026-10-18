@@ -244,7 +244,7 @@ async def test_an_answer_from_the_page_is_still_delivered_to_the_chat(tmp_path) 
     assert state is not None
 
     session = await sessions.resume(state.conversation_id)
-    accepted = tools.accept_call(session, "c1", {"kind": "declined"})
+    accepted = tools.accept_by_call_id(session, "c1", {"kind": "declined"})
     assert not isinstance(accepted, Refused)
     await gateway.resume(session, accepted.call_id, accepted.outcome)
     await settle(runs, gateway)
