@@ -1,13 +1,14 @@
-"""One streamed Chat Completions line, read once into a typed frame."""
+"""One streamed Chat Completions line, read once into a typed chunk."""
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from dataclasses import dataclass
 
 from pydantic import JsonValue, TypeAdapter, ValidationError
 
+from harness.llm.adapters.openai.models.chunk import Chunk
+from harness.llm.adapters.openai.models.tool_delta import ToolDelta
 from harness.llm.models.stream import Usage
 from harness.llm.models.tools import ExtraContent
 
@@ -16,36 +17,15 @@ logger = logging.getLogger("harness.llm.openai")
 _EXTRA_CONTENT = TypeAdapter(ExtraContent)
 
 
-@dataclass(frozen=True)
-class CallPiece:
-    """What one tool call fragment said, `None` where it said nothing usable."""
-
-    index: int | None
-    id: str | None
-    name: str | None
-    arguments: str | None
-    extra_content: ExtraContent | None
-
-
-@dataclass(frozen=True)
-class Frame:
-    """What one line adds: its text, its tool call pieces, its token count, whether it failed."""
-
-    text: str
-    pieces: tuple[CallPiece, ...]
-    usage: Usage | None
-    failed: bool
-
-
-def frame_of(payload: dict[str, JsonValue]) -> Frame:
-    """The frame one parsed line says, each field left out when it is not the type it should be."""
+def chunk_of(payload: dict[str, JsonValue]) -> Chunk:
+    """The chunk one parsed line says, each field left out when it is not the type it should be."""
     if payload.get("error"):
-        return Frame(text="", pieces=(), usage=None, failed=True)
+        return Chunk(text="", tool_deltas=(), usage=None, failed=True)
     delta = _delta(payload)
     content = delta.get("content")
-    return Frame(
+    return Chunk(
         text=content if isinstance(content, str) else "",
-        pieces=_call_pieces(delta),
+        tool_deltas=_tool_deltas(delta),
         usage=_usage(payload),
         failed=False,
     )
@@ -73,21 +53,21 @@ def _delta(payload: Mapping[str, JsonValue]) -> Mapping[str, JsonValue]:
     return delta if isinstance(delta, dict) else {}
 
 
-def _call_pieces(delta: Mapping[str, JsonValue]) -> tuple[CallPiece, ...]:
+def _tool_deltas(delta: Mapping[str, JsonValue]) -> tuple[ToolDelta, ...]:
     """Each tool call fragment in `delta` that is an object."""
     pieces = delta.get("tool_calls")
     if not isinstance(pieces, list):
         return ()
-    return tuple(_call_piece(piece) for piece in pieces if isinstance(piece, dict))
+    return tuple(_tool_delta(piece) for piece in pieces if isinstance(piece, dict))
 
 
-def _call_piece(raw: Mapping[str, JsonValue]) -> CallPiece:
+def _tool_delta(raw: Mapping[str, JsonValue]) -> ToolDelta:
     """One fragment, each field kept only when it has the type the wire promises."""
     function = raw.get("function")
     fields = function if isinstance(function, dict) else {}
     index, call_id = raw.get("index"), raw.get("id")
     name, arguments = fields.get("name"), fields.get("arguments")
-    return CallPiece(
+    return ToolDelta(
         index=index if isinstance(index, int) else None,
         id=call_id if isinstance(call_id, str) else None,
         name=name if isinstance(name, str) else None,

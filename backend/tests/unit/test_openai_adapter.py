@@ -10,7 +10,7 @@ import pytest
 from harness.config.sections import LLMSettings
 from harness.llm import Completed, Failed, Image, TextChunk, UserMessage
 from harness.llm.adapters import ImageReader, OpenAIClient
-from harness.llm.adapters import openai as adapter_module
+from harness.llm.adapters.openai import client as adapter_module
 
 
 def settings() -> LLMSettings:

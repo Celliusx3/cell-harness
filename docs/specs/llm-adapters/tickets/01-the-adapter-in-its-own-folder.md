@@ -1,6 +1,6 @@
 # 01 · The OpenAI adapter in its own folder, its models apart
 
-**Status.** open
+**Status.** done
 
 **What to build.** The files in `backend/harness/llm/adapters/` move into `adapters/openai/`. No logic changes. `openai/__init__.py` and `openai/models/__init__.py` are one-line docstrings.
 

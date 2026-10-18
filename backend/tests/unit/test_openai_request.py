@@ -7,7 +7,7 @@ import json
 import httpx
 
 from harness.llm import SystemMessage
-from harness.llm.adapters._openai_wire import wire_messages
+from harness.llm.adapters.openai._request import openai_messages
 from tests.unit.test_openai_adapter import collect, sse
 
 
@@ -34,6 +34,6 @@ async def test_the_request_goes_to_chat_completions_with_the_key_and_the_whole_b
 
 
 def test_a_system_message_is_sent_as_its_role_and_its_text() -> None:
-    assert wire_messages([SystemMessage(content="be brief")], {}) == [
+    assert openai_messages([SystemMessage(content="be brief")], {}) == [
         {"role": "system", "content": "be brief"}
     ]

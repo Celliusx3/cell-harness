@@ -6,7 +6,7 @@ import json
 from contextlib import aclosing
 
 from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
-from harness.llm.adapters._openai_wire import wire_messages
+from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.tools.definition import Ok, ToolDefinition
@@ -68,7 +68,7 @@ def test_the_adapter_spells_a_reference_out_for_a_wire_without_blocks() -> None:
         tool_call_id="c1", content=(Text(text="declare …"), ToolReference(tool_name="a"))
     )
 
-    wire = wire_messages([message], {})[0]
+    wire = openai_messages([message], {})[0]
 
     assert wire["role"] == "tool" and wire["tool_call_id"] == "c1"
     assert wire["content"].startswith("declare …")

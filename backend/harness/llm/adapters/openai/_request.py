@@ -1,4 +1,4 @@
-"""Our messages and tools in the Chat Completions shape."""
+"""Our messages and tools as OpenAI's request."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ JsonObject = dict[str, JsonValue]
 WireContent = str | list[JsonObject]
 
 
-def wire_messages(
+def openai_messages(
     messages: Sequence[Message], image_bytes: Mapping[str, bytes]
 ) -> list[JsonObject]:
     """Every message in the provider's shape, tool images in a user message after the results."""
@@ -34,7 +34,7 @@ def wire_messages(
         if held and not isinstance(message, ToolMessage):
             wired.append(_tool_images_message(held, image_bytes))
             held = []
-        wired.append(_wire_message(message, image_bytes))
+        wired.append(_openai_message(message, image_bytes))
         if isinstance(message, ToolMessage):
             held.extend(_readable_images(message.content, image_bytes))
     if held:
@@ -51,7 +51,7 @@ def _readable_images(blocks: tuple[Block, ...], image_bytes: Mapping[str, bytes]
     return [b for b in blocks if isinstance(b, Image) and b.sha256 in image_bytes]
 
 
-def _wire_message(message: Message, image_bytes: Mapping[str, bytes]) -> JsonObject:
+def _openai_message(message: Message, image_bytes: Mapping[str, bytes]) -> JsonObject:
     """One message in the provider's shape."""
     if isinstance(message, AssistantMessage) and message.tool_calls:
         return {
@@ -144,7 +144,7 @@ def _data_url(image: Image, data: bytes) -> str:
     return f"data:{image.media_type};base64,{base64.b64encode(data).decode('ascii')}"
 
 
-def wire_tool(spec: ToolSpec) -> JsonObject:
+def openai_tool(spec: ToolSpec) -> JsonObject:
     """One tool declaration in the provider's shape."""
     return {
         "type": "function",
@@ -154,3 +154,20 @@ def wire_tool(spec: ToolSpec) -> JsonObject:
             "parameters": spec.input_schema,
         },
     }
+
+
+def request_body(
+    model: str, messages: list[JsonObject], tools: list[ToolSpec] | None, temperature: float
+) -> JsonObject:
+    """The streamed completion request, asking for usage, with tools only when there are some."""
+    body: JsonObject = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    if tools:
+        # Some providers reject `"tools": []`, so the key is omitted when empty.
+        body["tools"] = [openai_tool(t) for t in tools]
+    return body

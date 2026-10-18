@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from harness.llm import CONTEXT_WINDOW_EXCEEDED, Failed
-from harness.llm.adapters._errors import failure_code
+from harness.llm.adapters.openai._errors import failure_code
 from tests.unit.test_openai_adapter import collect
 
 ILMU_GLM_OCR = (
