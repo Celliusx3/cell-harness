@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, ConfigDict
 
 from harness.bots import Bot, BotService
-from harness.secrets import Destination, SecretNotFound, SecretService, SecretSummary
+from harness.secrets import Destination, SecretService, SecretSummary
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +40,7 @@ def build_router(secrets: SecretService, bots: BotService) -> APIRouter:
 
     @router.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_secret(name: str) -> Response:
-        try:
-            secrets.delete(name)
-        except SecretNotFound as err:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
+        secrets.delete(name)
         bots.forget_secret(name)
         logger.info("key %r removed from the keyring and every bot", name)
         return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -10,7 +10,6 @@ from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
 from harness.runtime.compaction import CompactionRefused
-from harness.session.repository import SessionNotFoundError
 
 logger = logging.getLogger("harness.web")
 
@@ -24,10 +23,7 @@ def build_router(web: WebChannel) -> APIRouter:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
-        try:
-            session = await web.sessions.resume(conversation_id)
-        except SessionNotFoundError as err:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
+        session = await web.sessions.resume(conversation_id)
         try:
             web.gateway.compact(session, ())
         except CompactionRefused as err:
