@@ -13,8 +13,7 @@ from mcp.server.apps import APP_MIME_TYPE
 from harness.config.sections import McpServer
 from harness.mcp import connection as connection_module
 from harness.mcp.service import McpService
-from harness.tools.definition import Failure, Ok, ToolUi
-from harness.tools.registry import ToolRegistry
+from harness.tools import Failure, Ok, ToolRegistry, ToolUi
 from tests.unit.helpers import context_for
 
 STUB = Path(__file__).resolve().parent.parent / "mcp_stub.py"

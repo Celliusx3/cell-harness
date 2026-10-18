@@ -19,12 +19,20 @@ from harness.session.models import (
     TurnEnd,
 )
 from harness.session.repair import REPAIRED
-from harness.tools.approval import DENIED, ApprovalGate, Approved
+from harness.tools import (
+    BLOCKED,
+    ApprovalGate,
+    Approved,
+    Failure,
+    Ok,
+    ToolDefinition,
+    ToolDispatcher,
+    ToolOutcome,
+    ToolPipeline,
+    ToolRegistry,
+)
+from harness.tools.approval import DENIED
 from harness.tools.client import Accepted, ClientTools, ClientToolService
-from harness.tools.definition import BLOCKED, Failure, Ok, ToolDefinition, ToolOutcome
-from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.code_fakes import FakeRunner, build, tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed, reporting_tool
 from tests.unit.helpers import drain, new_session

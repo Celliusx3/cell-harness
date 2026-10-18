@@ -12,7 +12,7 @@ from harness.mcp.tool import FILES_META, mcp_tool, outcome_of
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import ToolResultEvent
-from harness.tools.definition import EXECUTION_ERROR, Failure, Ok
+from harness.tools import EXECUTION_ERROR, Failure, Ok
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import drain, new_session, pipeline_for
 from tests.unit.mcp_fakes import tool

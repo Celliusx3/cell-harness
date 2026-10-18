@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
 from harness.tools.native.files import make_archive_tool
 from tests.unit.archive_fakes import chat_folder, drawn_png, making
 from tests.unit.helpers import context_for

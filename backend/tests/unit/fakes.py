@@ -18,8 +18,7 @@ from harness.llm import (
     ToolCallChunk,
     ToolSpec,
 )
-from harness.tools.context import ToolContext
-from harness.tools.definition import Ok, Pending, ToolDefinition, ToolOutcome
+from harness.tools import Ok, Pending, ToolContext, ToolDefinition, ToolOutcome
 
 
 class ScriptedClient(LLMClient):

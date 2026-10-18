@@ -22,7 +22,7 @@ from harness.runs.service import RunService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.web.server import create_app
 from tests.unit.helpers import client_tools as default_client_tools

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel
 
-from harness.tools.definition import Ok, ToolDefinition
+from harness.tools import Ok, ToolDefinition
 from harness.tools.native.code.typescript import MAX_DEPTH, declarations
 
 

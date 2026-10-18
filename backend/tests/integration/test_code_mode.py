@@ -11,12 +11,16 @@ import pytest
 
 from harness.llm import ToolCall
 from harness.sandbox import DenoRunner
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
-from harness.tools.dispatcher import ToolDispatcher
+from harness.tools import (
+    Ok,
+    ToolDefinition,
+    ToolDispatcher,
+    ToolOutcome,
+    ToolPipeline,
+    ToolRegistry,
+)
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.code.typescript import declarations
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from tests.unit.helpers import ORIGIN, no_gate, no_progress
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")

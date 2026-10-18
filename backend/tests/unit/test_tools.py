@@ -5,18 +5,19 @@ from __future__ import annotations
 import pytest
 
 from harness.llm import Text, ToolCall, ToolMessage
-from harness.tools.definition import (
+from harness.tools import (
     EXECUTION_ERROR,
     INVALID_ARGUMENTS,
     REFUSED,
     Failure,
     Ok,
     ToolDefinition,
+    ToolDispatcher,
+    ToolPipeline,
+    ToolRegistry,
     render_outcome,
 )
-from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import DuplicateToolError, ToolRegistry
+from harness.tools.registry import DuplicateToolError
 from tests.unit.fakes import echo_tool, raising_tool
 from tests.unit.helpers import ORIGIN, no_gate, no_progress, pipeline_for
 

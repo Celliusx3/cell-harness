@@ -12,8 +12,7 @@ from harness.llm import ToolCall
 from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.approval import ApprovalGate
-from harness.tools.definition import Failure, Ok
+from harness.tools import ApprovalGate, Failure, Ok
 from harness.tools.native.code import EXECUTE, LIST
 from harness.tools.native.files import (
     EXTRACT_ARCHIVE,

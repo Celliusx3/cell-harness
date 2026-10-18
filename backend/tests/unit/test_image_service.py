@@ -13,7 +13,7 @@ from harness.files import ChatFile
 from harness.images import IMAGE_MAX_BYTES, DiskImageRepository, ImageFile, ImageService
 from harness.llm import Image, Text
 from harness.prompts import IMAGE_TOO_LARGE
-from harness.tools.definition import ReturnedImage
+from harness.tools import ReturnedImage
 from tests.mcp_stub import DOT_PNG
 
 DOT = base64.b64decode(DOT_PNG)

@@ -9,6 +9,6 @@
 - `pending_tool_calls` → `still_pending` (`client/pending.py`, the client door, `channels/replies.py`).
 - Private helpers: `ToolDefinition._missing_required` → `_missing_required_message`, `ToolDispatcher._unknown` → `_unknown_tool_message`, `ToolPipeline._offered` → `_offered_tools`, `pipeline._not_offered` → `_not_offered_message`, `ApprovalGate._write` → `_write_grants`.
 
-**Checks.** `make lint` and `make test` green (1486 passed). `git grep -nwE "render_outcome|pending_tool_calls|_missing_required|_unknown|_offered|_not_offered" -- . ':!docs/specs'` finds nothing, nor does a search for `\.approve(`, `\.asks(`, `\.granted(` and `\._write(` in `backend/`. Break: make `should_ask` return `False`; the approval tests fail.
+**Checks.** `make lint` and `make test` green (1488 passed). `git grep -nwE "render_outcome|pending_tool_calls|_missing_required|_unknown|_offered|_not_offered" -- . ':!docs/specs'` finds nothing, nor does a search for `\.approve(`, `\.asks(`, `\.granted(` and `\._write(` in `backend/`. Break: make `should_ask` return `False`; the approval tests fail.
 
 **Blocked by.** 03

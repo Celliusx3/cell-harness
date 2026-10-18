@@ -7,8 +7,8 @@ import re
 import pytest
 from pydantic import ValidationError
 
+from harness.tools import Ok
 from harness.tools.client import ClientTools, ClientToolService
-from harness.tools.definition import Ok
 from harness.tools.native.question import QUESTION, QUESTION_TOOL, Answer, Question
 from tests.unit.helpers import no_gate
 

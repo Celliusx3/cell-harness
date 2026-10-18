@@ -22,8 +22,7 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
 )
-from harness.tools.context import CallOrigin, ToolContext
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome, ToolUi
+from harness.tools import CallOrigin, Ok, ToolContext, ToolDefinition, ToolOutcome, ToolUi
 from tests.unit.fakes import (
     EchoArgs,
     SteppedClient,

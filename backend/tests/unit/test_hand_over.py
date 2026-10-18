@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, Pending, ToolDefinition
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Pending, ToolDefinition
 from harness.tools.native.hand_over import HAND_OVER
 from harness.tools.native.hand_over.models import STEP_MAX_LENGTH
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS

@@ -20,8 +20,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
-from harness.tools.definition import Ok
-from harness.tools.dispatcher import ToolDispatcher
+from harness.tools import Ok, ToolDispatcher
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code import DETAILS, EXECUTE, LIST
 from harness.web import runtime as composition

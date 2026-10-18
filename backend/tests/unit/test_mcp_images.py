@@ -13,7 +13,7 @@ from harness.llm import Image, Text, ToolMessage
 from harness.mcp.tool import mcp_tool, outcome_of
 from harness.prompts import IMAGE_TOO_LARGE
 from harness.runtime.service import Runtime
-from harness.tools.definition import Ok, ReturnedImage
+from harness.tools import Ok, ReturnedImage
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import drain, new_session, pipeline_for

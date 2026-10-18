@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from harness.sandbox import Bridge, BridgeError, Script
-from harness.tools.context import CallOrigin, ToolContext
-from harness.tools.definition import (
+from harness.tools import (
     EXECUTION_ERROR,
+    CallOrigin,
     Failure,
     Ok,
     ReturnedImage,
+    ToolContext,
     ToolDefinition,
     ToolOutcome,
 )

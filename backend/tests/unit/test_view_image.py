@@ -16,7 +16,7 @@ from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.definition import INVALID_ARGUMENTS, REFUSED, UNKNOWN_TOOL, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, REFUSED, UNKNOWN_TOOL, Failure, Ok
 from harness.tools.native.files import VIEW_IMAGE, view_image_tool
 from harness.web.runtime import (
     DEFAULT_TOOLS,

@@ -12,6 +12,6 @@
 
 Each door exports the same names. Tests that import a moved name by path follow.
 
-**Checks.** `make lint` and `make test` green (1486 passed). Every native tool's name, description and input schema, saved to a scratch file before the move, are identical after it. Break: raise `MAX_SUBAGENTS` to 5; the subagent test that sends five tasks fails.
+**Checks.** `make lint` and `make test` green (1488 passed). Every native tool's name, description and input schema, saved to a scratch file before the move, are identical after it. Break: raise `MAX_SUBAGENTS` to 5; the subagent test that sends five tasks fails.
 
 **Blocked by.** 03

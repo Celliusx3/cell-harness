@@ -10,6 +10,6 @@
 
 Each name moves unchanged, with its docstring. `definition.py` keeps `NAMESPACE` and `ToolDefinition`; `approval.py` keeps `StandingGrants` and `ApprovalGate`. Every import inside `backend/harness/tools/` follows (the door, `registry`, `dispatcher`, `pipeline`, `client/`, `native/`), and so do the tests that import `DENIED`, `Denied` or `ToolProgressReporter` by path. The tools line of the layout in `CLAUDE.md` follows.
 
-**Checks.** `make lint` and `make test` green (1486 passed). `git grep -nE "harness\.tools\.(context|progress)\b|tools/(context|progress)\.py" -- . ':!docs/specs'` finds nothing. Break: change `Approved`'s `kind` literal to `"approve"`; the approval tests fail.
+**Checks.** `make lint` and `make test` green (1488 passed). `git grep -nE "harness\.tools\.(context|progress)\b|tools/(context|progress)\.py" -- . ':!docs/specs'` finds nothing. Break: change `Approved`'s `kind` literal to `"approve"`; the approval tests fail.
 
 **Blocked by.** 02

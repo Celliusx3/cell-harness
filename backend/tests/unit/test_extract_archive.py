@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
 from harness.tools.native.files import extract_archive_tool
 from harness.tools.native.files.archive import ArchiveError, copy_within
 from tests.unit.archive_fakes import (

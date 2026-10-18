@@ -18,9 +18,15 @@ from harness.session.log import Session
 from harness.session.models import ToolResultEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.approval import ApprovalGate
-from harness.tools.context import ToolContext
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome
+from harness.tools import (
+    INVALID_ARGUMENTS,
+    ApprovalGate,
+    Failure,
+    Ok,
+    ToolContext,
+    ToolDefinition,
+    ToolOutcome,
+)
 from harness.tools.native.code import EXECUTE, LIST
 from harness.tools.native.files import SEND_FILE, send_file_tool
 from harness.web.runtime import (

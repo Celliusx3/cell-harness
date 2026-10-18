@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from harness.tools.definition import EXECUTION_ERROR, Failure, Ok
+from harness.tools import EXECUTION_ERROR, Failure, Ok
 from harness.tools.native.clock import clock_tool
 from tests.unit.helpers import context_for
 

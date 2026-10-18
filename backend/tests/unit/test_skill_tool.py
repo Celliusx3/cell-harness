@@ -8,7 +8,7 @@ from pathlib import Path
 from harness.skills import SKILL, skill_tool
 from harness.skills.models import Skill
 from harness.skills.prompt import instructions
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from tests.unit.helpers import context_for, no_skills, skills_at
 
 

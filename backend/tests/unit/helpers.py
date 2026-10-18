@@ -22,13 +22,17 @@ from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools.approval import ApprovalGate
+from harness.tools import (
+    ApprovalGate,
+    CallOrigin,
+    ToolContext,
+    ToolDefinition,
+    ToolDispatcher,
+    ToolPipeline,
+    ToolRegistry,
+)
 from harness.tools.client import ClientToolService
-from harness.tools.context import CallOrigin, ToolContext
-from harness.tools.definition import ToolDefinition
-from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolProvider, ToolRegistry
+from harness.tools.registry import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
 
 

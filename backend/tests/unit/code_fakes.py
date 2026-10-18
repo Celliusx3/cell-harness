@@ -7,12 +7,16 @@ from dataclasses import dataclass, field
 
 from harness.llm import ToolCall
 from harness.sandbox import Bridge, DenoUnavailableError, Runner, Script
-from harness.tools.approval import ApprovalGate
-from harness.tools.context import CallOrigin
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
-from harness.tools.dispatcher import ToolDispatcher
+from harness.tools import (
+    ApprovalGate,
+    CallOrigin,
+    Ok,
+    ToolDefinition,
+    ToolDispatcher,
+    ToolOutcome,
+    ToolRegistry,
+)
 from harness.tools.native.code import code_mode_tools
-from harness.tools.registry import ToolRegistry
 from tests.unit.helpers import context_for, no_gate
 
 

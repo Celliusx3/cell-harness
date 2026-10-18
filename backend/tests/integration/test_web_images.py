@@ -14,7 +14,7 @@ from harness.bots import ASSISTANT_ID
 from harness.config.sections import McpServer
 from harness.llm import Image, ToolMessage, UserMessage
 from harness.mcp.service import McpService
-from harness.tools.registry import ToolRegistry
+from harness.tools import ToolRegistry
 from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed

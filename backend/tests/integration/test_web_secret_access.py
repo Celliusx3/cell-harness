@@ -9,7 +9,7 @@ import httpx
 
 from harness.bots import ASSISTANT_ID, BotDraft, GroupDraft
 from harness.secrets import SecretService
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
 from harness.web.runtime import CLIENT_TOOLS

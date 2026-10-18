@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 from harness.llm import ToolCall
-from harness.tools.definition import UNKNOWN_TOOL, Failure, Ok
-from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.registry import ToolRegistry
+from harness.tools import UNKNOWN_TOOL, Failure, Ok, ToolDispatcher, ToolRegistry
 from tests.unit.fakes import echo_tool
 from tests.unit.helpers import ORIGIN, no_gate, no_progress
 

@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.subagent import (
     RUN_SUBAGENT,
     SubagentAnswered,

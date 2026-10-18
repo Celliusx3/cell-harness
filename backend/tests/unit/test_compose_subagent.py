@@ -19,7 +19,7 @@ from harness.session.models import TurnStart
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
-from harness.tools.definition import Ok
+from harness.tools import Ok
 from harness.tools.native.code import LIST
 from harness.tools.native.location import LOCATION
 from harness.tools.native.question import QUESTION

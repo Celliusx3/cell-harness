@@ -14,7 +14,7 @@ from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import parse
-from harness.tools.definition import Ok
+from harness.tools import Ok
 from harness.tools.native.code import EXECUTE
 from harness.web.runtime import build_runtime
 from tests.unit.helpers import ORIGIN, client_tools, no_bots, no_gate, no_progress, skills_at

@@ -10,9 +10,8 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm import Completed, ToolCall, ToolCallChunk
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate, Ok, ToolDefinition, ToolOutcome
 from harness.tools.client import PendingCall
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from tests.unit.fakes import EchoArgs, SteppedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
 

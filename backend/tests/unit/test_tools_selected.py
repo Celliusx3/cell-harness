@@ -9,11 +9,9 @@ from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
 from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
-from harness.tools.definition import Ok, ToolDefinition
-from harness.tools.dispatcher import ToolDispatcher
+from harness.tools import Ok, ToolDefinition, ToolDispatcher, ToolPipeline, ToolRegistry
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
-from harness.tools.pipeline import MAX_TOOLS_SELECTED, ToolPipeline
-from harness.tools.registry import ToolRegistry
+from harness.tools.pipeline import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
 from tests.unit.helpers import ORIGIN, new_session, no_gate, no_progress

@@ -15,7 +15,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
-from harness.tools.definition import Ok
+from harness.tools import Ok
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code import EXECUTE, LIST
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE

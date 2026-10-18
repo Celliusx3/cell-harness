@@ -21,7 +21,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.tools.definition import Failure, Ok
+from harness.tools import Failure, Ok
 from harness.tools.native.bots import MESSAGE_BOT, message_bot_tool
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
 from tests.unit.helpers import durable_service
