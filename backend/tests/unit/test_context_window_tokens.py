@@ -54,6 +54,13 @@ def test_an_endpoint_that_does_not_say_yields_none(monkeypatch) -> None:
     assert context_window_tokens(settings()) is None
 
 
+def test_a_window_that_is_not_positive_is_not_trusted(monkeypatch) -> None:
+    for length in (0, -1):
+        body = json.dumps({"data": [{"id": "m", "context_length": length}]}).encode()
+        patched(monkeypatch, lambda r, body=body: httpx.Response(200, content=body))
+        assert context_window_tokens(settings()) is None
+
+
 def test_a_missing_model_a_bad_body_and_a_dead_endpoint_yield_none(monkeypatch) -> None:
     for handler in (
         lambda r: httpx.Response(200, content=b'{"data":[{"id":"other","context_length":5}]}'),

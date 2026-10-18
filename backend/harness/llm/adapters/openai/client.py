@@ -1,4 +1,4 @@
-"""Every call the adapter makes to OpenAI: the chat stream and the model listing."""
+"""Every call the adapter makes to OpenAI: the chat stream and the list of models."""
 
 from __future__ import annotations
 
@@ -6,13 +6,14 @@ import logging
 from collections.abc import AsyncIterator, Callable, Sequence
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 
 from harness.config.sections import LLMSettings
 from harness.llm.adapters.openai._errors import failure_code
 from harness.llm.adapters.openai._request import openai_messages, request_body
 from harness.llm.adapters.openai._streaming import chunks_of
 from harness.llm.adapters.openai._tool_calls import ToolCallAssembler
+from harness.llm.adapters.openai.models.model_list import ModelList
 from harness.llm.client import LLMClient
 from harness.llm.models.blocks import Image
 from harness.llm.models.messages import Message, images_of
@@ -112,33 +113,18 @@ class OpenAIClient(LLMClient):
         yield Completed(full_text=accumulated, tool_calls=tuple(assembled), usage=usage)
 
 
-class _ListedModel(BaseModel):
-    """One entry of the listing, narrowed to what we read."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    id: str
-    context_length: int | None = Field(default=None, gt=0)
-
-
-class _Listing(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    data: list[_ListedModel] = []
-
-
 def context_window_tokens(settings: LLMSettings) -> int | None:
-    """`context_length` of `settings.model` from the endpoint's listing, or `None`."""
+    """`context_length` of `settings.model` from the endpoint's list of models, or `None`."""
     url = _endpoint(settings, "models")
     try:
         with httpx.Client(timeout=settings.timeout_seconds) as http:
             response = http.get(url, headers=_auth_headers(settings))
             response.raise_for_status()
-            listing = _Listing.model_validate_json(response.content)
+            model_list = ModelList.model_validate_json(response.content)
     except (httpx.HTTPError, ValidationError) as err:
         logger.warning("could not read %s: %s", url, err)
         return None
-    for entry in listing.data:
-        if entry.id == settings.model:
-            return entry.context_length
+    for info in model_list.data:
+        if info.id == settings.model:
+            return info.context_length
     return None
