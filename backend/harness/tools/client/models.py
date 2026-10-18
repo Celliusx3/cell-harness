@@ -46,7 +46,7 @@ ClientOutput = Shared[BaseModel] | Declined | Unavailable
 
 @dataclass(frozen=True)
 class ClientTool[ArgsT: BaseModel, DataT: BaseModel]:
-    """One datum the client can provide — everything a new one has to say."""
+    """One datum the client can provide."""
 
     name: str
     description: str

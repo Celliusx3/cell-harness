@@ -6,8 +6,6 @@ import json
 import logging
 from collections.abc import Callable
 
-from pydantic import BaseModel
-
 from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
@@ -64,7 +62,7 @@ def code_mode_tools(
     ]
 
 
-def _list_tool(available: Catalog) -> ToolDefinition[BaseModel]:
+def _list_tool(available: Catalog) -> ToolDefinition[NoArgs]:
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         found = available()
         if not found:

@@ -50,7 +50,7 @@ class Ok:
 
     @property
     def text(self) -> str:
-        """The prose alone — for a reader that wants a string, like the bridge."""
+        """The prose alone."""
         return text_of(self.content)
 
 
