@@ -50,6 +50,14 @@ class RetryStep:
     """The history was shrunk after a size refusal: run the same step again."""
 
 
+@dataclass(frozen=True)
+class TurnStep:
+    """Where a step's appends land in the log: its turn, and its number within it."""
+
+    turn: int
+    step: int
+
+
 async def run_turn(
     runtime: Runtime, session: Session, turn: int, *, bot_id: str
 ) -> AsyncIterator[TurnEvent]:
@@ -60,9 +68,7 @@ async def run_turn(
     try:
         for step in itertools.count():
             session.append(StepStart(turn=turn, step=step))
-
-            if should_compact(runtime, session):
-                await _shrink_history(runtime, session, turn=turn, trigger="auto")
+            await _shrink_history_when_due(runtime, session, turn=turn)
 
             reply: Completed | Failed | RetryStep | None = None
             async with aclosing(_stream_reply(runtime, session, turn=turn, step=step)) as chunks:
@@ -73,24 +79,13 @@ async def run_turn(
                         reply = event
             assert reply is not None
 
-            if isinstance(reply, RetryStep):
-                continue
-            if isinstance(reply, Failed):
-                _close(session, turn, step, "failed")
-                outcome = AgentFailed(reason=reply.reason)
-                break
-
-            if not reply.tool_calls:
-                decision = await runtime.hooks.end_of_step(session=session)
-                if isinstance(decision, GiveUp):
-                    _close(session, turn, step, "failed")
-                    outcome = AgentFailed(reason=decision.reason)
-                    break
-                if isinstance(decision, Tell):
-                    _tell(session, turn, step, decision.note)
+            if isinstance(reply, (RetryStep, Failed)) or not reply.tool_calls:
+                ended = await _outcome_without_tools(
+                    runtime, session, reply, at=TurnStep(turn=turn, step=step)
+                )
+                if ended is None:
                     continue
-                _close(session, turn, step, "completed")
-                outcome = AgentCompleted(text=reply.full_text)
+                outcome = ended
                 break
 
             pending: ToolPending | None = None
@@ -117,6 +112,32 @@ async def run_turn(
         _close(session, turn, step, "cancelled")
         raise
     yield outcome
+
+
+async def _shrink_history_when_due(runtime: Runtime, session: Session, *, turn: int) -> None:
+    """Compact before the step's request when the history has grown past its line."""
+    if should_compact(runtime, session):
+        await _shrink_history(runtime, session, turn=turn, trigger="auto")
+
+
+async def _outcome_without_tools(
+    runtime: Runtime, session: Session, reply: Completed | Failed | RetryStep, *, at: TurnStep
+) -> AgentCompleted | AgentFailed | None:
+    """A step whose reply runs no tools: the turn's outcome, or `None` to run another step."""
+    if isinstance(reply, RetryStep):
+        return None
+    if isinstance(reply, Failed):
+        _close(session, at.turn, at.step, "failed")
+        return AgentFailed(reason=reply.reason)
+    decision = await runtime.hooks.end_of_step(session=session)
+    if isinstance(decision, GiveUp):
+        _close(session, at.turn, at.step, "failed")
+        return AgentFailed(reason=decision.reason)
+    if isinstance(decision, Tell):
+        _tell(session, at.turn, at.step, decision.note)
+        return None
+    _close(session, at.turn, at.step, "completed")
+    return AgentCompleted(text=reply.full_text)
 
 
 async def _stream_reply(
@@ -149,12 +170,7 @@ async def _stream_reply(
 
         if failed is not None or completed is None:
             failure = failed if failed is not None else Failed(reason=NO_TERMINAL)
-            if failure.code == CONTEXT_WINDOW_EXCEEDED and await _shrink_history(
-                runtime, session, turn=turn, trigger="overflow"
-            ):
-                yield RetryStep()
-            else:
-                yield failure
+            yield await _failure_or_retry(runtime, session, failure, turn=turn)
             return
 
         session.append(
@@ -169,16 +185,32 @@ async def _stream_reply(
         )
         yield completed
     except BaseException:
-        if partial:
-            session.append(
-                AssistantMessageEvent(
-                    turn=turn,
-                    step=step,
-                    message=AssistantMessage(content=partial),
-                    interrupted=True,
-                )
-            )
+        _log_interrupted_reply(session, partial, turn=turn, step=step)
         raise
+
+
+async def _failure_or_retry(
+    runtime: Runtime, session: Session, failure: Failed, *, turn: int
+) -> Failed | RetryStep:
+    """`RetryStep` when the request was too big and the history shrank, else the failure."""
+    if failure.code == CONTEXT_WINDOW_EXCEEDED and await _shrink_history(
+        runtime, session, turn=turn, trigger="overflow"
+    ):
+        return RetryStep()
+    return failure
+
+
+def _log_interrupted_reply(session: Session, partial: str, *, turn: int, step: int) -> None:
+    """Log the text the person already saw, when there is any, as an interrupted reply."""
+    if partial:
+        session.append(
+            AssistantMessageEvent(
+                turn=turn,
+                step=step,
+                message=AssistantMessage(content=partial),
+                interrupted=True,
+            )
+        )
 
 
 async def _shrink_history(
