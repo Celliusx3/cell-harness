@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from harness.bots import discussion
+from harness.bots import _turn_order
 from harness.bots.models import (
     ASSISTANT_ID,
     ASSISTANT_NAME,
@@ -92,7 +92,7 @@ class BotService:
     def first_speaker(self, session: Session, text: str) -> Bot:
         """Who answers `text` first, its instructions and group logged; `GroupEmpty` if none can."""
         members = self.members_of_chat(session.id)
-        speakers = discussion.first_speakers(text, members.bots)
+        speakers = _turn_order.first_speakers(text, members.bots)
         if not speakers:
             raise GroupEmpty(session.id)
         _log_speaker(session, members, speakers[0])
@@ -101,7 +101,7 @@ class BotService:
     def next_speaker(self, session: Session) -> Bot | None:
         """Who the queue says is next, its instructions and group logged; `None` when nobody is."""
         members = self.members_of_chat(session.id)
-        speaker = discussion.next_speaker(session.events(), members.bots)
+        speaker = _turn_order.next_speaker(session.events(), members.bots)
         if speaker is None:
             return None
         _log_speaker(session, members, speaker)

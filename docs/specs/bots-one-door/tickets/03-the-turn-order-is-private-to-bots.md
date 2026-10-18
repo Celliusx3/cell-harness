@@ -1,6 +1,6 @@
 # 03 · The turn order is private to the bots package
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `backend/harness/bots/discussion.py` becomes `backend/harness/bots/_turn_order.py`, unchanged inside except its first line, which says it is the turn order in a chat. `bots/service.py` imports it as a module and calls `_turn_order.first_speakers(...)` and `_turn_order.next_speaker(...)`.

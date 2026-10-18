@@ -1,4 +1,4 @@
-"""Who speaks next in a chat: the person's mentions queue its bots, and theirs join the queue."""
+"""Turn order in a chat: the person's mentions queue its bots, and theirs join the queue."""
 
 from __future__ import annotations
 
