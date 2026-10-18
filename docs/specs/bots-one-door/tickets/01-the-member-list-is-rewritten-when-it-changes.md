@@ -1,6 +1,6 @@
 # 01 · A group's member list is written again when a member leaves
 
-**Status.** open
+**Status.** done
 
 **What to build.** One test in `backend/tests/integration/test_web_groups.py`, on the code as it is: in the group Launch of Researcher and Writer, archive Writer, send a message, and the chat's last `group/members` event before the new `turn/start` names only Researcher.
 
