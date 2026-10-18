@@ -55,7 +55,7 @@ class FakeWhatsApp:
         self.sent.append((chat_id, f"{request.name}\n{url}"))
 
 
-def build(tmp_path):
+def build(tmp_path, reply: str = "answered"):
     ids = iter(f"c{n}" for n in range(100))
     sessions = SessionService(
         JsonlSessionRepository(tmp_path / "sessions"),
@@ -64,7 +64,7 @@ def build(tmp_path):
     )
     runtime = Runtime(
         model="m",
-        client=ScriptedClient(completed("answered")),
+        client=ScriptedClient(completed(reply)),
         images=None,
         checkpoint=sessions.flush,
     )
@@ -96,6 +96,17 @@ async def test_a_second_platform_needs_no_shared_changes(tmp_path) -> None:
     await settle(runs, gateway, (WHATSAPP, "guild-1"))
 
     assert whatsapp.sent == [("guild-1", "answered")]
+
+
+async def test_a_blank_reply_is_not_sent(tmp_path) -> None:
+    gateway, runs, _ = build(tmp_path, reply="   ")
+    whatsapp = FakeWhatsApp()
+    gateway.register(whatsapp)
+
+    await gateway.receive(message("guild-1", "hello"))
+    await settle(runs, gateway, (WHATSAPP, "guild-1"))
+
+    assert whatsapp.sent == []
 
 
 async def test_commands_work_on_any_platform(tmp_path) -> None:

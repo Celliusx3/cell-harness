@@ -1,6 +1,6 @@
 # 02 · Channel delivery and the TypeScript printer under the limit
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `backend/harness/channels/replies.py`: `Replies.deliver` (12) moves its per-event checks into the helpers that act on them: skipping an empty reply, skipping an app link when there is no public URL or no app, and asking every pending call.
