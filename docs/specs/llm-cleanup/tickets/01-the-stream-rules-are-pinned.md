@@ -1,6 +1,6 @@
 # 01 · The streamed-line rules and the system message are pinned
 
-**Status.** open
+**Status.** done
 
 **What to build.** Tests for promises nothing checks today, written against the code as it is, in a new `backend/tests/unit/test_openai_stream_edges.py` (`test_openai_tools.py` is already near the line cap):
 - an `index` sent as the text `"0"` is treated as no index; an `id` sent as a number is ignored and the call gets `call_<slot>`;

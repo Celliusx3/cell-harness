@@ -1,0 +1,141 @@
+"""The adapter's rules for odd streamed lines, and the request it sends."""
+
+from __future__ import annotations
+
+import json
+
+import httpx
+import pytest
+from pydantic import JsonValue
+
+from harness.llm.adapters.openai_wire import wire_messages
+from harness.llm.messages import SystemMessage
+from harness.llm.stream import Completed, TextChunk, Usage
+from tests.unit.test_openai_adapter import collect, delta, sse
+
+
+def piece_frame(piece: dict[str, JsonValue]) -> str:
+    return json.dumps({"choices": [{"delta": {"tool_calls": [piece]}}]})
+
+
+def answering(*frames: str):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=sse(*frames, "[DONE]"))
+
+    return handler
+
+
+async def test_an_index_sent_as_text_is_treated_as_no_index(monkeypatch) -> None:
+    first = piece_frame({"index": 0, "id": "a", "function": {"name": "t", "arguments": "{"}})
+    second = piece_frame({"index": "0", "id": "b", "function": {"name": "u", "arguments": "}"}})
+
+    events = await collect(monkeypatch, answering(first, second))
+
+    assert [(c.id, c.name, c.arguments) for c in events[-1].tool_calls] == [
+        ("a", "t", "{"),
+        ("b", "u", "}"),
+    ]
+
+
+async def test_an_id_sent_as_a_number_is_ignored(monkeypatch) -> None:
+    frame = piece_frame({"index": 0, "id": 5, "function": {"name": "t", "arguments": "{}"}})
+
+    events = await collect(monkeypatch, answering(frame))
+
+    assert events[-1].tool_calls[0].id == "call_0"
+
+
+async def test_a_token_count_sent_as_text_gives_no_usage(monkeypatch) -> None:
+    frame = json.dumps({"choices": [], "usage": {"prompt_tokens": "7", "completion_tokens": "2"}})
+
+    events = await collect(monkeypatch, answering(delta("ok"), frame))
+
+    assert events[-1].usage is None
+
+
+async def test_usage_from_an_earlier_line_is_kept(monkeypatch) -> None:
+    counted = json.dumps({"choices": [], "usage": {"prompt_tokens": 7, "completion_tokens": 2}})
+
+    events = await collect(monkeypatch, answering(counted, delta("ok")))
+
+    assert events[-1].usage == Usage(input_tokens=7, output_tokens=2)
+
+
+async def test_empty_text_gives_no_chunk(monkeypatch) -> None:
+    empty = json.dumps({"choices": [{"delta": {"content": ""}}]})
+
+    events = await collect(monkeypatch, answering(empty, delta("ok")))
+
+    assert events == [TextChunk(text="ok"), Completed(full_text="ok")]
+
+
+@pytest.mark.parametrize("error", [None, "", {}])
+async def test_an_empty_error_is_not_an_error(monkeypatch, error: JsonValue) -> None:
+    frame = json.dumps({"error": error, "choices": [{"delta": {"content": "ok"}}]})
+
+    events = await collect(monkeypatch, answering(frame))
+
+    assert events == [TextChunk(text="ok"), Completed(full_text="ok")]
+
+
+async def test_lines_after_the_end_marker_are_ignored(monkeypatch) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=sse(delta("a"), "[DONE]", delta("b")))
+
+    events = await collect(monkeypatch, handler)
+
+    assert events == [TextChunk(text="a"), Completed(full_text="a")]
+
+
+async def test_a_later_extra_content_replaces_the_earlier_one(monkeypatch) -> None:
+    first = piece_frame(
+        {"index": 0, "id": "g1", "function": {"name": "t"}, "extra_content": {"sig": "one"}}
+    )
+    second = piece_frame(
+        {"index": 0, "function": {"arguments": "{}"}, "extra_content": {"sig": "two"}}
+    )
+
+    events = await collect(monkeypatch, answering(first, second))
+
+    assert events[-1].tool_calls[0].extra_content == {"sig": "two"}
+
+
+async def test_a_later_extra_content_that_is_not_an_object_keeps_the_earlier_one(
+    monkeypatch,
+) -> None:
+    first = piece_frame(
+        {"index": 0, "id": "g1", "function": {"name": "t"}, "extra_content": {"sig": "one"}}
+    )
+    second = piece_frame({"index": 0, "function": {"arguments": "{}"}, "extra_content": "two"})
+
+    events = await collect(monkeypatch, answering(first, second))
+
+    assert events[-1].tool_calls[0].extra_content == {"sig": "one"}
+
+
+async def test_the_request_goes_to_chat_completions_with_the_key_and_the_whole_body(
+    monkeypatch,
+) -> None:
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, content=sse("[DONE]"))
+
+    await collect(monkeypatch, handler)
+
+    assert str(sent[0].url) == "https://x/v1/chat/completions"
+    assert sent[0].headers["authorization"] == "Bearer k"
+    assert json.loads(sent[0].content) == {
+        "model": "m",
+        "messages": [{"role": "user", "content": "hi"}],
+        "temperature": 1.0,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+
+
+def test_a_system_message_is_sent_as_its_role_and_its_text() -> None:
+    assert wire_messages([SystemMessage(content="be brief")], {}) == [
+        {"role": "system", "content": "be brief"}
+    ]
