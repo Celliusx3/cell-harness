@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator, Callable, Sequence
 import httpx
 
 from harness.config.sections import LLMSettings
-from harness.llm.adapters.errors import classify
+from harness.llm.adapters.errors import failure_code
 from harness.llm.adapters.openai_calls import ToolCallAccumulator
 from harness.llm.adapters.openai_wire import wire_messages, wire_tool
 from harness.llm.client import LLMClient
@@ -107,7 +107,7 @@ class OpenAIClient(LLMClient):
                     detail = (await response.aread()).decode(errors="replace")
                     yield Failed(
                         reason=f"provider returned {response.status_code}: {detail}",
-                        code=classify(detail),
+                        code=failure_code(detail),
                     )
                     return
 
@@ -123,7 +123,9 @@ class OpenAIClient(LLMClient):
                         logger.warning("skipping unparseable SSE frame: %r", data)
                         continue
                     if payload.get("error"):
-                        yield Failed(reason=f"provider sent an error: {data}", code=classify(data))
+                        yield Failed(
+                            reason=f"provider sent an error: {data}", code=failure_code(data)
+                        )
                         return
                     usage = _usage(payload) or usage
                     delta = _delta(payload)
@@ -136,7 +138,7 @@ class OpenAIClient(LLMClient):
             yield Failed(reason=f"{type(err).__name__}: {err}")
             return
 
-        assembled = calls.drain()
+        assembled = calls.tool_calls()
         for call in assembled:
             yield ToolCallChunk(call=call)
         yield Completed(full_text=accumulated, tool_calls=tuple(assembled), usage=usage)

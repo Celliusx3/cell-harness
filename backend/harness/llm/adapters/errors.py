@@ -17,7 +17,7 @@ _OVERFLOW_WORDING = (
 )
 
 
-def classify(body: str) -> str | None:
+def failure_code(body: str) -> str | None:
     """`CONTEXT_WINDOW_EXCEEDED` when an error body says the request outgrew the window."""
     text = body.lower()
     if any(wording in text for wording in _OVERFLOW_WORDING):

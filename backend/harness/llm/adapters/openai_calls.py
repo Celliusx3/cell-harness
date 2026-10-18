@@ -83,7 +83,7 @@ class ToolCallAccumulator:
             slot = self._slot(piece)
             self._by_slot[slot] = _joined(self._by_slot.get(slot, _PartialCall()), piece)
 
-    def drain(self) -> list[ToolCall]:
+    def tool_calls(self) -> list[ToolCall]:
         """Every assembled call, in the index order the provider used."""
         calls = []
         for slot in sorted(self._by_slot):

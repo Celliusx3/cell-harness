@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from harness.llm.adapters.errors import classify
+from harness.llm.adapters.errors import failure_code
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
 from tests.unit.test_openai_adapter import collect
 
@@ -34,7 +34,7 @@ ILMU_GENERIC = (
 
 @pytest.mark.parametrize("body", [ILMU_GLM_OCR, LM_STUDIO, LM_STUDIO_STREAM, LLAMA_CPP, ANTHROPIC])
 def test_an_overflow_is_recognised_by_its_wording_whatever_the_shape(body: str) -> None:
-    assert classify(body) == CONTEXT_WINDOW_EXCEEDED
+    assert failure_code(body) == CONTEXT_WINDOW_EXCEEDED
 
 
 @pytest.mark.parametrize(
@@ -42,7 +42,7 @@ def test_an_overflow_is_recognised_by_its_wording_whatever_the_shape(body: str) 
     [ILMU_GENERIC, '{"error":"rate limited"}', "not json", "", '{"error":{"code":null}}', "[]"],
 )
 def test_anything_else_is_not_classified(body: str) -> None:
-    assert classify(body) is None
+    assert failure_code(body) is None
 
 
 async def test_a_recognised_400_reaches_the_loop_as_a_coded_failure(monkeypatch) -> None:

@@ -1,6 +1,6 @@
 # 03 · The names say what comes back
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `llm/adapters/errors.py`: `classify` becomes `failure_code`; callers in `llm/adapters/openai.py`, `tests/unit/test_overflow_classify.py` and `docs/compaction.md` follow.

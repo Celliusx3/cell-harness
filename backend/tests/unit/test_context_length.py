@@ -8,8 +8,8 @@ import httpx
 
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
-from harness.llm.adapters import models as models_module
-from harness.llm.adapters.models import context_length
+from harness.llm.adapters import context_window as context_window_module
+from harness.llm.adapters.context_window import context_length
 from harness.web.server import _resolve_context_tokens
 from tests.unit.test_openai_adapter import settings
 
@@ -30,7 +30,7 @@ def patched(monkeypatch, handler) -> None:
     def factory(**kwargs):
         return _REAL(transport=httpx.MockTransport(handler), **kwargs)
 
-    monkeypatch.setattr(models_module.httpx, "Client", factory)
+    monkeypatch.setattr(context_window_module.httpx, "Client", factory)
 
 
 def test_reads_the_configured_models_context_length(monkeypatch) -> None:
@@ -78,7 +78,7 @@ async def test_the_window_is_found_from_inside_a_running_loop(monkeypatch) -> No
     def client(**kwargs):
         return _REAL(transport=httpx.MockTransport(handler), **kwargs)
 
-    monkeypatch.setattr(models_module.httpx, "Client", client)
+    monkeypatch.setattr(context_window_module.httpx, "Client", client)
     unset = Settings.model_construct(
         llm=settings(), compaction=CompactionSettings(context_tokens=None)
     )
