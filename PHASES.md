@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and eighteen insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and nineteen insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -32,7 +32,14 @@ the bots share (Rakazo's image in Docker on this machine; the bots read and clic
 pages as text; the Computer page streams its screen over VNC through the app's
 relay, so any device can watch it, and takes control on open; `hand_over` pauses
 a bot for a step only you should do; a terminal and files beside the screen;
-build order 12 and 13, phases 17 and 18). Their plans
+build order 12 and 13, phases 17 and 18), 19 a skill's scripts run in that
+computer (`computer__shell`, with the chat's files and the skills shipped with the
+app at their own paths, PhotoCraft on the Mac reachable from its commands, `view_image` to see
+what they save; the comic translator is the first such skill. Known risk: the
+app has no login, and the computer reaches every port on this Mac through
+`host.docker.internal`, so a bot allowed to run commands can call the app's API
+as the person; a network guard such as Tailscale does not cover it;
+phase 13, built in the computer, spec in `docs/specs/comic-skill/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
@@ -256,6 +263,11 @@ tools. Reads overlap; writes don't.
 provider moves all five tools with **zero tool changes**. ~800 lines.
 
 ## Phase 13 — It runs commands *(optional)*
+
+**Built differently, 2026-10-17 (insertion 19).** Commands run in the bots'
+Docker computer through one `shell` tool, as Rakazo runs its bots' commands, not
+on this Mac: there is no host shell and none of the presets below. What follows
+is the original plan for a host shell, kept for when the product asks for one.
 
 **Ships.** `seams/shell.py`, `seams/sandbox.py`, local providers,
 `tools/native/bash.py`, `jobs/` + `job_*` tools, `interaction/approval.py`.

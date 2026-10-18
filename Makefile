@@ -1,5 +1,5 @@
 .PHONY: help install dev dev-backend dev-web test test-unit test-integration \
-        test-mcp-servers lint lint-mcp-servers fmt cov build
+        test-mcp-servers test-skills lint lint-mcp-servers lint-skills fmt cov build
 
 BACKEND = cd backend && uv run
 
@@ -17,8 +17,10 @@ help:
 	@echo "  make test-unit         unit tests only, no coverage gate"
 	@echo "  make test-integration  integration tests only, no coverage gate"
 	@echo "  make test-mcp-servers   each MCP server's own suite and its own gate"
+	@echo "  make test-skills       each skill's scripts' own suite and its own gate"
 	@echo "  make lint              ruff check + format check + every file under 300 lines"
 	@echo "  make lint-mcp-servers   ruff check + format check in each MCP server"
+	@echo "  make lint-skills       ruff check + format check in each skill's scripts"
 	@echo "  make fmt               ruff format + fix"
 	@echo "  make cov               tests with an HTML coverage report"
 	@echo "  make build             frontend production build"
@@ -57,6 +59,11 @@ MCP_SERVERS = mcp-servers/instagram mcp-servers/places mcp-servers/markets mcp-s
 test-mcp-servers:
 	@for s in $(MCP_SERVERS); do (cd $$s && uv run pytest) || exit 1; done
 
+SKILL_SCRIPTS = .agents/skills/translate-comic/scripts
+
+test-skills:
+	@for s in $(SKILL_SCRIPTS); do (cd $$s && PYTHONDONTWRITEBYTECODE=1 uv run pytest) || exit 1; done
+
 lint:
 	$(BACKEND) ruff check .
 	$(BACKEND) ruff format --check .
@@ -65,6 +72,11 @@ lint:
 
 lint-mcp-servers:
 	@for s in $(MCP_SERVERS); do \
+		(cd $$s && uv run ruff check . && uv run ruff format --check .) || exit 1; \
+	done
+
+lint-skills:
+	@for s in $(SKILL_SCRIPTS); do \
 		(cd $$s && uv run ruff check . && uv run ruff format --check .) || exit 1; \
 	done
 

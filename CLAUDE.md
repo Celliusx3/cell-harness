@@ -29,7 +29,10 @@ Four shapes that hold everywhere:
 - **A skill is a directory with a `SKILL.md`** — the
   [Agent Skills](https://agentskills.io) format — read from ranked roots on
   every request and loaded through one `skill` tool. Skills are how the model
-  is told *how* to use tools. [docs/skills.md](./docs/skills.md).
+  is told *how* to use tools. [docs/skills.md](./docs/skills.md). A skill may
+  ship scripts: they run in the bots' computer through `computer__shell`, where
+  the chat's files and the skills shipped with the app sit at their own paths,
+  and keep their own tests and 80% gate (`make test-skills`).
 - **Every channel is a client of one gateway** — browser, Telegram, Discord. A
   new platform is one class and one line in `build_channels`.
   [channels/__init__.py](./backend/harness/channels/__init__.py).
@@ -68,6 +71,7 @@ backend/harness/
   prompts.py    every prompt the harness writes; a tool's description stays with its tool
 backend/tests/  unit/ and integration/
 mcp-servers/    the capabilities we build — one uv project each, own tests
+.agents/skills/ the skills shipped with the repo — a skill's scripts/ is its own uv project
 frontend/       Next.js chat — app/, components/, lib/
 docs/           source teardowns + long-form rules
 ```
@@ -132,6 +136,7 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 - `make lint` and `make test` are green (coverage gate is 80%). If you touched
   `mcp-servers/`, so are `make lint-mcp-servers` and `make test-mcp-servers` —
   deliberately separate, so one server's flake cannot fail the harness's suite.
+  If you touched a skill's `scripts/`, so are `make lint-skills` and `make test-skills`.
 - The phase's acceptance criteria in [PHASES.md](./PHASES.md) are met, as tests.
 - **Every new definition has a caller outside `tests/`.** `grep -rn '\bname\b'
   harness/` — if the only hits are the definition and test files, it belongs in

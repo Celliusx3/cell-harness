@@ -1,0 +1,27 @@
+[project]
+name = "translate-comic"
+version = "0.1.0"
+description = "The translate-comic skill's scripts: run in the bots' computer, they drive PhotoCraft on the Mac"
+requires-python = ">=3.13"
+dependencies = ["pillow>=13.0.0", "numpy>=2.5.4", "scipy>=1.18.1", "pydantic>=2.14.1"]
+
+[dependency-groups]
+dev = ["pytest>=9.1.1", "pytest-cov>=7.1.0", "ruff>=0.17.1"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=comic --cov-report=term-missing --cov-fail-under=80"
+pythonpath = ["."]
+testpaths = ["comic/tests"]
+
+[tool.coverage.run]
+omit = ["comic/tests/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["comic"]
