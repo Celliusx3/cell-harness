@@ -58,6 +58,15 @@ def test_bundled_files_are_listed_after_the_body(tmp_path: Path) -> None:
     assert content.endswith("Bundled files, readable with `path`: references/areas.md")
 
 
+def test_only_a_skill_shipped_with_the_app_names_its_folder(tmp_path: Path) -> None:
+    shipped = write_skill(tmp_path / "shipped", "find-place")
+    write_skill(tmp_path / "editable", "weekly-report")
+    skills = skills_at(tmp_path / "shipped", tmp_path / "editable")
+
+    assert skills.expand("/find-place").endswith(f"This skill's folder: {shipped.resolve()}")
+    assert "This skill's folder" not in skills.expand("/weekly-report")
+
+
 def test_an_unknown_name_is_refused(tmp_path: Path) -> None:
     write_skill(tmp_path, "find-place")
     with pytest.raises(UnknownSkill) as caught:

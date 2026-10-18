@@ -21,8 +21,11 @@ _DESCRIPTION = (
     "returns. A skill may name bundled files; read one by passing its relative "
     "`path`. A TypeScript file under a skill's scripts/ is a program, not a function "
     "you can call by name: read it by `path`, then pass its text as the code to "
-    "execute_typescript. Any other script cannot run; follow the instructions with "
-    "the capabilities you have.\n\n"
+    "execute_typescript. A script in another language runs only through a tool for "
+    "running commands, when you are offered one: from the skill's folder when the skill "
+    "names one, and otherwise after you read it by `path` and write it into the computer "
+    "yourself. Without such a tool, follow the instructions with the capabilities you "
+    "have.\n\n"
 )
 
 
@@ -37,7 +40,7 @@ def skill_tool(skills: SkillService) -> ToolDefinition[SkillArgs] | None:
         skill = by_name[args.name]
         if args.path is not None:
             return _resource(skill, args.path)
-        return _instructions(skill)
+        return _instructions(skill, shipped=not skills.editable(skill))
 
     return ToolDefinition.from_model(
         name=SKILL,
@@ -103,9 +106,9 @@ def _escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _instructions(skill: Skill) -> ToolOutcome:
+def _instructions(skill: Skill, *, shipped: bool) -> ToolOutcome:
     try:
-        return Ok(instructions(skill))
+        return Ok(instructions(skill, shipped=shipped))
     except (OSError, ValueError) as err:
         return Failure(INVALID_ARGUMENTS, f"skill {skill.name!r} could not be read: {err}")
 

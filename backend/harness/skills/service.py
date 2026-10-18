@@ -100,7 +100,7 @@ class SkillService:
         if skill is None:
             raise UnknownSkill(name)
         try:
-            loaded = instructions(skill)
+            loaded = instructions(skill, shipped=not self.editable(skill))
         except (OSError, ValueError) as err:
             raise UnknownSkill(name) from err
         return f"{text}\n\n{loaded}"

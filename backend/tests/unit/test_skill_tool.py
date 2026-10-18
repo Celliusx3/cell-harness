@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 
 from harness.skills import SKILL, skill_tool
+from harness.skills.models import Skill
+from harness.skills.prompt import instructions
 from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok
 from tests.unit.helpers import context_for, no_skills, skills_at
 
@@ -170,3 +172,48 @@ def test_markup_in_a_description_is_escaped(tmp_path) -> None:
     spec = skill_tool(skills_at(tmp_path)).spec()
 
     assert "Handles &lt;b&gt;PDF&lt;/b&gt; &amp; forms." in spec.description
+
+
+async def test_a_skill_shipped_with_the_app_names_its_folder_after_its_body(tmp_path) -> None:
+    shipped = write_skill(tmp_path / "shipped", "pdf")
+    tool = skill_tool(skills_at(tmp_path / "shipped", tmp_path / "editable"))
+
+    outcome = await call(tool, name="pdf")
+
+    assert isinstance(outcome, Ok)
+    assert outcome.text == (
+        '<skill name="pdf">\n# pdf\n\nSteps for pdf.\n</skill>\n\n'
+        f"This skill's folder: {shipped.resolve()}"
+    )
+
+
+def comic_skill(tmp_path: Path) -> Skill:
+    folder = tmp_path / "skills" / ".." / "skills" / "translate-comic"
+    (folder / "scripts").mkdir(parents=True)
+    (folder / "SKILL.md").write_text("---\nname: translate-comic\ndescription: d\n---\nBody.\n")
+    (folder / "scripts" / "run.py").write_text("print(1)\n")
+    return Skill(
+        name="translate-comic",
+        description="d",
+        dir=folder,
+        root=tmp_path / "skills",
+        model_invocable=True,
+        user_invocable=True,
+    )
+
+
+def test_the_folder_line_follows_the_body_and_comes_before_the_bundled_files(
+    tmp_path: Path,
+) -> None:
+    assert instructions(comic_skill(tmp_path), shipped=True).split("\n\n") == [
+        '<skill name="translate-comic">\nBody.\n</skill>',
+        f"This skill's folder: {tmp_path.resolve() / 'skills' / 'translate-comic'}",
+        "Bundled files, readable with `path`: scripts/run.py",
+    ]
+
+
+def test_a_skill_bots_can_change_names_no_folder(tmp_path: Path) -> None:
+    assert instructions(comic_skill(tmp_path), shipped=False).split("\n\n") == [
+        '<skill name="translate-comic">\nBody.\n</skill>',
+        "Bundled files, readable with `path`: scripts/run.py",
+    ]

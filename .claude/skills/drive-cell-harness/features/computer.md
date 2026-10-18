@@ -10,7 +10,7 @@ Every bot shares one Linux desktop with Chrome (Rakazo's image, a Docker contain
 - Terminal (only while holding control) opens a login shell on the computer beside the screen; Release closes it.
 - Files lists the computer's home folder, previews text and images, downloads; Upload only while holding control, 10 MiB a file.
 - A `computer__browser_navigate` tool card has "Open app": a watch-only preview made of screenshots.
-- `computer__shell` runs a command for a bot (it asks once per chat). The chat's files and the skill folders sit at their own Mac paths inside the computer. A skill can declare a Mac program in its `SKILL.md` metadata (`host-service`, `host-service-env`); the computer starts it and hands each command its address and token as `<NAME>_ADDR` and `<NAME>_TOKEN`, under the name the skill gives. A command still running after 15 seconds answers `running`; the same call again waits on.
+- `computer__shell` runs a command for a bot (it asks once per chat). The chat's files and the skills shipped with the app sit at their own Mac paths inside the computer, and a loaded shipped skill names its folder; a skill in the editable folder is not in the computer and names none. A skill can declare a Mac program in its `SKILL.md` metadata (`host-service`, `host-service-env`); the computer starts it and hands each command its address and token as `<NAME>_ADDR` and `<NAME>_TOKEN`, under the name the skill gives. A command still running after 15 seconds answers `running`; the same call again waits on.
 - The page pings `keep_awake` every minute, so the 10-minute idle stop waits while it is open.
 
 ## How to get to it (user POV)

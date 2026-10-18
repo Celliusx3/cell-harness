@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
 from harness.config import settings as settings_module
 from harness.config.sections import McpServer, McpSettings
-from harness.config.settings import Settings
+from harness.config.settings import Settings, SkillSettings
 
 
 def test_a_plain_server_is_accepted() -> None:
@@ -115,3 +117,13 @@ def test_a_bad_server_in_config_fails_the_load(config_file) -> None:
 def test_servers_can_come_from_the_environment() -> None:
     configured = Settings(mcp={"servers": {"fs": {"command": "npx"}}})
     assert configured.mcp.servers["fs"].command == "npx"
+
+
+def test_the_computer_mounts_exactly_the_skills_bots_cannot_change() -> None:
+    backend = Path(__file__).parents[2]
+    committed = json.loads((backend / "config.json").read_text())
+    skills = SkillSettings.model_validate(committed["skills"])
+    shipped = {root.resolve() for root in skills.roots if root != skills.editable}
+    mounted = committed["mcp"]["servers"]["computer"]["env"]["COMPUTER_SKILLS_DIRS"]
+
+    assert {(backend / folder).resolve() for folder in mounted.split(os.pathsep)} == shipped
