@@ -156,6 +156,7 @@ class ToolResultEvent(BaseModel):
     message: ToolMessage
     error: str | None = None
     ui: ToolUi | None = None
+    files: tuple[ChatFile, ...] = ()
 
 
 class AssistantMessageEvent(BaseModel):

@@ -50,7 +50,7 @@ def message_bot_tool(
 
     async def execute(args: MessageBotArgs, context: ToolContext) -> ToolOutcome:
         return await messages.send(
-            context.call_id, from_bot_id=context.bot_id, to_name=args.bot, text=args.message
+            context.call_id, from_bot_id=context.origin.bot_id, to_name=args.bot, text=args.message
         )
 
     return ToolDefinition.from_model(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.sandbox import Bridge, BridgeError, Script
-from harness.tools.context import ToolContext
+from harness.tools.context import CallOrigin, ToolContext
 from harness.tools.definition import (
     EXECUTION_ERROR,
     Failure,
@@ -236,11 +236,11 @@ async def test_the_bridge_refuses_code_mode_itself() -> None:
     assert built.dispatched == []
 
 
-async def test_a_tool_a_script_calls_runs_for_the_calling_bot() -> None:
-    seen: list[str] = []
+async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversation() -> None:
+    seen: list[CallOrigin] = []
 
     async def record(args: dict, context: ToolContext) -> ToolOutcome:
-        seen.append(context.bot_id)
+        seen.append(context.origin)
         return Ok("recorded")
 
     recorder = ToolDefinition(
@@ -256,6 +256,8 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot() -> None:
 
     built = build(recorder, runner=FakeRunner(script=script))
     code = '{"code": "await srv__record({})", "description": "d"}'
-    await built.tool(EXECUTE).invoke(code, context=context_for(bot_id="bot-7"))
+    await built.tool(EXECUTE).invoke(
+        code, context=context_for(bot_id="bot-7", conversation_id="chat-7")
+    )
 
-    assert seen == ["bot-7"]
+    assert seen == [CallOrigin(bot_id="bot-7", conversation_id="chat-7")]

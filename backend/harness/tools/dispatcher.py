@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from harness.llm.messages import ToolCall
 from harness.tools.approval import ApprovalGate
-from harness.tools.context import ToolContext
+from harness.tools.context import CallOrigin, ToolContext
 from harness.tools.definition import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
 from harness.tools.progress import ToolProgressReporter
 from harness.tools.registry import ToolRegistry
@@ -23,7 +23,7 @@ class ToolDispatcher:
         *,
         progress: ToolProgressReporter,
         approved: bool,
-        bot_id: str,
+        origin: CallOrigin,
     ) -> ToolOutcome:
         """Run one call, whether the model made it or a script did — unless it must ask first."""
         if not approved and self._gate.asks(call.name):
@@ -31,7 +31,7 @@ class ToolDispatcher:
         tool = self._registry.get(call.name)
         if tool is None:
             return Failure(UNKNOWN_TOOL, self._unknown(call.name))
-        context = ToolContext(call_id=call.id, progress=progress, bot_id=bot_id)
+        context = ToolContext(call_id=call.id, progress=progress, origin=origin)
         return await tool.invoke(call.arguments, context=context)
 
     def _unknown(self, name: str) -> str:

@@ -24,7 +24,7 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
-from harness.tools.context import ToolContext
+from harness.tools.context import CallOrigin, ToolContext
 from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
@@ -49,9 +49,16 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
     return None
 
 
-def context_for(call_id: str = "call-1", bot_id: str = "s") -> ToolContext:
+CONVERSATION_ID = "s"
+ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID)
+
+
+def context_for(
+    call_id: str = "call-1", bot_id: str = "s", conversation_id: str = CONVERSATION_ID
+) -> ToolContext:
     """A context for invoking a tool directly, outside the dispatcher."""
-    return ToolContext(call_id=call_id, progress=no_progress, bot_id=bot_id)
+    origin = CallOrigin(bot_id=bot_id, conversation_id=conversation_id)
+    return ToolContext(call_id=call_id, progress=no_progress, origin=origin)
 
 
 def new_session(session_id: str = "s") -> Session:

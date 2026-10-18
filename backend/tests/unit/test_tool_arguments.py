@@ -12,7 +12,7 @@ from harness.tools.definition import (
 )
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.progress import ToolProgressReporter
-from tests.unit.helpers import no_progress, pipeline_for
+from tests.unit.helpers import ORIGIN, no_progress, pipeline_for
 
 
 def pipeline(*tools: ToolDefinition) -> ToolPipeline:
@@ -44,7 +44,7 @@ def profile_tool() -> ToolDefinition[dict]:
 
 async def test_missing_required_fields_say_what_was_sent_and_what_is_expected() -> None:
     outcome = await pipeline(profile_tool()).execute(
-        call("profile", '{"kind": "stock"}'), progress=no_progress, bot_id="s"
+        call("profile", '{"kind": "stock"}'), progress=no_progress, origin=ORIGIN
     )
 
     assert isinstance(outcome, Failure)
@@ -56,7 +56,7 @@ async def test_missing_required_fields_say_what_was_sent_and_what_is_expected() 
 
 async def test_arguments_wrapped_in_args_are_a_missing_field_not_a_server_error() -> None:
     outcome = await pipeline(profile_tool()).execute(
-        call("profile", '{"args": {"id": "AAPL"}}'), progress=no_progress, bot_id="s"
+        call("profile", '{"args": {"id": "AAPL"}}'), progress=no_progress, origin=ORIGIN
     )
 
     assert isinstance(outcome, Failure)
@@ -67,7 +67,7 @@ async def test_arguments_wrapped_in_args_are_a_missing_field_not_a_server_error(
 
 async def test_extra_keys_with_every_required_field_pass_through() -> None:
     outcome = await pipeline(profile_tool()).execute(
-        call("profile", '{"id": "AAPL", "extra": 1}'), progress=no_progress, bot_id="s"
+        call("profile", '{"id": "AAPL", "extra": 1}'), progress=no_progress, origin=ORIGIN
     )
 
     assert isinstance(outcome, Ok)
@@ -85,7 +85,7 @@ async def test_a_schema_without_required_fields_is_not_checked() -> None:
     )
 
     outcome = await pipeline(loose).execute(
-        call("loose", '{"other": 1}'), progress=no_progress, bot_id="s"
+        call("loose", '{"other": 1}'), progress=no_progress, origin=ORIGIN
     )
 
     assert not (isinstance(outcome, Failure) and outcome.code == INVALID_ARGUMENTS)
