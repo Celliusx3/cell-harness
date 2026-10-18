@@ -37,6 +37,9 @@ class SendMessage(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     prompt: str = Field(min_length=1)
+    files: list[str] = Field(
+        default_factory=list, description="Absolute paths the upload route returned."
+    )
 
     @field_validator("prompt")
     @classmethod

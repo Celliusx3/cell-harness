@@ -14,10 +14,13 @@ from pydantic import TypeAdapter, ValidationError
 from computer.clock import Clock
 from computer.config import Config
 from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult, Docker, DockerError, stdout_of
+from computer.jobs import RUNNING_JOBS_SCRIPT
+from computer.mounts import MOUNTS_FORMAT, is_mounted_as_configured, volume_arguments
 
 logger = logging.getLogger("computer")
 
 HOME = "/home/rakazo"
+JOBS_ROOT = f"{HOME}/.shell"
 DISPLAY = ":1"
 API_PORT = 7070
 GATEWAY_PORT = 6080
@@ -46,6 +49,7 @@ def run_arguments(config: Config, api_token: str) -> list[str]:
         "-e", f"HOME={HOME}",
         "-e", f"{API_TOKEN_VARIABLE}={api_token}",
         "-v", f"{name}-home:{HOME}",
+        *volume_arguments(config),
         "-p", f"127.0.0.1::{API_PORT}",
         "-p", f"127.0.0.1::{GATEWAY_PORT}",
         config.image,
@@ -80,7 +84,7 @@ class Machine:
         self._lock = asyncio.Lock()
         self._idle: asyncio.Task[None] | None = None
         self._idle_stop_paused = False
-        self._ports_checked = False
+        self._shape_checked = False
 
     @asynccontextmanager
     async def serving(self) -> AsyncIterator[None]:
@@ -126,17 +130,15 @@ class Machine:
     async def _ensure_running(self) -> None:
         async with self._lock:
             state = await self._state()
-            if (
-                state != "missing"
-                and not self._ports_checked
-                and not await self._publishes_gateway()
-            ):
-                logger.info(
-                    "replacing the computer %s: it has no gateway port", self._config.container_name
-                )
-                await self._output(["rm", "-f", self._config.container_name], "docker rm")
-                state = "missing"
-            self._ports_checked = True
+            if state != "missing" and not self._shape_checked:
+                reason = await self._replacement_reason()
+                if reason is not None:
+                    logger.info(
+                        "replacing the computer %s: %s", self._config.container_name, reason
+                    )
+                    await self._output(["rm", "-f", self._config.container_name], "docker rm")
+                    state = "missing"
+            self._shape_checked = True
             if state == "running":
                 return
             if state == "stopped":
@@ -166,16 +168,17 @@ class Machine:
             )
         )
 
-    async def _publishes_gateway(self) -> bool:
-        inspect = [
-            "inspect",
-            "--type",
-            "container",
-            "--format",
-            BINDINGS_FORMAT,
-            self._config.container_name,
-        ]
-        return publishes_gateway(await self._output(inspect, "docker inspect"))
+    async def _replacement_reason(self) -> str | None:
+        """Why the existing container lacks the gateway port or the shared mounts, or None."""
+        if not publishes_gateway(await self._inspect_output(BINDINGS_FORMAT)):
+            return "it has no gateway port"
+        if not is_mounted_as_configured(await self._inspect_output(MOUNTS_FORMAT), self._config):
+            return "its mounts are not the shared folders"
+        return None
+
+    async def _inspect_output(self, template: str) -> str:
+        inspect = ["inspect", "--type", "container", "--format", template]
+        return await self._output([*inspect, self._config.container_name], "docker inspect")
 
     async def _output(self, args: Sequence[str], action: str) -> str:
         return stdout_of(
@@ -198,8 +201,22 @@ class Machine:
         self._idle = None
         async with self._lock:
             name, minutes = self._config.container_name, self._config.idle_minutes
+            if await self._is_running_a_command():
+                logger.info("the computer %s stays on: a command is still running in it", name)
+                self._restart_idle_stop()
+                return
             logger.info("stopping the computer %s after %d idle minutes", name, minutes)
             try:
                 await self._output(["stop", name], "docker stop")
             except DockerError as err:
                 logger.warning("idle stop of the computer %s did not happen: %s", name, err)
+
+    async def _is_running_a_command(self) -> bool:
+        """Whether a bot's command still runs in the computer; True when that cannot be told."""
+        name = self._config.container_name
+        look = ["exec", name, "python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT]
+        try:
+            return bool((await self._output(look, "looking for running commands")).split())
+        except DockerError as err:
+            logger.warning("the computer %s stays on: %s", name, err)
+            return True

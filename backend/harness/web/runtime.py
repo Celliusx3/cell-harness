@@ -9,6 +9,8 @@ import httpx
 
 from harness.bots import BotService
 from harness.config.settings import Settings
+from harness.files import ChatFileService
+from harness.images import ImageService
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
@@ -32,6 +34,16 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
+from harness.tools.native.files import (
+    EXTRACT_ARCHIVE,
+    MAKE_ARCHIVE,
+    SEND_FILE,
+    VIEW_IMAGE,
+    extract_archive_tool,
+    make_archive_tool,
+    send_file_tool,
+    view_image_tool,
+)
 from harness.tools.native.hand_over import HAND_OVER_TOOL
 from harness.tools.native.location import LOCATION_TOOL
 from harness.tools.native.question import QUESTION_TOOL
@@ -66,6 +78,10 @@ DEFAULT_TOOLS = (
     MESSAGE_BOT,
     RUN_SUBAGENT,
     FETCH_WITH_SECRET,
+    SEND_FILE,
+    EXTRACT_ARCHIVE,
+    MAKE_ARCHIVE,
+    VIEW_IMAGE,
     *sorted(CLIENT_TOOLS.names),
 )
 SUBAGENT_TOOLS = (LIST, DETAILS, EXECUTE, SKILL)
@@ -77,6 +93,10 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         MESSAGE_BOT,
         RUN_SUBAGENT,
         FETCH_WITH_SECRET,
+        SEND_FILE,
+        EXTRACT_ARCHIVE,
+        MAKE_ARCHIVE,
+        VIEW_IMAGE,
         *CLIENT_TOOLS.names,
     }
 )
@@ -94,6 +114,8 @@ def build_runtime(
     bots: BotService,
     subagent_logs: SessionService,
     secrets: SecretService,
+    images: ImageService,
+    files: ChatFileService,
 ) -> Runtime:
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
     registry = ToolRegistry(
@@ -104,6 +126,10 @@ def build_runtime(
             skill_write_file_tool(skills),
             bot_create_tool(bots),
             fetch_with_secret_tool(secrets, bots, httpx.AsyncHTTPTransport()),
+            send_file_tool(),
+            extract_archive_tool(files, settings.files.max_bytes),
+            make_archive_tool(files),
+            *([view_image_tool(files)] if settings.llm.vision else []),
             *client_tools.definitions(),
         ]
     )
@@ -114,15 +140,17 @@ def build_runtime(
     dispatcher = ToolDispatcher(registry, gate)
     _register_code_mode(registry, dispatcher, settings)
 
-    client = OpenAIClient(settings.llm)
+    client = OpenAIClient(settings.llm, read_image=images.read)
     runtime = Runtime(
         model=settings.llm.model,
         client=client,
+        images=images if settings.llm.vision else None,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
         guidance=GUIDANCE,
         checkpoint=store.flush,
         context_tokens=context_tokens,
         hooks=default_hooks(),
+        files=files,
     )
     _register_run_subagent(registry, dispatcher, runtime, subagent_logs)
     return runtime

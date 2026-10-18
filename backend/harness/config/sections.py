@@ -9,10 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LLMSettings(BaseModel):
-    """Which model answers, and how it is reached."""
+    """Which model answers, whether it can see images, and how it is reached."""
 
     api_key: str = ""
     model: str = ""
+    vision: bool
     base_url: str = "https://api.openai.com/v1"
     temperature: float = Field(default=1.0, ge=0.0, le=2.0)
     timeout_seconds: float = Field(default=600.0, gt=0)
@@ -59,6 +60,20 @@ class SecretSettings(BaseModel):
     encryption_key: str = ""
 
     @field_validator("path")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
+
+
+class FileSettings(BaseModel):
+    """Where each chat's files are kept, and the most one upload may be."""
+
+    model_config = ConfigDict(frozen=True)
+
+    root: Path = Path.home() / ".harness" / "files"
+    max_bytes: int = Field(default=200 * 1024 * 1024, gt=0)
+
+    @field_validator("root")
     @classmethod
     def _expand(cls, value: Path) -> Path:
         return value.expanduser()

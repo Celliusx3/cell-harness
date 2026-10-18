@@ -19,6 +19,8 @@ from computer.models import (
 )
 from computer.tools.descriptions import (
     ACT_DESCRIPTION,
+    COMMAND_DESCRIPTION,
+    CWD_DESCRIPTION,
     FILE_DOWNLOAD_DESCRIPTION,
     FILE_LIST_DESCRIPTION,
     FILE_READ_DESCRIPTION,
@@ -30,6 +32,8 @@ from computer.tools.descriptions import (
     RELEASE_CONTROL_DESCRIPTION,
     SCREEN_SESSION_DESCRIPTION,
     SCREENSHOT_DESCRIPTION,
+    SHELL_DESCRIPTION,
+    STDIN_DESCRIPTION,
     TERMINAL_SESSION_DESCRIPTION,
 )
 
@@ -46,7 +50,10 @@ ALL = {
     "file_download": FILE_DOWNLOAD_DESCRIPTION,
     "file_upload": FILE_UPLOAD_DESCRIPTION,
     "keep_awake": KEEP_AWAKE_DESCRIPTION,
+    "shell": SHELL_DESCRIPTION,
 }
+SHELL_FIELDS = {"command": COMMAND_DESCRIPTION, "stdin": STDIN_DESCRIPTION, "cwd": CWD_DESCRIPTION}
+ARGUMENTS_IN_FIELDS = {"shell"}
 APP_ONLY_TOOLS = (
     "screenshot",
     "screen_session",
@@ -72,7 +79,7 @@ def test_a_description_cannot_end_its_own_comment_block(name: str) -> None:
     assert "*/" not in ALL[name]
 
 
-@pytest.mark.parametrize("name", sorted(ALL))
+@pytest.mark.parametrize("name", sorted(set(ALL) - ARGUMENTS_IN_FIELDS))
 def test_a_description_names_its_arguments(name: str) -> None:
     assert "args: {" in ALL[name]
 
@@ -135,3 +142,17 @@ def test_a_tool_that_needs_control_says_so(name: str) -> None:
 
 def test_the_folder_listing_says_an_empty_path_is_the_home_folder() -> None:
     assert "empty for the home folder itself" in FILE_LIST_DESCRIPTION
+
+
+@pytest.mark.parametrize("name", sorted(SHELL_FIELDS))
+def test_a_shell_argument_is_described_on_one_line_by_its_field(name: str) -> None:
+    text = SHELL_FIELDS[name]
+
+    assert " ".join(text.split()) == text
+    assert "*/" not in text
+
+
+def test_the_shell_says_to_pass_text_on_stdin_and_to_call_again_while_it_runs() -> None:
+    assert "as `stdin`, never inside the command" in SHELL_DESCRIPTION
+    assert "call shell again with the same arguments" in SHELL_DESCRIPTION
+    assert "JSON or any text with quotes" in STDIN_DESCRIPTION

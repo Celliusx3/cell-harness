@@ -32,12 +32,22 @@ class ToolUi(BaseModel):
 
 
 @dataclass(frozen=True)
+class ReturnedImage:
+    """An image a tool returned, decoded."""
+
+    media_type: str
+    data: bytes
+
+
+@dataclass(frozen=True)
 class Ok:
     """A call that produced a result."""
 
     content: tuple[Block, ...]
     data: object | None = None
     ui: ToolUi | None = None
+    hand_over_paths: tuple[str, ...] = ()
+    images: tuple[ReturnedImage, ...] = ()
 
     def __post_init__(self) -> None:
         if isinstance(self.content, str):

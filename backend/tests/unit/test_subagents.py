@@ -117,7 +117,7 @@ async def test_a_helper_runs_its_tools_for_the_bot_that_called_it(
     seen: list[str] = []
 
     async def record(args: EchoArgs, context: ToolContext) -> ToolOutcome:
-        seen.append(context.bot_id)
+        seen.append(context.origin.bot_id)
         return Ok(content=args.value)
 
     client = SteppedClient(calls_tool("echo", '{"value": "x"}'), completed("done"))

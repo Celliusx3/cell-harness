@@ -43,15 +43,31 @@ export interface AssistantMessage {
   tool_calls: ToolCall[];
 }
 
+/** An image the model is shown, kept once under the hash of its bytes. */
+export interface ImageBlock {
+  type: "image";
+  media_type: string;
+  sha256: string;
+}
+
 /** One part of a tool result */
 export type ContentBlock =
   | { type: "text"; text: string }
-  | { type: "tool_reference"; tool_name: string };
+  | { type: "tool_reference"; tool_name: string }
+  | ImageBlock;
 
 export interface ToolMessage {
   role: "tool";
   tool_call_id: string;
   content: ContentBlock[];
+}
+
+/** A file in a chat's folder: where it is on disk, its name, type and size. */
+export interface ChatFile {
+  path: string;
+  name: string;
+  media_type: string;
+  size: number;
 }
 
 /** An MCP App bound to a tool result */
@@ -79,7 +95,8 @@ export type SessionEvent =
   /** `bot_id` is the bot speaking this turn; null in older logs. */
   | { type: "turn/start"; turn: number; bot_id?: string | null }
   | { type: "turn/end"; turn: number; reason: TurnEndReason }
-  | { type: "user/message"; turn: number; message: UserMessage }
+  /** `files` are what the person attached, each in the chat's folder. */
+  | { type: "user/message"; turn: number; message: UserMessage; files: ChatFile[] }
   | {
       type: "bot/message";
       turn: number;
@@ -113,6 +130,8 @@ export type SessionEvent =
       error: string | null;
       /** The app that renders this result, when the tool declares one. */
       ui: ToolUi | null;
+      /** The files the tool handed back, each in the chat's folder. */
+      files: ChatFile[];
     }
   /** A summary is being attempted. */
   | { type: "compaction/start"; turn: number | null; trigger: CompactionTrigger; tokens: number | null }

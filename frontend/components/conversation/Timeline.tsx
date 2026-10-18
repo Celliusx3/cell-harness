@@ -63,6 +63,7 @@ export function Timeline({
   const stays = (item: ToolItem) =>
     item.call.name in CLIENT_TOOLS ||
     item.ui !== null ||
+    item.files.length > 0 ||
     (item.result === null && openTurn === null);
   const shared = { openTurn, conversationId, onAnswered };
 
@@ -108,7 +109,7 @@ export function Timeline({
 function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
   switch (item.kind) {
     case "user":
-      return <UserBubble item={item} />;
+      return <UserBubble item={item} chatId={conversationId} />;
     case "assistant":
       return <AssistantBubble item={item} />;
     case "tool": {

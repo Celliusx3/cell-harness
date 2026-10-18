@@ -11,7 +11,9 @@ from harness.bots import BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
-from harness.config.sections import McpServer
+from harness.config.sections import FileSettings, McpServer
+from harness.files import ChatFileService, DiskChatFileRepository
+from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
@@ -42,6 +44,16 @@ def bots_in(tmp_path: Path, service: SessionService) -> BotService:
     )
 
 
+def files_in(tmp_path: Path, *, max_bytes: int = FileSettings().max_bytes) -> ChatFileService:
+    """Each chat's files, in a folder under `tmp_path`."""
+    return ChatFileService(DiskChatFileRepository(tmp_path / "files"), max_bytes=max_bytes)
+
+
+def images_in(tmp_path: Path) -> ImageService:
+    """The images models are shown, beside the conversations kept under `tmp_path / "sessions"`."""
+    return ImageService(DiskImageRepository(tmp_path / "sessions" / BLOBS))
+
+
 def web_gateway(
     tmp_path: Path,
     service: SessionService,
@@ -49,6 +61,7 @@ def web_gateway(
     *,
     skills: SkillService,
     bots: BotService | None = None,
+    files: ChatFileService | None = None,
 ) -> tuple[ChannelGateway, WebChannel]:
     """A gateway with only the browser registered."""
     gateway = ChannelGateway(
@@ -58,7 +71,12 @@ def web_gateway(
         skills,
         public_url="http://t",
     )
-    web = WebChannel(service, runs, gateway, bots or bots_in(tmp_path, service))
+    web = WebChannel(
+        gateway,
+        bots or bots_in(tmp_path, service),
+        files or files_in(tmp_path),
+        images_in(tmp_path),
+    )
     gateway.register(web)
     return gateway, web
 
@@ -83,11 +101,12 @@ def web_app(
     gate: ApprovalGate | None = None,
     bots: BotService | None = None,
     secrets: SecretService | None = None,
+    files: ChatFileService | None = None,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
     bots = bots or bots_in(tmp_path, service)
-    gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots)
+    gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots, files=files)
     return create_app(
         runs,
         gateway,

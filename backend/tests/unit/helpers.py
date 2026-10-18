@@ -11,6 +11,7 @@ from pathlib import Path
 
 from harness.bots import BotService
 from harness.config.settings import SkillSettings
+from harness.images import ImageService
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.service import RunService
@@ -23,7 +24,7 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
-from harness.tools.context import ToolContext
+from harness.tools.context import CallOrigin, ToolContext
 from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
@@ -48,9 +49,16 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
     return None
 
 
-def context_for(call_id: str = "call-1", bot_id: str = "s") -> ToolContext:
+CONVERSATION_ID = "s"
+ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID)
+
+
+def context_for(
+    call_id: str = "call-1", bot_id: str = "s", conversation_id: str = CONVERSATION_ID
+) -> ToolContext:
     """A context for invoking a tool directly, outside the dispatcher."""
-    return ToolContext(call_id=call_id, progress=no_progress, bot_id=bot_id)
+    origin = CallOrigin(bot_id=bot_id, conversation_id=conversation_id)
+    return ToolContext(call_id=call_id, progress=no_progress, origin=origin)
 
 
 def new_session(session_id: str = "s") -> Session:
@@ -83,11 +91,13 @@ def runtime_over(
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
+    images: ImageService | None = None,
 ) -> Runtime:
     """A runtime over `tools`, with no pipeline at all when there are none."""
     return Runtime(
         model="m",
         client=client,
+        images=images,
         tools=pipeline_for(*tools, gate=gate) if tools else None,
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
@@ -144,12 +154,18 @@ def run_service(
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
     bots: BotService | None = None,
+    images: ImageService | None = None,
 ) -> RunService:
     """Runs over a runtime that checkpoints through `service`, as the server wires it."""
     return RunService(
         service,
         runtime_over(
-            client, *tools, checkpoint=service.flush, context_tokens=context_tokens, gate=gate
+            client,
+            *tools,
+            checkpoint=service.flush,
+            context_tokens=context_tokens,
+            gate=gate,
+            images=images,
         ),
         bots or no_bots(service),
     )

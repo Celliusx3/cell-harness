@@ -15,7 +15,7 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
 )
-from harness.tools.context import ToolContext
+from harness.tools.context import CallOrigin, ToolContext
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome, ToolUi
 from tests.unit.fakes import (
     EchoArgs,
@@ -97,7 +97,7 @@ async def test_tool_schemas_reach_the_wire_each_step() -> None:
 
 async def test_an_agent_with_no_tools_sends_none_not_an_empty_list() -> None:
     client = SteppedClient(completed("hi"))
-    bare = Runtime(model="m", client=client)
+    bare = Runtime(model="m", client=client, images=None)
 
     await drain(bare.run("q", session=new_session(), bot_id="b"))
 
@@ -262,11 +262,11 @@ async def test_a_tool_is_told_which_call_it_is_running() -> None:
     assert seen == ["call_7f3a"]
 
 
-async def test_a_turn_runs_its_tools_for_the_bot_it_was_started_for() -> None:
-    seen: list[str] = []
+async def test_a_turn_runs_its_tools_for_the_bot_and_the_conversation_it_was_started_for() -> None:
+    seen: list[CallOrigin] = []
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
-        seen.append(context.bot_id)
+        seen.append(context.origin)
         return Ok(content=args.value)
 
     typed = replace(echo_tool(), execute=execute)
@@ -274,4 +274,4 @@ async def test_a_turn_runs_its_tools_for_the_bot_it_was_started_for() -> None:
 
     await drain(runtime_over(client, typed).run("q", session=new_session("c0"), bot_id="notion"))
 
-    assert seen == ["notion"]
+    assert seen == [CallOrigin(bot_id="notion", conversation_id="c0")]

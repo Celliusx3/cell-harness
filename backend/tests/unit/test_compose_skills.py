@@ -20,8 +20,8 @@ from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code import EXECUTE, LIST
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
 from harness.web.runtime import DEFAULT_TOOLS, build_runtime
-from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, skills_at
-from tests.webapp import secrets_in
+from tests.unit.helpers import ORIGIN, client_tools, no_bots, no_gate, no_progress, skills_at
+from tests.webapp import files_in, images_in, secrets_in
 
 COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
 
@@ -51,6 +51,8 @@ def compose(tmp_path: Path):
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
             secrets=secrets_in(tmp_path),
+            images=images_in(tmp_path),
+            files=files_in(tmp_path),
         )
 
     return build, root
@@ -81,7 +83,7 @@ async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
     outcome = await runtime.tools.execute(
         ToolCall(id="c1", name=SKILL, arguments=json.dumps({"name": "pdf"})),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
 
     assert isinstance(outcome, Ok) and "Do pdf." in outcome.text
@@ -94,7 +96,7 @@ async def test_a_script_cannot_reach_it(compose) -> None:
     assert runtime.tools is not None
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, bot_id="s"
+        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, origin=ORIGIN
     )
     assert isinstance(listed, Ok) and "skill" not in listed.text
 
@@ -107,7 +109,7 @@ async def test_a_script_cannot_reach_it(compose) -> None:
             ),
         ),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
     assert "skill is not defined" in str(ran).lower() or "cannot be called" in str(ran)
 
@@ -144,7 +146,7 @@ async def test_a_script_cannot_write_a_skill(compose) -> None:
     assert runtime.tools is not None
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, bot_id="s"
+        ToolCall(id="c1", name=LIST, arguments="{}"), progress=no_progress, origin=ORIGIN
     )
     assert isinstance(listed, Ok)
     assert not any(name in listed.text for name in (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE))
@@ -158,7 +160,7 @@ async def test_a_script_cannot_write_a_skill(compose) -> None:
             ),
         ),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
     assert "skill_delete is not defined" in str(ran) or "cannot be called" in str(ran)
     assert (root / "pdf" / "SKILL.md").exists()
@@ -189,7 +191,7 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
             ),
         ),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
     assert isinstance(wrote, Ok)
 
@@ -198,7 +200,7 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
             id="c2", name=SKILL, arguments=json.dumps({"name": "convert", "path": "scripts/km.ts"})
         ),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
     assert isinstance(read, Ok)
     script = read.text.split("\n", 1)[1].rsplit("\n</skill_file>", 1)[0]
@@ -210,6 +212,6 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
             arguments=json.dumps({"code": script, "description": "run the skill's script"}),
         ),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
     assert isinstance(ran, Ok) and ran.data == 3.107

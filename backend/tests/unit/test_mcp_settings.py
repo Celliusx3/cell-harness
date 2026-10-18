@@ -75,6 +75,7 @@ def config_file(tmp_path, monkeypatch):
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
     monkeypatch.setattr(settings_module, "_LOCAL_JSON", local)
+    monkeypatch.setenv("HARNESS_LLM__VISION", "false")
     return (
         lambda data: committed.write_text(json.dumps(data)),
         lambda data: local.write_text(json.dumps(data)),

@@ -6,6 +6,8 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass
 
+from harness.files import ChatFile, ChatFileService
+from harness.images import ImageService
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
 from harness.prompts import SKIPPED_RESULT
@@ -20,7 +22,7 @@ from harness.runtime.hooks import HookChain
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
-from harness.session.derive import derive_messages
+from harness.session.derive import derive_messages, without_images
 from harness.session.log import Session
 from harness.session.models import (
     ApprovalGrant,
@@ -45,27 +47,38 @@ class Runtime:
 
     model: str
     client: LLMClient
+    images: ImageService | None
+    """The images the model is shown; `None` means the model cannot see."""
     tools: ToolPipeline | None = None
     guidance: str = ""
     hooks: HookChain = HookChain()
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
     context_tokens: int | None = None
+    files: ChatFileService | None = None
 
     def request_messages(self, session: Session) -> list[Message]:
-        history = derive_messages(session.events())
+        derived = derive_messages(session.events())
+        history = derived if self.images is not None else without_images(derived)
         system = system_text(session, self.guidance)
         if not system:
             return history
         return [SystemMessage(content=system), *history]
 
     async def run(
-        self, user_input: str, *, session: Session, bot_id: str
+        self,
+        user_input: str,
+        *,
+        session: Session,
+        bot_id: str,
+        files: tuple[ChatFile, ...] = (),
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
-        session.append(UserMessageEvent(turn=turn, message=UserMessage(content=user_input)))
+        images = self.images.of_attachments(files) if self.images is not None else ()
+        message = UserMessage(content=user_input, images=images)
+        session.append(UserMessageEvent(turn=turn, message=message, files=files))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event

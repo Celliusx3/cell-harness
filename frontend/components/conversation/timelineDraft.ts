@@ -7,7 +7,7 @@ import type {
   Timeline,
   TimelineItem,
 } from "@/components/conversation/timelineItems";
-import type { ContentBlock, ToolCall, ToolUi, Usage } from "@/lib/types";
+import type { ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
 
 const stepKey = (turn: number, step: number): string => `${turn}:${step}`;
 
@@ -16,6 +16,13 @@ interface Notice {
   turn: number;
   tone: NoticeItem["tone"];
   text: string;
+}
+
+interface PersonMessage {
+  key: string;
+  turn: number;
+  content: string;
+  files: ChatFile[];
 }
 
 interface AssistantMessage {
@@ -31,6 +38,7 @@ interface ToolResult {
   result: ContentBlock[];
   error: string | null;
   ui: ToolUi | null;
+  files: ChatFile[];
 }
 
 export class TimelineDraft {
@@ -57,13 +65,14 @@ export class TimelineDraft {
     this.inGroup = true;
   }
 
-  onUserMessage(key: string, turn: number, content: string): void {
+  onUserMessage({ key, turn, content, files }: PersonMessage): void {
     this.items.push({
       kind: "user",
       key,
       turn,
       content,
       invoked: display(content),
+      files,
     });
   }
 
@@ -131,15 +140,16 @@ export class TimelineDraft {
       result: null,
       error: null,
       ui: null,
+      files: [],
     });
   }
 
-  onToolResult({ callId, result, error, ui }: ToolResult): void {
+  onToolResult({ callId, result, error, ui, files }: ToolResult): void {
     const at = this.toolAt.get(callId);
     if (at === undefined) return;
     const item = this.items[at];
     if (item?.kind !== "tool") return;
-    this.items[at] = { ...item, result, error, ui };
+    this.items[at] = { ...item, result, error, ui, files };
   }
 
   onCompactionStart(

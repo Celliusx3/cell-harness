@@ -18,6 +18,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_bots, no_skills
+from tests.webapp import files_in, images_in
 
 
 def build(tmp_path: Path):
@@ -30,13 +31,14 @@ def build(tmp_path: Path):
     runtime = Runtime(
         model="m",
         client=ScriptedClient(completed("answered")),
+        images=None,
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)
     runs = RunService(sessions, runtime, bots)
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
-    web = WebChannel(sessions, runs, gateway, bots)
+    web = WebChannel(gateway, bots, files_in(tmp_path), images_in(tmp_path))
     gateway.register(web)
     return gateway, web, runs, chats, sessions
 

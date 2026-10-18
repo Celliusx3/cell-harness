@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 from harness.sandbox import Bridge, BridgeError, Script
-from harness.tools.context import ToolContext
-from harness.tools.definition import EXECUTION_ERROR, Failure, Ok, ToolDefinition, ToolOutcome
+from harness.tools.context import CallOrigin, ToolContext
+from harness.tools.definition import (
+    EXECUTION_ERROR,
+    Failure,
+    Ok,
+    ReturnedImage,
+    ToolDefinition,
+    ToolOutcome,
+)
 from harness.tools.native.code import DETAILS, EXECUTE, LIST
+from harness.tools.native.code.prompts import IMAGES_STAY_OUT
 from tests.unit.code_fakes import FakeRunner, build, returns, tool
 from tests.unit.helpers import context_for
 
@@ -149,6 +157,25 @@ async def test_a_call_from_a_script_goes_through_the_ordinary_pipeline() -> None
     assert [c.name for c in built.dispatched] == ["yt__a"]
 
 
+async def test_a_tool_that_returns_images_is_refused_inside_a_script() -> None:
+    raised: list[BridgeError] = []
+
+    async def script(bridge: Bridge) -> None:
+        try:
+            await bridge("srv__page", {})
+        except BridgeError as err:
+            raised.append(err)
+
+    page = tool("srv__page")
+    shown = Ok("part 1", images=(ReturnedImage(media_type="image/jpeg", data=b"jpeg"),))
+    object.__setattr__(page, "execute", returns(shown))
+    built = build(page, runner=FakeRunner(script=script))
+
+    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+
+    assert str(raised[0]) == IMAGES_STAY_OUT.format(name="srv__page")
+
+
 async def test_a_tool_that_publishes_json_as_text_reaches_the_script_as_an_object() -> None:
     seen: list[object] = []
 
@@ -209,11 +236,11 @@ async def test_the_bridge_refuses_code_mode_itself() -> None:
     assert built.dispatched == []
 
 
-async def test_a_tool_a_script_calls_runs_for_the_calling_bot() -> None:
-    seen: list[str] = []
+async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversation() -> None:
+    seen: list[CallOrigin] = []
 
     async def record(args: dict, context: ToolContext) -> ToolOutcome:
-        seen.append(context.bot_id)
+        seen.append(context.origin)
         return Ok("recorded")
 
     recorder = ToolDefinition(
@@ -229,6 +256,8 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot() -> None:
 
     built = build(recorder, runner=FakeRunner(script=script))
     code = '{"code": "await srv__record({})", "description": "d"}'
-    await built.tool(EXECUTE).invoke(code, context=context_for(bot_id="bot-7"))
+    await built.tool(EXECUTE).invoke(
+        code, context=context_for(bot_id="bot-7", conversation_id="chat-7")
+    )
 
-    assert seen == ["bot-7"]
+    assert seen == [CallOrigin(bot_id="bot-7", conversation_id="chat-7")]

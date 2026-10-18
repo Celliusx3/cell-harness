@@ -17,6 +17,7 @@ RUN=<scratchpad>/drive-run && mkdir -p "$RUN"
 cd backend && uv sync --quiet && cd ..
 [ -d frontend/node_modules ] || (cd frontend && npm ci --silent)
 cd backend && HARNESS_SESSIONS__ROOT="$RUN/harness/sessions" \
+  HARNESS_FILES__ROOT="$RUN/harness/files" \
   HARNESS_APPROVAL__GRANTS_PATH="$RUN/harness/approvals.json" \
   HARNESS_BOTS__PATH="$RUN/harness/bots.json" \
   HARNESS_SECRETS__PATH="$RUN/harness/secrets.json" \
@@ -31,7 +32,7 @@ echo $! > "$RUN/frontend.pid"; cd ..
 
 Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The backend connects every MCP server in `backend/config.json` at startup; the first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
 
-Why each variable: the sessions root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. The bot tokens are blanked because `backend/config.local.json` holds live ones; a copy with them answers the person's real Telegram and Discord chats.
+Why each variable: the sessions root, files root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. The bot tokens are blanked because `backend/config.local.json` holds live ones; a copy with them answers the person's real Telegram and Discord chats.
 
 ## Doctor
 

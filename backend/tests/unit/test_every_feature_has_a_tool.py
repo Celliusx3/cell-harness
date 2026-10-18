@@ -15,7 +15,7 @@ from harness.web.runtime import build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
-from tests.webapp import secrets_in, web_app
+from tests.webapp import files_in, images_in, secrets_in, web_app
 
 
 class Tool(NamedTuple):
@@ -46,6 +46,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     ),
     "POST /api/conversations/{conversation_id}/calls/{call_id}/secret": NotATool(
         "the person types the key on the card; it never passes the model"
+    ),
+    "POST /api/conversations/{conversation_id}/files": NotATool(
+        "the bytes are on the person's device; a tool hands its own files back in its result"
     ),
     "POST /api/skills": NotATool(
         "a zip is bytes the model does not have; skill_save and skill_write_file write its files"
@@ -95,6 +98,7 @@ CONFIG: dict[str, Tool | NotATool] = {
     "secrets": NotATool(
         "where keys are kept and the key that locks them; neither ever passes the model"
     ),
+    "files": NotATool("where each chat's files are kept and the upload limit; the person's"),
 }
 
 
@@ -129,6 +133,8 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),
+        images=images_in(tmp_path),
+        files=files_in(tmp_path),
     )
     assert runtime.tools is not None
 

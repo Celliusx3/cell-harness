@@ -13,6 +13,10 @@ BUILDER_INSTRUCTIONS = (
 NO_RESPONSE = "NO_RESPONSE"
 SPEAKER_TAG = '<speaker name="{name}" />\n{text}'
 
+ATTACHED_FILE = 'The person attached "{name}" ({media_type}, {size} bytes), saved at {path}.'
+HANDED_OVER = "Handed over to the person: {path}"
+NOT_HANDED_OVER = "Not handed over, because it is not a file in this chat's folder: {path}"
+
 GROUP_NOTE = (
     'You are {name}, one of the bots in the group chat "{group}", '
     "talking with the person and {others}. "
@@ -160,6 +164,16 @@ _COMPACTION_INSTRUCTION_LINES = (
 COMPACTION_INSTRUCTION = "\n".join(_COMPACTION_INSTRUCTION_LINES)
 
 PRUNED = "[old tool result cleared to save context; call the tool again if you still need it]"
+
+IMAGE_NOT_SHOWN = "[an earlier image, no longer shown: only the newest images are kept]"
+
+IMAGES_FOLLOW = "[images from this result: {count}, shown in the message after the tool results]"
+
+TOOL_IMAGES = "The images the tool results above returned, in the order of those results."
+
+IMAGE_TOO_LARGE = (
+    "[an image of {size:,} bytes was not shown: only images up to {limit:,} bytes are sent]"
+)
 
 CUT_NOTE = (
     "\n\n[cut: this result was {total:,} characters and only the first {limit:,} are shown. "

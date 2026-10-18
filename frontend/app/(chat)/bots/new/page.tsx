@@ -6,6 +6,7 @@ import { useState } from "react";
 import { BotSuggestions } from "@/components/bots/BotSuggestions";
 import { Composer } from "@/components/conversation/Composer";
 import { ApiError, BUILDER_ID, clearConversation, sendMessage } from "@/lib/api";
+import type { ChatFile } from "@/lib/types";
 
 interface Seed {
   key: number;
@@ -21,13 +22,13 @@ export default function NewBotPage() {
 
   const reseed = (draft: string) => setSeed((current) => ({ key: current.key + 1, draft }));
 
-  async function start(prompt: string) {
+  async function start(prompt: string, files: ChatFile[]) {
     if (running) return;
     setRunning(true);
     setError(null);
     try {
       await clearConversation(BUILDER_ID);
-      await sendMessage(BUILDER_ID, prompt);
+      await sendMessage(BUILDER_ID, prompt, files);
       router.push(`/c/${BUILDER_ID}`);
     } catch (err: unknown) {
       setError(err instanceof ApiError ? err.message : "Could not start the bot builder.");
@@ -57,8 +58,9 @@ export default function NewBotPage() {
         key={seed.key}
         autoFocus
         initialDraft={seed.draft}
+        chatId={BUILDER_ID}
         running={running}
-        onSend={(prompt) => void start(prompt)}
+        onSend={(prompt, files) => void start(prompt, files)}
         onStop={() => undefined}
       />
     </>

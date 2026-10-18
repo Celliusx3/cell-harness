@@ -7,6 +7,7 @@ import base64
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import httpx
 import pytest
@@ -15,6 +16,7 @@ from mcp.server import MCPServer
 from computer.clock import Clock
 from computer.config import Config
 from computer.docker import CommandResult, DockerError
+from computer.host_services import PreparedHostService, command_variables
 
 NAME = "cell-harness-computer"
 IMAGE = "ghcr.io/elie222/rakazo/computer:edge"
@@ -23,6 +25,8 @@ API_HOST_PORT = 62477
 GATEWAY_HOST_PORT = 62480
 EPOCH = datetime(2026, 10, 13, 9, 0, tzinfo=UTC)
 API_TOKEN = "6551e986a39875307053cbe4326f34f4"
+FILES_DIR = Path("/tmp/cell-harness-files")
+SKILLS_DIR = Path("/tmp/cell-harness-skills")
 PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
 SCREENSHOT_REPLY = {
     "completed": 0,
@@ -65,8 +69,33 @@ CDP_DOWN = json.dumps(
 )
 
 
-def config(idle_minutes: int = IDLE_SECONDS // 60) -> Config:
-    return Config(image=IMAGE, container_name=NAME, idle_minutes=idle_minutes)
+def config(
+    idle_minutes: int = IDLE_SECONDS // 60,
+    *,
+    files_dir: Path = FILES_DIR,
+    skills_dirs: tuple[Path, ...] = (SKILLS_DIR,),
+) -> Config:
+    return Config(
+        image=IMAGE,
+        container_name=NAME,
+        idle_minutes=idle_minutes,
+        files_dir=files_dir,
+        skills_dirs=skills_dirs,
+    )
+
+
+def mount_of(volume: str) -> dict[str, object]:
+    """A `-v` argument as `docker inspect` prints the mount it makes."""
+    source, destination, *mode = volume.split(":")
+    kind = "bind" if source.startswith("/") else "volume"
+    return {"Type": kind, "Source": source, "Destination": destination, "RW": mode != ["ro"]}
+
+
+MOUNTED = [
+    mount_of(f"{NAME}-home:/home/rakazo"),
+    mount_of(f"{FILES_DIR}:{FILES_DIR}"),
+    mount_of(f"{SKILLS_DIR}:{SKILLS_DIR}:ro"),
+]
 
 
 class FakeDocker:
@@ -89,6 +118,7 @@ class FakeDocker:
             "7070/tcp": [{"HostIp": "127.0.0.1", "HostPort": ""}],
         }
         self.raw_bindings: str | None = None
+        self.mounts: list[dict[str, object]] = list(MOUNTED)
         self.python_result = CommandResult(0, "", "")
 
     async def run(
@@ -114,6 +144,8 @@ class FakeDocker:
             return CommandResult(0, json.dumps(self.env) + "\n", "")
         if verb == "inspect" and "{{json .HostConfig.PortBindings}}" in args:
             return CommandResult(0, (self.raw_bindings or json.dumps(self.bindings)) + "\n", "")
+        if verb == "inspect" and "{{json .Mounts}}" in args:
+            return CommandResult(0, json.dumps(self.mounts) + "\n", "")
         if verb == "inspect":
             return CommandResult(0, f"{self.status}\n", "")
         if verb == "port":
@@ -127,6 +159,7 @@ class FakeDocker:
                 args[at + 1].rsplit(":", 1)[1] for at, arg in enumerate(args) if arg == "-p"
             ]
             self.bindings = {f"{port}/tcp": [{"HostIp": "127.0.0.1"}] for port in published}
+            self.mounts = [mount_of(args[at + 1]) for at, arg in enumerate(args) if arg == "-v"]
         if verb == "start":
             self.api_host_port += 1
         if verb in ("run", "start"):
@@ -217,7 +250,10 @@ async def settle() -> None:
 
 
 def server_with(
-    docker: FakeDocker, dial: Dial | None = None, desktop_api: FakeDesktopApi | None = None
+    docker: FakeDocker,
+    dial: Dial | None = None,
+    desktop_api: FakeDesktopApi | None = None,
+    host_services: Sequence[PreparedHostService] = (),
 ) -> MCPServer:
     from computer.browser import Browser
     from computer.desktop import Desktop
@@ -225,6 +261,7 @@ def server_with(
     from computer.live_screen import LiveScreen
     from computer.machine import Machine
     from computer.server import build
+    from computer.shell import Shell
     from computer.tools import Computer
 
     clock = (dial or Dial()).clock
@@ -240,7 +277,14 @@ def server_with(
             ),
             live_screen=LiveScreen(docker=docker, container=NAME, machine=machine, clock=clock),
             files=Files(docker=docker, container=NAME),
-        )
+            shell=Shell(
+                docker=docker,
+                container=NAME,
+                clock=TickingClock().clock,
+                variables=command_variables(host_services),
+            ),
+        ),
+        host_services,
     )
 
 

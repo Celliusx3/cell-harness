@@ -1,7 +1,7 @@
 /** The shapes `buildTimeline` produces */
 
 import type { Invocation } from "@/components/conversation/invocation";
-import type { ContentBlock, ToolCall, ToolUi, Usage } from "@/lib/types";
+import type { ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
 
 export interface UserItem {
   kind: "user";
@@ -11,6 +11,8 @@ export interface UserItem {
   content: string;
   /** Set when the message is a `/name` expansion: the short form to show. */
   invoked: Invocation | null;
+  /** What the person attached */
+  files: ChatFile[];
 }
 
 export interface AssistantItem {
@@ -38,6 +40,8 @@ export interface ToolItem {
   error: string | null;
   /** The MCP App that draws this result, arriving with `tool/result`. */
   ui: ToolUi | null;
+  /** The files the tool handed back, arriving with `tool/result`. */
+  files: ChatFile[];
 }
 
 export interface NoticeItem {

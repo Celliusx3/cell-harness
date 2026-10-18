@@ -8,19 +8,20 @@ from pathlib import Path
 import pytest
 
 from harness.config import settings as settings_module
-from harness.config.sections import LLMSettings
+from harness.config.sections import FileSettings, LLMSettings
 from harness.config.settings import MissingConfigError, Settings, load
 
 
 @pytest.fixture
 def config_file(tmp_path, monkeypatch):
-    """Point the loader at a throwaway config pair."""
+    """Point the loader at a throwaway config pair; `llm.vision` is set."""
     committed = tmp_path / "config.json"
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
     monkeypatch.setattr(settings_module, "_LOCAL_JSON", local)
     for name in ("HARNESS_LLM__MODEL", "HARNESS_LLM__API_KEY", "HARNESS_SESSIONS__ROOT"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("HARNESS_LLM__VISION", "false")
 
     return (
         lambda data: committed.write_text(json.dumps(data)),
@@ -51,7 +52,7 @@ def test_constructor_arguments_beat_everything(config_file, monkeypatch) -> None
     write_committed({"llm": {"model": "from-json"}})
     monkeypatch.setenv("HARNESS_LLM__MODEL", "from-env")
 
-    assert Settings(llm=LLMSettings(model="explicit")).llm.model == "explicit"
+    assert Settings(llm=LLMSettings(model="explicit", vision=False)).llm.model == "explicit"
 
 
 def test_a_value_in_neither_falls_back_to_the_field_default(config_file) -> None:
@@ -111,7 +112,7 @@ def test_a_blank_value_counts_as_absent(config_file, blank) -> None:
 
 
 def test_temperature_is_pinned_not_inherited() -> None:
-    assert LLMSettings().temperature == 1.0
+    assert LLMSettings(vision=False).temperature == 1.0
 
 
 @pytest.mark.parametrize("bad", [-0.1, 2.1])
@@ -119,7 +120,7 @@ def test_temperature_is_bounded(bad: float) -> None:
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        LLMSettings(temperature=bad)
+        LLMSettings(vision=False, temperature=bad)
 
 
 def test_the_sessions_root_expands_a_tilde() -> None:
@@ -224,3 +225,42 @@ def test_a_trailing_slash_on_the_public_url_is_dropped(config_file) -> None:
     write_committed({"web": {"public_url": "https://h.example/"}})
 
     assert Settings().web.public_url == "https://h.example"
+
+
+def test_the_files_root_expands_a_tilde() -> None:
+    root = FileSettings(root="~/files").root
+
+    assert "~" not in str(root)
+    assert str(root).startswith("/")
+
+
+def test_an_upload_limit_of_nothing_is_refused() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        FileSettings(max_bytes=0)
+
+
+def test_the_committed_config_sets_where_files_go_and_how_big_one_may_be(config_file) -> None:
+    committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
+
+    assert committed["files"] == {"root": "~/.harness/files", "max_bytes": 209715200}
+
+
+def test_a_config_that_does_not_say_whether_the_model_can_see_is_refused(
+    config_file, monkeypatch
+) -> None:
+    from pydantic import ValidationError
+
+    write_committed, _ = config_file
+    monkeypatch.delenv("HARNESS_LLM__VISION")
+    write_committed({"llm": {"model": "m", "api_key": "k"}})
+
+    with pytest.raises(ValidationError, match="llm.vision"):
+        Settings()
+
+
+def test_the_committed_config_shows_the_model_images(config_file) -> None:
+    committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
+
+    assert committed["llm"]["vision"] is True

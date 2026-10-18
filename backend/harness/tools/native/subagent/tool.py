@@ -85,7 +85,7 @@ def run_subagent_tool(runner: SubagentRunner) -> ToolDefinition[SubagentArgs]:
             async with asyncio.TaskGroup() as group:
                 running = [
                     group.create_task(
-                        runner(f"{context.call_id}.{index}", task, bot_id=context.bot_id)
+                        runner(f"{context.call_id}.{index}", task, bot_id=context.origin.bot_id)
                     )
                     for index, task in enumerate(args.tasks)
                 ]

@@ -16,7 +16,7 @@ from harness.tools.pipeline import MAX_TOOLS_SELECTED, ToolPipeline
 from harness.tools.registry import ToolRegistry
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
-from tests.unit.helpers import new_session, no_gate, no_progress
+from tests.unit.helpers import ORIGIN, new_session, no_gate, no_progress
 
 DEFAULTS = (LIST, DETAILS, EXECUTE)
 
@@ -50,7 +50,7 @@ async def test_details_states_what_it_made_callable() -> None:
     outcome = await built.execute(
         ToolCall(id="c1", name=DETAILS, arguments=json.dumps({"names": ["a", "ghost"]})),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
 
     assert isinstance(outcome, Ok)
@@ -68,7 +68,7 @@ def test_the_adapter_spells_a_reference_out_for_a_wire_without_blocks() -> None:
         tool_call_id="c1", content=(Text(text="declare …"), ToolReference(tool_name="a"))
     )
 
-    wire = wire_message(message)
+    wire = wire_message(message, {})
 
     assert wire["role"] == "tool" and wire["tool_call_id"] == "c1"
     assert wire["content"].startswith("declare …")
@@ -131,8 +131,8 @@ async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_se
     built = pipeline(echo_tool("a"))
     call = ToolCall(id="c1", name="a", arguments='{"value": "hi"}')
 
-    refused = await built.execute(call, progress=no_progress, bot_id="s")
-    allowed = await built.execute(call, progress=no_progress, bot_id="s", tools_selected=("a",))
+    refused = await built.execute(call, progress=no_progress, origin=ORIGIN)
+    allowed = await built.execute(call, progress=no_progress, origin=ORIGIN, tools_selected=("a",))
 
     assert "get_function_details" in str(refused)
     assert isinstance(allowed, Ok) and allowed.text == "hi"
@@ -144,7 +144,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, images=None, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
@@ -162,7 +162,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, images=None, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:

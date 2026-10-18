@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from computer.models import (
     TRANSFER_LIMIT_BYTES,
     Action,
+    CommandRun,
     HomePath,
     checked_file_path,
     checked_upload,
@@ -112,3 +113,13 @@ def test_an_upload_of_up_to_ten_mebibytes_is_accepted() -> None:
 def test_an_upload_too_large_or_not_base64_is_refused(content: str, because: str) -> None:
     with pytest.raises(ValueError, match=because):
         checked_upload(content)
+
+
+@pytest.mark.parametrize(("status", "exit_code"), [("running", 0), ("done", None)])
+def test_a_command_run_has_an_exit_code_exactly_when_it_is_done(
+    status: str, exit_code: int | None
+) -> None:
+    with pytest.raises(ValidationError, match="exit code"):
+        CommandRun.model_validate(
+            {"status": status, "exit_code": exit_code, "seconds": 1.0, "output": ""}
+        )

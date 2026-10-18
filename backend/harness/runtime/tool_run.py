@@ -4,20 +4,26 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from harness.llm.messages import ApplicationMessage, ToolCall, ToolMessage, render_text
+from harness.files import ChatFile, ChatFileService
+from harness.llm.messages import ApplicationMessage, Text, ToolCall, ToolMessage, render_text
+from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.log import Session
 from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.session.repair import unknown_result
+from harness.tools.context import CallOrigin
 from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime
+
+logger = logging.getLogger("harness.runtime")
 
 
 @dataclass(frozen=True)
@@ -36,6 +42,50 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
         error=None if isinstance(outcome, Ok) else outcome.code,
         ui=outcome.ui if isinstance(outcome, Ok) else None,
     )
+
+
+@dataclass(frozen=True)
+class HandedOver:
+    """The files a result named that reached the person, and a line per path saying whether."""
+
+    files: tuple[ChatFile, ...]
+    lines: tuple[str, ...]
+
+
+def _files_handed_over(
+    files: ChatFileService | None, chat_id: str, outcome: Ok | Failure
+) -> HandedOver:
+    """Each path a result names: kept when it is a file in this chat's folder, else refused."""
+    paths = outcome.hand_over_paths if isinstance(outcome, Ok) else ()
+    kept: list[ChatFile] = []
+    lines: list[str] = []
+    for path in paths:
+        stored = files.file_at(chat_id, path) if files is not None else None
+        if stored is None:
+            logger.warning("dropped %s from a tool result: not a file in chat %s", path, chat_id)
+            lines.append(NOT_HANDED_OVER.format(path=path))
+            continue
+        kept.append(stored)
+        lines.append(HANDED_OVER.format(path=path))
+    return HandedOver(files=tuple(kept), lines=tuple(lines))
+
+
+def _with_hand_over_lines(message: ToolMessage, handed: HandedOver) -> ToolMessage:
+    """The result's words, then which of the files it named reached the person."""
+    if not handed.lines:
+        return message
+    told = Text(text="\n".join(handed.lines))
+    return message.model_copy(update={"content": (*message.content, told)})
+
+
+def _with_result_images(
+    runtime: Runtime, message: ToolMessage, outcome: Ok | Failure
+) -> ToolMessage:
+    """The result as the model reads it: its words, then its images when the model can see."""
+    if runtime.images is None or not isinstance(outcome, Ok) or not outcome.images:
+        return message
+    seen = runtime.images.of_result(outcome.images)
+    return message.model_copy(update={"content": (*message.content, *seen)})
 
 
 async def run_tool_calls(
@@ -118,9 +168,18 @@ async def _answer_call(
             yield Reminder(note)
 
     result = settled_result(call.id, outcome, turn=turn, step=step)
-    session.append(result)
+    handed = _files_handed_over(runtime.files, session.id, outcome)
+    logged = result.model_copy(
+        update={
+            "message": _with_result_images(
+                runtime, _with_hand_over_lines(result.message, handed), outcome
+            ),
+            "files": handed.files,
+        }
+    )
+    session.append(logged)
     yield ToolResult(
-        tool_call_id=call.id, name=call.name, content=render_text(result.message.content)
+        tool_call_id=call.id, name=call.name, content=render_text(logged.message.content)
     )
 
 
@@ -159,6 +218,7 @@ async def _execute(
     runtime: Runtime, call: ToolCall, *, session: Session, approved: bool, bot_id: str
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
+    origin = CallOrigin(bot_id=bot_id, conversation_id=session.id)
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 
     async def report(*, percent: float | None, message: str | None) -> None:
@@ -170,11 +230,11 @@ async def _execute(
         try:
             assert runtime.tools is not None
             if approved:
-                return await runtime.tools.approve(call, progress=report, bot_id=bot_id)
+                return await runtime.tools.approve(call, progress=report, origin=origin)
             return await runtime.tools.execute(
                 call,
                 progress=report,
-                bot_id=bot_id,
+                origin=origin,
                 tools_selected=session.tools_selected(),
             )
         finally:

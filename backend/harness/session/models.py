@@ -7,6 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from harness.files.models import ChatFile
 from harness.llm.messages import (
     ApplicationMessage,
     AssistantMessage,
@@ -64,6 +65,7 @@ class UserMessageEvent(BaseModel):
     type: Literal["user/message"] = "user/message"
     turn: int
     message: UserMessage
+    files: tuple[ChatFile, ...] = ()
 
 
 BotMessageIntent = Literal["request", "result"]
@@ -154,6 +156,7 @@ class ToolResultEvent(BaseModel):
     message: ToolMessage
     error: str | None = None
     ui: ToolUi | None = None
+    files: tuple[ChatFile, ...] = ()
 
 
 class AssistantMessageEvent(BaseModel):

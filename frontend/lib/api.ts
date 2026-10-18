@@ -15,6 +15,7 @@ import type {
   SkillFile,
   SkillList,
   SkillSummary,
+  ChatFile,
 } from "./types";
 
 /** Thrown for any non-2xx, carrying the backend's `detail` so the UI can show it. */
@@ -63,11 +64,26 @@ async function detailOf(response: Response): Promise<string> {
 export const getConversation = (id: string) =>
   request<ConversationDetail>(`/conversations/${id}`);
 
-export const sendMessage = (id: string, prompt: string) =>
+export const sendMessage = (id: string, prompt: string, files: ChatFile[]) =>
   request<MessageAccepted>(`/conversations/${id}/messages`, {
     method: "POST",
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, files: files.map((file) => file.path) }),
   });
+
+/** Save one file in the chat's folder, for the next message to attach. */
+export const uploadFile = (id: string, file: File) => {
+  const body = new FormData();
+  body.append("file", file);
+  return request<ChatFile>(`/conversations/${id}/files`, { method: "POST", body });
+};
+
+/** Where the browser reads a file in a chat's folder: an image is shown, anything else downloads. */
+export const fileUrl = (id: string, path: string) =>
+  `/api/conversations/${encodeURIComponent(id)}/file?path=${encodeURIComponent(path)}`;
+
+/** Where the browser reads an image a chat showed the model, by the hash it is kept under. */
+export const imageUrl = (id: string, sha256: string) =>
+  `/api/conversations/${encodeURIComponent(id)}/images/${encodeURIComponent(sha256)}`;
 
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });

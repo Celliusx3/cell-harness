@@ -76,6 +76,11 @@ class ChannelGateway:
         return self._runs
 
     @property
+    def sessions(self) -> SessionService:
+        """Where every conversation's log is kept — for a channel that reads one."""
+        return self._sessions
+
+    @property
     def skills(self) -> SkillService:
         """What `/name` may name."""
         return self._skills
@@ -92,15 +97,15 @@ class ChannelGateway:
 
         state = await self._state(message.channel, message.chat_id)
         if self._runs.active(state.conversation_id) is not None:
-            await self._following.queue(state, message.text)
+            await self._following.queue(state, message.text, message.files)
             return None
 
-        return await self._following.turn_for_chat(state, content)
+        return await self._following.turn_for_chat(state, content, message.files)
 
     async def clear(self, channel: str, chat_id: str) -> None:
         """Clear this chat in place, as a run that stops its turn and wipes it under the same id."""
         state = await self._state(channel, chat_id)
-        await self._repository.save(state.model_copy(update={"pending": ()}))
+        await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
         if not state.conversation_id:
             return
         in_flight = self._runs.active(state.conversation_id)
@@ -121,7 +126,7 @@ class ChannelGateway:
     async def stop(self, channel: str, chat_id: str) -> bool:
         """Cancel the turn in flight, discarding anything queued behind it."""
         state = await self._state(channel, chat_id)
-        await self._repository.save(state.model_copy(update={"pending": ()}))
+        await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
         if not state.conversation_id:
             return False
         return await self._runs.stop(state.conversation_id)

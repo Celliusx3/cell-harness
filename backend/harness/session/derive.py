@@ -5,11 +5,13 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
-from harness.llm.messages import Block, Message, Text, ToolMessage, UserMessage
+from harness.llm.messages import Block, Image, Message, Text, ToolMessage, UserMessage, images_of
 from harness.prompts import (
+    ATTACHED_FILE,
     BOT_MESSAGE_REQUEST,
     BOT_MESSAGE_RESULT,
     CUT_NOTE,
+    IMAGE_NOT_SHOWN,
     NO_RESPONSE,
     PRUNED,
     SPEAKER_TAG,
@@ -31,6 +33,8 @@ from harness.session.models import (
 from harness.session.speakers import last_speaker, turn_speakers
 
 RESULT_LIMIT = 12_000
+IMAGES_KEPT = 10
+IMAGE_BYTES_KEPT = 12_000_000
 
 BOT_MESSAGE_TEMPLATES: Mapping[BotMessageIntent, str] = {
     "request": BOT_MESSAGE_REQUEST,
@@ -67,7 +71,50 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
         messages.append(UserMessage(content=summary.message.content))
         log = log[start + 1 :]
     messages.extend(_as_heard(log, voices, pruned))
-    return messages
+    return _newest_images_only(messages, kept=IMAGES_KEPT, kept_bytes=IMAGE_BYTES_KEPT)
+
+
+def without_images(messages: Sequence[Message]) -> list[Message]:
+    """`messages` with every image a note instead."""
+    return _newest_images_only(messages, kept=0, kept_bytes=0)
+
+
+def _newest_images_only(
+    messages: Sequence[Message], *, kept: int, kept_bytes: int
+) -> list[Message]:
+    """Only the newest images: at most `kept` of them, `kept_bytes` in all; older are notes."""
+    remaining, room, full = kept, kept_bytes, False
+    shown: list[Message] = []
+    for message in reversed(messages):
+        images = images_of(message)
+        keep = 0
+        for image in reversed(images):
+            full = full or remaining == 0 or image.size > room
+            if full:
+                break
+            remaining, room, keep = remaining - 1, room - image.size, keep + 1
+        shown.append(_older_images_dropped(message, len(images) - keep))
+    return shown[::-1]
+
+
+def _older_images_dropped(message: Message, dropped: int) -> Message:
+    """`message` with its first `dropped` images each replaced by IMAGE_NOT_SHOWN."""
+    match message:
+        case UserMessage() if dropped:
+            notes = "\n".join([IMAGE_NOT_SHOWN] * dropped)
+            return UserMessage(
+                content=f"{message.content}\n{notes}", images=message.images[dropped:]
+            )
+        case ToolMessage() if dropped:
+            positions = [i for i, block in enumerate(message.content) if isinstance(block, Image)]
+            older = frozenset(positions[:dropped])
+            content = tuple(
+                Text(text=IMAGE_NOT_SHOWN) if index in older else block
+                for index, block in enumerate(message.content)
+            )
+            return ToolMessage(tool_call_id=message.tool_call_id, content=content)
+        case _:
+            return message
 
 
 def _as_heard(
@@ -81,7 +128,7 @@ def _as_heard(
             yield _speaker_message(speaker, heard)
             heard = ()
         if isinstance(event, UserMessageEvent):
-            yield event.message
+            yield _person_message(event)
         elif isinstance(event, BotMessageEvent):
             yield _bot_message(event.message)
         elif isinstance(event, (ApplicationMessageEvent, AssistantMessageEvent, ToolResultEvent)):
@@ -104,6 +151,19 @@ def _own_message(
     if event.message.tool_call_id in pruned:
         return ToolMessage(tool_call_id=event.message.tool_call_id, content=PRUNED)
     return _limited(event.message)
+
+
+def _person_message(event: UserMessageEvent) -> UserMessage:
+    """The person's text, then a line for each file they attached; the text alone without one."""
+    if not event.files:
+        return event.message
+    lines = "\n".join(
+        ATTACHED_FILE.format(
+            name=file.name, media_type=file.media_type, size=file.size, path=file.path
+        )
+        for file in event.files
+    )
+    return UserMessage(content=f"{event.message.content}\n\n{lines}", images=event.message.images)
 
 
 def _bot_message(message: BotMessage) -> UserMessage:
