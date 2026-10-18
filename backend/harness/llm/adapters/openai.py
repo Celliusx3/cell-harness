@@ -57,7 +57,8 @@ def _delta(payload: dict) -> dict:
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
         return {}
-    delta = choices[0].get("delta")
+    choice = choices[0]
+    delta = choice.get("delta") if isinstance(choice, dict) else None
     return delta if isinstance(delta, dict) else {}
 
 
@@ -121,6 +122,9 @@ class OpenAIClient(LLMClient):
                         payload = json.loads(data)
                     except json.JSONDecodeError:
                         logger.warning("skipping unparseable SSE frame: %r", data)
+                        continue
+                    if not isinstance(payload, dict):
+                        logger.warning("skipping SSE frame that is not an object: %r", data)
                         continue
                     if payload.get("error"):
                         yield Failed(

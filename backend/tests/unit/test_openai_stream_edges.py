@@ -139,3 +139,10 @@ def test_a_system_message_is_sent_as_its_role_and_its_text() -> None:
     assert wire_messages([SystemMessage(content="be brief")], {}) == [
         {"role": "system", "content": "be brief"}
     ]
+
+
+@pytest.mark.parametrize("frame", ["5", "null", '"text"', "[1]", '{"choices": [5]}'])
+async def test_a_line_that_is_not_an_object_is_skipped(monkeypatch, frame: str) -> None:
+    events = await collect(monkeypatch, answering(frame, delta("ok")))
+
+    assert events == [TextChunk(text="ok"), Completed(full_text="ok")]
