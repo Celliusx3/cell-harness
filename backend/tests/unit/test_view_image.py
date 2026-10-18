@@ -192,6 +192,6 @@ async def test_a_model_that_cannot_see_is_not_offered_it_and_cannot_call_it(
     assert VIEW_IMAGE not in offered(runtime)
     assert runtime.tools is not None
     called = await runtime.tools.execute(call, progress=no_progress, origin=ORIGIN)
-    approved = await runtime.tools.approve(call, progress=no_progress, origin=ORIGIN)
+    approved = await runtime.tools.execute_approved(call, progress=no_progress, origin=ORIGIN)
     assert isinstance(called, Failure) and called.code == REFUSED
     assert isinstance(approved, Failure) and approved.code == UNKNOWN_TOOL

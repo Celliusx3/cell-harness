@@ -29,9 +29,9 @@ class ToolPipeline:
 
     def specs(self, tools_selected: Sequence[str] = ()) -> list[ToolSpec]:
         """What the model is offered this step — the only place visibility is decided."""
-        return [tool.spec() for tool in self._offered(tools_selected)]
+        return [tool.spec() for tool in self._offered_tools(tools_selected)]
 
-    def _offered(self, tools_selected: Sequence[str]) -> list[ToolDefinition]:
+    def _offered_tools(self, tools_selected: Sequence[str]) -> list[ToolDefinition]:
         by_name = {t.name: t for t in self.registry.all()}
         offered = [by_name[n] for n in self._default if n in by_name]
         chosen = {tool.name for tool in offered}
@@ -51,13 +51,13 @@ class ToolPipeline:
         tools_selected: Sequence[str] = (),
     ) -> ToolOutcome:
         """Run one of the model's own calls — if it was offered."""
-        if call.name not in {tool.name for tool in self._offered(tools_selected)}:
-            return Failure(REFUSED, _not_offered(call.name))
+        if call.name not in {tool.name for tool in self._offered_tools(tools_selected)}:
+            return Failure(REFUSED, _not_offered_message(call.name))
         return await self._dispatcher.dispatch(
             call, progress=progress, approved=False, origin=origin
         )
 
-    async def approve(
+    async def execute_approved(
         self, call: ToolCall, *, progress: ToolProgressReporter, origin: CallOrigin
     ) -> ToolOutcome:
         """Run a call the person has approved — they opened this door, so no offered check."""
@@ -66,7 +66,7 @@ class ToolPipeline:
         )
 
 
-def _not_offered(name: str) -> str:
+def _not_offered_message(name: str) -> str:
     return (
         f"{name!r} is not in your tool list. Select it by reading its schema with "
         "get_function_details — then it is, and you can call it directly. "

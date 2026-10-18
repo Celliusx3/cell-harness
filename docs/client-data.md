@@ -225,7 +225,7 @@ is stopped midway.
   `tools_selected()` folds references, and the loop passes `approved=True` for
   that tool from then on. `always` writes the tool into
   `approval.grants_path` (`~/.harness/approvals.json`), read by
-  `ApprovalGate.asks`; `GET /api/approvals` lists it and `DELETE
+  `ApprovalGate.should_ask`; `GET /api/approvals` lists it and `DELETE
   /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),
   ChatGPT (per connected app) and OpenClaw (a durable allowlist) each have this
   rung above "this conversation".

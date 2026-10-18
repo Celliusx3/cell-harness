@@ -37,15 +37,15 @@ def _asked(call_id: str):
 
 def test_always_allow_is_written_to_the_grants_file_and_the_gate_stops_asking(tmp_path) -> None:
     gate = _gate(tmp_path, WRITE)
-    assert gate.asks(WRITE) is True
-    assert gate.asks("clock") is False
+    assert gate.should_ask(WRITE) is True
+    assert gate.should_ask("clock") is False
 
     gate.grant(WRITE)
 
-    assert gate.asks(WRITE) is False
-    assert _gate(tmp_path, WRITE).granted() == frozenset({WRITE})
+    assert gate.should_ask(WRITE) is False
+    assert _gate(tmp_path, WRITE).granted_tools() == frozenset({WRITE})
     gate.revoke(WRITE)
-    assert _gate(tmp_path, WRITE).asks(WRITE) is True
+    assert _gate(tmp_path, WRITE).should_ask(WRITE) is True
     with pytest.raises(ValueError):
         gate.grant("clock")
 
@@ -60,7 +60,7 @@ def test_the_service_grants_always_before_the_turn_resumes(tmp_path) -> None:
     accepted = service.accept_call(session, "c1", {"kind": "approved", "scope": "always"})
 
     assert accepted == Accepted("c1", Approved(scope="always"))
-    assert gate.granted() == frozenset({WRITE})
+    assert gate.granted_tools() == frozenset({WRITE})
 
 
 def test_repair_answers_a_call_left_by_a_crash_after_approval() -> None:
@@ -111,15 +111,15 @@ def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) 
         frozenset(), lambda: frozenset({"mail__send_email"}), tmp_path / "approvals.json"
     )
 
-    assert gate.asks("mail__send_email")
+    assert gate.should_ask("mail__send_email")
     gate.grant("mail__send_email")
-    assert not gate.asks("mail__send_email")
+    assert not gate.should_ask("mail__send_email")
 
 
 def test_the_servers_tools_are_read_again_on_every_check(tmp_path) -> None:
     connected: set[str] = set()
     gate = ApprovalGate(frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json")
 
-    assert not gate.asks("mail__send_email")
+    assert not gate.should_ask("mail__send_email")
     connected.add("mail__send_email")
-    assert gate.asks("mail__send_email")
+    assert gate.should_ask("mail__send_email")

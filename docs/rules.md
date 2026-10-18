@@ -170,7 +170,7 @@ gap nobody had walked through until a 4B model did: it copied
 and it ran — correct answer, wrong door. The request is supposed to be the
 record of what the model may call directly; a name hallucinated from context is
 not on it. So `ToolPipeline.execute` checks the model's own calls against the
-same `_offered` that built the request, and refuses with the route that does
+same `_offered_tools` that built the request, and refuses with the route that does
 exist (`list_functions`) and *without* listing what else is registered — that
 list is what the direct route would feed on. Scripts never pass through the
 pipeline, so they are untouched. It is not a hook, because a hook fails open

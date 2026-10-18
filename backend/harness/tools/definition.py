@@ -51,7 +51,7 @@ class ToolDefinition[ArgsT]:
             input_schema=self.input_schema,
         )
 
-    def _missing_required(self, raw: dict) -> str | None:
+    def _missing_required_message(self, raw: dict) -> str | None:
         """A required field the model left out, or `None`."""
         required = [f for f in self.input_schema.get("required", ()) if f not in raw]
         if not required:
@@ -81,7 +81,7 @@ class ToolDefinition[ArgsT]:
                 f"arguments for {self.name!r} must be a JSON object, got {type(raw).__name__}",
             )
 
-        if missing := self._missing_required(raw):
+        if missing := self._missing_required_message(raw):
             return Failure(INVALID_ARGUMENTS, missing)
 
         try:

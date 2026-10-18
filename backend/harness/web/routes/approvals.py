@@ -26,7 +26,7 @@ def build_router(gate: ApprovalGate) -> APIRouter:
 
     @router.get("", response_model=Approvals)
     async def list_approvals() -> Approvals:
-        return Approvals(tools=sorted(gate.granted()))
+        return Approvals(tools=sorted(gate.granted_tools()))
 
     @router.delete("/{tool}", status_code=status.HTTP_204_NO_CONTENT)
     async def revoke(tool: str) -> Response:

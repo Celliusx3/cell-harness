@@ -70,7 +70,7 @@ class Pending:
 ToolOutcome = Ok | Failure | Pending
 
 
-def render_outcome(outcome: Ok | Failure) -> tuple[Block, ...]:
+def blocks_of(outcome: Ok | Failure) -> tuple[Block, ...]:
     """What the model sees, as blocks."""
     if isinstance(outcome, Ok):
         return outcome.content
