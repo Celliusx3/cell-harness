@@ -14,7 +14,7 @@ from harness.runs.service import Run
 from harness.runs.subscribe import subscribe
 from harness.session.compaction import CompactionEnd
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnEnd
-from harness.tools.client import PendingCall, still_pending
+from harness.tools.client import PendingCall, next_pending
 
 logger = logging.getLogger("harness.channels")
 
@@ -65,7 +65,7 @@ class Replies:
             pending: tuple[PendingCall, ...] = ()
             async for item in subscribe(run, after=run.first_event_number):
                 event = item.event
-                pending = still_pending(pending, event)
+                pending = next_pending(pending, event)
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
                 elif isinstance(event, ToolResultEvent):

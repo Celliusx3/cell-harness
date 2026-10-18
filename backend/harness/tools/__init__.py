@@ -17,7 +17,6 @@ from harness.tools.models.outcome import (
     ReturnedImage,
     ToolOutcome,
     ToolUi,
-    blocks_of,
 )
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
@@ -43,5 +42,4 @@ __all__ = [
     "ToolPipeline",
     "ToolRegistry",
     "ToolUi",
-    "blocks_of",
 ]

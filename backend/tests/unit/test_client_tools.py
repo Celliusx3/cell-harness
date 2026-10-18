@@ -20,8 +20,8 @@ from harness.tools.client import (
     Refused,
     Shared,
     Unavailable,
+    next_pending,
     pending_calls,
-    still_pending,
 )
 from tests.unit.helpers import context_for, new_session, no_gate
 
@@ -116,15 +116,15 @@ def test_the_pending_calls_are_the_unanswered_client_calls_in_log_order() -> Non
     assert pending_calls(session, NAMES) == (PendingCall("get_battery", "c2", "{}"),)
 
 
-def test_still_pending_adds_each_call_and_drops_it_once_answered() -> None:
-    assert still_pending((), _call("c1")) == (PendingCall("get_battery", "c1", "{}"),)
-    assert still_pending(still_pending((), _call("c1")), _result("c1")) == ()
+def test_a_call_stays_pending_until_its_result_lands() -> None:
+    assert next_pending((), _call("c1")) == (PendingCall("get_battery", "c1", "{}"),)
+    assert next_pending(next_pending((), _call("c1")), _result("c1")) == ()
 
-    both = still_pending(still_pending((), _call("c1")), _call("c2"))
-    assert still_pending(both, _result("c1")) == (PendingCall("get_battery", "c2", "{}"),)
+    both = next_pending(next_pending((), _call("c1")), _call("c2"))
+    assert next_pending(both, _result("c1")) == (PendingCall("get_battery", "c2", "{}"),)
     assert both == (PendingCall("get_battery", "c1", "{}"), PendingCall("get_battery", "c2", "{}"))
 
-    assert still_pending(both, TurnStart(turn=1)) == both
+    assert next_pending(both, TurnStart(turn=1)) == both
 
 
 def _session_with_pending(call_id: str = "c1"):

@@ -15,7 +15,6 @@ from harness.tools import (
     ToolDispatcher,
     ToolPipeline,
     ToolRegistry,
-    blocks_of,
 )
 from harness.tools.registry import DuplicateToolError
 from tests.unit.fakes import echo_tool, raising_tool
@@ -86,7 +85,7 @@ async def test_empty_arguments_mean_no_arguments() -> None:
 
 
 def test_data_never_reaches_the_model() -> None:
-    blocks = blocks_of(Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]}))
+    blocks = Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]}).content
     assert blocks == (Text(text="Found 3 jobs."),)
 
 
@@ -96,8 +95,8 @@ def test_ok_still_compares_by_value_with_data_defaulted() -> None:
 
 
 def test_failures_wear_one_wire_shape() -> None:
-    assert blocks_of(Failure("X", "went wrong")) == (Text(text="error: went wrong"),)
-    assert blocks_of(Ok(content="fine")) == (Text(text="fine"),)
+    assert Failure("X", "went wrong").content == (Text(text="error: went wrong"),)
+    assert Ok(content="fine").content == (Text(text="fine"),)
 
 
 def test_a_plain_string_is_one_text_block() -> None:

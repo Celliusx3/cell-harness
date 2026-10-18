@@ -17,7 +17,7 @@ from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.log import Session
 from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.session.repair import unknown_result
-from harness.tools import BLOCKED, CallOrigin, Failure, Ok, Pending, ToolOutcome, blocks_of
+from harness.tools import BLOCKED, CallOrigin, Failure, Ok, Pending, ToolOutcome
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime
@@ -37,7 +37,7 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
     return ToolResultEvent(
         turn=turn,
         step=step,
-        message=ToolMessage(tool_call_id=call_id, content=blocks_of(outcome)),
+        message=ToolMessage(tool_call_id=call_id, content=outcome.content),
         error=None if isinstance(outcome, Ok) else outcome.code,
         ui=outcome.ui if isinstance(outcome, Ok) else None,
     )

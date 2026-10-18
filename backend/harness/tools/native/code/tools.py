@@ -18,7 +18,6 @@ from harness.tools.models.outcome import (
     Ok,
     Pending,
     ToolOutcome,
-    blocks_of,
 )
 from harness.tools.native.code._typescript import declarations
 from harness.tools.native.code.models import DetailsArgs, ExecuteArgs, NoArgs
@@ -138,7 +137,7 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
                 f"{name} waits for the user's approval, so a script cannot call it. "
                 f"Read it with {DETAILS}, then call it directly as a tool."
             )
-        raise BridgeError(text_of(blocks_of(outcome)))
+        raise BridgeError(text_of(outcome.content))
 
     return bridge
 

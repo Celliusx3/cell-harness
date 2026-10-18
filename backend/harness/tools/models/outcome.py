@@ -61,6 +61,11 @@ class Failure:
     code: str
     message: str
 
+    @property
+    def content(self) -> tuple[Block, ...]:
+        """What the model reads: the message after the error prefix."""
+        return (Text(text=f"{ERROR_PREFIX}{self.message}"),)
+
 
 @dataclass(frozen=True)
 class Pending:
@@ -68,10 +73,3 @@ class Pending:
 
 
 ToolOutcome = Ok | Failure | Pending
-
-
-def blocks_of(outcome: Ok | Failure) -> tuple[Block, ...]:
-    """What the model sees, as blocks."""
-    if isinstance(outcome, Ok):
-        return outcome.content
-    return (Text(text=f"{ERROR_PREFIX}{outcome.message}"),)
