@@ -9,6 +9,7 @@ import struct
 import subprocess
 import sys
 from collections.abc import Iterator
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -30,11 +31,18 @@ def text_of(result: CallToolResult) -> str:
 
 
 @pytest.fixture
-def params() -> Iterator[StdioServerParameters]:
+def params(tmp_path: Path) -> Iterator[StdioServerParameters]:
+    (tmp_path / "files").mkdir()
+    (tmp_path / "skills").mkdir()
     yield StdioServerParameters(
         command=sys.executable,
         args=["-m", "computer.server"],
-        env={**os.environ, "COMPUTER_NAME": NAME},
+        env={
+            **os.environ,
+            "COMPUTER_NAME": NAME,
+            "COMPUTER_FILES_DIR": str(tmp_path / "files"),
+            "COMPUTER_SKILLS_DIRS": str(tmp_path / "skills"),
+        },
     )
     subprocess.run(["docker", "rm", "-f", NAME], capture_output=True, check=False)
     subprocess.run(["docker", "volume", "rm", f"{NAME}-home"], capture_output=True, check=False)
