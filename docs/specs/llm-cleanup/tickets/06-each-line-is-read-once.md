@@ -1,6 +1,6 @@
 # 06 · Each streamed line is read once, into a named shape
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - New `llm/adapters/openai_frames.py`: frozen dataclasses `CallPiece(index, id, name, arguments, extra_content)` and `Frame(text, pieces, usage, failed)`, and a pure `frame_of(payload)` carrying today's exact tolerance (the `isinstance` checks that live in `openai.py` and `openai_calls.py` today, and the `extra_content` check with its warning).

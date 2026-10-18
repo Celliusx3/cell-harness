@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from pydantic import JsonValue, TypeAdapter, ValidationError
-
+from harness.llm.adapters.openai_frames import CallPiece
 from harness.llm.messages import ExtraContent, ToolCall
 
 logger = logging.getLogger("harness.llm.openai")
-
-_EXTRA_CONTENT = TypeAdapter(ExtraContent)
 
 
 @dataclass(frozen=True)
@@ -25,30 +22,18 @@ class _PartialCall:
     extra_content: ExtraContent | None = None
 
 
-def _extra_content(piece: Mapping[str, JsonValue]) -> ExtraContent | None:
-    """The piece's `extra_content`, such as Gemini's thought signature, when it is an object."""
-    raw = piece.get("extra_content")
-    if raw is None:
-        return None
-    try:
-        return _EXTRA_CONTENT.validate_python(raw)
-    except ValidationError:
-        logger.warning("dropped a tool call's extra_content that is not an object: %r", raw)
-        return None
-
-
-def _joined(call: _PartialCall, piece: Mapping[str, JsonValue]) -> _PartialCall:
+def _joined(call: _PartialCall, piece: CallPiece) -> _PartialCall:
     """`call` with what `piece` adds: its id, its name, more arguments, its extra content."""
-    function = piece.get("function")
-    fields = function if isinstance(function, dict) else {}
-    piece_id, name, arguments = piece.get("id"), fields.get("name"), fields.get("arguments")
-    extra = _extra_content(piece)
     return replace(
         call,
-        id=piece_id if isinstance(piece_id, str) else call.id,
-        name=name if isinstance(name, str) else call.name,
-        arguments=call.arguments + arguments if isinstance(arguments, str) else call.arguments,
-        extra_content=extra if extra is not None else call.extra_content,
+        id=piece.id if piece.id is not None else call.id,
+        name=piece.name if piece.name is not None else call.name,
+        arguments=(
+            call.arguments + piece.arguments if piece.arguments is not None else call.arguments
+        ),
+        extra_content=(
+            piece.extra_content if piece.extra_content is not None else call.extra_content
+        ),
     )
 
 
@@ -59,27 +44,20 @@ class ToolCallAccumulator:
         self._by_slot: dict[int, _PartialCall] = {}
         self._slot_of_unindexed_id: dict[str, int] = {}
 
-    def _slot(self, piece: Mapping[str, JsonValue]) -> int:
+    def _slot(self, piece: CallPiece) -> int:
         """The piece's own index, or for a call sent without one, the next free one per id."""
-        index = piece.get("index")
-        if isinstance(index, int):
-            return index
-        call_id = piece.get("id")
-        if isinstance(call_id, str) and call_id in self._slot_of_unindexed_id:
-            return self._slot_of_unindexed_id[call_id]
+        if piece.index is not None:
+            return piece.index
+        if piece.id is not None and piece.id in self._slot_of_unindexed_id:
+            return self._slot_of_unindexed_id[piece.id]
         slot = max(self._by_slot, default=-1) + 1
-        if isinstance(call_id, str):
-            self._slot_of_unindexed_id[call_id] = slot
+        if piece.id is not None:
+            self._slot_of_unindexed_id[piece.id] = slot
         return slot
 
-    def add(self, delta: Mapping[str, JsonValue]) -> None:
-        """Join each tool call piece in `delta` to the call it belongs to."""
-        pieces = delta.get("tool_calls")
-        if not isinstance(pieces, list):
-            return
+    def add(self, pieces: Sequence[CallPiece]) -> None:
+        """Join each tool call piece to the call it belongs to."""
         for piece in pieces:
-            if not isinstance(piece, dict):
-                continue
             slot = self._slot(piece)
             self._by_slot[slot] = _joined(self._by_slot.get(slot, _PartialCall()), piece)
 
