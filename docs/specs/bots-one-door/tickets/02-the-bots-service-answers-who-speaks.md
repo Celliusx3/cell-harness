@@ -1,6 +1,6 @@
 # 02 · The bots service answers who speaks
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `backend/harness/bots/service.py`: `BotService.first_speaker(session, text) -> Bot` looks up the chat's members, picks the first of `first_speakers(text, members.bots)`, raises `GroupEmpty(session.id)` when there is none, writes the speaker's instructions and, in a group, its member list into the session where they changed, and returns the speaker. `BotService.next_speaker(session) -> Bot | None` does the same with `next_speaker(session.events(), members.bots)` and returns `None` when nobody is next. `log_speaker` moves here from `runs/chain.py` as the private `_log_speaker(session, members, bot)`. `bot_instructions_event` and `group_members_event` become private and leave `backend/harness/bots/__init__.py`.

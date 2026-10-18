@@ -8,9 +8,8 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.bots import BotService, GroupEmpty
-from harness.bots.discussion import first_speakers
-from harness.runs.chain import discussion, log_speaker
+from harness.bots import BotService
+from harness.runs.chain import discussion_events
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.log import Session
@@ -73,23 +72,19 @@ class RunService:
         """Begin the discussion the person's message opens; `GroupEmpty` when nobody can answer."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        members = self._bots.members_of_chat(session.id)
-        speakers = first_speakers(prompt, members.bots)
-        if not speakers:
-            raise GroupEmpty(session.id)
-        log_speaker(session, members, speakers[0])
+        speaker = self._bots.first_speaker(session, prompt)
         return self._converse(
-            session, self._runtime.run(prompt, session=session, bot_id=speakers[0].id)
+            session, self._runtime.run(prompt, session=session, bot_id=speaker.id)
         )
 
     def hear(self, session: Session, message: BotMessage) -> Run:
         """Begin the turn in which a bot's own chat answers another bot's message."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        members = self._bots.members_of_chat(session.id)
-        (bot,) = members.bots
-        log_speaker(session, members, bot)
-        return self._converse(session, self._runtime.hear(message, session=session, bot_id=bot.id))
+        speaker = self._bots.first_speaker(session, message.text)
+        return self._converse(
+            session, self._runtime.hear(message, session=session, bot_id=speaker.id)
+        )
 
     def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
         """Begin the turn that answers a client tool for the bot that asked, then the queue's."""
@@ -136,7 +131,7 @@ class RunService:
         run = Run(session, session.next_number())
         self._runs[session.id] = run
         run._inner = asyncio.create_task(
-            self._stream(run, discussion(self._runtime, self._bots, session, opening))
+            self._stream(run, discussion_events(self._runtime, self._bots, session, opening))
         )
         run._outer = asyncio.create_task(self._drive(run))
         return run

@@ -6,6 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
+from harness.bots import discussion
 from harness.bots.models import (
     ASSISTANT_ID,
     ASSISTANT_NAME,
@@ -19,6 +20,7 @@ from harness.bots.models import (
     ChatMembers,
     Group,
     GroupDraft,
+    GroupEmpty,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.log import Session
@@ -87,6 +89,24 @@ class BotService:
             raise BotNotFound(bot_id if bot_id is not None else session.id)
         return asking[0]
 
+    def first_speaker(self, session: Session, text: str) -> Bot:
+        """Who answers `text` first, its instructions and group logged; `GroupEmpty` if none can."""
+        members = self.members_of_chat(session.id)
+        speakers = discussion.first_speakers(text, members.bots)
+        if not speakers:
+            raise GroupEmpty(session.id)
+        _log_speaker(session, members, speakers[0])
+        return speakers[0]
+
+    def next_speaker(self, session: Session) -> Bot | None:
+        """Who the queue says is next, its instructions and group logged; `None` when nobody is."""
+        members = self.members_of_chat(session.id)
+        speaker = discussion.next_speaker(session.events(), members.bots)
+        if speaker is None:
+            return None
+        _log_speaker(session, members, speaker)
+        return speaker
+
     def groups(self) -> tuple[Group, ...]:
         """Every group, in the order each was made."""
         return self._read_file().groups
@@ -97,7 +117,7 @@ class BotService:
         members = tuple(self._active_bot_in(before, bot_id) for bot_id in draft.member_ids)
         session = await self._sessions.create()
         group = Group(id=session.id, name=draft.name, member_ids=draft.member_ids)
-        session.append(group_members_event(group, members))
+        session.append(_group_members_event(group, members))
         await self._sessions.flush(session)
         stored = self._read_file()
         self._write_file(stored.model_copy(update={"groups": (*stored.groups, group)}))
@@ -224,16 +244,27 @@ class BotService:
         os.replace(temp, self._path)
 
     async def _log_instructions(self, session: Session, bot: Bot) -> None:
-        session.append(bot_instructions_event(bot))
+        session.append(_bot_instructions_event(bot))
         await self._sessions.flush(session)
 
 
-def bot_instructions_event(bot: Bot) -> BotInstructionsEvent:
+def _log_speaker(session: Session, members: ChatMembers, bot: Bot) -> None:
+    """Log `bot`'s instructions, and in a group its members, where they differ from the last."""
+    logged = session.bot_instructions(bot.id)
+    if logged is None or (logged.name, logged.instructions) != (bot.name, bot.instructions):
+        session.append(_bot_instructions_event(bot))
+    if members.group is not None:
+        members_now = _group_members_event(members.group, members.bots)
+        if session.group_members() != members_now:
+            session.append(members_now)
+
+
+def _bot_instructions_event(bot: Bot) -> BotInstructionsEvent:
     """The bot's name and instructions, as its chats log them before its turn."""
     return BotInstructionsEvent(name=bot.name, instructions=bot.instructions, bot_id=bot.id)
 
 
-def group_members_event(group: Group, members: tuple[Bot, ...]) -> GroupMembersEvent:
+def _group_members_event(group: Group, members: tuple[Bot, ...]) -> GroupMembersEvent:
     """The group's name and its members' names, as its chat logs them for its bots."""
     return GroupMembersEvent(name=group.name, members=tuple(bot.name for bot in members))
 
