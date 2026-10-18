@@ -35,5 +35,12 @@ EXECUTE_DESCRIPTION = (
     "- A failed call throws — `try`/`catch` it and carry on.\n"
     "- Only what you `return` or `console.log` comes back. Everything else stays "
     "in the sandbox, so fetch freely and extract just what you need.\n"
-    "- There is no network and no filesystem. The functions are the only way out."
+    "- There is no network and no filesystem. The functions are the only way out.\n"
+    "- A function that returns images cannot be called from a script, which cannot pass "
+    "them on to you. Call it directly as a tool."
+)
+
+IMAGES_STAY_OUT = (
+    "{name} returns images, which a script cannot pass on to you. Call it directly as a tool "
+    "to see them."
 )

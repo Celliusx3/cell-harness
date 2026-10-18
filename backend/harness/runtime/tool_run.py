@@ -38,6 +38,16 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
     )
 
 
+def _with_result_images(
+    runtime: Runtime, message: ToolMessage, outcome: Ok | Failure
+) -> ToolMessage:
+    """The result as the model reads it: its words, then its images when the model can see."""
+    if runtime.images is None or not isinstance(outcome, Ok) or not outcome.images:
+        return message
+    seen = runtime.images.of_result(outcome.images)
+    return message.model_copy(update={"content": (*message.content, *seen)})
+
+
 async def run_tool_calls(
     runtime: Runtime,
     calls: tuple[ToolCall, ...],
@@ -118,9 +128,12 @@ async def _answer_call(
             yield Reminder(note)
 
     result = settled_result(call.id, outcome, turn=turn, step=step)
-    session.append(result)
+    logged = result.model_copy(
+        update={"message": _with_result_images(runtime, result.message, outcome)}
+    )
+    session.append(logged)
     yield ToolResult(
-        tool_call_id=call.id, name=call.name, content=render_text(result.message.content)
+        tool_call_id=call.id, name=call.name, content=render_text(logged.message.content)
     )
 
 

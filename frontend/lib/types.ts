@@ -43,10 +43,18 @@ export interface AssistantMessage {
   tool_calls: ToolCall[];
 }
 
+/** An image the model is shown, kept once under the hash of its bytes. */
+export interface ImageBlock {
+  type: "image";
+  media_type: string;
+  sha256: string;
+}
+
 /** One part of a tool result */
 export type ContentBlock =
   | { type: "text"; text: string }
-  | { type: "tool_reference"; tool_name: string };
+  | { type: "tool_reference"; tool_name: string }
+  | ImageBlock;
 
 export interface ToolMessage {
   role: "tool";

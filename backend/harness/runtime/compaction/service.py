@@ -17,6 +17,7 @@ from harness.session.compaction import (
     CompactionStart,
     CompactionTrigger,
 )
+from harness.session.derive import without_images
 from harness.session.log import Session
 from harness.session.repair import unanswered
 
@@ -86,8 +87,9 @@ async def run_compaction(
 
 
 async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) -> CompactionEnd:
-    """One model call, no tools; every way it can go wrong is an `error` end."""
-    messages = [*runtime.request_messages(session), UserMessage(content=COMPACTION_INSTRUCTION)]
+    """One model call, no tools and no images; every way it can go wrong is an `error` end."""
+    history = without_images(runtime.request_messages(session))
+    messages = [*history, UserMessage(content=COMPACTION_INSTRUCTION)]
     completed: Completed | None = None
     try:
         async for event in runtime.client.stream_completion(messages, runtime.model, tools=None):

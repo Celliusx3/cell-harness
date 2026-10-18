@@ -7,6 +7,7 @@ from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.files import ChatFile
+from harness.images import ImageService
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
 from harness.prompts import SKIPPED_RESULT
@@ -21,7 +22,7 @@ from harness.runtime.hooks import HookChain
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
-from harness.session.derive import derive_messages
+from harness.session.derive import derive_messages, without_images
 from harness.session.log import Session
 from harness.session.models import (
     ApprovalGrant,
@@ -46,6 +47,8 @@ class Runtime:
 
     model: str
     client: LLMClient
+    images: ImageService | None
+    """The images the model is shown; `None` means the model cannot see."""
     tools: ToolPipeline | None = None
     guidance: str = ""
     hooks: HookChain = HookChain()
@@ -53,7 +56,8 @@ class Runtime:
     context_tokens: int | None = None
 
     def request_messages(self, session: Session) -> list[Message]:
-        history = derive_messages(session.events())
+        derived = derive_messages(session.events())
+        history = derived if self.images is not None else without_images(derived)
         system = system_text(session, self.guidance)
         if not system:
             return history
@@ -71,7 +75,8 @@ class Runtime:
         _skip_calls_walked_past(session)
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
-        message = UserMessage(content=user_input)
+        images = self.images.of_attachments(files) if self.images is not None else ()
+        message = UserMessage(content=user_input, images=images)
         session.append(UserMessageEvent(turn=turn, message=message, files=files))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:

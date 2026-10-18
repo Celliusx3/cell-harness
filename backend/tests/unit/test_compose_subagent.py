@@ -31,7 +31,7 @@ from harness.web.runtime import build_runtime
 from harness.web.server import build_store, build_subagent_logs
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
-from tests.webapp import secrets_in
+from tests.webapp import images_in, secrets_in
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """The real object graph, answering through `client`."""
 
     def build(client) -> tuple[Runtime, SessionService]:
-        monkeypatch.setattr(composition, "OpenAIClient", lambda _settings: client)
+        monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: client)
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
@@ -54,6 +54,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=subagent_logs,
             secrets=secrets_in(tmp_path),
+            images=images_in(tmp_path),
         )
         return runtime, sessions
 

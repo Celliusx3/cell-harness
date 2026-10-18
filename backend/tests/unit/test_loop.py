@@ -34,7 +34,7 @@ TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
 def runtime_with(client, *, guidance: str = "", hooks: HookChain = NO_HOOKS) -> Runtime:
-    return Runtime(model="m", client=client, guidance=guidance, hooks=hooks)
+    return Runtime(model="m", client=client, images=None, guidance=guidance, hooks=hooks)
 
 
 async def drain(gen) -> list:

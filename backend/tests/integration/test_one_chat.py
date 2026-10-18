@@ -56,7 +56,7 @@ def build_on(tmp_path, model: LLMClient):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
     )
     bots = BotService(tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT")
-    runtime = Runtime(model="m", client=model, checkpoint=sessions.flush)
+    runtime = Runtime(model="m", client=model, images=None, checkpoint=sessions.flush)
     runs = RunService(sessions, runtime, bots)
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
