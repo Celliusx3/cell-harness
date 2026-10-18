@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable, Sequence
 
 import httpx
 
 from harness.config.sections import LLMSettings
 from harness.llm.adapters.errors import classify
 from harness.llm.adapters.openai_calls import ToolCallAccumulator
-from harness.llm.adapters.openai_wire import wire_message, wire_tool
+from harness.llm.adapters.openai_wire import wire_messages, wire_tool
 from harness.llm.client import LLMClient
-from harness.llm.messages import Message, ToolSpec
+from harness.llm.messages import Image, Message, ToolSpec, images_of
 from harness.llm.stream import (
     Completed,
     Failed,
@@ -26,6 +26,18 @@ from harness.llm.stream import (
 logger = logging.getLogger("harness.llm.openai")
 
 _DONE = "[DONE]"
+
+ImageReader = Callable[[Image], bytes | None]
+
+
+def _image_bytes(messages: Sequence[Message], read: ImageReader) -> dict[str, bytes]:
+    """The bytes of each image the request shows that `read` could read, by hash."""
+    return {
+        image.sha256: data
+        for message in messages
+        for image in images_of(message)
+        if (data := read(image)) is not None
+    }
 
 
 def _usage(payload: dict) -> Usage | None:
@@ -58,16 +70,18 @@ def _text(delta: dict) -> str:
 class OpenAIClient(LLMClient):
     """Streams completions from an OpenAI-compatible endpoint."""
 
-    def __init__(self, settings: LLMSettings) -> None:
+    def __init__(self, settings: LLMSettings, *, read_image: ImageReader) -> None:
         self._settings = settings
+        self._read_image = read_image
 
     async def stream_completion(
         self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         settings = self._settings
+        image_bytes = _image_bytes(messages, self._read_image)
         body: dict = {
             "model": model,
-            "messages": [wire_message(m) for m in messages],
+            "messages": wire_messages(messages, image_bytes),
             "temperature": settings.temperature,
             "stream": True,
             "stream_options": {"include_usage": True},

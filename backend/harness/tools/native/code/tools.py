@@ -27,6 +27,7 @@ from harness.tools.native.code.prompts import (
     DETAILS_DESCRIPTION,
     EXECUTE,
     EXECUTE_DESCRIPTION,
+    IMAGES_STAY_OUT,
     LIST,
     LIST_DESCRIPTION,
 )
@@ -151,6 +152,8 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
             approved=False,
             bot_id=context.bot_id,
         )
+        if isinstance(outcome, Ok) and outcome.images:
+            raise BridgeError(IMAGES_STAY_OUT.format(name=name))
         if isinstance(outcome, Ok):
             return outcome.data if outcome.data is not None else _as_value(outcome.text)
         if isinstance(outcome, Pending):

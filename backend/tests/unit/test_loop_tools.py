@@ -97,7 +97,7 @@ async def test_tool_schemas_reach_the_wire_each_step() -> None:
 
 async def test_an_agent_with_no_tools_sends_none_not_an_empty_list() -> None:
     client = SteppedClient(completed("hi"))
-    bare = Runtime(model="m", client=client)
+    bare = Runtime(model="m", client=client, images=None)
 
     await drain(bare.run("q", session=new_session(), bot_id="b"))
 

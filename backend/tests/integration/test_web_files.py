@@ -14,7 +14,7 @@ from harness.web.server import build_channels
 from tests.integration.web_helpers import api, build, of_type, once_said, settle
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, gated_tool
 from tests.unit.helpers import client_tools, no_bots, no_skills
-from tests.webapp import files_in, web_app
+from tests.webapp import files_in, images_in, web_app
 
 PNG_HEADER = b"\x89PNG\r\n\x1a\n"
 FILES = f"/api/conversations/{ASSISTANT_ID}/files"
@@ -166,7 +166,14 @@ def test_the_web_channel_keeps_files_in_the_service_it_is_built_with(tmp_path) -
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
     _, web = build_channels(
-        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files
+        settings,
+        sessions,
+        runs,
+        no_skills(),
+        client_tools(),
+        no_bots(sessions),
+        files,
+        images_in(tmp_path),
     )
 
     assert web.files is files

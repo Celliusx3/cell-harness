@@ -23,14 +23,21 @@ from harness.tools.registry import ToolRegistry
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import PerBotClient
 from tests.unit.helpers import durable_service, no_gate, no_skills, run_service
-from tests.webapp import bots_in, web_app
+from tests.webapp import bots_in, images_in, web_app
 
 ASSISTANT_START = "ASSISTANT"
 
 
-def build(tmp_path, client, *tools) -> tuple[SessionService, RunService]:
+def build(tmp_path, client, *tools, vision: bool = False) -> tuple[SessionService, RunService]:
     service = durable_service(tmp_path / "sessions")
-    return service, run_service(service, client, *tools, bots=bots_in(tmp_path, service))
+    runs = run_service(
+        service,
+        client,
+        *tools,
+        bots=bots_in(tmp_path, service),
+        images=images_in(tmp_path) if vision else None,
+    )
+    return service, runs
 
 
 def api(tmp_path, service: SessionService, runs: RunService) -> httpx.AsyncClient:
@@ -92,6 +99,7 @@ def messaging_app(
     runtime = Runtime(
         model="m",
         client=model,
+        images=None,
         tools=ToolPipeline(registry, ToolDispatcher(registry, no_gate()), offered),
         guidance="GUIDE",
         checkpoint=service.flush,

@@ -82,7 +82,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    llm: LLMSettings = Field(default_factory=LLMSettings)
+    llm: LLMSettings
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     telegram: TelegramSettings = Field(default_factory=TelegramSettings)
     discord: DiscordSettings = Field(default_factory=DiscordSettings)
