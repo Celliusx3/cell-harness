@@ -186,7 +186,7 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
     seen: list[str] = []
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
-        seen.append(context.bot_id)
+        seen.append(context.origin.bot_id)
         return Ok(content=args.value)
 
     bots = _ChatsOfNotion(

@@ -16,7 +16,7 @@ export type Row =
 export interface TurnShape {
   /** In a group's chat, the bot that spoke each turn. */
   speakers: ReadonlyMap<number, Speaker>;
-  /** Whether a tool's card stays in view: something to answer, or an app to watch. */
+  /** Whether a tool's card stays in view. */
   stays: (item: ToolItem) => boolean;
 }
 

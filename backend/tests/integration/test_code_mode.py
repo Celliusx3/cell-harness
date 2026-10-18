@@ -17,7 +17,7 @@ from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
 from harness.tools.native.code.typescript import declarations
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import ToolRegistry
-from tests.unit.helpers import no_gate, no_progress
+from tests.unit.helpers import ORIGIN, no_gate, no_progress
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")
 
@@ -125,7 +125,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
 
     async def run(name: str, arguments: str) -> ToolOutcome:
         call = ToolCall(id="c1", name=name, arguments=arguments)
-        return await pipeline.execute(call, progress=no_progress, bot_id="s")
+        return await pipeline.execute(call, progress=no_progress, origin=ORIGIN)
 
     assert [spec.name for spec in pipeline.specs()] == [LIST, DETAILS, EXECUTE]
 

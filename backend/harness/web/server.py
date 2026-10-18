@@ -136,6 +136,7 @@ def create_web_app() -> FastAPI:
         subagent_logs=build_subagent_logs(settings),
         secrets=secrets,
         images=images,
+        files=files,
     )
     runs = RunService(service, runtime, bots)
     assert runtime.tools is not None

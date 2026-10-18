@@ -1,9 +1,14 @@
-"""The one image service startup builds: the web channel and the runtime show images through it."""
+"""The image and chat file services startup builds once, for the web channel and the runtime."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import NamedTuple
 
+import pytest
+
+from harness.channels.gateway import ChannelGateway
+from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings
 from harness.images import ImageService
 from harness.mcp.service import McpService
@@ -32,6 +37,7 @@ def runtime_over(tmp_path: Path, images: ImageService, *, vision: bool) -> Runti
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),
         images=images,
+        files=files_in(tmp_path),
     )
 
 
@@ -66,9 +72,13 @@ def test_a_runtime_for_a_model_that_cannot_see_holds_no_images(tmp_path) -> None
     assert runtime_over(tmp_path, images_in(tmp_path), vision=False).images is None
 
 
-def test_startup_hands_the_runtime_and_the_web_channel_one_image_service(
-    tmp_path: Path, monkeypatch
-) -> None:
+class Started(NamedTuple):
+    runtime: Runtime
+    web: WebChannel
+
+
+def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
+    """The runtime and the web channel `create_web_app` builds, over folders in `tmp_path`."""
     settings = Settings(
         llm={"model": "m", "api_key": "k", "vision": True},
         sessions={"root": tmp_path / "sessions"},
@@ -82,16 +92,18 @@ def test_startup_hands_the_runtime_and_the_web_channel_one_image_service(
         discord={"bot_token": ""},
         mcp={"servers": {}},
     )
-    handed: list[ImageService] = []
+    runtimes: list[Runtime] = []
+    webs: list[WebChannel] = []
     real_runtime, real_channels = server.build_runtime, server.build_channels
 
     def runtime_seen(*args, **kwargs) -> Runtime:
-        handed.append(kwargs["images"])
-        return real_runtime(*args, **kwargs)
+        runtimes.append(real_runtime(*args, **kwargs))
+        return runtimes[-1]
 
-    def channels_seen(*args):
-        handed.append(args[-1])
-        return real_channels(*args)
+    def channels_seen(*args) -> tuple[ChannelGateway, WebChannel]:
+        gateway, web = real_channels(*args)
+        webs.append(web)
+        return gateway, web
 
     monkeypatch.setattr(server, "load", lambda: settings)
     monkeypatch.setattr(server, "configure_logging", lambda: None)
@@ -100,5 +112,21 @@ def test_startup_hands_the_runtime_and_the_web_channel_one_image_service(
 
     server.create_web_app()
 
-    assert len(handed) == 2
-    assert handed[0] is handed[1]
+    [runtime], [web] = runtimes, webs
+    return Started(runtime, web)
+
+
+def test_startup_hands_the_runtime_and_the_web_channel_one_image_service(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = started(tmp_path, monkeypatch)
+
+    assert app.runtime.images is app.web.images
+
+
+def test_startup_hands_the_runtime_and_the_web_channel_one_chat_file_service(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = started(tmp_path, monkeypatch)
+
+    assert app.runtime.files is app.web.files
