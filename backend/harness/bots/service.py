@@ -12,6 +12,7 @@ from harness.bots.models import (
     BUILDER_ID,
     BUILDER_NAME,
     Bot,
+    BotDraft,
     BotNotFound,
     BotPermanent,
     BotsFile,
@@ -106,21 +107,21 @@ class BotService:
         """The id of the one chat the bot answers in, which is the bot's own id."""
         return bot_id
 
-    async def create(self, name: str, instructions: str) -> Bot:
+    async def create(self, draft: BotDraft) -> Bot:
         """A new bot, with its chat already holding its instructions."""
         session = await self._sessions.create()
-        bot = Bot(id=session.id, name=name, instructions=instructions)
+        bot = Bot(id=session.id, name=draft.name, instructions=draft.instructions)
         await self._log_instructions(session, bot)
         stored = self._read_file()
         self._write_file(stored.model_copy(update={"bots": (*stored.bots, bot)}))
         return bot
 
-    def update(self, bot_id: str, name: str, instructions: str) -> Bot:
+    def update(self, bot_id: str, draft: BotDraft) -> Bot:
         """Edit an active bot's name or instructions; its chat logs them before its next turn."""
         stored = self._read_file()
         bot = self._active_bot_in(stored, bot_id)
         return self._save_bot(
-            stored, bot.model_copy(update={"name": name, "instructions": instructions})
+            stored, bot.model_copy(update={"name": draft.name, "instructions": draft.instructions})
         )
 
     def allow_secret(self, bot_id: str, name: str) -> Bot:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, BUILDER_ID, BotNotFound, BotService
+from harness.bots import ASSISTANT_ID, BUILDER_ID, BotDraft, BotNotFound, BotService
 from tests.unit.helpers import durable_service
 
 
@@ -18,7 +18,7 @@ def bots(tmp_path: Path) -> BotService:
 
 
 async def test_allowing_a_key_adds_it_once_and_keeps_the_bot_as_it_was(bots: BotService) -> None:
-    made = await bots.create("Researcher", "Cite.")
+    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
 
     bots.allow_secret(made.id, "github")
     allowed = bots.allow_secret(made.id, "github")
@@ -28,7 +28,7 @@ async def test_allowing_a_key_adds_it_once_and_keeps_the_bot_as_it_was(bots: Bot
 
 
 async def test_allowing_assistant_a_key_stores_it_and_it_stays_first(bots: BotService) -> None:
-    made = await bots.create("Researcher", "Cite.")
+    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
 
     bots.allow_secret(ASSISTANT_ID, "github")
 
@@ -39,7 +39,7 @@ async def test_allowing_assistant_a_key_stores_it_and_it_stays_first(bots: BotSe
 
 
 async def test_setting_a_bots_keys_replaces_the_list(bots: BotService) -> None:
-    made = await bots.create("Researcher", "Cite.")
+    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
     bots.allow_secret(made.id, "github")
 
     updated = bots.set_allowed_secrets(made.id, ("notion", "linear", "notion"))
@@ -50,7 +50,7 @@ async def test_setting_a_bots_keys_replaces_the_list(bots: BotService) -> None:
 
 
 async def test_a_bot_that_is_not_active_cannot_be_allowed_a_key(bots: BotService) -> None:
-    made = await bots.create("Researcher", "Cite.")
+    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
     bots.archive(made.id)
 
     with pytest.raises(BotNotFound):
@@ -62,8 +62,8 @@ async def test_a_bot_that_is_not_active_cannot_be_allowed_a_key(bots: BotService
 async def test_forgetting_a_key_takes_it_off_every_bot_archived_ones_too(
     bots: BotService,
 ) -> None:
-    first = await bots.create("First", "One.")
-    second = await bots.create("Second", "Two.")
+    first = await bots.create(BotDraft(name="First", instructions="One."))
+    second = await bots.create(BotDraft(name="Second", instructions="Two."))
     bots.set_allowed_secrets(first.id, ("github", "notion"))
     bots.allow_secret(second.id, "github")
     bots.allow_secret(ASSISTANT_ID, "github")

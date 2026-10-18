@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 
-from harness.bots import ASSISTANT_ID, GroupDraft
+from harness.bots import ASSISTANT_ID, BotDraft, GroupDraft
 from harness.secrets import SecretService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
@@ -99,7 +99,7 @@ async def test_a_bot_uses_a_saved_key_only_once_the_person_allows_it(tmp_path: P
         ]
         assert KEY not in json.dumps(listed)
 
-        notion = await bots.create("Notion", "You read Notion.")
+        notion = await bots.create(BotDraft(name="Notion", instructions="You read Notion."))
         chat = bots.chat_of(notion.id)
         await _post(client, runs, chat, "/messages", {"prompt": "check my GitHub"})
         await _post(client, runs, chat, "/calls/call_refused/output", APPROVE_ONCE)
@@ -145,8 +145,8 @@ async def _launch(tmp_path: Path):
     )
     runs = run_service(service, model, *tools.definitions(), bots=bots)
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, bots=bots)
-    researcher = await bots.create("Researcher", "Cite.")
-    writer = await bots.create("Writer", "Post.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    writer = await bots.create(BotDraft(name="Writer", instructions="Post."))
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )

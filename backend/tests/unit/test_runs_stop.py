@@ -6,7 +6,7 @@ import asyncio
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, BotDraft, BotService
 from harness.llm.client import LLMClient
 from harness.runs.subscribe import subscribe
 from harness.session.derive import derive_messages
@@ -116,7 +116,9 @@ async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
         service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), bots=bots
     )
     first = await service.create(ASSISTANT_ID)
-    second = await service.resume((await bots.create("Second", "Two.")).id)
+    second = await service.resume(
+        (await bots.create(BotDraft(name="Second", instructions="Two."))).id
+    )
     runs.start(first, "go")
     runs.start(second, "go")
     await until(

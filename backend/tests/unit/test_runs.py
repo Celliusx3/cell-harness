@@ -11,6 +11,7 @@ import pytest
 from harness.bots import (
     ASSISTANT_ID,
     Bot,
+    BotDraft,
     BotService,
     ChatMembers,
     GroupDraft,
@@ -203,7 +204,9 @@ async def _group_chat(
     bots: BotService, service: SessionService, *names: str
 ) -> tuple[Session, tuple[Bot, ...]]:
     """A group of new bots called `names`, and its chat."""
-    members = tuple([await bots.create(name, f"You are {name}.") for name in names])
+    members = tuple(
+        [await bots.create(BotDraft(name=name, instructions=f"You are {name}.")) for name in names]
+    )
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=tuple(bot.id for bot in members))
     )

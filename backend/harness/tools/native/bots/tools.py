@@ -19,7 +19,7 @@ def bot_create_tool(bots: BotService) -> ToolDefinition[BotDraft]:
     """The tool that makes a bot through the same save as `POST /api/bots`."""
 
     async def execute(args: BotDraft, _context: ToolContext) -> ToolOutcome:
-        bot = await bots.create(args.name, args.instructions)
+        bot = await bots.create(args)
         return Ok(f"made bot {bot.name!r} (id {bot.id}); its chat is under Bots in the sidebar")
 
     return ToolDefinition.from_model(

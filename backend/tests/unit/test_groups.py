@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from harness.bots import BotNotFound, BotService, ChatMembers, GroupDraft
+from harness.bots import BotDraft, BotNotFound, BotService, ChatMembers, GroupDraft
 from harness.llm.messages import ToolCall
 from harness.session.models import (
     GroupMembersEvent,
@@ -47,8 +47,8 @@ def test_a_group_is_named_and_has_two_to_six_different_bots(draft: dict) -> None
 async def test_a_group_s_chat_holds_its_members_from_the_start(
     bots: BotService, service: SessionService
 ) -> None:
-    researcher = await bots.create("Researcher", "Cite.")
-    writer = await bots.create("Writer", "Write.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    writer = await bots.create(BotDraft(name="Writer", instructions="Write."))
 
     group = await bots.create_group(
         GroupDraft(name=" Launch ", member_ids=(writer.id, researcher.id))
@@ -63,8 +63,8 @@ async def test_a_group_s_chat_holds_its_members_from_the_start(
 
 
 async def test_a_group_takes_only_active_bots(bots: BotService) -> None:
-    researcher = await bots.create("Researcher", "Cite.")
-    writer = await bots.create("Writer", "Write.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    writer = await bots.create(BotDraft(name="Writer", instructions="Write."))
     bots.archive(writer.id)
 
     with pytest.raises(BotNotFound):
@@ -73,9 +73,9 @@ async def test_a_group_takes_only_active_bots(bots: BotService) -> None:
 
 
 async def test_a_group_s_chat_is_answered_by_its_active_members_in_order(bots: BotService) -> None:
-    researcher = await bots.create("Researcher", "Cite.")
-    writer = await bots.create("Writer", "Write.")
-    editor = await bots.create("Editor", "Edit.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    writer = await bots.create(BotDraft(name="Writer", instructions="Write."))
+    editor = await bots.create(BotDraft(name="Editor", instructions="Edit."))
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=(editor.id, researcher.id, writer.id))
     )
@@ -87,14 +87,14 @@ async def test_a_group_s_chat_is_answered_by_its_active_members_in_order(bots: B
 
 
 async def test_changing_a_bot_keeps_every_group(bots: BotService) -> None:
-    researcher = await bots.create("Researcher", "Cite.")
-    writer = await bots.create("Writer", "Write.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    writer = await bots.create(BotDraft(name="Writer", instructions="Write."))
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
 
-    bots.update(writer.id, "Writer", "Write shorter.")
-    await bots.create("Editor", "Edit.")
+    bots.update(writer.id, BotDraft(name="Writer", instructions="Write shorter."))
+    await bots.create(BotDraft(name="Editor", instructions="Edit."))
 
     assert bots.groups() == (group,)
 
@@ -102,8 +102,8 @@ async def test_changing_a_bot_keeps_every_group(bots: BotService) -> None:
 async def test_the_bot_that_asked_a_call_is_the_one_that_answers_it(
     bots: BotService, service: SessionService
 ) -> None:
-    researcher = await bots.create("Researcher", "Cite.")
-    writer = await bots.create("Writer", "Write.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    writer = await bots.create(BotDraft(name="Writer", instructions="Write."))
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
@@ -117,7 +117,7 @@ async def test_the_bot_that_asked_a_call_is_the_one_that_answers_it(
 async def test_a_call_from_before_groups_is_answered_by_the_chat_s_only_bot(
     bots: BotService, service: SessionService
 ) -> None:
-    researcher = await bots.create("Researcher", "Cite.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
     chat = await service.read(researcher.id)
     chat.append(TurnStart(turn=0))
     chat.append(ToolCallEvent(turn=0, step=0, call=ASK))
