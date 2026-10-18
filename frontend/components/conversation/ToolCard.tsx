@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { CodeBlock } from "@/components/conversation/CodeBlock";
+import { FileList } from "@/components/conversation/FileList";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import { imageUrl } from "@/lib/api";
 import type { ContentBlock, ImageBlock } from "@/lib/types";
@@ -63,6 +64,12 @@ export function ToolCard({ item }: { item: ToolItem }) {
       {images.length > 0 && (
         <div className="border-t border-line px-3 py-2">
           <ResultImages conversationId={conversationId} images={images} />
+        </div>
+      )}
+
+      {item.files.length > 0 && (
+        <div className="border-t border-line px-3 py-2">
+          <FileList chatId={conversationId} files={item.files} align="start" />
         </div>
       )}
 

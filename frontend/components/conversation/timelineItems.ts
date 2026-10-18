@@ -40,6 +40,8 @@ export interface ToolItem {
   error: string | null;
   /** The MCP App that draws this result, arriving with `tool/result`. */
   ui: ToolUi | null;
+  /** The files the tool handed back, arriving with `tool/result`. */
+  files: ChatFile[];
 }
 
 export interface NoticeItem {

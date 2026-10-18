@@ -130,6 +130,8 @@ export type SessionEvent =
       error: string | null;
       /** The app that renders this result, when the tool declares one. */
       ui: ToolUi | null;
+      /** The files the tool handed back, each in the chat's folder. */
+      files: ChatFile[];
     }
   /** A summary is being attempted. */
   | { type: "compaction/start"; turn: number | null; trigger: CompactionTrigger; tokens: number | null }

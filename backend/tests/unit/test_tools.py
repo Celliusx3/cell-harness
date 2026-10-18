@@ -18,7 +18,7 @@ from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.registry import DuplicateToolError, ToolRegistry
 from tests.unit.fakes import echo_tool, raising_tool
-from tests.unit.helpers import no_gate, no_progress, pipeline_for
+from tests.unit.helpers import ORIGIN, no_gate, no_progress, pipeline_for
 
 
 def pipeline(*tools, providers=(), offer=()) -> ToolPipeline:
@@ -56,7 +56,7 @@ def test_from_model_derives_schema_and_parser_from_one_source() -> None:
 )
 async def test_bad_arguments_are_a_failure_not_an_exception(arguments, reason) -> None:
     outcome = await pipeline(echo_tool()).execute(
-        call("echo", arguments), progress=no_progress, bot_id="s"
+        call("echo", arguments), progress=no_progress, origin=ORIGIN
     )
 
     assert isinstance(outcome, Failure)
@@ -65,7 +65,9 @@ async def test_bad_arguments_are_a_failure_not_an_exception(arguments, reason) -
 
 
 async def test_a_tool_that_raises_does_not_kill_the_turn() -> None:
-    outcome = await pipeline(raising_tool()).execute(call("boom"), progress=no_progress, bot_id="s")
+    outcome = await pipeline(raising_tool()).execute(
+        call("boom"), progress=no_progress, origin=ORIGIN
+    )
 
     assert isinstance(outcome, Failure)
     assert outcome.code == EXECUTION_ERROR
@@ -74,7 +76,7 @@ async def test_a_tool_that_raises_does_not_kill_the_turn() -> None:
 
 async def test_empty_arguments_mean_no_arguments() -> None:
     outcome = await pipeline(echo_tool()).execute(
-        call("echo", ""), progress=no_progress, bot_id="s"
+        call("echo", ""), progress=no_progress, origin=ORIGIN
     )
 
     assert isinstance(outcome, Failure)
@@ -108,13 +110,15 @@ async def test_a_tool_from_a_provider_is_callable_the_turn_it_appears() -> None:
     tools = pipeline(providers=[lambda: list(connected)], offer=("echo",))
 
     assert tools.specs() == []
-    outcome = await tools.execute(call("echo"), progress=no_progress, bot_id="s")
+    outcome = await tools.execute(call("echo"), progress=no_progress, origin=ORIGIN)
     assert isinstance(outcome, Failure)
 
     connected.append(echo_tool())
 
     assert [s.name for s in tools.specs()] == ["echo"]
-    assert await tools.execute(call("echo"), progress=no_progress, bot_id="s") == Ok(content="hi")
+    assert await tools.execute(call("echo"), progress=no_progress, origin=ORIGIN) == Ok(
+        content="hi"
+    )
 
 
 def test_a_broken_provider_does_not_take_down_the_tool_set() -> None:
@@ -172,7 +176,7 @@ async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:
     pipeline = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
 
     outcome = await pipeline.execute(
-        ToolCall(id="c1", name="hidden", arguments="{}"), progress=no_progress, bot_id="s"
+        ToolCall(id="c1", name="hidden", arguments="{}"), progress=no_progress, origin=ORIGIN
     )
 
     assert isinstance(outcome, Failure) and outcome.code == REFUSED
@@ -186,7 +190,7 @@ async def test_an_offered_tool_executes() -> None:
     outcome = await pipeline.execute(
         ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
 
     assert isinstance(outcome, Ok) and outcome.text == "hi"
@@ -199,6 +203,6 @@ async def test_an_empty_default_offers_nothing_and_refuses_everything() -> None:
     outcome = await pipeline.execute(
         ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'),
         progress=no_progress,
-        bot_id="s",
+        origin=ORIGIN,
     )
     assert isinstance(outcome, Failure) and outcome.code == REFUSED

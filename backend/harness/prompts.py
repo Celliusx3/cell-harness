@@ -14,6 +14,8 @@ NO_RESPONSE = "NO_RESPONSE"
 SPEAKER_TAG = '<speaker name="{name}" />\n{text}'
 
 ATTACHED_FILE = 'The person attached "{name}" ({media_type}, {size} bytes), saved at {path}.'
+HANDED_OVER = "Handed over to the person: {path}"
+NOT_HANDED_OVER = "Not handed over, because it is not a file in this chat's folder: {path}"
 
 GROUP_NOTE = (
     'You are {name}, one of the bots in the group chat "{group}", '

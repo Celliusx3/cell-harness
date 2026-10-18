@@ -38,6 +38,7 @@ interface ToolResult {
   result: ContentBlock[];
   error: string | null;
   ui: ToolUi | null;
+  files: ChatFile[];
 }
 
 export class TimelineDraft {
@@ -139,15 +140,16 @@ export class TimelineDraft {
       result: null,
       error: null,
       ui: null,
+      files: [],
     });
   }
 
-  onToolResult({ callId, result, error, ui }: ToolResult): void {
+  onToolResult({ callId, result, error, ui, files }: ToolResult): void {
     const at = this.toolAt.get(callId);
     if (at === undefined) return;
     const item = this.items[at];
     if (item?.kind !== "tool") return;
-    this.items[at] = { ...item, result, error, ui };
+    this.items[at] = { ...item, result, error, ui, files };
   }
 
   onCompactionStart(

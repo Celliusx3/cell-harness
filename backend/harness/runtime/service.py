@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import aclosing
 from dataclasses import dataclass
 
-from harness.files import ChatFile
+from harness.files import ChatFile, ChatFileService
 from harness.images import ImageService
 from harness.llm.client import LLMClient
 from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
@@ -54,6 +54,7 @@ class Runtime:
     hooks: HookChain = HookChain()
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
     context_tokens: int | None = None
+    files: ChatFileService | None = None
 
     def request_messages(self, session: Session) -> list[Message]:
         derived = derive_messages(session.events())
