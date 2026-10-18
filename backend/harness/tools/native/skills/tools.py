@@ -6,13 +6,13 @@ from pydantic import BaseModel, Field
 
 from harness.skills.models import InvalidSkill
 from harness.skills.service import SkillNotEditable, SkillNotFound, SkillService, SkillShadowed
-from harness.tools.context import ToolContext
-from harness.tools.definition import (
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import (
     INVALID_ARGUMENTS,
     REFUSED,
     Failure,
     Ok,
-    ToolDefinition,
     ToolOutcome,
 )
 

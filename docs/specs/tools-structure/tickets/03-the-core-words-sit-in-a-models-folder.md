@@ -1,6 +1,6 @@
 # 03 · The core words sit in a models folder, one file per subject
 
-**Status.** open
+**Status.** done
 
 **What to build.** `backend/harness/tools/models/`:
 - `__init__.py`: a one-line docstring only.

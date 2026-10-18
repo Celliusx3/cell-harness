@@ -9,8 +9,8 @@ from harness.channels.protocol import InboundMessage
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
 from harness.tools import ApprovalGate, Ok, ToolDefinition, ToolOutcome
-from harness.tools.approval import DENIED
 from harness.tools.client import ClientToolService
+from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import assistant_chat, events_from, settle
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed

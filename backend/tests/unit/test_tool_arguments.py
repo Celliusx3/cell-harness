@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from harness.llm import ToolCall
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome, ToolPipeline
-from harness.tools.progress import ToolProgressReporter
+from harness.tools.models.context import ToolProgressReporter
 from tests.unit.helpers import ORIGIN, no_progress, pipeline_for
 
 

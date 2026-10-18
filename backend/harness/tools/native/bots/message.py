@@ -7,8 +7,9 @@ from typing import Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from harness.bots import BotService
-from harness.tools.context import ToolContext
-from harness.tools.definition import Failure, Ok, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import Failure, Ok, ToolOutcome
 
 MESSAGE_BOT = "message_bot"
 

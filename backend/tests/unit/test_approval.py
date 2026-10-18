@@ -31,8 +31,8 @@ from harness.tools import (
     ToolPipeline,
     ToolRegistry,
 )
-from harness.tools.approval import DENIED
 from harness.tools.client import Accepted, ClientTools, ClientToolService
+from harness.tools.models.decision import DENIED
 from tests.unit.code_fakes import FakeRunner, build, tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed, reporting_tool
 from tests.unit.helpers import drain, new_session

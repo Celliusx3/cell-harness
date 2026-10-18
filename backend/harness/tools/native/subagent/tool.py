@@ -9,8 +9,9 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from harness.tools.context import ToolContext
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import Ok, ToolOutcome
 
 RUN_SUBAGENT = "run_subagent"
 MAX_SUBAGENTS = 4

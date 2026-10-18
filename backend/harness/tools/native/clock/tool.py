@@ -8,8 +8,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, Field
 
-from harness.tools.context import ToolContext
-from harness.tools.definition import EXECUTION_ERROR, Failure, Ok, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import EXECUTION_ERROR, Failure, Ok, ToolOutcome
 
 Now = Callable[[], datetime]
 

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from harness.llm import ToolCall
 from harness.tools.approval import ApprovalGate
-from harness.tools.context import CallOrigin, ToolContext
-from harness.tools.definition import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
-from harness.tools.progress import ToolProgressReporter
+from harness.tools.models.context import CallOrigin, ToolContext, ToolProgressReporter
+from harness.tools.models.outcome import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
 from harness.tools.registry import ToolRegistry
 
 

@@ -1,10 +1,16 @@
-"""What a tool is handed about the call it is running."""
+"""What a running tool is handed about its call."""
 
 from __future__ import annotations
 
+from collections.abc import Awaitable
 from dataclasses import dataclass
+from typing import Protocol
 
-from harness.tools.progress import ToolProgressReporter
+
+class ToolProgressReporter(Protocol):
+    """What a tool calls to say how far along it is."""
+
+    def __call__(self, *, percent: float | None, message: str | None) -> Awaitable[None]: ...
 
 
 @dataclass(frozen=True)

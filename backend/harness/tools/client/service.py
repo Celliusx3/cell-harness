@@ -10,10 +10,12 @@ from pydantic import ValidationError
 
 from harness.prompts import DENIED_RESULT
 from harness.session.log import Session
-from harness.tools.approval import DENIED, ApprovalGate, Approved, parse_decision
+from harness.tools.approval import ApprovalGate
 from harness.tools.client.catalog import ClientTools
 from harness.tools.client.pending import PendingCall, pending_calls
-from harness.tools.definition import Failure, Ok, ToolDefinition
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.decision import DENIED, Approved, parse_decision
+from harness.tools.models.outcome import Failure, Ok
 
 
 class Refused(Enum):

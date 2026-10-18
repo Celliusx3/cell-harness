@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from harness.files import ChatFileService
-from harness.tools.definition import INVALID_ARGUMENTS, Failure
+from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure
 
 
 def paths_in_chat(

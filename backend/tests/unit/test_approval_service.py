@@ -10,8 +10,8 @@ from harness.llm import AssistantMessage, ToolCall
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, TurnEnd, TurnStart
 from harness.session.repair import REPAIRED, repair
 from harness.tools import ApprovalGate, Approved
-from harness.tools.approval import Denied
 from harness.tools.client import Accepted, ClientTool, ClientTools, ClientToolService, Refused
+from harness.tools.models.decision import Denied
 from harness.tools.native.location.tool import NoArgs
 from tests.unit.helpers import new_session
 

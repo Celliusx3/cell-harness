@@ -11,17 +11,17 @@ from pydantic import BaseModel, Field
 from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
-from harness.tools.context import ToolContext
-from harness.tools.definition import (
+from harness.tools.definition import ToolDefinition
+from harness.tools.dispatcher import ToolDispatcher
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import (
     EXECUTION_ERROR,
     Failure,
     Ok,
     Pending,
-    ToolDefinition,
     ToolOutcome,
     render_outcome,
 )
-from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code.prompts import (
     DETAILS,
     DETAILS_DESCRIPTION,

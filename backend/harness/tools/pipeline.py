@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from harness.llm import ToolCall, ToolSpec
-from harness.tools.context import CallOrigin
-from harness.tools.definition import REFUSED, Failure, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.progress import ToolProgressReporter
+from harness.tools.models.context import CallOrigin, ToolProgressReporter
+from harness.tools.models.outcome import REFUSED, Failure, ToolOutcome
 from harness.tools.registry import ToolRegistry
 
 MAX_TOOLS_SELECTED = 8

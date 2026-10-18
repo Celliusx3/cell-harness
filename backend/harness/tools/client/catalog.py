@@ -7,8 +7,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
-from harness.tools.context import ToolContext
-from harness.tools.definition import Failure, Ok, Pending, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import Failure, Ok, Pending, ToolOutcome
 
 DECLINED = "DECLINED"
 UNAVAILABLE = "UNAVAILABLE"

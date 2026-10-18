@@ -62,7 +62,7 @@ backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the event log, its models, repository/, service, repair
   runtime/      the turn loop, its events, and hooks/ — the chain + native/<hook>/
-  tools/        definition, registry, dispatcher, pipeline, progress, native/<tool>/
+  tools/        definition, registry, dispatcher, pipeline, approval, models/, client/, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   runs/         a turn that outlives its connection — service, subscribe
   channels/     every way in and out — telegram/, discord/, web/, and per-chat state
