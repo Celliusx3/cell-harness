@@ -119,7 +119,7 @@ recognised — answered against the user's two endpoints:
 
 So the window is discovered where reported (ilmu) and configured where not (LM
 Studio), and the reactive net catches LM Studio and some ilmu models but is
-never the mechanism. Since 2026-10-04 `failure_code` (`llm/adapters/errors.py`)
+never the mechanism. Since 2026-10-04 `failure_code` (`llm/adapters/_errors.py`)
 recognises an overflow by its wording anywhere in the error body, the way
 LiteLLM's `is_error_str_context_window_exceeded` does, so LM Studio's error sent
 inside a 200 stream (`{"error":{"message":"Context length exceeded"}}`),

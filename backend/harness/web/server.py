@@ -19,7 +19,7 @@ from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.llm.adapters.context_window import context_length
+from harness.llm.adapters import context_length
 from harness.mcp.relay import Relays
 from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS

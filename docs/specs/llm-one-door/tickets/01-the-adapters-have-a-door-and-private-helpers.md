@@ -1,6 +1,6 @@
 # 01 · The adapters have a door, and their helpers are private
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `backend/harness/llm/adapters/`: `errors.py`, `openai_calls.py`, `openai_frames.py` and `openai_wire.py` become `_errors.py`, `_openai_calls.py`, `_openai_frames.py` and `_openai_wire.py`; the imports between them and in `openai.py` follow.

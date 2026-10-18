@@ -9,10 +9,10 @@ from collections.abc import AsyncIterator, Callable, Sequence
 import httpx
 
 from harness.config.sections import LLMSettings
-from harness.llm.adapters.errors import failure_code
-from harness.llm.adapters.openai_calls import ToolCallAccumulator
-from harness.llm.adapters.openai_frames import frame_of
-from harness.llm.adapters.openai_wire import JsonObject, wire_messages, wire_tool
+from harness.llm.adapters._errors import failure_code
+from harness.llm.adapters._openai_calls import ToolCallAccumulator
+from harness.llm.adapters._openai_frames import frame_of
+from harness.llm.adapters._openai_wire import JsonObject, wire_messages, wire_tool
 from harness.llm.client import LLMClient
 from harness.llm.messages import Image, Message, ToolSpec, images_of
 from harness.llm.stream import (

@@ -11,7 +11,7 @@ from harness.bots import BotService
 from harness.config.settings import Settings
 from harness.files import ChatFileService
 from harness.images import ImageService
-from harness.llm.adapters.openai import OpenAIClient
+from harness.llm.adapters import OpenAIClient
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
 from harness.runs.bot_messages import BotMessages

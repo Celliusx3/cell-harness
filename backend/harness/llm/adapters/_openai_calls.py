@@ -6,7 +6,7 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from harness.llm.adapters.openai_frames import CallPiece
+from harness.llm.adapters._openai_frames import CallPiece
 from harness.llm.messages import ExtraContent, ToolCall
 
 logger = logging.getLogger("harness.llm.openai")

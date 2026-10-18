@@ -6,7 +6,7 @@ import json
 
 import httpx
 
-from harness.llm.adapters.openai_wire import wire_messages
+from harness.llm.adapters._openai_wire import wire_messages
 from harness.llm.messages import SystemMessage
 from tests.unit.test_openai_adapter import collect, sse
 
