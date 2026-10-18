@@ -191,7 +191,6 @@ class BotService:
         return bot
 
     def _check_removable(self, stored: BotsFile, bot_id: str) -> None:
-        """Refuse a built-in with `BotPermanent` and an unknown bot with `BotNotFound`."""
         if bot_id in self._built_in_ids:
             raise BotPermanent(bot_id)
         if bot_id not in {bot.id for bot in stored.bots}:

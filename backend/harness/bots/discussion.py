@@ -74,7 +74,6 @@ def next_speaker(events: Sequence[SessionEvent], members: Sequence[Bot]) -> Bot 
 def _queue_after(
     queue: SpeakerQueue, speaker_id: str | None, said: str, members: Sequence[Bot]
 ) -> SpeakerQueue:
-    """`queue` without the speaker, then each member it mentioned who is not waiting, to the cap."""
     waiting = tuple(bot for bot in queue.waiting if bot.id != speaker_id)
     ids = {bot.id for bot in waiting} | {speaker_id}
     joining = tuple(bot for bot in mentioned_members(said, members) if bot.id not in ids)

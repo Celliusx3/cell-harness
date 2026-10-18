@@ -35,5 +35,5 @@ How the code reads after it:
 ## How we will know it works
 
 - The backend suite passes with the coverage gate, and lint passes, after every ticket.
-- The 184 bot tests that passed before still pass, with only call shapes and names changed, plus two new ones: restoring Assistant leaves it as it was and writes nothing, and the bot_create tool's arguments are a name and instructions, each with its description.
+- The 184 bot tests that passed before still pass, with only call shapes and names changed, plus two new tests and one new case: restoring Assistant leaves it as it was and writes nothing; the bot_create tool's arguments are a name and instructions, each with its description; and a message that names a member beside @everyone is still answered by every member.
 - Each ticket's piece, broken on purpose, fails a test.
