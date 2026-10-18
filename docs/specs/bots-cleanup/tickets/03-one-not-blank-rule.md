@@ -1,6 +1,6 @@
 # 03 · One not-blank rule for a bot's and a group's form
 
-**Status.** open
+**Status.** done
 
 **What to build.** Only `backend/harness/bots/models.py`. One text type, `NonBlankText = Annotated[str, AfterValidator(...)]`, that strips the text and refuses an empty result with today's message, "must not be blank", as `SecretValue` names a key's value. `BotDraft.name`, `BotDraft.instructions` and `GroupDraft.name` use it, keeping their `Field` descriptions; both `_not_blank` validators go. `GroupDraft._once_each` becomes `_refuse_repeats`.
 
