@@ -9,6 +9,7 @@ import httpx
 
 from harness.bots import BotService
 from harness.config.settings import Settings
+from harness.images import ImageService
 from harness.llm.adapters.openai import OpenAIClient
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
@@ -94,6 +95,7 @@ def build_runtime(
     bots: BotService,
     subagent_logs: SessionService,
     secrets: SecretService,
+    images: ImageService,
 ) -> Runtime:
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
     registry = ToolRegistry(
@@ -114,10 +116,11 @@ def build_runtime(
     dispatcher = ToolDispatcher(registry, gate)
     _register_code_mode(registry, dispatcher, settings)
 
-    client = OpenAIClient(settings.llm)
+    client = OpenAIClient(settings.llm, read_image=images.read)
     runtime = Runtime(
         model=settings.llm.model,
         client=client,
+        images=images if settings.llm.vision else None,
         tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
         guidance=GUIDANCE,
         checkpoint=store.flush,

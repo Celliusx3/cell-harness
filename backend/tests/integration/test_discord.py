@@ -10,12 +10,12 @@ from harness.session.service import SessionService
 from harness.web.server import build_channels
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools, no_bots, no_skills
-from tests.webapp import files_in
+from tests.webapp import files_in, images_in
 
 
 def _services(tmp_path) -> tuple[SessionService, RunService]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runtime = Runtime(model="m", client=ScriptedClient([]))
+    runtime = Runtime(model="m", client=ScriptedClient([]), images=None)
     return sessions, RunService(sessions, runtime, no_bots(sessions))
 
 
@@ -24,7 +24,14 @@ async def test_no_token_means_no_channel(tmp_path) -> None:
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
 
     assert build_channels(
-        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files_in(tmp_path)
+        settings,
+        sessions,
+        runs,
+        no_skills(),
+        client_tools(),
+        no_bots(sessions),
+        files_in(tmp_path),
+        images_in(tmp_path),
     )[0].channels == ["web"]
 
 
@@ -33,7 +40,14 @@ async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": "  "})
 
     assert build_channels(
-        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files_in(tmp_path)
+        settings,
+        sessions,
+        runs,
+        no_skills(),
+        client_tools(),
+        no_bots(sessions),
+        files_in(tmp_path),
+        images_in(tmp_path),
     )[0].channels == ["web"]
 
 
@@ -42,7 +56,14 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
     settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": "abc"})
 
     built, _ = build_channels(
-        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files_in(tmp_path)
+        settings,
+        sessions,
+        runs,
+        no_skills(),
+        client_tools(),
+        no_bots(sessions),
+        files_in(tmp_path),
+        images_in(tmp_path),
     )
 
     assert built.channels == ["web", "discord"]
@@ -54,7 +75,14 @@ async def test_both_bots_share_one_gateway(tmp_path) -> None:
     settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": "abc"})
 
     built, _ = build_channels(
-        settings, sessions, runs, no_skills(), client_tools(), no_bots(sessions), files_in(tmp_path)
+        settings,
+        sessions,
+        runs,
+        no_skills(),
+        client_tools(),
+        no_bots(sessions),
+        files_in(tmp_path),
+        images_in(tmp_path),
     )
 
     assert built.channels == ["web", "telegram", "discord"]

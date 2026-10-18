@@ -13,6 +13,7 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.config.sections import FileSettings, McpServer
 from harness.files import ChatFileService, DiskChatFileRepository
+from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
@@ -48,6 +49,11 @@ def files_in(tmp_path: Path, *, max_bytes: int = FileSettings().max_bytes) -> Ch
     return ChatFileService(DiskChatFileRepository(tmp_path / "files"), max_bytes=max_bytes)
 
 
+def images_in(tmp_path: Path) -> ImageService:
+    """The images models are shown, beside the conversations kept under `tmp_path / "sessions"`."""
+    return ImageService(DiskImageRepository(tmp_path / "sessions" / BLOBS))
+
+
 def web_gateway(
     tmp_path: Path,
     service: SessionService,
@@ -69,6 +75,7 @@ def web_gateway(
         gateway,
         bots or bots_in(tmp_path, service),
         files or files_in(tmp_path),
+        images_in(tmp_path),
     )
     gateway.register(web)
     return gateway, web

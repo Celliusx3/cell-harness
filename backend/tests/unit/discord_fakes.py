@@ -123,6 +123,7 @@ def build(tmp_path, client: LLMClient | None = None):
     runtime = Runtime(
         model="m",
         client=client or ScriptedClient(completed("ok")),
+        images=None,
         checkpoint=sessions.flush,
     )
     runs = RunService(sessions, runtime, no_bots(sessions))

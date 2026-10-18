@@ -65,6 +65,7 @@ def runtime_with(client: LLMClient, context: int | None) -> Runtime:
     return Runtime(
         model="m",
         client=client,
+        images=None,
         guidance="SYS",
         context_tokens=context,
     )

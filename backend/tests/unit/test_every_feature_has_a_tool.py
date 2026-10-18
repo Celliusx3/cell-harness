@@ -15,7 +15,7 @@ from harness.web.runtime import build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
-from tests.webapp import secrets_in, web_app
+from tests.webapp import images_in, secrets_in, web_app
 
 
 class Tool(NamedTuple):
@@ -133,6 +133,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),
+        images=images_in(tmp_path),
     )
     assert runtime.tools is not None
 

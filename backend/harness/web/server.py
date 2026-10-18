@@ -18,6 +18,7 @@ from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
+from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.llm.adapters.models import context_length
 from harness.mcp.relay import Relays
 from harness.mcp.service import McpService
@@ -69,13 +70,14 @@ def build_channels(
     client_tools: ClientToolService,
     bots: BotService,
     files: ChatFileService,
+    images: ImageService,
 ) -> tuple[ChannelGateway, WebChannel]:
     """The gateway with a channel registered per configured platform, and the web channel."""
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url=settings.web.public_url)
     chat_answers = ChatAnswers(chats, sessions, gateway, client_tools)
 
-    web = WebChannel(gateway, bots, files)
+    web = WebChannel(gateway, bots, files, images)
     gateway.register(web)
 
     if settings.telegram.bot_token.strip():
@@ -112,6 +114,7 @@ def create_web_app() -> FastAPI:
     disk = DiskChatFileRepository(settings.files.root)
     disk.create_root()
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
+    images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
     mcp = build_mcp(settings)
     skills = SkillService(settings.skills)
     gate = ApprovalGate(
@@ -132,11 +135,14 @@ def create_web_app() -> FastAPI:
         bots=bots,
         subagent_logs=build_subagent_logs(settings),
         secrets=secrets,
+        images=images,
     )
     runs = RunService(service, runtime, bots)
     assert runtime.tools is not None
     messages = attach_bot_messages(runtime.tools.registry, service, bots, runs)
-    gateway, web = build_channels(settings, service, runs, skills, client_tools, bots, files)
+    gateway, web = build_channels(
+        settings, service, runs, skills, client_tools, bots, files, images
+    )
     return create_app(runs, gateway, web, mcp, skills, client_tools, gate, bots, secrets, messages)
 
 

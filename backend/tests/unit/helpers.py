@@ -11,6 +11,7 @@ from pathlib import Path
 
 from harness.bots import BotService
 from harness.config.settings import SkillSettings
+from harness.images import ImageService
 from harness.llm.messages import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.service import RunService
@@ -83,11 +84,13 @@ def runtime_over(
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
+    images: ImageService | None = None,
 ) -> Runtime:
     """A runtime over `tools`, with no pipeline at all when there are none."""
     return Runtime(
         model="m",
         client=client,
+        images=images,
         tools=pipeline_for(*tools, gate=gate) if tools else None,
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
@@ -144,12 +147,18 @@ def run_service(
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
     bots: BotService | None = None,
+    images: ImageService | None = None,
 ) -> RunService:
     """Runs over a runtime that checkpoints through `service`, as the server wires it."""
     return RunService(
         service,
         runtime_over(
-            client, *tools, checkpoint=service.flush, context_tokens=context_tokens, gate=gate
+            client,
+            *tools,
+            checkpoint=service.flush,
+            context_tokens=context_tokens,
+            gate=gate,
+            images=images,
         ),
         bots or no_bots(service),
     )

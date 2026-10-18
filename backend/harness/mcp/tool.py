@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import logging
 import re
@@ -17,6 +19,7 @@ from harness.tools.definition import (
     UNKNOWN_TOOL,
     Failure,
     Ok,
+    ReturnedImage,
     ToolDefinition,
     ToolOutcome,
     ToolUi,
@@ -123,7 +126,27 @@ def outcome_of(
         if resource_uri is not None
         else None
     )
-    return Ok(content=rendered, data=result.structured_content, ui=ui)
+    return Ok(
+        content=rendered,
+        data=result.structured_content,
+        ui=ui,
+        images=returned_images(result.content, name=name),
+    )
+
+
+def returned_images(blocks: Sequence[ContentBlock], *, name: str) -> tuple[ReturnedImage, ...]:
+    """Each image block's bytes, decoded; one whose data is not base64 is dropped."""
+    images: list[ReturnedImage] = []
+    for block in blocks:
+        if not isinstance(block, ImageContent):
+            continue
+        try:
+            data = base64.b64decode(block.data, validate=True)
+        except binascii.Error as err:
+            logger.warning("dropped an image %s returned: its data is not base64: %s", name, err)
+            continue
+        images.append(ReturnedImage(media_type=block.mime_type, data=data))
+    return tuple(images)
 
 
 def render_content(blocks: Sequence[ContentBlock]) -> str:
