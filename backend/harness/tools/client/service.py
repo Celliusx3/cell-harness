@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
-from enum import Enum
 
 from pydantic import ValidationError
 
@@ -12,25 +10,11 @@ from harness.prompts import DENIED_RESULT
 from harness.session.log import Session
 from harness.tools.approval import ApprovalGate
 from harness.tools.client.catalog import ClientTools
-from harness.tools.client.pending import PendingCall, pending_calls
+from harness.tools.client.models import Accepted, PendingCall, Refused
+from harness.tools.client.pending import pending_calls
 from harness.tools.definition import ToolDefinition
 from harness.tools.models.decision import DENIED, Approved, parse_decision
-from harness.tools.models.outcome import Failure, Ok
-
-
-class Refused(Enum):
-    """Why an answer was not taken."""
-
-    NOT_PENDING = "not_pending"
-    DOES_NOT_FIT = "does_not_fit"
-
-
-@dataclass(frozen=True)
-class Accepted:
-    """An answer that fits: what the resumed turn opens with."""
-
-    call_id: str
-    outcome: Ok | Failure | Approved
+from harness.tools.models.outcome import Failure
 
 
 class ClientToolService:

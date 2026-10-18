@@ -2,67 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Annotated, Literal
+from pydantic import BaseModel
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
-
+from harness.tools.client.models import (
+    DECLINED,
+    UNAVAILABLE,
+    ClientOutput,
+    ClientTool,
+    Shared,
+    Unavailable,
+)
 from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Failure, Ok, Pending, ToolOutcome
 
-DECLINED = "DECLINED"
-UNAVAILABLE = "UNAVAILABLE"
-
 _ASK_INSTEAD = "ask them in words instead"
-
-
-class Shared[DataT: BaseModel](BaseModel):
-    """The client answered with the datum."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: Literal["shared"] = "shared"
-    data: DataT
-
-
-class Declined(BaseModel):
-    """The person chose not to."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: Literal["declined"] = "declined"
-
-
-class Unavailable(BaseModel):
-    """The device could not — permission blocked, no fix, timed out."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: Literal["unavailable"] = "unavailable"
-    reason: str = Field(min_length=1)
-
-
-ClientOutput = Shared[BaseModel] | Declined | Unavailable
-
-
-@dataclass(frozen=True)
-class ClientTool[ArgsT: BaseModel, DataT: BaseModel]:
-    """One datum the client can provide — everything a new one has to say."""
-
-    name: str
-    description: str
-    args_model: type[ArgsT]
-    data_model: type[DataT]
-
-    def output_adapter(self) -> TypeAdapter[ClientOutput]:
-        """The union a posted body must fit, with this tool's data inside."""
-        return TypeAdapter(
-            Annotated[
-                Shared[self.data_model] | Declined | Unavailable,  # type: ignore[valid-type]
-                Field(discriminator="kind"),
-            ]
-        )
 
 
 class ClientTools:
