@@ -48,6 +48,15 @@ bottom in one sitting, and it is the size the repo was refactored to in
 tests out of `test_gateway.py`). Never raise the cap or exempt a file — the
 first exemption is the last time the rule means anything.
 
+**Every function under complexity 10.** Ruff's mccabe check (`C90`, `max-complexity
+= 10`) runs inside `make lint` and fails on any backend function with more than ten
+paths through it. Paths, not lines, are what make a function hard to follow: a long
+list of plain statements reads fine, a short knot of branches does not. A handler
+nested inside a function counts toward it, which is why a route builder registers
+its routes in named groups once it holds many. Name the decision that makes it
+branch and move it out (`runtime/turn.py`'s step outcome, `web/errors.py`'s one
+map from domain error to status); never raise the cap or exempt a function.
+
 **One setting, one place to look.** No `a.x or b.y` fallback chains between
 settings — it makes "which value is actually in use?" unanswerable without
 tracing two objects. Give each setting its own default, even if two defaults

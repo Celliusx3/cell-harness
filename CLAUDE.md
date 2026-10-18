@@ -92,6 +92,7 @@ are relative to `backend/harness/`.
   docstring is one line. Only a note on behaviour forced by an external dependency,
   a format or style-only lint suppression, and an issue link stay.
 - **Every file under 300 lines.** `make lint` refuses a longer one; split on the seam, never raise the cap.
+- **Every function under complexity 10.** `make lint` refuses a more tangled one; split on the seam, never raise the cap.
 
 ## Invariants
 

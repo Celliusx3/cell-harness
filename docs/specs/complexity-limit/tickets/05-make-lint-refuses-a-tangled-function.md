@@ -1,6 +1,6 @@
 # 05 · `make lint` refuses a function past a complexity of 10
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `backend/pyproject.toml`: ruff selects `C90` and sets `[tool.ruff.lint.mccabe] max-complexity = 10`.

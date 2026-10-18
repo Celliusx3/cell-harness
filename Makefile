@@ -18,7 +18,7 @@ help:
 	@echo "  make test-integration  integration tests only, no coverage gate"
 	@echo "  make test-mcp-servers   each MCP server's own suite and its own gate"
 	@echo "  make test-skills       each skill's scripts' own suite and its own gate"
-	@echo "  make lint              ruff check + format check + every file under 300 lines"
+	@echo "  make lint              ruff check + format check + complexity 10 + every file under 300 lines"
 	@echo "  make lint-mcp-servers   ruff check + format check in each MCP server"
 	@echo "  make lint-skills       ruff check + format check in each skill's scripts"
 	@echo "  make fmt               ruff format + fix"
