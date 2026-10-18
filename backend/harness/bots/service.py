@@ -95,7 +95,7 @@ class BotService:
         speakers = _turn_order.first_speakers(text, members.bots)
         if not speakers:
             raise GroupEmpty(session.id)
-        _log_speaker(session, members, speakers[0])
+        _log_speaker_if_changed(session, members, speakers[0])
         return speakers[0]
 
     def next_speaker(self, session: Session) -> Bot | None:
@@ -104,7 +104,7 @@ class BotService:
         speaker = _turn_order.next_speaker(session.events(), members.bots)
         if speaker is None:
             return None
-        _log_speaker(session, members, speaker)
+        _log_speaker_if_changed(session, members, speaker)
         return speaker
 
     def groups(self) -> tuple[Group, ...]:
@@ -248,8 +248,7 @@ class BotService:
         await self._sessions.flush(session)
 
 
-def _log_speaker(session: Session, members: ChatMembers, bot: Bot) -> None:
-    """Log `bot`'s instructions, and in a group its members, where they differ from the last."""
+def _log_speaker_if_changed(session: Session, members: ChatMembers, bot: Bot) -> None:
     logged = session.bot_instructions(bot.id)
     if logged is None or (logged.name, logged.instructions) != (bot.name, bot.instructions):
         session.append(_bot_instructions_event(bot))
@@ -260,12 +259,10 @@ def _log_speaker(session: Session, members: ChatMembers, bot: Bot) -> None:
 
 
 def _bot_instructions_event(bot: Bot) -> BotInstructionsEvent:
-    """The bot's name and instructions, as its chats log them before its turn."""
     return BotInstructionsEvent(name=bot.name, instructions=bot.instructions, bot_id=bot.id)
 
 
 def _group_members_event(group: Group, members: tuple[Bot, ...]) -> GroupMembersEvent:
-    """The group's name and its members' names, as its chat logs them for its bots."""
     return GroupMembersEvent(name=group.name, members=tuple(bot.name for bot in members))
 
 
