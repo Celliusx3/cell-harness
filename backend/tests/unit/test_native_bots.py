@@ -44,6 +44,32 @@ async def test_a_blank_name_is_refused_as_the_form_refuses_it(store: BotService)
     assert [bot.name for bot in await store.active_bots()] == ["Assistant", "Bot builder"]
 
 
+def test_the_model_sees_a_name_and_instructions_each_described(store: BotService) -> None:
+    assert bot_create_tool(store).input_schema == {
+        "description": (
+            "A bot's name and instructions from the form or a tool call, stripped and not blank."
+        ),
+        "properties": {
+            "name": {
+                "description": "The name the sidebar shows, e.g. 'Researcher'.",
+                "title": "Name",
+                "type": "string",
+            },
+            "instructions": {
+                "description": (
+                    "What the bot is told before every turn in its chat, written to it as "
+                    "'you', e.g. 'You find sources for a question and cite every claim.'"
+                ),
+                "title": "Instructions",
+                "type": "string",
+            },
+        },
+        "required": ["name", "instructions"],
+        "title": "BotDraft",
+        "type": "object",
+    }
+
+
 def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
     assert BOT_CREATE in DEFAULT_TOOLS
     assert BOT_CREATE in NOT_CALLABLE_FROM_SCRIPTS

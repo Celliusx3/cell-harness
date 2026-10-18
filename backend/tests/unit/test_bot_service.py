@@ -169,6 +169,15 @@ def test_archiving_or_restoring_a_bot_nobody_made_is_refused(bots: BotService) -
         bots.restore("nope")
 
 
+def test_restoring_assistant_leaves_it_as_it_was_and_writes_nothing(
+    tmp_path: Path, bots: BotService
+) -> None:
+    bots.restore(ASSISTANT_ID)
+
+    assert bots.find(ASSISTANT_ID) == KIND
+    assert not (tmp_path / "bots.json").exists()
+
+
 async def test_assistant_can_be_neither_archived_nor_deleted(bots: BotService) -> None:
     with pytest.raises(BotPermanent):
         bots.archive(ASSISTANT_ID)

@@ -1,6 +1,6 @@
 # 01 · The promises the cleanup must keep are tested
 
-**Status.** open
+**Status.** done
 
 **What to build.** Two tests for promises nothing checks today, written against the code as it is:
 - `backend/tests/unit/test_bot_service.py`: restoring Assistant leaves it as it was and writes no bots file.
