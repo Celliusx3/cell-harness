@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from importlib import resources
 
@@ -18,17 +19,29 @@ from computer.config import ConfigError, load
 from computer.desktop import Desktop
 from computer.docker import DockerCli
 from computer.files import Files
+from computer.host_services import (
+    PreparedHostService,
+    command_variables,
+    prepared_host_service,
+    serving_host_services_that_start,
+)
 from computer.live_screen import LiveScreen
 from computer.machine import Machine
-from computer.tools import PREVIEW_URI, Computer, browser, computer_page
+from computer.shell import Shell
+from computer.skill_declarations import declared_host_services
+from computer.tools import PREVIEW_URI, Computer, browser, computer_page, shell
 
 logger = logging.getLogger("computer")
 
 
-def build(computer: Computer) -> MCPServer:
+def build(computer: Computer, host_services: Sequence[PreparedHostService]) -> MCPServer:
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[None]:
-        async with computer.machine.serving(), computer.live_screen.serving():
+        async with (
+            serving_host_services_that_start(host_services, SYSTEM),
+            computer.machine.serving(),
+            computer.live_screen.serving(),
+        ):
             yield
 
     preview = Apps()
@@ -43,6 +56,7 @@ def build(computer: Computer) -> MCPServer:
     )
     browser.register_read_and_act(server, computer)
     computer_page.register(server, computer)
+    shell.register(server, computer)
     return server
 
 
@@ -56,7 +70,11 @@ def main() -> None:
 
     docker = DockerCli(executable="docker")
     machine = Machine(docker=docker, config=config, clock=SYSTEM)
-    build(
+    host_services = tuple(
+        prepared_host_service(service, config.files_dir)
+        for service in declared_host_services(config.skills_dirs, os.environ.get("PATH", ""))
+    )
+    server = build(
         Computer(
             machine=machine,
             browser=Browser(docker=docker, container=config.container_name, clock=SYSTEM),
@@ -69,8 +87,16 @@ def main() -> None:
                 docker=docker, container=config.container_name, machine=machine, clock=SYSTEM
             ),
             files=Files(docker=docker, container=config.container_name),
-        )
-    ).run(transport="stdio")
+            shell=Shell(
+                docker=docker,
+                container=config.container_name,
+                clock=SYSTEM,
+                variables=command_variables(host_services),
+            ),
+        ),
+        host_services,
+    )
+    server.run(transport="stdio")
 
 
 if __name__ == "__main__":  # pragma: no cover

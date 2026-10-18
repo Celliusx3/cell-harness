@@ -34,7 +34,7 @@ from tests.conftest import (
 )
 
 CLICK = {"kind": "click", "ref": "e1"}
-BROWSER_TOOLS = ("browser_act", "browser_navigate", "browser_read_page")
+MODEL_TOOLS = ("browser_act", "browser_navigate", "browser_read_page", "shell")
 APP_ONLY_TOOLS = {
     "file_download": FILE_DOWNLOAD_DESCRIPTION,
     "file_list": FILE_LIST_DESCRIPTION,
@@ -57,12 +57,12 @@ async def call(server: MCPServer, tool: str, args: dict[str, object]) -> CallToo
         return await client.call_tool(tool, args)
 
 
-async def test_exactly_twelve_tools_are_offered_and_the_browser_ones_have_output_schemas() -> None:
+async def test_exactly_thirteen_tools_are_offered_and_the_model_ones_have_output_schemas() -> None:
     async with Client(server_with(FakeDocker(status="missing"))) as client:
         tools = {tool.name: tool for tool in (await client.list_tools()).tools}
 
-    assert sorted(tools) == sorted([*BROWSER_TOOLS, *APP_ONLY_TOOLS])
-    assert all(tools[name].output_schema is not None for name in BROWSER_TOOLS)
+    assert sorted(tools) == sorted([*MODEL_TOOLS, *APP_ONLY_TOOLS])
+    assert all(tools[name].output_schema is not None for name in MODEL_TOOLS)
     assert {name: tools[name].description for name in APP_ONLY_TOOLS} == APP_ONLY_TOOLS
     assert all(tools[name].meta == {"ui": {"visibility": ["app"]}} for name in APP_ONLY_TOOLS)
 

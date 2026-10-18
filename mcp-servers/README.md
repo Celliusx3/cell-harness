@@ -27,7 +27,7 @@ declared in `mcp.servers`.
 | [instagram](./instagram) | Read a shared Instagram reel into text observations a POI can be reasoned from |
 | [places](./places) | Resolve a described place to a real POI via Google Places API (New) |
 | [markets](./markets) | Investment research data — quotes, history, fundamentals, filings, news — for US stocks/ETFs, crypto and Bursa Malaysia, from free sources |
-| [computer](./computer) | A Linux desktop with Chrome in Docker (Rakazo's image), shared by every bot: page tools for the model, and the live screen, control, terminal and files for the person's Computer page. Needs Docker running |
+| [computer](./computer) | A Linux desktop with Chrome in Docker (Rakazo's image), shared by every bot: page tools and `shell` for the model (chat files and skill folders mounted at their own paths; a Mac program a skill declares is started, and its address and token handed to commands under the name the skill gives), and the live screen, control, terminal and files for the person's Computer page. Needs Docker running |
 
 `places` began as the third-party `@cablate/mcp-google-map` and
 was replaced, which is worth recording because the reason generalises: **it

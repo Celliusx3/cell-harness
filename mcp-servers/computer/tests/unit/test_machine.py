@@ -11,13 +11,16 @@ from contextlib import asynccontextmanager
 import pytest
 
 from computer.docker import DockerError
-from computer.machine import Machine
+from computer.jobs import RUNNING_JOBS_SCRIPT
+from computer.machine import JOBS_ROOT, Machine
 from tests.conftest import IDLE_SECONDS, IMAGE, NAME, Dial, FakeDocker, config, settle
 
 INSPECT = ["inspect", "--type", "container", "--format", "{{.State.Status}}", NAME]
 BINDINGS = ["inspect", "--type", "container", "--format", "{{json .HostConfig.PortBindings}}", NAME]
+MOUNTS = ["inspect", "--type", "container", "--format", "{{json .Mounts}}", NAME]
 STOP = ["stop", NAME]
 OPEN_CHROME_CALL = ["exec", "-d", NAME, "rakazo-focus-or-launch", "rakazo-browser"]
+RUNNING_JOBS = ["exec", NAME, "python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT]
 
 
 @asynccontextmanager
@@ -39,6 +42,7 @@ async def test_the_first_call_runs_one_container_with_rakazos_options() -> None:
         await use(machine)
 
     inspect, run, launch = docker.calls
+    files, skills = config().files_dir, config().skills_dirs[0]
     token = next(arg for arg in run if arg.startswith("RAKAZO_COMPUTER_CONTROL_TOKEN="))
     assert inspect == INSPECT
     assert re.fullmatch(r"RAKAZO_COMPUTER_CONTROL_TOKEN=[0-9a-f]{32}", token)
@@ -52,6 +56,8 @@ async def test_the_first_call_runs_one_container_with_rakazos_options() -> None:
         "-e", "HOME=/home/rakazo",
         "-e", token,
         "-v", f"{NAME}-home:/home/rakazo",
+        "-v", f"{files}:{files}",
+        "-v", f"{skills}:{skills}:ro",
         "-p", "127.0.0.1::7070",
         "-p", "127.0.0.1::6080",
         IMAGE,
@@ -73,7 +79,7 @@ async def test_a_stopped_container_is_started_not_run_again() -> None:
     async with serving(docker, Dial()) as machine:
         await use(machine)
 
-    assert docker.calls == [INSPECT, BINDINGS, ["start", NAME], OPEN_CHROME_CALL]
+    assert docker.calls == [INSPECT, BINDINGS, MOUNTS, ["start", NAME], OPEN_CHROME_CALL]
 
 
 async def test_a_container_with_the_gateway_port_is_reused_and_its_ports_read_only_once() -> None:
@@ -82,7 +88,7 @@ async def test_a_container_with_the_gateway_port_is_reused_and_its_ports_read_on
         await use(machine)
         await use(machine)
 
-    assert docker.calls == [INSPECT, BINDINGS, INSPECT]
+    assert docker.calls == [INSPECT, BINDINGS, MOUNTS, INSPECT]
 
 
 @pytest.mark.parametrize("status", ["running", "exited"])
@@ -184,7 +190,7 @@ async def test_a_call_during_the_idle_stop_waits_for_it_then_starts_the_computer
         docker.gates["stop"].set()
         await call
 
-    assert docker.verbs() == ["inspect", "run", "exec", "stop", "inspect", "start", "exec"]
+    assert docker.verbs() == ["inspect", "run", "exec", "exec", "stop", "inspect", "start", "exec"]
     assert docker.status == "running"
 
 
@@ -205,7 +211,7 @@ async def test_a_running_container_is_adopted_at_startup_and_its_idle_stop_armed
     async with machine.serving():
         await dial.turn(IDLE_SECONDS)
 
-    assert docker.calls == [INSPECT, OPEN_CHROME_CALL, STOP]
+    assert docker.calls == [INSPECT, OPEN_CHROME_CALL, RUNNING_JOBS, STOP]
 
 
 async def test_a_stopped_or_missing_container_is_left_alone_at_startup() -> None:
@@ -247,7 +253,7 @@ async def test_a_computer_started_again_opens_chrome_so_its_screen_is_not_black(
     async with serving(docker, Dial()) as machine:
         await use(machine)
 
-    assert docker.calls == [INSPECT, BINDINGS, ["start", NAME], OPEN_CHROME_CALL]
+    assert docker.calls == [INSPECT, BINDINGS, MOUNTS, ["start", NAME], OPEN_CHROME_CALL]
 
 
 async def test_a_new_computer_opens_chrome() -> None:
