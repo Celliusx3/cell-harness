@@ -176,7 +176,7 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
   at most 6 per message of yours (Rakazo's hop limit,
   `packages/core/src/bot-messages.ts:14`); a reply of exactly `NO_RESPONSE`
   is shown to nobody (Rakazo's `silent-reply.ts`). Who is next is worked out
-  from the log each time (`bots/discussion.py`). Each bot reads your messages,
+  from the log each time (`bots/_turn_order.py`). Each bot reads your messages,
   its own turns in full, and the others' replies as your-side text tagged
   `<speaker name="…" />`, as LobeChat's `GroupRoleTransform` does; the
   `group/members` event carries the roster its group note is built from.
@@ -206,7 +206,7 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
   a bot's own chat sends the same request once turns carry bot ids
   (`tests/unit/test_bot_prompt.py`).
 - Who speaks next in a group is a fold over the log, never stored
-  (`tests/unit/test_discussion.py`).
+  (`tests/unit/test_turn_order.py`).
 - A bot's message is logged in the chat it enters, and a turn's hop is read
   from the `bot/message` that opened it, never stored
   (`tests/unit/test_bot_messages.py`, `tests/integration/test_web_bot_messages.py`).

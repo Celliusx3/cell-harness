@@ -120,6 +120,18 @@ async def test_a_group_whose_bots_are_all_archived_keeps_its_chat_but_takes_no_m
     assert [group["id"] for group in listed] == [chat]
 
 
+async def test_a_group_s_member_list_is_written_again_once_a_member_leaves(tmp_path) -> None:
+    client, _, runs, chat, _, writer = await _group(tmp_path, completed("Sources."))
+    async with client:
+        assert (await client.post(f"/api/bots/{writer}/archive")).status_code == 204
+        events = await _send(client, runs, chat, "go")
+
+    kinds = [e["type"] for e in events]
+    rosters = [e["members"] for e in events if e["type"] == "group/members"]
+    assert rosters == [["Researcher", "Writer"], ["Researcher"]]
+    assert kinds.index("turn/start") > len(kinds) - 1 - kinds[::-1].index("group/members")
+
+
 async def test_answering_a_bot_that_was_archived_since_it_asked_is_refused(tmp_path) -> None:
     client, _, runs, chat, researcher, _ = await _group(
         tmp_path, calls_tool(QUESTION, ASKED, id="call_q"), completed("Calm it is.")

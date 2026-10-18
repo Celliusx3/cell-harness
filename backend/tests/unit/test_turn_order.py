@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harness.bots import Bot
-from harness.bots.discussion import (
+from harness.bots._turn_order import (
     MAX_TURNS_FROM_MENTIONS,
     first_speakers,
     is_mentioned,

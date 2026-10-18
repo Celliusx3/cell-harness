@@ -99,3 +99,26 @@ def test_the_prompts_import_nothing() -> None:
     ]
 
     assert imported == ["__future__"], imported
+
+
+def test_no_package_imports_another_package_s_private_module() -> None:
+    leaks: list[str] = []
+    for path in sorted(HARNESS.rglob("*.py")):
+        package = path.relative_to(HARNESS).parts[0]
+        for node in ast.walk(ast.parse(path.read_text())):
+            imported = (
+                [f"{node.module}.{alias.name}" for alias in node.names]
+                if isinstance(node, ast.ImportFrom) and node.module
+                else [alias.name for alias in node.names]
+                if isinstance(node, ast.Import)
+                else []
+            )
+            leaks += [
+                f"{path.relative_to(HARNESS)} imports {m}"
+                for m in imported
+                if m.startswith("harness.")
+                and m.split(".")[1] != package
+                and any(part.startswith("_") for part in m.split(".")[2:])
+            ]
+
+    assert leaks == [], leaks
