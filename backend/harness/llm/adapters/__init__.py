@@ -1,1 +1,1 @@
-"""Concrete provider adapters. Nothing outside `llm/` imports one directly."""
+"""Concrete provider adapters; only the composition root in `web/` imports one."""

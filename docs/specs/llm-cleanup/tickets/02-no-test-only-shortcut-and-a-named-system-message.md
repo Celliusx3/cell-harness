@@ -1,6 +1,6 @@
 # 02 · No test-only shortcut, and the system message is sent by name
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `llm/messages.py`: delete the `ToolMessage.text` property; the 11 test sites that read it call `render_text(....content)`.

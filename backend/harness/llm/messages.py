@@ -116,10 +116,6 @@ class ToolMessage(BaseModel):
         """A plain string is one text block."""
         return (Text(text=value),) if isinstance(value, str) else value
 
-    @property
-    def text(self) -> str:
-        return render_text(self.content)
-
 
 def render_text(blocks: tuple[Block, ...]) -> str:
     """The prose of a result: its text blocks, joined."""

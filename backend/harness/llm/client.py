@@ -1,4 +1,4 @@
-"""The `LLMClient` protocol every adapter satisfies."""
+"""The `LLMClient` base class every adapter implements."""
 
 from __future__ import annotations
 

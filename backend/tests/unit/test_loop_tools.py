@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage
+from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, render_text
 from harness.llm.stream import Completed, TextChunk, ToolCallChunk
 from harness.runtime.events import AgentCompleted, ToolProgress, ToolResult
 from harness.runtime.service import Runtime
@@ -155,7 +155,7 @@ async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == "INVALID_ARGUMENTS"
-    assert result.message.text.startswith("error: ")
+    assert render_text(result.message.content).startswith("error: ")
     assert isinstance(events[-1], AgentCompleted)
 
 

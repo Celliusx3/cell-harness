@@ -5,6 +5,9 @@ from __future__ import annotations
 import base64
 import json
 from collections.abc import Mapping, Sequence
+from typing import assert_never
+
+from pydantic import JsonValue
 
 from harness.llm.messages import (
     AssistantMessage,
@@ -12,6 +15,7 @@ from harness.llm.messages import (
     ExtraContent,
     Image,
     Message,
+    SystemMessage,
     Text,
     ToolMessage,
     ToolReference,
@@ -21,18 +25,21 @@ from harness.llm.messages import (
 )
 from harness.prompts import IMAGE_NOT_SHOWN, IMAGES_FOLLOW, REFERENCES_NOTE, TOOL_IMAGES
 
-WireContent = str | list[dict]
+JsonObject = dict[str, JsonValue]
+WireContent = str | list[JsonObject]
 
 
-def wire_messages(messages: Sequence[Message], image_bytes: Mapping[str, bytes]) -> list[dict]:
+def wire_messages(
+    messages: Sequence[Message], image_bytes: Mapping[str, bytes]
+) -> list[JsonObject]:
     """Every message in the provider's shape, tool images in a user message after the results."""
-    wired: list[dict] = []
+    wired: list[JsonObject] = []
     held: list[Image] = []
     for message in messages:
         if held and not isinstance(message, ToolMessage):
             wired.append(_tool_images_message(held, image_bytes))
             held = []
-        wired.append(wire_message(message, image_bytes))
+        wired.append(_wire_message(message, image_bytes))
         if isinstance(message, ToolMessage):
             held.extend(_readable_images(message.content, image_bytes))
     if held:
@@ -40,7 +47,7 @@ def wire_messages(messages: Sequence[Message], image_bytes: Mapping[str, bytes])
     return wired
 
 
-def _tool_images_message(shown: Sequence[Image], image_bytes: Mapping[str, bytes]) -> dict:
+def _tool_images_message(shown: Sequence[Image], image_bytes: Mapping[str, bytes]) -> JsonObject:
     return {"role": "user", "content": _content_with_images(TOOL_IMAGES, shown, image_bytes)}
 
 
@@ -49,7 +56,7 @@ def _readable_images(blocks: tuple[Block, ...], image_bytes: Mapping[str, bytes]
     return [b for b in blocks if isinstance(b, Image) and b.sha256 in image_bytes]
 
 
-def wire_message(message: Message, image_bytes: Mapping[str, bytes]) -> dict:
+def _wire_message(message: Message, image_bytes: Mapping[str, bytes]) -> JsonObject:
     """One message in the provider's shape."""
     if isinstance(message, AssistantMessage) and message.tool_calls:
         return {
@@ -76,7 +83,9 @@ def wire_message(message: Message, image_bytes: Mapping[str, bytes]) -> dict:
         }
     if isinstance(message, UserMessage):
         return {"role": "user", "content": _user_content(message, image_bytes)}
-    return message.model_dump()
+    if isinstance(message, SystemMessage):
+        return {"role": "system", "content": message.content}
+    assert_never(message)
 
 
 def _extra_field(extra: ExtraContent | None) -> dict[str, ExtraContent]:
@@ -137,7 +146,7 @@ def _data_url(image: Image, data: bytes) -> str:
     return f"data:{image.media_type};base64,{base64.b64encode(data).decode('ascii')}"
 
 
-def wire_tool(spec: ToolSpec) -> dict:
+def wire_tool(spec: ToolSpec) -> JsonObject:
     """One tool declaration in the provider's shape."""
     return {
         "type": "function",
