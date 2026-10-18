@@ -15,6 +15,7 @@ from computer.machine import HOME
 ActionKind = Literal["click", "fill", "type"]
 ScreenMode = Literal["view", "control"]
 FileKind = Literal["file", "dir"]
+CommandStatus = Literal["done", "running"]
 
 TRANSFER_LIMIT_BYTES = 10 * 1024 * 1024
 
@@ -164,3 +165,20 @@ class Uploaded(BaseModel):
 
     path: str
     size: int
+
+
+class CommandRun(BaseModel):
+    """A bot's command: still running with its output so far, or done with its exit code."""
+
+    model_config = ConfigDict(frozen=True)
+
+    status: CommandStatus
+    exit_code: int | None
+    seconds: float
+    output: str
+
+    @model_validator(mode="after")
+    def exit_code_fits_status(self) -> Self:
+        if (self.status == "running") != (self.exit_code is None):
+            raise ValueError("a running command has no exit code yet, and a done one has one")
+        return self

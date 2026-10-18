@@ -89,3 +89,20 @@ KEEP_AWAKE_DESCRIPTION = (
     "App-only: the person's Computer page calls this every minute while it is open, so the "
     "computer does not stop for being idle; do not call it. args: {}. Returns {}."
 )
+
+SHELL_DESCRIPTION = (
+    "Runs a command in your computer (Debian Linux with Python 3 and uv; the chat's files are "
+    "at the same paths as you were told) and answers its output and exit code. A command still "
+    "running after 15 seconds answers status `running` with how long it has run and its output "
+    "so far; call shell again with the same arguments to wait for it, and its finished result "
+    "comes once. Pass any text the command reads, such as JSON, as `stdin`, never inside the "
+    "command."
+)
+
+COMMAND_DESCRIPTION = "The command, as `sh` runs it."
+
+STDIN_DESCRIPTION = (
+    "Text the command reads on its standard input. Put JSON or any text with quotes here."
+)
+
+CWD_DESCRIPTION = "The absolute folder to run in; your home folder when left out."
