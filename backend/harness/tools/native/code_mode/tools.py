@@ -32,12 +32,12 @@ from harness.tools.native.code_mode.prompts import (
 )
 from harness.tools.registry import ToolRegistry
 
-Catalog = Callable[[], list[ToolDefinition]]
+AvailableTools = Callable[[], list[ToolDefinition]]
 
 logger = logging.getLogger("harness.tools.code")
 
 
-RESERVED = frozenset({LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT})
+CODE_MODE_TOOL_NAMES = frozenset({LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT})
 
 
 def code_mode_tools(
@@ -48,7 +48,7 @@ def code_mode_tools(
     withheld: frozenset[str],
 ) -> list[ToolDefinition]:
     """The three tools, sharing one view of the catalog."""
-    kept_out = RESERVED | withheld
+    kept_out = CODE_MODE_TOOL_NAMES | withheld
 
     def available() -> list[ToolDefinition]:
         """Everything registered, minus ourselves and the withheld."""
@@ -61,12 +61,12 @@ def code_mode_tools(
     ]
 
 
-def _list_tool(available: Catalog) -> ToolDefinition[NoArgs]:
+def _list_tool(available: AvailableTools) -> ToolDefinition[NoArgs]:
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         found = available()
         if not found:
             return Ok("No capabilities are available.")
-        return Ok(declarations(found, types=False))
+        return Ok(declarations(found, with_types=False))
 
     return ToolDefinition.from_model(
         name=LIST_FUNCTIONS,
@@ -76,7 +76,7 @@ def _list_tool(available: Catalog) -> ToolDefinition[NoArgs]:
     )
 
 
-def _details_tool(available: Catalog) -> ToolDefinition[DetailsArgs]:
+def _details_tool(available: AvailableTools) -> ToolDefinition[DetailsArgs]:
     async def execute(args: DetailsArgs, _context: ToolContext) -> ToolOutcome:
         wanted = set(args.names)
         found = [tool for tool in available() if tool.name in wanted]
@@ -88,7 +88,7 @@ def _details_tool(available: Catalog) -> ToolDefinition[DetailsArgs]:
         note = f"\n\n// not found: {', '.join(missing)}" if missing else ""
         return Ok(
             (
-                Text(text=declarations(found, types=True) + note),
+                Text(text=declarations(found, with_types=True) + note),
                 *(ToolReference(tool_name=tool.name) for tool in found),
             )
         )
@@ -102,7 +102,7 @@ def _details_tool(available: Catalog) -> ToolDefinition[DetailsArgs]:
 
 
 def _execute_tool(
-    available: Catalog, dispatcher: ToolDispatcher, runner: Runner, kept_out: frozenset[str]
+    available: AvailableTools, dispatcher: ToolDispatcher, runner: Runner, kept_out: frozenset[str]
 ) -> ToolDefinition[ExecuteArgs]:
     async def execute(args: ExecuteArgs, context: ToolContext) -> ToolOutcome:
         names = [tool.name for tool in available()]
@@ -113,7 +113,7 @@ def _execute_tool(
         except DenoUnavailableError as err:
             logger.error("the sandbox is unusable: %s", err)
             return Failure(EXECUTION_ERROR, f"the sandbox could not start: {err}")
-        return _rendered(script)
+        return _script_outcome(script)
 
     return ToolDefinition.from_model(
         name=EXECUTE_TYPESCRIPT,
@@ -142,7 +142,7 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
         if isinstance(outcome, Ok) and outcome.images:
             raise BridgeError(IMAGES_STAY_OUT.format(name=name))
         if isinstance(outcome, Ok):
-            return outcome.data if outcome.data is not None else _as_value(outcome.text)
+            return outcome.data if outcome.data is not None else _script_value(outcome.text)
         if isinstance(outcome, Pending):
             raise BridgeError(
                 f"{name} waits for the user's approval, so a script cannot call it. "
@@ -153,27 +153,27 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
     return bridge
 
 
-def _as_value(content: str) -> object:
+def _script_value(text: str) -> object:
     """A tool's text as the shape a script can actually use."""
     try:
-        return json.loads(content)
+        return json.loads(text)
     except ValueError:
-        return content
+        return text
 
 
-def _rendered(script: Script) -> ToolOutcome:
+def _script_outcome(script: Script) -> ToolOutcome:
     """What the model reads back."""
     printed = "\n".join(script.logs)
     if script.error is not None:
         detail = f"\n\nOutput before it failed:\n{printed}" if printed else ""
         return Failure(EXECUTION_ERROR, f"the script failed: {script.error}{detail}")
 
-    returned = "" if script.result is None else f"Returned:\n{_json(script.result)}"
+    returned = "" if script.result is None else f"Returned:\n{_json_text(script.result)}"
     body = "\n\n".join(part for part in (printed, returned) if part)
     return Ok(body or NOTHING_CAME_BACK, data=script.result)
 
 
-def _json(value: object) -> str:
+def _json_text(value: object) -> str:
     try:
         return json.dumps(value, indent=2, ensure_ascii=False)
     except (TypeError, ValueError):

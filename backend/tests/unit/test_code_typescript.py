@@ -24,7 +24,7 @@ def tool(name: str, schema: object, description: str = "A tool.") -> ToolDefinit
 
 def rendered(schema: object) -> str:
     """The args clause for one tool, which is what most of these assert on."""
-    return declarations([tool("srv__t", schema)], types=True).splitlines()[-1]
+    return declarations([tool("srv__t", schema)], with_types=True).splitlines()[-1]
 
 
 def test_primitives_and_the_optional_marker() -> None:
@@ -74,7 +74,7 @@ def test_refs_from_a_pydantic_model_resolve() -> None:
         name="clock", description="d", args_model=Args, execute=lambda a, p: None
     )
 
-    assert "nested: { depth: number }" in declarations([built], types=True)
+    assert "nested: { depth: number }" in declarations([built], with_types=True)
 
 
 def test_a_ref_cycle_terminates() -> None:
@@ -112,7 +112,7 @@ def test_a_hostile_schema_degrades_instead_of_raising(schema: object) -> None:
 def test_signatures_elide_argument_types() -> None:
     big = {"type": "object", "properties": {f"f{i}": {"type": "string"} for i in range(20)}}
 
-    catalog = declarations([tool("srv__t", big)], types=False)
+    catalog = declarations([tool("srv__t", big)], with_types=False)
 
     assert "declare function srv__t(args): Promise<unknown>;" in catalog
     assert "f0" not in catalog
@@ -121,7 +121,7 @@ def test_signatures_elide_argument_types() -> None:
 def test_tools_are_grouped_by_server_and_sorted() -> None:
     out = declarations(
         [tool("yt__b", {}), tool("jobs__a", {}), tool("yt__a", {}), tool("clock", {})],
-        types=False,
+        with_types=False,
     )
 
     assert out.index("// built in") < out.index("// jobs") < out.index("// yt")
@@ -130,7 +130,7 @@ def test_tools_are_grouped_by_server_and_sorted() -> None:
 
 def test_a_description_becomes_one_safe_comment_line() -> None:
     line = declarations(
-        [tool("srv__t", {}, "Two\nlines  and a */ inside.")], types=False
+        [tool("srv__t", {}, "Two\nlines  and a */ inside.")], with_types=False
     ).splitlines()[1]
 
     assert line == "/** Two lines and a *\\/ inside. */"
@@ -139,4 +139,6 @@ def test_a_description_becomes_one_safe_comment_line() -> None:
 def test_rendering_is_deterministic() -> None:
     tools = [tool("b__x", {"type": "object"}), tool("a__y", {"type": "object"})]
 
-    assert declarations(tools, types=True) == declarations(list(reversed(tools)), types=True)
+    assert declarations(tools, with_types=True) == declarations(
+        list(reversed(tools)), with_types=True
+    )

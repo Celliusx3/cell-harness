@@ -44,7 +44,7 @@ exception, on purpose. Its `web_search_exa` and `web_fetch_exa` declare no
 `outputSchema` and return prose, and so does every other web-search server we
 found — Tavily's, Brave's, the official `mcp-server-fetch`. It holds because the
 code bridge now hands a script a text result as a string
-(`tools/native/code_mode/tools.py`, `_as_value`) instead of `undefined`, and because
+(`tools/native/code_mode/tools.py`, `_script_value`) instead of `undefined`, and because
 the `search-web` skill tells the model to call both directly, one at a time,
 never from a script. The day a turn needs the hits as objects, the shape is an
 own server under this directory on Exa's REST API.

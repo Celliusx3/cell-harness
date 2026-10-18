@@ -77,7 +77,7 @@ def test_generated_declarations_are_valid_typescript() -> None:
         tool("clock", "a hostile schema, not a dict"),
     ]
 
-    result = type_check(declarations(tools, types=True))
+    result = type_check(declarations(tools, with_types=True))
 
     assert result.returncode == 0, result.stderr
 
@@ -95,7 +95,7 @@ def test_a_script_can_be_written_against_the_declarations() -> None:
                 },
             )
         ],
-        types=True,
+        with_types=True,
     )
     source += "\nasync function _unused() { await yt__get_subtitles({ url: 'x' }); }\n"
 

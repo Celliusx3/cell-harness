@@ -5,12 +5,12 @@ from harness.tools.native.code_mode.prompts import (
     GET_FUNCTION_DETAILS,
     LIST_FUNCTIONS,
 )
-from harness.tools.native.code_mode.tools import RESERVED, code_mode_tools
+from harness.tools.native.code_mode.tools import CODE_MODE_TOOL_NAMES, code_mode_tools
 
 __all__ = [
     "GET_FUNCTION_DETAILS",
     "EXECUTE_TYPESCRIPT",
     "LIST_FUNCTIONS",
-    "RESERVED",
+    "CODE_MODE_TOOL_NAMES",
     "code_mode_tools",
 ]
