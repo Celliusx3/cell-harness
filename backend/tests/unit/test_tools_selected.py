@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from contextlib import aclosing
 
-from harness.llm.adapters.openai_wire import wire_message
-from harness.llm.messages import Text, ToolCall, ToolMessage, ToolReference
+from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
+from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.tools.definition import Ok, ToolDefinition
@@ -68,7 +68,7 @@ def test_the_adapter_spells_a_reference_out_for_a_wire_without_blocks() -> None:
         tool_call_id="c1", content=(Text(text="declare …"), ToolReference(tool_name="a"))
     )
 
-    wire = wire_message(message, {})
+    wire = openai_messages([message], {})[0]
 
     assert wire["role"] == "tool" and wire["tool_call_id"] == "c1"
     assert wire["content"].startswith("declare …")
@@ -157,7 +157,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
     assert offered[2] == [*DEFAULTS, "a"]
     results = [e for e in session.events() if e.type == "tool/result"]
     assert ToolReference(tool_name="a") in results[0].message.content
-    assert results[1].error is None and results[1].message.text == "direct"
+    assert results[1].error is None and text_of(results[1].message.content) == "direct"
 
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
@@ -172,4 +172,4 @@ async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     (result,) = [e for e in session.events() if e.type == "tool/result"]
     assert result.error is not None
     assert not any(isinstance(b, ToolReference) for b in result.message.content)
-    assert "get_function_details" in result.message.text
+    assert "get_function_details" in text_of(result.message.content)

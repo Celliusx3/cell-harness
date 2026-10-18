@@ -9,7 +9,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import TypeVar
 
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.runtime.hooks.calls import (
     CompletedCall,
     Signature,

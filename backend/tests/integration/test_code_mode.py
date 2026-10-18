@@ -9,7 +9,7 @@ import urllib.parse
 
 import pytest
 
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.sandbox import DenoRunner
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from harness.tools.dispatcher import ToolDispatcher

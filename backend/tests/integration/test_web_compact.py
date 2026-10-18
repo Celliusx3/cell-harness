@@ -73,7 +73,7 @@ async def test_compacting_an_unknown_conversation_is_a_404(tmp_path) -> None:
 
 
 async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> None:
-    from harness.llm.stream import Failed
+    from harness.llm import Failed
 
     service = durable_service(tmp_path / "sessions")
 

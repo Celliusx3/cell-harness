@@ -6,8 +6,7 @@ import logging
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
-from harness.llm.messages import ApplicationMessage, UserMessage
-from harness.llm.stream import Completed, Failed
+from harness.llm import ApplicationMessage, Completed, Failed, UserMessage
 from harness.prompts import COMPACTION_INSTRUCTION
 from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
 from harness.runtime.compaction.prompt import summary_message

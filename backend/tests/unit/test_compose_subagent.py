@@ -10,8 +10,7 @@ import pytest
 
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
-from harness.llm.messages import SystemMessage, ToolCall, ToolMessage
-from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
+from harness.llm import CONTEXT_WINDOW_EXCEEDED, Failed, SystemMessage, ToolCall, ToolMessage
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.service import Runtime

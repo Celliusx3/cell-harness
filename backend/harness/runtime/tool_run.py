@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from harness.files import ChatFile, ChatFileService
-from harness.llm.messages import ApplicationMessage, Text, ToolCall, ToolMessage, render_text
+from harness.llm import ApplicationMessage, Text, ToolCall, ToolMessage, text_of
 from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.log import Session
@@ -178,9 +178,7 @@ async def _answer_call(
         }
     )
     session.append(logged)
-    yield ToolResult(
-        tool_call_id=call.id, name=call.name, content=render_text(logged.message.content)
-    )
+    yield ToolResult(tool_call_id=call.id, name=call.name, content=text_of(logged.message.content))
 
 
 async def run_approved_call(

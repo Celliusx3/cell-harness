@@ -9,8 +9,7 @@ import logging
 
 import httpx
 
-from harness.llm.adapters.openai import ImageReader
-from harness.llm.messages import (
+from harness.llm import (
     AssistantMessage,
     Image,
     Message,
@@ -20,6 +19,7 @@ from harness.llm.messages import (
     ToolReference,
     UserMessage,
 )
+from harness.llm.adapters import ImageReader
 from harness.prompts import IMAGE_NOT_SHOWN, IMAGES_FOLLOW, REFERENCES_NOTE, TOOL_IMAGES
 from tests.mcp_stub import DOT_PNG
 from tests.unit.test_image_service import RETURNED_DOT, images_at
@@ -142,7 +142,7 @@ async def test_without_images_both_are_sent_byte_for_byte_as_before(monkeypatch)
 async def test_an_image_whose_bytes_are_gone_is_sent_as_the_note(
     monkeypatch, tmp_path, caplog
 ) -> None:
-    gone = Image(media_type="image/png", sha256=hashlib.sha256(DOT).hexdigest())
+    gone = Image(media_type="image/png", sha256=hashlib.sha256(DOT).hexdigest(), size=len(DOT))
     messages: list[Message] = [
         UserMessage(content="look", images=(gone,)),
         ASKED,

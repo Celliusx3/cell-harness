@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.tools.approval import ApprovalGate
 from harness.tools.context import CallOrigin, ToolContext
 from harness.tools.definition import UNKNOWN_TOOL, Failure, Pending, ToolOutcome

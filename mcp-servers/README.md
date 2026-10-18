@@ -114,7 +114,7 @@ Two rules that fell out of doing it:
 - **`models.py` is top-level, not under `tools/`.** It looks like an API concern,
   but putting it there made `media/` and `read/` import *upward* from the surface
   they feed. Shared vocabulary belongs where everything can reach it — the same
-  place `llm/messages.py` sits in the harness.
+  place `llm/models/` sits in the harness.
 
 ## Writing one
 

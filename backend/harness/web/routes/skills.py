@@ -7,14 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, status
 from pydantic import BaseModel, ConfigDict
 
-from harness.skills import (
-    InvalidSkill,
-    SkillNotEditable,
-    SkillNotFound,
-    SkillService,
-    SkillShadowed,
-    UnreadableFile,
-)
+from harness.skills import SkillNotFound, SkillService
 
 
 class SkillSummary(BaseModel):
@@ -110,18 +103,11 @@ def build_router(skills: SkillService) -> APIRouter:
             return BundledFile(path=path, text=skills.file(name, path))
         except SkillNotFound as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_missing(err)) from err
-        except UnreadableFile as err:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(err)) from err
 
     @router.put("/{name}", status_code=status.HTTP_204_NO_CONTENT)
     async def save_skill(name: str, body: SkillText) -> None:
         """Write a skill, refusing what the catalog would merely flag."""
-        try:
-            skills.save(name, body.text)
-        except InvalidSkill as err:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(err)) from err
-        except SkillShadowed as err:
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
+        skills.save(name, body.text)
 
     @router.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_skill(name: str) -> None:
@@ -131,18 +117,11 @@ def build_router(skills: SkillService) -> APIRouter:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND, detail=f"no skill named {err.name!r}"
             ) from err
-        except SkillNotEditable as err:
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=SkillSummary)
     async def install_skill(file: UploadFile) -> SkillSummary:
         """Unpack a zipped skill folder into the editable root."""
-        try:
-            installed = skills.find(skills.install(await file.read()))
-            return SkillSummary(**installed.model_dump(), editable=skills.editable(installed))
-        except InvalidSkill as err:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(err)) from err
-        except SkillShadowed as err:
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
+        installed = skills.find(skills.install(await file.read()))
+        return SkillSummary(**installed.model_dump(), editable=skills.editable(installed))
 
     return router

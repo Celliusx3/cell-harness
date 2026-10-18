@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from harness.llm.messages import (
+from harness.llm import (
     ApplicationMessage,
     AssistantMessage,
     SystemMessage,

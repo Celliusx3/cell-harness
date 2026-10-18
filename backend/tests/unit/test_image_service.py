@@ -11,7 +11,7 @@ import pytest
 
 from harness.files import ChatFile
 from harness.images import IMAGE_MAX_BYTES, DiskImageRepository, ImageFile, ImageService
-from harness.llm.messages import Image, Text
+from harness.llm import Image, Text
 from harness.prompts import IMAGE_TOO_LARGE
 from harness.tools.definition import ReturnedImage
 from tests.mcp_stub import DOT_PNG
@@ -70,7 +70,9 @@ def test_a_reload_reads_the_same_bytes_by_hash(tmp_path) -> None:
 
 def test_a_missing_image_reads_as_nothing_with_a_warning(tmp_path, caplog) -> None:
     with caplog.at_level(logging.WARNING, logger="harness.images"):
-        read = images_at(tmp_path).read(Image(media_type="image/png", sha256=DOT_SHA256))
+        read = images_at(tmp_path).read(
+            Image(media_type="image/png", sha256=DOT_SHA256, size=len(DOT))
+        )
 
     assert read is None
     assert f"image {DOT_SHA256} could not be read" in caplog.text
@@ -89,9 +91,9 @@ def test_a_file_that_no_longer_holds_its_bytes_reads_as_nothing(tmp_path, caplog
 @pytest.mark.parametrize(
     "image",
     [
-        Image(media_type="image/png", sha256="../../etc/passwd"),
-        Image(media_type="image/png", sha256=DOT_SHA256.upper()),
-        Image(media_type="image/bmp", sha256=DOT_SHA256),
+        Image(media_type="image/png", sha256="../../etc/passwd", size=3),
+        Image(media_type="image/png", sha256=DOT_SHA256.upper(), size=len(DOT)),
+        Image(media_type="image/bmp", sha256=DOT_SHA256, size=len(DOT)),
     ],
 )
 def test_an_image_that_cannot_name_a_kept_file_reads_as_nothing(tmp_path, image: Image) -> None:

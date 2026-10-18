@@ -2,33 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
-ExtraContent = dict[str, JsonValue]
-
-
-class ToolCall(BaseModel):
-    """One invocation the model asked for."""
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str
-    name: str
-    arguments: str
-    extra_content: ExtraContent | None = None
-    """What the provider attached to this call and needs back with it; only its adapter reads it."""
-
-
-class ToolSpec(BaseModel):
-    """What the model is told about one tool."""
-
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    description: str
-    input_schema: dict
+from harness.llm.models.blocks import Block, Image, Text
+from harness.llm.models.tools import ToolCall
 
 
 class SystemMessage(BaseModel):
@@ -38,17 +17,6 @@ class SystemMessage(BaseModel):
 
     role: Literal["system"] = "system"
     content: str
-
-
-class Image(BaseModel):
-    """An image the model is shown, stored once by the hash of its bytes."""
-
-    model_config = ConfigDict(frozen=True)
-
-    type: Literal["image"] = "image"
-    media_type: str
-    sha256: str
-    size: int = 0
 
 
 class UserMessage(BaseModel):
@@ -80,27 +48,6 @@ class AssistantMessage(BaseModel):
     tool_calls: tuple[ToolCall, ...] = ()
 
 
-class Text(BaseModel):
-    """Prose in a tool result — what almost every result is, entirely."""
-
-    model_config = ConfigDict(frozen=True)
-
-    type: Literal["text"] = "text"
-    text: str
-
-
-class ToolReference(BaseModel):
-    """A tool this result made callable by name."""
-
-    model_config = ConfigDict(frozen=True)
-
-    type: Literal["tool_reference"] = "tool_reference"
-    tool_name: str
-
-
-Block = Annotated[Text | ToolReference | Image, Field(discriminator="type")]
-
-
 class ToolMessage(BaseModel):
     """What one tool call returned, addressed back to it by `tool_call_id`."""
 
@@ -115,15 +62,6 @@ class ToolMessage(BaseModel):
     def _wrap_text(cls, value: object) -> object:
         """A plain string is one text block."""
         return (Text(text=value),) if isinstance(value, str) else value
-
-    @property
-    def text(self) -> str:
-        return render_text(self.content)
-
-
-def render_text(blocks: tuple[Block, ...]) -> str:
-    """The prose of a result: its text blocks, joined."""
-    return "\n\n".join(block.text for block in blocks if isinstance(block, Text))
 
 
 Message = SystemMessage | UserMessage | AssistantMessage | ToolMessage

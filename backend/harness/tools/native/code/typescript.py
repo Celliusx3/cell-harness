@@ -79,10 +79,7 @@ def _render(schema: object, defs: dict[str, Any], *, depth: int, seen: frozenset
 
     ref = schema.get("$ref")
     if isinstance(ref, str):
-        name = ref.rsplit("/", 1)[-1]
-        if name in seen or name not in defs:
-            return "unknown"
-        return _render(defs[name], defs, depth=depth + 1, seen=seen | {name})
+        return _ref(ref, defs, depth=depth, seen=seen)
 
     if "const" in schema:
         return _literal(schema["const"])
@@ -97,6 +94,19 @@ def _render(schema: object, defs: dict[str, Any], *, depth: int, seen: frozenset
             rendered = dict.fromkeys(_render(b, defs, depth=depth + 1, seen=seen) for b in branches)
             return " | ".join(rendered)
 
+    return _typed(schema, defs, depth=depth, seen=seen)
+
+
+def _ref(ref: str, defs: dict[str, Any], *, depth: int, seen: frozenset[str]) -> str:
+    """The type a `$ref` points at; unknown for a cycle or a definition that is not there."""
+    name = ref.rsplit("/", 1)[-1]
+    if name in seen or name not in defs:
+        return "unknown"
+    return _render(defs[name], defs, depth=depth + 1, seen=seen | {name})
+
+
+def _typed(schema: dict, defs: dict[str, Any], *, depth: int, seen: frozenset[str]) -> str:
+    """The type a schema's `type`, or its `properties`, describes; unknown when neither does."""
     kind = schema.get("type")
     if isinstance(kind, list):
         return " | ".join(dict.fromkeys(_PRIMITIVES.get(k, "unknown") for k in kind))

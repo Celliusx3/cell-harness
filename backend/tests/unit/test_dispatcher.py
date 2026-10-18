@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.tools.definition import UNKNOWN_TOOL, Failure, Ok
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.registry import ToolRegistry

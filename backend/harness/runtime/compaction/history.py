@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from harness.llm.messages import render_text
+from harness.llm import text_of
 from harness.session.compaction import pruned_ids, tail_start
 from harness.session.models import SessionEvent, ToolCallEvent, ToolResultEvent, UserMessageEvent
 from harness.skills import SKILL
@@ -42,7 +42,7 @@ def loaded_skills(events: Sequence[SessionEvent]) -> tuple[str, ...]:
         if isinstance(event, ToolCallEvent):
             calls[event.call.id] = event.call.name
         elif isinstance(event, ToolResultEvent) and calls.get(event.message.tool_call_id) == SKILL:
-            body = render_text(event.message.content)
+            body = text_of(event.message.content)
             if (name := _name(body)) is not None:
                 bodies[name] = body
         elif isinstance(event, UserMessageEvent):

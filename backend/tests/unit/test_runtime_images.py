@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.files import ChatFile
 from harness.images import IMAGE_MAX_BYTES, ImageService
-from harness.llm.messages import Image, Message, UserMessage, images_of
+from harness.llm import Image, Message, UserMessage, images_of
 from harness.prompts import ATTACHED_FILE, IMAGE_NOT_SHOWN
 from harness.runtime.compaction import run_compaction
 from harness.session.models import UserMessageEvent

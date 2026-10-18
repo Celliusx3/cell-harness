@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.bots import BotDraft, BotService
-from harness.llm.messages import AssistantMessage, UserMessage
+from harness.llm import AssistantMessage, UserMessage
 from harness.runs.bot_messages import MAX_HOPS, final_reply, hop_of_last_turn
 from harness.session.derive import derive_messages
 from harness.session.models import (

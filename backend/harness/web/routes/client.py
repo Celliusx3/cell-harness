@@ -10,7 +10,6 @@ from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
-from harness.session.repository import SessionNotFoundError
 from harness.tools.client import ClientToolService, Refused
 
 logger = logging.getLogger(__name__)
@@ -33,10 +32,7 @@ def build_router(web: WebChannel, client_tools: ClientToolService) -> APIRouter:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
-        try:
-            session = await web.sessions.resume(conversation_id)
-        except SessionNotFoundError as err:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
+        session = await web.sessions.resume(conversation_id)
         accepted = client_tools.accept_call(session, call_id, body)
         if isinstance(accepted, Refused):
             raise HTTPException(STATUS[accepted], detail=f"call {call_id!r}: {accepted.value}")

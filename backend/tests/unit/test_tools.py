@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harness.llm.messages import Text, ToolCall, ToolMessage
+from harness.llm import Text, ToolCall, ToolMessage
 from harness.tools.definition import (
     EXECUTION_ERROR,
     INVALID_ARGUMENTS,

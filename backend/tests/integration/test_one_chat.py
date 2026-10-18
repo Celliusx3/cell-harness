@@ -13,9 +13,7 @@ from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.llm.client import LLMClient
-from harness.llm.messages import Message, ToolSpec
-from harness.llm.stream import StreamEvent
+from harness.llm import LLMClient, Message, StreamEvent, ToolSpec
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime

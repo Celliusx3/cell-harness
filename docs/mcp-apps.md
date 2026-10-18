@@ -106,7 +106,7 @@ consent, and is not part of the conversation the model sees.
   correctly for the price of `@modelcontextprotocol/{core,client}` and `zod`.
 - **The binding rides the `tool/result` event as a new field, not a new block.**
   `ToolUi(server, resource_uri, data)` on `Ok` and on `ToolResultEvent`. The
-  model path — `content`, the adapter, `render_text`, `tools_selected()` —
+  model path — `content`, the adapter, `text_of`, `tools_selected()` —
   is untouched; `derive.py` reads only `message`. `data` is the result's
   `structuredContent`, logged beside the reference because it is what the view
   draws and a reloaded conversation must draw the same thing.

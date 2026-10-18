@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from typing import NamedTuple
 from urllib.parse import quote
 
 from harness.channels.protocol import Pushing
@@ -40,6 +41,13 @@ def _compaction_line(event: CompactionEnd) -> str:
     return "Could not compact the conversation right now."
 
 
+class _AppLink(NamedTuple):
+    """What a chat is sent for a result drawn with an MCP App."""
+
+    text: str
+    url: str
+
+
 class Replies:
     """Sends a turn's replies to the chat that asked, and remembers what it was asked."""
 
@@ -61,25 +69,15 @@ class Replies:
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
                 elif isinstance(event, ToolResultEvent):
-                    if event.ui is None or not self._public_url:
-                        continue
-                    call_id = event.message.tool_call_id
-                    await self._send_link(
-                        transport,
-                        chat_id,
-                        names.get(call_id, event.ui.server),
-                        app_url(self._public_url, run.session.id, call_id),
-                    )
+                    link = self._app_link(event, names, run.session.id)
+                    await self._send_link(transport, chat_id, link)
                 elif isinstance(event, AssistantMessageEvent):
-                    if not event.message.content.strip():
-                        continue
-                    await transport.send_message(chat_id, event.message.content)
+                    await self._send_reply(transport, chat_id, event.message.content)
                 elif isinstance(event, CompactionEnd):
                     await transport.send_message(chat_id, _compaction_line(event))
                 elif isinstance(event, TurnEnd) and event.reason == "pending":
                     await self._remember_asked(channel, chat_id, pending)
-                    for call in pending:
-                        await self._ask(transport, chat_id, run.session.id, call)
+                    await self._ask_each(transport, chat_id, run.session.id, pending)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -99,22 +97,47 @@ class Replies:
         new = tuple(call.call_id for call in calls if call.call_id not in stored.asked)
         await self._repository.save(stored.model_copy(update={"asked": (*stored.asked, *new)}))
 
-    async def _send_link(self, transport: Pushing, chat_id: str, text: str, url: str) -> None:
-        """Best-effort, unlike a reply."""
-        try:
-            await transport.send_link(chat_id, text, url)
-        except Exception:
-            logger.warning("app link %s could not be sent to chat %s", url, chat_id, exc_info=True)
+    def _app_link(
+        self, event: ToolResultEvent, names: dict[str, str], session_id: str
+    ) -> _AppLink | None:
+        """The link to a result's MCP App; none without an app or a public URL to reach it."""
+        if event.ui is None or not self._public_url:
+            return None
+        call_id = event.message.tool_call_id
+        return _AppLink(
+            names.get(call_id, event.ui.server),
+            app_url(self._public_url, session_id, call_id),
+        )
 
-    async def _ask(
-        self, transport: Pushing, chat_id: str, session_id: str, call: PendingCall
+    async def _send_link(self, transport: Pushing, chat_id: str, link: _AppLink | None) -> None:
+        """Best-effort, unlike a reply."""
+        if link is None:
+            return
+        try:
+            await transport.send_link(chat_id, link.text, link.url)
+        except Exception:
+            logger.warning(
+                "app link %s could not be sent to chat %s", link.url, chat_id, exc_info=True
+            )
+
+    async def _send_reply(self, transport: Pushing, chat_id: str, text: str) -> None:
+        """Send what the model said, unless it said nothing."""
+        if not text.strip():
+            return
+        await transport.send_message(chat_id, text)
+
+    async def _ask_each(
+        self, transport: Pushing, chat_id: str, session_id: str, calls: tuple[PendingCall, ...]
     ) -> None:
         """Best-effort: an unsent prompt times out into a result the model can act on."""
-        url = answer_url(self._public_url, session_id, call.call_id)
-        try:
-            await transport.ask_client(chat_id, call, url)
-        except Exception:
-            logger.warning("%s could not be asked of chat %s", call.name, chat_id, exc_info=True)
+        for call in calls:
+            url = answer_url(self._public_url, session_id, call.call_id)
+            try:
+                await transport.ask_client(chat_id, call, url)
+            except Exception:
+                logger.warning(
+                    "%s could not be asked of chat %s", call.name, chat_id, exc_info=True
+                )
 
     async def _keep_typing(self, transport: Pushing, chat_id: str) -> None:
         """Refresh the typing indicator until cancelled."""

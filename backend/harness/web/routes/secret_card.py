@@ -11,8 +11,7 @@ from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
-from harness.secrets import SECRET_VALUE_RULE, SecretRefused, SecretService, SecretValue
-from harness.session.repository import SessionNotFoundError
+from harness.secrets import SECRET_VALUE_RULE, SecretService, SecretValue
 from harness.tools.client import ClientToolService
 from harness.tools.definition import Ok
 from harness.tools.native.secrets import ASK_FOR_SECRET, SavedName, SecretAsk
@@ -48,10 +47,7 @@ def build_router(
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
-        try:
-            session = await web.sessions.resume(conversation_id)
-        except SessionNotFoundError as err:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
+        session = await web.sessions.resume(conversation_id)
         asked = next(
             (
                 pending
@@ -69,10 +65,7 @@ def build_router(
             bot = web.bots.asker(session, call_id)
         except BotNotFound as err:
             raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
-        try:
-            secrets.save(ask.name, ask.destination, entry.value)
-        except SecretRefused as err:
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
+        secrets.save(ask.name, ask.destination, entry.value)
         web.bots.allow_secret(bot.id, ask.name)
         try:
             await web.gateway.resume(

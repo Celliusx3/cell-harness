@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
-from harness.llm.messages import ToolCall, ToolMessage, render_text
+from harness.llm import ToolCall, ToolMessage, text_of
 from harness.mcp.service import McpService
 from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.service import Runtime
@@ -78,7 +78,7 @@ def the_result(session: Session) -> ToolResultEvent:
 def what_the_model_reads(session: Session) -> str:
     runtime = Runtime(model="m", client=SteppedClient(), images=None)
     (message,) = [m for m in runtime.request_messages(session) if isinstance(m, ToolMessage)]
-    return render_text(message.content)
+    return text_of(message.content)
 
 
 def sending(*paths: str) -> str:

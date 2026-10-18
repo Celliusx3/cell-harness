@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import (
+from harness.llm import (
     ApplicationMessage,
     AssistantMessage,
     ToolCall,
     ToolMessage,
+    Usage,
     UserMessage,
 )
-from harness.llm.stream import Usage
 from harness.prompts import PRUNED
 from harness.session.compaction import (
     CompactionEnd,

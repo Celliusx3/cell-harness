@@ -9,16 +9,17 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.llm.client import LLMClient
-from harness.llm.messages import (
+from harness.llm import (
     ApplicationMessage,
+    LLMClient,
     Message,
+    StreamEvent,
+    TextChunk,
     ToolMessage,
     ToolReference,
     ToolSpec,
     UserMessage,
 )
-from harness.llm.stream import StreamEvent, TextChunk
 from harness.runtime.compaction import CompactionRefused, check_can_compact
 from harness.runtime.compaction.history import PRUNE_KEEP
 from harness.runtime.compaction.service import NOTHING

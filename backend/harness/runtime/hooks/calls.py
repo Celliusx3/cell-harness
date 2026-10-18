@@ -6,7 +6,7 @@ import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from harness.llm.messages import ToolCall, render_text
+from harness.llm import ToolCall, text_of
 from harness.session.log import Session
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.definition import BLOCKED
@@ -72,7 +72,7 @@ def completed_calls(session: Session) -> tuple[CompletedCall, ...]:
                     name=call.name,
                     args=_normalise(call.arguments),
                     error=event.error,
-                    text=render_text(event.message.content),
+                    text=text_of(event.message.content),
                 )
             )
     return tuple(completed)

@@ -9,7 +9,7 @@ import logging
 from mcp.types import CallToolResult, ImageContent
 
 from harness.images import IMAGE_MAX_BYTES, ImageService
-from harness.llm.messages import Image, Text, ToolMessage
+from harness.llm import Image, Text, ToolMessage
 from harness.mcp.tool import mcp_tool, outcome_of
 from harness.prompts import IMAGE_TOO_LARGE
 from harness.runtime.service import Runtime

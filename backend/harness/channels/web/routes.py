@@ -9,21 +9,16 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
 
-from harness.bots import BotNotFound, ChatMembers, GroupEmpty
+from harness.bots import ChatMembers
 from harness.channels.commands import unknown_skill
 from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
-from harness.files import ChatFile, ChatFileService, FileTooLarge, UnsafeFileName
+from harness.files import ChatFile, ChatFileService
 from harness.images import is_sha256
-from harness.llm.messages import images_of
+from harness.llm import images_of
 from harness.session.log import Session
 from harness.session.models import SessionEvent, ToolResultEvent, UserMessageEvent
-from harness.session.repository import (
-    SessionCorruptionError,
-    SessionFormatUnsupportedError,
-    SessionNotFoundError,
-)
 from harness.session.service import SessionService
 from harness.skills import UnknownSkill
 
@@ -82,29 +77,20 @@ def chat_router(web: WebChannel, *, tag: str) -> APIRouter:
     """A router under `/api/conversations` whose every route 404s an id no bot or group has."""
 
     async def answering(conversation_id: str) -> ChatMembers:
-        try:
-            return web.bots.members_of_chat(conversation_id)
-        except BotNotFound as err:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
+        return web.bots.members_of_chat(conversation_id)
 
     return APIRouter(prefix="/api/conversations", tags=[tag], dependencies=[Depends(answering)])
 
 
 async def _load(service: SessionService, conversation_id: str, *, for_writing: bool) -> Session:
-    """Fetch a stored conversation, mapping its failures onto status codes."""
-    try:
-        if for_writing:
-            return await service.resume(conversation_id)
-        return await service.read(conversation_id)
-    except SessionNotFoundError as err:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
-    except (SessionCorruptionError, SessionFormatUnsupportedError) as err:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(err)) from err
+    """Fetch a stored conversation, repaired first when it is to be written to."""
+    if for_writing:
+        return await service.resume(conversation_id)
+    return await service.read(conversation_id)
 
 
-def build_router(web: WebChannel) -> APIRouter:
-    """The browser's endpoints, bound to one channel."""
-    router = chat_router(web, tag="conversations")
+def _message_routes(router: APIRouter, web: WebChannel) -> None:
+    """Reading a chat's log, and sending the chat a message."""
 
     @router.get("/{conversation_id}", response_model=ConversationDetail)
     async def get_conversation(conversation_id: str) -> ConversationDetail:
@@ -139,12 +125,8 @@ def build_router(web: WebChannel) -> APIRouter:
                     channel=web.channel, chat_id=conversation_id, text=body.prompt, files=files
                 )
             )
-        except SessionNotFoundError as err:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
         except UnknownSkill as err:
             raise _unknown_skill(web, err) from err
-        except GroupEmpty as err:
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
 
         if run is not None:
             return _accepted(run.session, queued=False)
@@ -156,6 +138,10 @@ def build_router(web: WebChannel) -> APIRouter:
         )
         return _accepted(session, queued=True)
 
+
+def _file_routes(router: APIRouter, web: WebChannel) -> None:
+    """The files and images a chat holds: an upload saved, a file read, an image shown."""
+
     @router.post(
         "/{conversation_id}/files",
         status_code=status.HTTP_201_CREATED,
@@ -163,12 +149,7 @@ def build_router(web: WebChannel) -> APIRouter:
     )
     async def upload_file(conversation_id: str, file: UploadFile) -> ChatFile:
         """Save one file in this chat's folder, for the next message to attach."""
-        try:
-            stored = await web.files.save(conversation_id, file.filename or "", _chunks(file))
-        except UnsafeFileName as err:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(err)) from err
-        except FileTooLarge as err:
-            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, detail=str(err)) from err
+        stored = await web.files.save(conversation_id, file.filename or "", _chunks(file))
         logger.info("conversation %s was sent %s", conversation_id, stored.path)
         return stored
 
@@ -216,6 +197,10 @@ def build_router(web: WebChannel) -> APIRouter:
             headers=NO_SNIFFING,
         )
 
+
+def _turn_routes(router: APIRouter, web: WebChannel) -> None:
+    """A chat's events streamed as its turn runs, the turn stopped, and the chat cleared."""
+
     @router.get("/{conversation_id}/events")
     async def stream_events(conversation_id: str, after: int = Query(0, ge=0)) -> StreamingResponse:
         """Events from `after` onward as SSE, live if a turn is running."""
@@ -251,4 +236,11 @@ def build_router(web: WebChannel) -> APIRouter:
         logger.info("conversation %s cleared by the browser", conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+
+def build_router(web: WebChannel) -> APIRouter:
+    """The browser's endpoints, bound to one channel."""
+    router = chat_router(web, tag="conversations")
+    _message_routes(router, web)
+    _file_routes(router, web)
+    _turn_routes(router, web)
     return router

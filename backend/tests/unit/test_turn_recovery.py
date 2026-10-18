@@ -4,9 +4,18 @@ from __future__ import annotations
 
 import asyncio
 
-from harness.llm.client import LLMClient
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
-from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, Usage
+from harness.llm import (
+    CONTEXT_WINDOW_EXCEEDED,
+    AssistantMessage,
+    Completed,
+    Failed,
+    LLMClient,
+    TextChunk,
+    ToolCall,
+    ToolMessage,
+    Usage,
+    UserMessage,
+)
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd

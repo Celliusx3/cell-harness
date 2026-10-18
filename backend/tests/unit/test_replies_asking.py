@@ -9,8 +9,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.llm.messages import ToolCall
-from harness.llm.stream import Completed, ToolCallChunk
+from harness.llm import Completed, ToolCall, ToolCallChunk
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import PendingCall
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome

@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.llm.messages import UserMessage
+from harness.llm import UserMessage
 from harness.prompts import ATTACHED_FILE
 from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage
+from harness.llm import AssistantMessage, ToolCall, ToolMessage, UserMessage, text_of
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.derive import derive_messages
 from harness.session.models import (
@@ -66,11 +66,11 @@ def test_an_unanswered_call_gets_a_result() -> None:
 
     assert len(additions) == 1
     assert additions[0].message.tool_call_id == "c1"
-    assert additions[0].message.text == TOOL_OUTCOME_UNKNOWN
+    assert text_of(additions[0].message.content) == TOOL_OUTCOME_UNKNOWN
 
 
 def test_the_result_does_not_claim_the_tool_never_ran() -> None:
-    content = repair(asked_for(call()))[0].message.text
+    content = text_of(repair(asked_for(call()))[0].message.content)
 
     assert "unknown" in content
     assert "verify" in content

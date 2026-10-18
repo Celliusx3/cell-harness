@@ -9,7 +9,7 @@ import pytest
 
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.mcp.service import McpService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository

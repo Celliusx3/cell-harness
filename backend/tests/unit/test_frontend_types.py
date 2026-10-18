@@ -9,8 +9,7 @@ from typing import get_args
 
 import pytest
 
-from harness.llm.messages import Block
-from harness.llm.stream import StreamEvent
+from harness.llm import Block, StreamEvent
 from harness.session.models import SessionEvent, TurnEndReason
 from harness.skills.invocation import MARKER
 

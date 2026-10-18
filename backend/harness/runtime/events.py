@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.llm.stream import TextChunk, ToolCallChunk
+from harness.llm import TextChunk, ToolCallChunk
 
 
 class ToolProgress(BaseModel):

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import httpx
 
 from harness.bots import ASSISTANT_ID, BotService
-from harness.llm.stream import StreamEvent
+from harness.llm import StreamEvent
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime

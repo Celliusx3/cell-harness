@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.sandbox import Bridge, DenoUnavailableError, Runner, Script
 from harness.tools.approval import ApprovalGate
 from harness.tools.context import CallOrigin

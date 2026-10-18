@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from harness.llm.messages import render_text
+from harness.llm import text_of
 from harness.prompts import NO_PROGRESS_REFUSAL, NO_PROGRESS_WARNING
 from harness.runtime.hooks.calls import CompletedCall, Signature
 from harness.runtime.hooks.service import ToolHook
@@ -35,7 +35,7 @@ class NoProgressHook(ToolHook):
     ) -> str | None:
         if not isinstance(outcome, Ok):
             return None
-        n = _identical_results_in_a_row(sig, render_text(outcome.content), prior) + 1
+        n = _identical_results_in_a_row(sig, text_of(outcome.content), prior) + 1
         return NO_PROGRESS_WARNING.format(name=sig.name, n=n) if n >= self.warn_at else None
 
 

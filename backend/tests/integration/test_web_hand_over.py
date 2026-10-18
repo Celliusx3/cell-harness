@@ -7,7 +7,7 @@ import json
 import httpx
 import pytest
 
-from harness.llm.messages import ToolMessage
+from harness.llm import ToolMessage, text_of
 from harness.runs.service import RunService
 from harness.runtime.service import SKIPPED
 from harness.tools.native.hand_over import HAND_OVER
@@ -72,7 +72,7 @@ async def test_done_or_skip_resumes_the_turn_and_the_model_reads_it(
     assert result["message"]["content"][0]["text"] == read
     assert result["error"] is None
     tool_messages = [m for m in model.seen_per_call[-1] if isinstance(m, ToolMessage)]
-    assert [m.text for m in tool_messages] == [read]
+    assert [text_of(m.content) for m in tool_messages] == [read]
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from harness.llm.messages import ToolCall, ToolMessage
+from harness.llm import ToolCall, ToolMessage
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.compaction import CompactionEnd, open_start
 from harness.session.models import (

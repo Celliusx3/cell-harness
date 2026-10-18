@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from harness.llm.messages import Text, ToolCall, ToolMessage
+from harness.llm import Text, ToolCall, ToolMessage
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.client import (
     DECLINED,

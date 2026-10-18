@@ -7,8 +7,7 @@ from contextlib import aclosing
 
 import pytest
 
-from harness.llm.messages import SystemMessage
-from harness.llm.stream import Completed, Failed, TextChunk
+from harness.llm import Completed, Failed, SystemMessage, TextChunk
 from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.hooks import HookChain
@@ -158,7 +157,7 @@ async def test_turn_numbers_are_derived_from_the_log(turns: int) -> None:
 
 
 async def test_usage_travels_with_the_assistant_message() -> None:
-    from harness.llm.stream import Usage
+    from harness.llm import Usage
 
     usage = Usage(input_tokens=11, output_tokens=3)
     client = ScriptedClient([TextChunk(text="ok"), Completed(full_text="ok", usage=usage)])

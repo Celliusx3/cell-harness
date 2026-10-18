@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.llm.messages import ToolCall
+from harness.llm.models.tools import ToolCall
 
 
 class Usage(BaseModel):
@@ -47,7 +47,8 @@ class Completed(BaseModel):
     usage: Usage | None = None
 
 
-CONTEXT_WINDOW_EXCEEDED = "context_window_exceeded"
+FailureCode = Literal["context_window_exceeded"]
+CONTEXT_WINDOW_EXCEEDED: FailureCode = "context_window_exceeded"
 
 
 class Failed(BaseModel):
@@ -57,7 +58,7 @@ class Failed(BaseModel):
 
     kind: Literal["failed"] = "failed"
     reason: str
-    code: str | None = None
+    code: FailureCode | None = None
 
 
 StreamEvent = TextChunk | ToolCallChunk | Completed | Failed

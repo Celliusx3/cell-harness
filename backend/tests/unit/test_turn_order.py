@@ -11,7 +11,7 @@ from harness.bots._turn_order import (
     is_mentioned,
     next_speaker,
 )
-from harness.llm.messages import AssistantMessage, UserMessage
+from harness.llm import AssistantMessage, UserMessage
 from harness.session.models import (
     AssistantMessageEvent,
     SessionEvent,

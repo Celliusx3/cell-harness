@@ -9,7 +9,7 @@ import logging
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.llm.messages import UserMessage
+from harness.llm import UserMessage
 from harness.tools.native.bots import MESSAGE_BOT
 from tests.integration.web_helpers import (
     ASSISTANT_START,

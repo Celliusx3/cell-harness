@@ -6,8 +6,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
 from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
-from harness.llm.messages import ToolCall
-from harness.llm.stream import Completed, StreamEvent, ToolCallChunk
+from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
 from harness.tools.approval import DENIED, ApprovalGate
 from harness.tools.client import ClientToolService

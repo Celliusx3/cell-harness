@@ -5,8 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import get_args
 
-from harness.llm.messages import ApplicationMessage, AssistantMessage, Message, UserMessage
-from harness.llm.stream import Completed, TextChunk
+from harness.llm import (
+    ApplicationMessage,
+    AssistantMessage,
+    Completed,
+    Message,
+    TextChunk,
+    UserMessage,
+)
 from harness.session.derive import derive_messages
 from harness.session.log import Session
 from harness.session.models import (
