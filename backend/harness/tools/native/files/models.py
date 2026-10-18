@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from harness.tools.native.files import descriptions
+from harness.tools.native.files import _descriptions
 
 
 class SendFileArgs(BaseModel):
@@ -12,7 +12,7 @@ class SendFileArgs(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    paths: list[str] = Field(min_length=1, description=descriptions.PATHS)
+    paths: list[str] = Field(min_length=1, description=_descriptions.PATHS)
 
 
 class ExtractArchiveArgs(BaseModel):
@@ -20,7 +20,7 @@ class ExtractArchiveArgs(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    path: str = Field(description=descriptions.ARCHIVE_PATH)
+    path: str = Field(description=_descriptions.ARCHIVE_PATH)
 
 
 class MakeArchiveArgs(BaseModel):
@@ -28,8 +28,8 @@ class MakeArchiveArgs(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    paths: list[str] = Field(min_length=1, description=descriptions.ARCHIVE_PATHS)
-    name: str = Field(description=descriptions.ARCHIVE_NAME)
+    paths: list[str] = Field(min_length=1, description=_descriptions.ARCHIVE_PATHS)
+    name: str = Field(description=_descriptions.ARCHIVE_NAME)
 
 
 class ViewImageArgs(BaseModel):
@@ -37,4 +37,4 @@ class ViewImageArgs(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    path: str = Field(description=descriptions.IMAGE_PATH)
+    path: str = Field(description=_descriptions.IMAGE_PATH)

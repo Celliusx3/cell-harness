@@ -22,6 +22,7 @@ from harness.tools.models.outcome import (
     ToolOutcome,
     blocks_of,
 )
+from harness.tools.native.code._typescript import declarations
 from harness.tools.native.code.models import DetailsArgs, ExecuteArgs, NoArgs
 from harness.tools.native.code.prompts import (
     DETAILS,
@@ -32,7 +33,6 @@ from harness.tools.native.code.prompts import (
     LIST,
     LIST_DESCRIPTION,
 )
-from harness.tools.native.code.typescript import declarations
 from harness.tools.registry import ToolRegistry
 
 Catalog = Callable[[], list[ToolDefinition]]

@@ -69,7 +69,7 @@ committed and only its `env` secrets are not.
 ### Three things that will bite you
 
 **The server id may not contain a hyphen.** `config/sections.py` and
-`mcp/tool.py` both permit one, but `tools/native/code/typescript.py` emits
+`mcp/tool.py` both permit one, but `tools/native/code/_typescript.py` emits
 `declare function {name}(...)` **unquoted** — so a server keyed `instagram`
 prints `declare function my-server__fetch_reels(...)`, which is not
 parseable TypeScript, and the model writes a call the sandbox cannot resolve.

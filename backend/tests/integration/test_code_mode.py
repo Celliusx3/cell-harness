@@ -20,7 +20,7 @@ from harness.tools import (
     ToolRegistry,
 )
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
-from harness.tools.native.code.typescript import declarations
+from harness.tools.native.code._typescript import declarations
 from tests.unit.helpers import ORIGIN, no_gate, no_progress
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")

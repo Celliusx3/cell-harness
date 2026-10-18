@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel
 
 from harness.tools import Ok, ToolDefinition
-from harness.tools.native.code.typescript import MAX_DEPTH, declarations
+from harness.tools.native.code._typescript import MAX_DEPTH, declarations
 
 
 def tool(name: str, schema: object, description: str = "A tool.") -> ToolDefinition:
