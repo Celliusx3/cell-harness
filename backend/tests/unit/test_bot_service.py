@@ -46,7 +46,7 @@ async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
 
     assert await missing.active_bots() == (KIND, BUILDER)
     with pytest.raises(BotNotFound):
-        missing.find("any-conversation")
+        missing.active_bot("any-conversation")
 
 
 async def test_listing_opens_assistant_s_chat_only_the_first_time(
@@ -77,13 +77,13 @@ async def test_a_bot_answers_in_the_chat_that_belongs_to_it(bots: BotService) ->
 
 def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotService) -> None:
     with pytest.raises(BotNotFound):
-        bots.find("r1")
+        bots.active_bot("r1")
 
     (tmp_path / "bots.json").write_text(
         json.dumps({"bots": [{"id": "r1", "name": "Researcher", "instructions": "Cite."}]})
     )
 
-    assert bots.find("r1") == Bot(id="r1", name="Researcher", instructions="Cite.")
+    assert bots.active_bot("r1") == Bot(id="r1", name="Researcher", instructions="Cite.")
 
 
 async def test_a_failed_write_leaves_the_file_as_it_was(
@@ -113,7 +113,7 @@ async def test_a_deleted_bot_owns_its_chat_no_more(bots: BotService) -> None:
     await bots.delete(made.id)
 
     with pytest.raises(BotNotFound):
-        bots.find(made.id)
+        bots.active_bot(made.id)
 
 
 async def test_deleting_a_bot_removes_its_chat_for_good(
@@ -158,7 +158,7 @@ async def test_an_archived_bot_owns_no_chat_and_cannot_be_edited(bots: BotServic
     bots.archive(made.id)
 
     with pytest.raises(BotNotFound):
-        bots.find(made.id)
+        bots.active_bot(made.id)
     with pytest.raises(BotNotFound):
         bots.update(made.id, BotDraft(name="Renamed", instructions="Be brief."))
 
@@ -175,7 +175,7 @@ def test_restoring_assistant_leaves_it_as_it_was_and_writes_nothing(
 ) -> None:
     bots.restore(ASSISTANT_ID)
 
-    assert bots.find(ASSISTANT_ID) == KIND
+    assert bots.active_bot(ASSISTANT_ID) == KIND
     assert not (tmp_path / "bots.json").exists()
 
 
@@ -185,7 +185,7 @@ async def test_assistant_can_be_neither_archived_nor_deleted(bots: BotService) -
     with pytest.raises(BotPermanent):
         await bots.delete(ASSISTANT_ID)
 
-    assert bots.find(ASSISTANT_ID) == KIND
+    assert bots.active_bot(ASSISTANT_ID) == KIND
 
 
 def test_a_bots_file_written_before_archiving_reads_every_bot_as_active(
@@ -195,7 +195,7 @@ def test_a_bots_file_written_before_archiving_reads_every_bot_as_active(
         json.dumps({"bots": [{"id": "r1", "name": "Researcher", "instructions": "Cite."}]})
     )
 
-    assert bots.find("r1").archived is False
+    assert bots.active_bot("r1").archived is False
     assert bots.archived_bots() == ()
 
 

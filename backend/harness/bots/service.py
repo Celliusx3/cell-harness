@@ -51,7 +51,7 @@ class BotService:
                 await self._log_instructions(await self._sessions.create(bot.id), bot)
         return bots
 
-    def names(self) -> tuple[str, ...]:
+    def active_bot_names(self) -> tuple[str, ...]:
         """The active bots' names, built-ins first, read without opening any chat."""
         return tuple(bot.name for bot in self._active_bots_in(self._read_file()))
 
@@ -59,7 +59,7 @@ class BotService:
         """The archived bots, in the order they were made."""
         return tuple(bot for bot in self._read_file().bots if bot.archived)
 
-    def find(self, bot_id: str) -> Bot:
+    def active_bot(self, bot_id: str) -> Bot:
         """The active bot with this id; `BotNotFound` when there is none."""
         return self._active_bot_in(self._read_file(), bot_id)
 
@@ -124,28 +124,32 @@ class BotService:
             stored, bot.model_copy(update={"name": draft.name, "instructions": draft.instructions})
         )
 
-    def allow_secret(self, bot_id: str, name: str) -> Bot:
-        """Add the saved key `name` to the keys an active bot may use."""
+    def allow_secret(self, bot_id: str, secret_name: str) -> Bot:
+        """Add the saved key `secret_name` to the keys an active bot may use."""
         stored = self._read_file()
         bot = self._active_bot_in(stored, bot_id)
         return self._save_bot(
             stored,
-            bot.model_copy(update={"secret_names": _without_repeats((*bot.secret_names, name))}),
+            bot.model_copy(
+                update={"secret_names": _without_repeats((*bot.secret_names, secret_name))}
+            ),
         )
 
-    def set_allowed_secrets(self, bot_id: str, names: tuple[str, ...]) -> Bot:
-        """Make `names` the saved keys an active bot may use, and no others."""
+    def set_allowed_secrets(self, bot_id: str, secret_names: tuple[str, ...]) -> Bot:
+        """Make `secret_names` the saved keys an active bot may use, and no others."""
         stored = self._read_file()
         bot = self._active_bot_in(stored, bot_id)
         return self._save_bot(
-            stored, bot.model_copy(update={"secret_names": _without_repeats(names)})
+            stored, bot.model_copy(update={"secret_names": _without_repeats(secret_names)})
         )
 
-    def forget_secret(self, name: str) -> None:
-        """Take the key `name` off the list of every stored bot, archived ones too."""
+    def forget_secret(self, secret_name: str) -> None:
+        """Take the key `secret_name` off the list of every stored bot, archived ones too."""
         stored = self._read_file()
         kept = tuple(
-            bot.model_copy(update={"secret_names": tuple(n for n in bot.secret_names if n != name)})
+            bot.model_copy(
+                update={"secret_names": tuple(n for n in bot.secret_names if n != secret_name)}
+            )
             for bot in stored.bots
         )
         if kept != stored.bots:

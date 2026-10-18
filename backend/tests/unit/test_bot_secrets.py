@@ -24,7 +24,7 @@ async def test_allowing_a_key_adds_it_once_and_keeps_the_bot_as_it_was(bots: Bot
     allowed = bots.allow_secret(made.id, "github")
 
     assert allowed == made.model_copy(update={"secret_names": ("github",)})
-    assert bots.find(made.id) == allowed
+    assert bots.active_bot(made.id) == allowed
 
 
 async def test_allowing_assistant_a_key_stores_it_and_it_stays_first(bots: BotService) -> None:
@@ -45,7 +45,7 @@ async def test_setting_a_bots_keys_replaces_the_list(bots: BotService) -> None:
     updated = bots.set_allowed_secrets(made.id, ("notion", "linear", "notion"))
 
     assert updated.secret_names == ("notion", "linear")
-    assert bots.find(made.id).secret_names == ("notion", "linear")
+    assert bots.active_bot(made.id).secret_names == ("notion", "linear")
     assert bots.set_allowed_secrets(made.id, ()).secret_names == ()
 
 
@@ -71,8 +71,8 @@ async def test_forgetting_a_key_takes_it_off_every_bot_archived_ones_too(
 
     bots.forget_secret("github")
 
-    assert bots.find(first.id).secret_names == ("notion",)
-    assert bots.find(ASSISTANT_ID).secret_names == ()
+    assert bots.active_bot(first.id).secret_names == ("notion",)
+    assert bots.active_bot(ASSISTANT_ID).secret_names == ()
     assert bots.archived_bots()[0].secret_names == ()
 
 
@@ -89,4 +89,4 @@ def test_a_bots_file_written_before_keys_reads_every_bot_as_allowed_none(
         json.dumps({"bots": [{"id": "r1", "name": "Researcher", "instructions": "Cite."}]})
     )
 
-    assert bots.find("r1").secret_names == ()
+    assert bots.active_bot("r1").secret_names == ()

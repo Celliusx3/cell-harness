@@ -56,7 +56,7 @@ class BotMessages:
                 f"this chain of bot messages has reached {MAX_HOPS} hops, so nothing more is "
                 "sent. Tell the user where things stand.",
             )
-        sender = self._bots.find(from_bot_id)
+        sender = self._bots.active_bot(from_bot_id)
         request = BotMessage(
             from_bot_id=sender.id, from_name=sender.name, text=text, hop=hop, intent="request"
         )

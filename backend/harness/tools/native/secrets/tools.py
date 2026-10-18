@@ -89,7 +89,7 @@ def fetch_with_secret_tool(
 
 def _can_use(bots: BotService, bot_id: str, name: str) -> bool:
     try:
-        return name in bots.find(bot_id).secret_names
+        return name in bots.active_bot(bot_id).secret_names
     except BotNotFound:
         return False
 
