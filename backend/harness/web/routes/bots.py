@@ -36,14 +36,14 @@ def build_router(bots: BotService, runs: RunService, secrets: SecretService) -> 
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=Bot)
     async def create_bot(body: BotDraft) -> Bot:
-        bot = await bots.create(body.name, body.instructions)
+        bot = await bots.create(body)
         logger.info("bot %s created", bot.id)
         return bot
 
     @router.put("/{bot_id}", response_model=Bot)
     async def update_bot(bot_id: str, body: BotDraft) -> Bot:
         try:
-            return bots.update(bot_id, body.name, body.instructions)
+            return bots.update(bot_id, body)
         except BotNotFound as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
 

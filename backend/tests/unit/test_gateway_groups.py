@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from harness.bots import BotService, GroupDraft
+from harness.bots import BotDraft, BotService, GroupDraft
 from harness.channels.protocol import InboundMessage
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
 from tests.unit.helpers import durable_service, no_skills, run_service
@@ -21,8 +21,8 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
         service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), bots=bots
     )
     gateway, _ = web_gateway(tmp_path, service, runs, skills=no_skills(), bots=bots)
-    researcher = await bots.create("Researcher", "Cite.")
-    writer = await bots.create("Writer", "Post.")
+    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    writer = await bots.create(BotDraft(name="Writer", instructions="Post."))
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )

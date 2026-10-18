@@ -39,7 +39,7 @@ async def test_the_builder_can_be_neither_archived_nor_deleted(bots: BotService)
     with pytest.raises(BotPermanent):
         await bots.delete(BUILDER_ID)
 
-    assert bots.find(BUILDER_ID) == BUILDER
+    assert bots.active_bot(BUILDER_ID) == BUILDER
 
 
 async def test_listing_opens_the_builder_s_chat_only_the_first_time(

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, BotDraft, BotService
 from harness.llm.messages import (
     ApplicationMessage,
     AssistantMessage,
@@ -73,7 +73,7 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     runs = RunService(service, runtime, bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
-    bots.update(ASSISTANT_ID, "Assistant", "Be brief.")
+    bots.update(ASSISTANT_ID, BotDraft(name="Assistant", instructions="Be brief."))
 
     await asyncio.wait_for(runs.compact(session)._outer, timeout=5)
 
@@ -88,7 +88,7 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
     runs = RunService(service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
-    bots.update(ASSISTANT_ID, "Assistant", "Be brief.")
+    bots.update(ASSISTANT_ID, BotDraft(name="Assistant", instructions="Be brief."))
 
     await asyncio.wait_for(runs.resume(session, "c1", Ok(content="here"))._outer, timeout=5)
 

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Annotated
+
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 from harness.secrets import SecretName
 
@@ -14,27 +16,28 @@ MIN_MEMBERS = 2
 MAX_MEMBERS = 6
 
 
+def _stripped_not_blank(value: str) -> str:
+    stripped = value.strip()
+    if not stripped:
+        raise ValueError("must not be blank")
+    return stripped
+
+
+NonBlankText = Annotated[str, AfterValidator(_stripped_not_blank)]
+
+
 class BotDraft(BaseModel):
     """A bot's name and instructions from the form or a tool call, stripped and not blank."""
 
     model_config = ConfigDict(frozen=True)
 
-    name: str = Field(description="The name the sidebar shows, e.g. 'Researcher'.")
-    instructions: str = Field(
+    name: NonBlankText = Field(description="The name the sidebar shows, e.g. 'Researcher'.")
+    instructions: NonBlankText = Field(
         description=(
             "What the bot is told before every turn in its chat, written to it as 'you', "
             "e.g. 'You find sources for a question and cite every claim.'"
         )
     )
-
-    @field_validator("name", "instructions")
-    @classmethod
-    def _not_blank(cls, value: str) -> str:
-        """Strip the text, and refuse what is left empty."""
-        stripped = value.strip()
-        if not stripped:
-            raise ValueError("must not be blank")
-        return stripped
 
 
 class Bot(BaseModel):
@@ -54,21 +57,12 @@ class GroupDraft(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    name: str
+    name: NonBlankText
     member_ids: tuple[str, ...] = Field(min_length=MIN_MEMBERS, max_length=MAX_MEMBERS)
-
-    @field_validator("name")
-    @classmethod
-    def _not_blank(cls, value: str) -> str:
-        """Strip the name, and refuse what is left empty."""
-        stripped = value.strip()
-        if not stripped:
-            raise ValueError("must not be blank")
-        return stripped
 
     @field_validator("member_ids")
     @classmethod
-    def _once_each(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+    def _refuse_repeats(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         """Refuse a bot named twice."""
         if len(set(value)) != len(value):
             raise ValueError("each bot can be a member once")

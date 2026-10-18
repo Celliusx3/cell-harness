@@ -1,4 +1,4 @@
-"""Who speaks next in a chat: the person's mentions line its bots up, and theirs join the line."""
+"""Who speaks next in a chat: the person's mentions queue its bots, and theirs join the queue."""
 
 from __future__ import annotations
 
@@ -17,14 +17,14 @@ from harness.session.models import (
 from harness.skills.invocation import display
 
 EVERYONE = "everyone"
-MENTION_TURNS = 6
+MAX_TURNS_FROM_MENTIONS = 6
 
 
-class Line(NamedTuple):
+class SpeakerQueue(NamedTuple):
     """The members waiting to speak, in order, and how many turns mentions have added."""
 
     waiting: tuple[Bot, ...]
-    added: int
+    turns_from_mentions: int
 
 
 def is_mentioned(text: str, name: str) -> bool:
@@ -41,7 +41,7 @@ def mentioned_members(text: str, members: Sequence[Bot]) -> tuple[Bot, ...]:
     return tuple(bot for bot in members if is_mentioned(text, bot.name))
 
 
-def first_line(text: str, members: Sequence[Bot]) -> tuple[Bot, ...]:
+def first_speakers(text: str, members: Sequence[Bot]) -> tuple[Bot, ...]:
     """Who answers the person's `text`: the members it mentions; all for @everyone or nobody."""
     invoked = display(text)
     typed = text if invoked is None else invoked.typed
@@ -52,29 +52,30 @@ def first_line(text: str, members: Sequence[Bot]) -> tuple[Bot, ...]:
 
 
 def next_speaker(events: Sequence[SessionEvent], members: Sequence[Bot]) -> Bot | None:
-    """The head of the line once the log's last turn completed; `None` when nobody is next."""
-    line = Line((), 0)
-    speaker: str | None = None
+    """The head of the queue once the log's last turn completed; `None` when nobody is next."""
+    queue = SpeakerQueue((), 0)
+    speaker_id: str | None = None
     said: tuple[str, ...] = ()
     completed = False
     for event in events:
         if isinstance(event, UserMessageEvent):
-            line, said = Line(first_line(event.message.content, members), 0), ()
+            queue, said = SpeakerQueue(first_speakers(event.message.content, members), 0), ()
         elif isinstance(event, TurnStart):
-            speaker, completed = event.bot_id, False
+            speaker_id, completed = event.bot_id, False
         elif isinstance(event, AssistantMessageEvent):
             said = (*said, event.message.content)
         elif isinstance(event, TurnEnd):
             completed = event.reason == "completed"
             if completed:
-                line, said = _line_after(line, speaker, "\n\n".join(said), members), ()
-    return line.waiting[0] if completed and line.waiting else None
+                queue, said = _queue_after(queue, speaker_id, "\n\n".join(said), members), ()
+    return queue.waiting[0] if completed and queue.waiting else None
 
 
-def _line_after(line: Line, speaker: str | None, said: str, members: Sequence[Bot]) -> Line:
-    """`line` without `speaker`, then each member it mentioned who is not waiting, up to the cap."""
-    waiting = tuple(bot for bot in line.waiting if bot.id != speaker)
-    ids = {bot.id for bot in waiting} | {speaker}
+def _queue_after(
+    queue: SpeakerQueue, speaker_id: str | None, said: str, members: Sequence[Bot]
+) -> SpeakerQueue:
+    waiting = tuple(bot for bot in queue.waiting if bot.id != speaker_id)
+    ids = {bot.id for bot in waiting} | {speaker_id}
     joining = tuple(bot for bot in mentioned_members(said, members) if bot.id not in ids)
-    taken = joining[: MENTION_TURNS - line.added]
-    return Line((*waiting, *taken), line.added + len(taken))
+    taken = joining[: MAX_TURNS_FROM_MENTIONS - queue.turns_from_mentions]
+    return SpeakerQueue((*waiting, *taken), queue.turns_from_mentions + len(taken))

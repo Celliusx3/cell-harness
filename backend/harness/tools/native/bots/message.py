@@ -56,7 +56,7 @@ def message_bot_tool(
     return ToolDefinition.from_model(
         name=MESSAGE_BOT,
         description=_DESCRIPTION,
-        args_model=_args_model(bots.names()),
+        args_model=_args_model(bots.active_bot_names()),
         execute=execute,
     )
 

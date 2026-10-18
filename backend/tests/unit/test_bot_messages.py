@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import BotService
+from harness.bots import BotDraft, BotService
 from harness.llm.messages import AssistantMessage, UserMessage
 from harness.runs.bot_messages import MAX_HOPS, final_reply, hop_of_last_turn
 from harness.session.derive import derive_messages
@@ -128,8 +128,8 @@ async def test_the_bot_argument_lists_the_active_bots_by_name(tmp_path: Path) ->
     store = BotService(
         tmp_path / "bots.json", durable_service(tmp_path / "sessions"), assistant_instructions="A."
     )
-    await store.create("Researcher", "Cite.")
-    gone = await store.create("Writer", "Write.")
+    await store.create(BotDraft(name="Researcher", instructions="Cite."))
+    gone = await store.create(BotDraft(name="Writer", instructions="Write."))
     store.archive(gone.id)
 
     schema = message_bot_tool(store, Unsent()).spec().input_schema
