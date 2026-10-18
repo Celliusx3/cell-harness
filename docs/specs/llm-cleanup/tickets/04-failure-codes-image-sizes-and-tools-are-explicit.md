@@ -1,6 +1,6 @@
 # 04 · Failure codes, image sizes and the tools list are explicit
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `llm/stream.py`: `FailureCode = Literal["context_window_exceeded"]`; `CONTEXT_WINDOW_EXCEEDED` is typed as it; `Failed.code: FailureCode | None`. `llm/adapters/errors.py`'s `failure_code` returns `FailureCode | None`.

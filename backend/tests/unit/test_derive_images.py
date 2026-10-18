@@ -31,12 +31,12 @@ from harness.session.models import (
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 
-FIRST = Image(media_type="image/png", sha256="1" * 64)
-SECOND = Image(media_type="image/jpeg", sha256="2" * 64)
-THIRD = Image(media_type="image/webp", sha256="3" * 64)
+FIRST = Image(media_type="image/png", sha256="1" * 64, size=3)
+SECOND = Image(media_type="image/jpeg", sha256="2" * 64, size=3)
+THIRD = Image(media_type="image/webp", sha256="3" * 64, size=3)
 CALL = ToolCall(id="c1", name="srv__snap", arguments="{}")
 PAST_THE_LIMIT = tuple(
-    Image(media_type="image/png", sha256=f"{n:064x}") for n in range(IMAGES_KEPT + 1)
+    Image(media_type="image/png", sha256=f"{n:064x}", size=3) for n in range(IMAGES_KEPT + 1)
 )
 
 

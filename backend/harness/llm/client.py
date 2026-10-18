@@ -14,6 +14,6 @@ class LLMClient(ABC):
 
     @abstractmethod
     def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None
     ) -> AsyncIterator[StreamEvent]:
         """Stream one model call."""

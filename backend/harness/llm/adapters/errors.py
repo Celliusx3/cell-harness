@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED
+from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, FailureCode
 
 _OVERFLOW_WORDING = (
     "context_length_exceeded",
@@ -17,7 +17,7 @@ _OVERFLOW_WORDING = (
 )
 
 
-def failure_code(body: str) -> str | None:
+def failure_code(body: str) -> FailureCode | None:
     """`CONTEXT_WINDOW_EXCEEDED` when an error body says the request outgrew the window."""
     text = body.lower()
     if any(wording in text for wording in _OVERFLOW_WORDING):

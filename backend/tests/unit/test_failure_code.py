@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from harness.llm.adapters.errors import failure_code
 from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
@@ -43,6 +44,11 @@ def test_an_overflow_is_recognised_by_its_wording_whatever_the_shape(body: str) 
 )
 def test_anything_else_is_not_classified(body: str) -> None:
     assert failure_code(body) is None
+
+
+def test_a_failure_code_outside_the_list_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        Failed(reason="x", code="context_window_exceded")
 
 
 async def test_a_recognised_400_reaches_the_loop_as_a_coded_failure(monkeypatch) -> None:

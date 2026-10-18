@@ -76,7 +76,7 @@ class OpenAIClient(LLMClient):
         self._read_image = read_image
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None
     ) -> AsyncIterator[StreamEvent]:
         settings = self._settings
         image_bytes = _image_bytes(messages, self._read_image)

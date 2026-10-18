@@ -48,7 +48,7 @@ class Image(BaseModel):
     type: Literal["image"] = "image"
     media_type: str
     sha256: str
-    size: int = 0
+    size: int
 
 
 class UserMessage(BaseModel):
