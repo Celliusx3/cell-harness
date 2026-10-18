@@ -39,16 +39,16 @@ async def chunks_of(lines: AsyncIterator[str]) -> AsyncIterator[Chunk]:
         yield chunk_of(payload, data)
 
 
-def chunk_of(payload: dict[str, JsonValue], data: str) -> Chunk:
-    """The chunk `data` says, from its parse `payload`, each field of the wrong type left out."""
-    if payload.get("error"):
-        return Chunk(text="", tool_deltas=(), usage=None, error=data)
-    delta = _delta(payload)
+def chunk_of(parsed: dict[str, JsonValue], line: str) -> Chunk:
+    """The chunk one line says, from `parsed`, its JSON, each field of the wrong type left out."""
+    if parsed.get("error"):
+        return Chunk(text="", tool_deltas=(), usage=None, error=line)
+    delta = _delta(parsed)
     content = delta.get("content")
     return Chunk(
         text=content if isinstance(content, str) else "",
         tool_deltas=_tool_deltas(delta),
-        usage=_usage(payload),
+        usage=_usage(parsed),
         error=None,
     )
 
@@ -77,10 +77,10 @@ def _delta(payload: Mapping[str, JsonValue]) -> Mapping[str, JsonValue]:
 
 def _tool_deltas(delta: Mapping[str, JsonValue]) -> tuple[ToolDelta, ...]:
     """Each tool call fragment in `delta` that is an object."""
-    pieces = delta.get("tool_calls")
-    if not isinstance(pieces, list):
+    items = delta.get("tool_calls")
+    if not isinstance(items, list):
         return ()
-    return tuple(_tool_delta(piece) for piece in pieces if isinstance(piece, dict))
+    return tuple(_tool_delta(item) for item in items if isinstance(item, dict))
 
 
 def _tool_delta(raw: Mapping[str, JsonValue]) -> ToolDelta:
@@ -98,13 +98,13 @@ def _tool_delta(raw: Mapping[str, JsonValue]) -> ToolDelta:
     )
 
 
-def _extra_content(piece: Mapping[str, JsonValue]) -> ExtraContent | None:
-    """The piece's `extra_content`, such as Gemini's thought signature, when it is an object."""
-    raw = piece.get("extra_content")
-    if raw is None:
+def _extra_content(raw: Mapping[str, JsonValue]) -> ExtraContent | None:
+    """The fragment's `extra_content`, such as Gemini's thought signature, when it is an object."""
+    value = raw.get("extra_content")
+    if value is None:
         return None
     try:
-        return _EXTRA_CONTENT.validate_python(raw)
+        return _EXTRA_CONTENT.validate_python(value)
     except ValidationError:
-        logger.warning("dropped a tool call's extra_content that is not an object: %r", raw)
+        logger.warning("dropped a tool call's extra_content that is not an object: %r", value)
         return None
