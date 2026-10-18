@@ -27,7 +27,7 @@ from harness.tools.native.code import DETAILS, EXECUTE, LIST
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
 from tests.unit.helpers import client_tools, no_bots, no_gate, no_progress, no_skills
-from tests.webapp import secrets_in
+from tests.webapp import images_in, secrets_in
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT)]
 
@@ -50,6 +50,7 @@ def compose(tmp_path: Path):
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
             secrets=secrets_in(tmp_path),
+            images=images_in(tmp_path),
         )
 
     return build

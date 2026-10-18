@@ -36,7 +36,9 @@ def build(tmp_path, *, skills: SkillService):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
         new_id=lambda: next(ids),
     )
-    runtime = Runtime(model="m", client=ScriptedClient(completed("ok")), checkpoint=sessions.flush)
+    runtime = Runtime(
+        model="m", client=ScriptedClient(completed("ok")), images=None, checkpoint=sessions.flush
+    )
     runs = RunService(sessions, runtime, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url="http://t")

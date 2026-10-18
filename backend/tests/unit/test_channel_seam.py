@@ -65,6 +65,7 @@ def build(tmp_path):
     runtime = Runtime(
         model="m",
         client=ScriptedClient(completed("answered")),
+        images=None,
         checkpoint=sessions.flush,
     )
     runs = RunService(sessions, runtime, no_bots(sessions))

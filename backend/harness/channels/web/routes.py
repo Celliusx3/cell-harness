@@ -1,9 +1,9 @@
-"""A bot's or a group's chat: read, send, stream, stop, clear, and the files it holds."""
+"""A bot's or a group's chat: read, send, stream, stop, clear, and the files and images it holds."""
 
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
@@ -15,7 +15,10 @@ from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService, FileTooLarge, UnsafeFileName
+from harness.images import is_sha256
+from harness.llm.messages import images_of
 from harness.session.log import Session
+from harness.session.models import SessionEvent, ToolResultEvent, UserMessageEvent
 from harness.session.repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
@@ -63,6 +66,16 @@ def _attached_files(files: ChatFileService, chat_id: str, paths: list[str]) -> t
 async def _chunks(upload: UploadFile) -> AsyncIterator[bytes]:
     while chunk := await upload.read(UPLOAD_CHUNK_BYTES):
         yield chunk
+
+
+def _log_shows_image(events: Sequence[SessionEvent], sha256: str) -> bool:
+    """Whether one of `events` shows the model the image kept under `sha256`."""
+    return any(
+        image.sha256 == sha256
+        for event in events
+        if isinstance(event, (UserMessageEvent, ToolResultEvent))
+        for image in images_of(event.message)
+    )
 
 
 def chat_router(web: WebChannel, *, tag: str) -> APIRouter:
@@ -173,6 +186,33 @@ def build_router(web: WebChannel) -> APIRouter:
             media_type=stored.media_type,
             filename=stored.name,
             content_disposition_type=shown,
+            headers=NO_SNIFFING,
+        )
+
+    @router.get("/{conversation_id}/images/{sha256}")
+    async def read_image(conversation_id: str, sha256: str) -> FileResponse:
+        """An image this chat's log shows the model, shown in place, by the hash it is kept by."""
+        missing = HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"{sha256} is not an image in this chat",
+            headers=NO_SNIFFING,
+        )
+        if not is_sha256(sha256):
+            raise missing
+        run = web.runs.active(conversation_id)
+        session = (
+            run.session
+            if run is not None
+            else await _load(web.sessions, conversation_id, for_writing=False)
+        )
+        stored = web.images.file_of(sha256) if _log_shows_image(session.events(), sha256) else None
+        if stored is None:
+            raise missing
+        return FileResponse(
+            stored.path,
+            media_type=stored.media_type,
+            filename=stored.path.name,
+            content_disposition_type="inline",
             headers=NO_SNIFFING,
         )
 

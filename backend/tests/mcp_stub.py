@@ -8,8 +8,13 @@ import os
 from mcp.server.apps import Apps, client_supports_apps
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.context import Context
+from mcp.types import ImageContent
 
 APP = "ui://stub/app.html"
+DOT_PNG = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+    "YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+)
 apps = Apps()
 
 
@@ -37,6 +42,12 @@ async def echo(value: str) -> str:
 async def boom() -> str:
     """Always fails, so the client sees `is_error` rather than an exception."""
     raise RuntimeError("this tool always fails")
+
+
+@server.tool()
+async def snapshot() -> ImageContent:
+    """A one-pixel PNG."""
+    return ImageContent(type="image", data=DOT_PNG, mime_type="image/png")
 
 
 @server.tool()

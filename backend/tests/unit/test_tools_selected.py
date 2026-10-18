@@ -68,7 +68,7 @@ def test_the_adapter_spells_a_reference_out_for_a_wire_without_blocks() -> None:
         tool_call_id="c1", content=(Text(text="declare …"), ToolReference(tool_name="a"))
     )
 
-    wire = wire_message(message)
+    wire = wire_message(message, {})
 
     assert wire["role"] == "tool" and wire["tool_call_id"] == "c1"
     assert wire["content"].startswith("declare …")
@@ -144,7 +144,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, images=None, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
@@ -162,7 +162,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    runtime = Runtime(model="m", client=client, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, images=None, tools=pipeline(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:

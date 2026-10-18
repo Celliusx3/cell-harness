@@ -9,13 +9,13 @@ import pytest
 
 from harness.config.sections import LLMSettings
 from harness.llm.adapters import openai as adapter_module
-from harness.llm.adapters.openai import OpenAIClient
-from harness.llm.messages import UserMessage
+from harness.llm.adapters.openai import ImageReader, OpenAIClient
+from harness.llm.messages import Image, UserMessage
 from harness.llm.stream import Completed, Failed, TextChunk
 
 
 def settings() -> LLMSettings:
-    return LLMSettings(_env_file=None, api_key="k", model="m", base_url="https://x/v1")
+    return LLMSettings(_env_file=None, api_key="k", model="m", vision=True, base_url="https://x/v1")
 
 
 def sse(*frames: str) -> bytes:
@@ -26,18 +26,25 @@ def delta(text: str) -> str:
     return json.dumps({"choices": [{"delta": {"content": text}}]})
 
 
-def client_over(handler) -> OpenAIClient:
+def nothing_kept(image: Image) -> bytes | None:
+    """A reader that has no image's bytes to give."""
+    return None
+
+
+def client_over(handler, read_image: ImageReader = nothing_kept) -> OpenAIClient:
     """An `OpenAIClient` whose httpx calls hit `handler`."""
     real = httpx.AsyncClient
 
     def factory(**kwargs):
         return real(transport=httpx.MockTransport(handler), **kwargs)
 
-    return factory, OpenAIClient(settings())
+    return factory, OpenAIClient(settings(), read_image=read_image)
 
 
-async def collect(monkeypatch, handler, messages=None, tools=None) -> list:
-    factory, client = client_over(handler)
+async def collect(
+    monkeypatch, handler, messages=None, tools=None, read_image: ImageReader = nothing_kept
+) -> list:
+    factory, client = client_over(handler, read_image)
     monkeypatch.setattr(adapter_module.httpx, "AsyncClient", factory)
     stream = client.stream_completion(messages or [UserMessage(content="hi")], "m", tools=tools)
     return [event async for event in stream]

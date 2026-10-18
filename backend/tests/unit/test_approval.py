@@ -54,7 +54,9 @@ def _runtime(
     pipeline = ToolPipeline(
         registry, ToolDispatcher(registry, gate), default_tools=[t.name for t in tools]
     )
-    return Runtime(model="m", client=client, tools=pipeline, hooks=hooks or HookChain())
+    return Runtime(
+        model="m", client=client, images=None, tools=pipeline, hooks=hooks or HookChain()
+    )
 
 
 def _types(session) -> list[str]:

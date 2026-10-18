@@ -81,6 +81,10 @@ export const uploadFile = (id: string, file: File) => {
 export const fileUrl = (id: string, path: string) =>
   `/api/conversations/${encodeURIComponent(id)}/file?path=${encodeURIComponent(path)}`;
 
+/** Where the browser reads an image a chat showed the model, by the hash it is kept under. */
+export const imageUrl = (id: string, sha256: string) =>
+  `/api/conversations/${encodeURIComponent(id)}/images/${encodeURIComponent(sha256)}`;
+
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
 

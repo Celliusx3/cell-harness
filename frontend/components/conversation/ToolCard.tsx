@@ -7,7 +7,8 @@ import { useState } from "react";
 
 import { CodeBlock } from "@/components/conversation/CodeBlock";
 import type { ToolItem } from "@/components/conversation/timelineItems";
-import type { ContentBlock } from "@/lib/types";
+import { imageUrl } from "@/lib/api";
+import type { ContentBlock, ImageBlock } from "@/lib/types";
 
 /** The argument field of each tool that is shown as a program. */
 const SCRIPT_FIELDS: Record<string, string> = { execute_typescript: "code" };
@@ -18,6 +19,7 @@ export function ToolCard({ item }: { item: ToolItem }) {
   const { id: conversationId } = useParams<{ id: string }>();
   const failed = item.error !== null;
   const pending = item.result === null;
+  const images = (item.result ?? []).filter((b): b is ImageBlock => b.type === "image");
 
   return (
     <div
@@ -58,12 +60,42 @@ export function ToolCard({ item }: { item: ToolItem }) {
         </div>
       )}
 
+      {images.length > 0 && (
+        <div className="border-t border-line px-3 py-2">
+          <ResultImages conversationId={conversationId} images={images} />
+        </div>
+      )}
+
       {open && (
         <div className="space-y-2 border-t border-line px-3 py-2">
           <Arguments raw={item.call.arguments} tool={item.call.name} />
           {item.result !== null && <Result blocks={item.result} />}
         </div>
       )}
+    </div>
+  );
+}
+
+/** The images a result showed the model, as thumbnails that open full size in a new tab. */
+function ResultImages({ conversationId, images }: { conversationId: string; images: ImageBlock[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {images.map((image, index) => (
+        <a
+          key={`${index}-${image.sha256}`}
+          href={imageUrl(conversationId, image.sha256)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block overflow-hidden rounded-lg border border-line bg-surface transition hover:opacity-90"
+        >
+          <img
+            src={imageUrl(conversationId, image.sha256)}
+            alt={`An image the tool returned (${image.media_type})`}
+            loading="lazy"
+            className="size-24 object-cover"
+          />
+        </a>
+      ))}
     </div>
   );
 }

@@ -57,7 +57,7 @@ async def served(
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        model="m", client=client, tools=pipeline_for(*tools), checkpoint=service.flush
+        model="m", client=client, images=None, tools=pipeline_for(*tools), checkpoint=service.flush
     )
     runs = RunService(service, runtime, no_bots(service))
     async with (
