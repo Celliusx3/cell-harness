@@ -1,6 +1,6 @@
 # 02 · The client hands the streamed lines to the streaming file
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `openai/_streaming.py` gains `chunks_of(lines: AsyncIterator[str]) -> AsyncIterator[Chunk]`, which carries today's line rules out of the client: only `data: ` lines, stop at `[DONE]`, skip a line that is not JSON or not an object, each with today's warning.

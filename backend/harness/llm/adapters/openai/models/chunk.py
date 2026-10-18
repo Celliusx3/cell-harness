@@ -10,9 +10,9 @@ from harness.llm.models.stream import Usage
 
 @dataclass(frozen=True)
 class Chunk:
-    """What one line adds: its text, its tool deltas, its token count, whether it failed."""
+    """What one line adds: its text, tool deltas and token count, or the line if it is an error."""
 
     text: str
     tool_deltas: tuple[ToolDelta, ...]
     usage: Usage | None
-    failed: bool
+    error: str | None

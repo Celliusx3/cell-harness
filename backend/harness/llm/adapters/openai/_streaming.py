@@ -1,9 +1,10 @@
-"""One streamed Chat Completions line, read once into a typed chunk."""
+"""The streamed Chat Completions lines, each read once into a typed chunk."""
 
 from __future__ import annotations
 
+import json
 import logging
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Mapping
 
 from pydantic import JsonValue, TypeAdapter, ValidationError
 
@@ -14,20 +15,41 @@ from harness.llm.models.tools import ExtraContent
 
 logger = logging.getLogger("harness.llm.openai")
 
+_DONE = "[DONE]"
+
 _EXTRA_CONTENT = TypeAdapter(ExtraContent)
 
 
-def chunk_of(payload: dict[str, JsonValue]) -> Chunk:
-    """The chunk one parsed line says, each field left out when it is not the type it should be."""
+async def chunks_of(lines: AsyncIterator[str]) -> AsyncIterator[Chunk]:
+    """The chunk of each `data: ` line before `[DONE]`, skipping one that is not a JSON object."""
+    async for line in lines:
+        if not line.startswith("data: "):
+            continue
+        data = line.removeprefix("data: ").strip()
+        if data == _DONE:
+            return
+        try:
+            payload = json.loads(data)
+        except json.JSONDecodeError:
+            logger.warning("skipping unparseable SSE frame: %r", data)
+            continue
+        if not isinstance(payload, dict):
+            logger.warning("skipping SSE frame that is not an object: %r", data)
+            continue
+        yield chunk_of(payload, data)
+
+
+def chunk_of(payload: dict[str, JsonValue], data: str) -> Chunk:
+    """The chunk `data` says, from its parse `payload`, each field of the wrong type left out."""
     if payload.get("error"):
-        return Chunk(text="", tool_deltas=(), usage=None, failed=True)
+        return Chunk(text="", tool_deltas=(), usage=None, error=data)
     delta = _delta(payload)
     content = delta.get("content")
     return Chunk(
         text=content if isinstance(content, str) else "",
         tool_deltas=_tool_deltas(delta),
         usage=_usage(payload),
-        failed=False,
+        error=None,
     )
 
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import AsyncIterator, Callable, Sequence
 
@@ -12,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from harness.config.sections import LLMSettings
 from harness.llm.adapters.openai._errors import failure_code
 from harness.llm.adapters.openai._request import openai_messages, request_body
-from harness.llm.adapters.openai._streaming import chunk_of
+from harness.llm.adapters.openai._streaming import chunks_of
 from harness.llm.adapters.openai._tool_calls import ToolCallAssembler
 from harness.llm.client import LLMClient
 from harness.llm.models.blocks import Image
@@ -28,9 +27,6 @@ from harness.llm.models.stream import (
 from harness.llm.models.tools import ToolSpec
 
 logger = logging.getLogger("harness.llm.openai")
-listing_logger = logging.getLogger("harness.llm")
-
-_DONE = "[DONE]"
 
 ImageReader = Callable[[Image], bytes | None]
 
@@ -43,6 +39,16 @@ def _image_bytes(messages: Sequence[Message], read: ImageReader) -> dict[str, by
         for image in images_of(message)
         if (data := read(image)) is not None
     }
+
+
+def _endpoint(settings: LLMSettings, path: str) -> str:
+    """The address of `path` under the configured base URL."""
+    return f"{settings.base_url.rstrip('/')}/{path}"
+
+
+def _auth_headers(settings: LLMSettings) -> dict[str, str]:
+    """The header that carries the configured key."""
+    return {"Authorization": f"Bearer {settings.api_key}"}
 
 
 class OpenAIClient(LLMClient):
@@ -71,8 +77,8 @@ class OpenAIClient(LLMClient):
                 httpx.AsyncClient(timeout=settings.timeout_seconds) as http,
                 http.stream(
                     "POST",
-                    f"{settings.base_url.rstrip('/')}/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.api_key}"},
+                    _endpoint(settings, "chat/completions"),
+                    headers=_auth_headers(settings),
                     json=body,
                 ) as response,
             ):
@@ -84,24 +90,11 @@ class OpenAIClient(LLMClient):
                     )
                     return
 
-                async for line in response.aiter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    data = line.removeprefix("data: ").strip()
-                    if data == _DONE:
-                        break
-                    try:
-                        payload = json.loads(data)
-                    except json.JSONDecodeError:
-                        logger.warning("skipping unparseable SSE frame: %r", data)
-                        continue
-                    if not isinstance(payload, dict):
-                        logger.warning("skipping SSE frame that is not an object: %r", data)
-                        continue
-                    chunk = chunk_of(payload)
-                    if chunk.failed:
+                async for chunk in chunks_of(response.aiter_lines()):
+                    if chunk.error is not None:
                         yield Failed(
-                            reason=f"provider sent an error: {data}", code=failure_code(data)
+                            reason=f"provider sent an error: {chunk.error}",
+                            code=failure_code(chunk.error),
                         )
                         return
                     usage = chunk.usage or usage
@@ -136,14 +129,14 @@ class _Listing(BaseModel):
 
 def context_window_tokens(settings: LLMSettings) -> int | None:
     """`context_length` of `settings.model` from the endpoint's listing, or `None`."""
-    url = f"{settings.base_url.rstrip('/')}/models"
+    url = _endpoint(settings, "models")
     try:
         with httpx.Client(timeout=settings.timeout_seconds) as http:
-            response = http.get(url, headers={"Authorization": f"Bearer {settings.api_key}"})
+            response = http.get(url, headers=_auth_headers(settings))
             response.raise_for_status()
             listing = _Listing.model_validate_json(response.content)
     except (httpx.HTTPError, ValidationError) as err:
-        listing_logger.warning("could not read %s: %s", url, err)
+        logger.warning("could not read %s: %s", url, err)
         return None
     for entry in listing.data:
         if entry.id == settings.model:
