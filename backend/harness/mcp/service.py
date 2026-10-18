@@ -11,7 +11,7 @@ from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.connection import Connection, ServerStatus
 from harness.mcp.errors import McpNotConnectedError
 from harness.mcp.tool import can_write, namespaced
-from harness.tools.definition import ToolDefinition
+from harness.tools import ToolDefinition
 
 
 class McpService:

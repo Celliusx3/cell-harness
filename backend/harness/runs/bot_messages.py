@@ -20,7 +20,7 @@ from harness.session.models import (
 )
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
-from harness.tools.definition import INVALID_ARGUMENTS, REFUSED, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 

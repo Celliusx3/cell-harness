@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from harness.prompts import REPEATED_CALL_NOTE
 from harness.runtime.hooks.calls import CompletedCall, Signature
 from harness.runtime.hooks.service import ToolHook
-from harness.tools.definition import Ok, ToolOutcome
+from harness.tools import Ok, ToolOutcome
 
 REPEATED_CALL_NOTE_AT = (3, 5, 8)
 

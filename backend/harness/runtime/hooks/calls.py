@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from harness.llm import ToolCall, text_of
 from harness.session.log import Session
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnStart
-from harness.tools.definition import BLOCKED
+from harness.tools import BLOCKED
 
 
 @dataclass(frozen=True)

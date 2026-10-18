@@ -19,7 +19,7 @@ from harness.mcp.errors import (
     describe,
 )
 from harness.mcp.tool import build_tools
-from harness.tools.definition import ToolDefinition
+from harness.tools import ToolDefinition
 
 logger = logging.getLogger("harness.mcp")
 

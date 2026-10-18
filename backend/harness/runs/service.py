@@ -16,8 +16,7 @@ from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import BotMessage, ToolCallEvent
 from harness.session.service import SessionService
-from harness.tools.approval import Approved
-from harness.tools.definition import Failure, Ok
+from harness.tools import Approved, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 

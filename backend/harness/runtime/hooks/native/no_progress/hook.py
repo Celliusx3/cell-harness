@@ -9,7 +9,7 @@ from harness.llm import text_of
 from harness.prompts import NO_PROGRESS_REFUSAL, NO_PROGRESS_WARNING
 from harness.runtime.hooks.calls import CompletedCall, Signature
 from harness.runtime.hooks.service import ToolHook
-from harness.tools.definition import Ok, ToolOutcome
+from harness.tools import Ok, ToolOutcome
 
 NO_PROGRESS_WARN_AT, NO_PROGRESS_BLOCK_AT = 2, 5
 

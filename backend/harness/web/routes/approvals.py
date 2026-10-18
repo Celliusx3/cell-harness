@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate
 
 logger = logging.getLogger(__name__)
 

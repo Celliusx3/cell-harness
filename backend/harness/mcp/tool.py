@@ -13,14 +13,14 @@ from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent, T
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
-from harness.tools.context import ToolContext
-from harness.tools.definition import (
+from harness.tools import (
     EXECUTION_ERROR,
     NAMESPACE,
     UNKNOWN_TOOL,
     Failure,
     Ok,
     ReturnedImage,
+    ToolContext,
     ToolDefinition,
     ToolOutcome,
     ToolUi,

@@ -1,6 +1,6 @@
 # 01 · The tools package has a door, and the app uses it
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - First, in `backend/tests/unit/test_layering.py`, a test that imports `harness.session.models`, `harness.tools.client` and `harness.skills.tool` each first, on its own, in a fresh interpreter. It passes on the code as it is.

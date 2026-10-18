@@ -28,9 +28,8 @@ from harness.sandbox import DenoRunner
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate, ToolDispatcher, ToolPipeline, ToolRegistry
 from harness.tools.client import ClientTools, ClientToolService
-from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
@@ -61,8 +60,6 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 
 logger = logging.getLogger("harness.web")
 

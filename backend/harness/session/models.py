@@ -18,7 +18,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
-from harness.tools.definition import ToolUi
+from harness.tools import ToolUi
 
 SESSION_FORMAT_VERSION = 1
 

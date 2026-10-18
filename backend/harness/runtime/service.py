@@ -33,9 +33,7 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from harness.session.repair import unanswered
-from harness.tools.approval import Approved
-from harness.tools.definition import Failure, Ok
-from harness.tools.pipeline import ToolPipeline
+from harness.tools import Approved, Failure, Ok, ToolPipeline
 
 SKIPPED = "SKIPPED"
 

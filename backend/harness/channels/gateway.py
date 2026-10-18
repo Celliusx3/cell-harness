@@ -23,8 +23,7 @@ from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools.approval import Approved
-from harness.tools.definition import Failure, Ok
+from harness.tools import Approved, Failure, Ok
 
 logger = logging.getLogger("harness.channels")
 

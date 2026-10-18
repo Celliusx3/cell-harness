@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import ast
 import pathlib
+import subprocess
+import sys
 
 import pytest
 
@@ -12,6 +14,7 @@ SESSION = HARNESS / "session"
 SANDBOX = HARNESS / "sandbox"
 
 PURE = ("models", "log", "derive", "repair")
+TOOLS_LOOP = ("harness.session.models", "harness.tools.client", "harness.skills.tool")
 STORAGE = ("repository", "repositories", "service")
 
 
@@ -122,3 +125,16 @@ def test_no_package_imports_another_package_s_private_module() -> None:
             ]
 
     assert leaks == [], leaks
+
+
+@pytest.mark.parametrize("module", TOOLS_LOOP)
+def test_a_module_on_the_tools_loop_imports_first_on_its_own(module: str) -> None:
+    run = subprocess.run(
+        [sys.executable, "-c", f"import {module}"],
+        cwd=HARNESS.parent,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert run.returncode == 0, run.stderr

@@ -17,8 +17,7 @@ from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.log import Session
 from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.session.repair import unknown_result
-from harness.tools.context import CallOrigin
-from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
+from harness.tools import BLOCKED, CallOrigin, Failure, Ok, Pending, ToolOutcome, render_outcome
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime
