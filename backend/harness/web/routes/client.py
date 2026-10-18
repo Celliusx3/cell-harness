@@ -10,13 +10,13 @@ from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
-from harness.tools.client import ClientToolService, Refused
+from harness.tools.client import ClientToolService, RefusalReason
 
 logger = logging.getLogger(__name__)
 
 STATUS = {
-    Refused.NOT_PENDING: status.HTTP_404_NOT_FOUND,
-    Refused.DOES_NOT_FIT: status.HTTP_422_UNPROCESSABLE_CONTENT,
+    RefusalReason.NOT_PENDING: status.HTTP_404_NOT_FOUND,
+    RefusalReason.DOES_NOT_FIT: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }
 
 
@@ -33,11 +33,11 @@ def build_router(web: WebChannel, client_tools: ClientToolService) -> APIRouter:
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
         session = await web.sessions.resume(conversation_id)
-        accepted = client_tools.accept_by_call_id(session, call_id, body)
-        if isinstance(accepted, Refused):
-            raise HTTPException(STATUS[accepted], detail=f"call {call_id!r}: {accepted.value}")
+        verdict = client_tools.accept_by_call_id(session, call_id, body)
+        if isinstance(verdict, RefusalReason):
+            raise HTTPException(STATUS[verdict], detail=f"call {call_id!r}: {verdict.value}")
         try:
-            await web.gateway.resume(session, accepted.call_id, accepted.outcome)
+            await web.gateway.resume(session, verdict.call_id, verdict.outcome)
         except RunAlreadyActive as err:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"call {call_id!r} was already answered"

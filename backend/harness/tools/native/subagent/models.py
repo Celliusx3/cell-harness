@@ -34,17 +34,17 @@ class SubagentArgs(BaseModel):
 
 
 @dataclass(frozen=True)
-class SubagentAnswered:
+class SubagentReply:
     """The subagent's turn completed with this reply."""
 
     text: str
 
 
 @dataclass(frozen=True)
-class SubagentStopped:
+class SubagentStop:
     """The subagent's turn ended without a reply, for this reason."""
 
     reason: str
 
 
-SubagentOutcome = SubagentAnswered | SubagentStopped
+SubagentOutcome = SubagentReply | SubagentStop

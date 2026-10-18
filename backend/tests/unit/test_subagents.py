@@ -17,8 +17,8 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import Ok, ToolContext, ToolOutcome
 from harness.tools.native.subagent import (
-    SubagentAnswered,
-    SubagentStopped,
+    SubagentReply,
+    SubagentStop,
     SubagentTask,
     run_subagent_tool,
 )
@@ -50,7 +50,7 @@ async def test_a_subagent_answers_from_a_log_of_its_own(
 
     outcome = await subagents("call-9.0", TASK, bot_id="b")
 
-    assert outcome == SubagentAnswered(text="AAPL grew 2%.")
+    assert outcome == SubagentReply(text="AAPL grew 2%.")
     assert (tmp_path / "call-9.0.jsonl").exists()
     stored = await sessions.read("call-9.0")
     assert [e.message.content for e in stored.events() if isinstance(e, UserMessageEvent)] == [
@@ -79,7 +79,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
 
     outcome = await subagents("c.0", TASK, bot_id="b")
 
-    assert isinstance(outcome, SubagentStopped)
+    assert isinstance(outcome, SubagentStop)
     assert "save_note" in outcome.reason
 
 
@@ -88,7 +88,7 @@ async def test_a_subagent_whose_turn_fails_says_why(sessions: SessionService) ->
 
     outcome = await Subagents(runtime_over(client), sessions)("c.0", TASK, bot_id="b")
 
-    assert isinstance(outcome, SubagentStopped)
+    assert isinstance(outcome, SubagentStop)
     assert "provider down" in outcome.reason
 
 

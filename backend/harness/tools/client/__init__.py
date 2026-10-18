@@ -4,31 +4,31 @@ from harness.tools.client.catalog import ClientTools
 from harness.tools.client.models import (
     DECLINED,
     UNAVAILABLE,
-    Accepted,
+    AcceptedAnswer,
     ClientOutput,
     ClientTool,
-    Declined,
+    DeclinedAnswer,
     PendingCall,
-    Refused,
-    Shared,
-    Unavailable,
+    RefusalReason,
+    SharedAnswer,
+    UnavailableAnswer,
 )
 from harness.tools.client.pending import next_pending, pending_calls
 from harness.tools.client.service import ClientToolService
 
 __all__ = [
-    "Accepted",
+    "AcceptedAnswer",
     "DECLINED",
     "UNAVAILABLE",
     "ClientToolService",
     "ClientOutput",
     "ClientTool",
     "ClientTools",
-    "Declined",
+    "DeclinedAnswer",
     "PendingCall",
-    "Refused",
-    "Shared",
-    "Unavailable",
+    "RefusalReason",
+    "SharedAnswer",
+    "UnavailableAnswer",
     "pending_calls",
     "next_pending",
 ]

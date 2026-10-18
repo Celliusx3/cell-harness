@@ -33,7 +33,7 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from harness.session.repair import unanswered
-from harness.tools import Approved, Failure, Ok, ToolPipeline
+from harness.tools import Approval, Failure, Ok, ToolPipeline
 
 SKIPPED = "SKIPPED"
 
@@ -101,7 +101,7 @@ class Runtime:
                 yield event
 
     async def resume(
-        self, call_id: str, answer: Ok | Failure | Approved, *, session: Session, bot_id: str
+        self, call_id: str, answer: Ok | Failure | Approval, *, session: Session, bot_id: str
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person's answer to a client tool, or their approval of a call."""
         turn = session.next_turn()
@@ -109,7 +109,7 @@ class Runtime:
         if self.checkpoint is not None:
             await self.checkpoint(session)
         try:
-            if isinstance(answer, Approved):
+            if isinstance(answer, Approval):
                 call = _waiting_call(session, call_id)
                 if answer.scope == "conversation":
                     session.append(ApprovalGrant(turn=turn, tool=call.name))

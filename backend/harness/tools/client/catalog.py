@@ -9,8 +9,8 @@ from harness.tools.client.models import (
     UNAVAILABLE,
     ClientOutput,
     ClientTool,
-    Shared,
-    Unavailable,
+    SharedAnswer,
+    UnavailableAnswer,
 )
 from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
@@ -37,9 +37,9 @@ class ClientTools:
 
     def outcome(self, output: ClientOutput) -> Ok | Failure:
         """What the model reads for an answer — the same for every datum."""
-        if isinstance(output, Shared):
+        if isinstance(output, SharedAnswer):
             return Ok(content=output.data.model_dump_json())
-        if isinstance(output, Unavailable):
+        if isinstance(output, UnavailableAnswer):
             return Failure(
                 UNAVAILABLE,
                 f"the device could not answer ({output.reason}); {_ASK_INSTEAD}",

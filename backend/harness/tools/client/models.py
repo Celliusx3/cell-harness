@@ -8,14 +8,14 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
-from harness.tools.models.decision import Approved
+from harness.tools.models.decision import Approval
 from harness.tools.models.outcome import Failure, Ok
 
 DECLINED = "DECLINED"
 UNAVAILABLE = "UNAVAILABLE"
 
 
-class Shared[DataT: BaseModel](BaseModel):
+class SharedAnswer[DataT: BaseModel](BaseModel):
     """The client answered with the datum."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -24,7 +24,7 @@ class Shared[DataT: BaseModel](BaseModel):
     data: DataT
 
 
-class Declined(BaseModel):
+class DeclinedAnswer(BaseModel):
     """The person chose not to."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -32,7 +32,7 @@ class Declined(BaseModel):
     kind: Literal["declined"] = "declined"
 
 
-class Unavailable(BaseModel):
+class UnavailableAnswer(BaseModel):
     """The device could not — permission blocked, no fix, timed out."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -41,7 +41,7 @@ class Unavailable(BaseModel):
     reason: str = Field(min_length=1)
 
 
-ClientOutput = Shared[BaseModel] | Declined | Unavailable
+ClientOutput = SharedAnswer[BaseModel] | DeclinedAnswer | UnavailableAnswer
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ class ClientTool[ArgsT: BaseModel, DataT: BaseModel]:
         """The union a posted body must fit, with this tool's data inside."""
         return TypeAdapter(
             Annotated[
-                Shared[self.data_model] | Declined | Unavailable,  # type: ignore[valid-type]
+                SharedAnswer[self.data_model] | DeclinedAnswer | UnavailableAnswer,  # type: ignore[valid-type]
                 Field(discriminator="kind"),
             ]
         )
@@ -72,7 +72,7 @@ class PendingCall:
     arguments: str
 
 
-class Refused(Enum):
+class RefusalReason(Enum):
     """Why an answer was not taken."""
 
     NOT_PENDING = "not_pending"
@@ -80,8 +80,8 @@ class Refused(Enum):
 
 
 @dataclass(frozen=True)
-class Accepted:
+class AcceptedAnswer:
     """An answer that fits: what the resumed turn opens with."""
 
     call_id: str
-    outcome: Ok | Failure | Approved
+    outcome: Ok | Failure | Approval

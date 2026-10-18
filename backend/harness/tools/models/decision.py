@@ -11,7 +11,7 @@ DENIED = "DENIED"
 Scope = Literal["once", "conversation", "always"]
 
 
-class Approved(BaseModel):
+class Approval(BaseModel):
     """The person let the call run, for this call, this conversation, or always."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -20,7 +20,7 @@ class Approved(BaseModel):
     scope: Scope
 
 
-class Denied(BaseModel):
+class Denial(BaseModel):
     """The person refused the call."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -28,7 +28,7 @@ class Denied(BaseModel):
     kind: Literal["denied"] = "denied"
 
 
-Decision = Approved | Denied
+Decision = Approval | Denial
 
 _DECISION_ADAPTER = TypeAdapter(Annotated[Decision, Field(discriminator="kind")])
 

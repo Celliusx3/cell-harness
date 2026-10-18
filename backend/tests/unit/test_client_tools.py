@@ -11,15 +11,15 @@ from harness.tools import Failure, Ok, Pending
 from harness.tools.client import (
     DECLINED,
     UNAVAILABLE,
-    Accepted,
+    AcceptedAnswer,
     ClientTool,
     ClientTools,
     ClientToolService,
-    Declined,
+    DeclinedAnswer,
     PendingCall,
-    Refused,
-    Shared,
-    Unavailable,
+    RefusalReason,
+    SharedAnswer,
+    UnavailableAnswer,
     next_pending,
     pending_calls,
 )
@@ -41,7 +41,7 @@ class Battery(BaseModel):
 BATTERY = ClientTool(
     name="get_battery", description="The device's charge.", args_model=NoArgs, data_model=Battery
 )
-CHARGED = Shared[Battery](data=Battery(percent=80))
+CHARGED = SharedAnswer[Battery](data=Battery(percent=80))
 NAMES = frozenset({"get_battery"})
 
 
@@ -49,9 +49,9 @@ def test_a_body_is_held_to_the_declared_shape() -> None:
     tools = ClientTools((BATTERY,))
     assert tools.names == NAMES
     assert tools.parse("get_battery", {"kind": "shared", "data": {"percent": 80}}) == CHARGED
-    assert tools.parse("get_battery", {"kind": "declined"}) == Declined()
+    assert tools.parse("get_battery", {"kind": "declined"}) == DeclinedAnswer()
     assert tools.parse("get_battery", {"kind": "unavailable", "reason": "NO_BATTERY"}) == (
-        Unavailable(reason="NO_BATTERY")
+        UnavailableAnswer(reason="NO_BATTERY")
     )
     for bad in (
         {"kind": "shared", "data": {"latitude": 3.0}},
@@ -72,10 +72,10 @@ def test_two_declarations_cannot_share_a_name() -> None:
 def test_what_the_model_reads_for_each_answer() -> None:
     tools = ClientTools((BATTERY,))
     assert tools.outcome(CHARGED) == Ok(content='{"percent":80}')
-    declined = tools.outcome(Declined())
+    declined = tools.outcome(DeclinedAnswer())
     assert isinstance(declined, Failure) and declined.code == DECLINED
     assert "ask them in words" in declined.message
-    unavailable = tools.outcome(Unavailable(reason="NO_BATTERY"))
+    unavailable = tools.outcome(UnavailableAnswer(reason="NO_BATTERY"))
     assert isinstance(unavailable, Failure) and unavailable.code == UNAVAILABLE
     assert "NO_BATTERY" in unavailable.message
 
@@ -138,13 +138,13 @@ def test_the_service_accepts_by_call_id_or_by_tool_name() -> None:
     service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     body = {"kind": "shared", "data": {"percent": 80}}
 
-    assert service.accept_by_call_id(_session_with_pending(), "c1", body) == Accepted(
+    assert service.accept_by_call_id(_session_with_pending(), "c1", body) == AcceptedAnswer(
         "c1", Ok(content='{"percent":80}')
     )
     accepted = service.accept_by_tool_name(
         _session_with_pending("c2"), "get_battery", {"kind": "declined"}
     )
-    assert isinstance(accepted, Accepted) and accepted.call_id == "c2"
+    assert isinstance(accepted, AcceptedAnswer) and accepted.call_id == "c2"
     assert isinstance(accepted.outcome, Failure) and accepted.outcome.code == DECLINED
 
 
@@ -152,11 +152,11 @@ def test_each_refusal_is_its_own_answer() -> None:
     service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     body = {"kind": "shared", "data": {"percent": 80}}
 
-    assert service.accept_by_call_id(new_session(), "c1", body) is Refused.NOT_PENDING
+    assert service.accept_by_call_id(new_session(), "c1", body) is RefusalReason.NOT_PENDING
     session = _session_with_pending()
-    assert service.accept_by_call_id(session, "c9", body) is Refused.NOT_PENDING
-    assert service.accept_by_tool_name(session, "get_location", body) is Refused.NOT_PENDING
-    assert service.accept_by_call_id(session, "c1", {"kind": "lost"}) is Refused.DOES_NOT_FIT
+    assert service.accept_by_call_id(session, "c9", body) is RefusalReason.NOT_PENDING
+    assert service.accept_by_tool_name(session, "get_location", body) is RefusalReason.NOT_PENDING
+    assert service.accept_by_call_id(session, "c1", {"kind": "lost"}) is RefusalReason.DOES_NOT_FIT
 
 
 def test_the_service_exposes_what_composition_needs() -> None:

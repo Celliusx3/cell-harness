@@ -4,7 +4,7 @@ from harness.tools.approval import ApprovalGate
 from harness.tools.definition import NAMESPACE_SEPARATOR, ToolDefinition
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.models.context import CallOrigin, ToolContext
-from harness.tools.models.decision import Approved
+from harness.tools.models.decision import Approval
 from harness.tools.models.outcome import (
     BLOCKED,
     EXECUTION_ERROR,
@@ -29,7 +29,7 @@ __all__ = [
     "REFUSED",
     "UNKNOWN_TOOL",
     "ApprovalGate",
-    "Approved",
+    "Approval",
     "CallOrigin",
     "Failure",
     "Ok",

@@ -10,9 +10,9 @@ from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Ok, ToolOutcome
 from harness.tools.native.subagent.models import (
-    SubagentAnswered,
     SubagentArgs,
     SubagentOutcome,
+    SubagentReply,
     SubagentTask,
 )
 
@@ -68,6 +68,6 @@ def _answers_text(tasks: Sequence[SubagentTask], outcomes: Sequence[SubagentOutc
 
 
 def _section(task: SubagentTask, outcome: SubagentOutcome) -> str:
-    if isinstance(outcome, SubagentAnswered):
+    if isinstance(outcome, SubagentReply):
         return f"## {task.name}\n{outcome.text}"
     return f"## {task.name}\nstopped: {outcome.reason}"

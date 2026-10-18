@@ -16,7 +16,7 @@ from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import BotMessage, ToolCallEvent
 from harness.session.service import SessionService
-from harness.tools import Approved, Failure, Ok
+from harness.tools import Approval, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 
@@ -86,7 +86,7 @@ class RunService:
             session, self._runtime.hear(message, session=session, bot_id=speaker.id)
         )
 
-    def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
+    def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that answers a client tool for the bot that asked, then the queue's."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)

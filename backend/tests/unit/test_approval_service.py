@@ -9,9 +9,15 @@ import pytest
 from harness.llm import AssistantMessage, ToolCall
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, TurnEnd, TurnStart
 from harness.session.repair import REPAIRED, repair
-from harness.tools import ApprovalGate, Approved
-from harness.tools.client import Accepted, ClientTool, ClientTools, ClientToolService, Refused
-from harness.tools.models.decision import Denied
+from harness.tools import Approval, ApprovalGate
+from harness.tools.client import (
+    AcceptedAnswer,
+    ClientTool,
+    ClientTools,
+    ClientToolService,
+    RefusalReason,
+)
+from harness.tools.models.decision import Denial
 from harness.tools.native.location.models import NoArgs
 from tests.unit.helpers import new_session
 
@@ -59,7 +65,7 @@ def test_the_service_grants_always_before_the_turn_resumes(tmp_path) -> None:
 
     accepted = service.accept_by_call_id(session, "c1", {"kind": "approved", "scope": "always"})
 
-    assert accepted == Accepted("c1", Approved(scope="always"))
+    assert accepted == AcceptedAnswer("c1", Approval(scope="always"))
     assert gate.granted_tools() == frozenset({WRITE})
 
 
@@ -88,13 +94,13 @@ def test_the_service_parses_a_decision_for_a_listed_tool_and_refuses_a_client_bo
 
     assert service.accept_by_call_id(
         session, "c1", {"kind": "approved", "scope": "once"}
-    ) == Accepted("c1", Approved(scope="once"))
+    ) == AcceptedAnswer("c1", Approval(scope="once"))
     assert (
         service.accept_by_call_id(session, "c1", {"kind": "shared", "data": {}})
-        is Refused.DOES_NOT_FIT
+        is RefusalReason.DOES_NOT_FIT
     )
-    assert service.accept_by_call_id(session, "c9", {"kind": "denied"}) is Refused.NOT_PENDING
-    assert isinstance(Denied(), Denied)
+    assert service.accept_by_call_id(session, "c9", {"kind": "denied"}) is RefusalReason.NOT_PENDING
+    assert isinstance(Denial(), Denial)
     assert service.awaited_tools == frozenset({WRITE})
 
 

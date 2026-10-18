@@ -13,7 +13,7 @@ from harness.runs.service import RunAlreadyActive
 from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
-from harness.tools.client import Accepted, ClientToolService, Refused
+from harness.tools.client import AcceptedAnswer, ClientToolService, RefusalReason
 
 logger = logging.getLogger("harness.channels")
 
@@ -61,7 +61,7 @@ class ChatAnswers:
         channel: Channel,
         chat_id: str,
         answered: str,
-        accept: Callable[[Session], Accepted | Refused],
+        accept: Callable[[Session], AcceptedAnswer | RefusalReason],
     ) -> bool:
         state = await state_of(self._repository, channel, chat_id)
         if (
@@ -73,9 +73,9 @@ class ChatAnswers:
             session = await self._sessions.resume(state.conversation_id)
         except SessionNotFoundError:
             return False
-        accepted = accept(session)
-        if isinstance(accepted, Refused):
-            if accepted is Refused.DOES_NOT_FIT:
+        verdict = accept(session)
+        if isinstance(verdict, RefusalReason):
+            if verdict is RefusalReason.DOES_NOT_FIT:
                 logger.warning(
                     "%s chat %s answered %s with a body that does not fit",
                     channel.channel,
@@ -84,7 +84,7 @@ class ChatAnswers:
                 )
             return False
         try:
-            await self._gateway.resume(session, accepted.call_id, accepted.outcome)
+            await self._gateway.resume(session, verdict.call_id, verdict.outcome)
         except RunAlreadyActive:
             return False
         return True

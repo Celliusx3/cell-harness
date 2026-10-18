@@ -21,8 +21,8 @@ from harness.session.models import (
 from harness.session.repair import REPAIRED
 from harness.tools import (
     BLOCKED,
+    Approval,
     ApprovalGate,
-    Approved,
     Failure,
     Ok,
     ToolDefinition,
@@ -31,7 +31,7 @@ from harness.tools import (
     ToolPipeline,
     ToolRegistry,
 )
-from harness.tools.client import Accepted, ClientTools, ClientToolService
+from harness.tools.client import AcceptedAnswer, ClientTools, ClientToolService
 from harness.tools.models.decision import DENIED
 from tests.unit.code_fakes import FakeRunner, build, tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed, reporting_tool
@@ -100,7 +100,7 @@ async def test_allow_once_runs_the_call_in_the_next_turn_and_the_model_sees_its_
     runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
-    events = await drain(runtime.resume("c1", Approved(scope="once"), session=session, bot_id="b"))
+    events = await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
 
     assert ran == ["Kopi"]
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
@@ -119,7 +119,7 @@ async def test_deny_writes_a_denied_result_the_model_reads(tmp_path) -> None:
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
     service = ClientToolService(ClientTools(()), _gate(tmp_path, WRITE))
     accepted = service.accept_by_call_id(session, "c1", {"kind": "denied"})
-    assert isinstance(accepted, Accepted) and isinstance(accepted.outcome, Failure)
+    assert isinstance(accepted, AcceptedAnswer) and isinstance(accepted.outcome, Failure)
     assert accepted.outcome.code == DENIED
 
     await drain(runtime.resume("c1", accepted.outcome, session=session, bot_id="b"))
@@ -145,7 +145,7 @@ async def test_allow_for_the_conversation_writes_a_grant_and_the_next_call_runs_
     runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
-    await drain(runtime.resume("c1", Approved(scope="conversation"), session=session, bot_id="b"))
+    await drain(runtime.resume("c1", Approval(scope="conversation"), session=session, bot_id="b"))
     events = await drain(runtime.run("and Teh", session=session, bot_id="b"))
 
     assert ran == ["Kopi", "Teh"]
@@ -174,7 +174,7 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     await drain(runtime.run("remember both", session=session, bot_id="b"))
     assert {p.call_id for p in service.answerable_calls(session)} == {"c1", "c2"}
 
-    first = await drain(runtime.resume("c1", Approved(scope="once"), session=session, bot_id="b"))
+    first = await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
 
     assert ran == ["Kopi"]
     assert first[-1] == AgentPending(tool_call_id="c2", name=WRITE)
@@ -182,7 +182,7 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     assert [p.call_id for p in service.answerable_calls(session)] == ["c2"]
     assert client.calls == 1
 
-    second = await drain(runtime.resume("c2", Approved(scope="once"), session=session, bot_id="b"))
+    second = await drain(runtime.resume("c2", Approval(scope="once"), session=session, bot_id="b"))
 
     assert ran == ["Kopi", "Teh"]
     assert second[-1] == AgentCompleted(text="both saved")
@@ -226,7 +226,7 @@ async def test_cancel_during_an_approved_run_closes_the_turn(tmp_path) -> None:
 
     async def consume() -> None:
         async with aclosing(
-            runtime.resume("c1", Approved(scope="once"), session=session, bot_id="b")
+            runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b")
         ) as events:
             async for _ in events:
                 pass
@@ -269,7 +269,7 @@ async def test_an_approved_calls_progress_reaches_the_caller_before_its_result(t
     runtime = _runtime(client, _gate(tmp_path, "slow"), reporting_tool([(50.0, "halfway")]))
     await drain(runtime.run("go", session=session, bot_id="b"))
 
-    events = await drain(runtime.resume("c1", Approved(scope="once"), session=session, bot_id="b"))
+    events = await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
 
     progress, result = events[0], events[1]
     assert isinstance(progress, ToolProgress) and progress.message == "halfway"
@@ -289,7 +289,7 @@ async def test_an_approved_calls_note_is_logged_after_its_result(tmp_path) -> No
     runtime = _runtime(client, _gate(tmp_path, WRITE), _writer([]), hooks=HookChain((Noting(),)))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
-    await drain(runtime.resume("c1", Approved(scope="once"), session=session, bot_id="b"))
+    await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
 
     kinds = [e.type for e in session.events() if e.type in ("tool/result", "application/message")]
     assert kinds == ["tool/result", "application/message"]

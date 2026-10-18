@@ -14,7 +14,7 @@ from harness.channels.replies import answer_url
 from harness.channels.telegram.asking import ASK, ASK_BY_LINK, NO_ANSWER_PAGE, SHARE_LABEL
 from harness.runtime.service import SKIPPED
 from harness.session.models import ToolResultEvent, TurnEnd
-from harness.tools.client import PendingCall, Refused
+from harness.tools.client import PendingCall, RefusalReason
 from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.secrets import ASK_FOR_SECRET
 from tests.unit.discord_fakes import discord_channel
@@ -245,7 +245,7 @@ async def test_an_answer_from_the_page_is_still_delivered_to_the_chat(tmp_path) 
 
     session = await sessions.resume(state.conversation_id)
     accepted = tools.accept_by_call_id(session, "c1", {"kind": "declined"})
-    assert not isinstance(accepted, Refused)
+    assert not isinstance(accepted, RefusalReason)
     await gateway.resume(session, accepted.call_id, accepted.outcome)
     await settle(runs, gateway)
 
