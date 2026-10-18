@@ -8,8 +8,8 @@ from dataclasses import dataclass
 
 from pydantic import JsonValue, TypeAdapter, ValidationError
 
-from harness.llm.messages import ExtraContent
-from harness.llm.stream import Usage
+from harness.llm.models.stream import Usage
+from harness.llm.models.tools import ExtraContent
 
 logger = logging.getLogger("harness.llm.openai")
 

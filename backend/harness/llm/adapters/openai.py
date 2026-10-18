@@ -14,8 +14,9 @@ from harness.llm.adapters._openai_calls import ToolCallAccumulator
 from harness.llm.adapters._openai_frames import frame_of
 from harness.llm.adapters._openai_wire import JsonObject, wire_messages, wire_tool
 from harness.llm.client import LLMClient
-from harness.llm.messages import Image, Message, ToolSpec, images_of
-from harness.llm.stream import (
+from harness.llm.models.blocks import Image
+from harness.llm.models.messages import Message, images_of
+from harness.llm.models.stream import (
     Completed,
     Failed,
     StreamEvent,
@@ -23,6 +24,7 @@ from harness.llm.stream import (
     ToolCallChunk,
     Usage,
 )
+from harness.llm.models.tools import ToolSpec
 
 logger = logging.getLogger("harness.llm.openai")
 

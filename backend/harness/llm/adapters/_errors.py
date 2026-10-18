@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, FailureCode
+from harness.llm.models.stream import CONTEXT_WINDOW_EXCEEDED, FailureCode
 
 _OVERFLOW_WORDING = (
     "context_length_exceeded",

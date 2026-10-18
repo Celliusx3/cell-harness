@@ -443,7 +443,7 @@ throughout the conversation history, so Claude can reuse discovered tools in
 later turns without re-searching"*; a custom search tool participates by
 returning the same blocks in an ordinary `tool_result`. Here,
 `get_function_details` is that tool: its result is
-`[Text(declarations), ToolReference(name)…]` (`llm/messages.py`), the loop logs
+`[Text(declarations), ToolReference(name)…]` (`llm/models/blocks.py`), the loop logs
 the blocks as they are, and `Session.tools_selected()` folds the references out
 of the whole log — the same "read history, expand references" the docs
 describe. The one thing their API does that ours cannot is the expansion: this

@@ -1,24 +1,17 @@
 """The provider-neutral model seam: messages, stream vocabulary, adapters."""
 
 from harness.llm.client import LLMClient
-from harness.llm.messages import (
+from harness.llm.models.blocks import Block, Image, Text, ToolReference, render_text
+from harness.llm.models.messages import (
     ApplicationMessage,
     AssistantMessage,
-    Block,
-    ExtraContent,
-    Image,
     Message,
     SystemMessage,
-    Text,
-    ToolCall,
     ToolMessage,
-    ToolReference,
-    ToolSpec,
     UserMessage,
     images_of,
-    render_text,
 )
-from harness.llm.stream import (
+from harness.llm.models.stream import (
     CONTEXT_WINDOW_EXCEEDED,
     Completed,
     Failed,
@@ -27,6 +20,7 @@ from harness.llm.stream import (
     ToolCallChunk,
     Usage,
 )
+from harness.llm.models.tools import ExtraContent, ToolCall, ToolSpec
 
 __all__ = [
     "CONTEXT_WINDOW_EXCEEDED",

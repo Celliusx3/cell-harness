@@ -5,8 +5,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from harness.llm.messages import Message, ToolSpec
-from harness.llm.stream import StreamEvent
+from harness.llm.models.messages import Message
+from harness.llm.models.stream import StreamEvent
+from harness.llm.models.tools import ToolSpec
 
 
 class LLMClient(ABC):

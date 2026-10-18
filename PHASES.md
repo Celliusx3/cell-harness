@@ -466,7 +466,7 @@ The bot takes a screenshot, says what it sees, and clicks by coordinates.
 **Depends on.** 17, and the decision gate: a model that accepts images.
 
 **Ships.**
-- `llm/messages.py` — an `Image` block beside `Text` and `ToolReference`, and the
+- `llm/models/blocks.py` — an `Image` block beside `Text` and `ToolReference`, and the
   OpenAI adapter's mapping for it. Check the endpoint first: many
   OpenAI-compatible endpoints refuse an image inside a `tool` message, and then it
   rides a user message after the result.

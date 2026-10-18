@@ -1,6 +1,6 @@
 # 01 · The vocabulary sits in a models folder, one file per subject
 
-**Status.** open
+**Status.** done
 
 **What to build.** `backend/harness/llm/messages.py` and `backend/harness/llm/stream.py` are replaced by `backend/harness/llm/models/`:
 - `__init__.py`: a one-line docstring only.
