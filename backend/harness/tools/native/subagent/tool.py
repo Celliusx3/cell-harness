@@ -4,17 +4,19 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Protocol
-
-from pydantic import BaseModel, ConfigDict, Field
 
 from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Ok, ToolOutcome
+from harness.tools.native.subagent.models import (
+    SubagentAnswered,
+    SubagentArgs,
+    SubagentOutcome,
+    SubagentTask,
+)
 
 RUN_SUBAGENT = "run_subagent"
-MAX_SUBAGENTS = 4
 
 _DESCRIPTION = (
     "Hand one to four independent tasks to helpers that work at the same time, and get one "
@@ -27,47 +29,6 @@ _DESCRIPTION = (
     'growth."}, {"name": "msft", "task": "Get Microsoft\'s (MSFT) revenue for its last four '
     'fiscal years with the markets functions and return the year-on-year growth."}]})'
 )
-
-
-class SubagentTask(BaseModel):
-    """One helper's job: a label for its answer, and the task it is given."""
-
-    model_config = ConfigDict(frozen=True)
-
-    name: str = Field(
-        description="A short label for this helper, shown with its answer, e.g. 'aapl'."
-    )
-    task: str = Field(
-        description="The whole task, written to stand alone: the helper sees none of this "
-        "conversation."
-    )
-
-
-class SubagentArgs(BaseModel):
-    """What the model passes to `run_subagent`."""
-
-    tasks: list[SubagentTask] = Field(
-        min_length=1,
-        max_length=MAX_SUBAGENTS,
-        description="One to four tasks; their helpers run at the same time.",
-    )
-
-
-@dataclass(frozen=True)
-class SubagentAnswered:
-    """The subagent's turn completed with this reply."""
-
-    text: str
-
-
-@dataclass(frozen=True)
-class SubagentStopped:
-    """The subagent's turn ended without a reply, for this reason."""
-
-    reason: str
-
-
-SubagentOutcome = SubagentAnswered | SubagentStopped
 
 
 class SubagentRunner(Protocol):

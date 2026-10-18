@@ -1,6 +1,6 @@
 # 06 · Each native tool keeps its shapes in its models file
 
-**Status.** open
+**Status.** done
 
 **What to build.** In `backend/harness/tools/native/`, what each tool is called with and answers moves, unchanged with its name and docstring, into the tool folder's `models.py`:
 - `clock/models.py`: `ClockArgs`.

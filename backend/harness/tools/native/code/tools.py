@@ -6,7 +6,7 @@ import json
 import logging
 from collections.abc import Callable
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
@@ -22,6 +22,7 @@ from harness.tools.models.outcome import (
     ToolOutcome,
     blocks_of,
 )
+from harness.tools.native.code.models import DetailsArgs, ExecuteArgs, NoArgs
 from harness.tools.native.code.prompts import (
     DETAILS,
     DETAILS_DESCRIPTION,
@@ -40,25 +41,6 @@ logger = logging.getLogger("harness.tools.code")
 
 
 RESERVED = frozenset({LIST, DETAILS, EXECUTE})
-
-
-class DetailsArgs(BaseModel):
-    """Arguments for `get_function_details`."""
-
-    names: list[str] = Field(
-        description="Exact function names from list_functions, e.g. ['yt__get_subtitles']."
-    )
-
-
-class ExecuteArgs(BaseModel):
-    code: str = Field(
-        description=(
-            "The body of an async function. Call tools by their exact name — "
-            "`await yt__get_subtitles({url})`. Use `return` for the answer and "
-            "`console.log` for anything else worth seeing."
-        )
-    )
-    description: str = Field(description="One line saying what the program does.")
 
 
 def code_mode_tools(
@@ -83,9 +65,6 @@ def code_mode_tools(
 
 
 def _list_tool(available: Catalog) -> ToolDefinition[BaseModel]:
-    class NoArgs(BaseModel):
-        pass
-
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         found = available()
         if not found:

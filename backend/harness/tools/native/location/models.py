@@ -1,8 +1,12 @@
-"""A location fix from the device, in OpenClaw's `location.get` vocabulary."""
+"""What `get_location` takes, and the fix the device sends, in OpenClaw's `location.get` words."""
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class NoArgs(BaseModel):
+    """`get_location` takes nothing: the position is the device's to give."""
 
 
 class Location(BaseModel):

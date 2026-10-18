@@ -2,17 +2,10 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
-
 from harness.tools.client import ClientTool
-from harness.tools.native.location.models import Location
+from harness.tools.native.location.models import Location, NoArgs
 
 LOCATION = "get_location"
-
-
-class NoArgs(BaseModel):
-    """`get_location` takes nothing: the position is the device's to give."""
-
 
 LOCATION_TOOL = ClientTool(
     name=LOCATION,

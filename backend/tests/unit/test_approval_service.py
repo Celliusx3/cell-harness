@@ -12,7 +12,7 @@ from harness.session.repair import REPAIRED, repair
 from harness.tools import ApprovalGate, Approved
 from harness.tools.client import Accepted, ClientTool, ClientTools, ClientToolService, Refused
 from harness.tools.models.decision import Denied
-from harness.tools.native.location.tool import NoArgs
+from harness.tools.native.location.models import NoArgs
 from tests.unit.helpers import new_session
 
 WRITE = "memory__write_note"
