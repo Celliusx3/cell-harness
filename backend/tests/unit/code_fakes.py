@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from harness.llm.messages import ToolCall
 from harness.sandbox import Bridge, DenoUnavailableError, Runner, Script
 from harness.tools.approval import ApprovalGate
+from harness.tools.context import CallOrigin
 from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.native.code import code_mode_tools
@@ -63,10 +64,10 @@ class RecordingDispatcher(ToolDispatcher):
         self.calls: list[ToolCall] = []
 
     async def dispatch(
-        self, call: ToolCall, *, progress, approved: bool, bot_id: str
+        self, call: ToolCall, *, progress, approved: bool, origin: CallOrigin
     ) -> ToolOutcome:
         self.calls.append(call)
-        return await super().dispatch(call, progress=progress, approved=approved, bot_id=bot_id)
+        return await super().dispatch(call, progress=progress, approved=approved, origin=origin)
 
 
 @dataclass

@@ -150,7 +150,7 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
             call,
             progress=context.progress,
             approved=False,
-            bot_id=context.bot_id,
+            origin=context.origin,
         )
         if isinstance(outcome, Ok) and outcome.images:
             raise BridgeError(IMAGES_STAY_OUT.format(name=name))

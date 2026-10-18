@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from harness.llm.messages import ToolCall, ToolSpec
+from harness.tools.context import CallOrigin
 from harness.tools.definition import REFUSED, Failure, ToolDefinition, ToolOutcome
 from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.progress import ToolProgressReporter
@@ -46,22 +47,22 @@ class ToolPipeline:
         call: ToolCall,
         *,
         progress: ToolProgressReporter,
-        bot_id: str,
+        origin: CallOrigin,
         tools_selected: Sequence[str] = (),
     ) -> ToolOutcome:
         """Run one of the model's own calls — if it was offered."""
         if call.name not in {tool.name for tool in self._offered(tools_selected)}:
             return Failure(REFUSED, _not_offered(call.name))
         return await self._dispatcher.dispatch(
-            call, progress=progress, approved=False, bot_id=bot_id
+            call, progress=progress, approved=False, origin=origin
         )
 
     async def approve(
-        self, call: ToolCall, *, progress: ToolProgressReporter, bot_id: str
+        self, call: ToolCall, *, progress: ToolProgressReporter, origin: CallOrigin
     ) -> ToolOutcome:
         """Run a call the person has approved — they opened this door, so no offered check."""
         return await self._dispatcher.dispatch(
-            call, progress=progress, approved=True, bot_id=bot_id
+            call, progress=progress, approved=True, origin=origin
         )
 
 

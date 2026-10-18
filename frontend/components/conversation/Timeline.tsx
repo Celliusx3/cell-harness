@@ -63,6 +63,7 @@ export function Timeline({
   const stays = (item: ToolItem) =>
     item.call.name in CLIENT_TOOLS ||
     item.ui !== null ||
+    item.files.length > 0 ||
     (item.result === null && openTurn === null);
   const shared = { openTurn, conversationId, onAnswered };
 

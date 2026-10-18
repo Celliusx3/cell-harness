@@ -59,7 +59,7 @@ def fetch_with_secret_tool(
             return Failure(
                 NO_SECRET, f"no saved key named {args.name!r}; call ask_for_secret first"
             )
-        if not _can_use(bots, context.bot_id, args.name):
+        if not _can_use(bots, context.origin.bot_id, args.name):
             return Failure(
                 NOT_ALLOWED,
                 f"this bot may not use {args.name!r}; the user can allow it on the bot's page",

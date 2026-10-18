@@ -10,6 +10,7 @@ import re
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 
 from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent, Tool
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
 from harness.tools.context import ToolContext
@@ -37,6 +38,16 @@ _READ_VERBS = frozenset({"get", "list", "search", "find", "read", "fetch"})
 _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 
 CallTool = Callable[[str, dict], Awaitable[CallToolResult]]
+
+FILES_META = "io.cell-harness/files"
+
+
+class ReturnedFile(BaseModel):
+    """One entry of a tool result's `_meta` under FILES_META: a file the tool hands back."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
 
 
 def namespaced(server: str, tool: str) -> str:
@@ -130,8 +141,26 @@ def outcome_of(
         content=rendered,
         data=result.structured_content,
         ui=ui,
+        hand_over_paths=returned_paths(result, name=name),
         images=returned_images(result.content, name=name),
     )
+
+
+def returned_paths(result: CallToolResult, *, name: str) -> tuple[str, ...]:
+    """The paths a result's `_meta` names under FILES_META; a malformed entry is dropped."""
+    if result.meta is None or FILES_META not in result.meta:
+        return ()
+    entries = result.meta[FILES_META]
+    if not isinstance(entries, list):
+        logger.warning("dropped the files %s returned: %s is not a list", name, FILES_META)
+        return ()
+    paths: list[str] = []
+    for entry in entries:
+        try:
+            paths.append(ReturnedFile.model_validate(entry).path)
+        except ValidationError as err:
+            logger.warning("dropped a file %s returned: %s", name, err)
+    return tuple(paths)
 
 
 def returned_images(blocks: Sequence[ContentBlock], *, name: str) -> tuple[ReturnedImage, ...]:

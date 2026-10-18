@@ -76,6 +76,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
           result: event.message.content,
           error: event.error,
           ui: event.ui,
+          files: event.files,
         });
         break;
 
