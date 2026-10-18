@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from harness.bots import BotService
-from harness.llm.messages import SystemMessage, UserMessage
+from harness.llm import SystemMessage, UserMessage
 from harness.runs.service import RunService
 from harness.tools.native.question import QUESTION
 from tests.integration.web_helpers import settle

@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from harness.bots import BotDraft, BotNotFound, BotService, ChatMembers, GroupDraft
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.session.models import (
     GroupMembersEvent,
     ToolCallEvent,

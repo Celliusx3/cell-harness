@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.tools.definition import (
     INVALID_ARGUMENTS,
     Failure,

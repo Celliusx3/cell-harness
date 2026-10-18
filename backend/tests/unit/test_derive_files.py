@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.files import ChatFile
-from harness.llm.messages import UserMessage
+from harness.llm import UserMessage
 from harness.prompts import ATTACHED_FILE
 from harness.session.derive import derive_messages
 from harness.session.models import TurnStart, UserMessageEvent

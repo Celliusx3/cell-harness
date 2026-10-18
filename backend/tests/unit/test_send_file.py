@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
-from harness.llm.messages import ToolCall, ToolMessage, render_text
+from harness.llm import ToolCall, ToolMessage, render_text
 from harness.mcp.service import McpService
 from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.service import Runtime

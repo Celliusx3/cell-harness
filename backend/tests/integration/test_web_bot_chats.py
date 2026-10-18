@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from harness.bots import ASSISTANT_ID, BotService
-from harness.llm.messages import UserMessage
+from harness.llm import UserMessage
 from harness.session.models import UserMessageEvent
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed

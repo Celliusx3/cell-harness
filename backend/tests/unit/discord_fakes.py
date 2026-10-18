@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.llm.client import LLMClient
+from harness.llm import LLMClient
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository

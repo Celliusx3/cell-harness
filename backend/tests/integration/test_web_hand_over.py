@@ -7,7 +7,7 @@ import json
 import httpx
 import pytest
 
-from harness.llm.messages import ToolMessage, render_text
+from harness.llm import ToolMessage, render_text
 from harness.runs.service import RunService
 from harness.runtime.service import SKIPPED
 from harness.tools.native.hand_over import HAND_OVER

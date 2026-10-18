@@ -6,17 +6,20 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from harness.llm.client import LLMClient
-from harness.llm.messages import (
+from harness.llm import (
     AssistantMessage,
+    Failed,
+    LLMClient,
     Message,
+    StreamEvent,
     SystemMessage,
+    TextChunk,
     ToolCall,
     ToolMessage,
     ToolSpec,
+    Usage,
     UserMessage,
 )
-from harness.llm.stream import Failed, StreamEvent, TextChunk, Usage
 from harness.prompts import COMPACTION_INSTRUCTION, COMPACTION_PREAMBLE
 from harness.runtime.compaction import (
     CompactionRefused,

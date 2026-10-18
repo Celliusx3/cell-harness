@@ -8,7 +8,7 @@ import httpx
 import pytest
 from pydantic import JsonValue
 
-from harness.llm.stream import Completed, TextChunk, Usage
+from harness.llm import Completed, TextChunk, Usage
 from tests.unit.test_openai_adapter import collect, delta, sse
 
 

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from harness.llm.messages import ToolCall, ToolMessage
+from harness.llm import ToolCall, ToolMessage
 from harness.runtime.hooks import (
     CompletedCall,
     HookChain,

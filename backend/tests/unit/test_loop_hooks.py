@@ -5,8 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import replace
 
-from harness.llm.messages import Text, ToolCall, render_text
-from harness.llm.stream import Completed, ToolCallChunk
+from harness.llm import Completed, Text, ToolCall, ToolCallChunk, render_text
 from harness.runtime.events import AgentCompleted, ToolResult, TurnEvent
 from harness.runtime.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook

@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from contextlib import aclosing
 
+from harness.llm import Text, ToolCall, ToolMessage, ToolReference, render_text
 from harness.llm.adapters._openai_wire import wire_messages
-from harness.llm.messages import Text, ToolCall, ToolMessage, ToolReference, render_text
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.tools.definition import Ok, ToolDefinition

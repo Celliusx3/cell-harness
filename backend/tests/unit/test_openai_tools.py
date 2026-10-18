@@ -7,8 +7,15 @@ import json
 import httpx
 import pytest
 
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, ToolSpec, UserMessage
-from harness.llm.stream import Completed, ToolCallChunk
+from harness.llm import (
+    AssistantMessage,
+    Completed,
+    ToolCall,
+    ToolCallChunk,
+    ToolMessage,
+    ToolSpec,
+    UserMessage,
+)
 from tests.unit.test_openai_adapter import collect, sse
 
 

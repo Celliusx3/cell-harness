@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.files import ChatFile
-from harness.llm.messages import (
+from harness.llm import (
     AssistantMessage,
     Image,
     Message,

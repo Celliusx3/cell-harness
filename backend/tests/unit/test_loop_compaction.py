@@ -5,22 +5,20 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import AsyncIterator
 
-from harness.llm.client import LLMClient
-from harness.llm.messages import (
-    AssistantMessage,
-    Message,
-    SystemMessage,
-    ToolCall,
-    ToolSpec,
-    UserMessage,
-)
-from harness.llm.stream import (
+from harness.llm import (
     CONTEXT_WINDOW_EXCEEDED,
+    AssistantMessage,
     Completed,
     Failed,
+    LLMClient,
+    Message,
     StreamEvent,
+    SystemMessage,
     TextChunk,
+    ToolCall,
+    ToolSpec,
     Usage,
+    UserMessage,
 )
 from harness.prompts import SUMMARY_OPEN
 from harness.runtime.service import Runtime

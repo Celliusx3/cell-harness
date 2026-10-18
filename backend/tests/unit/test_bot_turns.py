@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 
 from harness.bots import ASSISTANT_ID, BotDraft, BotService
-from harness.llm.messages import (
+from harness.llm import (
     ApplicationMessage,
     AssistantMessage,
     SystemMessage,

@@ -9,8 +9,7 @@ import httpx
 import pytest
 
 from harness.bots import ASSISTANT_ID, BotService
-from harness.llm.messages import Message
-from harness.llm.stream import StreamEvent
+from harness.llm import Message, StreamEvent
 from harness.runs.service import RunService
 from harness.tools.definition import ToolSpec
 from tests.integration.web_helpers import assistant_chat, settle

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harness.llm.messages import ToolCall, ToolMessage
+from harness.llm import ToolCall, ToolMessage
 from harness.session.models import (
     ToolCallEvent,
     ToolResultEvent,

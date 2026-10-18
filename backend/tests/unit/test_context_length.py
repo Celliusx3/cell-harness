@@ -8,8 +8,8 @@ import httpx
 
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
+from harness.llm.adapters import context_length
 from harness.llm.adapters import context_window as context_window_module
-from harness.llm.adapters.context_window import context_length
 from harness.web.server import _resolve_context_tokens
 from tests.unit.test_openai_adapter import settings
 

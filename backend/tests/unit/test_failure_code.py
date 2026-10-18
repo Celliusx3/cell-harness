@@ -6,8 +6,8 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+from harness.llm import CONTEXT_WINDOW_EXCEEDED, Failed
 from harness.llm.adapters._errors import failure_code
-from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Failed
 from tests.unit.test_openai_adapter import collect
 
 ILMU_GLM_OCR = (

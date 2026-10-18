@@ -7,9 +7,17 @@ from collections.abc import AsyncIterator, Mapping, Sequence
 
 from pydantic import BaseModel, Field
 
-from harness.llm.client import LLMClient
-from harness.llm.messages import Message, SystemMessage, ToolCall, ToolSpec
-from harness.llm.stream import Completed, StreamEvent, TextChunk, ToolCallChunk
+from harness.llm import (
+    Completed,
+    LLMClient,
+    Message,
+    StreamEvent,
+    SystemMessage,
+    TextChunk,
+    ToolCall,
+    ToolCallChunk,
+    ToolSpec,
+)
 from harness.tools.context import ToolContext
 from harness.tools.definition import Ok, Pending, ToolDefinition, ToolOutcome
 

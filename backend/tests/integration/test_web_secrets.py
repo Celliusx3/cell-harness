@@ -13,7 +13,7 @@ import pytest
 from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID, BotDraft
-from harness.llm.stream import StreamEvent
+from harness.llm import StreamEvent
 from harness.runs.service import RunService
 from harness.secrets import SECRET_VALUE_RULE, Destination, SecretRefused, SecretService
 from harness.tools.approval import ApprovalGate

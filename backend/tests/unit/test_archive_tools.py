@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.config.settings import Settings
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

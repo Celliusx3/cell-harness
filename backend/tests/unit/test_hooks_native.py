@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import ToolCall, ToolMessage
+from harness.llm import ToolCall, ToolMessage
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT
 from harness.runtime.hooks.native.no_progress import NO_PROGRESS_BLOCK_AT

@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from contextlib import aclosing
 
-from harness.llm.messages import ToolCall, render_text
-from harness.llm.stream import Completed, TextChunk, ToolCallChunk
+from harness.llm import Completed, TextChunk, ToolCall, ToolCallChunk, render_text
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
 from harness.runtime.hooks import HookChain, ToolHook

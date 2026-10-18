@@ -5,8 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.llm.messages import AssistantMessage, UserMessage
-from harness.llm.stream import TextChunk
+from harness.llm import AssistantMessage, TextChunk, UserMessage
 from harness.session.models import (
     AssistantChunk,
     AssistantMessageEvent,

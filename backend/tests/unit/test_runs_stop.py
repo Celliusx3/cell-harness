@@ -7,7 +7,7 @@ import asyncio
 import pytest
 
 from harness.bots import ASSISTANT_ID, BotDraft, BotService
-from harness.llm.client import LLMClient
+from harness.llm import LLMClient
 from harness.runs.subscribe import subscribe
 from harness.session.derive import derive_messages
 from harness.session.models import (

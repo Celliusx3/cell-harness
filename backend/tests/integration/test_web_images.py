@@ -12,7 +12,7 @@ import pytest
 
 from harness.bots import ASSISTANT_ID
 from harness.config.sections import McpServer
-from harness.llm.messages import Image, ToolMessage, UserMessage
+from harness.llm import Image, ToolMessage, UserMessage
 from harness.mcp.service import McpService
 from harness.tools.registry import ToolRegistry
 from tests.integration.web_helpers import api, build, settle

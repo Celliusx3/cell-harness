@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import aclosing
 
-from harness.llm.messages import Text, ToolMessage, ToolReference
+from harness.llm import Text, ToolMessage, ToolReference
 from harness.session.derive import RESULT_LIMIT, derive_messages
 from harness.session.models import ToolResultEvent
 from harness.tools.definition import Ok, ToolDefinition

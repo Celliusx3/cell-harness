@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.llm.messages import AssistantMessage, ToolCall
+from harness.llm import AssistantMessage, ToolCall
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, TurnEnd, TurnStart
 from harness.session.repair import REPAIRED, repair
 from harness.tools.approval import ApprovalGate, Approved, Denied

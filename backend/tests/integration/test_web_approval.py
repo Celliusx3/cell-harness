@@ -6,7 +6,7 @@ import httpx
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
-from harness.llm.stream import StreamEvent
+from harness.llm import StreamEvent
 from harness.runs.service import RunService
 from harness.tools.approval import DENIED, ApprovalGate
 from harness.tools.client import ClientToolService

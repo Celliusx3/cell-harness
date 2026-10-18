@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage, render_text
+from harness.llm import AssistantMessage, ToolCall, ToolMessage, UserMessage, render_text
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.derive import derive_messages
 from harness.session.models import (

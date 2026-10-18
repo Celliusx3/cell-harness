@@ -6,8 +6,14 @@ import asyncio
 import contextlib
 from contextlib import aclosing
 
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, UserMessage, render_text
-from harness.llm.stream import ToolCallChunk
+from harness.llm import (
+    AssistantMessage,
+    ToolCall,
+    ToolCallChunk,
+    ToolMessage,
+    UserMessage,
+    render_text,
+)
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.derive import derive_messages
 from harness.session.log import Session

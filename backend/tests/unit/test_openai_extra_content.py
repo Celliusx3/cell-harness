@@ -7,7 +7,7 @@ import json
 import httpx
 from pydantic import JsonValue
 
-from harness.llm.messages import AssistantMessage, ExtraContent, ToolCall, ToolMessage
+from harness.llm import AssistantMessage, ExtraContent, ToolCall, ToolMessage
 from tests.unit.test_openai_adapter import collect, sse
 
 SIGNED: ExtraContent = {"google": {"thought_signature": "sig"}}

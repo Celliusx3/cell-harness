@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harness.llm.messages import UserMessage
+from harness.llm import UserMessage
 from harness.session.derive import derive_messages
 from harness.session.models import TurnEnd, TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository

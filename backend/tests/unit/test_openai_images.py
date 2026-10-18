@@ -9,8 +9,7 @@ import logging
 
 import httpx
 
-from harness.llm.adapters.openai import ImageReader
-from harness.llm.messages import (
+from harness.llm import (
     AssistantMessage,
     Image,
     Message,
@@ -20,6 +19,7 @@ from harness.llm.messages import (
     ToolReference,
     UserMessage,
 )
+from harness.llm.adapters import ImageReader
 from harness.prompts import IMAGE_NOT_SHOWN, IMAGES_FOLLOW, REFERENCES_NOTE, TOOL_IMAGES
 from tests.mcp_stub import DOT_PNG
 from tests.unit.test_image_service import RETURNED_DOT, images_at

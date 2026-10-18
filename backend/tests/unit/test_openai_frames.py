@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import JsonValue
 
+from harness.llm import Usage
 from harness.llm.adapters._openai_frames import CallPiece, Frame, frame_of
-from harness.llm.stream import Usage
 
 EMPTY = Frame(text="", pieces=(), usage=None, failed=False)
 

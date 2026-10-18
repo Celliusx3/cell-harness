@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from harness.llm.messages import AssistantMessage, ToolCall, ToolMessage, render_text
-from harness.llm.stream import Completed, TextChunk, ToolCallChunk
+from harness.llm import (
+    AssistantMessage,
+    Completed,
+    TextChunk,
+    ToolCall,
+    ToolCallChunk,
+    ToolMessage,
+    render_text,
+)
 from harness.runtime.events import AgentCompleted, ToolProgress, ToolResult
 from harness.runtime.service import Runtime
 from harness.session.derive import derive_messages

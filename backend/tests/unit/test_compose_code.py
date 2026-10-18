@@ -8,7 +8,7 @@ import pytest
 
 from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
-from harness.llm.messages import ToolCall
+from harness.llm import ToolCall
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook

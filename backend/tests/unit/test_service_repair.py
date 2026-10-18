@@ -8,7 +8,7 @@ from contextlib import aclosing
 
 import pytest
 
-from harness.llm.messages import UserMessage, render_text
+from harness.llm import UserMessage, render_text
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
 from harness.session.derive import derive_messages
