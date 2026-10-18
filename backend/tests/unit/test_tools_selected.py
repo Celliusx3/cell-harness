@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from contextlib import aclosing
 
-from harness.llm import Text, ToolCall, ToolMessage, ToolReference, render_text
+from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
 from harness.llm.adapters._openai_wire import wire_messages
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
@@ -157,7 +157,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
     assert offered[2] == [*DEFAULTS, "a"]
     results = [e for e in session.events() if e.type == "tool/result"]
     assert ToolReference(tool_name="a") in results[0].message.content
-    assert results[1].error is None and render_text(results[1].message.content) == "direct"
+    assert results[1].error is None and text_of(results[1].message.content) == "direct"
 
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
@@ -172,4 +172,4 @@ async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     (result,) = [e for e in session.events() if e.type == "tool/result"]
     assert result.error is not None
     assert not any(isinstance(b, ToolReference) for b in result.message.content)
-    assert "get_function_details" in render_text(result.message.content)
+    assert "get_function_details" in text_of(result.message.content)

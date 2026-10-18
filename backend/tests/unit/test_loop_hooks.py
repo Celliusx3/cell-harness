@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import replace
 
-from harness.llm import Completed, Text, ToolCall, ToolCallChunk, render_text
+from harness.llm import Completed, Text, ToolCall, ToolCallChunk, text_of
 from harness.runtime.events import AgentCompleted, ToolResult, TurnEvent
 from harness.runtime.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
@@ -59,7 +59,7 @@ async def test_a_refused_call_is_logged_but_never_run() -> None:
     assert runs == []
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == BLOCKED
-    assert render_text(result.message.content) == "error: not today"
+    assert text_of(result.message.content) == "error: not today"
     assert sum(isinstance(e, ToolCallEvent) for e in session.events()) == 1
     assert unanswered_calls(derive_messages(session.events())) == []
     assert hook.post_seen == []

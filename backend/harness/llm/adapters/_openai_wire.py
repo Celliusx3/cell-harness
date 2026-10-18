@@ -9,7 +9,7 @@ from typing import assert_never
 
 from pydantic import JsonValue
 
-from harness.llm.models.blocks import Block, Image, Text, ToolReference, render_text
+from harness.llm.models.blocks import Block, Image, Text, ToolReference, text_of
 from harness.llm.models.messages import (
     AssistantMessage,
     Message,
@@ -61,8 +61,11 @@ def _wire_message(message: Message, image_bytes: Mapping[str, bytes]) -> JsonObj
                 {
                     "id": call.id,
                     "type": "function",
-                    "function": {"name": call.name, "arguments": _wire_arguments(call.arguments)},
-                    **_extra_field(call.extra_content),
+                    "function": {
+                        "name": call.name,
+                        "arguments": _sendable_arguments(call.arguments),
+                    },
+                    **_extra_content_field(call.extra_content),
                 }
                 for call in message.tool_calls
             ],
@@ -83,14 +86,14 @@ def _wire_message(message: Message, image_bytes: Mapping[str, bytes]) -> JsonObj
     assert_never(message)
 
 
-def _extra_field(extra: ExtraContent | None) -> dict[str, ExtraContent]:
+def _extra_content_field(extra: ExtraContent | None) -> dict[str, ExtraContent]:
     """The field that hands a call's extra content back to its provider, or none without any."""
     if extra is None:
         return {}
     return {"extra_content": extra}
 
 
-def _wire_arguments(arguments: str) -> str:
+def _sendable_arguments(arguments: str) -> str:
     """The model's raw arguments, unless the provider cannot carry them."""
     try:
         json.loads(arguments)
@@ -105,7 +108,7 @@ def _tool_content(blocks: tuple[Block, ...], image_bytes: Mapping[str, bytes]) -
         Text(text=IMAGE_NOT_SHOWN) if isinstance(b, Image) and b.sha256 not in image_bytes else b
         for b in blocks
     )
-    parts = [render_text(readable)] if any(isinstance(b, Text) for b in readable) else []
+    parts = [text_of(readable)] if any(isinstance(b, Text) for b in readable) else []
     referenced = sorted(b.tool_name for b in readable if isinstance(b, ToolReference))
     if referenced:
         parts.append(REFERENCES_NOTE.format(names=", ".join(referenced)))

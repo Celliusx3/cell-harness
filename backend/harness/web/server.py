@@ -19,7 +19,7 @@ from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.llm.adapters import context_length
+from harness.llm.adapters import context_window_tokens
 from harness.mcp.relay import Relays
 from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
@@ -95,7 +95,7 @@ def _resolve_context_tokens(settings: Settings) -> int | None:
     if configured is not None:
         logger.info("compaction: context window %d tokens (from config)", configured)
         return configured
-    discovered = context_length(settings.llm)
+    discovered = context_window_tokens(settings.llm)
     if discovered is not None:
         logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
     else:

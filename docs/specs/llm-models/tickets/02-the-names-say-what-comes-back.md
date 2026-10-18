@@ -1,6 +1,6 @@
 # 02 · Seven names say what they give back
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `render_text` becomes `text_of`: in `llm/models/blocks.py`, the door's import and `__all__`, and every caller in `backend/harness/` and `backend/tests/` (about 18 files); `docs/mcp-apps.md` follows.

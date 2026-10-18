@@ -11,7 +11,7 @@ from harness.llm import (
     ToolCall,
     ToolCallChunk,
     ToolMessage,
-    render_text,
+    text_of,
 )
 from harness.runtime.events import AgentCompleted, ToolProgress, ToolResult
 from harness.runtime.service import Runtime
@@ -162,7 +162,7 @@ async def test_a_failing_tool_is_logged_with_its_typed_code() -> None:
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == "INVALID_ARGUMENTS"
-    assert render_text(result.message.content).startswith("error: ")
+    assert text_of(result.message.content).startswith("error: ")
     assert isinstance(events[-1], AgentCompleted)
 
 

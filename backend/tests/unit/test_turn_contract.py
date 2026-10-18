@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import aclosing
 
-from harness.llm import Completed, TextChunk, ToolCall, ToolCallChunk, render_text
+from harness.llm import Completed, TextChunk, ToolCall, ToolCallChunk, text_of
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
 from harness.runtime.hooks import HookChain, ToolHook
@@ -71,7 +71,7 @@ async def test_cancelling_mid_step_answers_only_the_calls_still_open() -> None:
     await cancel_mid_turn(runtime_over(client, echo_tool(), hanging_tool()), session)
 
     results = [e for e in session.events() if isinstance(e, ToolResultEvent)]
-    assert [(r.message.tool_call_id, render_text(r.message.content), r.error) for r in results] == [
+    assert [(r.message.tool_call_id, text_of(r.message.content), r.error) for r in results] == [
         ("c1", "a", None),
         ("c2", TOOL_OUTCOME_UNKNOWN, "INTERRUPTED_BY_CRASH"),
     ]

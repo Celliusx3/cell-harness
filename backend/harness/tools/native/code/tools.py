@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 from pydantic import BaseModel, Field
 
-from harness.llm import Text, ToolCall, ToolReference, render_text
+from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
 from harness.tools.context import ToolContext
@@ -161,7 +161,7 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
                 f"{name} waits for the user's approval, so a script cannot call it. "
                 f"Read it with {DETAILS}, then call it directly as a tool."
             )
-        raise BridgeError(render_text(render_outcome(outcome)))
+        raise BridgeError(text_of(render_outcome(outcome)))
 
     return bridge
 

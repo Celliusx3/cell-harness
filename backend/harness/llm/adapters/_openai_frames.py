@@ -45,7 +45,7 @@ def frame_of(payload: dict[str, JsonValue]) -> Frame:
     content = delta.get("content")
     return Frame(
         text=content if isinstance(content, str) else "",
-        pieces=_pieces(delta),
+        pieces=_call_pieces(delta),
         usage=_usage(payload),
         failed=False,
     )
@@ -73,26 +73,26 @@ def _delta(payload: Mapping[str, JsonValue]) -> Mapping[str, JsonValue]:
     return delta if isinstance(delta, dict) else {}
 
 
-def _pieces(delta: Mapping[str, JsonValue]) -> tuple[CallPiece, ...]:
+def _call_pieces(delta: Mapping[str, JsonValue]) -> tuple[CallPiece, ...]:
     """Each tool call fragment in `delta` that is an object."""
     pieces = delta.get("tool_calls")
     if not isinstance(pieces, list):
         return ()
-    return tuple(_piece(piece) for piece in pieces if isinstance(piece, dict))
+    return tuple(_call_piece(piece) for piece in pieces if isinstance(piece, dict))
 
 
-def _piece(piece: Mapping[str, JsonValue]) -> CallPiece:
+def _call_piece(raw: Mapping[str, JsonValue]) -> CallPiece:
     """One fragment, each field kept only when it has the type the wire promises."""
-    function = piece.get("function")
+    function = raw.get("function")
     fields = function if isinstance(function, dict) else {}
-    index, call_id = piece.get("index"), piece.get("id")
+    index, call_id = raw.get("index"), raw.get("id")
     name, arguments = fields.get("name"), fields.get("arguments")
     return CallPiece(
         index=index if isinstance(index, int) else None,
         id=call_id if isinstance(call_id, str) else None,
         name=name if isinstance(name, str) else None,
         arguments=arguments if isinstance(arguments, str) else None,
-        extra_content=_extra_content(piece),
+        extra_content=_extra_content(raw),
     )
 
 

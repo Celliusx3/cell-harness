@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from harness.llm import Block, Text, ToolSpec, render_text
+from harness.llm import Block, Text, ToolSpec, text_of
 from harness.prompts import ERROR_PREFIX
 from harness.tools.context import ToolContext
 
@@ -56,7 +56,7 @@ class Ok:
     @property
     def text(self) -> str:
         """The prose alone — for a reader that wants a string, like the bridge."""
-        return render_text(self.content)
+        return text_of(self.content)
 
 
 @dataclass(frozen=True)

@@ -12,7 +12,7 @@ from harness.config.sections import LLMSettings
 logger = logging.getLogger("harness.llm")
 
 
-class _Model(BaseModel):
+class _ListedModel(BaseModel):
     """One entry of the listing, narrowed to what we read."""
 
     model_config = ConfigDict(extra="ignore")
@@ -24,10 +24,10 @@ class _Model(BaseModel):
 class _Listing(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    data: list[_Model] = []
+    data: list[_ListedModel] = []
 
 
-def context_length(settings: LLMSettings) -> int | None:
+def context_window_tokens(settings: LLMSettings) -> int | None:
     """`context_length` of `settings.model` from the endpoint's listing, or `None`."""
     url = f"{settings.base_url.rstrip('/')}/models"
     try:

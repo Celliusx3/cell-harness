@@ -1,7 +1,7 @@
 """The provider-neutral model seam: messages, stream vocabulary, adapters."""
 
 from harness.llm.client import LLMClient
-from harness.llm.models.blocks import Block, Image, Text, ToolReference, render_text
+from harness.llm.models.blocks import Block, Image, Text, ToolReference, text_of
 from harness.llm.models.messages import (
     ApplicationMessage,
     AssistantMessage,
@@ -45,5 +45,5 @@ __all__ = [
     "Usage",
     "UserMessage",
     "images_of",
-    "render_text",
+    "text_of",
 ]

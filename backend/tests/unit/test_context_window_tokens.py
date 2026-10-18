@@ -8,8 +8,8 @@ import httpx
 
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
-from harness.llm.adapters import context_length
 from harness.llm.adapters import context_window as context_window_module
+from harness.llm.adapters import context_window_tokens
 from harness.web.server import _resolve_context_tokens
 from tests.unit.test_openai_adapter import settings
 
@@ -41,7 +41,7 @@ def test_reads_the_configured_models_context_length(monkeypatch) -> None:
         return httpx.Response(200, content=json.dumps(ILMU).encode())
 
     patched(monkeypatch, handler)
-    assert context_length(settings()) == 1000000
+    assert context_window_tokens(settings()) == 1000000
     assert seen[0].url == "https://x/v1/models"
     assert seen[0].headers["authorization"] == "Bearer k"
 
@@ -51,7 +51,7 @@ def test_an_endpoint_that_does_not_say_yields_none(monkeypatch) -> None:
         return httpx.Response(200, content=json.dumps(LM_STUDIO).encode())
 
     patched(monkeypatch, handler)
-    assert context_length(settings()) is None
+    assert context_window_tokens(settings()) is None
 
 
 def test_a_missing_model_a_bad_body_and_a_dead_endpoint_yield_none(monkeypatch) -> None:
@@ -62,13 +62,13 @@ def test_a_missing_model_a_bad_body_and_a_dead_endpoint_yield_none(monkeypatch) 
         lambda r: httpx.Response(500, content=b""),
     ):
         patched(monkeypatch, handler)
-        assert context_length(settings()) is None
+        assert context_window_tokens(settings()) is None
 
     def dead(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("no route")
 
     patched(monkeypatch, dead)
-    assert context_length(settings()) is None
+    assert context_window_tokens(settings()) is None
 
 
 async def test_the_window_is_found_from_inside_a_running_loop(monkeypatch) -> None:

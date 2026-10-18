@@ -39,6 +39,6 @@ class Image(BaseModel):
 Block = Annotated[Text | ToolReference | Image, Field(discriminator="type")]
 
 
-def render_text(blocks: tuple[Block, ...]) -> str:
+def text_of(blocks: tuple[Block, ...]) -> str:
     """The prose of a result: its text blocks, joined."""
     return "\n\n".join(block.text for block in blocks if isinstance(block, Text))
