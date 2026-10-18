@@ -5,23 +5,20 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.bots import Bot, BotService, ChatMembers, roster
+from harness.bots import Bot, BotService, ChatMembers, bot_instructions_event, group_members_event
 from harness.bots.discussion import next_speaker
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.log import Session
-from harness.session.models import BotInstructionsEvent
 
 
 def log_speaker(session: Session, members: ChatMembers, bot: Bot) -> None:
     """Log `bot`'s instructions, and in a group its members, where they differ from the last."""
     logged = session.bot_instructions(bot.id)
     if logged is None or (logged.name, logged.instructions) != (bot.name, bot.instructions):
-        session.append(
-            BotInstructionsEvent(name=bot.name, instructions=bot.instructions, bot_id=bot.id)
-        )
+        session.append(bot_instructions_event(bot))
     if members.group is not None:
-        members_now = roster(members.group, members.bots)
+        members_now = group_members_event(members.group, members.bots)
         if session.group_members() != members_now:
             session.append(members_now)
 

@@ -1,6 +1,6 @@
 # 05 · One mapping from a bot to its chat, and event builders named for their events
 
-**Status.** open
+**Status.** done
 
 **What to build.** In `backend/harness/bots/service.py`, `members_of_chat` finds a bot's own chat by asking `self.chat_of(bot.id) == chat_id` instead of comparing ids; `chat_of` stays the one method that maps a bot to its chat. `roster(group, members)` becomes `group_members_event(group, members)`, and a new `bot_instructions_event(bot) -> BotInstructionsEvent` beside it replaces the two places that build that event: `BotService._log_instructions` and `log_speaker` in `backend/harness/runs/chain.py`. Both are exported from `backend/harness/bots/__init__.py`.
 

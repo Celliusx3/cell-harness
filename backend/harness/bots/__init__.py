@@ -13,7 +13,7 @@ from harness.bots.models import (
     GroupDraft,
     GroupEmpty,
 )
-from harness.bots.service import BotService, roster
+from harness.bots.service import BotService, bot_instructions_event, group_members_event
 
 __all__ = [
     "ASSISTANT_ID",
@@ -28,5 +28,6 @@ __all__ = [
     "Group",
     "GroupDraft",
     "GroupEmpty",
-    "roster",
+    "bot_instructions_event",
+    "group_members_event",
 ]

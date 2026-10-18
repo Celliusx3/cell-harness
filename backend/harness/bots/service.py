@@ -67,7 +67,7 @@ class BotService:
         """A bot's chat's bot, or a group's active members in order; `BotNotFound` for neither."""
         stored = self._read_file()
         active = self._active_bots_in(stored)
-        own = next((bot for bot in active if bot.id == chat_id), None)
+        own = next((bot for bot in active if self.chat_of(bot.id) == chat_id), None)
         if own is not None:
             return ChatMembers(group=None, bots=(own,))
         group = next((group for group in stored.groups if group.id == chat_id), None)
@@ -97,7 +97,7 @@ class BotService:
         members = tuple(self._active_bot_in(before, bot_id) for bot_id in draft.member_ids)
         session = await self._sessions.create()
         group = Group(id=session.id, name=draft.name, member_ids=draft.member_ids)
-        session.append(roster(group, members))
+        session.append(group_members_event(group, members))
         await self._sessions.flush(session)
         stored = self._read_file()
         self._write_file(stored.model_copy(update={"groups": (*stored.groups, group)}))
@@ -221,13 +221,16 @@ class BotService:
         os.replace(temp, self._path)
 
     async def _log_instructions(self, session: Session, bot: Bot) -> None:
-        session.append(
-            BotInstructionsEvent(name=bot.name, instructions=bot.instructions, bot_id=bot.id)
-        )
+        session.append(bot_instructions_event(bot))
         await self._sessions.flush(session)
 
 
-def roster(group: Group, members: tuple[Bot, ...]) -> GroupMembersEvent:
+def bot_instructions_event(bot: Bot) -> BotInstructionsEvent:
+    """The bot's name and instructions, as its chats log them before its turn."""
+    return BotInstructionsEvent(name=bot.name, instructions=bot.instructions, bot_id=bot.id)
+
+
+def group_members_event(group: Group, members: tuple[Bot, ...]) -> GroupMembersEvent:
     """The group's name and its members' names, as its chat logs them for its bots."""
     return GroupMembersEvent(name=group.name, members=tuple(bot.name for bot in members))
 
