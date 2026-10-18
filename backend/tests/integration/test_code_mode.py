@@ -11,12 +11,21 @@ import pytest
 
 from harness.llm import ToolCall
 from harness.sandbox import DenoRunner
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
-from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.native.code import DETAILS, EXECUTE, LIST, code_mode_tools
-from harness.tools.native.code.typescript import declarations
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
+from harness.tools import (
+    Ok,
+    ToolDefinition,
+    ToolDispatcher,
+    ToolOutcome,
+    ToolPipeline,
+    ToolRegistry,
+)
+from harness.tools.native.code_mode import (
+    EXECUTE_TYPESCRIPT,
+    GET_FUNCTION_DETAILS,
+    LIST_FUNCTIONS,
+    code_mode_tools,
+)
+from harness.tools.native.code_mode._typescript import declarations
 from tests.unit.helpers import ORIGIN, no_gate, no_progress
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")
@@ -68,7 +77,7 @@ def test_generated_declarations_are_valid_typescript() -> None:
         tool("clock", "a hostile schema, not a dict"),
     ]
 
-    result = type_check(declarations(tools, types=True))
+    result = type_check(declarations(tools, with_types=True))
 
     assert result.returncode == 0, result.stderr
 
@@ -86,7 +95,7 @@ def test_a_script_can_be_written_against_the_declarations() -> None:
                 },
             )
         ],
-        types=True,
+        with_types=True,
     )
     source += "\nasync function _unused() { await yt__get_subtitles({ url: 'x' }); }\n"
 
@@ -121,19 +130,25 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         withheld=frozenset(),
     ):
         registry.register(built)
-    pipeline = ToolPipeline(registry, dispatcher, (LIST, DETAILS, EXECUTE))
+    pipeline = ToolPipeline(
+        registry, dispatcher, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
+    )
 
     async def run(name: str, arguments: str) -> ToolOutcome:
         call = ToolCall(id="c1", name=name, arguments=arguments)
         return await pipeline.execute(call, progress=no_progress, origin=ORIGIN)
 
-    assert [spec.name for spec in pipeline.specs()] == [LIST, DETAILS, EXECUTE]
+    assert [spec.name for spec in pipeline.specs()] == [
+        LIST_FUNCTIONS,
+        GET_FUNCTION_DETAILS,
+        EXECUTE_TYPESCRIPT,
+    ]
 
-    listed = await run(LIST, "{}")
+    listed = await run(LIST_FUNCTIONS, "{}")
     assert isinstance(listed, Ok)
     assert "db__query" in listed.text
 
-    typed = await run(DETAILS, json.dumps({"names": ["db__query"]}))
+    typed = await run(GET_FUNCTION_DETAILS, json.dumps({"names": ["db__query"]}))
     assert isinstance(typed, Ok)
     assert "sql: string" in typed.text
 
@@ -142,7 +157,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         "console.log('fetched', r.rows.length, 'rows');\n"
         "return r.rows.filter((x) => x.n > 1).map((x) => x.n);"
     )
-    ran = await run(EXECUTE, json.dumps({"code": script, "description": "count rows"}))
+    ran = await run(EXECUTE_TYPESCRIPT, json.dumps({"code": script, "description": "count rows"}))
 
     assert isinstance(ran, Ok)
     assert "fetched 3 rows" in ran.text

@@ -19,8 +19,14 @@ PARTIAL_SUFFIX = ".partial"
 MIN_NUMBER_WIDTH = 3
 COPY_CHUNK_BYTES = 1024 * 1024
 REGULAR_FILE_MODES = (0, stat.S_IFREG)
-DIGITS = re.compile(r"(\d+)")
-UNREADABLE_ZIP = (zipfile.BadZipFile, zlib.error, EOFError, NotImplementedError, RuntimeError)
+DIGIT_RUNS = re.compile(r"(\d+)")
+UNREADABLE_ZIP_ERRORS = (
+    zipfile.BadZipFile,
+    zlib.error,
+    EOFError,
+    NotImplementedError,
+    RuntimeError,
+)
 
 
 class ArchiveError(ValueError):
@@ -29,7 +35,7 @@ class ArchiveError(ValueError):
 
 def natural_key(name: str) -> tuple[str | int, ...]:
     """`2.png` before `10.png`: each run of digits compares as a number."""
-    parts = DIGITS.split(name.lower())
+    parts = DIGIT_RUNS.split(name.lower())
     return tuple(int(part) if index % 2 else part for index, part in enumerate(parts))
 
 
@@ -62,7 +68,7 @@ def extract_archive(archive: Path, max_bytes: int) -> tuple[Path, ...]:
         try:
             with zipfile.ZipFile(archive) as zipped:
                 unpack_entries(zipped, folder, max_bytes)
-        except UNREADABLE_ZIP as err:
+        except UNREADABLE_ZIP_ERRORS as err:
             raise ArchiveError(f"{archive} is not a readable .zip or .cbz: {err}") from err
     return files_in_order(folder)
 

@@ -12,7 +12,7 @@ from harness.images.models import ImageFile
 from harness.images.repository import KEPT_MEDIA_TYPES, ImageRepository
 from harness.llm import Block, Image, Text
 from harness.prompts import IMAGE_TOO_LARGE
-from harness.tools.definition import ReturnedImage
+from harness.tools import ReturnedImage
 
 logger = logging.getLogger("harness.images")
 

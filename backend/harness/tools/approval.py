@@ -7,40 +7,8 @@ import os
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
-
-DENIED = "DENIED"
-
-Scope = Literal["once", "conversation", "always"]
-
-
-class Approved(BaseModel):
-    """The person let the call run, for this call, this conversation, or always."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: Literal["approved"] = "approved"
-    scope: Scope
-
-
-class Denied(BaseModel):
-    """The person refused the call."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: Literal["denied"] = "denied"
-
-
-Decision = Approved | Denied
-
-_DECISION = TypeAdapter(Annotated[Decision, Field(discriminator="kind")])
-
-
-def parse_decision(raw: object) -> Decision:
-    """A posted body as the person's decision; `ValidationError` when it is not one."""
-    return _DECISION.validate_python(raw)
+from pydantic import BaseModel, ConfigDict
 
 
 class StandingGrants(BaseModel):
@@ -69,11 +37,11 @@ class ApprovalGate:
         """The configured tools and the servers' tools that may write; each asks unless granted."""
         return self._configured | self._writing_tool_names()
 
-    def asks(self, name: str) -> bool:
+    def should_ask(self, name: str) -> bool:
         """Whether a call to `name` must wait for the person."""
-        return name in self.tools and name not in self.granted()
+        return name in self.tools and name not in self.granted_tools()
 
-    def granted(self) -> frozenset[str]:
+    def granted_tools(self) -> frozenset[str]:
         """What the grants file holds right now; a missing file is empty."""
         if not self._grants_path.exists():
             return frozenset()
@@ -84,16 +52,16 @@ class ApprovalGate:
         """Remember that `name` may run without asking."""
         if name not in self.tools:
             raise ValueError(f"{name!r} is not a tool that asks for approval")
-        self._write(self.granted() | {name})
+        self._write_grants(self.granted_tools() | {name})
 
     def revoke(self, name: str) -> None:
         """Make `name` ask again."""
-        granted = self.granted()
+        granted = self.granted_tools()
         if name not in granted:
             raise KeyError(name)
-        self._write(granted - {name})
+        self._write_grants(granted - {name})
 
-    def _write(self, tools: frozenset[str]) -> None:
+    def _write_grants(self, tools: frozenset[str]) -> None:
         self._grants_path.parent.mkdir(parents=True, exist_ok=True)
         grants = StandingGrants(tools=tuple(sorted(tools)))
         handle, temp = tempfile.mkstemp(dir=self._grants_path.parent, suffix=".tmp")

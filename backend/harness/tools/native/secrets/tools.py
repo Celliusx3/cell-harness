@@ -9,8 +9,9 @@ import httpx
 from harness.bots import BotNotFound, BotService
 from harness.secrets import Destination, Secret, SecretService, redacted
 from harness.tools.client import ClientTool
-from harness.tools.context import ToolContext
-from harness.tools.definition import Failure, Ok, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import Failure, Ok, ToolOutcome
 from harness.tools.native.secrets.models import FetchArgs, SavedName, SecretAsk
 
 ASK_FOR_SECRET = "ask_for_secret"
@@ -75,7 +76,7 @@ def fetch_with_secret_tool(
             async with httpx.AsyncClient(
                 transport=transport, follow_redirects=False, timeout=TIMEOUT_SECONDS
             ) as client:
-                return await _send(client, args, url, saved)
+                return await _send_request(client, args, url, saved)
         except (httpx.HTTPError, UnicodeError) as err:
             return Failure(REQUEST_FAILED, f"the request failed: {type(err).__name__}")
 
@@ -113,7 +114,7 @@ def _auth_headers(destination: Destination, value: str) -> dict[str, str]:
     return {destination.header_name: value}
 
 
-async def _send(
+async def _send_request(
     client: httpx.AsyncClient, args: FetchArgs, url: httpx.URL, secret: Secret
 ) -> ToolOutcome:
     value = secret.value.get_secret_value()

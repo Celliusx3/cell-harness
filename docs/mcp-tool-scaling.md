@@ -114,7 +114,7 @@ Trustworthy, and checkable:
 - [LiveMCPBench](https://arxiv.org/abs/2508.01780) (70 servers, 527 tools) —
   **retrieval errors are about half of all failures.** Discoverability is the
   risk deferral introduces, not availability. It is why the three tool
-  descriptions in `tools/native/code/prompts.py` and `CODE_PROMPT` in `prompts.py` are
+  descriptions in `tools/native/code_mode/prompts.py` and `CODE_PROMPT` in `prompts.py` are
   treated as code.
 
 Assertions and myths — do not repeat these as measurements:
@@ -159,7 +159,7 @@ search: a script wants an object, not prose.
 ## 6. Code mode
 
 `harness/sandbox/` runs the script and knows nothing else — `runner.py` is the
-`Runner` seam, `deno.py` the only implementation today. `harness/tools/native/code/`
+`Runner` seam, `deno.py` the only implementation today. `harness/tools/native/code_mode/`
 holds the three tools and the codegen they need.
 
 Tool search fixes **schema** tokens. It does nothing about the other two costs,
@@ -218,7 +218,7 @@ construct it does not understand degrades to `unknown`. DeepSeek's
 and not named there is still callable from a program; it is simply not
 described in the request, which is what keeps its schema from being re-uploaded
 with every message. To stop the model writing a program just to read the
-clock, import `CLOCK` and add it; the cost is that schema in every request,
+clock, import `GET_CURRENT_TIME` and add it; the cost is that schema in every request,
 forever. Prefer a constant over a literal: `specs()` skips a name it cannot
 find without complaining, so a misspelt literal is a tool silently gone. MCP
 tools have no constant and stay literals, unchecked until the server connects.

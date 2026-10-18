@@ -12,7 +12,7 @@ from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
 from harness.secrets import Destination, SecretService
-from harness.tools.definition import Failure, Ok, ToolOutcome
+from harness.tools import Failure, Ok, ToolOutcome
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
 from harness.tools.native.secrets.tools import (
     NO_SECRET,

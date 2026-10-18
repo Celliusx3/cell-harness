@@ -12,8 +12,8 @@ from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
 from harness.runs.service import RunAlreadyActive
 from harness.secrets import SECRET_VALUE_RULE, SecretService, SecretValue
+from harness.tools import Ok
 from harness.tools.client import ClientToolService
-from harness.tools.definition import Ok
 from harness.tools.native.secrets import ASK_FOR_SECRET, SavedName, SecretAsk
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ def build_router(
         asked = next(
             (
                 pending
-                for pending in client_tools.pending(session)
+                for pending in client_tools.answerable_calls(session)
                 if pending.call_id == call_id and pending.name == ASK_FOR_SECRET
             ),
             None,

@@ -8,9 +8,9 @@ from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
 from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
-from harness.tools.approval import DENIED, ApprovalGate
+from harness.tools import ApprovalGate, Ok, ToolDefinition, ToolOutcome
 from harness.tools.client import ClientToolService
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
+from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle

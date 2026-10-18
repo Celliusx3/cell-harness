@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 from harness.sandbox import Bridge, BridgeError, Script
-from harness.tools.context import CallOrigin, ToolContext
-from harness.tools.definition import (
+from harness.tools import (
     EXECUTION_ERROR,
+    CallOrigin,
     Failure,
     Ok,
     ReturnedImage,
+    ToolContext,
     ToolDefinition,
     ToolOutcome,
 )
-from harness.tools.native.code import DETAILS, EXECUTE, LIST
-from harness.tools.native.code.prompts import IMAGES_STAY_OUT
+from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
+from harness.tools.native.code_mode.prompts import IMAGES_STAY_OUT
 from tests.unit.code_fakes import FakeRunner, build, returns, tool
 from tests.unit.helpers import context_for
 
@@ -30,23 +31,27 @@ async def test_a_withheld_tool_is_unlisted_unbound_and_refused() -> None:
     runner = FakeRunner(script=script)
     built = build(tool("skill"), tool("yt__a"), runner=runner, withheld=frozenset({"skill"}))
 
-    listed = await built.run(LIST, "{}")
+    listed = await built.run(LIST_FUNCTIONS, "{}")
     assert isinstance(listed, Ok) and "skill" not in listed.text
 
-    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
     assert runner.seen_names == ["yt__a"]
     assert "cannot be called from inside a script" in str(raised[0])
     assert built.dispatched == []
 
 
 def test_exactly_three_tools() -> None:
-    assert [t.name for t in build().tools] == [LIST, DETAILS, EXECUTE]
+    assert [t.name for t in build().tools] == [
+        LIST_FUNCTIONS,
+        GET_FUNCTION_DETAILS,
+        EXECUTE_TYPESCRIPT,
+    ]
 
 
 async def test_list_functions_renders_the_catalog_without_types() -> None:
     built = build(tool("yt__get_subtitles", "Fetch subtitles."))
 
-    outcome = await built.run(LIST, "{}")
+    outcome = await built.run(LIST_FUNCTIONS, "{}")
 
     assert isinstance(outcome, Ok)
     assert "declare function yt__get_subtitles(args)" in outcome.text
@@ -58,15 +63,15 @@ async def test_the_catalog_never_contains_code_mode_itself() -> None:
     for built_tool in built.tools:
         built.registry.register(built_tool)
 
-    outcome = await built.run(LIST, "{}")
+    outcome = await built.run(LIST_FUNCTIONS, "{}")
 
     assert isinstance(outcome, Ok)
-    for reserved in (LIST, DETAILS, EXECUTE):
+    for reserved in (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT):
         assert reserved not in outcome.text
 
 
 async def test_an_empty_catalog_says_so() -> None:
-    outcome = await build().run(LIST)
+    outcome = await build().run(LIST_FUNCTIONS)
 
     assert outcome == Ok("No capabilities are available.")
 
@@ -74,7 +79,7 @@ async def test_an_empty_catalog_says_so() -> None:
 async def test_details_types_the_named_functions_and_notes_the_rest() -> None:
     built = build(tool("yt__a"), tool("yt__b"))
 
-    outcome = await built.run(DETAILS, '{"names": ["yt__a", "ghost"]}')
+    outcome = await built.run(GET_FUNCTION_DETAILS, '{"names": ["yt__a", "ghost"]}')
 
     assert isinstance(outcome, Ok)
     assert "args: { url?: string }" in outcome.text
@@ -85,17 +90,17 @@ async def test_details_types_the_named_functions_and_notes_the_rest() -> None:
 async def test_details_for_nothing_real_is_ok_not_a_failure() -> None:
     built = build(tool("yt__a"))
 
-    outcome = await built.run(DETAILS, '{"names": ["ghost"]}')
+    outcome = await built.run(GET_FUNCTION_DETAILS, '{"names": ["ghost"]}')
 
     assert isinstance(outcome, Ok)
-    assert LIST in outcome.text
+    assert LIST_FUNCTIONS in outcome.text
 
 
 async def test_the_script_is_given_every_available_name() -> None:
     runner = FakeRunner()
     built = build(tool("yt__a"), tool("jobs__b"), runner=runner)
 
-    await built.run(EXECUTE, '{"code": "return 1", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "return 1", "description": "d"}')
 
     assert sorted(runner.seen_names) == ["jobs__b", "yt__a"]
 
@@ -104,7 +109,7 @@ async def test_logs_and_the_return_value_both_reach_the_model() -> None:
     runner = FakeRunner(outcome=Script(result={"n": 2}, logs=("first", "second")))
     built = build(runner=runner)
 
-    outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    outcome = await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert isinstance(outcome, Ok)
     assert "first\nsecond" in outcome.text
@@ -116,7 +121,7 @@ async def test_a_failed_script_keeps_what_it_printed() -> None:
     runner = FakeRunner(outcome=Script(logs=("step one done",), error="boom"))
     built = build(runner=runner)
 
-    outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    outcome = await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert isinstance(outcome, Failure)
     assert outcome.code == EXECUTION_ERROR
@@ -127,7 +132,7 @@ async def test_a_failed_script_keeps_what_it_printed() -> None:
 async def test_a_script_that_returns_nothing_says_so() -> None:
     built = build(runner=FakeRunner(outcome=Script()))
 
-    outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    outcome = await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert isinstance(outcome, Ok)
     assert "nothing came back" in outcome.text
@@ -137,7 +142,7 @@ async def test_a_script_that_returns_nothing_says_so() -> None:
 async def test_a_missing_sandbox_is_reported_as_a_failure_not_a_crash() -> None:
     built = build(runner=FakeRunner(unavailable=True))
 
-    outcome = await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    outcome = await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert isinstance(outcome, Failure)
     assert "sandbox could not start" in outcome.message
@@ -151,7 +156,7 @@ async def test_a_call_from_a_script_goes_through_the_ordinary_pipeline() -> None
 
     built = build(tool("yt__a"), runner=FakeRunner(script=script))
 
-    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert seen == [{"rows": [1, 2]}]
     assert [c.name for c in built.dispatched] == ["yt__a"]
@@ -171,7 +176,7 @@ async def test_a_tool_that_returns_images_is_refused_inside_a_script() -> None:
     object.__setattr__(page, "execute", returns(shown))
     built = build(page, runner=FakeRunner(script=script))
 
-    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert str(raised[0]) == IMAGES_STAY_OUT.format(name="srv__page")
 
@@ -186,7 +191,7 @@ async def test_a_tool_that_publishes_json_as_text_reaches_the_script_as_an_objec
     object.__setattr__(text_json, "execute", returns(Ok('{"jobs": [{"t": "a"}]}')))
     built = build(text_json, runner=FakeRunner(script=script))
 
-    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert seen == [{"jobs": [{"t": "a"}]}]
 
@@ -201,7 +206,7 @@ async def test_text_that_is_not_json_reaches_the_script_untouched() -> None:
     object.__setattr__(prose, "execute", returns(Ok("2026-09-07T10:31:49+09:00")))
     built = build(prose, runner=FakeRunner(script=script))
 
-    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert seen == ["2026-09-07T10:31:49+09:00"]
 
@@ -214,7 +219,7 @@ async def test_inner_calls_get_ids_a_provider_could_never_issue() -> None:
 
     built = build(tool("yt__a"), runner=FakeRunner(script=script))
 
-    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert [c.id for c in built.dispatched] == ["sub:1", "sub:2"]
 
@@ -224,13 +229,13 @@ async def test_the_bridge_refuses_code_mode_itself() -> None:
 
     async def script(bridge: Bridge) -> None:
         try:
-            await bridge(EXECUTE, {"code": "return 1", "description": "d"})
+            await bridge(EXECUTE_TYPESCRIPT, {"code": "return 1", "description": "d"})
         except BridgeError as err:
             raised.append(err)
 
     built = build(runner=FakeRunner(script=script))
 
-    await built.run(EXECUTE, '{"code": "…", "description": "d"}')
+    await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 
     assert "cannot be called from inside a script" in str(raised[0])
     assert built.dispatched == []
@@ -256,7 +261,7 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversatio
 
     built = build(recorder, runner=FakeRunner(script=script))
     code = '{"code": "await srv__record({})", "description": "d"}'
-    await built.tool(EXECUTE).invoke(
+    await built.tool(EXECUTE_TYPESCRIPT).invoke(
         code, context=context_for(bot_id="bot-7", conversation_id="chat-7")
     )
 

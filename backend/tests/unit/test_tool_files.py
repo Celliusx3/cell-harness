@@ -12,7 +12,7 @@ from harness.mcp.tool import FILES_META, mcp_tool, outcome_of
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import ToolResultEvent
-from harness.tools.definition import EXECUTION_ERROR, Failure, Ok
+from harness.tools import EXECUTION_ERROR, Failure, Ok
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import drain, new_session, pipeline_for
 from tests.unit.mcp_fakes import tool
@@ -59,13 +59,13 @@ async def logged_files(files: ChatFileService | None, meta: dict[str, object]) -
 def test_the_paths_under_the_files_key_ride_on_the_outcome() -> None:
     outcome = ok_of(result_with({FILES_META: [{"path": "/a.png"}, {"path": "/b.png"}]}))
 
-    assert outcome.hand_over_paths == ("/a.png", "/b.png")
+    assert outcome.paths_to_send == ("/a.png", "/b.png")
     assert outcome.text == "drew it"
 
 
 def test_a_result_without_the_files_key_hands_back_nothing() -> None:
-    assert ok_of(result_with(None)).hand_over_paths == ()
-    assert ok_of(result_with({"other": 1})).hand_over_paths == ()
+    assert ok_of(result_with(None)).paths_to_send == ()
+    assert ok_of(result_with({"other": 1})).paths_to_send == ()
 
 
 def test_a_malformed_entry_is_dropped_and_the_rest_kept(caplog) -> None:
@@ -74,7 +74,7 @@ def test_a_malformed_entry_is_dropped_and_the_rest_kept(caplog) -> None:
     with caplog.at_level(logging.WARNING, logger="harness.mcp"):
         outcome = ok_of(result_with(meta))
 
-    assert outcome.hand_over_paths == ("/a.png",)
+    assert outcome.paths_to_send == ("/a.png",)
     assert len([r for r in caplog.records if "dropped a file" in r.getMessage()]) == 3
 
 
@@ -82,7 +82,7 @@ def test_a_files_key_that_is_not_a_list_is_dropped(caplog) -> None:
     with caplog.at_level(logging.WARNING, logger="harness.mcp"):
         outcome = ok_of(result_with({FILES_META: {"path": "/a.png"}}))
 
-    assert outcome.hand_over_paths == ()
+    assert outcome.paths_to_send == ()
     assert "is not a list" in caplog.text
 
 

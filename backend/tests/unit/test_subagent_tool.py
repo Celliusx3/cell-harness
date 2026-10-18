@@ -7,12 +7,12 @@ import json
 
 import pytest
 
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.subagent import (
     RUN_SUBAGENT,
-    SubagentAnswered,
     SubagentOutcome,
-    SubagentStopped,
+    SubagentReply,
+    SubagentStop,
     SubagentTask,
     run_subagent_tool,
 )
@@ -40,8 +40,8 @@ def _tasks(*names: str) -> str:
 async def test_each_task_goes_to_its_own_subagent_and_every_answer_comes_back() -> None:
     runner = Recording(
         {
-            "aapl": SubagentAnswered(text="AAPL grew 2%."),
-            "msft": SubagentStopped(reason="its turn failed: timeout"),
+            "aapl": SubagentReply(text="AAPL grew 2%."),
+            "msft": SubagentStop(reason="its turn failed: timeout"),
         }
     )
     tool = run_subagent_tool(runner)
@@ -82,7 +82,7 @@ async def test_subagents_run_at_the_same_time() -> None:
         if started == 2:
             both.set()
         await both.wait()
-        return SubagentAnswered(text=task.name)
+        return SubagentReply(text=task.name)
 
     async with asyncio.timeout(2):
         outcome = await run_subagent_tool(runner).invoke(_tasks("a", "b"), context=context_for())
@@ -102,7 +102,7 @@ async def test_stopping_the_call_stops_every_subagent() -> None:
         except asyncio.CancelledError:
             cancelled.append(subagent_id)
             raise
-        return SubagentAnswered(text="never")
+        return SubagentReply(text="never")
 
     call = asyncio.create_task(
         run_subagent_tool(runner).invoke(_tasks("a", "b"), context=context_for("c"))
@@ -129,7 +129,7 @@ async def test_a_subagent_that_breaks_stops_the_others_and_says_why() -> None:
         except asyncio.CancelledError:
             cancelled.append(subagent_id)
             raise
-        return SubagentAnswered(text="never")
+        return SubagentReply(text="never")
 
     async with asyncio.timeout(2):
         outcome = await run_subagent_tool(runner).invoke(_tasks("a", "b"), context=context_for("c"))
@@ -143,7 +143,7 @@ async def test_the_example_in_the_description_runs() -> None:
     tool = run_subagent_tool(Recording({}))
     example = tool.description.split(f"{RUN_SUBAGENT}(", 1)[1].rsplit(")", 1)[0]
     names = [task["name"] for task in json.loads(example)["tasks"]]
-    runner = Recording({name: SubagentAnswered(text=f"{name} done") for name in names})
+    runner = Recording({name: SubagentReply(text=f"{name} done") for name in names})
 
     outcome = await run_subagent_tool(runner).invoke(example, context=context_for())
 

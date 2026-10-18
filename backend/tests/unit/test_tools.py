@@ -5,18 +5,18 @@ from __future__ import annotations
 import pytest
 
 from harness.llm import Text, ToolCall, ToolMessage
-from harness.tools.definition import (
+from harness.tools import (
     EXECUTION_ERROR,
     INVALID_ARGUMENTS,
     REFUSED,
     Failure,
     Ok,
     ToolDefinition,
-    render_outcome,
+    ToolDispatcher,
+    ToolPipeline,
+    ToolRegistry,
 )
-from harness.tools.dispatcher import ToolDispatcher
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import DuplicateToolError, ToolRegistry
+from harness.tools.registry import DuplicateToolError
 from tests.unit.fakes import echo_tool, raising_tool
 from tests.unit.helpers import ORIGIN, no_gate, no_progress, pipeline_for
 
@@ -85,7 +85,7 @@ async def test_empty_arguments_mean_no_arguments() -> None:
 
 
 def test_data_never_reaches_the_model() -> None:
-    blocks = render_outcome(Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]}))
+    blocks = Ok(content="Found 3 jobs.", data={"jobs": [1, 2, 3]}).content
     assert blocks == (Text(text="Found 3 jobs."),)
 
 
@@ -95,8 +95,8 @@ def test_ok_still_compares_by_value_with_data_defaulted() -> None:
 
 
 def test_failures_wear_one_wire_shape() -> None:
-    assert render_outcome(Failure("X", "went wrong")) == (Text(text="error: went wrong"),)
-    assert render_outcome(Ok(content="fine")) == (Text(text="fine"),)
+    assert Failure("X", "went wrong").content == (Text(text="error: went wrong"),)
+    assert Ok(content="fine").content == (Text(text="fine"),)
 
 
 def test_a_plain_string_is_one_text_block() -> None:

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import Field, create_model
 
 from harness.bots import BotService
-from harness.tools.context import ToolContext
-from harness.tools.definition import Failure, Ok, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import Failure, Ok, ToolOutcome
+from harness.tools.native.bots.models import MessageBotArgs
 
 MESSAGE_BOT = "message_bot"
 
@@ -19,20 +21,6 @@ _DESCRIPTION = (
     "the bot's final reply arrives later as a new message that wakes you. After sending, carry "
     "on with anything that does not need the answer, and tell the user who you asked."
 )
-
-
-class MessageBotArgs(BaseModel):
-    """What the model passes to `message_bot`."""
-
-    model_config = ConfigDict(frozen=True)
-
-    bot: str
-    message: str = Field(
-        description=(
-            "The whole message. The other bot sees none of this conversation, so say "
-            "everything it needs."
-        )
-    )
 
 
 class BotMessageSender(Protocol):

@@ -29,7 +29,7 @@ from harness.secrets import SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.web.errors import exception_handlers
 from harness.web.logs import configure_logging

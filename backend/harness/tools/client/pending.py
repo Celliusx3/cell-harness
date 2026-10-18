@@ -2,19 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from harness.session.log import Session
 from harness.session.models import SessionEvent, ToolCallEvent, ToolResultEvent
-
-
-@dataclass(frozen=True)
-class PendingCall:
-    """One call the client answers, with no result yet."""
-
-    name: str
-    call_id: str
-    arguments: str
+from harness.tools.client.models import PendingCall
 
 
 def pending_calls(session: Session, names: frozenset[str]) -> tuple[PendingCall, ...]:
@@ -33,9 +23,7 @@ def pending_calls(session: Session, names: frozenset[str]) -> tuple[PendingCall,
     )
 
 
-def pending_tool_calls(
-    calls: tuple[PendingCall, ...], event: SessionEvent
-) -> tuple[PendingCall, ...]:
+def next_pending(calls: tuple[PendingCall, ...], event: SessionEvent) -> tuple[PendingCall, ...]:
     """The calls still unanswered once `event` has landed."""
     if isinstance(event, ToolCallEvent):
         return (*calls, PendingCall(event.call.name, event.call.id, event.call.arguments))

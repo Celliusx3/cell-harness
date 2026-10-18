@@ -5,10 +5,10 @@ from __future__ import annotations
 from harness.tools.client import ClientTool
 from harness.tools.native.question.models import Answer, Question
 
-QUESTION = "ask_user"
+ASK_USER = "ask_user"
 
-QUESTION_TOOL = ClientTool(
-    name=QUESTION,
+ASK_USER_TOOL = ClientTool(
+    name=ASK_USER,
     description=(
         "Ask the user one short multiple-choice question with tappable answers, then "
         "wait for their tap. Use this instead of asking them to type when a few short "

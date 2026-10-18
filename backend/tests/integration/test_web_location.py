@@ -6,7 +6,7 @@ import httpx
 
 from harness.runs.service import RunService
 from harness.runtime.service import SKIPPED
-from harness.tools.native.location import LOCATION
+from harness.tools.native.location import GET_LOCATION
 from tests.integration.web_helpers import assistant_chat, build, events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, durable_service, no_skills, run_service
@@ -19,7 +19,7 @@ PATH = "/api/conversations/{id}/calls/call_7f3a/output"
 def _asking(tmp_path, reply: str = "a café 200 m from you"):
     """An app whose model asks for the location, then answers."""
     tools = client_tools()
-    model = SteppedClient(calls_tool(LOCATION, "{}", id="call_7f3a"), completed(reply))
+    model = SteppedClient(calls_tool(GET_LOCATION, "{}", id="call_7f3a"), completed(reply))
     service, runs = build(tmp_path, model, *tools.definitions())
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")

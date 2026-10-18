@@ -17,7 +17,7 @@ from harness.runtime.hooks.calls import (
     empty_replies_in_a_row,
 )
 from harness.session.log import Session
-from harness.tools.definition import ToolOutcome
+from harness.tools import ToolOutcome
 
 logger = logging.getLogger("harness.runtime")
 

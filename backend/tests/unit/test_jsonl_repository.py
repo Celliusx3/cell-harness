@@ -12,7 +12,7 @@ from harness.session.models import (
 )
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
-from harness.tools.definition import ToolUi
+from harness.tools import ToolUi
 from tests.unit.jsonl_helpers import a_turn, header, repository
 
 

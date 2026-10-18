@@ -23,8 +23,7 @@ from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools.approval import Approved
-from harness.tools.definition import Failure, Ok
+from harness.tools import Approval, Failure, Ok
 
 logger = logging.getLogger("harness.channels")
 
@@ -171,7 +170,7 @@ class ChannelGateway:
         except (RunAlreadyActive, CompactionRefused):
             return None
 
-    async def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approved) -> Run:
+    async def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that carries an answer, followed by the chats that were asked it."""
         states = await self._repository.chats_of(session.id)
         run = self._runs.resume(session, call_id, outcome)

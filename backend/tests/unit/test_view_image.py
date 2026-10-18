@@ -16,7 +16,7 @@ from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools.definition import INVALID_ARGUMENTS, REFUSED, UNKNOWN_TOOL, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, REFUSED, UNKNOWN_TOOL, Failure, Ok
 from harness.tools.native.files import VIEW_IMAGE, view_image_tool
 from harness.web.runtime import (
     DEFAULT_TOOLS,
@@ -192,6 +192,6 @@ async def test_a_model_that_cannot_see_is_not_offered_it_and_cannot_call_it(
     assert VIEW_IMAGE not in offered(runtime)
     assert runtime.tools is not None
     called = await runtime.tools.execute(call, progress=no_progress, origin=ORIGIN)
-    approved = await runtime.tools.approve(call, progress=no_progress, origin=ORIGIN)
+    approved = await runtime.tools.execute_approved(call, progress=no_progress, origin=ORIGIN)
     assert isinstance(called, Failure) and called.code == REFUSED
     assert isinstance(approved, Failure) and approved.code == UNKNOWN_TOOL

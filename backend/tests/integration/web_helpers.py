@@ -15,11 +15,8 @@ from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
-from harness.tools.definition import ToolDefinition
-from harness.tools.dispatcher import ToolDispatcher
+from harness.tools import ToolDefinition, ToolDispatcher, ToolPipeline, ToolRegistry
 from harness.tools.native.bots import MESSAGE_BOT
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import PerBotClient
 from tests.unit.helpers import durable_service, no_gate, no_skills, run_service

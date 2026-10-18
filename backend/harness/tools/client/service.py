@@ -3,32 +3,18 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
-from enum import Enum
 
 from pydantic import ValidationError
 
 from harness.prompts import DENIED_RESULT
 from harness.session.log import Session
-from harness.tools.approval import DENIED, ApprovalGate, Approved, parse_decision
+from harness.tools.approval import ApprovalGate
 from harness.tools.client.catalog import ClientTools
-from harness.tools.client.pending import PendingCall, pending_calls
-from harness.tools.definition import Failure, Ok, ToolDefinition
-
-
-class Refused(Enum):
-    """Why an answer was not taken."""
-
-    NOT_PENDING = "not_pending"
-    DOES_NOT_FIT = "does_not_fit"
-
-
-@dataclass(frozen=True)
-class Accepted:
-    """An answer that fits: what the resumed turn opens with."""
-
-    call_id: str
-    outcome: Ok | Failure | Approved
+from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
+from harness.tools.client.pending import pending_calls
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.decision import DENIED, Approval, parse_decision
+from harness.tools.models.outcome import Failure
 
 
 class ClientToolService:
@@ -46,12 +32,12 @@ class ClientToolService:
         return self._tools.names
 
     @property
-    def gated(self) -> frozenset[str]:
+    def gated_tools(self) -> frozenset[str]:
         """The tools that ask the person before running; a chat asks them with buttons."""
         return self._gate.tools
 
     @property
-    def awaited(self) -> frozenset[str]:
+    def awaited_tools(self) -> frozenset[str]:
         """Every tool whose call waits on the person — client tools and tools that ask."""
         return self._tools.names | self._gate.tools
 
@@ -59,39 +45,43 @@ class ClientToolService:
         """The tools to register."""
         return self._tools.definitions()
 
-    def pending(self, session: Session) -> tuple[PendingCall, ...]:
+    def answerable_calls(self, session: Session) -> tuple[PendingCall, ...]:
         """The calls a client may answer right now, in log order."""
-        return pending_calls(session, self.awaited)
+        return pending_calls(session, self.awaited_tools)
 
-    def accept_call(self, session: Session, call_id: str, raw: object) -> Accepted | Refused:
+    def accept_by_call_id(
+        self, session: Session, call_id: str, raw: object
+    ) -> AcceptedAnswer | RefusalReason:
         """An answer from a client that read the call id off the stream."""
         return self._accept(session, raw, lambda pending: pending.call_id == call_id)
 
-    def accept_tool(self, session: Session, name: str, raw: object) -> Accepted | Refused:
+    def accept_by_tool_name(
+        self, session: Session, name: str, raw: object
+    ) -> AcceptedAnswer | RefusalReason:
         """An answer from a client that knows only which tool it is answering."""
         return self._accept(session, raw, lambda pending: pending.name == name)
 
     def _accept(
-        self, session: Session, raw: object, expected: Callable[[PendingCall], bool]
-    ) -> Accepted | Refused:
-        pending = next((p for p in self.pending(session) if expected(p)), None)
+        self, session: Session, raw: object, matches: Callable[[PendingCall], bool]
+    ) -> AcceptedAnswer | RefusalReason:
+        pending = next((p for p in self.answerable_calls(session) if matches(p)), None)
         if pending is None:
-            return Refused.NOT_PENDING
+            return RefusalReason.NOT_PENDING
         if pending.name in self._gate.tools:
-            return self._decide(pending, raw)
+            return self._accept_decision(pending, raw)
         try:
             output = self._tools.parse(pending.name, raw)
         except ValidationError:
-            return Refused.DOES_NOT_FIT
-        return Accepted(pending.call_id, self._tools.outcome(output))
+            return RefusalReason.DOES_NOT_FIT
+        return AcceptedAnswer(pending.call_id, self._tools.outcome(output))
 
-    def _decide(self, pending: PendingCall, raw: object) -> Accepted | Refused:
+    def _accept_decision(self, pending: PendingCall, raw: object) -> AcceptedAnswer | RefusalReason:
         try:
             decision = parse_decision(raw)
         except ValidationError:
-            return Refused.DOES_NOT_FIT
-        if not isinstance(decision, Approved):
-            return Accepted(pending.call_id, Failure(DENIED, DENIED_RESULT))
+            return RefusalReason.DOES_NOT_FIT
+        if not isinstance(decision, Approval):
+            return AcceptedAnswer(pending.call_id, Failure(DENIED, DENIED_RESULT))
         if decision.scope == "always":
             self._gate.grant(pending.name)
-        return Accepted(pending.call_id, decision)
+        return AcceptedAnswer(pending.call_id, decision)

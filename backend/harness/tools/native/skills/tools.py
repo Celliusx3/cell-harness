@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-
 from harness.skills.models import InvalidSkill
 from harness.skills.service import SkillNotEditable, SkillNotFound, SkillService, SkillShadowed
-from harness.tools.context import ToolContext
-from harness.tools.definition import (
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import (
     INVALID_ARGUMENTS,
     REFUSED,
     Failure,
     Ok,
-    ToolDefinition,
     ToolOutcome,
 )
+from harness.tools.native.skills.models import DeleteArgs, SaveArgs, WriteFileArgs
 
 SKILL_SAVE = "skill_save"
 SKILL_DELETE = "skill_delete"
@@ -96,27 +95,3 @@ def skill_write_file_tool(skills: SkillService) -> ToolDefinition[WriteFileArgs]
         args_model=WriteFileArgs,
         execute=execute,
     )
-
-
-class SaveArgs(BaseModel):
-    """What the model passes to `skill_save`."""
-
-    name: str = Field(description="The skill to write, e.g. 'meeting-notes'.")
-    text: str = Field(description="The whole SKILL.md: the frontmatter, then the instructions.")
-
-
-class DeleteArgs(BaseModel):
-    """What the model passes to `skill_delete`."""
-
-    name: str = Field(description="The skill to delete.")
-
-
-class WriteFileArgs(BaseModel):
-    """What the model passes to `skill_write_file`."""
-
-    name: str = Field(description="The skill to write into, e.g. 'meeting-notes'.")
-    path: str = Field(
-        description="Where the file goes, relative to the skill's folder, "
-        "e.g. 'references/factors.md'."
-    )
-    text: str = Field(description="The whole file.")

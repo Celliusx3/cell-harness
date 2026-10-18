@@ -6,24 +6,14 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, Field
-
-from harness.tools.context import ToolContext
-from harness.tools.definition import EXECUTION_ERROR, Failure, Ok, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import EXECUTION_ERROR, Failure, Ok, ToolOutcome
+from harness.tools.native.clock.models import ClockArgs
 
 Now = Callable[[], datetime]
 
-
-class ClockArgs(BaseModel):
-    """Arguments for `get_current_time`."""
-
-    timezone: str = Field(
-        default="UTC",
-        description="IANA timezone name, e.g. 'Asia/Singapore' or 'UTC'.",
-    )
-
-
-CLOCK = "get_current_time"
+GET_CURRENT_TIME = "get_current_time"
 
 
 def clock_tool(now: Now = lambda: datetime.now(UTC)) -> ToolDefinition[ClockArgs]:
@@ -35,7 +25,7 @@ def clock_tool(now: Now = lambda: datetime.now(UTC)) -> ToolDefinition[ClockArgs
         return Ok(content=now().astimezone(zone).isoformat(timespec="seconds"))
 
     return ToolDefinition.from_model(
-        name=CLOCK,
+        name=GET_CURRENT_TIME,
         description="Get the current date and time in a given timezone.",
         args_model=ClockArgs,
         execute=execute,

@@ -11,7 +11,7 @@ from harness.runtime.hooks.native.same_tool_failure import (
 )
 from harness.session.log import Session
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
-from harness.tools.definition import BLOCKED, EXECUTION_ERROR, REFUSED, Failure, Ok
+from harness.tools import BLOCKED, EXECUTION_ERROR, REFUSED, Failure, Ok
 from harness.web.runtime import default_hooks
 from tests.unit.helpers import new_session
 

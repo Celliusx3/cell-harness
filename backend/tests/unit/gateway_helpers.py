@@ -11,7 +11,7 @@ from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.service import RunService
 from harness.skills import SkillService
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate
 from harness.tools.client import ClientToolService
 from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import durable_service, run_service

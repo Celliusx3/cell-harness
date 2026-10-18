@@ -3,15 +3,8 @@
 from __future__ import annotations
 
 from harness.llm import ToolCall
-from harness.tools.definition import (
-    INVALID_ARGUMENTS,
-    Failure,
-    Ok,
-    ToolDefinition,
-    ToolOutcome,
-)
-from harness.tools.pipeline import ToolPipeline
-from harness.tools.progress import ToolProgressReporter
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome, ToolPipeline
+from harness.tools.models.context import ToolProgressReporter
 from tests.unit.helpers import ORIGIN, no_progress, pipeline_for
 
 

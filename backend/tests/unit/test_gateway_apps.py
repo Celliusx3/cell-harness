@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.replies import app_url
-from harness.tools.context import ToolContext
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome, ToolUi
+from harness.tools import Ok, ToolContext, ToolDefinition, ToolOutcome, ToolUi
 from tests.unit.fakes import (
     EchoArgs,
     SteppedClient,

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from harness.bots import BotDraft, BotService
-from harness.tools.context import ToolContext
-from harness.tools.definition import Ok, ToolDefinition, ToolOutcome
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import Ok, ToolOutcome
 
 BOT_CREATE = "bot_create"
 

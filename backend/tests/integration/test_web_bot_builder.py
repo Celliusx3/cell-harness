@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 
 from harness.bots import BotService
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
 from harness.web.runtime import CLIENT_TOOLS

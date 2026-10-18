@@ -7,7 +7,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from harness.images import IMAGE_MAX_BYTES
-from harness.tools.definition import ReturnedImage
+from harness.tools.models.outcome import ReturnedImage
 
 MEDIA_TYPE_BY_SIGNATURE: Mapping[bytes, str] = MappingProxyType(
     {b"\x89PNG\r\n\x1a\n": "image/png", b"\xff\xd8\xff": "image/jpeg"}

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import httpx
 
-from harness.tools.native.question import QUESTION
+from harness.tools.native.question import ASK_USER
 from tests.integration.web_helpers import assistant_chat, build, settle
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, no_skills
 from tests.webapp import web_app
 
-ASKS = calls_tool(QUESTION, '{"question": "Which shop?", "options": ["A", "B"]}', id="call_q")
+ASKS = calls_tool(ASK_USER, '{"question": "Which shop?", "options": ["A", "B"]}', id="call_q")
 
 
 def _client(tmp_path, model, *tools) -> tuple[httpx.AsyncClient, object]:

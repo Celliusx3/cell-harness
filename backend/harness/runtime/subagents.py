@@ -11,9 +11,9 @@ from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, Tu
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
 from harness.tools.native.subagent import (
-    SubagentAnswered,
     SubagentOutcome,
-    SubagentStopped,
+    SubagentReply,
+    SubagentStop,
     SubagentTask,
 )
 
@@ -49,13 +49,13 @@ def _subagent_outcome(ending: TurnEvent | None) -> SubagentOutcome:
     """How a subagent's turn ended, from the last event its run yielded."""
     match ending:
         case AgentCompleted(text=text):
-            return SubagentAnswered(text=text)
+            return SubagentReply(text=text)
         case AgentPending(name=name):
-            return SubagentStopped(
+            return SubagentStop(
                 reason=f"it called {name}, which needs the user, and a helper cannot reach "
                 f"the user. Call {name} yourself if it is still needed."
             )
         case AgentFailed(reason=reason):
-            return SubagentStopped(reason=f"its turn failed: {reason}")
+            return SubagentStop(reason=f"its turn failed: {reason}")
         case _:
             raise ValueError(f"a helper's run ended without a terminal event: {ending!r}")

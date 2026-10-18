@@ -17,8 +17,7 @@ from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.log import Session
 from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.session.repair import unknown_result
-from harness.tools.context import CallOrigin
-from harness.tools.definition import BLOCKED, Failure, Ok, Pending, ToolOutcome, render_outcome
+from harness.tools import BLOCKED, CallOrigin, Failure, Ok, Pending, ToolOutcome
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime
@@ -38,7 +37,7 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
     return ToolResultEvent(
         turn=turn,
         step=step,
-        message=ToolMessage(tool_call_id=call_id, content=render_outcome(outcome)),
+        message=ToolMessage(tool_call_id=call_id, content=outcome.content),
         error=None if isinstance(outcome, Ok) else outcome.code,
         ui=outcome.ui if isinstance(outcome, Ok) else None,
     )
@@ -56,7 +55,7 @@ def _files_handed_over(
     files: ChatFileService | None, chat_id: str, outcome: Ok | Failure
 ) -> HandedOver:
     """Each path a result names: kept when it is a file in this chat's folder, else refused."""
-    paths = outcome.hand_over_paths if isinstance(outcome, Ok) else ()
+    paths = outcome.paths_to_send if isinstance(outcome, Ok) else ()
     kept: list[ChatFile] = []
     lines: list[str] = []
     for path in paths:
@@ -228,7 +227,7 @@ async def _execute(
         try:
             assert runtime.tools is not None
             if approved:
-                return await runtime.tools.approve(call, progress=report, origin=origin)
+                return await runtime.tools.execute_approved(call, progress=report, origin=origin)
             return await runtime.tools.execute(
                 call,
                 progress=report,

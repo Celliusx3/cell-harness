@@ -1,31 +1,34 @@
 """Client tools — tools the *client* answers, not the server."""
 
-from harness.tools.client.catalog import (
+from harness.tools.client.catalog import ClientTools
+from harness.tools.client.models import (
     DECLINED,
     UNAVAILABLE,
+    AcceptedAnswer,
     ClientOutput,
     ClientTool,
-    ClientTools,
-    Declined,
-    Shared,
-    Unavailable,
+    DeclinedAnswer,
+    PendingCall,
+    RefusalReason,
+    SharedAnswer,
+    UnavailableAnswer,
 )
-from harness.tools.client.pending import PendingCall, pending_calls, pending_tool_calls
-from harness.tools.client.service import Accepted, ClientToolService, Refused
+from harness.tools.client.pending import next_pending, pending_calls
+from harness.tools.client.service import ClientToolService
 
 __all__ = [
-    "Accepted",
+    "AcceptedAnswer",
     "DECLINED",
     "UNAVAILABLE",
     "ClientToolService",
     "ClientOutput",
     "ClientTool",
     "ClientTools",
-    "Declined",
+    "DeclinedAnswer",
     "PendingCall",
-    "Refused",
-    "Shared",
-    "Unavailable",
+    "RefusalReason",
+    "SharedAnswer",
+    "UnavailableAnswer",
     "pending_calls",
-    "pending_tool_calls",
+    "next_pending",
 ]

@@ -77,7 +77,7 @@ datum:
   nothing → nothing. Telegram clears its keyboard on every reply, since any
   reply means the ask is over.
 - **The four outcomes, one vocabulary.** What a client can answer is the
-  spine's shape — `Shared[data] | Declined | Unavailable(reason)` — and what
+  spine's shape — `SharedAnswer[data] | DeclinedAnswer | UnavailableAnswer(reason)` — and what
   the model reads is decided once: shared data as JSON (what Vercel hands the
   model; what every MCP tool already returns), and three typed failures,
   `DECLINED`, `UNAVAILABLE`, and the loop's `SKIPPED`. The model recovers the
@@ -208,9 +208,9 @@ answers `Pending` instead, so the loop, the log, repair, the browser card, the
 `/answer` page and a chat's ask all behave exactly as for `get_location`. The
 difference is what the person's answer is: for a location it *is* the result;
 for an approval it is a decision, and the result still has to come from running
-the tool. `Runtime.resume` therefore takes `Ok | Failure | Approved`: the
+the tool. `Runtime.resume` therefore takes `Ok | Failure | Approval`: the
 first two are written as the result (a shared location, a declined one, a
-denied write); `Approved` runs the held call as approved and writes what it
+denied write); `Approval` runs the held call as approved and writes what it
 returned, closing the turn `cancelled` with an `INTERRUPTED` result if the run
 is stopped midway.
 
@@ -225,7 +225,7 @@ is stopped midway.
   `tools_selected()` folds references, and the loop passes `approved=True` for
   that tool from then on. `always` writes the tool into
   `approval.grants_path` (`~/.harness/approvals.json`), read by
-  `ApprovalGate.asks`; `GET /api/approvals` lists it and `DELETE
+  `ApprovalGate.should_ask`; `GET /api/approvals` lists it and `DELETE
   /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),
   ChatGPT (per connected app) and OpenClaw (a durable allowlist) each have this
   rung above "this conversation".

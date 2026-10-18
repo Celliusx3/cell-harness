@@ -13,7 +13,7 @@ from harness.runtime.hooks.calls import (
     last_failure_text,
 )
 from harness.runtime.hooks.service import ToolHook
-from harness.tools.definition import Ok, ToolOutcome
+from harness.tools import Ok, ToolOutcome
 
 EXACT_FAILURE_WARN_AT, EXACT_FAILURE_BLOCK_AT = 2, 5
 

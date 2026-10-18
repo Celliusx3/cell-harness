@@ -22,7 +22,7 @@ from harness.runtime.hooks import (
 )
 from harness.runtime.hooks import service as service_module
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
-from harness.tools.definition import BLOCKED, Ok, ToolOutcome
+from harness.tools import BLOCKED, Ok, ToolOutcome
 from tests.unit.helpers import new_session
 
 CALL = ToolCall(id="c1", name="echo", arguments="{}")

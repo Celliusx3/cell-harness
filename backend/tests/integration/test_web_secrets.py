@@ -16,7 +16,7 @@ from harness.bots import ASSISTANT_ID, BotDraft
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
 from harness.secrets import SECRET_VALUE_RULE, Destination, SecretRefused, SecretService
-from harness.tools.approval import ApprovalGate
+from harness.tools import ApprovalGate
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
 from harness.web.runtime import CLIENT_TOOLS

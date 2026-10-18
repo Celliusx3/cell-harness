@@ -28,8 +28,7 @@ from harness.session.models import (
     TurnStart,
 )
 from harness.session.service import SessionService
-from harness.tools.context import ToolContext
-from harness.tools.definition import Ok, ToolOutcome
+from harness.tools import Ok, ToolContext, ToolOutcome
 from tests.unit.fakes import (
     EchoArgs,
     ScriptedClient,

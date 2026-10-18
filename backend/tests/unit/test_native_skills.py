@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.tools.definition import Failure, Ok
+from harness.tools import Failure, Ok
 from harness.tools.native.skills import skill_delete_tool, skill_save_tool, skill_write_file_tool
 from tests.unit.helpers import context_for, skills_at
 

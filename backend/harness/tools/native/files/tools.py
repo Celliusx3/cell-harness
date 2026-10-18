@@ -5,12 +5,13 @@ from __future__ import annotations
 import asyncio
 
 from harness.files import ChatFileService
-from harness.tools.context import ToolContext
-from harness.tools.definition import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome
-from harness.tools.native.files import descriptions
-from harness.tools.native.files.archive import ArchiveError, extract_archive, pack_archive
-from harness.tools.native.files.chat_paths import paths_in_chat
-from harness.tools.native.files.image import UnviewableImage, image_at
+from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import ToolContext
+from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
+from harness.tools.native.files import _descriptions
+from harness.tools.native.files._archive import ArchiveError, extract_archive, pack_archive
+from harness.tools.native.files._chat_paths import paths_in_chat
+from harness.tools.native.files._image import UnviewableImage, image_at
 from harness.tools.native.files.models import (
     ExtractArchiveArgs,
     MakeArchiveArgs,
@@ -28,11 +29,11 @@ def send_file_tool() -> ToolDefinition[SendFileArgs]:
     """The tool that names files to hand over."""
 
     async def execute(args: SendFileArgs, _context: ToolContext) -> ToolOutcome:
-        return Ok(content=(), hand_over_paths=tuple(args.paths))
+        return Ok(content=(), paths_to_send=tuple(args.paths))
 
     return ToolDefinition.from_model(
         name=SEND_FILE,
-        description=descriptions.SEND_FILE,
+        description=_descriptions.SEND_FILE,
         args_model=SendFileArgs,
         execute=execute,
     )
@@ -56,7 +57,7 @@ def extract_archive_tool(
 
     return ToolDefinition.from_model(
         name=EXTRACT_ARCHIVE,
-        description=descriptions.EXTRACT_ARCHIVE,
+        description=_descriptions.EXTRACT_ARCHIVE,
         args_model=ExtractArchiveArgs,
         execute=execute,
     )
@@ -77,7 +78,7 @@ def make_archive_tool(files: ChatFileService) -> ToolDefinition[MakeArchiveArgs]
 
     return ToolDefinition.from_model(
         name=MAKE_ARCHIVE,
-        description=descriptions.MAKE_ARCHIVE,
+        description=_descriptions.MAKE_ARCHIVE,
         args_model=MakeArchiveArgs,
         execute=execute,
     )
@@ -99,7 +100,7 @@ def view_image_tool(files: ChatFileService) -> ToolDefinition[ViewImageArgs]:
 
     return ToolDefinition.from_model(
         name=VIEW_IMAGE,
-        description=descriptions.VIEW_IMAGE,
+        description=_descriptions.VIEW_IMAGE,
         args_model=ViewImageArgs,
         execute=execute,
     )

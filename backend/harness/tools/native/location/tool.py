@@ -2,20 +2,13 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
-
 from harness.tools.client import ClientTool
-from harness.tools.native.location.models import Location
+from harness.tools.native.location.models import Location, NoArgs
 
-LOCATION = "get_location"
+GET_LOCATION = "get_location"
 
-
-class NoArgs(BaseModel):
-    """`get_location` takes nothing: the position is the device's to give."""
-
-
-LOCATION_TOOL = ClientTool(
-    name=LOCATION,
+GET_LOCATION_TOOL = ClientTool(
+    name=GET_LOCATION,
     description=(
         "The user's current position, from their device. Call this when they say "
         "'near me', 'nearby', 'around here', or ask for directions from where they "
