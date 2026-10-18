@@ -8,8 +8,15 @@ from contextlib import aclosing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from harness.llm.messages import ApplicationMessage, AssistantMessage
-from harness.llm.stream import CONTEXT_WINDOW_EXCEEDED, Completed, Failed, TextChunk, ToolCallChunk
+from harness.llm import (
+    CONTEXT_WINDOW_EXCEEDED,
+    ApplicationMessage,
+    AssistantMessage,
+    Completed,
+    Failed,
+    TextChunk,
+    ToolCallChunk,
+)
 from harness.runtime.compaction import run_compaction, should_compact
 from harness.runtime.events import (
     AgentCompleted,

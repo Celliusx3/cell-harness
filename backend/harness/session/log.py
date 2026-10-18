@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import NamedTuple
 
-from harness.llm.messages import ToolReference
+from harness.llm import ToolReference
 from harness.session.models import (
     ApprovalGrant,
     AssistantMessageEvent,

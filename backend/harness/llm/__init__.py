@@ -1,1 +1,55 @@
 """The provider-neutral model seam: messages, stream vocabulary, adapters."""
+
+from harness.llm.client import LLMClient
+from harness.llm.messages import (
+    ApplicationMessage,
+    AssistantMessage,
+    Block,
+    ExtraContent,
+    Image,
+    Message,
+    SystemMessage,
+    Text,
+    ToolCall,
+    ToolMessage,
+    ToolReference,
+    ToolSpec,
+    UserMessage,
+    images_of,
+    render_text,
+)
+from harness.llm.stream import (
+    CONTEXT_WINDOW_EXCEEDED,
+    Completed,
+    Failed,
+    StreamEvent,
+    TextChunk,
+    ToolCallChunk,
+    Usage,
+)
+
+__all__ = [
+    "CONTEXT_WINDOW_EXCEEDED",
+    "ApplicationMessage",
+    "AssistantMessage",
+    "Block",
+    "Completed",
+    "ExtraContent",
+    "Failed",
+    "Image",
+    "LLMClient",
+    "Message",
+    "StreamEvent",
+    "SystemMessage",
+    "Text",
+    "TextChunk",
+    "ToolCall",
+    "ToolCallChunk",
+    "ToolMessage",
+    "ToolReference",
+    "ToolSpec",
+    "Usage",
+    "UserMessage",
+    "images_of",
+    "render_text",
+]

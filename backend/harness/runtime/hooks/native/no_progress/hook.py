@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from harness.llm.messages import render_text
+from harness.llm import render_text
 from harness.prompts import NO_PROGRESS_REFUSAL, NO_PROGRESS_WARNING
 from harness.runtime.hooks.calls import CompletedCall, Signature
 from harness.runtime.hooks.service import ToolHook

@@ -8,14 +8,15 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from harness.files.models import ChatFile
-from harness.llm.messages import (
+from harness.llm import (
     ApplicationMessage,
     AssistantMessage,
+    StreamEvent,
     ToolCall,
     ToolMessage,
+    Usage,
     UserMessage,
 )
-from harness.llm.stream import StreamEvent, Usage
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.tools.definition import ToolUi
 

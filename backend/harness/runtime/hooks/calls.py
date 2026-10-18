@@ -6,7 +6,7 @@ import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from harness.llm.messages import ToolCall, render_text
+from harness.llm import ToolCall, render_text
 from harness.session.log import Session
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools.definition import BLOCKED

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
-from harness.llm.messages import Block, Image, Message, Text, ToolMessage, UserMessage, images_of
+from harness.llm import Block, Image, Message, Text, ToolMessage, UserMessage, images_of
 from harness.prompts import (
     ATTACHED_FILE,
     BOT_MESSAGE_REQUEST,

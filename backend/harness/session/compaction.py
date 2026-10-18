@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from harness.llm.messages import ApplicationMessage
+from harness.llm import ApplicationMessage
 
 if TYPE_CHECKING:
     from harness.session.models import SessionEvent

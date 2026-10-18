@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from harness.llm.messages import ToolCall, ToolSpec
+from harness.llm import ToolCall, ToolSpec
 from harness.tools.context import CallOrigin
 from harness.tools.definition import REFUSED, Failure, ToolDefinition, ToolOutcome
 from harness.tools.dispatcher import ToolDispatcher

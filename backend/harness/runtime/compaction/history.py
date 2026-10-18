@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from harness.llm.messages import render_text
+from harness.llm import render_text
 from harness.session.compaction import pruned_ids, tail_start
 from harness.session.models import SessionEvent, ToolCallEvent, ToolResultEvent, UserMessageEvent
 from harness.skills import SKILL

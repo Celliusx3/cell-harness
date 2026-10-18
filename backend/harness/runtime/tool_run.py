@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from harness.files import ChatFile, ChatFileService
-from harness.llm.messages import ApplicationMessage, Text, ToolCall, ToolMessage, render_text
+from harness.llm import ApplicationMessage, Text, ToolCall, ToolMessage, render_text
 from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.log import Session

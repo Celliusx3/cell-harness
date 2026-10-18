@@ -16,7 +16,7 @@ from harness.channels.web.schemas import ConversationDetail, MessageAccepted, Se
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService, FileTooLarge, UnsafeFileName
 from harness.images import is_sha256
-from harness.llm.messages import images_of
+from harness.llm import images_of
 from harness.session.log import Session
 from harness.session.models import SessionEvent, ToolResultEvent, UserMessageEvent
 from harness.session.repository import (

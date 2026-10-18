@@ -8,8 +8,7 @@ from dataclasses import dataclass
 
 from harness.files import ChatFile, ChatFileService
 from harness.images import ImageService
-from harness.llm.client import LLMClient
-from harness.llm.messages import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
+from harness.llm import LLMClient, Message, SystemMessage, ToolCall, ToolMessage, UserMessage
 from harness.prompts import SKIPPED_RESULT
 from harness.runtime.compaction import (
     CompactionEvent,

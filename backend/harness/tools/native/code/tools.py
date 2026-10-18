@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 from pydantic import BaseModel, Field
 
-from harness.llm.messages import Text, ToolCall, ToolReference, render_text
+from harness.llm import Text, ToolCall, ToolReference, render_text
 from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
 from harness.tools.context import ToolContext
