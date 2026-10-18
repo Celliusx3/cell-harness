@@ -11,7 +11,6 @@ from mcp.server.apps import APP_MIME_TYPE
 from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
-from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
 from harness.mcp.relay import Relays, with_relay_url
 from harness.mcp.service import McpService
 from harness.mcp.tool import app_visible, ui_resource_uri
@@ -97,12 +96,7 @@ def build_router(mcp: McpService, relays: Relays) -> APIRouter:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail=f"{uri!r} is not a ui:// resource"
             )
-        try:
-            result = await mcp.read_resource(server, uri)
-        except McpNotConnectedError as err:
-            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(err)) from err
-        except (McpTimeoutError, McpConnectionError) as err:
-            raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=str(err)) from err
+        result = await mcp.read_resource(server, uri)
         content = result.contents[0] if result.contents else None
         if not isinstance(content, TextResourceContents) or content.mime_type != APP_MIME_TYPE:
             raise HTTPException(
@@ -113,10 +107,7 @@ def build_router(mcp: McpService, relays: Relays) -> APIRouter:
     @router.post("/{server}/tools/{name}")
     async def call_app_tool(server: str, name: str, body: AppToolCall) -> JSONResponse:
         known(server)
-        try:
-            published = mcp.published(server)
-        except McpNotConnectedError as err:
-            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(err)) from err
+        published = mcp.published(server)
         tool = next((t for t in published if t.name == name), None)
         if tool is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"{server} has no tool {name!r}")
@@ -130,12 +121,7 @@ def build_router(mcp: McpService, relays: Relays) -> APIRouter:
                 status.HTTP_403_FORBIDDEN, detail=f"{name!r} belongs to another app, {bound}"
             )
         logger.info("app %s on %s calls %s", body.resource_uri, server, name)
-        try:
-            result = await mcp.call(server, name, body.arguments)
-        except McpNotConnectedError as err:
-            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(err)) from err
-        except (McpTimeoutError, McpConnectionError) as err:
-            raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=str(err)) from err
+        result = await mcp.call(server, name, body.arguments)
         rewritten = with_relay_url(result, relays)
         return JSONResponse(rewritten.model_dump(mode="json", by_alias=True, exclude_none=True))
 

@@ -31,6 +31,7 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools.approval import ApprovalGate
 from harness.tools.client import ClientToolService
+from harness.web.errors import exception_handlers
 from harness.web.logs import configure_logging
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
@@ -172,7 +173,7 @@ def create_app(
         await mcp.aclose()
 
     relays = Relays(now=time.monotonic)
-    app = FastAPI(title="cell-harness", lifespan=lifespan)
+    app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
     app.include_router(build_skills_router(skills))
     app.include_router(build_mcp_router(mcp, relays))

@@ -2,7 +2,7 @@
 
 ## Problem
 
-A function's length says little about how hard it is to follow; how many ways it can go does. Nothing in the backend limits that today, and eight functions are past the usual limit of 10: the turn loop and its reply reader, the channel delivery loop, the TypeScript printer, and four route builders. The route builders are only past it because 33 of the 44 error blocks across the route files repeat one pattern, "this domain error becomes this HTTP status", inside every handler.
+A function's length says little about how hard it is to follow; how many ways it can go does. Nothing in the backend limits that today, and eight functions are past the usual limit of 10: the turn loop and its reply reader, the channel delivery loop, the TypeScript printer, and four route builders. The route builders are past it mostly because 33 of the 44 error blocks across the route files repeat one pattern, "this domain error becomes this HTTP status", inside every handler; each handler nested in a builder also counts toward it, so the two largest builders also register their routes in named groups.
 
 ## What changes for you
 
