@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.native.location import GET_LOCATION, GET_LOCATION_TOOL, Location
-from tests.unit.helpers import no_gate
+from tests.unit.helpers import no_approvals
 
 
 def test_coordinates_are_bounded_and_nothing_extra_is_accepted() -> None:
@@ -22,7 +22,7 @@ def test_coordinates_are_bounded_and_nothing_extra_is_accepted() -> None:
 
 
 def test_the_tool_takes_no_arguments_and_names_its_trigger_words() -> None:
-    (tool,) = ClientToolService(ClientTools((GET_LOCATION_TOOL,)), no_gate()).tools()
+    (tool,) = ClientToolService(ClientTools((GET_LOCATION_TOOL,)), no_approvals()).tools()
     spec = tool.spec()
     assert spec.name == GET_LOCATION
     assert spec.input_schema.get("properties", {}) == {}

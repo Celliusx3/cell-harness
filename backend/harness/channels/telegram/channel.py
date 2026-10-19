@@ -242,7 +242,7 @@ class TelegramChannel:
     async def ask_client(self, chat_id: str, request: PendingCall, url: str) -> None:
         """Telegram's own prompt where it has one, the page otherwise — `asking.py`."""
         await ask_client(
-            self, self._bot, chat_id, request, url, gated_tools=self._answers.gated_tools
+            self, self._bot, chat_id, request, url, tools_that_ask=self._answers.tools_that_ask
         )
 
     async def send_typing(self, chat_id: str) -> None:

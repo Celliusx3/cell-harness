@@ -29,7 +29,7 @@ from harness.secrets import SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools import ApprovalGate
+from harness.tools import Approvals
 from harness.tools.client import ClientToolService
 from harness.web.errors import exception_handlers
 from harness.web.logs import configure_logging
@@ -118,10 +118,10 @@ def create_web_app() -> FastAPI:
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
     mcp = build_mcp(settings)
     skills = SkillService(settings.skills)
-    gate = ApprovalGate(
+    approvals = Approvals(
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
     )
-    client_tools = ClientToolService(CLIENT_TOOLS, gate)
+    client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     context_tokens = _resolve_context_tokens(settings)
     bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
     secrets = SecretService(settings.secrets.path, encryption_key=settings.secrets.encryption_key)
@@ -131,7 +131,7 @@ def create_web_app() -> FastAPI:
         mcp,
         skills,
         client_tools,
-        gate,
+        approvals,
         context_tokens,
         bots=bots,
         subagent_logs=build_subagent_logs(settings),
@@ -145,7 +145,9 @@ def create_web_app() -> FastAPI:
     gateway, web = build_channels(
         settings, service, runs, skills, client_tools, bots, files, images
     )
-    return create_app(runs, gateway, web, mcp, skills, client_tools, gate, bots, secrets, messages)
+    return create_app(
+        runs, gateway, web, mcp, skills, client_tools, approvals, bots, secrets, messages
+    )
 
 
 def create_app(
@@ -155,7 +157,7 @@ def create_app(
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
-    gate: ApprovalGate,
+    approvals: Approvals,
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
@@ -181,7 +183,7 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_approvals_router(gate))
+    app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))
     app.include_router(build_groups_router(bots))

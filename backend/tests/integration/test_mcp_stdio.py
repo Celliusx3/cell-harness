@@ -14,7 +14,7 @@ from harness.config.sections import McpServer
 from harness.mcp import connection as connection_module
 from harness.mcp.service import McpService
 from harness.tools import Failure, Ok, ToolService, ToolUi
-from tests.unit.helpers import context_for, no_gate
+from tests.unit.helpers import context_for, no_approvals
 
 STUB = Path(__file__).resolve().parent.parent / "mcp_stub.py"
 TIMEOUT = 30.0
@@ -31,7 +31,7 @@ async def live():
 
     async def start(servers: dict[str, McpServer]):
         store = McpService(servers)
-        tool_service = ToolService((), gate=no_gate())
+        tool_service = ToolService((), approvals=no_approvals())
         tool_service.add_provider(store.tools)
         made.append(store)
         await store.start()

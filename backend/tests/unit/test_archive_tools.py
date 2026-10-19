@@ -12,7 +12,7 @@ from harness.llm import ToolCall
 from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools import ApprovalGate, Failure, Ok
+from harness.tools import Approvals, Failure, Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.files import (
     EXTRACT_ARCHIVE,
@@ -27,7 +27,7 @@ from harness.web.runtime import (
     build_runtime,
 )
 from tests.unit.archive_fakes import UNPACK_LIMIT
-from tests.unit.helpers import ORIGIN, client_tools, no_bots, no_gate, no_progress, no_skills
+from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, no_skills
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -75,13 +75,13 @@ def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not(name: str) 
 @pytest.mark.parametrize("name", ARCHIVE_TOOLS)
 def test_it_never_asks_for_approval(name: str) -> None:
     committed = json.loads(CONFIG.read_text())
-    gate = ApprovalGate(
+    approvals = Approvals(
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),
     )
 
-    assert not gate.should_ask(name)
+    assert not approvals.should_ask(name)
 
 
 async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: Path) -> None:
@@ -91,7 +91,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         McpService({}),
         no_skills(),
         client_tools(),
-        no_gate(),
+        no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),

@@ -20,7 +20,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import (
     INVALID_ARGUMENTS,
-    ApprovalGate,
+    Approvals,
     Failure,
     Ok,
     Tool,
@@ -42,8 +42,8 @@ from tests.unit.helpers import (
     context_for,
     drain,
     new_session,
+    no_approvals,
     no_bots,
-    no_gate,
     no_progress,
     no_skills,
     pipeline_for,
@@ -198,13 +198,13 @@ def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
 
 def test_it_never_asks_for_approval() -> None:
     committed = json.loads(CONFIG.read_text())
-    gate = ApprovalGate(
+    approvals = Approvals(
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),
     )
 
-    assert not gate.should_ask(SEND_FILE)
+    assert not approvals.should_ask(SEND_FILE)
 
 
 async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
@@ -214,7 +214,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
         McpService({}),
         no_skills(),
         client_tools(),
-        no_gate(),
+        no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),

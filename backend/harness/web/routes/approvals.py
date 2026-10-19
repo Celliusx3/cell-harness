@@ -7,12 +7,12 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from harness.tools import ApprovalGate
+from harness.tools import Approvals
 
 logger = logging.getLogger(__name__)
 
 
-class Approvals(BaseModel):
+class GrantedTools(BaseModel):
     """Every tool the person has allowed always."""
 
     model_config = ConfigDict(frozen=True)
@@ -20,18 +20,18 @@ class Approvals(BaseModel):
     tools: list[str]
 
 
-def build_router(gate: ApprovalGate) -> APIRouter:
+def build_router(approvals: Approvals) -> APIRouter:
     """List the standing grants, and revoke one."""
     router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
-    @router.get("", response_model=Approvals)
-    async def list_approvals() -> Approvals:
-        return Approvals(tools=sorted(gate.granted_tools()))
+    @router.get("", response_model=GrantedTools)
+    async def list_approvals() -> GrantedTools:
+        return GrantedTools(tools=sorted(approvals.granted_tools()))
 
     @router.delete("/{tool}", status_code=status.HTTP_204_NO_CONTENT)
     async def revoke(tool: str) -> Response:
         try:
-            gate.revoke(tool)
+            approvals.revoke(tool)
         except KeyError as err:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND, detail=f"{tool!r} is not granted"

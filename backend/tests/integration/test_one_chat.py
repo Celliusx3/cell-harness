@@ -21,7 +21,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import create_app
 from tests.unit.fakes import SteppedClient, completed
-from tests.unit.helpers import client_tools, no_gate, no_skills
+from tests.unit.helpers import client_tools, no_approvals, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import secrets_in, web_gateway, web_mcp
 
@@ -66,7 +66,7 @@ def build_on(tmp_path, model: LLMClient):
         web_mcp(),
         no_skills(),
         client_tools(),
-        no_gate(),
+        no_approvals(),
         bots,
         secrets_in(tmp_path),
         BotMessages(sessions, bots, runs),

@@ -17,7 +17,7 @@ from harness.tools import (
 )
 from harness.tools.service import DuplicateToolError
 from tests.unit.fakes import echo_tool, raising_tool
-from tests.unit.helpers import ORIGIN, no_gate, no_progress, pipeline_for
+from tests.unit.helpers import ORIGIN, no_approvals, no_progress, pipeline_for
 
 
 def pipeline(*tools, providers=(), offer=()) -> ToolPipeline:
@@ -125,20 +125,20 @@ def test_a_broken_provider_does_not_take_down_the_tool_set() -> None:
     def broken():
         raise RuntimeError("server went away")
 
-    tool_service = ToolService([echo_tool()], gate=no_gate(), providers=[broken])
+    tool_service = ToolService([echo_tool()], approvals=no_approvals(), providers=[broken])
 
     assert [t.name for t in tool_service.all()] == ["echo"]
 
 
 def test_duplicate_static_registration_fails_loudly() -> None:
-    tool_service = ToolService([echo_tool()], gate=no_gate())
+    tool_service = ToolService([echo_tool()], approvals=no_approvals())
 
     with pytest.raises(DuplicateToolError):
         tool_service.register(echo_tool())
 
 
 def test_a_disposer_removes_exactly_its_registration() -> None:
-    tool_service = ToolService((), gate=no_gate())
+    tool_service = ToolService((), approvals=no_approvals())
     dispose = tool_service.register(echo_tool())
 
     assert len(tool_service.all()) == 1
@@ -149,7 +149,7 @@ def test_a_disposer_removes_exactly_its_registration() -> None:
 
 def test_static_tools_win_a_name_collision_with_a_provider() -> None:
     tool_service = ToolService(
-        [echo_tool()], gate=no_gate(), providers=[lambda: [raising_tool("echo")]]
+        [echo_tool()], approvals=no_approvals(), providers=[lambda: [raising_tool("echo")]]
     )
 
     assert len(tool_service.all()) == 1
@@ -157,7 +157,7 @@ def test_static_tools_win_a_name_collision_with_a_provider() -> None:
 
 
 def test_a_provider_disposer_removes_exactly_its_source() -> None:
-    tool_service = ToolService((), gate=no_gate())
+    tool_service = ToolService((), approvals=no_approvals())
     dispose = tool_service.add_provider(lambda: [echo_tool()])
     tool_service.add_provider(lambda: [raising_tool("boom")])
 
@@ -169,7 +169,7 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
 
 def offering(*tools: Tool, default: tuple[str, ...]) -> ToolPipeline:
     """A pipeline with a chosen `default_tools` that offers every tool it was given."""
-    return ToolPipeline(ToolService(tools, gate=no_gate()), default)
+    return ToolPipeline(ToolService(tools, approvals=no_approvals()), default)
 
 
 async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:

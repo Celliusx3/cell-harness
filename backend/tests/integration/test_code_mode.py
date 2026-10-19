@@ -25,7 +25,7 @@ from harness.tools.native.code_mode import (
     code_mode_tools,
 )
 from harness.tools.native.code_mode._typescript import declarations
-from tests.unit.helpers import ORIGIN, no_gate, no_progress
+from tests.unit.helpers import ORIGIN, no_approvals, no_progress
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")
 
@@ -120,7 +120,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         parse=lambda raw: raw,
         execute=rows,
     )
-    tool_service = ToolService([catalog], gate=no_gate())
+    tool_service = ToolService([catalog], approvals=no_approvals())
     for built in code_mode_tools(
         tool_service=tool_service,
         runner=DenoRunner(deno_path="deno", timeout_seconds=30),

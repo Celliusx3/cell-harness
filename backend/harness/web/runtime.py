@@ -28,7 +28,7 @@ from harness.sandbox import DenoRunner
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tools import ApprovalGate, ToolPipeline, ToolService
+from harness.tools import Approvals, ToolPipeline, ToolService
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
@@ -110,7 +110,7 @@ def build_runtime(
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
-    gate: ApprovalGate,
+    approvals: Approvals,
     context_tokens: int | None = None,
     *,
     bots: BotService,
@@ -134,12 +134,12 @@ def build_runtime(
             *([view_image_tool(files)] if settings.llm.vision else []),
             *client_tools.tools(),
         ],
-        gate=gate,
+        approvals=approvals,
     )
     tool_service.add_provider(mcp.tools)
     tool_service.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
-    logger.info("approval asks for: %s", sorted(gate.tools) or "nothing")
+    logger.info("approval asks for: %s", sorted(approvals.tools_that_ask) or "nothing")
     _register_code_mode(tool_service, settings)
 
     client = OpenAIClient(settings.llm, read_image=images.read)

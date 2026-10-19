@@ -19,7 +19,7 @@ from harness.tools.native.code_mode import (
 from harness.tools.pipeline import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
-from tests.unit.helpers import ORIGIN, new_session, no_gate, no_progress
+from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_progress
 
 DEFAULTS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
 
@@ -34,7 +34,7 @@ def selected(*names: str, call_id: str = "d") -> ToolResultEvent:
 
 def pipeline(*tools: Tool) -> ToolPipeline:
     """Code mode's three plus `tools`, offering the three — as the product does."""
-    tool_service = ToolService(tools, gate=no_gate())
+    tool_service = ToolService(tools, approvals=no_approvals())
     for made in code_mode_tools(
         tool_service=tool_service, runner=FakeRunner(), withheld=frozenset()
     ):

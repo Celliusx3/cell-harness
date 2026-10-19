@@ -8,7 +8,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
-from harness.tools import ApprovalGate, Ok, Tool, ToolOutcome
+from harness.tools import Approvals, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
@@ -35,27 +35,29 @@ def _writer(ran: list[str]) -> Tool[EchoArgs]:
 
 def _asking(tmp_path, *steps, ran: list[str]):
     """An app whose model saves a note, then answers."""
-    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
-    tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(
         calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"), completed("saved"), *steps
     )
     service = durable_service(tmp_path / "sessions")
-    runs = run_service(service, model, _writer(ran), *tools.tools(), gate=gate)
-    app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, gate=gate)
+    runs = run_service(service, model, _writer(ran), *tools.tools(), approvals=approvals)
+    app = web_app(
+        tmp_path, service, runs, skills=no_skills(), client_tools=tools, approvals=approvals
+    )
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
     return client, runs
 
 
 def _asking_beside_telegram(tmp_path, *scripts: list[StreamEvent], ran: list[str]):
     """An app whose model runs `scripts` in order, with Telegram on the same gateway."""
-    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
-    tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     model = SteppedClient(*scripts)
-    runs = run_service(service, model, _writer(ran), *tools.tools(), gate=gate)
+    runs = run_service(service, model, _writer(ran), *tools.tools(), approvals=approvals)
     app, gateway, bot = web_app_with_telegram(
-        tmp_path, service, runs, skills=no_skills(), client_tools=tools, gate=gate
+        tmp_path, service, runs, skills=no_skills(), client_tools=tools, approvals=approvals
     )
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
     return client, runs, gateway, bot

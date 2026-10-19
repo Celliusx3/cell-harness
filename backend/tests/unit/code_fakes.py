@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from harness.llm import ToolCall
 from harness.sandbox import Bridge, DenoUnavailableError, Runner, Script
 from harness.tools import (
-    ApprovalGate,
+    Approvals,
     CallOrigin,
     Ok,
     Tool,
@@ -16,7 +16,7 @@ from harness.tools import (
     ToolService,
 )
 from harness.tools.native.code_mode import code_mode_tools
-from tests.unit.helpers import context_for, no_gate
+from tests.unit.helpers import context_for, no_approvals
 
 
 def returns(outcome: Ok):
@@ -62,8 +62,8 @@ class FakeRunner(Runner):
 class RecordingToolService(ToolService):
     """A real tool service that remembers what it was asked to run."""
 
-    def __init__(self, tools: tuple[Tool, ...], gate: ApprovalGate) -> None:
-        super().__init__(tools, gate=gate)
+    def __init__(self, tools: tuple[Tool, ...], approvals: Approvals) -> None:
+        super().__init__(tools, approvals=approvals)
         self.calls: list[ToolCall] = []
 
     async def dispatch(
@@ -95,9 +95,9 @@ def build(
     *tools: Tool,
     runner: FakeRunner | None = None,
     withheld: frozenset[str] = frozenset(),
-    gate: ApprovalGate | None = None,
+    approvals: Approvals | None = None,
 ) -> Built:
-    tool_service = RecordingToolService(tools, gate or no_gate())
+    tool_service = RecordingToolService(tools, approvals or no_approvals())
     built = code_mode_tools(
         tool_service=tool_service, runner=runner or FakeRunner(), withheld=withheld
     )
