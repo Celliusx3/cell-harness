@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from harness.llm import ToolCall
-from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Tool, ToolOutcome, ToolPipeline
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Tool, ToolOutcome, Toolset
 from harness.tools.models.context import ToolProgressReporter
-from tests.unit.helpers import ORIGIN, no_progress, pipeline_for
+from tests.unit.helpers import ORIGIN, no_progress, toolset_for
 
 
-def pipeline(*tools: Tool) -> ToolPipeline:
-    return pipeline_for(*tools)
+def toolset(*tools: Tool) -> Toolset:
+    return toolset_for(*tools)
 
 
 def call(name: str, arguments: str) -> ToolCall:
@@ -36,7 +36,7 @@ def profile_tool() -> Tool[dict]:
 
 
 async def test_missing_required_fields_say_what_was_sent_and_what_is_expected() -> None:
-    outcome = await pipeline(profile_tool()).execute(
+    outcome = await toolset(profile_tool()).execute(
         call("profile", '{"kind": "stock"}'), progress=no_progress, origin=ORIGIN
     )
 
@@ -48,7 +48,7 @@ async def test_missing_required_fields_say_what_was_sent_and_what_is_expected() 
 
 
 async def test_arguments_wrapped_in_args_are_a_missing_field_not_a_server_error() -> None:
-    outcome = await pipeline(profile_tool()).execute(
+    outcome = await toolset(profile_tool()).execute(
         call("profile", '{"args": {"id": "AAPL"}}'), progress=no_progress, origin=ORIGIN
     )
 
@@ -59,7 +59,7 @@ async def test_arguments_wrapped_in_args_are_a_missing_field_not_a_server_error(
 
 
 async def test_extra_keys_with_every_required_field_pass_through() -> None:
-    outcome = await pipeline(profile_tool()).execute(
+    outcome = await toolset(profile_tool()).execute(
         call("profile", '{"id": "AAPL", "extra": 1}'), progress=no_progress, origin=ORIGIN
     )
 
@@ -77,7 +77,7 @@ async def test_a_schema_without_required_fields_is_not_checked() -> None:
         execute=tool.execute,
     )
 
-    outcome = await pipeline(loose).execute(
+    outcome = await toolset(loose).execute(
         call("loose", '{"other": 1}'), progress=no_progress, origin=ORIGIN
     )
 

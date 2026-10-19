@@ -9,14 +9,14 @@ from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
 from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
-from harness.tools import Ok, Tool, ToolPipeline, ToolService
+from harness.tools import Ok, Tool, ToolService, Toolset
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
     GET_FUNCTION_DETAILS,
     LIST_FUNCTIONS,
     code_mode_tools,
 )
-from harness.tools.pipeline import MAX_TOOLS_SELECTED
+from harness.tools.toolset import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
 from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_progress
@@ -32,22 +32,22 @@ def selected(*names: str, call_id: str = "d") -> ToolResultEvent:
     )
 
 
-def pipeline(*tools: Tool) -> ToolPipeline:
+def toolset(*tools: Tool) -> Toolset:
     """Code mode's three plus `tools`, offering the three — as the product does."""
     tool_service = ToolService(tools, approvals=no_approvals())
     for made in code_mode_tools(
         tool_service=tool_service, runner=FakeRunner(), withheld=frozenset()
     ):
         tool_service.register(made)
-    return ToolPipeline(tool_service, DEFAULTS)
+    return Toolset(tool_service, DEFAULTS)
 
 
-def named(built: ToolPipeline, tools_selected: tuple[str, ...]) -> list[str]:
+def named(built: Toolset, tools_selected: tuple[str, ...]) -> list[str]:
     return [spec.name for spec in built.specs(tools_selected)]
 
 
 async def test_details_states_what_it_made_callable() -> None:
-    built = pipeline(echo_tool("a"), echo_tool("b"))
+    built = toolset(echo_tool("a"), echo_tool("b"))
 
     outcome = await built.execute(
         ToolCall(
@@ -100,7 +100,7 @@ def test_a_re_selection_moves_a_name_to_the_end() -> None:
 
 
 def test_the_request_carries_only_the_most_recent_selections() -> None:
-    built = pipeline(*(echo_tool(f"t{n}") for n in range(10)))
+    built = toolset(*(echo_tool(f"t{n}") for n in range(10)))
     history = tuple(f"t{n}" for n in range(10))
 
     offered = named(built, history)
@@ -110,7 +110,7 @@ def test_the_request_carries_only_the_most_recent_selections() -> None:
 
 
 def test_re_selecting_an_evicted_tool_brings_it_back() -> None:
-    built = pipeline(*(echo_tool(f"t{n}") for n in range(10)))
+    built = toolset(*(echo_tool(f"t{n}") for n in range(10)))
     history = tuple(f"t{n}" for n in range(1, 10)) + ("t0",)
 
     offered = named(built, history)
@@ -120,19 +120,19 @@ def test_re_selecting_an_evicted_tool_brings_it_back() -> None:
 
 
 def test_a_selected_tool_joins_the_offer_after_the_defaults_sorted() -> None:
-    built = pipeline(echo_tool("b"), echo_tool("a"))
+    built = toolset(echo_tool("b"), echo_tool("a"))
 
     assert named(built, ("b", "a")) == [*DEFAULTS, "a", "b"]
 
 
 def test_a_selected_tool_whose_server_has_gone_stays_out() -> None:
-    built = pipeline(echo_tool("a"))
+    built = toolset(echo_tool("a"))
 
     assert named(built, ("gone",)) == list(DEFAULTS)
 
 
 async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_select() -> None:
-    built = pipeline(echo_tool("a"))
+    built = toolset(echo_tool("a"))
     call = ToolCall(id="c1", name="a", arguments='{"value": "hi"}')
 
     refused = await built.execute(call, progress=no_progress, origin=ORIGIN)
@@ -148,7 +148,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    runtime = Runtime(model="m", client=client, images=None, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, images=None, tools=toolset(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
@@ -166,7 +166,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    runtime = Runtime(model="m", client=client, images=None, tools=pipeline(echo_tool("a")))
+    runtime = Runtime(model="m", client=client, images=None, tools=toolset(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:

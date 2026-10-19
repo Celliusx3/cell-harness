@@ -27,8 +27,8 @@ from harness.tools import (
     CallOrigin,
     Tool,
     ToolContext,
-    ToolPipeline,
     ToolService,
+    Toolset,
 )
 from harness.tools.client import ClientToolService
 from harness.tools.service import ToolProvider
@@ -74,16 +74,16 @@ def no_approvals() -> Approvals:
     return Approvals(frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"))
 
 
-def pipeline_for(
+def toolset_for(
     *tools: Tool,
     providers: Sequence[ToolProvider] = (),
     offer: Sequence[str] = (),
     approvals: Approvals | None = None,
-) -> ToolPipeline:
-    """A tool service and a pipeline over `tools`, offering all of them."""
+) -> Toolset:
+    """A tool service and a toolset over `tools`, offering all of them."""
     tool_service = ToolService(tools, approvals=approvals or no_approvals(), providers=providers)
     names = [*(tool.name for tool in tools), *offer]
-    return ToolPipeline(tool_service, default_tools=names)
+    return Toolset(tool_service, default_tools=names)
 
 
 def runtime_over(
@@ -96,12 +96,12 @@ def runtime_over(
     approvals: Approvals | None = None,
     images: ImageService | None = None,
 ) -> Runtime:
-    """A runtime over `tools`, with no pipeline at all when there are none."""
+    """A runtime over `tools`, with no toolset at all when there are none."""
     return Runtime(
         model="m",
         client=client,
         images=images,
-        tools=pipeline_for(*tools, approvals=approvals) if tools else None,
+        tools=toolset_for(*tools, approvals=approvals) if tools else None,
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,

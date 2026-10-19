@@ -15,8 +15,8 @@ from harness.tools import (
     Ok,
     Tool,
     ToolOutcome,
-    ToolPipeline,
     ToolService,
+    Toolset,
 )
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
@@ -104,7 +104,7 @@ def test_a_script_can_be_written_against_the_declarations() -> None:
 
 
 @deno
-async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
+async def test_a_script_reaches_a_real_tool_through_a_real_toolset() -> None:
 
     async def rows(args, progress):
         return Ok("Found 3 rows.", data={"rows": [{"n": 1}, {"n": 2}, {"n": 3}]})
@@ -127,15 +127,13 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         withheld=frozenset(),
     ):
         tool_service.register(built)
-    pipeline = ToolPipeline(
-        tool_service, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
-    )
+    toolset = Toolset(tool_service, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT))
 
     async def run(name: str, arguments: str) -> ToolOutcome:
         call = ToolCall(id="c1", name=name, arguments=arguments)
-        return await pipeline.execute(call, progress=no_progress, origin=ORIGIN)
+        return await toolset.execute(call, progress=no_progress, origin=ORIGIN)
 
-    assert [spec.name for spec in pipeline.specs()] == [
+    assert [spec.name for spec in toolset.specs()] == [
         LIST_FUNCTIONS,
         GET_FUNCTION_DETAILS,
         EXECUTE_TYPESCRIPT,

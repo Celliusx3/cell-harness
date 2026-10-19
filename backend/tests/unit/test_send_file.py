@@ -46,7 +46,7 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     no_skills,
-    pipeline_for,
+    toolset_for,
 )
 from tests.webapp import files_in, images_in, secrets_in
 
@@ -68,7 +68,7 @@ async def session_after(tool: Tool, files: ChatFileService, arguments: str) -> S
         model="m",
         client=SteppedClient(calls_tool(tool.name, arguments), completed("done")),
         images=None,
-        tools=pipeline_for(tool),
+        tools=toolset_for(tool),
         files=files,
     )
     session = new_session("s")

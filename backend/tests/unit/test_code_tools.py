@@ -148,7 +148,7 @@ async def test_a_missing_sandbox_is_reported_as_a_failure_not_a_crash() -> None:
     assert "sandbox could not start" in outcome.message
 
 
-async def test_a_call_from_a_script_goes_through_the_ordinary_pipeline() -> None:
+async def test_a_call_from_a_script_goes_through_the_ordinary_dispatch() -> None:
     seen: list[object] = []
 
     async def script(bridge: Bridge) -> None:

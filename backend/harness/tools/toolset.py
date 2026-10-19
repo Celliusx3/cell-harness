@@ -13,7 +13,7 @@ from harness.tools.service import ToolService
 MAX_TOOLS_SELECTED = 8
 
 
-class ToolPipeline:
+class Toolset:
     """The tool list one step is built from."""
 
     def __init__(self, tool_service: ToolService, default_tools: Sequence[str]) -> None:

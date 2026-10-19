@@ -17,8 +17,8 @@ from harness.tools.models.outcome import (
     ToolUi,
 )
 from harness.tools.models.tool import NAMESPACE_SEPARATOR, Tool
-from harness.tools.pipeline import ToolPipeline
 from harness.tools.service import ToolService
+from harness.tools.toolset import Toolset
 
 __all__ = [
     "BLOCKED",
@@ -37,7 +37,7 @@ __all__ = [
     "ToolContext",
     "Tool",
     "ToolOutcome",
-    "ToolPipeline",
+    "Toolset",
     "ToolService",
     "ToolUi",
 ]

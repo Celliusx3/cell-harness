@@ -14,7 +14,7 @@ from harness.session.log import Session
 from harness.session.models import ToolResultEvent
 from harness.tools import EXECUTION_ERROR, Failure, Ok
 from tests.unit.fakes import SteppedClient, calls_tool, completed
-from tests.unit.helpers import drain, new_session, pipeline_for
+from tests.unit.helpers import drain, new_session, toolset_for
 from tests.unit.mcp_fakes import tool
 from tests.webapp import files_in
 
@@ -47,7 +47,7 @@ async def logged_files(files: ChatFileService | None, meta: dict[str, object]) -
         model="m",
         client=SteppedClient(calls_tool("srv__draw"), completed("done")),
         images=None,
-        tools=pipeline_for(mcp_tool(server="srv", tool=tool("draw"), call=call)),
+        tools=toolset_for(mcp_tool(server="srv", tool=tool("draw"), call=call)),
         files=files,
     )
     session: Session = new_session("s")

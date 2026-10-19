@@ -27,8 +27,8 @@ from harness.tools import (
     Ok,
     Tool,
     ToolOutcome,
-    ToolPipeline,
     ToolService,
+    Toolset,
 )
 from harness.tools.client import AcceptedAnswer, ClientTools, ClientToolService
 from harness.tools.models.decision import DENIED
@@ -55,10 +55,8 @@ def _writer(ran: list[str]) -> Tool[EchoArgs]:
 
 def _runtime(client, approvals: Approvals, *tools: Tool, hooks: HookChain | None = None) -> Runtime:
     tool_service = ToolService(tools, approvals=approvals)
-    pipeline = ToolPipeline(tool_service, default_tools=[t.name for t in tools])
-    return Runtime(
-        model="m", client=client, images=None, tools=pipeline, hooks=hooks or HookChain()
-    )
+    toolset = Toolset(tool_service, default_tools=[t.name for t in tools])
+    return Runtime(model="m", client=client, images=None, tools=toolset, hooks=hooks or HookChain())
 
 
 def _types(session) -> list[str]:

@@ -15,7 +15,7 @@ from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
-from harness.tools import Tool, ToolPipeline, ToolService
+from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import PerBotClient
@@ -97,7 +97,7 @@ def messaging_app(
         model="m",
         client=model,
         images=None,
-        tools=ToolPipeline(tool_service, offered),
+        tools=Toolset(tool_service, offered),
         guidance="GUIDE",
         checkpoint=service.flush,
     )
