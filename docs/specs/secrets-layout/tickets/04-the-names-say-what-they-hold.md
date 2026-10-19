@@ -1,6 +1,6 @@
 # 04 · The names say what they hold
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `Secret` becomes `UnsealedSecret` in `secrets/models/secret.py`, with `secrets/__init__.py`, `secrets/service.py` and `backend/harness/tools/native/secrets/tools.py` following.

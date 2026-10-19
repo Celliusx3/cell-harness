@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.secrets.models.sealed import SealedSecret, SecretsFile
 
-OWNER_ONLY = 0o600
+FILE_MODE = 0o600
 
 
 @dataclass(frozen=True)
@@ -28,7 +28,7 @@ class DiskSecretRepository:
         """The keyring replaced whole by `secrets`, its folder made when missing."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         handle, temp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
-        os.fchmod(handle, OWNER_ONLY)
+        os.fchmod(handle, FILE_MODE)
         with os.fdopen(handle, "w", encoding="utf-8") as file:
             file.write(SecretsFile(secrets=secrets).model_dump_json(indent=2))
         os.replace(temp, self.path)

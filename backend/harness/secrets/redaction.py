@@ -1,4 +1,4 @@
-"""Blanking a key out of text a site sent back."""
+"""Redacting a key out of text a site sent back."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 from functools import reduce
 from urllib.parse import quote
 
-BLANKED_SECRET = "[secret]"
+REDACTED_SECRET = "[secret]"
 
 
 def redacted(text: str, value: str) -> str:
@@ -19,4 +19,6 @@ def redacted(text: str, value: str) -> str:
         base64.b64encode(value.encode()).decode(),
     }
     longest_first = sorted(forms, key=len, reverse=True)
-    return reduce(lambda blanked, form: blanked.replace(form, BLANKED_SECRET), longest_first, text)
+    return reduce(
+        lambda redacting, form: redacting.replace(form, REDACTED_SECRET), longest_first, text
+    )

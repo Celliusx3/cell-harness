@@ -9,7 +9,7 @@ from pydantic import SecretStr
 from harness.secrets.models.destination import Destination
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
-from harness.secrets.models.secret import Secret, SecretSummary
+from harness.secrets.models.secret import SecretSummary, UnsealedSecret
 from harness.secrets.repository import SecretRepository
 from harness.secrets.sealing import sealed, unsealed
 
@@ -52,7 +52,7 @@ class SecretService:
             (*(secret for secret in stored if secret is not existing), sealed_secret)
         )
 
-    def secret_named(self, name: str) -> Secret | None:
+    def secret_named(self, name: str) -> UnsealedSecret | None:
         """The key called `name`, unsealed, or `None` when none is saved."""
         sealed_secret = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
         if sealed_secret is None:
@@ -62,7 +62,7 @@ class SecretService:
             encryption_key=self._encryption_key,
             record_id=sealed_secret.id,
         )
-        return Secret(destination=sealed_secret.destination, value=SecretStr(plaintext))
+        return UnsealedSecret(destination=sealed_secret.destination, value=SecretStr(plaintext))
 
     def delete(self, name: str) -> None:
         """Remove the key called `name`; `SecretNotFound` when none is saved."""

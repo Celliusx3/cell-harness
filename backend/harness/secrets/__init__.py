@@ -4,10 +4,10 @@ from harness.secrets.models.destination import Destination
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.secret import (
     SECRET_VALUE_RULE,
-    Secret,
     SecretName,
     SecretSummary,
     SecretValue,
+    UnsealedSecret,
 )
 from harness.secrets.redaction import redacted
 from harness.secrets.repositories.disk import DiskSecretRepository
@@ -17,12 +17,12 @@ __all__ = [
     "SECRET_VALUE_RULE",
     "Destination",
     "DiskSecretRepository",
-    "Secret",
     "SecretName",
     "SecretNotFound",
     "SecretRefused",
     "SecretService",
     "SecretSummary",
     "SecretValue",
+    "UnsealedSecret",
     "redacted",
 ]

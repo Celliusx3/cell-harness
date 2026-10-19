@@ -7,7 +7,7 @@ import json
 import httpx
 
 from harness.bots import BotNotFound, BotService
-from harness.secrets import Destination, Secret, SecretService, redacted
+from harness.secrets import Destination, SecretService, UnsealedSecret, redacted
 from harness.tools.client import ClientTool
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Failure, Ok, ToolOutcome
@@ -115,7 +115,7 @@ def _auth_headers(destination: Destination, value: str) -> dict[str, str]:
 
 
 async def _send_request(
-    client: httpx.AsyncClient, args: FetchArgs, url: httpx.URL, secret: Secret
+    client: httpx.AsyncClient, args: FetchArgs, url: httpx.URL, secret: UnsealedSecret
 ) -> ToolOutcome:
     value = secret.value.get_secret_value()
     headers = _auth_headers(secret.destination, value)
