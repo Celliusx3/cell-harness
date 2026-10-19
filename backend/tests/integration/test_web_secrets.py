@@ -23,7 +23,7 @@ from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
-from tests.webapp import bots_in, web_app
+from tests.webapp import bots_in, secrets_in, web_app
 
 KEY = 'tok-"q/+9Zx=7Lm'
 ECHOES = (KEY, json.dumps(KEY)[1:-1], quote(KEY, safe=""), base64.b64encode(KEY.encode()).decode())
@@ -69,7 +69,7 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
         frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json"
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
-    secrets = SecretService(tmp_path / "secrets.json", encryption_key="test-encryption-key")
+    secrets = secrets_in(tmp_path)
     model = SteppedClient(
         calls_tool(ASK_FOR_SECRET, ASK, id="call_ask"),
         calls_tool(FETCH_WITH_SECRET, FETCH, id="call_fetch"),
@@ -136,7 +136,7 @@ def _asking_app(
         frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json"
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
-    secrets = SecretService(tmp_path / "secrets.json", encryption_key="test-encryption-key")
+    secrets = secrets_in(tmp_path)
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing([]))
@@ -177,7 +177,7 @@ async def test_a_key_that_breaks_the_rule_is_a_422_naming_the_rule_not_the_key(t
         assert refused.status_code == 422
         assert SECRET_VALUE_RULE in refused.text
         assert _leaks(refused.text) == []
-        assert secrets.find("github") is None
+        assert secrets.secret_named("github") is None
         assert await _waiting(client) == {"call_ask"}
 
 
@@ -201,11 +201,11 @@ async def test_a_body_naming_its_own_site_is_refused_and_the_site_is_the_calls(t
 
         refused = await _save(client, "call_ask", {"value": KEY, "origin": "https://evil.example"})
         assert refused.status_code == 422
-        assert secrets.find("github") is None
+        assert secrets.secret_named("github") is None
 
         await _post(client, runs, ASSISTANT_ID, "/calls/call_ask/secret", {"value": KEY})
 
-    saved = secrets.find("github")
+    saved = secrets.secret_named("github")
     assert saved is not None
     assert saved.destination.origin == "https://api.github.com"
 

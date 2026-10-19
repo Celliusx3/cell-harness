@@ -1,4 +1,4 @@
-"""What the person may type as a key, where a key may be sent, and how it is blanked."""
+"""What the person may type as a key, where a key may be sent, and how it is redacted."""
 
 from __future__ import annotations
 

@@ -25,7 +25,7 @@ from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import SecretService
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
@@ -124,7 +124,10 @@ def create_web_app() -> FastAPI:
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     context_tokens = _resolve_context_tokens(settings)
     bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
-    secrets = SecretService(settings.secrets.path, encryption_key=settings.secrets.encryption_key)
+    secrets = SecretService(
+        DiskSecretRepository(settings.secrets.path),
+        encryption_key=settings.secrets.encryption_key,
+    )
     runtime = build_runtime(
         settings,
         service,

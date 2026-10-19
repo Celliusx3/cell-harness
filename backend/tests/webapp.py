@@ -12,6 +12,7 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.config.sections import FileSettings, McpServer
+from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp.client import ClientFactory, open_client
@@ -19,7 +20,7 @@ from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import SecretService
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
@@ -32,9 +33,28 @@ from tests.unit.telegram_fakes import FakeBot, telegram_channel
 TEST_ENCRYPTION_KEY = "test-encryption-key"
 
 
+def startup_settings(tmp_path: Path) -> Settings:
+    """Settings that keep all `create_web_app` makes under `tmp_path`, keys as `secrets_in`."""
+    return Settings(
+        llm={"model": "m", "api_key": "k", "vision": True},
+        sessions={"root": tmp_path / "sessions"},
+        files={"root": tmp_path / "files"},
+        bots={"path": tmp_path / "bots.json"},
+        secrets={"path": tmp_path / "secrets.json", "encryption_key": TEST_ENCRYPTION_KEY},
+        approval={"grants_path": tmp_path / "approvals.json"},
+        skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
+        compaction={"context_tokens": 1000},
+        telegram={"bot_token": ""},
+        discord={"bot_token": ""},
+        mcp={"servers": {}},
+    )
+
+
 def secrets_in(tmp_path: Path) -> SecretService:
     """Keys a test saves, sealed in a secrets file under `tmp_path`."""
-    return SecretService(tmp_path / "secrets.json", encryption_key=TEST_ENCRYPTION_KEY)
+    return SecretService(
+        DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=TEST_ENCRYPTION_KEY
+    )
 
 
 def bots_in(tmp_path: Path, service: SessionService) -> BotService:

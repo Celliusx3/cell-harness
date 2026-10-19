@@ -21,7 +21,7 @@ from harness.web.server import build_channels
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
-from tests.webapp import files_in, images_in, secrets_in
+from tests.webapp import files_in, images_in, secrets_in, startup_settings
 
 
 def runtime_over(tmp_path: Path, images: ImageService, *, vision: bool) -> Runtime:
@@ -79,19 +79,7 @@ class Started(NamedTuple):
 
 def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
     """The runtime and the web channel `create_web_app` builds, over folders in `tmp_path`."""
-    settings = Settings(
-        llm={"model": "m", "api_key": "k", "vision": True},
-        sessions={"root": tmp_path / "sessions"},
-        files={"root": tmp_path / "files"},
-        bots={"path": tmp_path / "bots.json"},
-        secrets={"path": tmp_path / "secrets.json", "encryption_key": "0" * 64},
-        approval={"grants_path": tmp_path / "approvals.json"},
-        skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
-        compaction={"context_tokens": 1000},
-        telegram={"bot_token": ""},
-        discord={"bot_token": ""},
-        mcp={"servers": {}},
-    )
+    settings = startup_settings(tmp_path)
     runtimes: list[Runtime] = []
     webs: list[WebChannel] = []
     real_runtime, real_channels = server.build_runtime, server.build_channels
