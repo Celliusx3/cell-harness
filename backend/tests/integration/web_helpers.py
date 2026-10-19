@@ -15,7 +15,7 @@ from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
-from harness.tools import ToolDefinition, ToolPipeline, ToolService
+from harness.tools import Tool, ToolPipeline, ToolService
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import PerBotClient
@@ -85,7 +85,7 @@ class Messaging:
 
 
 def messaging_app(
-    tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]]], *tools: ToolDefinition
+    tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]]], *tools: Tool
 ) -> Messaging:
     """Assistant and the bots a test makes, each answered from `scripts`."""
     model = PerBotClient(scripts)

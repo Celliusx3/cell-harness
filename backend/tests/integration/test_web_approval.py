@@ -8,7 +8,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
-from harness.tools import ApprovalGate, Ok, ToolDefinition, ToolOutcome
+from harness.tools import ApprovalGate, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
@@ -23,12 +23,12 @@ CHAT = "909"
 OTHER = "5151"
 
 
-def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
+def _writer(ran: list[str]) -> Tool[EchoArgs]:
     async def execute(args: EchoArgs, _context) -> ToolOutcome:
         ran.append(args.value)
         return Ok(content=f"saved {args.value}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=WRITE, description="Save a note.", args_model=EchoArgs, execute=execute
     )
 
@@ -41,7 +41,7 @@ def _asking(tmp_path, *steps, ran: list[str]):
         calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"), completed("saved"), *steps
     )
     service = durable_service(tmp_path / "sessions")
-    runs = run_service(service, model, _writer(ran), *tools.definitions(), gate=gate)
+    runs = run_service(service, model, _writer(ran), *tools.tools(), gate=gate)
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, gate=gate)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
     return client, runs
@@ -53,7 +53,7 @@ def _asking_beside_telegram(tmp_path, *scripts: list[StreamEvent], ran: list[str
     tools = ClientToolService(CLIENT_TOOLS, gate)
     service = durable_service(tmp_path / "sessions")
     model = SteppedClient(*scripts)
-    runs = run_service(service, model, _writer(ran), *tools.definitions(), gate=gate)
+    runs = run_service(service, model, _writer(ran), *tools.tools(), gate=gate)
     app, gateway, bot = web_app_with_telegram(
         tmp_path, service, runs, skills=no_skills(), client_tools=tools, gate=gate
     )

@@ -23,7 +23,7 @@ PATH = "/api/conversations/{id}/calls/call_h1/output"
 def _handing_over(tmp_path, reply: str = "signed in, carrying on"):
     tools = client_tools()
     model = SteppedClient(calls_tool(HAND_OVER, ASKED, id="call_h1"), completed(reply))
-    service, runs = build(tmp_path, model, *tools.definitions())
+    service, runs = build(tmp_path, model, *tools.tools())
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
     return client, runs, model

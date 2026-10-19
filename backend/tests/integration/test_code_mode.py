@@ -13,7 +13,7 @@ from harness.llm import ToolCall
 from harness.sandbox import DenoRunner
 from harness.tools import (
     Ok,
-    ToolDefinition,
+    Tool,
     ToolOutcome,
     ToolPipeline,
     ToolService,
@@ -30,11 +30,11 @@ from tests.unit.helpers import ORIGIN, no_gate, no_progress
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")
 
 
-def tool(name: str, schema: object, description: str = "A tool.") -> ToolDefinition:
+def tool(name: str, schema: object, description: str = "A tool.") -> Tool:
     async def run(args, progress):
         return Ok("")
 
-    return ToolDefinition(
+    return Tool(
         name=name,
         description=description,
         input_schema=schema,
@@ -109,7 +109,7 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
     async def rows(args, progress):
         return Ok("Found 3 rows.", data={"rows": [{"n": 1}, {"n": 2}, {"n": 3}]})
 
-    catalog = ToolDefinition(
+    catalog = Tool(
         name="db__query",
         description="Run a query.",
         input_schema={

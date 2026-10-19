@@ -1,6 +1,6 @@
 # 01 · A tool is a Tool, in the models folder
 
-**Status.** open
+**Status.** done
 
 **What to build.** `tools/definition.py` moves to `tools/models/tool.py`, and `ToolDefinition` becomes `Tool`, with `NAMESPACE_SEPARATOR` beside it. Every import and use follows. The MCP files that import the MCP library's `Tool` import it as `McpTool`. `ClientTools.definitions()` and `ClientToolService.definitions()` become `tools()`, and the catalog's `_definition` becomes `_tool_for`.
 

@@ -69,7 +69,7 @@ async def test_a_bot_uses_a_saved_key_only_once_the_person_allows_it(tmp_path: P
         return httpx.Response(200, text="{}")
 
     fetch = fetch_with_secret_tool(secrets, bots, httpx.MockTransport(answer))
-    runs = run_service(service, model, fetch, *tools.definitions(), gate=gate, bots=bots)
+    runs = run_service(service, model, fetch, *tools.tools(), gate=gate, bots=bots)
     app = web_app(
         tmp_path,
         service,
@@ -143,7 +143,7 @@ async def _launch(tmp_path: Path):
     model = SteppedClient(
         completed("Sources."), calls_tool(ASK_FOR_SECRET, ASK, id="call_ask"), completed("Saved.")
     )
-    runs = run_service(service, model, *tools.definitions(), bots=bots)
+    runs = run_service(service, model, *tools.tools(), bots=bots)
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, bots=bots)
     researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
     writer = await bots.create(BotDraft(name="Writer", instructions="Post."))

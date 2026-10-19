@@ -23,8 +23,8 @@ from harness.tools import (
     ApprovalGate,
     Failure,
     Ok,
+    Tool,
     ToolContext,
-    ToolDefinition,
     ToolOutcome,
 )
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
@@ -62,7 +62,7 @@ async def chunks_of(body: bytes) -> AsyncIterator[bytes]:
     yield body
 
 
-async def session_after(tool: ToolDefinition, files: ChatFileService, arguments: str) -> Session:
+async def session_after(tool: Tool, files: ChatFileService, arguments: str) -> Session:
     """Chat `s` after the model calls `tool` once with `arguments` and then answers."""
     runtime = Runtime(
         model="m",
@@ -146,9 +146,7 @@ async def test_any_tool_s_refused_path_is_named_after_its_own_words(tmp_path: Pa
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         return Ok("drew it", paths_to_send=(drawn.path, "/etc/hosts"))
 
-    draw = ToolDefinition.from_model(
-        name="draw", description="Draw.", args_model=NoArgs, execute=execute
-    )
+    draw = Tool.from_model(name="draw", description="Draw.", args_model=NoArgs, execute=execute)
 
     session = await session_after(draw, files, "{}")
 
@@ -163,9 +161,7 @@ async def test_a_result_that_names_no_file_reads_as_its_own_words_alone(tmp_path
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         return Ok("nothing drawn")
 
-    plain = ToolDefinition.from_model(
-        name="plain", description="Plain.", args_model=NoArgs, execute=execute
-    )
+    plain = Tool.from_model(name="plain", description="Plain.", args_model=NoArgs, execute=execute)
 
     session = await session_after(plain, files_in(tmp_path), "{}")
 

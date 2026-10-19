@@ -12,9 +12,9 @@ from harness.tools.approval import ApprovalGate
 from harness.tools.client.catalog import ClientTools
 from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
 from harness.tools.client.pending import pending_calls
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.decision import DENIED, Approval, parse_decision
 from harness.tools.models.outcome import Failure
+from harness.tools.models.tool import Tool
 
 
 class ClientToolService:
@@ -41,9 +41,9 @@ class ClientToolService:
         """Every tool whose call waits on the person — client tools and tools that ask."""
         return self._tools.names | self._gate.tools
 
-    def definitions(self) -> list[ToolDefinition]:
+    def tools(self) -> list[Tool]:
         """The tools to register."""
-        return self._tools.definitions()
+        return self._tools.tools()
 
     def answerable_calls(self, session: Session) -> tuple[PendingCall, ...]:
         """The calls a client may answer right now, in log order."""

@@ -11,7 +11,7 @@ from harness.tools import (
     ApprovalGate,
     CallOrigin,
     Ok,
-    ToolDefinition,
+    Tool,
     ToolOutcome,
     ToolService,
 )
@@ -26,11 +26,11 @@ def returns(outcome: Ok):
     return run
 
 
-def tool(name: str, description: str = "A tool.", schema: object | None = None) -> ToolDefinition:
+def tool(name: str, description: str = "A tool.", schema: object | None = None) -> Tool:
     async def run(args, progress):
         return Ok(f"{name} ran", data={"rows": [1, 2]})
 
-    return ToolDefinition(
+    return Tool(
         name=name,
         description=description,
         input_schema=schema or {"type": "object", "properties": {"url": {"type": "string"}}},
@@ -62,7 +62,7 @@ class FakeRunner(Runner):
 class RecordingToolService(ToolService):
     """A real tool service that remembers what it was asked to run."""
 
-    def __init__(self, tools: tuple[ToolDefinition, ...], gate: ApprovalGate) -> None:
+    def __init__(self, tools: tuple[Tool, ...], gate: ApprovalGate) -> None:
         super().__init__(tools, gate=gate)
         self.calls: list[ToolCall] = []
 
@@ -77,14 +77,14 @@ class RecordingToolService(ToolService):
 class Built:
     """The three tools, and the tool service behind them that remembers what it ran."""
 
-    tools: list[ToolDefinition]
+    tools: list[Tool]
     tool_service: RecordingToolService
 
     @property
     def dispatched(self) -> list[ToolCall]:
         return self.tool_service.calls
 
-    def tool(self, name: str) -> ToolDefinition:
+    def tool(self, name: str) -> Tool:
         return next(t for t in self.tools if t.name == name)
 
     async def run(self, name: str, arguments: str = "{}") -> ToolOutcome:
@@ -92,7 +92,7 @@ class Built:
 
 
 def build(
-    *tools: ToolDefinition,
+    *tools: Tool,
     runner: FakeRunner | None = None,
     withheld: frozenset[str] = frozenset(),
     gate: ApprovalGate | None = None,

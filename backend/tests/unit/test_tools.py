@@ -11,7 +11,7 @@ from harness.tools import (
     REFUSED,
     Failure,
     Ok,
-    ToolDefinition,
+    Tool,
     ToolPipeline,
     ToolService,
 )
@@ -167,7 +167,7 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
     dispose()
 
 
-def offering(*tools: ToolDefinition, default: tuple[str, ...]) -> ToolPipeline:
+def offering(*tools: Tool, default: tuple[str, ...]) -> ToolPipeline:
     """A pipeline with a chosen `default_tools` that offers every tool it was given."""
     return ToolPipeline(ToolService(tools, gate=no_gate()), default)
 

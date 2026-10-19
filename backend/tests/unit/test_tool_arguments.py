@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from harness.llm import ToolCall
-from harness.tools import INVALID_ARGUMENTS, Failure, Ok, ToolDefinition, ToolOutcome, ToolPipeline
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Tool, ToolOutcome, ToolPipeline
 from harness.tools.models.context import ToolProgressReporter
 from tests.unit.helpers import ORIGIN, no_progress, pipeline_for
 
 
-def pipeline(*tools: ToolDefinition) -> ToolPipeline:
+def pipeline(*tools: Tool) -> ToolPipeline:
     return pipeline_for(*tools)
 
 
@@ -16,13 +16,13 @@ def call(name: str, arguments: str) -> ToolCall:
     return ToolCall(id="c1", name=name, arguments=arguments)
 
 
-def profile_tool() -> ToolDefinition[dict]:
+def profile_tool() -> Tool[dict]:
     """An MCP-shaped tool: a hand-written schema and an identity parser."""
 
     async def execute(args: dict, progress: ToolProgressReporter) -> ToolOutcome:
         return Ok(content=f"profile of {args['id']}")
 
-    return ToolDefinition(
+    return Tool(
         name="profile",
         description="A company profile.",
         input_schema={
@@ -69,7 +69,7 @@ async def test_extra_keys_with_every_required_field_pass_through() -> None:
 
 async def test_a_schema_without_required_fields_is_not_checked() -> None:
     tool = profile_tool()
-    loose = ToolDefinition(
+    loose = Tool(
         name="loose",
         description=tool.description,
         input_schema={"type": "object", "properties": {"id": {"type": "string"}}},

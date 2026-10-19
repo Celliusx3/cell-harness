@@ -81,7 +81,7 @@ def test_what_the_model_reads_for_each_answer() -> None:
 
 
 async def test_the_tool_itself_only_says_pending() -> None:
-    (tool,) = ClientTools((BATTERY,)).definitions()
+    (tool,) = ClientTools((BATTERY,)).tools()
     spec = tool.spec()
     assert (spec.name, spec.description) == ("get_battery", "The device's charge.")
     assert spec.input_schema.get("properties", {}) == {}
@@ -162,7 +162,7 @@ def test_each_refusal_is_its_own_answer() -> None:
 def test_the_service_exposes_what_composition_needs() -> None:
     service = ClientToolService(ClientTools((BATTERY,)), no_gate())
     assert service.names == NAMES
-    assert [tool.name for tool in service.definitions()] == ["get_battery"]
+    assert [tool.name for tool in service.tools()] == ["get_battery"]
     assert service.answerable_calls(_session_with_pending()) == (
         PendingCall("get_battery", "c1", "{}"),
     )

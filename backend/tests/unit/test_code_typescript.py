@@ -5,15 +5,15 @@ from __future__ import annotations
 import pytest
 from pydantic import BaseModel
 
-from harness.tools import Ok, ToolDefinition
+from harness.tools import Ok, Tool
 from harness.tools.native.code_mode._typescript import MAX_DEPTH, declarations
 
 
-def tool(name: str, schema: object, description: str = "A tool.") -> ToolDefinition:
+def tool(name: str, schema: object, description: str = "A tool.") -> Tool:
     async def run(args, progress):
         return Ok("")
 
-    return ToolDefinition(
+    return Tool(
         name=name,
         description=description,
         input_schema=schema,
@@ -70,7 +70,7 @@ def test_refs_from_a_pydantic_model_resolve() -> None:
     class Args(BaseModel):
         nested: Inner
 
-    built = ToolDefinition.from_model(
+    built = Tool.from_model(
         name="clock", description="d", args_model=Args, execute=lambda a, p: None
     )
 

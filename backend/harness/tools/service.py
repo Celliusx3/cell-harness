@@ -7,15 +7,15 @@ from collections.abc import Callable, Iterable
 
 from harness.llm import ToolCall
 from harness.tools.approval import ApprovalGate
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import CallOrigin, ToolContext, ToolProgressReporter
 from harness.tools.models.outcome import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
+from harness.tools.models.tool import Tool
 
 logger = logging.getLogger("harness.tools")
 
 Disposer = Callable[[], None]
 
-ToolProvider = Callable[[], Iterable[ToolDefinition]]
+ToolProvider = Callable[[], Iterable[Tool]]
 
 
 class DuplicateToolError(RuntimeError):
@@ -27,18 +27,18 @@ class ToolService:
 
     def __init__(
         self,
-        tools: Iterable[ToolDefinition],
+        tools: Iterable[Tool],
         *,
         gate: ApprovalGate,
         providers: Iterable[ToolProvider] = (),
     ) -> None:
-        self._static: dict[str, ToolDefinition] = {}
+        self._static: dict[str, Tool] = {}
         self._providers: list[ToolProvider] = list(providers)
         self._gate = gate
         for tool in tools:
             self.register(tool)
 
-    def register(self, tool: ToolDefinition) -> Disposer:
+    def register(self, tool: Tool) -> Disposer:
         """Add one tool. Returns a disposer that removes exactly it."""
         if tool.name in self._static:
             raise DuplicateToolError(f"{tool.name!r} is already registered")
@@ -70,7 +70,7 @@ class ToolService:
 
         return dispose
 
-    def all(self) -> list[ToolDefinition]:
+    def all(self) -> list[Tool]:
         """Every tool available right now."""
         resolved = dict(self._static)
         for provider in self._providers:
@@ -86,7 +86,7 @@ class ToolService:
                 resolved[tool.name] = tool
         return list(resolved.values())
 
-    def get(self, name: str) -> ToolDefinition | None:
+    def get(self, name: str) -> Tool | None:
         """The tool called `name`, or `None`."""
         for tool in self.all():
             if tool.name == name:

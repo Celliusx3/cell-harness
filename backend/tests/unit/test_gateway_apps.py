@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.replies import app_url
-from harness.tools import Ok, ToolContext, ToolDefinition, ToolOutcome, ToolUi
+from harness.tools import Ok, Tool, ToolContext, ToolOutcome, ToolUi
 from tests.unit.fakes import (
     EchoArgs,
     SteppedClient,
@@ -16,13 +16,13 @@ from tests.unit.gateway_helpers import CHAT, build, msg, settle
 from tests.unit.helpers import no_skills
 
 
-def app_tool() -> ToolDefinition[EchoArgs]:
+def app_tool() -> Tool[EchoArgs]:
     """A tool whose result is bound to an MCP App."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         return Ok(args.value, ui=ToolUi(server="srv", resource_uri="ui://srv/app.html"))
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name="srv__show", description="Show.", args_model=EchoArgs, execute=execute
     )
 

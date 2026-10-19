@@ -25,8 +25,8 @@ from harness.skills import SkillService
 from harness.tools import (
     ApprovalGate,
     CallOrigin,
+    Tool,
     ToolContext,
-    ToolDefinition,
     ToolPipeline,
     ToolService,
 )
@@ -75,7 +75,7 @@ def no_gate() -> ApprovalGate:
 
 
 def pipeline_for(
-    *tools: ToolDefinition,
+    *tools: Tool,
     providers: Sequence[ToolProvider] = (),
     offer: Sequence[str] = (),
     gate: ApprovalGate | None = None,
@@ -88,7 +88,7 @@ def pipeline_for(
 
 def runtime_over(
     client,
-    *tools: ToolDefinition,
+    *tools: Tool,
     guidance: str = "",
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
@@ -153,7 +153,7 @@ def durable_service(root: Path, *, prefix: str = "c") -> SessionService:
 def run_service(
     service: SessionService,
     client,
-    *tools: ToolDefinition,
+    *tools: Tool,
     context_tokens: int | None = None,
     gate: ApprovalGate | None = None,
     bots: BotService | None = None,

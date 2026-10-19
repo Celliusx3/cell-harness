@@ -8,7 +8,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Literal
 
-from mcp.types import CallToolResult, ReadResourceResult, Tool
+from mcp.types import CallToolResult, ReadResourceResult
+from mcp.types import Tool as McpTool
 
 from harness.config.sections import McpServer
 from harness.mcp.client import ClientFactory, ClientLike
@@ -19,7 +20,7 @@ from harness.mcp.errors import (
     describe,
 )
 from harness.mcp.tool import build_tools
-from harness.tools import ToolDefinition
+from harness.tools import Tool
 
 logger = logging.getLogger("harness.mcp")
 
@@ -76,8 +77,8 @@ class Connection:
     factory: ClientFactory
     status: Status = "connecting"
     error: str = ""
-    tools: tuple[ToolDefinition[dict], ...] = ()
-    published: tuple[Tool, ...] = ()
+    tools: tuple[Tool[dict], ...] = ()
+    published: tuple[McpTool, ...] = ()
     commands: asyncio.Queue[_Command] = field(default_factory=asyncio.Queue)
     task: asyncio.Task[None] | None = None
 
@@ -205,9 +206,9 @@ class Connection:
             logger.error("MCP server %s stopped: %s", self.id, error, exc_info=error)
 
 
-async def _list_all(client: ClientLike) -> list[Tool]:
+async def _list_all(client: ClientLike) -> list[McpTool]:
     """Every tool the server offers, following its pagination."""
-    tools: list[Tool] = []
+    tools: list[McpTool] = []
     cursor: str | None = None
     for _ in range(MAX_TOOL_PAGES):
         page = await client.list_tools(cursor=cursor)

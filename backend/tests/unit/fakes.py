@@ -18,7 +18,7 @@ from harness.llm import (
     ToolCallChunk,
     ToolSpec,
 )
-from harness.tools import Ok, Pending, ToolContext, ToolDefinition, ToolOutcome
+from harness.tools import Ok, Pending, Tool, ToolContext, ToolOutcome
 
 
 class ScriptedClient(LLMClient):
@@ -124,18 +124,18 @@ class EchoArgs(BaseModel):
     value: str = Field(description="Text to echo back.")
 
 
-def echo_tool(name: str = "echo") -> ToolDefinition[EchoArgs]:
+def echo_tool(name: str = "echo") -> Tool[EchoArgs]:
     """A tool that succeeds, for testing dispatch and schema derivation."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         return Ok(content=args.value)
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=name, description="Echo the value back.", args_model=EchoArgs, execute=execute
     )
 
 
-def reporting_tool(reports: Sequence[tuple[float | None, str]]) -> ToolDefinition[EchoArgs]:
+def reporting_tool(reports: Sequence[tuple[float | None, str]]) -> Tool[EchoArgs]:
     """A tool that reports progress before returning."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
@@ -143,52 +143,52 @@ def reporting_tool(reports: Sequence[tuple[float | None, str]]) -> ToolDefinitio
             await context.progress(percent=percent, message=message)
         return Ok(content=args.value)
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name="slow", description="Reports progress.", args_model=EchoArgs, execute=execute
     )
 
 
-def hanging_tool(name: str = "hang") -> ToolDefinition[EchoArgs]:
+def hanging_tool(name: str = "hang") -> Tool[EchoArgs]:
     """A tool that never returns."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         await asyncio.Event().wait()
         raise AssertionError("unreachable")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=name, description="Never returns.", args_model=EchoArgs, execute=execute
     )
 
 
-def gated_tool(release: asyncio.Event, name: str = "gate") -> ToolDefinition[EchoArgs]:
+def gated_tool(release: asyncio.Event, name: str = "gate") -> Tool[EchoArgs]:
     """A tool that returns once the test says so."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         await release.wait()
         return Ok(content=args.value)
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=name, description="Returns when released.", args_model=EchoArgs, execute=execute
     )
 
 
-def raising_tool(name: str = "boom") -> ToolDefinition[EchoArgs]:
+def raising_tool(name: str = "boom") -> Tool[EchoArgs]:
     """A tool whose body blows up — a bug in a tool must not kill the turn."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         raise RuntimeError("kaboom")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=name, description="Always raises.", args_model=EchoArgs, execute=execute
     )
 
 
-def pending_tool(name: str = "ask") -> ToolDefinition[EchoArgs]:
+def pending_tool(name: str = "ask") -> Tool[EchoArgs]:
     """A client tool: it does not compute, it says the person will."""
 
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         return Pending()
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=name, description="The person answers.", args_model=EchoArgs, execute=execute
     )

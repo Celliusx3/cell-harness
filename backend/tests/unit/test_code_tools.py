@@ -9,8 +9,8 @@ from harness.tools import (
     Failure,
     Ok,
     ReturnedImage,
+    Tool,
     ToolContext,
-    ToolDefinition,
     ToolOutcome,
 )
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
@@ -248,7 +248,7 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversatio
         seen.append(context.origin)
         return Ok("recorded")
 
-    recorder = ToolDefinition(
+    recorder = Tool(
         name="srv__record",
         description="Records the bot it ran for.",
         input_schema={"type": "object", "properties": {}},

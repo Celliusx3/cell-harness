@@ -28,7 +28,7 @@ async def test_the_builder_makes_the_bot_its_chat_drafted_once_it_is_allowed(tmp
         calls_tool(BOT_CREATE, READER, id="call_reader"), completed("Reader is under Bots.")
     )
     runs = run_service(
-        service, model, bot_create_tool(bots), *client_tools.definitions(), gate=gate, bots=bots
+        service, model, bot_create_tool(bots), *client_tools.tools(), gate=gate, bots=bots
     )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), client_tools=client_tools, gate=gate, bots=bots

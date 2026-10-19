@@ -10,7 +10,7 @@ from harness.skills import resources
 from harness.skills.models import Skill
 from harness.skills.prompt import instructions
 from harness.skills.service import SkillService
-from harness.tools import INVALID_ARGUMENTS, Failure, Ok, ToolContext, ToolDefinition, ToolOutcome
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Tool, ToolContext, ToolOutcome
 
 SKILL = "skill"
 
@@ -28,7 +28,7 @@ _DESCRIPTION = (
 )
 
 
-def skill_tool(skills: SkillService) -> ToolDefinition[SkillArgs] | None:
+def skill_tool(skills: SkillService) -> Tool[SkillArgs] | None:
     """The tool over the skills the model may load, or `None` when there are none."""
     offered = [skill for skill in skills.snapshot().skills if skill.model_invocable]
     if not offered:
@@ -41,7 +41,7 @@ def skill_tool(skills: SkillService) -> ToolDefinition[SkillArgs] | None:
             return _resource(skill, args.path)
         return _instructions(skill, shipped=not skills.editable(skill))
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=SKILL,
         description=_DESCRIPTION + _index(offered),
         args_model=_args_model(tuple(by_name)),

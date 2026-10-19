@@ -8,7 +8,7 @@ from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
 from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
-from harness.tools import ApprovalGate, Ok, ToolDefinition, ToolOutcome
+from harness.tools import ApprovalGate, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
@@ -20,12 +20,12 @@ from tests.unit.telegram_fakes import decision_update
 WRITE = "memory__write_note"
 
 
-def _writer(ran: list[str], name: str = WRITE) -> ToolDefinition[EchoArgs]:
+def _writer(ran: list[str], name: str = WRITE) -> Tool[EchoArgs]:
     async def execute(args: EchoArgs, _context) -> ToolOutcome:
         ran.append(args.value)
         return Ok(content=f"saved {args.value}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=name, description="Save a note.", args_model=EchoArgs, execute=execute
     )
 
@@ -40,7 +40,7 @@ def _asking(tmp_path, ran: list[str], *before: list[StreamEvent], call_id: str =
         tmp_path,
         model,
         _writer(ran),
-        *tools.definitions(),
+        *tools.tools(),
         skills=no_skills(),
         client_tools=tools,
         gate=gate,
@@ -173,7 +173,7 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
         tmp_path,
         model,
         _writer(ran, send),
-        *tools.definitions(),
+        *tools.tools(),
         skills=no_skills(),
         client_tools=tools,
         gate=gate,
@@ -216,7 +216,7 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
         SteppedClient(step, completed("done")),
         _writer(ran, quote),
         _writer(ran),
-        *tools.definitions(),
+        *tools.tools(),
         skills=no_skills(),
         client_tools=tools,
         gate=gate,

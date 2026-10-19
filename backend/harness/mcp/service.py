@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import asyncio
 
-from mcp.types import CallToolResult, ReadResourceResult, Tool
+from mcp.types import CallToolResult, ReadResourceResult
+from mcp.types import Tool as McpTool
 
 from harness.config.sections import McpServer
 from harness.mcp.client import ClientFactory, open_client
 from harness.mcp.connection import Connection, ServerStatus
 from harness.mcp.errors import McpNotConnectedError
 from harness.mcp.tool import can_write, namespaced
-from harness.tools import ToolDefinition
+from harness.tools import Tool
 
 
 class McpService:
@@ -27,7 +28,7 @@ class McpService:
         self._factory = client_factory
         self._connections: dict[str, Connection] = {}
 
-    def tools(self) -> list[ToolDefinition[dict]]:
+    def tools(self) -> list[Tool[dict]]:
         """Every tool on offer right now — **the registry provider**."""
         return [tool for connection in self._connections.values() for tool in connection.tools]
 
@@ -41,7 +42,7 @@ class McpService:
             if can_write(tool) and (name := namespaced(connection.id, tool.name)) in offered
         )
 
-    def published(self, server_id: str) -> tuple[Tool, ...]:
+    def published(self, server_id: str) -> tuple[McpTool, ...]:
         """One server's tools as it published them. `KeyError` if not configured."""
         return self._connection(server_id).published
 

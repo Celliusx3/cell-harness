@@ -20,7 +20,7 @@ ASKED = json.dumps({"question": "Which shop?", "options": ["Lazada", "Shopee"]})
 def _asking(tmp_path, *, call_id: str = "c1"):
     tools = client_tools()
     model = SteppedClient(calls_tool(ASK_USER, ASKED, id=call_id), completed("searching Shopee"))
-    return build(tmp_path, model, *tools.definitions(), skills=no_skills(), client_tools=tools)
+    return build(tmp_path, model, *tools.tools(), skills=no_skills(), client_tools=tools)
 
 
 async def _log(sessions, chats):

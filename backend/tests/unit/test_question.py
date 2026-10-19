@@ -44,7 +44,7 @@ def test_an_answer_names_a_choice_and_nothing_else() -> None:
 
 
 def test_the_example_in_the_description_is_a_call_the_tool_accepts() -> None:
-    (tool,) = ClientToolService(ClientTools((ASK_USER_TOOL,)), no_gate()).definitions()
+    (tool,) = ClientToolService(ClientTools((ASK_USER_TOOL,)), no_gate()).tools()
     spec = tool.spec()
     assert spec.name == ASK_USER
     example = re.search(rf"{ASK_USER}\((\{{.*?\}})\)", spec.description)

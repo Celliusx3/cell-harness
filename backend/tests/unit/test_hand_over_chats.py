@@ -32,7 +32,7 @@ async def test_telegram_is_sent_the_answer_page_and_the_turn_waits(tmp_path) -> 
     bot, gateway, runs, chats, sessions = build(
         tmp_path,
         _hands_over_then_carries_on(),
-        *tools.definitions(),
+        *tools.tools(),
         skills=no_skills(),
         client_tools=tools,
     )
@@ -51,7 +51,7 @@ async def test_telegram_is_sent_the_answer_page_and_the_turn_waits(tmp_path) -> 
 
 async def test_discord_is_sent_the_open_button_to_the_answer_page(tmp_path) -> None:
     sessions = durable_service(tmp_path / "sessions")
-    runs = run_service(sessions, _hands_over_then_carries_on(), *client_tools().definitions())
+    runs = run_service(sessions, _hands_over_then_carries_on(), *client_tools().tools())
     gateway = ChannelGateway(
         JsonlChatRepository(tmp_path / "chats"), runs, sessions, no_skills(), public_url="http://t"
     )

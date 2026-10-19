@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from harness.skills.models import InvalidSkill
 from harness.skills.service import SkillNotEditable, SkillNotFound, SkillService, SkillShadowed
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import (
     INVALID_ARGUMENTS,
@@ -13,6 +12,7 @@ from harness.tools.models.outcome import (
     Ok,
     ToolOutcome,
 )
+from harness.tools.models.tool import Tool
 from harness.tools.native.skills.models import DeleteArgs, SaveArgs, WriteFileArgs
 
 SKILL_SAVE = "skill_save"
@@ -41,7 +41,7 @@ _WRITE_FILE_DESCRIPTION = (
 )
 
 
-def skill_save_tool(skills: SkillService) -> ToolDefinition[SaveArgs]:
+def skill_save_tool(skills: SkillService) -> Tool[SaveArgs]:
     """The tool that writes a skill through the Skills page's own save."""
 
     async def execute(args: SaveArgs, _context: ToolContext) -> ToolOutcome:
@@ -53,12 +53,12 @@ def skill_save_tool(skills: SkillService) -> ToolDefinition[SaveArgs]:
             return Failure(REFUSED, str(err))
         return Ok(f"saved skill {args.name!r}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=SKILL_SAVE, description=_SAVE_DESCRIPTION, args_model=SaveArgs, execute=execute
     )
 
 
-def skill_delete_tool(skills: SkillService) -> ToolDefinition[DeleteArgs]:
+def skill_delete_tool(skills: SkillService) -> Tool[DeleteArgs]:
     """The tool that removes a skill through the Skills page's own delete."""
 
     async def execute(args: DeleteArgs, _context: ToolContext) -> ToolOutcome:
@@ -70,12 +70,12 @@ def skill_delete_tool(skills: SkillService) -> ToolDefinition[DeleteArgs]:
             return Failure(REFUSED, str(err))
         return Ok(f"deleted skill {args.name!r}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=SKILL_DELETE, description=_DELETE_DESCRIPTION, args_model=DeleteArgs, execute=execute
     )
 
 
-def skill_write_file_tool(skills: SkillService) -> ToolDefinition[WriteFileArgs]:
+def skill_write_file_tool(skills: SkillService) -> Tool[WriteFileArgs]:
     """The tool that writes one file a skill bundles, into a skill the Skills page could edit."""
 
     async def execute(args: WriteFileArgs, _context: ToolContext) -> ToolOutcome:
@@ -89,7 +89,7 @@ def skill_write_file_tool(skills: SkillService) -> ToolDefinition[WriteFileArgs]
             return Failure(INVALID_ARGUMENTS, str(err))
         return Ok(f"wrote {args.path!r} in skill {args.name!r}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=SKILL_WRITE_FILE,
         description=_WRITE_FILE_DESCRIPTION,
         args_model=WriteFileArgs,

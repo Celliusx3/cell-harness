@@ -12,9 +12,9 @@ from harness.tools.client.models import (
     SharedAnswer,
     UnavailableAnswer,
 )
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Failure, Ok, Pending, ToolOutcome
+from harness.tools.models.tool import Tool
 
 _ASK_INSTEAD = "ask them in words instead"
 
@@ -46,15 +46,18 @@ class ClientTools:
             )
         return Failure(DECLINED, f"the user chose not to answer; {_ASK_INSTEAD}")
 
-    def definitions(self) -> list[ToolDefinition]:
+    def tools(self) -> list[Tool]:
         """One registered tool per declaration. Each says only `Pending`."""
-        return [_definition(tool) for tool in self._by_name.values()]
+        return [_tool_for(declared) for declared in self._by_name.values()]
 
 
-def _definition(tool: ClientTool) -> ToolDefinition:
+def _tool_for(declared: ClientTool) -> Tool:
     async def execute(_args: BaseModel, _context: ToolContext) -> ToolOutcome:
         return Pending()
 
-    return ToolDefinition.from_model(
-        name=tool.name, description=tool.description, args_model=tool.args_model, execute=execute
+    return Tool.from_model(
+        name=declared.name,
+        description=declared.description,
+        args_model=declared.args_model,
+        execute=execute,
     )

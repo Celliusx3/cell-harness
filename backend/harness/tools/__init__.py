@@ -1,7 +1,6 @@
 """Tools, and the machinery that offers and runs them."""
 
 from harness.tools.approval import ApprovalGate
-from harness.tools.definition import NAMESPACE_SEPARATOR, ToolDefinition
 from harness.tools.models.context import CallOrigin, ToolContext
 from harness.tools.models.decision import Approval
 from harness.tools.models.outcome import (
@@ -17,6 +16,7 @@ from harness.tools.models.outcome import (
     ToolOutcome,
     ToolUi,
 )
+from harness.tools.models.tool import NAMESPACE_SEPARATOR, Tool
 from harness.tools.pipeline import ToolPipeline
 from harness.tools.service import ToolService
 
@@ -35,7 +35,7 @@ __all__ = [
     "Pending",
     "ReturnedImage",
     "ToolContext",
-    "ToolDefinition",
+    "Tool",
     "ToolOutcome",
     "ToolPipeline",
     "ToolService",

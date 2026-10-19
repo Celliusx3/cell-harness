@@ -25,7 +25,7 @@ from harness.tools import (
     ApprovalGate,
     Failure,
     Ok,
-    ToolDefinition,
+    Tool,
     ToolOutcome,
     ToolPipeline,
     ToolService,
@@ -43,19 +43,17 @@ def _gate(tmp_path: Path, *tools: str) -> ApprovalGate:
     return ApprovalGate(frozenset(tools), frozenset, tmp_path / "approvals.json")
 
 
-def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
+def _writer(ran: list[str]) -> Tool[EchoArgs]:
     async def execute(args: EchoArgs, _context) -> ToolOutcome:
         ran.append(args.value)
         return Ok(content=f"saved {args.value}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=WRITE, description="Save a note.", args_model=EchoArgs, execute=execute
     )
 
 
-def _runtime(
-    client, gate: ApprovalGate, *tools: ToolDefinition, hooks: HookChain | None = None
-) -> Runtime:
+def _runtime(client, gate: ApprovalGate, *tools: Tool, hooks: HookChain | None = None) -> Runtime:
     tool_service = ToolService(tools, gate=gate)
     pipeline = ToolPipeline(tool_service, default_tools=[t.name for t in tools])
     return Runtime(
@@ -213,9 +211,7 @@ async def test_cancel_during_an_approved_run_closes_the_turn(tmp_path) -> None:
         await asyncio.sleep(60)
         return Ok(content="never")
 
-    slow = ToolDefinition.from_model(
-        name=WRITE, description="d", args_model=EchoArgs, execute=execute
-    )
+    slow = Tool.from_model(name=WRITE, description="d", args_model=EchoArgs, execute=execute)
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("never"))
     session = new_session()
     runtime = _runtime(client, _gate(tmp_path, WRITE), slow)

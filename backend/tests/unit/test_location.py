@@ -22,7 +22,7 @@ def test_coordinates_are_bounded_and_nothing_extra_is_accepted() -> None:
 
 
 def test_the_tool_takes_no_arguments_and_names_its_trigger_words() -> None:
-    (tool,) = ClientToolService(ClientTools((GET_LOCATION_TOOL,)), no_gate()).definitions()
+    (tool,) = ClientToolService(ClientTools((GET_LOCATION_TOOL,)), no_gate()).tools()
     spec = tool.spec()
     assert spec.name == GET_LOCATION
     assert spec.input_schema.get("properties", {}) == {}

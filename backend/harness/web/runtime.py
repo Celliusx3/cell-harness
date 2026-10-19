@@ -132,7 +132,7 @@ def build_runtime(
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
             *([view_image_tool(files)] if settings.llm.vision else []),
-            *client_tools.definitions(),
+            *client_tools.tools(),
         ],
         gate=gate,
     )

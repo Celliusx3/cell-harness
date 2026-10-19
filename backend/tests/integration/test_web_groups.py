@@ -28,7 +28,7 @@ async def _group(tmp_path, *scripts, extra=()):
     service = durable_service(tmp_path / "sessions")
     store = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
     runtime = runtime_over(
-        model, *tools.definitions(), *extra, guidance="GUIDE", checkpoint=service.flush
+        model, *tools.tools(), *extra, guidance="GUIDE", checkpoint=service.flush
     )
     runs = RunService(service, runtime, store)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store, client_tools=tools)

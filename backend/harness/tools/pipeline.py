@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from harness.llm import ToolCall, ToolSpec
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import CallOrigin, ToolProgressReporter
 from harness.tools.models.outcome import REFUSED, Failure, ToolOutcome
+from harness.tools.models.tool import Tool
 from harness.tools.service import ToolService
 
 MAX_TOOLS_SELECTED = 8
@@ -24,7 +24,7 @@ class ToolPipeline:
         """What the model is offered this step — the only place visibility is decided."""
         return [tool.spec() for tool in self._offered_tools(tools_selected)]
 
-    def _offered_tools(self, tools_selected: Sequence[str]) -> list[ToolDefinition]:
+    def _offered_tools(self, tools_selected: Sequence[str]) -> list[Tool]:
         by_name = {t.name: t for t in self.tool_service.all()}
         offered = [by_name[n] for n in self._default if n in by_name]
         chosen = {tool.name for tool in offered}
