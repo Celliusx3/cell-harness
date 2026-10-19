@@ -220,7 +220,7 @@ is stopped midway.
 - **Three answers, three scopes.** `{"kind": "approved", "scope": "once" |
   "conversation" | "always"}` or `{"kind": "denied"}`, posted to the same
   `POST …/calls/{call_id}/output`. `once` runs the call. `conversation` first
-  writes an `approval/grant` event; `Session.tools_granted()` folds it the way
+  writes an `approval/grant` event; `Session.conversation_allowed_tools()` folds it the way
   `tools_selected()` folds references, and the toolset runs that tool unasked
   from then on, while it is in the model's list: like any tool, one the model
   is no longer shown is refused until it is read again. `always` writes the tool into

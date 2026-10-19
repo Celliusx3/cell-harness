@@ -110,7 +110,7 @@ async def test_allow_for_the_conversation_writes_a_grant_and_the_next_call_runs_
     assert ran == ["Kopi", "Teh"]
     grants = [e for e in session.events() if isinstance(e, ApprovalGrant)]
     assert grants == [ApprovalGrant(turn=1, tool=WRITE)]
-    assert session.tools_granted() == frozenset({WRITE})
+    assert session.conversation_allowed_tools() == frozenset({WRITE})
     assert events[-1] == AgentCompleted(text="saved again")
     assert [e.reason for e in session.events() if isinstance(e, TurnEnd)] == [
         "pending",

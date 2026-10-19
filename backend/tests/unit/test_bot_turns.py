@@ -234,10 +234,10 @@ def test_each_bot_keeps_its_own_selected_tools_and_approvals() -> None:
     )
 
     assert session.tools_selected() == ()
-    assert session.tools_granted() == frozenset()
+    assert session.conversation_allowed_tools() == frozenset()
     session.append(TurnStart(turn=3, bot_id="r"))
     assert session.tools_selected() == ("web__get",)
-    assert session.tools_granted() == {"fs__write"}
+    assert session.conversation_allowed_tools() == {"fs__write"}
 
 
 def test_a_call_is_answered_for_the_bot_whose_turn_asked_it() -> None:

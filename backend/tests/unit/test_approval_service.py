@@ -49,7 +49,7 @@ def test_always_allow_is_written_to_the_grants_file_and_the_tool_stops_asking(tm
     approvals.grant(WRITE)
 
     assert approvals.should_ask(WRITE) is False
-    assert _approvals(tmp_path, WRITE).granted_tools() == frozenset({WRITE})
+    assert _approvals(tmp_path, WRITE).always_allowed_tools() == frozenset({WRITE})
     approvals.revoke(WRITE)
     assert _approvals(tmp_path, WRITE).should_ask(WRITE) is True
     with pytest.raises(ValueError):
@@ -66,7 +66,7 @@ def test_the_service_grants_always_before_the_turn_resumes(tmp_path) -> None:
     accepted = service.accept_by_call_id(session, "c1", {"kind": "approved", "scope": "always"})
 
     assert accepted == AcceptedAnswer("c1", Approval(scope="always"))
-    assert approvals.granted_tools() == frozenset({WRITE})
+    assert approvals.always_allowed_tools() == frozenset({WRITE})
 
 
 def test_repair_answers_a_call_left_by_a_crash_after_approval() -> None:

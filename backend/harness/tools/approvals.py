@@ -43,9 +43,9 @@ class Approvals:
 
     def should_ask(self, name: str) -> bool:
         """Whether a call to `name` must wait for the person."""
-        return name in self.tools_that_ask and name not in self.granted_tools()
+        return name in self.tools_that_ask and name not in self.always_allowed_tools()
 
-    def granted_tools(self) -> frozenset[str]:
+    def always_allowed_tools(self) -> frozenset[str]:
         """What the grants file holds right now; a missing file is empty."""
         if not self._grants_path.exists():
             return frozenset()
@@ -56,11 +56,11 @@ class Approvals:
         """Remember that `name` may run without asking."""
         if name not in self.tools_that_ask:
             raise ValueError(f"{name!r} is not a tool that asks for approval")
-        self._write_grants(self.granted_tools() | {name})
+        self._write_grants(self.always_allowed_tools() | {name})
 
     def revoke(self, name: str) -> None:
         """Make `name` ask again."""
-        granted = self.granted_tools()
+        granted = self.always_allowed_tools()
         if name not in granted:
             raise NotGranted(f"{name!r} is not granted")
         self._write_grants(granted - {name})
