@@ -1,6 +1,6 @@
 # 02 · The keyring's disk repository and its contract, beside the service
 
-**Status.** open
+**Status.** done
 
 **What to build.** In `backend/harness/secrets/`:
 - `repository.py`: the `SecretRepository` protocol, `sealed_secrets() -> tuple[SealedSecret, ...]` (every saved key, sealed; `()` when there is no file) and `replace_all(secrets: tuple[SealedSecret, ...]) -> None` (the keyring replaced whole).
