@@ -55,6 +55,7 @@ async def test_details_states_what_it_made_callable() -> None:
         ),
         progress=no_progress,
         origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(outcome, Ok)
@@ -141,8 +142,11 @@ async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_se
     built = toolset(echo_tool("a"))
     call = ToolCall(id="c1", name="a", arguments='{"value": "hi"}')
 
-    refused = await built.execute(call, progress=no_progress, origin=ORIGIN)
-    allowed = await built.execute(call, progress=no_progress, origin=ORIGIN, tools_selected=("a",))
+    read_it = new_session()
+    read_it.append(selected("a"))
+
+    refused = await built.execute(call, progress=no_progress, origin=ORIGIN, session=new_session())
+    allowed = await built.execute(call, progress=no_progress, origin=ORIGIN, session=read_it)
 
     assert "get_function_details" in str(refused)
     assert isinstance(allowed, Ok) and allowed.text == "hi"

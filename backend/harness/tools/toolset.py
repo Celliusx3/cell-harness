@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Protocol
 
 from harness.llm import ToolCall, ToolSpec
 from harness.tools.models.context import CallOrigin, ToolProgressReporter
@@ -11,6 +12,14 @@ from harness.tools.models.tool import Tool
 from harness.tools.service import ToolService
 
 MAX_TOOLS_SELECTED = 8
+
+
+class ToolChoices(Protocol):
+    """A conversation's choices about tools: what the model selected, what the person allowed."""
+
+    def tools_selected(self) -> tuple[str, ...]: ...
+
+    def tools_granted(self) -> frozenset[str]: ...
 
 
 class Toolset:
@@ -41,19 +50,22 @@ class Toolset:
         *,
         progress: ToolProgressReporter,
         origin: CallOrigin,
-        tools_selected: Sequence[str] = (),
+        session: ToolChoices,
     ) -> ToolOutcome:
-        """Run one of the model's own calls — if it was offered."""
-        if call.name not in {tool.name for tool in self._offered_tools(tools_selected)}:
+        """Run one of the model's own calls if it was offered, unasked if allowed for the chat."""
+        if call.name not in {tool.name for tool in self._offered_tools(session.tools_selected())}:
             return Failure(REFUSED, _not_offered_message(call.name))
         return await self.tool_service.dispatch(
-            call, progress=progress, approved=False, origin=origin
+            call,
+            progress=progress,
+            approved=call.name in session.tools_granted(),
+            origin=origin,
         )
 
     async def execute_approved(
         self, call: ToolCall, *, progress: ToolProgressReporter, origin: CallOrigin
     ) -> ToolOutcome:
-        """Run a call the person has approved — they opened this door, so no offered check."""
+        """Run the call the person approved on its card; their yes skips the offered check."""
         return await self.tool_service.dispatch(
             call, progress=progress, approved=True, origin=origin
         )

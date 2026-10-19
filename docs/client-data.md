@@ -221,8 +221,9 @@ is stopped midway.
   "conversation" | "always"}` or `{"kind": "denied"}`, posted to the same
   `POST …/calls/{call_id}/output`. `once` runs the call. `conversation` first
   writes an `approval/grant` event; `Session.tools_granted()` folds it the way
-  `tools_selected()` folds references, and the loop passes `approved=True` for
-  that tool from then on. `always` writes the tool into
+  `tools_selected()` folds references, and the toolset runs that tool unasked
+  from then on, while it is in the model's list: like any tool, one the model
+  is no longer shown is refused until it is read again. `always` writes the tool into
   `approval.grants_path` (`~/.harness/approvals.json`), read by
   `Approvals.should_ask`; `GET /api/approvals` lists it and `DELETE
   /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),

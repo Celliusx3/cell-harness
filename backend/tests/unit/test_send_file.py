@@ -225,7 +225,10 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     assert SEND_FILE in [spec.name for spec in runtime.tools.specs()]
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
     )
     ran = await runtime.tools.execute(
         ToolCall(
@@ -237,6 +240,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
         ),
         progress=no_progress,
         origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(listed, Ok) and SEND_FILE not in listed.text

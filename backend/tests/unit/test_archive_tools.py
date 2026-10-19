@@ -27,7 +27,15 @@ from harness.web.runtime import (
     build_runtime,
 )
 from tests.unit.archive_fakes import UNPACK_LIMIT
-from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, no_skills
+from tests.unit.helpers import (
+    ORIGIN,
+    client_tools,
+    new_session,
+    no_approvals,
+    no_bots,
+    no_progress,
+    no_skills,
+)
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -103,7 +111,10 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
     )
     script = (
         'await extract_archive({path: "/tmp/a.cbz"}); '
@@ -117,6 +128,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         ),
         progress=no_progress,
         origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(listed, Ok)

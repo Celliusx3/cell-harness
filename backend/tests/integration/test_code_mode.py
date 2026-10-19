@@ -25,7 +25,7 @@ from harness.tools.native.code_mode import (
     code_mode_tools,
 )
 from harness.tools.native.code_mode._typescript import declarations
-from tests.unit.helpers import ORIGIN, no_approvals, no_progress
+from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_progress
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")
 
@@ -131,7 +131,9 @@ async def test_a_script_reaches_a_real_tool_through_a_real_toolset() -> None:
 
     async def run(name: str, arguments: str) -> ToolOutcome:
         call = ToolCall(id="c1", name=name, arguments=arguments)
-        return await toolset.execute(call, progress=no_progress, origin=ORIGIN)
+        return await toolset.execute(
+            call, progress=no_progress, origin=ORIGIN, session=new_session()
+        )
 
     assert [spec.name for spec in toolset.specs()] == [
         LIST_FUNCTIONS,

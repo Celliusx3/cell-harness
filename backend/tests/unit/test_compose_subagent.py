@@ -29,7 +29,15 @@ from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
 from harness.web.server import build_store, build_subagent_logs
 from tests.unit.fakes import SteppedClient, calls_tool, completed
-from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, no_skills
+from tests.unit.helpers import (
+    ORIGIN,
+    client_tools,
+    new_session,
+    no_approvals,
+    no_bots,
+    no_progress,
+    no_skills,
+)
 from tests.webapp import files_in, images_in, secrets_in
 
 
@@ -73,7 +81,10 @@ async def test_a_script_cannot_reach_run_subagent(compose) -> None:
     assert runtime.tools is not None
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(listed, Ok)
