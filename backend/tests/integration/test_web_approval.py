@@ -8,7 +8,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
-from harness.tools import Approvals, Ok, Tool, ToolOutcome
+from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
@@ -35,7 +35,7 @@ def _writer(ran: list[str]) -> Tool[EchoArgs]:
 
 def _asking(tmp_path, *steps, ran: list[str]):
     """An app whose model saves a note, then answers."""
-    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(
         calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"), completed("saved"), *steps
@@ -51,7 +51,7 @@ def _asking(tmp_path, *steps, ran: list[str]):
 
 def _asking_beside_telegram(tmp_path, *scripts: list[StreamEvent], ran: list[str]):
     """An app whose model runs `scripts` in order, with Telegram on the same gateway."""
-    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     model = SteppedClient(*scripts)

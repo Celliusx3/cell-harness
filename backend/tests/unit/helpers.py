@@ -23,7 +23,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import (
-    Approvals,
+    ApprovalService,
     CallOrigin,
     Tool,
     ToolContext,
@@ -69,16 +69,16 @@ def new_session(session_id: str = "s") -> Session:
     return Session(SessionHeader(id=session_id, created_at=datetime(2026, 1, 1, tzinfo=UTC)))
 
 
-def no_approvals() -> Approvals:
-    """Approvals that list nothing, over a grants file that cannot exist."""
-    return Approvals(frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"))
+def no_approvals() -> ApprovalService:
+    """An approval service that lists nothing, over an approvals file that cannot exist."""
+    return ApprovalService(frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"))
 
 
 def toolset_for(
     *tools: Tool,
     providers: Sequence[ToolProvider] = (),
     offer: Sequence[str] = (),
-    approvals: Approvals | None = None,
+    approvals: ApprovalService | None = None,
 ) -> Toolset:
     """A tool service and a toolset over `tools`, offering all of them."""
     tool_service = ToolService(tools, approvals=approvals or no_approvals(), providers=providers)
@@ -93,7 +93,7 @@ def runtime_over(
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     context_tokens: int | None = None,
-    approvals: Approvals | None = None,
+    approvals: ApprovalService | None = None,
     images: ImageService | None = None,
 ) -> Runtime:
     """A runtime over `tools`, with no toolset at all when there are none."""
@@ -155,7 +155,7 @@ def run_service(
     client,
     *tools: Tool,
     context_tokens: int | None = None,
-    approvals: Approvals | None = None,
+    approvals: ApprovalService | None = None,
     bots: BotService | None = None,
     images: ImageService | None = None,
 ) -> RunService:

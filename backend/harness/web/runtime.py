@@ -28,7 +28,7 @@ from harness.sandbox import DenoRunner
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tools import Approvals, ToolService, Toolset
+from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
@@ -110,7 +110,7 @@ def build_runtime(
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
-    approvals: Approvals,
+    approvals: ApprovalService,
     context_tokens: int | None = None,
     *,
     bots: BotService,

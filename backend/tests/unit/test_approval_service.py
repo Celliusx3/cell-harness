@@ -9,7 +9,7 @@ import pytest
 from harness.llm import AssistantMessage, ToolCall
 from harness.session.models import AssistantMessageEvent, ToolCallEvent, TurnEnd, TurnStart
 from harness.session.repair import REPAIRED, repair
-from harness.tools import Approval, Approvals
+from harness.tools import Approval, ApprovalService
 from harness.tools.client import (
     AcceptedAnswer,
     ClientTool,
@@ -24,8 +24,8 @@ from tests.unit.helpers import new_session
 WRITE = "memory__write_note"
 
 
-def _approvals(tmp_path: Path, *tools: str) -> Approvals:
-    return Approvals(frozenset(tools), frozenset, tmp_path / "approvals.json")
+def _approvals(tmp_path: Path, *tools: str) -> ApprovalService:
+    return ApprovalService(frozenset(tools), frozenset, tmp_path / "approvals.json")
 
 
 def _call(call_id: str) -> ToolCallEvent:
@@ -114,7 +114,7 @@ def test_a_name_that_is_both_client_and_listed_is_refused_at_construction(tmp_pa
 
 
 def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) -> None:
-    approvals = Approvals(
+    approvals = ApprovalService(
         frozenset(), lambda: frozenset({"mail__send_email"}), tmp_path / "approvals.json"
     )
 
@@ -125,7 +125,9 @@ def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) 
 
 def test_the_servers_tools_are_read_again_on_every_check(tmp_path) -> None:
     connected: set[str] = set()
-    approvals = Approvals(frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json"
+    )
 
     assert not approvals.needs_approval("mail__send_email")
     connected.add("mail__send_email")

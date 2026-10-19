@@ -23,7 +23,7 @@ class ApprovalsFile(BaseModel):
     tools: tuple[str, ...] = ()
 
 
-class Approvals:
+class ApprovalService:
     """The tools that need approval, and the approvals file that remembers which no longer do."""
 
     def __init__(

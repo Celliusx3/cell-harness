@@ -6,14 +6,14 @@ from pathlib import Path
 
 from harness.runtime.hooks import HookChain
 from harness.runtime.service import Runtime
-from harness.tools import Approvals, Ok, Tool, ToolOutcome, ToolService, Toolset
+from harness.tools import ApprovalService, Ok, Tool, ToolOutcome, ToolService, Toolset
 from tests.unit.fakes import EchoArgs
 
 WRITE = "memory__write_note"
 
 
-def approvals_asking_for(tmp_path: Path, *tools: str) -> Approvals:
-    return Approvals(frozenset(tools), frozenset, tmp_path / "approvals.json")
+def approvals_asking_for(tmp_path: Path, *tools: str) -> ApprovalService:
+    return ApprovalService(frozenset(tools), frozenset, tmp_path / "approvals.json")
 
 
 def note_writer(ran: list[str]) -> Tool[EchoArgs]:
@@ -27,7 +27,7 @@ def note_writer(ran: list[str]) -> Tool[EchoArgs]:
 
 
 def runtime_offering(
-    client, approvals: Approvals, *tools: Tool, hooks: HookChain | None = None
+    client, approvals: ApprovalService, *tools: Tool, hooks: HookChain | None = None
 ) -> Runtime:
     tool_service = ToolService(tools, approvals=approvals)
     toolset = Toolset(tool_service, default_tools=[t.name for t in tools])

@@ -29,7 +29,7 @@ from harness.secrets import SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools import Approvals
+from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.errors import exception_handlers
 from harness.web.logs import configure_logging
@@ -118,7 +118,7 @@ def create_web_app() -> FastAPI:
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
     mcp = build_mcp(settings)
     skills = SkillService(settings.skills)
-    approvals = Approvals(
+    approvals = ApprovalService(
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
@@ -157,7 +157,7 @@ def create_app(
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
-    approvals: Approvals,
+    approvals: ApprovalService,
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,

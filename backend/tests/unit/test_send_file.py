@@ -20,7 +20,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import (
     INVALID_ARGUMENTS,
-    Approvals,
+    ApprovalService,
     Failure,
     Ok,
     Tool,
@@ -198,7 +198,7 @@ def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
 
 def test_it_never_asks_for_approval() -> None:
     committed = json.loads(CONFIG.read_text())
-    approvals = Approvals(
+    approvals = ApprovalService(
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),

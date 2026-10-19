@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from harness.prompts import DENIED_RESULT
 from harness.session.log import Session
-from harness.tools.approvals import Approvals
+from harness.tools.approvals import ApprovalService
 from harness.tools.client.catalog import ClientTools
 from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
 from harness.tools.client.pending import pending_calls
@@ -20,7 +20,7 @@ from harness.tools.models.tool import Tool
 class ClientToolService:
     """The declared client tools, the approvals, and the one way to answer either."""
 
-    def __init__(self, tools: ClientTools, approvals: Approvals) -> None:
+    def __init__(self, tools: ClientTools, approvals: ApprovalService) -> None:
         if both := tools.names & approvals.protected_tools:
             raise ValueError(f"{sorted(both)} are both client tools and tools that ask")
         self._tools = tools

@@ -8,7 +8,7 @@ from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
 from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
-from harness.tools import Approvals, Ok, Tool, ToolOutcome
+from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
@@ -31,7 +31,7 @@ def _writer(ran: list[str], name: str = WRITE) -> Tool[EchoArgs]:
 
 
 def _asking(tmp_path, ran: list[str], *before: list[StreamEvent], call_id: str = "c1"):
-    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(
         *before, calls_tool(WRITE, '{"value": "Kopi"}', id=call_id), completed("saved")
@@ -166,7 +166,9 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
     ran: list[str] = []
     send = "mail__send_email"
     connected: set[str] = set()
-    approvals = Approvals(frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json"
+    )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(calls_tool(send, '{"value": "hi"}', id="c1"), completed("sent"))
     bot, gateway, runs, _chats, _sessions = build(
@@ -192,7 +194,7 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
 async def test_an_always_allowed_tool_runs_without_buttons(tmp_path) -> None:
     ran: list[str] = []
     bot, gateway, runs, _chats, _sessions = _asking(tmp_path, ran)
-    Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json").grant(WRITE)
+    ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json").grant(WRITE)
 
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -209,7 +211,7 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
         ToolCall(id="c2", name=WRITE, arguments='{"value": "Kopi"}'),
     )
     step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
-    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     bot, gateway, runs, _chats, _sessions = build(
         tmp_path,

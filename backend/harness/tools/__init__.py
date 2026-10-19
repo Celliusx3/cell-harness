@@ -1,6 +1,6 @@
 """Tools, and the machinery that offers and runs them."""
 
-from harness.tools.approvals import Approvals, NotApproved
+from harness.tools.approvals import ApprovalService, NotApproved
 from harness.tools.models.context import CallOrigin, ToolContext
 from harness.tools.models.decision import Approval
 from harness.tools.models.outcome import (
@@ -27,7 +27,7 @@ __all__ = [
     "NAMESPACE_SEPARATOR",
     "REFUSED",
     "UNKNOWN_TOOL",
-    "Approvals",
+    "ApprovalService",
     "NotApproved",
     "Approval",
     "CallOrigin",

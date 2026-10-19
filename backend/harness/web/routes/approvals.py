@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from harness.tools import Approvals
+from harness.tools import ApprovalService
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class ApprovedTools(BaseModel):
     tools: list[str]
 
 
-def build_router(approvals: Approvals) -> APIRouter:
+def build_router(approvals: ApprovalService) -> APIRouter:
     """List the standing grants, and revoke one."""
     router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 

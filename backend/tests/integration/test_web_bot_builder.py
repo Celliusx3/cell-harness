@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 
 from harness.bots import BotService
-from harness.tools import Approvals
+from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
 from harness.web.runtime import CLIENT_TOOLS
@@ -20,7 +20,7 @@ ANSWER = "/api/conversations/builder/calls/call_reader/output"
 
 
 async def test_the_builder_makes_the_bot_its_chat_drafted_once_it_is_allowed(tmp_path) -> None:
-    approvals = Approvals(frozenset({BOT_CREATE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(frozenset({BOT_CREATE}), frozenset, tmp_path / "approvals.json")
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     bots = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")

@@ -11,7 +11,7 @@ from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.service import RunService
 from harness.skills import SkillService
-from harness.tools import Approvals
+from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import durable_service, run_service
@@ -28,7 +28,7 @@ def build(
     skills: SkillService,
     client_tools: ClientToolService | None = None,
     context_tokens: int | None = None,
-    approvals: Approvals | None = None,
+    approvals: ApprovalService | None = None,
 ):
     sessions = durable_service(tmp_path / "sessions")
     runs = run_service(sessions, model, *tools, context_tokens=context_tokens, approvals=approvals)

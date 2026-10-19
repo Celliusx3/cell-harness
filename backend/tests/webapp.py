@@ -22,7 +22,7 @@ from harness.runs.service import RunService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools import Approvals
+from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.server import create_app
 from tests.unit.helpers import client_tools as default_client_tools
@@ -98,7 +98,7 @@ def web_app(
     mcp: McpService | None = None,
     skills: SkillService,
     client_tools: ClientToolService | None = None,
-    approvals: Approvals | None = None,
+    approvals: ApprovalService | None = None,
     bots: BotService | None = None,
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
@@ -128,7 +128,7 @@ def web_app_with_telegram(
     *,
     skills: SkillService,
     client_tools: ClientToolService | None = None,
-    approvals: Approvals | None = None,
+    approvals: ApprovalService | None = None,
     secrets: SecretService | None = None,
 ) -> tuple[FastAPI, ChannelGateway, FakeBot]:
     """`web_app` with a fake Telegram on the same gateway: the app, the gateway, and the bot."""

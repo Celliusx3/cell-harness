@@ -12,7 +12,7 @@ from harness.llm import ToolCall
 from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools import Approvals, Failure, Ok
+from harness.tools import ApprovalService, Failure, Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.files import (
     EXTRACT_ARCHIVE,
@@ -83,7 +83,7 @@ def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not(name: str) 
 @pytest.mark.parametrize("name", ARCHIVE_TOOLS)
 def test_it_never_asks_for_approval(name: str) -> None:
     committed = json.loads(CONFIG.read_text())
-    approvals = Approvals(
+    approvals = ApprovalService(
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),
