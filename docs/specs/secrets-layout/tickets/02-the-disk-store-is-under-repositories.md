@@ -1,6 +1,6 @@
 # 02 · The disk store is under repositories
 
-**Status.** open
+**Status.** done
 
 **What to build.** `backend/harness/secrets/disk.py` moves to `backend/harness/secrets/repositories/disk.py`, unchanged. `backend/harness/secrets/repositories/__init__.py` holds one docstring line, as `session/repositories/__init__.py` does: the concrete stores, each implementing the secrets repository contract. `secrets/__init__.py` imports `DiskSecretRepository` from its new path. `secrets/repository.py` stays beside the service.
 

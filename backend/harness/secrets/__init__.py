@@ -1,6 +1,5 @@
 """API keys the person saved: one keyring, sealed, and each key sent only to the site it names."""
 
-from harness.secrets.disk import DiskSecretRepository
 from harness.secrets.models.destination import Destination
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.secret import (
@@ -11,6 +10,7 @@ from harness.secrets.models.secret import (
     SecretValue,
 )
 from harness.secrets.redaction import redacted
+from harness.secrets.repositories.disk import DiskSecretRepository
 from harness.secrets.service import SecretService
 
 __all__ = [
