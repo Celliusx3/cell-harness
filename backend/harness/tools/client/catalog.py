@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from harness.tools.client.models import (
     DECLINED,
     UNAVAILABLE,
-    ClientOutput,
+    ClientAnswer,
     ClientTool,
     SharedAnswer,
     UnavailableAnswer,
@@ -31,18 +31,18 @@ class ClientTools:
     def names(self) -> frozenset[str]:
         return frozenset(self._by_name)
 
-    def parse(self, name: str, raw: object) -> ClientOutput:
-        """A posted body as the output of the tool named `name`."""
-        return self._by_name[name].output_adapter().validate_python(raw)
+    def parse_answer(self, name: str, raw: object) -> ClientAnswer:
+        """A posted body as the answer to the tool named `name`."""
+        return self._by_name[name].answer_adapter().validate_python(raw)
 
-    def outcome(self, output: ClientOutput) -> Ok | Failure:
+    def outcome(self, answer: ClientAnswer) -> Ok | Failure:
         """What the model reads for an answer — the same for every datum."""
-        if isinstance(output, SharedAnswer):
-            return Ok(content=output.data.model_dump_json())
-        if isinstance(output, UnavailableAnswer):
+        if isinstance(answer, SharedAnswer):
+            return Ok(content=answer.data.model_dump_json())
+        if isinstance(answer, UnavailableAnswer):
             return Failure(
                 UNAVAILABLE,
-                f"the device could not answer ({output.reason}); {_ASK_INSTEAD}",
+                f"the device could not answer ({answer.reason}); {_ASK_INSTEAD}",
             )
         return Failure(DECLINED, f"the user chose not to answer; {_ASK_INSTEAD}")
 

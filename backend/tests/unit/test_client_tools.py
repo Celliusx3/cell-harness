@@ -48,9 +48,9 @@ NAMES = frozenset({"get_battery"})
 def test_a_body_is_held_to_the_declared_shape() -> None:
     tools = ClientTools((BATTERY,))
     assert tools.names == NAMES
-    assert tools.parse("get_battery", {"kind": "shared", "data": {"percent": 80}}) == CHARGED
-    assert tools.parse("get_battery", {"kind": "declined"}) == DeclinedAnswer()
-    assert tools.parse("get_battery", {"kind": "unavailable", "reason": "NO_BATTERY"}) == (
+    assert tools.parse_answer("get_battery", {"kind": "shared", "data": {"percent": 80}}) == CHARGED
+    assert tools.parse_answer("get_battery", {"kind": "declined"}) == DeclinedAnswer()
+    assert tools.parse_answer("get_battery", {"kind": "unavailable", "reason": "NO_BATTERY"}) == (
         UnavailableAnswer(reason="NO_BATTERY")
     )
     for bad in (
@@ -61,7 +61,7 @@ def test_a_body_is_held_to_the_declared_shape() -> None:
         "80",
     ):
         with pytest.raises(ValidationError):
-            tools.parse("get_battery", bad)
+            tools.parse_answer("get_battery", bad)
 
 
 def test_two_declarations_cannot_share_a_name() -> None:

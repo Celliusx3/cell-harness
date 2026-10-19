@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import { ApiError, sendToolOutput } from "@/lib/api";
-import type { ClientOutput, Decision } from "@/lib/types";
+import type { ClientAnswer, Decision } from "@/lib/types";
 
 /** What a client-tool handler is given: the call, where it lives, and what to do once the output is posted */
 export interface ClientToolProps {
@@ -25,7 +25,7 @@ export function useClientTool<T>({
   const [phase, setPhase] = useState<Phase>("asking");
   const decided = useRef(false);
 
-  const send = async (output: ClientOutput<T> | Decision) => {
+  const send = async (output: ClientAnswer<T> | Decision) => {
     decided.current = true;
     setPhase("sent");
     try {

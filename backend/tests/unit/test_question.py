@@ -55,5 +55,5 @@ def test_the_example_in_the_description_is_a_call_the_tool_accepts() -> None:
 
 def test_a_tap_reaches_the_model_as_the_chosen_label() -> None:
     tools = ClientTools((ASK_USER_TOOL,))
-    tapped = tools.parse(ASK_USER, {"kind": "shared", "data": {"choice": "Shopee"}})
+    tapped = tools.parse_answer(ASK_USER, {"kind": "shared", "data": {"choice": "Shopee"}})
     assert tools.outcome(tapped) == Ok(content='{"choice":"Shopee"}')

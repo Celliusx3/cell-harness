@@ -20,16 +20,16 @@ from harness.tools.models.tool import Tool
 class ClientToolService:
     """The declared client tools, the approvals, and the one way to answer either."""
 
-    def __init__(self, tools: ClientTools, approvals: ApprovalService) -> None:
-        if both := tools.names & approvals.protected_tools:
+    def __init__(self, client_tools: ClientTools, approvals: ApprovalService) -> None:
+        if both := client_tools.names & approvals.protected_tools:
             raise ValueError(f"{sorted(both)} are both client tools and tools that ask")
-        self._tools = tools
+        self._client_tools = client_tools
         self._approvals = approvals
 
     @property
     def names(self) -> frozenset[str]:
         """The client tools: offered, withheld from scripts, and asked of chats."""
-        return self._tools.names
+        return self._client_tools.names
 
     @property
     def protected_tools(self) -> frozenset[str]:
@@ -39,11 +39,11 @@ class ClientToolService:
     @property
     def awaited_tools(self) -> frozenset[str]:
         """Every tool whose call waits on the person — client tools and tools that ask."""
-        return self._tools.names | self._approvals.protected_tools
+        return self._client_tools.names | self._approvals.protected_tools
 
     def tools(self) -> list[Tool]:
         """The tools to register."""
-        return self._tools.tools()
+        return self._client_tools.tools()
 
     def answerable_calls(self, session: Session) -> tuple[PendingCall, ...]:
         """The calls a client may answer right now, in log order."""
@@ -70,10 +70,10 @@ class ClientToolService:
         if pending.name in self._approvals.protected_tools:
             return self._accept_decision(pending, raw)
         try:
-            output = self._tools.parse(pending.name, raw)
+            answer = self._client_tools.parse_answer(pending.name, raw)
         except ValidationError:
             return RefusalReason.DOES_NOT_FIT
-        return AcceptedAnswer(pending.call_id, self._tools.outcome(output))
+        return AcceptedAnswer(pending.call_id, self._client_tools.outcome(answer))
 
     def _accept_decision(self, pending: PendingCall, raw: object) -> AcceptedAnswer | RefusalReason:
         try:

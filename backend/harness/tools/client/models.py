@@ -41,7 +41,7 @@ class UnavailableAnswer(BaseModel):
     reason: str = Field(min_length=1)
 
 
-ClientOutput = SharedAnswer[BaseModel] | DeclinedAnswer | UnavailableAnswer
+ClientAnswer = SharedAnswer[BaseModel] | DeclinedAnswer | UnavailableAnswer
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,7 @@ class ClientTool[ArgsT: BaseModel, DataT: BaseModel]:
     args_model: type[ArgsT]
     data_model: type[DataT]
 
-    def output_adapter(self) -> TypeAdapter[ClientOutput]:
+    def answer_adapter(self) -> TypeAdapter[ClientAnswer]:
         """The union a posted body must fit, with this tool's data inside."""
         return TypeAdapter(
             Annotated[
