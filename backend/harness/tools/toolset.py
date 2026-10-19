@@ -18,7 +18,7 @@ class Toolset:
 
     def __init__(self, tool_service: ToolService, default_tools: Sequence[str]) -> None:
         self.tool_service = tool_service
-        self._default = tuple(default_tools)
+        self._default_tools = tuple(default_tools)
 
     def specs(self, tools_selected: Sequence[str] = ()) -> list[ToolSpec]:
         """What the model is offered this step — the only place visibility is decided."""
@@ -26,14 +26,14 @@ class Toolset:
 
     def _offered_tools(self, tools_selected: Sequence[str]) -> list[Tool]:
         by_name = {t.name: t for t in self.tool_service.all()}
-        offered = [by_name[n] for n in self._default if n in by_name]
-        chosen = {tool.name for tool in offered}
+        defaults = [by_name[n] for n in self._default_tools if n in by_name]
+        default_names = {tool.name for tool in defaults}
         recent = tuple(tools_selected)[-MAX_TOOLS_SELECTED:]
         selected = sorted(
-            (by_name[n] for n in recent if n in by_name and n not in chosen),
+            (by_name[n] for n in recent if n in by_name and n not in default_names),
             key=lambda tool: tool.name,
         )
-        return [*offered, *selected]
+        return [*defaults, *selected]
 
     async def execute(
         self,

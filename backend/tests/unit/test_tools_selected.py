@@ -131,6 +131,12 @@ def test_a_selected_tool_whose_server_has_gone_stays_out() -> None:
     assert named(built, ("gone",)) == list(DEFAULTS)
 
 
+def test_a_default_tool_the_model_selects_is_offered_once() -> None:
+    built = toolset(echo_tool("a"))
+
+    assert named(built, (EXECUTE_TYPESCRIPT, "a")) == [*DEFAULTS, "a"]
+
+
 async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_select() -> None:
     built = toolset(echo_tool("a"))
     call = ToolCall(id="c1", name="a", arguments='{"value": "hi"}')
