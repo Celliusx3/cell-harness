@@ -8,23 +8,23 @@ from pydantic import ValidationError
 
 from harness.prompts import DENIED_RESULT
 from harness.session.log import Session
-from harness.tools.approval import ApprovalGate
+from harness.tools.approvals import Approvals
 from harness.tools.client.catalog import ClientTools
 from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
 from harness.tools.client.pending import pending_calls
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.decision import DENIED, Approval, parse_decision
 from harness.tools.models.outcome import Failure
+from harness.tools.models.tool import Tool
 
 
 class ClientToolService:
-    """The declared client tools, the approval gate, and the one way to answer either."""
+    """The declared client tools, the approvals, and the one way to answer either."""
 
-    def __init__(self, tools: ClientTools, gate: ApprovalGate) -> None:
-        if both := tools.names & gate.tools:
+    def __init__(self, tools: ClientTools, approvals: Approvals) -> None:
+        if both := tools.names & approvals.tools_that_ask:
             raise ValueError(f"{sorted(both)} are both client tools and tools that ask")
         self._tools = tools
-        self._gate = gate
+        self._approvals = approvals
 
     @property
     def names(self) -> frozenset[str]:
@@ -32,18 +32,18 @@ class ClientToolService:
         return self._tools.names
 
     @property
-    def gated_tools(self) -> frozenset[str]:
+    def tools_that_ask(self) -> frozenset[str]:
         """The tools that ask the person before running; a chat asks them with buttons."""
-        return self._gate.tools
+        return self._approvals.tools_that_ask
 
     @property
     def awaited_tools(self) -> frozenset[str]:
         """Every tool whose call waits on the person — client tools and tools that ask."""
-        return self._tools.names | self._gate.tools
+        return self._tools.names | self._approvals.tools_that_ask
 
-    def definitions(self) -> list[ToolDefinition]:
+    def tools(self) -> list[Tool]:
         """The tools to register."""
-        return self._tools.definitions()
+        return self._tools.tools()
 
     def answerable_calls(self, session: Session) -> tuple[PendingCall, ...]:
         """The calls a client may answer right now, in log order."""
@@ -67,7 +67,7 @@ class ClientToolService:
         pending = next((p for p in self.answerable_calls(session) if matches(p)), None)
         if pending is None:
             return RefusalReason.NOT_PENDING
-        if pending.name in self._gate.tools:
+        if pending.name in self._approvals.tools_that_ask:
             return self._accept_decision(pending, raw)
         try:
             output = self._tools.parse(pending.name, raw)
@@ -83,5 +83,5 @@ class ClientToolService:
         if not isinstance(decision, Approval):
             return AcceptedAnswer(pending.call_id, Failure(DENIED, DENIED_RESULT))
         if decision.scope == "always":
-            self._gate.grant(pending.name)
+            self._approvals.grant(pending.name)
         return AcceptedAnswer(pending.call_id, decision)

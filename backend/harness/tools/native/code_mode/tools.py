@@ -9,7 +9,6 @@ from collections.abc import Callable
 from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import (
     EXECUTION_ERROR,
@@ -18,6 +17,7 @@ from harness.tools.models.outcome import (
     Pending,
     ToolOutcome,
 )
+from harness.tools.models.tool import Tool
 from harness.tools.native.code_mode._typescript import declarations
 from harness.tools.native.code_mode.models import DetailsArgs, ExecuteArgs, NoArgs
 from harness.tools.native.code_mode.prompts import (
@@ -31,7 +31,7 @@ from harness.tools.native.code_mode.prompts import (
 )
 from harness.tools.service import ToolService
 
-AvailableTools = Callable[[], list[ToolDefinition]]
+AvailableTools = Callable[[], list[Tool]]
 
 logger = logging.getLogger("harness.tools.code")
 
@@ -44,11 +44,11 @@ def code_mode_tools(
     tool_service: ToolService,
     runner: Runner,
     withheld: frozenset[str],
-) -> list[ToolDefinition]:
+) -> list[Tool]:
     """The three tools, sharing one view of the catalog."""
     kept_out = CODE_MODE_TOOL_NAMES | withheld
 
-    def available() -> list[ToolDefinition]:
+    def available() -> list[Tool]:
         """Everything registered, minus ourselves and the withheld."""
         return [tool for tool in tool_service.all() if tool.name not in kept_out]
 
@@ -59,14 +59,14 @@ def code_mode_tools(
     ]
 
 
-def _list_tool(available: AvailableTools) -> ToolDefinition[NoArgs]:
+def _list_tool(available: AvailableTools) -> Tool[NoArgs]:
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         found = available()
         if not found:
             return Ok("No capabilities are available.")
         return Ok(declarations(found, with_types=False))
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=LIST_FUNCTIONS,
         description=LIST_FUNCTIONS_DESCRIPTION,
         args_model=NoArgs,
@@ -74,7 +74,7 @@ def _list_tool(available: AvailableTools) -> ToolDefinition[NoArgs]:
     )
 
 
-def _details_tool(available: AvailableTools) -> ToolDefinition[DetailsArgs]:
+def _details_tool(available: AvailableTools) -> Tool[DetailsArgs]:
     async def execute(args: DetailsArgs, _context: ToolContext) -> ToolOutcome:
         wanted = set(args.names)
         found = [tool for tool in available() if tool.name in wanted]
@@ -91,7 +91,7 @@ def _details_tool(available: AvailableTools) -> ToolDefinition[DetailsArgs]:
             )
         )
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=GET_FUNCTION_DETAILS,
         description=GET_FUNCTION_DETAILS_DESCRIPTION,
         args_model=DetailsArgs,
@@ -101,7 +101,7 @@ def _details_tool(available: AvailableTools) -> ToolDefinition[DetailsArgs]:
 
 def _execute_tool(
     available: AvailableTools, tool_service: ToolService, runner: Runner, kept_out: frozenset[str]
-) -> ToolDefinition[ExecuteArgs]:
+) -> Tool[ExecuteArgs]:
     async def execute(args: ExecuteArgs, context: ToolContext) -> ToolOutcome:
         names = [tool.name for tool in available()]
         try:
@@ -113,7 +113,7 @@ def _execute_tool(
             return Failure(EXECUTION_ERROR, f"the sandbox could not start: {err}")
         return _script_outcome(script)
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=EXECUTE_TYPESCRIPT,
         description=EXECUTE_TYPESCRIPT_DESCRIPTION,
         args_model=ExecuteArgs,

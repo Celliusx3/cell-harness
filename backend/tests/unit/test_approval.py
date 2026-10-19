@@ -22,13 +22,13 @@ from harness.session.repair import REPAIRED
 from harness.tools import (
     BLOCKED,
     Approval,
-    ApprovalGate,
+    Approvals,
     Failure,
     Ok,
-    ToolDefinition,
+    Tool,
     ToolOutcome,
-    ToolPipeline,
     ToolService,
+    Toolset,
 )
 from harness.tools.client import AcceptedAnswer, ClientTools, ClientToolService
 from harness.tools.models.decision import DENIED
@@ -39,28 +39,24 @@ from tests.unit.helpers import drain, new_session
 WRITE = "memory__write_note"
 
 
-def _gate(tmp_path: Path, *tools: str) -> ApprovalGate:
-    return ApprovalGate(frozenset(tools), frozenset, tmp_path / "approvals.json")
+def _approvals(tmp_path: Path, *tools: str) -> Approvals:
+    return Approvals(frozenset(tools), frozenset, tmp_path / "approvals.json")
 
 
-def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
+def _writer(ran: list[str]) -> Tool[EchoArgs]:
     async def execute(args: EchoArgs, _context) -> ToolOutcome:
         ran.append(args.value)
         return Ok(content=f"saved {args.value}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=WRITE, description="Save a note.", args_model=EchoArgs, execute=execute
     )
 
 
-def _runtime(
-    client, gate: ApprovalGate, *tools: ToolDefinition, hooks: HookChain | None = None
-) -> Runtime:
-    tool_service = ToolService(tools, gate=gate)
-    pipeline = ToolPipeline(tool_service, default_tools=[t.name for t in tools])
-    return Runtime(
-        model="m", client=client, images=None, tools=pipeline, hooks=hooks or HookChain()
-    )
+def _runtime(client, approvals: Approvals, *tools: Tool, hooks: HookChain | None = None) -> Runtime:
+    tool_service = ToolService(tools, approvals=approvals)
+    toolset = Toolset(tool_service, default_tools=[t.name for t in tools])
+    return Runtime(model="m", client=client, images=None, tools=toolset, hooks=hooks or HookChain())
 
 
 def _types(session) -> list[str]:
@@ -77,7 +73,7 @@ async def test_a_listed_tool_ends_the_turn_pending_and_does_not_run(tmp_path) ->
     session = new_session()
 
     events = await drain(
-        _runtime(client, _gate(tmp_path, WRITE), _writer(ran)).run(
+        _runtime(client, _approvals(tmp_path, WRITE), _writer(ran)).run(
             "remember Kopi", session=session, bot_id="b"
         )
     )
@@ -94,7 +90,7 @@ async def test_allow_once_runs_the_call_in_the_next_turn_and_the_model_sees_its_
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))
     session = new_session()
-    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
+    runtime = _runtime(client, _approvals(tmp_path, WRITE), _writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
     events = await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
@@ -112,9 +108,9 @@ async def test_deny_writes_a_denied_result_the_model_reads(tmp_path) -> None:
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("not saved"))
     session = new_session()
-    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
+    runtime = _runtime(client, _approvals(tmp_path, WRITE), _writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
-    service = ClientToolService(ClientTools(()), _gate(tmp_path, WRITE))
+    service = ClientToolService(ClientTools(()), _approvals(tmp_path, WRITE))
     accepted = service.accept_by_call_id(session, "c1", {"kind": "denied"})
     assert isinstance(accepted, AcceptedAnswer) and isinstance(accepted.outcome, Failure)
     assert accepted.outcome.code == DENIED
@@ -139,7 +135,7 @@ async def test_allow_for_the_conversation_writes_a_grant_and_the_next_call_runs_
         completed("saved again"),
     )
     session = new_session()
-    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran))
+    runtime = _runtime(client, _approvals(tmp_path, WRITE), _writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
     await drain(runtime.resume("c1", Approval(scope="conversation"), session=session, bot_id="b"))
@@ -165,9 +161,9 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     )
     client = SteppedClient(_step_with(*calls), completed("both saved"))
     session = new_session()
-    gate = _gate(tmp_path, WRITE)
-    runtime = _runtime(client, gate, _writer(ran))
-    service = ClientToolService(ClientTools(()), gate)
+    approvals = _approvals(tmp_path, WRITE)
+    runtime = _runtime(client, approvals, _writer(ran))
+    service = ClientToolService(ClientTools(()), approvals)
     await drain(runtime.run("remember both", session=session, bot_id="b"))
     assert {p.call_id for p in service.answerable_calls(session)} == {"c1", "c2"}
 
@@ -197,7 +193,9 @@ async def test_a_script_calling_a_listed_tool_is_refused_and_told_to_call_it_dir
         except BridgeError as err:
             raised.append(err)
 
-    built = build(tool(WRITE), runner=FakeRunner(script=script), gate=_gate(tmp_path, WRITE))
+    built = build(
+        tool(WRITE), runner=FakeRunner(script=script), approvals=_approvals(tmp_path, WRITE)
+    )
 
     listed = await built.run("list_functions", "{}")
     assert isinstance(listed, Ok) and WRITE in listed.text
@@ -213,12 +211,10 @@ async def test_cancel_during_an_approved_run_closes_the_turn(tmp_path) -> None:
         await asyncio.sleep(60)
         return Ok(content="never")
 
-    slow = ToolDefinition.from_model(
-        name=WRITE, description="d", args_model=EchoArgs, execute=execute
-    )
+    slow = Tool.from_model(name=WRITE, description="d", args_model=EchoArgs, execute=execute)
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("never"))
     session = new_session()
-    runtime = _runtime(client, _gate(tmp_path, WRITE), slow)
+    runtime = _runtime(client, _approvals(tmp_path, WRITE), slow)
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
     async def consume() -> None:
@@ -240,7 +236,7 @@ async def test_cancel_during_an_approved_run_closes_the_turn(tmp_path) -> None:
     assert client.calls == 1
 
 
-async def test_a_hook_refusal_never_reaches_the_gate(tmp_path) -> None:
+async def test_a_hook_refusal_never_reaches_the_approvals(tmp_path) -> None:
     class Refuse(ToolHook):
         async def pre(self, sig, prior) -> str | None:
             return "no"
@@ -251,7 +247,9 @@ async def test_a_hook_refusal_never_reaches_the_gate(tmp_path) -> None:
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("ok"))
     session = new_session()
-    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer(ran), hooks=HookChain((Refuse(),)))
+    runtime = _runtime(
+        client, _approvals(tmp_path, WRITE), _writer(ran), hooks=HookChain((Refuse(),))
+    )
 
     events = await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
@@ -263,7 +261,7 @@ async def test_a_hook_refusal_never_reaches_the_gate(tmp_path) -> None:
 async def test_an_approved_calls_progress_reaches_the_caller_before_its_result(tmp_path) -> None:
     client = SteppedClient(calls_tool("slow", '{"value": "done"}', id="c1"), completed("ok"))
     session = new_session()
-    runtime = _runtime(client, _gate(tmp_path, "slow"), reporting_tool([(50.0, "halfway")]))
+    runtime = _runtime(client, _approvals(tmp_path, "slow"), reporting_tool([(50.0, "halfway")]))
     await drain(runtime.run("go", session=session, bot_id="b"))
 
     events = await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
@@ -283,7 +281,9 @@ async def test_an_approved_calls_note_is_logged_after_its_result(tmp_path) -> No
 
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))
     session = new_session()
-    runtime = _runtime(client, _gate(tmp_path, WRITE), _writer([]), hooks=HookChain((Noting(),)))
+    runtime = _runtime(
+        client, _approvals(tmp_path, WRITE), _writer([]), hooks=HookChain((Noting(),))
+    )
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
     await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))

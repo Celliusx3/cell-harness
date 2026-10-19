@@ -20,7 +20,7 @@ from harness.web.runtime import build_runtime
 from harness.web.server import build_channels
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
+from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.webapp import files_in, images_in, secrets_in
 
 
@@ -32,7 +32,7 @@ def runtime_over(tmp_path: Path, images: ImageService, *, vision: bool) -> Runti
         McpService({}),
         no_skills(),
         client_tools(),
-        no_gate(),
+        no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),

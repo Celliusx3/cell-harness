@@ -1,7 +1,6 @@
 """Tools, and the machinery that offers and runs them."""
 
-from harness.tools.approval import ApprovalGate
-from harness.tools.definition import NAMESPACE_SEPARATOR, ToolDefinition
+from harness.tools.approvals import Approvals
 from harness.tools.models.context import CallOrigin, ToolContext
 from harness.tools.models.decision import Approval
 from harness.tools.models.outcome import (
@@ -17,8 +16,9 @@ from harness.tools.models.outcome import (
     ToolOutcome,
     ToolUi,
 )
-from harness.tools.pipeline import ToolPipeline
+from harness.tools.models.tool import NAMESPACE_SEPARATOR, Tool
 from harness.tools.service import ToolService
+from harness.tools.toolset import Toolset
 
 __all__ = [
     "BLOCKED",
@@ -27,7 +27,7 @@ __all__ = [
     "NAMESPACE_SEPARATOR",
     "REFUSED",
     "UNKNOWN_TOOL",
-    "ApprovalGate",
+    "Approvals",
     "Approval",
     "CallOrigin",
     "Failure",
@@ -35,9 +35,9 @@ __all__ = [
     "Pending",
     "ReturnedImage",
     "ToolContext",
-    "ToolDefinition",
+    "Tool",
     "ToolOutcome",
-    "ToolPipeline",
+    "Toolset",
     "ToolService",
     "ToolUi",
 ]

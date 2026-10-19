@@ -6,9 +6,9 @@ import asyncio
 from collections.abc import Sequence
 from typing import Protocol
 
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Ok, ToolOutcome
+from harness.tools.models.tool import Tool
 from harness.tools.native.subagent.models import (
     SubagentArgs,
     SubagentOutcome,
@@ -39,7 +39,7 @@ class SubagentRunner(Protocol):
     ) -> SubagentOutcome: ...
 
 
-def run_subagent_tool(runner: SubagentRunner) -> ToolDefinition[SubagentArgs]:
+def run_subagent_tool(runner: SubagentRunner) -> Tool[SubagentArgs]:
     """The tool that runs every task at once, each by its own subagent, and gathers their ends."""
 
     async def execute(args: SubagentArgs, context: ToolContext) -> ToolOutcome:
@@ -55,7 +55,7 @@ def run_subagent_tool(runner: SubagentRunner) -> ToolDefinition[SubagentArgs]:
             raise broken.exceptions[0] from broken
         return Ok(_answers_text(args.tasks, [subagent.result() for subagent in running]))
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=RUN_SUBAGENT, description=_DESCRIPTION, args_model=SubagentArgs, execute=execute
     )
 

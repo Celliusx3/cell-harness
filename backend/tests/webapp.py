@@ -22,11 +22,11 @@ from harness.runs.service import RunService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tools import ApprovalGate
+from harness.tools import Approvals
 from harness.tools.client import ClientToolService
 from harness.web.server import create_app
 from tests.unit.helpers import client_tools as default_client_tools
-from tests.unit.helpers import no_bots, no_gate
+from tests.unit.helpers import no_approvals, no_bots
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
@@ -98,7 +98,7 @@ def web_app(
     mcp: McpService | None = None,
     skills: SkillService,
     client_tools: ClientToolService | None = None,
-    gate: ApprovalGate | None = None,
+    approvals: Approvals | None = None,
     bots: BotService | None = None,
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
@@ -114,7 +114,7 @@ def web_app(
         mcp or web_mcp(),
         skills,
         client_tools,
-        gate or no_gate(),
+        approvals or no_approvals(),
         bots,
         secrets or secrets_in(tmp_path),
         BotMessages(service, bots, runs),
@@ -128,7 +128,7 @@ def web_app_with_telegram(
     *,
     skills: SkillService,
     client_tools: ClientToolService | None = None,
-    gate: ApprovalGate | None = None,
+    approvals: Approvals | None = None,
     secrets: SecretService | None = None,
 ) -> tuple[FastAPI, ChannelGateway, FakeBot]:
     """`web_app` with a fake Telegram on the same gateway: the app, the gateway, and the bot."""
@@ -143,7 +143,7 @@ def web_app_with_telegram(
         web_mcp(),
         skills,
         client_tools or default_client_tools(),
-        gate or no_gate(),
+        approvals or no_approvals(),
         bots,
         secrets or secrets_in(tmp_path),
         BotMessages(service, bots, runs),

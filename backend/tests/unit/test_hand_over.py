@@ -6,15 +6,15 @@ import json
 
 import pytest
 
-from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Pending, ToolDefinition
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Pending, Tool
 from harness.tools.native.hand_over import HAND_OVER
 from harness.tools.native.hand_over.models import STEP_MAX_LENGTH
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS
 from tests.unit.helpers import client_tools, context_for
 
 
-def _hand_over_tool() -> ToolDefinition:
-    return {tool.name: tool for tool in client_tools().definitions()}[HAND_OVER]
+def _hand_over_tool() -> Tool:
+    return {tool.name: tool for tool in client_tools().tools()}[HAND_OVER]
 
 
 def test_the_main_chat_is_offered_hand_over_as_a_client_tool_and_scripts_are_not() -> None:

@@ -22,7 +22,7 @@ from harness.session.models import (
     ToolResultEvent,
     TurnEnd,
 )
-from harness.tools import CallOrigin, Ok, ToolContext, ToolDefinition, ToolOutcome, ToolUi
+from harness.tools import CallOrigin, Ok, Tool, ToolContext, ToolOutcome, ToolUi
 from tests.unit.fakes import (
     EchoArgs,
     SteppedClient,
@@ -140,9 +140,7 @@ async def test_a_tool_bound_to_an_app_logs_the_binding_but_never_shows_the_model
     async def execute(args: EchoArgs, context: ToolContext) -> ToolOutcome:
         return Ok(content=args.value, data={"rows": 3}, ui=ui)
 
-    tool = ToolDefinition.from_model(
-        name="echo", description="Echo.", args_model=EchoArgs, execute=execute
-    )
+    tool = Tool.from_model(name="echo", description="Echo.", args_model=EchoArgs, execute=execute)
     client = SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("done"))
     session = new_session()
 

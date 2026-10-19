@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from harness.bots import BotDraft, BotService
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Ok, ToolOutcome
+from harness.tools.models.tool import Tool
 
 BOT_CREATE = "bot_create"
 
@@ -16,13 +16,13 @@ _DESCRIPTION = (
 )
 
 
-def bot_create_tool(bots: BotService) -> ToolDefinition[BotDraft]:
+def bot_create_tool(bots: BotService) -> Tool[BotDraft]:
     """The tool that makes a bot through the same save as `POST /api/bots`."""
 
     async def execute(args: BotDraft, _context: ToolContext) -> ToolOutcome:
         bot = await bots.create(args)
         return Ok(f"made bot {bot.name!r} (id {bot.id}); its chat is under Bots in the sidebar")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=BOT_CREATE, description=_DESCRIPTION, args_model=BotDraft, execute=execute
     )

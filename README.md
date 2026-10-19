@@ -109,7 +109,7 @@ backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the event log, its models, repository/, service, repair
   runtime/      the turn loop, its events, and hooks/ — the chain + native/<hook>/
-  tools/        definition, service, pipeline, approval, models/, client/, native/<tool>/
+  tools/        service, toolset, approvals, models/, client/, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   mcp/          the MCP client — one owning task per server, namespaced tools
   skills/       the catalog read from ranked roots, and the one `skill` tool

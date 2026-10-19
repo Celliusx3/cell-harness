@@ -33,7 +33,7 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from harness.session.repair import unanswered
-from harness.tools import Approval, Failure, Ok, ToolPipeline
+from harness.tools import Approval, Failure, Ok, Toolset
 
 SKIPPED = "SKIPPED"
 
@@ -46,7 +46,7 @@ class Runtime:
     client: LLMClient
     images: ImageService | None
     """The images the model is shown; `None` means the model cannot see."""
-    tools: ToolPipeline | None = None
+    tools: Toolset | None = None
     guidance: str = ""
     hooks: HookChain = HookChain()
     checkpoint: Callable[[Session], Awaitable[None]] | None = None

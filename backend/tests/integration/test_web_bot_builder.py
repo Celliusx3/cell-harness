@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 
 from harness.bots import BotService
-from harness.tools import ApprovalGate
+from harness.tools import Approvals
 from harness.tools.client import ClientToolService
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
 from harness.web.runtime import CLIENT_TOOLS
@@ -20,18 +20,24 @@ ANSWER = "/api/conversations/builder/calls/call_reader/output"
 
 
 async def test_the_builder_makes_the_bot_its_chat_drafted_once_it_is_allowed(tmp_path) -> None:
-    gate = ApprovalGate(frozenset({BOT_CREATE}), frozenset, tmp_path / "approvals.json")
-    client_tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset({BOT_CREATE}), frozenset, tmp_path / "approvals.json")
+    client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     bots = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
     model = SteppedClient(
         calls_tool(BOT_CREATE, READER, id="call_reader"), completed("Reader is under Bots.")
     )
     runs = run_service(
-        service, model, bot_create_tool(bots), *client_tools.definitions(), gate=gate, bots=bots
+        service, model, bot_create_tool(bots), *client_tools.tools(), approvals=approvals, bots=bots
     )
     app = web_app(
-        tmp_path, service, runs, skills=no_skills(), client_tools=client_tools, gate=gate, bots=bots
+        tmp_path,
+        service,
+        runs,
+        skills=no_skills(),
+        client_tools=client_tools,
+        approvals=approvals,
+        bots=bots,
     )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:

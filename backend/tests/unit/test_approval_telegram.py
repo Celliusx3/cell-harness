@@ -1,4 +1,4 @@
-"""A gated call on Telegram: four inline buttons, and a tap that answers and edits the card."""
+"""A call that asks, on Telegram: four inline buttons, and a tap that answers and edits the card."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
 from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
-from harness.tools import ApprovalGate, Ok, ToolDefinition, ToolOutcome
+from harness.tools import Approvals, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
@@ -20,19 +20,19 @@ from tests.unit.telegram_fakes import decision_update
 WRITE = "memory__write_note"
 
 
-def _writer(ran: list[str], name: str = WRITE) -> ToolDefinition[EchoArgs]:
+def _writer(ran: list[str], name: str = WRITE) -> Tool[EchoArgs]:
     async def execute(args: EchoArgs, _context) -> ToolOutcome:
         ran.append(args.value)
         return Ok(content=f"saved {args.value}")
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=name, description="Save a note.", args_model=EchoArgs, execute=execute
     )
 
 
 def _asking(tmp_path, ran: list[str], *before: list[StreamEvent], call_id: str = "c1"):
-    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
-    tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(
         *before, calls_tool(WRITE, '{"value": "Kopi"}', id=call_id), completed("saved")
     )
@@ -40,10 +40,10 @@ def _asking(tmp_path, ran: list[str], *before: list[StreamEvent], call_id: str =
         tmp_path,
         model,
         _writer(ran),
-        *tools.definitions(),
+        *tools.tools(),
         skills=no_skills(),
         client_tools=tools,
-        gate=gate,
+        approvals=approvals,
     )
 
 
@@ -53,7 +53,7 @@ async def _log(sessions, chats):
     return (await sessions.read(state.conversation_id)).events()
 
 
-async def test_a_gated_call_is_asked_with_four_inline_buttons(tmp_path) -> None:
+async def test_a_call_that_asks_gets_four_inline_buttons(tmp_path) -> None:
     ran: list[str] = []
     bot, gateway, runs, chats, sessions = _asking(tmp_path, ran)
 
@@ -166,17 +166,17 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
     ran: list[str] = []
     send = "mail__send_email"
     connected: set[str] = set()
-    gate = ApprovalGate(frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json")
-    tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(calls_tool(send, '{"value": "hi"}', id="c1"), completed("sent"))
     bot, gateway, runs, _chats, _sessions = build(
         tmp_path,
         model,
         _writer(ran, send),
-        *tools.definitions(),
+        *tools.tools(),
         skills=no_skills(),
         client_tools=tools,
-        gate=gate,
+        approvals=approvals,
     )
     connected.add(send)
 
@@ -192,7 +192,7 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
 async def test_an_always_allowed_tool_runs_without_buttons(tmp_path) -> None:
     ran: list[str] = []
     bot, gateway, runs, _chats, _sessions = _asking(tmp_path, ran)
-    ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json").grant(WRITE)
+    Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json").grant(WRITE)
 
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -209,17 +209,17 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
         ToolCall(id="c2", name=WRITE, arguments='{"value": "Kopi"}'),
     )
     step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
-    gate = ApprovalGate(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
-    tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, approvals)
     bot, gateway, runs, _chats, _sessions = build(
         tmp_path,
         SteppedClient(step, completed("done")),
         _writer(ran, quote),
         _writer(ran),
-        *tools.definitions(),
+        *tools.tools(),
         skills=no_skills(),
         client_tools=tools,
-        gate=gate,
+        approvals=approvals,
     )
 
     await gateway.receive(msg("quote AAPL and remember Kopi"))

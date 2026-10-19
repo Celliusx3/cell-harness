@@ -23,7 +23,7 @@ from harness.tools.client import (
     next_pending,
     pending_calls,
 )
-from tests.unit.helpers import context_for, new_session, no_gate
+from tests.unit.helpers import context_for, new_session, no_approvals
 
 
 class NoArgs(BaseModel):
@@ -81,7 +81,7 @@ def test_what_the_model_reads_for_each_answer() -> None:
 
 
 async def test_the_tool_itself_only_says_pending() -> None:
-    (tool,) = ClientTools((BATTERY,)).definitions()
+    (tool,) = ClientTools((BATTERY,)).tools()
     spec = tool.spec()
     assert (spec.name, spec.description) == ("get_battery", "The device's charge.")
     assert spec.input_schema.get("properties", {}) == {}
@@ -135,7 +135,7 @@ def _session_with_pending(call_id: str = "c1"):
 
 
 def test_the_service_accepts_by_call_id_or_by_tool_name() -> None:
-    service = ClientToolService(ClientTools((BATTERY,)), no_gate())
+    service = ClientToolService(ClientTools((BATTERY,)), no_approvals())
     body = {"kind": "shared", "data": {"percent": 80}}
 
     assert service.accept_by_call_id(_session_with_pending(), "c1", body) == AcceptedAnswer(
@@ -149,7 +149,7 @@ def test_the_service_accepts_by_call_id_or_by_tool_name() -> None:
 
 
 def test_each_refusal_is_its_own_answer() -> None:
-    service = ClientToolService(ClientTools((BATTERY,)), no_gate())
+    service = ClientToolService(ClientTools((BATTERY,)), no_approvals())
     body = {"kind": "shared", "data": {"percent": 80}}
 
     assert service.accept_by_call_id(new_session(), "c1", body) is RefusalReason.NOT_PENDING
@@ -160,9 +160,9 @@ def test_each_refusal_is_its_own_answer() -> None:
 
 
 def test_the_service_exposes_what_composition_needs() -> None:
-    service = ClientToolService(ClientTools((BATTERY,)), no_gate())
+    service = ClientToolService(ClientTools((BATTERY,)), no_approvals())
     assert service.names == NAMES
-    assert [tool.name for tool in service.definitions()] == ["get_battery"]
+    assert [tool.name for tool in service.tools()] == ["get_battery"]
     assert service.answerable_calls(_session_with_pending()) == (
         PendingCall("get_battery", "c1", "{}"),
     )

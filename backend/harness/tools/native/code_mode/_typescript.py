@@ -7,7 +7,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
-from harness.tools.definition import NAMESPACE_SEPARATOR, ToolDefinition
+from harness.tools.models.tool import NAMESPACE_SEPARATOR, Tool
 
 logger = logging.getLogger("harness.tools.code")
 
@@ -24,7 +24,7 @@ MAX_DEPTH = 8
 RETURN_TYPE = "Promise<unknown>"
 
 
-def declarations(tools: Sequence[ToolDefinition], *, with_types: bool) -> str:
+def declarations(tools: Sequence[Tool], *, with_types: bool) -> str:
     """Every tool as a `declare function`, grouped by the server that owns it."""
     groups: dict[str, list[str]] = {}
     for tool in sorted(tools, key=lambda t: t.name):
@@ -39,7 +39,7 @@ def declarations(tools: Sequence[ToolDefinition], *, with_types: bool) -> str:
     return "\n\n".join(blocks)
 
 
-def _declaration(tool: ToolDefinition, *, with_types: bool) -> str:
+def _declaration(tool: Tool, *, with_types: bool) -> str:
     doc = f"/** {_one_line(tool.description)} */\n" if tool.description else ""
     args = _args_type(tool.input_schema) if with_types else "args"
     return f"{doc}declare function {tool.name}({args}): {RETURN_TYPE};"

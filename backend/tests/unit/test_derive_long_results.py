@@ -7,7 +7,7 @@ from contextlib import aclosing
 from harness.llm import Text, ToolMessage, ToolReference
 from harness.session.derive import RESULT_LIMIT, derive_messages
 from harness.session.models import ToolResultEvent
-from harness.tools import Ok, ToolDefinition
+from harness.tools import Ok, Tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
 from tests.unit.helpers import new_session, runtime_over
 
@@ -70,7 +70,7 @@ async def test_the_log_keeps_the_whole_result_and_the_model_sees_the_cut() -> No
     async def execute(args: EchoArgs, context) -> Ok:
         return Ok("y" * 20_000)
 
-    big = ToolDefinition.from_model(
+    big = Tool.from_model(
         name="big", description="A long answer.", args_model=EchoArgs, execute=execute
     )
     client = SteppedClient(calls_tool("big", '{"value": "v"}'), completed("done"))

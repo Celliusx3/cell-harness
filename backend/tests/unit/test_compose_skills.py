@@ -20,7 +20,7 @@ from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
 from harness.web.runtime import DEFAULT_TOOLS, build_runtime
-from tests.unit.helpers import ORIGIN, client_tools, no_bots, no_gate, no_progress, skills_at
+from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, skills_at
 from tests.webapp import files_in, images_in, secrets_in
 
 COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
@@ -47,7 +47,7 @@ def compose(tmp_path: Path):
             mcp,
             skills_at(root),
             client_tools(),
-            no_gate(),
+            no_approvals(),
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
             secrets=secrets_in(tmp_path),

@@ -14,7 +14,7 @@ from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE
 from harness.web.runtime import build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
+from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.webapp import files_in, images_in, secrets_in, web_app
 
 
@@ -129,7 +129,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         McpService({}),
         no_skills(),
         client_tools(),
-        no_gate(),
+        no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),

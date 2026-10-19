@@ -9,8 +9,8 @@ from harness.tools import (
     Failure,
     Ok,
     ReturnedImage,
+    Tool,
     ToolContext,
-    ToolDefinition,
     ToolOutcome,
 )
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
@@ -148,7 +148,7 @@ async def test_a_missing_sandbox_is_reported_as_a_failure_not_a_crash() -> None:
     assert "sandbox could not start" in outcome.message
 
 
-async def test_a_call_from_a_script_goes_through_the_ordinary_pipeline() -> None:
+async def test_a_call_from_a_script_goes_through_the_ordinary_dispatch() -> None:
     seen: list[object] = []
 
     async def script(bridge: Bridge) -> None:
@@ -248,7 +248,7 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversatio
         seen.append(context.origin)
         return Ok("recorded")
 
-    recorder = ToolDefinition(
+    recorder = Tool(
         name="srv__record",
         description="Records the bot it ran for.",
         input_schema={"type": "object", "properties": {}},

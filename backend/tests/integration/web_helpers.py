@@ -15,11 +15,11 @@ from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
-from harness.tools import ToolDefinition, ToolPipeline, ToolService
+from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import PerBotClient
-from tests.unit.helpers import durable_service, no_gate, no_skills, run_service
+from tests.unit.helpers import durable_service, no_approvals, no_skills, run_service
 from tests.webapp import bots_in, images_in, web_app
 
 ASSISTANT_START = "ASSISTANT"
@@ -85,19 +85,19 @@ class Messaging:
 
 
 def messaging_app(
-    tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]]], *tools: ToolDefinition
+    tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]]], *tools: Tool
 ) -> Messaging:
     """Assistant and the bots a test makes, each answered from `scripts`."""
     model = PerBotClient(scripts)
     service = durable_service(tmp_path / "sessions")
     bots = BotService(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT_START)
-    tool_service = ToolService(tools, gate=no_gate())
+    tool_service = ToolService(tools, approvals=no_approvals())
     offered = (MESSAGE_BOT, *(tool.name for tool in tools))
     runtime = Runtime(
         model="m",
         client=model,
         images=None,
-        tools=ToolPipeline(tool_service, offered),
+        tools=Toolset(tool_service, offered),
         guidance="GUIDE",
         checkpoint=service.flush,
     )

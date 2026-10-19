@@ -25,7 +25,7 @@ from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
-from tests.unit.helpers import ORIGIN, client_tools, no_bots, no_gate, no_progress, no_skills
+from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, no_skills
 from tests.webapp import files_in, images_in, secrets_in
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT)]
@@ -45,7 +45,7 @@ def compose(tmp_path: Path):
             mcp,
             no_skills(),
             client_tools(),
-            no_gate(),
+            no_approvals(),
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
             subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
             secrets=secrets_in(tmp_path),
@@ -101,8 +101,8 @@ def test_exactly_one_tool_service_is_built(compose, monkeypatch) -> None:
     built: list[ToolService] = []
     real = composition.ToolService
 
-    def spy(tools, *, gate) -> ToolService:
-        built.append(real(tools, gate=gate))
+    def spy(tools, *, approvals) -> ToolService:
+        built.append(real(tools, approvals=approvals))
         return built[-1]
 
     monkeypatch.setattr(composition, "ToolService", spy)

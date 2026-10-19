@@ -21,7 +21,7 @@ from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
-from tests.unit.helpers import client_tools, drain, no_bots, no_gate, no_skills
+from tests.unit.helpers import client_tools, drain, no_approvals, no_bots, no_skills
 from tests.webapp import files_in, images_in, secrets_in
 
 DOT = base64.b64decode(DOT_PNG)
@@ -52,7 +52,7 @@ async def result_in_chat_s(
         McpService({}),
         no_skills(),
         client_tools(),
-        no_gate(),
+        no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),

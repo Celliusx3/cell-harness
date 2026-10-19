@@ -20,7 +20,7 @@ def _asking(tmp_path, reply: str = "a café 200 m from you"):
     """An app whose model asks for the location, then answers."""
     tools = client_tools()
     model = SteppedClient(calls_tool(GET_LOCATION, "{}", id="call_7f3a"), completed(reply))
-    service, runs = build(tmp_path, model, *tools.definitions())
+    service, runs = build(tmp_path, model, *tools.tools())
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
     return client, service, runs
@@ -148,7 +148,7 @@ async def test_a_restart_between_the_ask_and_the_answer_changes_nothing(tmp_path
     tools = client_tools()
     reborn = durable_service(tmp_path / "sessions", prefix="d")
     model = SteppedClient(completed("a café 200 m from you"))
-    runs2 = run_service(reborn, model, *tools.definitions())
+    runs2 = run_service(reborn, model, *tools.tools())
     app2 = web_app(tmp_path, reborn, runs2, skills=no_skills(), client_tools=tools)
     client2 = httpx.AsyncClient(transport=httpx.ASGITransport(app=app2), base_url="http://h.test")
 

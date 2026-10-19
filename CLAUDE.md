@@ -62,7 +62,7 @@ backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
   session/      the event log, its models, repository/, service, repair
   runtime/      the turn loop, its events, and hooks/ — the chain + native/<hook>/
-  tools/        definition, service, pipeline, approval, models/, client/, native/<tool>/
+  tools/        service, toolset, approvals, models/, client/, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
   runs/         a turn that outlives its connection — service, subscribe
   channels/     every way in and out — telegram/, discord/, web/, and per-chat state
@@ -116,7 +116,7 @@ Breaking one is not a style disagreement. The reasoning behind each is in
   An MCP App's `tools/call` is not one of those: the harness proxies it to the
   app's own server, guarded at the MCP layer.
 - **Registered is not offered; referenced is.** `ToolService.dispatch` resolves
-  any registered name; the pipeline refuses a call the model makes by a name it was
+  any registered name; the toolset refuses a call the model makes by a name it was
   not shown. A result's `tool_reference` blocks put the tool in the next
   request — the most recent eight.
 - **The sandbox is granted nothing.** No `--allow-*`; the bridge is the only way

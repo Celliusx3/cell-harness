@@ -20,11 +20,11 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import (
     INVALID_ARGUMENTS,
-    ApprovalGate,
+    Approvals,
     Failure,
     Ok,
+    Tool,
     ToolContext,
-    ToolDefinition,
     ToolOutcome,
 )
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
@@ -42,11 +42,11 @@ from tests.unit.helpers import (
     context_for,
     drain,
     new_session,
+    no_approvals,
     no_bots,
-    no_gate,
     no_progress,
     no_skills,
-    pipeline_for,
+    toolset_for,
 )
 from tests.webapp import files_in, images_in, secrets_in
 
@@ -62,13 +62,13 @@ async def chunks_of(body: bytes) -> AsyncIterator[bytes]:
     yield body
 
 
-async def session_after(tool: ToolDefinition, files: ChatFileService, arguments: str) -> Session:
+async def session_after(tool: Tool, files: ChatFileService, arguments: str) -> Session:
     """Chat `s` after the model calls `tool` once with `arguments` and then answers."""
     runtime = Runtime(
         model="m",
         client=SteppedClient(calls_tool(tool.name, arguments), completed("done")),
         images=None,
-        tools=pipeline_for(tool),
+        tools=toolset_for(tool),
         files=files,
     )
     session = new_session("s")
@@ -146,9 +146,7 @@ async def test_any_tool_s_refused_path_is_named_after_its_own_words(tmp_path: Pa
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         return Ok("drew it", paths_to_send=(drawn.path, "/etc/hosts"))
 
-    draw = ToolDefinition.from_model(
-        name="draw", description="Draw.", args_model=NoArgs, execute=execute
-    )
+    draw = Tool.from_model(name="draw", description="Draw.", args_model=NoArgs, execute=execute)
 
     session = await session_after(draw, files, "{}")
 
@@ -163,9 +161,7 @@ async def test_a_result_that_names_no_file_reads_as_its_own_words_alone(tmp_path
     async def execute(_args: NoArgs, _context: ToolContext) -> ToolOutcome:
         return Ok("nothing drawn")
 
-    plain = ToolDefinition.from_model(
-        name="plain", description="Plain.", args_model=NoArgs, execute=execute
-    )
+    plain = Tool.from_model(name="plain", description="Plain.", args_model=NoArgs, execute=execute)
 
     session = await session_after(plain, files_in(tmp_path), "{}")
 
@@ -202,13 +198,13 @@ def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
 
 def test_it_never_asks_for_approval() -> None:
     committed = json.loads(CONFIG.read_text())
-    gate = ApprovalGate(
+    approvals = Approvals(
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),
     )
 
-    assert not gate.should_ask(SEND_FILE)
+    assert not approvals.should_ask(SEND_FILE)
 
 
 async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
@@ -218,7 +214,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
         McpService({}),
         no_skills(),
         client_tools(),
-        no_gate(),
+        no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),

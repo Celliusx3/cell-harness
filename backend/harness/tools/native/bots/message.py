@@ -7,9 +7,9 @@ from typing import Literal, Protocol
 from pydantic import Field, create_model
 
 from harness.bots import BotService
-from harness.tools.definition import ToolDefinition
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Failure, Ok, ToolOutcome
+from harness.tools.models.tool import Tool
 from harness.tools.native.bots.models import MessageBotArgs
 
 MESSAGE_BOT = "message_bot"
@@ -31,9 +31,7 @@ class BotMessageSender(Protocol):
     ) -> Ok | Failure: ...
 
 
-def message_bot_tool(
-    bots: BotService, messages: BotMessageSender
-) -> ToolDefinition[MessageBotArgs]:
+def message_bot_tool(bots: BotService, messages: BotMessageSender) -> Tool[MessageBotArgs]:
     """The tool that sends a message to one of the bots active now, and returns once it is sent."""
 
     async def execute(args: MessageBotArgs, context: ToolContext) -> ToolOutcome:
@@ -41,7 +39,7 @@ def message_bot_tool(
             context.call_id, from_bot_id=context.origin.bot_id, to_name=args.bot, text=args.message
         )
 
-    return ToolDefinition.from_model(
+    return Tool.from_model(
         name=MESSAGE_BOT,
         description=_DESCRIPTION,
         args_model=_args_model(bots.active_bot_names()),

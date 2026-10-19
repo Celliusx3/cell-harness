@@ -23,12 +23,12 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import (
-    ApprovalGate,
+    Approvals,
     CallOrigin,
+    Tool,
     ToolContext,
-    ToolDefinition,
-    ToolPipeline,
     ToolService,
+    Toolset,
 )
 from harness.tools.client import ClientToolService
 from harness.tools.service import ToolProvider
@@ -69,39 +69,39 @@ def new_session(session_id: str = "s") -> Session:
     return Session(SessionHeader(id=session_id, created_at=datetime(2026, 1, 1, tzinfo=UTC)))
 
 
-def no_gate() -> ApprovalGate:
-    """A gate that lists nothing, over a grants file that cannot exist."""
-    return ApprovalGate(frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"))
+def no_approvals() -> Approvals:
+    """Approvals that list nothing, over a grants file that cannot exist."""
+    return Approvals(frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"))
 
 
-def pipeline_for(
-    *tools: ToolDefinition,
+def toolset_for(
+    *tools: Tool,
     providers: Sequence[ToolProvider] = (),
     offer: Sequence[str] = (),
-    gate: ApprovalGate | None = None,
-) -> ToolPipeline:
-    """A tool service and a pipeline over `tools`, offering all of them."""
-    tool_service = ToolService(tools, gate=gate or no_gate(), providers=providers)
+    approvals: Approvals | None = None,
+) -> Toolset:
+    """A tool service and a toolset over `tools`, offering all of them."""
+    tool_service = ToolService(tools, approvals=approvals or no_approvals(), providers=providers)
     names = [*(tool.name for tool in tools), *offer]
-    return ToolPipeline(tool_service, default_tools=names)
+    return Toolset(tool_service, default_tools=names)
 
 
 def runtime_over(
     client,
-    *tools: ToolDefinition,
+    *tools: Tool,
     guidance: str = "",
     hooks: HookChain | None = None,
     checkpoint: Callable[[Session], Awaitable[None]] | None = None,
     context_tokens: int | None = None,
-    gate: ApprovalGate | None = None,
+    approvals: Approvals | None = None,
     images: ImageService | None = None,
 ) -> Runtime:
-    """A runtime over `tools`, with no pipeline at all when there are none."""
+    """A runtime over `tools`, with no toolset at all when there are none."""
     return Runtime(
         model="m",
         client=client,
         images=images,
-        tools=pipeline_for(*tools, gate=gate) if tools else None,
+        tools=toolset_for(*tools, approvals=approvals) if tools else None,
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
@@ -153,9 +153,9 @@ def durable_service(root: Path, *, prefix: str = "c") -> SessionService:
 def run_service(
     service: SessionService,
     client,
-    *tools: ToolDefinition,
+    *tools: Tool,
     context_tokens: int | None = None,
-    gate: ApprovalGate | None = None,
+    approvals: Approvals | None = None,
     bots: BotService | None = None,
     images: ImageService | None = None,
 ) -> RunService:
@@ -167,7 +167,7 @@ def run_service(
             *tools,
             checkpoint=service.flush,
             context_tokens=context_tokens,
-            gate=gate,
+            approvals=approvals,
             images=images,
         ),
         bots or no_bots(service),
@@ -195,4 +195,4 @@ def no_skills() -> SkillService:
 
 def client_tools() -> ClientToolService:
     """The real declarations, as the server composes them."""
-    return ClientToolService(CLIENT_TOOLS, no_gate())
+    return ClientToolService(CLIENT_TOOLS, no_approvals())

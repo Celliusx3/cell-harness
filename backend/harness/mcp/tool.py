@@ -9,7 +9,8 @@ import logging
 import re
 from collections.abc import Awaitable, Callable, Iterable, Sequence
 
-from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent, Tool
+from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
+from mcp.types import Tool as McpTool
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
@@ -20,8 +21,8 @@ from harness.tools import (
     Failure,
     Ok,
     ReturnedImage,
+    Tool,
     ToolContext,
-    ToolDefinition,
     ToolOutcome,
     ToolUi,
 )
@@ -55,9 +56,9 @@ def namespaced(server: str, tool: str) -> str:
     return f"{server}{NAMESPACE_SEPARATOR}{tool.replace('-', '_')}"
 
 
-def build_tools(server: str, tools: Iterable[Tool], call: CallTool) -> list[ToolDefinition[dict]]:
+def build_tools(server: str, tools: Iterable[McpTool], call: CallTool) -> list[Tool[dict]]:
     """Every tool this server offers that the model can actually be told about."""
-    built: list[ToolDefinition[dict]] = []
+    built: list[Tool[dict]] = []
     seen: set[str] = set()
     for tool in tools:
         name = namespaced(server, tool.name)
@@ -80,27 +81,27 @@ def build_tools(server: str, tools: Iterable[Tool], call: CallTool) -> list[Tool
     return built
 
 
-def app_visible(tool: Tool) -> bool:
+def app_visible(tool: McpTool) -> bool:
     """Whether an app may call this tool — `_meta.ui.visibility` includes `app`."""
     ui = (tool.meta or {}).get("ui")
     visibility = ui.get("visibility") if isinstance(ui, dict) else None
     return "app" in visibility if isinstance(visibility, list) else True
 
 
-def can_write(tool: Tool) -> bool:
+def can_write(tool: McpTool) -> bool:
     """Yes unless its name has a read verb."""
     words = {word.lower() for word in _WORD_BREAK.split(tool.name) if word}
     return _READ_VERBS.isdisjoint(words)
 
 
-def ui_resource_uri(tool: Tool) -> str | None:
+def ui_resource_uri(tool: McpTool) -> str | None:
     """The `ui://` resource an MCP App binds to this tool, if it declares one."""
     ui = (tool.meta or {}).get("ui")
     uri = ui.get("resourceUri") if isinstance(ui, dict) else None
     return uri if isinstance(uri, str) and uri.startswith("ui://") else None
 
 
-def mcp_tool(*, server: str, tool: Tool, call: CallTool) -> ToolDefinition[dict]:
+def mcp_tool(*, server: str, tool: McpTool, call: CallTool) -> Tool[dict]:
     """One MCP tool, wired to the connection that owns it."""
     name = namespaced(server, tool.name)
     resource_uri = ui_resource_uri(tool)
@@ -114,7 +115,7 @@ def mcp_tool(*, server: str, tool: Tool, call: CallTool) -> ToolDefinition[dict]
             return Failure(EXECUTION_ERROR, str(err))
         return outcome_of(result, name=name, server=server, resource_uri=resource_uri)
 
-    return ToolDefinition(
+    return Tool(
         name=name,
         description=tool.description or "",
         input_schema=tool.input_schema or dict(_EMPTY_SCHEMA),

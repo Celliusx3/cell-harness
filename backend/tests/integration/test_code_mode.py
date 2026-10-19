@@ -13,10 +13,10 @@ from harness.llm import ToolCall
 from harness.sandbox import DenoRunner
 from harness.tools import (
     Ok,
-    ToolDefinition,
+    Tool,
     ToolOutcome,
-    ToolPipeline,
     ToolService,
+    Toolset,
 )
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
@@ -25,16 +25,16 @@ from harness.tools.native.code_mode import (
     code_mode_tools,
 )
 from harness.tools.native.code_mode._typescript import declarations
-from tests.unit.helpers import ORIGIN, no_gate, no_progress
+from tests.unit.helpers import ORIGIN, no_approvals, no_progress
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")
 
 
-def tool(name: str, schema: object, description: str = "A tool.") -> ToolDefinition:
+def tool(name: str, schema: object, description: str = "A tool.") -> Tool:
     async def run(args, progress):
         return Ok("")
 
-    return ToolDefinition(
+    return Tool(
         name=name,
         description=description,
         input_schema=schema,
@@ -104,12 +104,12 @@ def test_a_script_can_be_written_against_the_declarations() -> None:
 
 
 @deno
-async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
+async def test_a_script_reaches_a_real_tool_through_a_real_toolset() -> None:
 
     async def rows(args, progress):
         return Ok("Found 3 rows.", data={"rows": [{"n": 1}, {"n": 2}, {"n": 3}]})
 
-    catalog = ToolDefinition(
+    catalog = Tool(
         name="db__query",
         description="Run a query.",
         input_schema={
@@ -120,22 +120,20 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         parse=lambda raw: raw,
         execute=rows,
     )
-    tool_service = ToolService([catalog], gate=no_gate())
+    tool_service = ToolService([catalog], approvals=no_approvals())
     for built in code_mode_tools(
         tool_service=tool_service,
         runner=DenoRunner(deno_path="deno", timeout_seconds=30),
         withheld=frozenset(),
     ):
         tool_service.register(built)
-    pipeline = ToolPipeline(
-        tool_service, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
-    )
+    toolset = Toolset(tool_service, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT))
 
     async def run(name: str, arguments: str) -> ToolOutcome:
         call = ToolCall(id="c1", name=name, arguments=arguments)
-        return await pipeline.execute(call, progress=no_progress, origin=ORIGIN)
+        return await toolset.execute(call, progress=no_progress, origin=ORIGIN)
 
-    assert [spec.name for spec in pipeline.specs()] == [
+    assert [spec.name for spec in toolset.specs()] == [
         LIST_FUNCTIONS,
         GET_FUNCTION_DETAILS,
         EXECUTE_TYPESCRIPT,

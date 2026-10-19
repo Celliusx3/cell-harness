@@ -18,7 +18,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import client_tools, no_bots, no_gate, no_skills
+from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import files_in, images_in, secrets_in, web_gateway, web_mcp
 
@@ -50,7 +50,7 @@ def build(tmp_path):
         web_mcp(),
         no_skills(),
         tools,
-        no_gate(),
+        no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(sessions, no_bots(sessions), runs),
@@ -120,7 +120,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         web_mcp(),
         no_skills(),
         tools,
-        no_gate(),
+        no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(sessions, no_bots(sessions), runs),

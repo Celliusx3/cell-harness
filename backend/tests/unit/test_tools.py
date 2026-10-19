@@ -1,4 +1,4 @@
-"""The tool definition, registry, and pipeline — phase 2's acceptance criteria."""
+"""A tool, the tool service, and the toolset — phase 2's acceptance criteria."""
 
 from __future__ import annotations
 
@@ -11,17 +11,17 @@ from harness.tools import (
     REFUSED,
     Failure,
     Ok,
-    ToolDefinition,
-    ToolPipeline,
+    Tool,
     ToolService,
+    Toolset,
 )
 from harness.tools.service import DuplicateToolError
 from tests.unit.fakes import echo_tool, raising_tool
-from tests.unit.helpers import ORIGIN, no_gate, no_progress, pipeline_for
+from tests.unit.helpers import ORIGIN, no_approvals, no_progress, toolset_for
 
 
-def pipeline(*tools, providers=(), offer=()) -> ToolPipeline:
-    return pipeline_for(*tools, providers=providers, offer=offer)
+def toolset(*tools, providers=(), offer=()) -> Toolset:
+    return toolset_for(*tools, providers=providers, offer=offer)
 
 
 def call(name: str, arguments: str = '{"value": "hi"}') -> ToolCall:
@@ -54,7 +54,7 @@ def test_from_model_derives_schema_and_parser_from_one_source() -> None:
     ],
 )
 async def test_bad_arguments_are_a_failure_not_an_exception(arguments, reason) -> None:
-    outcome = await pipeline(echo_tool()).execute(
+    outcome = await toolset(echo_tool()).execute(
         call("echo", arguments), progress=no_progress, origin=ORIGIN
     )
 
@@ -64,7 +64,7 @@ async def test_bad_arguments_are_a_failure_not_an_exception(arguments, reason) -
 
 
 async def test_a_tool_that_raises_does_not_kill_the_turn() -> None:
-    outcome = await pipeline(raising_tool()).execute(
+    outcome = await toolset(raising_tool()).execute(
         call("boom"), progress=no_progress, origin=ORIGIN
     )
 
@@ -74,7 +74,7 @@ async def test_a_tool_that_raises_does_not_kill_the_turn() -> None:
 
 
 async def test_empty_arguments_mean_no_arguments() -> None:
-    outcome = await pipeline(echo_tool()).execute(
+    outcome = await toolset(echo_tool()).execute(
         call("echo", ""), progress=no_progress, origin=ORIGIN
     )
 
@@ -106,7 +106,7 @@ def test_a_plain_string_is_one_text_block() -> None:
 
 async def test_a_tool_from_a_provider_is_callable_the_turn_it_appears() -> None:
     connected: list = []
-    tools = pipeline(providers=[lambda: list(connected)], offer=("echo",))
+    tools = toolset(providers=[lambda: list(connected)], offer=("echo",))
 
     assert tools.specs() == []
     outcome = await tools.execute(call("echo"), progress=no_progress, origin=ORIGIN)
@@ -125,20 +125,20 @@ def test_a_broken_provider_does_not_take_down_the_tool_set() -> None:
     def broken():
         raise RuntimeError("server went away")
 
-    tool_service = ToolService([echo_tool()], gate=no_gate(), providers=[broken])
+    tool_service = ToolService([echo_tool()], approvals=no_approvals(), providers=[broken])
 
     assert [t.name for t in tool_service.all()] == ["echo"]
 
 
 def test_duplicate_static_registration_fails_loudly() -> None:
-    tool_service = ToolService([echo_tool()], gate=no_gate())
+    tool_service = ToolService([echo_tool()], approvals=no_approvals())
 
     with pytest.raises(DuplicateToolError):
         tool_service.register(echo_tool())
 
 
 def test_a_disposer_removes_exactly_its_registration() -> None:
-    tool_service = ToolService((), gate=no_gate())
+    tool_service = ToolService((), approvals=no_approvals())
     dispose = tool_service.register(echo_tool())
 
     assert len(tool_service.all()) == 1
@@ -149,7 +149,7 @@ def test_a_disposer_removes_exactly_its_registration() -> None:
 
 def test_static_tools_win_a_name_collision_with_a_provider() -> None:
     tool_service = ToolService(
-        [echo_tool()], gate=no_gate(), providers=[lambda: [raising_tool("echo")]]
+        [echo_tool()], approvals=no_approvals(), providers=[lambda: [raising_tool("echo")]]
     )
 
     assert len(tool_service.all()) == 1
@@ -157,7 +157,7 @@ def test_static_tools_win_a_name_collision_with_a_provider() -> None:
 
 
 def test_a_provider_disposer_removes_exactly_its_source() -> None:
-    tool_service = ToolService((), gate=no_gate())
+    tool_service = ToolService((), approvals=no_approvals())
     dispose = tool_service.add_provider(lambda: [echo_tool()])
     tool_service.add_provider(lambda: [raising_tool("boom")])
 
@@ -167,15 +167,15 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
     dispose()
 
 
-def offering(*tools: ToolDefinition, default: tuple[str, ...]) -> ToolPipeline:
-    """A pipeline with a chosen `default_tools` that offers every tool it was given."""
-    return ToolPipeline(ToolService(tools, gate=no_gate()), default)
+def offering(*tools: Tool, default: tuple[str, ...]) -> Toolset:
+    """A toolset with a chosen `default_tools` that offers every tool it was given."""
+    return Toolset(ToolService(tools, approvals=no_approvals()), default)
 
 
 async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:
-    pipeline = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
+    toolset = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
 
-    outcome = await pipeline.execute(
+    outcome = await toolset.execute(
         ToolCall(id="c1", name="hidden", arguments="{}"), progress=no_progress, origin=ORIGIN
     )
 
@@ -185,9 +185,9 @@ async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:
 
 
 async def test_an_offered_tool_executes() -> None:
-    pipeline = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
+    toolset = offering(echo_tool(), echo_tool("hidden"), default=("echo",))
 
-    outcome = await pipeline.execute(
+    outcome = await toolset.execute(
         ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'),
         progress=no_progress,
         origin=ORIGIN,
@@ -197,10 +197,10 @@ async def test_an_offered_tool_executes() -> None:
 
 
 async def test_an_empty_default_offers_nothing_and_refuses_everything() -> None:
-    pipeline = offering(echo_tool(), default=())
+    toolset = offering(echo_tool(), default=())
 
-    assert pipeline.specs() == []
-    outcome = await pipeline.execute(
+    assert toolset.specs() == []
+    outcome = await toolset.execute(
         ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'),
         progress=no_progress,
         origin=ORIGIN,

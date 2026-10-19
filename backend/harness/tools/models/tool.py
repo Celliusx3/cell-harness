@@ -16,7 +16,7 @@ NAMESPACE_SEPARATOR = "__"
 
 
 @dataclass(frozen=True)
-class ToolDefinition[ArgsT]:
+class Tool[ArgsT]:
     """One tool the model can call."""
 
     name: str
@@ -33,9 +33,9 @@ class ToolDefinition[ArgsT]:
         description: str,
         args_model: type[M],
         execute: Callable[[M, ToolContext], Awaitable[ToolOutcome]],
-    ) -> ToolDefinition[M]:
+    ) -> Tool[M]:
         """A tool whose code we own, described by one Pydantic model."""
-        return ToolDefinition(
+        return Tool(
             name=name,
             description=description,
             input_schema=args_model.model_json_schema(),

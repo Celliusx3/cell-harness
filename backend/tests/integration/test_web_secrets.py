@@ -16,7 +16,7 @@ from harness.bots import ASSISTANT_ID, BotDraft
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
 from harness.secrets import SECRET_VALUE_RULE, Destination, SecretRefused, SecretService
-from harness.tools import ApprovalGate
+from harness.tools import Approvals
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
 from harness.web.runtime import CLIENT_TOOLS
@@ -65,8 +65,8 @@ def _leaks(text: str) -> list[str]:
 
 async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_path: Path) -> None:
     seen: list[httpx.Request] = []
-    gate = ApprovalGate(frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json")
-    tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, approvals)
     secrets = SecretService(tmp_path / "secrets.json", encryption_key="test-encryption-key")
     model = SteppedClient(
         calls_tool(ASK_FOR_SECRET, ASK, id="call_ask"),
@@ -78,14 +78,14 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing(seen))
-    runs = run_service(service, model, fetch, *tools.definitions(), gate=gate, bots=bots)
+    runs = run_service(service, model, fetch, *tools.tools(), approvals=approvals, bots=bots)
     app = web_app(
         tmp_path,
         service,
         runs,
         skills=no_skills(),
         client_tools=tools,
-        gate=gate,
+        approvals=approvals,
         bots=bots,
         secrets=secrets,
     )
@@ -130,21 +130,21 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
 def _asking_app(
     tmp_path: Path, first: list[StreamEvent]
 ) -> tuple[httpx.AsyncClient, RunService, SecretService]:
-    gate = ApprovalGate(frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json")
-    tools = ClientToolService(CLIENT_TOOLS, gate)
+    approvals = Approvals(frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json")
+    tools = ClientToolService(CLIENT_TOOLS, approvals)
     secrets = SecretService(tmp_path / "secrets.json", encryption_key="test-encryption-key")
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing([]))
     model = SteppedClient(first, completed("Saved."))
-    runs = run_service(service, model, fetch, *tools.definitions(), gate=gate, bots=bots)
+    runs = run_service(service, model, fetch, *tools.tools(), approvals=approvals, bots=bots)
     app = web_app(
         tmp_path,
         service,
         runs,
         skills=no_skills(),
         client_tools=tools,
-        gate=gate,
+        approvals=approvals,
         bots=bots,
         secrets=secrets,
     )
