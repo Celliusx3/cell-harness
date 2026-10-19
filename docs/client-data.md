@@ -49,7 +49,7 @@ Here, a client tool is `ClientTool(name, description, args_model, data_model)`
 and nothing more. Everything else is `tools/client/`, the same for every
 datum:
 
-- **The turn ends at the ask.** `ClientTools.definitions()` turns each
+- **The turn ends at the ask.** `ClientTools.tools()` turns each
   declaration into a registered tool whose execute returns `Pending` — a
   third outcome beside `Ok` and `Failure`, so the tool service's dispatch stays the one
   door and the loop never checks a tool's name. On `Pending` the loop writes
@@ -224,7 +224,7 @@ is stopped midway.
   `tools_selected()` folds references, and the loop passes `approved=True` for
   that tool from then on. `always` writes the tool into
   `approval.grants_path` (`~/.harness/approvals.json`), read by
-  `ApprovalGate.should_ask`; `GET /api/approvals` lists it and `DELETE
+  `Approvals.should_ask`; `GET /api/approvals` lists it and `DELETE
   /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),
   ChatGPT (per connected app) and OpenClaw (a durable allowlist) each have this
   rung above "this conversation".

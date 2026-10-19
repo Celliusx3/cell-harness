@@ -306,7 +306,7 @@ instead of a JSON blob — and debugging failed code costs extra turns. Every
 published number is the one metric code mode trivially wins.
 
 **Measured on this deployment.** Thirteen capabilities — a clock plus twelve
-from two MCP servers — against `ToolPipeline(tool_service, ())`, whose
+from two MCP servers — against `Toolset(tool_service, ())`, whose
 empty `default_tools` offers every registered spec. Two tasks, each run both
 ways. The result did not improve, so per the instruction that used to sit here,
 it is written down.
@@ -448,14 +448,14 @@ the blocks as they are, and `Session.tools_selected()` folds the references out
 of the whole log — the same "read history, expand references" the docs
 describe. The one thing their API does that ours cannot is the expansion: this
 endpoint is OpenAI-shaped and has no `tool_reference`, so the harness expands —
-the pipeline puts the referenced tools into the next request, and the adapter
+the toolset puts the referenced tools into the next request, and the adapter
 renders the block as a sentence (`REFERENCES_NOTE`) so the model knows its list
-changed. The pipeline's refusal of an unreferenced name says to read it first:
+changed. The toolset's refusal of an unreferenced name says to read it first:
 the gate is a sequence, not a wall, and it is the step the 4B model skipped.
-Scripts never pass through the pipeline and are unaffected;
+Scripts never pass through the toolset and are unaffected;
 `execute_typescript` remains, for the workloads §6 was right about.
 
-**Bounded.** Only the `MAX_TOOLS_SELECTED` (8, in `tools/pipeline.py`) most recently
+**Bounded.** Only the `MAX_TOOLS_SELECTED` (8, in `tools/toolset.py`) most recently
 selected tools are promoted; a re-read moves a tool back to the front, and one that fell off is
 refused like one never read and re-read at the same one-miss cost. Without
 that, reads accumulate for the life of a conversation and a long one that
@@ -493,9 +493,9 @@ wants.
   message no assistant message asked for, which a provider **rejects**), and
   nested cards. Trigger: a script slow enough that the silence hurts.
 - **A result cap.** The cheap alternative to code mode for large results, which
-  `mcp/tool.py` already says belongs in the pipeline. Claude Code caps at
+  `mcp/tool.py` already says belongs in the toolset. Claude Code caps at
   25K tokens and spills to disk; DeepSeek caps per tool and reports `truncated`.
   Trigger: one result blowing the window, without the round-trip problem.
-- **Per-tool timeout in the pipeline.** `code.timeout_seconds` bounds a whole
+- **Per-tool timeout in the tool service's dispatch.** `code.timeout_seconds` bounds a whole
   script and MCP bounds its own calls, but a native tool that hangs still hangs
   the turn. Trigger: a tool source arriving without its own bound.

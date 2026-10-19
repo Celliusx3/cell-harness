@@ -89,7 +89,7 @@ Same three tiers; the catalog is in the system prompt.
    spec all do.
 2. **Nobody logs the catalog into the conversation.** Every client rebuilds it
    per request in the system prompt or the tool description. This harness
-   already does exactly that with the tool list (`ToolPipeline.specs`) and the
+   already does exactly that with the tool list (`Toolset.specs`) and the
    system prompt (`Runtime.request_messages`), neither of which is written to
    the log. PHASES.md's original "catalog message + digest + empty envelope +
    re-establish after compaction" was DeepSeek Harness's design and the outlier
@@ -157,11 +157,11 @@ rather than in the `SKILL.md`, because a comment there reaches the model.
   `undefined`, the search ran for the literal `"unknown location"`, and it
   returned two cafés called "Unknown" with confidence. The tool descriptions
   state the shapes; the model had not read them.
-- **The same run, before the pipeline gate existed** — the 4B model copied
+- **The same run, before the toolset's check existed** — the 4B model copied
   `instagram__fetch_reels({ urls })` out of the skill body and emitted it as a
   *tool call*, not a program. It ran, because `ToolService.dispatch` resolves any
   registered name. Correct answer, unmetered route; see "Registered is not
-  offered" in CLAUDE.md. With the gate, the same model goes through code mode
+  offered" in CLAUDE.md. With the check, the same model goes through code mode
   and hits the failure above — which is the honest result.
 
 ## 6. Sources

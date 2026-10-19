@@ -146,7 +146,7 @@ other. An MCP App's `tools/call` is deliberately not one of those: the harness
 is proxying for a view to the view's own server, by that server's own name,
 answered verbatim — and its guards (same server, `visibility`, resource
 binding) sit at the MCP layer, where every other host puts them. Routing it
-through the tool service would put the model's pipeline in front of a call the
+through the tool service would put the model's toolset in front of a call the
 model never made. `docs/mcp-apps.md`.
 
 **The sandbox is granted nothing, and knows nothing.** Deno runs with no
@@ -169,11 +169,11 @@ gap nobody had walked through until a 4B model did: it copied
 `instagram__fetch_reels` out of a skill body, emitted it as a plain tool call,
 and it ran — correct answer, wrong door. The request is supposed to be the
 record of what the model may call directly; a name hallucinated from context is
-not on it. So `ToolPipeline.execute` checks the model's own calls against the
+not on it. So `Toolset.execute` checks the model's own calls against the
 same `_offered_tools` that built the request, and refuses with the route that does
 exist (`list_functions`) and *without* listing what else is registered — that
 list is what the direct route would feed on. Scripts never pass through the
-pipeline, so they are untouched. It is not a hook, because a hook fails open
+toolset, so they are untouched. It is not a hook, because a hook fails open
 and a door that must stay shut cannot. The cost was measured: the same model,
 forced through code mode, then guessed a return shape and got the place wrong —
 which is the honest result, and a skill-text fix, not a reason to reopen it.
@@ -197,7 +197,7 @@ carried, so the request scales with the task rather than the conversation.
 **No skills, no tool.** The spec's client guide says it outright: an empty
 `<available_skills/>` block or a skill tool with no valid names "would confuse
 the model." So the factory returns `None`, the provider yields nothing, and the
-pipeline's "skip an absent default name" does the rest. The alternative — a
+toolset's "skip an absent default name" does the rest. The alternative — a
 tool that is always there and sometimes says "nothing to load" — spends a schema
 on every request to describe an absence.
 
