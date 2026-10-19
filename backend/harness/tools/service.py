@@ -6,7 +6,7 @@ import logging
 from collections.abc import Callable, Iterable
 
 from harness.llm import ToolCall
-from harness.tools.approvals import Approvals
+from harness.tools.approvals import ApprovalService
 from harness.tools.models.context import CallOrigin, ToolContext, ToolProgressReporter
 from harness.tools.models.outcome import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
 from harness.tools.models.tool import Tool
@@ -29,7 +29,7 @@ class ToolService:
         self,
         tools: Iterable[Tool],
         *,
-        approvals: Approvals,
+        approvals: ApprovalService,
         providers: Iterable[ToolProvider] = (),
     ) -> None:
         self._static: dict[str, Tool] = {}
@@ -102,7 +102,7 @@ class ToolService:
         origin: CallOrigin,
     ) -> ToolOutcome:
         """Run one call, whether the model made it or a script did — unless it must ask first."""
-        if not approved and self._approvals.should_ask(call.name):
+        if not approved and self._approvals.needs_approval(call.name):
             return Pending()
         tool = self.get(call.name)
         if tool is None:

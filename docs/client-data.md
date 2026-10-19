@@ -49,7 +49,7 @@ Here, a client tool is `ClientTool(name, description, args_model, data_model)`
 and nothing more. Everything else is `tools/client/`, the same for every
 datum:
 
-- **The turn ends at the ask.** `ClientTools.tools()` turns each
+- **The turn ends at the ask.** `ClientToolCatalog.tools()` turns each
   declaration into a registered tool whose execute returns `Pending` — a
   third outcome beside `Ok` and `Failure`, so the tool service's dispatch stays the one
   door and the loop never checks a tool's name. On `Pending` the loop writes
@@ -220,11 +220,12 @@ is stopped midway.
 - **Three answers, three scopes.** `{"kind": "approved", "scope": "once" |
   "conversation" | "always"}` or `{"kind": "denied"}`, posted to the same
   `POST …/calls/{call_id}/output`. `once` runs the call. `conversation` first
-  writes an `approval/grant` event; `Session.tools_granted()` folds it the way
-  `tools_selected()` folds references, and the loop passes `approved=True` for
-  that tool from then on. `always` writes the tool into
+  writes an `approval/grant` event; `Session.conversation_approved_tools()` folds it the way
+  `tools_selected()` folds references, and the toolset runs that tool unasked
+  from then on, while it is in the model's list: like any tool, one the model
+  is no longer shown is refused until it is read again. `always` writes the tool into
   `approval.grants_path` (`~/.harness/approvals.json`), read by
-  `Approvals.should_ask`; `GET /api/approvals` lists it and `DELETE
+  `ApprovalService.needs_approval`; `GET /api/approvals` lists it and `DELETE
   /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),
   ChatGPT (per connected app) and OpenClaw (a durable allowlist) each have this
   rung above "this conversation".

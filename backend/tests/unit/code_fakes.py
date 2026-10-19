@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from harness.llm import ToolCall
 from harness.sandbox import Bridge, DenoUnavailableError, Runner, Script
 from harness.tools import (
-    Approvals,
+    ApprovalService,
     CallOrigin,
     Ok,
     Tool,
@@ -62,7 +62,7 @@ class FakeRunner(Runner):
 class RecordingToolService(ToolService):
     """A real tool service that remembers what it was asked to run."""
 
-    def __init__(self, tools: tuple[Tool, ...], approvals: Approvals) -> None:
+    def __init__(self, tools: tuple[Tool, ...], approvals: ApprovalService) -> None:
         super().__init__(tools, approvals=approvals)
         self.calls: list[ToolCall] = []
 
@@ -95,7 +95,7 @@ def build(
     *tools: Tool,
     runner: FakeRunner | None = None,
     withheld: frozenset[str] = frozenset(),
-    approvals: Approvals | None = None,
+    approvals: ApprovalService | None = None,
 ) -> Built:
     tool_service = RecordingToolService(tools, approvals or no_approvals())
     built = code_mode_tools(

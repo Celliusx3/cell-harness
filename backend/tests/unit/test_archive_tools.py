@@ -12,7 +12,7 @@ from harness.llm import ToolCall
 from harness.mcp.service import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools import Approvals, Failure, Ok
+from harness.tools import ApprovalService, Failure, Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.files import (
     EXTRACT_ARCHIVE,
@@ -27,7 +27,15 @@ from harness.web.runtime import (
     build_runtime,
 )
 from tests.unit.archive_fakes import UNPACK_LIMIT
-from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, no_skills
+from tests.unit.helpers import (
+    ORIGIN,
+    client_tools,
+    new_session,
+    no_approvals,
+    no_bots,
+    no_progress,
+    no_skills,
+)
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -75,13 +83,13 @@ def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not(name: str) 
 @pytest.mark.parametrize("name", ARCHIVE_TOOLS)
 def test_it_never_asks_for_approval(name: str) -> None:
     committed = json.loads(CONFIG.read_text())
-    approvals = Approvals(
+    approvals = ApprovalService(
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),
     )
 
-    assert not approvals.should_ask(name)
+    assert not approvals.needs_approval(name)
 
 
 async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: Path) -> None:
@@ -103,7 +111,10 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
     )
     script = (
         'await extract_archive({path: "/tmp/a.cbz"}); '
@@ -117,6 +128,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         ),
         progress=no_progress,
         origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(listed, Ok)

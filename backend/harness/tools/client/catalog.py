@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from harness.tools.client.models import (
     DECLINED,
     UNAVAILABLE,
-    ClientOutput,
+    ClientAnswer,
     ClientTool,
     SharedAnswer,
     UnavailableAnswer,
@@ -19,8 +19,8 @@ from harness.tools.models.tool import Tool
 _ASK_INSTEAD = "ask them in words instead"
 
 
-class ClientTools:
-    """Every declared client tool: parsed, resolved to an outcome, and defined."""
+class ClientToolCatalog:
+    """Every declared client tool: its answers parsed, turned into a tool result, and registered."""
 
     def __init__(self, tools: tuple[ClientTool, ...]) -> None:
         self._by_name = {tool.name: tool for tool in tools}
@@ -31,18 +31,18 @@ class ClientTools:
     def names(self) -> frozenset[str]:
         return frozenset(self._by_name)
 
-    def parse(self, name: str, raw: object) -> ClientOutput:
-        """A posted body as the output of the tool named `name`."""
-        return self._by_name[name].output_adapter().validate_python(raw)
+    def parse_answer(self, name: str, raw: object) -> ClientAnswer:
+        """A posted body as the answer to the tool named `name`."""
+        return self._by_name[name].answer_adapter().validate_python(raw)
 
-    def outcome(self, output: ClientOutput) -> Ok | Failure:
+    def tool_result(self, answer: ClientAnswer) -> Ok | Failure:
         """What the model reads for an answer — the same for every datum."""
-        if isinstance(output, SharedAnswer):
-            return Ok(content=output.data.model_dump_json())
-        if isinstance(output, UnavailableAnswer):
+        if isinstance(answer, SharedAnswer):
+            return Ok(content=answer.data.model_dump_json())
+        if isinstance(answer, UnavailableAnswer):
             return Failure(
                 UNAVAILABLE,
-                f"the device could not answer ({output.reason}); {_ASK_INSTEAD}",
+                f"the device could not answer ({answer.reason}); {_ASK_INSTEAD}",
             )
         return Failure(DECLINED, f"the user chose not to answer; {_ASK_INSTEAD}")
 

@@ -122,4 +122,8 @@ def test_a_bot_s_own_chat_sends_the_same_request_once_its_events_carry_its_id() 
         ]
     )
     assert with_ids.tools_selected() == before_groups.tools_selected() == ("web__get",)
-    assert with_ids.tools_granted() == before_groups.tools_granted() == {"fs__write"}
+    assert (
+        with_ids.conversation_approved_tools()
+        == before_groups.conversation_approved_tools()
+        == {"fs__write"}
+    )

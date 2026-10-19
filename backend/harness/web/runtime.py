@@ -28,8 +28,8 @@ from harness.sandbox import DenoRunner
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tools import Approvals, ToolService, Toolset
-from harness.tools.client import ClientTools, ClientToolService
+from harness.tools import ApprovalService, ToolService, Toolset
+from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
 from harness.tools.native.code_mode import (
@@ -68,7 +68,9 @@ from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 
 logger = logging.getLogger("harness.web")
 
-CLIENT_TOOLS = ClientTools((GET_LOCATION_TOOL, ASK_USER_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL))
+CLIENT_TOOLS = ClientToolCatalog(
+    (GET_LOCATION_TOOL, ASK_USER_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL)
+)
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 DEFAULT_TOOLS = (
     LIST_FUNCTIONS,
@@ -110,7 +112,7 @@ def build_runtime(
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
-    approvals: Approvals,
+    approvals: ApprovalService,
     context_tokens: int | None = None,
     *,
     bots: BotService,
@@ -139,7 +141,7 @@ def build_runtime(
     tool_service.add_provider(mcp.tools)
     tool_service.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
-    logger.info("approval asks for: %s", sorted(approvals.tools_that_ask) or "nothing")
+    logger.info("approval asks for: %s", sorted(approvals.protected_tools) or "nothing")
     _register_code_mode(tool_service, settings)
 
     client = OpenAIClient(settings.llm, read_image=images.read)

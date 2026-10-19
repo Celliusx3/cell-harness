@@ -2,65 +2,31 @@
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
-from contextlib import aclosing
-from pathlib import Path
+import dataclasses
 
 from harness.llm import Completed, ToolCall, ToolCallChunk, ToolMessage
-from harness.runtime.events import AgentCompleted, AgentPending, ToolProgress, ToolResult
+from harness.runtime.events import AgentCompleted, AgentPending
 from harness.runtime.hooks import HookChain, ToolHook
-from harness.runtime.service import Runtime
 from harness.sandbox import Bridge, BridgeError
 from harness.session.models import (
-    ApplicationMessageEvent,
     ApprovalGrant,
     ToolResultEvent,
     TurnEnd,
 )
-from harness.session.repair import REPAIRED
 from harness.tools import (
     BLOCKED,
+    REFUSED,
     Approval,
-    Approvals,
     Failure,
     Ok,
-    Tool,
-    ToolOutcome,
-    ToolService,
     Toolset,
 )
-from harness.tools.client import AcceptedAnswer, ClientTools, ClientToolService
+from harness.tools.client import AcceptedAnswer, ClientToolCatalog, ClientToolService
 from harness.tools.models.decision import DENIED
+from tests.unit.approval_fakes import WRITE, approvals_asking_for, note_writer, runtime_offering
 from tests.unit.code_fakes import FakeRunner, build, tool
-from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed, reporting_tool
+from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import drain, new_session
-
-WRITE = "memory__write_note"
-
-
-def _approvals(tmp_path: Path, *tools: str) -> Approvals:
-    return Approvals(frozenset(tools), frozenset, tmp_path / "approvals.json")
-
-
-def _writer(ran: list[str]) -> Tool[EchoArgs]:
-    async def execute(args: EchoArgs, _context) -> ToolOutcome:
-        ran.append(args.value)
-        return Ok(content=f"saved {args.value}")
-
-    return Tool.from_model(
-        name=WRITE, description="Save a note.", args_model=EchoArgs, execute=execute
-    )
-
-
-def _runtime(client, approvals: Approvals, *tools: Tool, hooks: HookChain | None = None) -> Runtime:
-    tool_service = ToolService(tools, approvals=approvals)
-    toolset = Toolset(tool_service, default_tools=[t.name for t in tools])
-    return Runtime(model="m", client=client, images=None, tools=toolset, hooks=hooks or HookChain())
-
-
-def _types(session) -> list[str]:
-    return [e.type for e in session.events()]
 
 
 def _step_with(*calls: ToolCall) -> list:
@@ -73,7 +39,7 @@ async def test_a_listed_tool_ends_the_turn_pending_and_does_not_run(tmp_path) ->
     session = new_session()
 
     events = await drain(
-        _runtime(client, _approvals(tmp_path, WRITE), _writer(ran)).run(
+        runtime_offering(client, approvals_asking_for(tmp_path, WRITE), note_writer(ran)).run(
             "remember Kopi", session=session, bot_id="b"
         )
     )
@@ -90,7 +56,7 @@ async def test_allow_once_runs_the_call_in_the_next_turn_and_the_model_sees_its_
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))
     session = new_session()
-    runtime = _runtime(client, _approvals(tmp_path, WRITE), _writer(ran))
+    runtime = runtime_offering(client, approvals_asking_for(tmp_path, WRITE), note_writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
     events = await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
@@ -108,9 +74,9 @@ async def test_deny_writes_a_denied_result_the_model_reads(tmp_path) -> None:
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("not saved"))
     session = new_session()
-    runtime = _runtime(client, _approvals(tmp_path, WRITE), _writer(ran))
+    runtime = runtime_offering(client, approvals_asking_for(tmp_path, WRITE), note_writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
-    service = ClientToolService(ClientTools(()), _approvals(tmp_path, WRITE))
+    service = ClientToolService(ClientToolCatalog(()), approvals_asking_for(tmp_path, WRITE))
     accepted = service.accept_by_call_id(session, "c1", {"kind": "denied"})
     assert isinstance(accepted, AcceptedAnswer) and isinstance(accepted.outcome, Failure)
     assert accepted.outcome.code == DENIED
@@ -135,7 +101,7 @@ async def test_allow_for_the_conversation_writes_a_grant_and_the_next_call_runs_
         completed("saved again"),
     )
     session = new_session()
-    runtime = _runtime(client, _approvals(tmp_path, WRITE), _writer(ran))
+    runtime = runtime_offering(client, approvals_asking_for(tmp_path, WRITE), note_writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
 
     await drain(runtime.resume("c1", Approval(scope="conversation"), session=session, bot_id="b"))
@@ -144,13 +110,39 @@ async def test_allow_for_the_conversation_writes_a_grant_and_the_next_call_runs_
     assert ran == ["Kopi", "Teh"]
     grants = [e for e in session.events() if isinstance(e, ApprovalGrant)]
     assert grants == [ApprovalGrant(turn=1, tool=WRITE)]
-    assert session.tools_granted() == frozenset({WRITE})
+    assert session.conversation_approved_tools() == frozenset({WRITE})
     assert events[-1] == AgentCompleted(text="saved again")
     assert [e.reason for e in session.events() if isinstance(e, TurnEnd)] == [
         "pending",
         "completed",
         "completed",
     ]
+
+
+async def test_a_tool_allowed_for_the_conversation_is_refused_once_it_is_not_offered(
+    tmp_path,
+) -> None:
+    ran: list[str] = []
+    session = new_session()
+    first = runtime_offering(
+        SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved")),
+        approvals_asking_for(tmp_path, WRITE),
+        note_writer(ran),
+    )
+    await drain(first.run("remember Kopi", session=session, bot_id="b"))
+    await drain(first.resume("c1", Approval(scope="conversation"), session=session, bot_id="b"))
+    assert first.tools is not None
+    later = dataclasses.replace(
+        first,
+        client=SteppedClient(calls_tool(WRITE, '{"value": "Teh"}', id="c2"), completed("ok")),
+        tools=Toolset(first.tools.tool_service, default_tools=[]),
+    )
+
+    await drain(later.run("and Teh", session=session, bot_id="b"))
+
+    assert ran == ["Kopi"]
+    second = [e for e in session.events() if isinstance(e, ToolResultEvent)][-1]
+    assert second.message.tool_call_id == "c2" and second.error == REFUSED
 
 
 async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(tmp_path) -> None:
@@ -161,9 +153,9 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     )
     client = SteppedClient(_step_with(*calls), completed("both saved"))
     session = new_session()
-    approvals = _approvals(tmp_path, WRITE)
-    runtime = _runtime(client, approvals, _writer(ran))
-    service = ClientToolService(ClientTools(()), approvals)
+    approvals = approvals_asking_for(tmp_path, WRITE)
+    runtime = runtime_offering(client, approvals, note_writer(ran))
+    service = ClientToolService(ClientToolCatalog(()), approvals)
     await drain(runtime.run("remember both", session=session, bot_id="b"))
     assert {p.call_id for p in service.answerable_calls(session)} == {"c1", "c2"}
 
@@ -194,46 +186,15 @@ async def test_a_script_calling_a_listed_tool_is_refused_and_told_to_call_it_dir
             raised.append(err)
 
     built = build(
-        tool(WRITE), runner=FakeRunner(script=script), approvals=_approvals(tmp_path, WRITE)
+        tool(WRITE),
+        runner=FakeRunner(script=script),
+        approvals=approvals_asking_for(tmp_path, WRITE),
     )
 
     listed = await built.run("list_functions", "{}")
     assert isinstance(listed, Ok) and WRITE in listed.text
     await built.run("execute_typescript", '{"code": "…", "description": "d"}')
     assert "approval" in str(raised[0]) and "get_function_details" in str(raised[0])
-
-
-async def test_cancel_during_an_approved_run_closes_the_turn(tmp_path) -> None:
-    started = asyncio.Event()
-
-    async def execute(_args: EchoArgs, _context) -> ToolOutcome:
-        started.set()
-        await asyncio.sleep(60)
-        return Ok(content="never")
-
-    slow = Tool.from_model(name=WRITE, description="d", args_model=EchoArgs, execute=execute)
-    client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("never"))
-    session = new_session()
-    runtime = _runtime(client, _approvals(tmp_path, WRITE), slow)
-    await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
-
-    async def consume() -> None:
-        async with aclosing(
-            runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b")
-        ) as events:
-            async for _ in events:
-                pass
-
-    task = asyncio.create_task(consume())
-    await started.wait()
-    task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await task
-
-    result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
-    assert result.message.tool_call_id == "c1" and result.error == REPAIRED
-    assert session.events()[-1] == TurnEnd(turn=1, reason="cancelled")
-    assert client.calls == 1
 
 
 async def test_a_hook_refusal_never_reaches_the_approvals(tmp_path) -> None:
@@ -247,8 +208,11 @@ async def test_a_hook_refusal_never_reaches_the_approvals(tmp_path) -> None:
     ran: list[str] = []
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("ok"))
     session = new_session()
-    runtime = _runtime(
-        client, _approvals(tmp_path, WRITE), _writer(ran), hooks=HookChain((Refuse(),))
+    runtime = runtime_offering(
+        client,
+        approvals_asking_for(tmp_path, WRITE),
+        note_writer(ran),
+        hooks=HookChain((Refuse(),)),
     )
 
     events = await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
@@ -256,39 +220,3 @@ async def test_a_hook_refusal_never_reaches_the_approvals(tmp_path) -> None:
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
     assert result.error == BLOCKED
     assert events[-1] == AgentCompleted(text="ok")
-
-
-async def test_an_approved_calls_progress_reaches_the_caller_before_its_result(tmp_path) -> None:
-    client = SteppedClient(calls_tool("slow", '{"value": "done"}', id="c1"), completed("ok"))
-    session = new_session()
-    runtime = _runtime(client, _approvals(tmp_path, "slow"), reporting_tool([(50.0, "halfway")]))
-    await drain(runtime.run("go", session=session, bot_id="b"))
-
-    events = await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
-
-    progress, result = events[0], events[1]
-    assert isinstance(progress, ToolProgress) and progress.message == "halfway"
-    assert isinstance(result, ToolResult) and result.tool_call_id == "c1"
-
-
-async def test_an_approved_calls_note_is_logged_after_its_result(tmp_path) -> None:
-    class Noting(ToolHook):
-        async def pre(self, sig, prior) -> str | None:
-            return None
-
-        async def post(self, sig, outcome, prior) -> str | None:
-            return "careful"
-
-    client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))
-    session = new_session()
-    runtime = _runtime(
-        client, _approvals(tmp_path, WRITE), _writer([]), hooks=HookChain((Noting(),))
-    )
-    await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
-
-    await drain(runtime.resume("c1", Approval(scope="once"), session=session, bot_id="b"))
-
-    kinds = [e.type for e in session.events() if e.type in ("tool/result", "application/message")]
-    assert kinds == ["tool/result", "application/message"]
-    note = next(e for e in session.events() if isinstance(e, ApplicationMessageEvent))
-    assert note.message.content == "careful" and note.turn == 1

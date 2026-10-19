@@ -7,7 +7,7 @@ from pathlib import Path
 from harness.llm import ToolCall
 from harness.tools import (
     UNKNOWN_TOOL,
-    Approvals,
+    ApprovalService,
     Failure,
     Ok,
     Pending,
@@ -53,7 +53,9 @@ async def test_an_empty_registry_says_none_rather_than_nothing() -> None:
 
 
 async def test_a_call_that_must_ask_waits_before_its_name_is_looked_up() -> None:
-    approvals = Approvals(frozenset({"ghost"}), frozenset, Path("/nonexistent/approvals.json"))
+    approvals = ApprovalService(
+        frozenset({"ghost"}), frozenset, Path("/nonexistent/approvals.json")
+    )
 
     outcome = await ToolService((), approvals=approvals).dispatch(
         call("ghost"), progress=no_progress, origin=ORIGIN, approved=False

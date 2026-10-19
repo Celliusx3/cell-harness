@@ -55,6 +55,7 @@ async def test_details_states_what_it_made_callable() -> None:
         ),
         progress=no_progress,
         origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(outcome, Ok)
@@ -131,12 +132,21 @@ def test_a_selected_tool_whose_server_has_gone_stays_out() -> None:
     assert named(built, ("gone",)) == list(DEFAULTS)
 
 
+def test_a_default_tool_the_model_selects_is_offered_once() -> None:
+    built = toolset(echo_tool("a"))
+
+    assert named(built, (EXECUTE_TYPESCRIPT, "a")) == [*DEFAULTS, "a"]
+
+
 async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_select() -> None:
     built = toolset(echo_tool("a"))
     call = ToolCall(id="c1", name="a", arguments='{"value": "hi"}')
 
-    refused = await built.execute(call, progress=no_progress, origin=ORIGIN)
-    allowed = await built.execute(call, progress=no_progress, origin=ORIGIN, tools_selected=("a",))
+    read_it = new_session()
+    read_it.append(selected("a"))
+
+    refused = await built.execute(call, progress=no_progress, origin=ORIGIN, session=new_session())
+    allowed = await built.execute(call, progress=no_progress, origin=ORIGIN, session=read_it)
 
     assert "get_function_details" in str(refused)
     assert isinstance(allowed, Ok) and allowed.text == "hi"

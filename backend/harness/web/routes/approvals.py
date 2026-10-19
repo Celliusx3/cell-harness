@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from harness.tools import Approvals
+from harness.tools import ApprovalService
 
 logger = logging.getLogger(__name__)
 
 
-class GrantedTools(BaseModel):
+class ApprovedTools(BaseModel):
     """Every tool the person has allowed always."""
 
     model_config = ConfigDict(frozen=True)
@@ -20,22 +20,17 @@ class GrantedTools(BaseModel):
     tools: list[str]
 
 
-def build_router(approvals: Approvals) -> APIRouter:
+def build_router(approvals: ApprovalService) -> APIRouter:
     """List the standing grants, and revoke one."""
     router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
-    @router.get("", response_model=GrantedTools)
-    async def list_approvals() -> GrantedTools:
-        return GrantedTools(tools=sorted(approvals.granted_tools()))
+    @router.get("", response_model=ApprovedTools)
+    async def list_approvals() -> ApprovedTools:
+        return ApprovedTools(tools=sorted(approvals.approved_tools()))
 
     @router.delete("/{tool}", status_code=status.HTTP_204_NO_CONTENT)
     async def revoke(tool: str) -> Response:
-        try:
-            approvals.revoke(tool)
-        except KeyError as err:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail=f"{tool!r} is not granted"
-            ) from err
+        approvals.revoke(tool)
         logger.info("approval for %s revoked", tool)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 

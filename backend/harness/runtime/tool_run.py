@@ -112,7 +112,7 @@ async def run_tool_calls(
                     session=session,
                     turn=turn,
                     step=step,
-                    approved=call.name in session.tools_granted(),
+                    approved=False,
                     bot_id=bot_id,
                 )
             ) as events:
@@ -229,10 +229,7 @@ async def _execute(
             if approved:
                 return await runtime.tools.execute_approved(call, progress=report, origin=origin)
             return await runtime.tools.execute(
-                call,
-                progress=report,
-                origin=origin,
-                tools_selected=session.tools_selected(),
+                call, progress=report, origin=origin, session=session
             )
         finally:
             queue.put_nowait(None)

@@ -20,7 +20,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import (
     INVALID_ARGUMENTS,
-    Approvals,
+    ApprovalService,
     Failure,
     Ok,
     Tool,
@@ -198,13 +198,13 @@ def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
 
 def test_it_never_asks_for_approval() -> None:
     committed = json.loads(CONFIG.read_text())
-    approvals = Approvals(
+    approvals = ApprovalService(
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),
     )
 
-    assert not approvals.should_ask(SEND_FILE)
+    assert not approvals.needs_approval(SEND_FILE)
 
 
 async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
@@ -225,7 +225,10 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     assert SEND_FILE in [spec.name for spec in runtime.tools.specs()]
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
     )
     ran = await runtime.tools.execute(
         ToolCall(
@@ -237,6 +240,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
         ),
         progress=no_progress,
         origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(listed, Ok) and SEND_FILE not in listed.text

@@ -43,6 +43,8 @@ async def test_an_empty_or_overlong_step_is_invalid_arguments(step: str) -> None
     ("finished", "read"), [(True, '{"finished":true}'), (False, '{"finished":false}')]
 )
 def test_the_model_reads_whether_the_person_finished(finished: bool, read: str) -> None:
-    output = CLIENT_TOOLS.parse(HAND_OVER, {"kind": "shared", "data": {"finished": finished}})
+    output = CLIENT_TOOLS.parse_answer(
+        HAND_OVER, {"kind": "shared", "data": {"finished": finished}}
+    )
 
-    assert CLIENT_TOOLS.outcome(output) == Ok(content=read)
+    assert CLIENT_TOOLS.tool_result(output) == Ok(content=read)

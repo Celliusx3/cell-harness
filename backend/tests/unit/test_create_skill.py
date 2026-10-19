@@ -17,7 +17,15 @@ from harness.skills import parse
 from harness.tools import Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT
 from harness.web.runtime import build_runtime
-from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, skills_at
+from tests.unit.helpers import (
+    ORIGIN,
+    client_tools,
+    new_session,
+    no_approvals,
+    no_bots,
+    no_progress,
+    skills_at,
+)
 from tests.webapp import files_in, images_in, secrets_in
 
 PROJECT_SKILLS = Path(__file__).parents[3] / ".agents" / "skills"
@@ -71,6 +79,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
         ),
         progress=no_progress,
         origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(ran, Ok), ran

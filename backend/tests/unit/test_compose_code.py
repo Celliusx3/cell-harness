@@ -25,7 +25,15 @@ from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
-from tests.unit.helpers import ORIGIN, client_tools, no_approvals, no_bots, no_progress, no_skills
+from tests.unit.helpers import (
+    ORIGIN,
+    client_tools,
+    new_session,
+    no_approvals,
+    no_bots,
+    no_progress,
+    no_skills,
+)
 from tests.webapp import files_in, images_in, secrets_in
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT)]
@@ -68,7 +76,10 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
     assert runtime.tools is not None
 
     outcome = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
     )
 
     assert isinstance(outcome, Ok)
@@ -131,7 +142,10 @@ async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> No
     assert CLIENT_TOOLS.names <= offered
 
     listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"), progress=no_progress, origin=ORIGIN
+        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
     )
     assert isinstance(listed, Ok)
     assert not any(name in listed.text for name in CLIENT_TOOLS.names)

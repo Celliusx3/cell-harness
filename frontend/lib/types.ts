@@ -235,7 +235,7 @@ export interface BundledFile {
 }
 
 /** What the browser answers a client tool with */
-export type ClientOutput<T> =
+export type ClientAnswer<T> =
   | { kind: "shared"; data: T }
   | { kind: "declined" }
   | { kind: "unavailable"; reason: string };

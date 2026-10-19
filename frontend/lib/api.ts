@@ -6,7 +6,7 @@ import type {
   BotDraft,
   BundledFile,
   ConversationDetail,
-  ClientOutput,
+  ClientAnswer,
   Decision,
   Group,
   GroupDraft,
@@ -100,7 +100,7 @@ export const clearConversation = (id: string) =>
 export const sendToolOutput = <T>(
   id: string,
   callId: string,
-  output: ClientOutput<T> | Decision,
+  output: ClientAnswer<T> | Decision,
 ) =>
   request<void>(
     `/conversations/${id}/calls/${encodeURIComponent(callId)}/output`,
