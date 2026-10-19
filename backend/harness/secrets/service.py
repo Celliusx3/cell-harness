@@ -6,12 +6,12 @@ import os
 
 from pydantic import SecretStr
 
-from harness.secrets.encryption import seal, unseal
 from harness.secrets.models.destination import Destination
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.models.secret import Secret, SecretSummary
 from harness.secrets.repository import SecretRepository
+from harness.secrets.sealing import sealed, unsealed
 
 RECORD_ID_BYTES = 12
 MAX_SECRETS = 100
@@ -38,29 +38,31 @@ class SecretService:
         if existing is None and len(stored) >= MAX_SECRETS:
             raise SecretRefused(f"{MAX_SECRETS} keys are already saved; remove one first")
         record_id = os.urandom(RECORD_ID_BYTES).hex()
-        sealed = SealedSecret(
+        sealed_secret = SealedSecret(
             id=record_id,
             name=name,
             destination=destination,
-            ciphertext=seal(
+            ciphertext=sealed(
                 value.get_secret_value(),
                 encryption_key=self._encryption_key,
                 record_id=record_id,
             ),
         )
         self._repository.replace_all(
-            (*(secret for secret in stored if secret is not existing), sealed)
+            (*(secret for secret in stored if secret is not existing), sealed_secret)
         )
 
     def secret_named(self, name: str) -> Secret | None:
         """The key called `name`, unsealed, or `None` when none is saved."""
-        sealed = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
-        if sealed is None:
+        sealed_secret = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
+        if sealed_secret is None:
             return None
-        plaintext = unseal(
-            sealed.ciphertext, encryption_key=self._encryption_key, record_id=sealed.id
+        plaintext = unsealed(
+            sealed_secret.ciphertext,
+            encryption_key=self._encryption_key,
+            record_id=sealed_secret.id,
         )
-        return Secret(destination=sealed.destination, value=SecretStr(plaintext))
+        return Secret(destination=sealed_secret.destination, value=SecretStr(plaintext))
 
     def delete(self, name: str) -> None:
         """Remove the key called `name`; `SecretNotFound` when none is saved."""

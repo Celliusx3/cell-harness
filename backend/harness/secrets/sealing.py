@@ -13,7 +13,7 @@ NONCE_BYTES = 12
 KEY_BYTES = 32
 
 
-def seal(plaintext: str, *, encryption_key: str, record_id: str) -> str:
+def sealed(plaintext: str, *, encryption_key: str, record_id: str) -> str:
     """`plaintext` sealed for `record_id`: base64 of salt, nonce, then ciphertext with its tag."""
     salt = os.urandom(SALT_BYTES)
     nonce = os.urandom(NONCE_BYTES)
@@ -23,8 +23,8 @@ def seal(plaintext: str, *, encryption_key: str, record_id: str) -> str:
     return base64.b64encode(salt + nonce + sealed).decode()
 
 
-def unseal(ciphertext: str, *, encryption_key: str, record_id: str) -> str:
-    """The plaintext `seal` sealed for `record_id`; `InvalidTag` when the key or id differ."""
+def unsealed(ciphertext: str, *, encryption_key: str, record_id: str) -> str:
+    """The plaintext `sealed` sealed for `record_id`; `InvalidTag` when the key or id differ."""
     raw = base64.b64decode(ciphertext, validate=True)
     salt, nonce = raw[:SALT_BYTES], raw[SALT_BYTES : SALT_BYTES + NONCE_BYTES]
     sealed = raw[SALT_BYTES + NONCE_BYTES :]
