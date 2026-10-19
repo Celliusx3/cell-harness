@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from harness.secrets.models import SealedSecret
+from harness.secrets.models.sealed import SealedSecret
 
 
 class SecretRepository(Protocol):

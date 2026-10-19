@@ -1,6 +1,6 @@
 # 01 · The shapes are a models folder, one file per subject
 
-**Status.** open
+**Status.** done
 
 **What to build.** `backend/harness/secrets/models.py` becomes `backend/harness/secrets/models/`, moved with no renames:
 - `__init__.py`: a one-line docstring only, as `tools/models/__init__.py` has.

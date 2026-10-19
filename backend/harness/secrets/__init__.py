@@ -1,13 +1,12 @@
 """API keys the person saved: one keyring, sealed, and each key sent only to the site it names."""
 
 from harness.secrets.disk import DiskSecretRepository
-from harness.secrets.models import (
+from harness.secrets.models.destination import Destination
+from harness.secrets.models.errors import SecretNotFound, SecretRefused
+from harness.secrets.models.secret import (
     SECRET_VALUE_RULE,
-    Destination,
     Secret,
     SecretName,
-    SecretNotFound,
-    SecretRefused,
     SecretSummary,
     SecretValue,
 )

@@ -7,14 +7,10 @@ import os
 from pydantic import SecretStr
 
 from harness.secrets.encryption import seal, unseal
-from harness.secrets.models import (
-    Destination,
-    SealedSecret,
-    Secret,
-    SecretNotFound,
-    SecretRefused,
-    SecretSummary,
-)
+from harness.secrets.models.destination import Destination
+from harness.secrets.models.errors import SecretNotFound, SecretRefused
+from harness.secrets.models.sealed import SealedSecret
+from harness.secrets.models.secret import Secret, SecretSummary
 from harness.secrets.repository import SecretRepository
 
 RECORD_ID_BYTES = 12
