@@ -28,18 +28,18 @@ class Approvals:
 
     def __init__(
         self,
-        configured: frozenset[str],
+        configured_tools: frozenset[str],
         writing_tool_names: Callable[[], frozenset[str]],
         grants_path: Path,
     ) -> None:
-        self._configured = configured
+        self._configured_tools = configured_tools
         self._writing_tool_names = writing_tool_names
         self._grants_path = grants_path
 
     @property
     def tools_that_ask(self) -> frozenset[str]:
         """The configured tools and the servers' tools that may write; each asks unless granted."""
-        return self._configured | self._writing_tool_names()
+        return self._configured_tools | self._writing_tool_names()
 
     def should_ask(self, name: str) -> bool:
         """Whether a call to `name` must wait for the person."""
