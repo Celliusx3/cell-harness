@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Response, status
 from pydantic import BaseModel, ConfigDict
 
 from harness.tools import Approvals
@@ -30,12 +30,7 @@ def build_router(approvals: Approvals) -> APIRouter:
 
     @router.delete("/{tool}", status_code=status.HTTP_204_NO_CONTENT)
     async def revoke(tool: str) -> Response:
-        try:
-            approvals.revoke(tool)
-        except KeyError as err:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail=f"{tool!r} is not granted"
-            ) from err
+        approvals.revoke(tool)
         logger.info("approval for %s revoked", tool)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 

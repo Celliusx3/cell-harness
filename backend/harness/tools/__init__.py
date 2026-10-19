@@ -1,6 +1,6 @@
 """Tools, and the machinery that offers and runs them."""
 
-from harness.tools.approvals import Approvals
+from harness.tools.approvals import Approvals, NotGranted
 from harness.tools.models.context import CallOrigin, ToolContext
 from harness.tools.models.decision import Approval
 from harness.tools.models.outcome import (
@@ -28,6 +28,7 @@ __all__ = [
     "REFUSED",
     "UNKNOWN_TOOL",
     "Approvals",
+    "NotGranted",
     "Approval",
     "CallOrigin",
     "Failure",

@@ -11,6 +11,10 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 
+class NotGranted(LookupError):
+    """A tool the person has not allowed always, so there is nothing to revoke."""
+
+
 class StandingGrants(BaseModel):
     """The grants file: every tool the person has allowed always."""
 
@@ -58,7 +62,7 @@ class Approvals:
         """Make `name` ask again."""
         granted = self.granted_tools()
         if name not in granted:
-            raise KeyError(name)
+            raise NotGranted(f"{name!r} is not granted")
         self._write_grants(granted - {name})
 
     def _write_grants(self, tools: frozenset[str]) -> None:

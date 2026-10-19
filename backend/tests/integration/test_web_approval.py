@@ -149,7 +149,9 @@ async def test_always_allow_is_listed_and_revoking_brings_the_card_back(tmp_path
     revoked = await client.delete(f"/api/approvals/{WRITE}")
     assert revoked.status_code == 204
     assert (await client.get("/api/approvals")).json() == {"tools": []}
-    assert (await client.delete(f"/api/approvals/{WRITE}")).status_code == 404
+    again = await client.delete(f"/api/approvals/{WRITE}")
+    assert again.status_code == 404
+    assert again.json() == {"detail": f"{WRITE!r} is not granted"}
 
 
 async def test_a_client_body_for_a_listed_tool_does_not_fit(tmp_path) -> None:

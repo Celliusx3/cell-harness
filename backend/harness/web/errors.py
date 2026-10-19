@@ -18,6 +18,7 @@ from harness.session.repository import (
     SessionNotFoundError,
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
+from harness.tools import NotGranted
 
 ErrorHandler = Callable[[Request, Exception], Awaitable[JSONResponse]]
 
@@ -31,6 +32,7 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
         McpConnectionError: status.HTTP_502_BAD_GATEWAY,
         McpNotConnectedError: status.HTTP_503_SERVICE_UNAVAILABLE,
         McpTimeoutError: status.HTTP_502_BAD_GATEWAY,
+        NotGranted: status.HTTP_404_NOT_FOUND,
         SecretNotFound: status.HTTP_404_NOT_FOUND,
         SecretRefused: status.HTTP_409_CONFLICT,
         SessionCorruptionError: status.HTTP_500_INTERNAL_SERVER_ERROR,
