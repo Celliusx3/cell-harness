@@ -19,8 +19,8 @@ from harness.tools.models.tool import Tool
 _ASK_INSTEAD = "ask them in words instead"
 
 
-class ClientTools:
-    """Every declared client tool: parsed, resolved to an outcome, and defined."""
+class ClientToolCatalog:
+    """Every declared client tool: its answers parsed, turned into a tool result, and registered."""
 
     def __init__(self, tools: tuple[ClientTool, ...]) -> None:
         self._by_name = {tool.name: tool for tool in tools}
@@ -35,7 +35,7 @@ class ClientTools:
         """A posted body as the answer to the tool named `name`."""
         return self._by_name[name].answer_adapter().validate_python(raw)
 
-    def outcome(self, answer: ClientAnswer) -> Ok | Failure:
+    def tool_result(self, answer: ClientAnswer) -> Ok | Failure:
         """What the model reads for an answer — the same for every datum."""
         if isinstance(answer, SharedAnswer):
             return Ok(content=answer.data.model_dump_json())

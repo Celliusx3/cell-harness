@@ -9,9 +9,9 @@ from pydantic import ValidationError
 from harness.prompts import DENIED_RESULT
 from harness.session.log import Session
 from harness.tools.approvals import ApprovalService
-from harness.tools.client.catalog import ClientTools
+from harness.tools.client.catalog import ClientToolCatalog
 from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
-from harness.tools.client.pending import pending_calls
+from harness.tools.client.pending_calls import pending_calls
 from harness.tools.models.decision import DENIED, Approval, parse_decision
 from harness.tools.models.outcome import Failure
 from harness.tools.models.tool import Tool
@@ -20,7 +20,7 @@ from harness.tools.models.tool import Tool
 class ClientToolService:
     """The declared client tools, the approvals, and the one way to answer either."""
 
-    def __init__(self, client_tools: ClientTools, approvals: ApprovalService) -> None:
+    def __init__(self, client_tools: ClientToolCatalog, approvals: ApprovalService) -> None:
         if both := client_tools.names & approvals.protected_tools:
             raise ValueError(f"{sorted(both)} are both client tools and tools that ask")
         self._client_tools = client_tools
@@ -73,7 +73,7 @@ class ClientToolService:
             answer = self._client_tools.parse_answer(pending.name, raw)
         except ValidationError:
             return RefusalReason.DOES_NOT_FIT
-        return AcceptedAnswer(pending.call_id, self._client_tools.outcome(answer))
+        return AcceptedAnswer(pending.call_id, self._client_tools.tool_result(answer))
 
     def _accept_decision(self, pending: PendingCall, raw: object) -> AcceptedAnswer | RefusalReason:
         try:

@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from harness.tools import Ok
-from harness.tools.client import ClientTools, ClientToolService
+from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.question import ASK_USER, ASK_USER_TOOL, Answer, Question
 from tests.unit.helpers import no_approvals
 
@@ -44,7 +44,7 @@ def test_an_answer_names_a_choice_and_nothing_else() -> None:
 
 
 def test_the_example_in_the_description_is_a_call_the_tool_accepts() -> None:
-    (tool,) = ClientToolService(ClientTools((ASK_USER_TOOL,)), no_approvals()).tools()
+    (tool,) = ClientToolService(ClientToolCatalog((ASK_USER_TOOL,)), no_approvals()).tools()
     spec = tool.spec()
     assert spec.name == ASK_USER
     example = re.search(rf"{ASK_USER}\((\{{.*?\}})\)", spec.description)
@@ -54,6 +54,6 @@ def test_the_example_in_the_description_is_a_call_the_tool_accepts() -> None:
 
 
 def test_a_tap_reaches_the_model_as_the_chosen_label() -> None:
-    tools = ClientTools((ASK_USER_TOOL,))
+    tools = ClientToolCatalog((ASK_USER_TOOL,))
     tapped = tools.parse_answer(ASK_USER, {"kind": "shared", "data": {"choice": "Shopee"}})
-    assert tools.outcome(tapped) == Ok(content='{"choice":"Shopee"}')
+    assert tools.tool_result(tapped) == Ok(content='{"choice":"Shopee"}')

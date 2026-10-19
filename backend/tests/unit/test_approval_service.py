@@ -13,7 +13,7 @@ from harness.tools import Approval, ApprovalService
 from harness.tools.client import (
     AcceptedAnswer,
     ClientTool,
-    ClientTools,
+    ClientToolCatalog,
     ClientToolService,
     RefusalReason,
 )
@@ -58,7 +58,7 @@ def test_always_allow_is_written_to_the_grants_file_and_the_tool_stops_asking(tm
 
 def test_the_service_grants_always_before_the_turn_resumes(tmp_path) -> None:
     approvals = _approvals(tmp_path, WRITE)
-    service = ClientToolService(ClientTools(()), approvals)
+    service = ClientToolService(ClientToolCatalog(()), approvals)
     session = new_session()
     session.append(TurnStart(turn=0))
     session.append(_call("c1"))
@@ -87,7 +87,7 @@ def test_repair_answers_a_call_left_by_a_crash_after_approval() -> None:
 def test_the_service_parses_a_decision_for_a_listed_tool_and_refuses_a_client_body(
     tmp_path,
 ) -> None:
-    service = ClientToolService(ClientTools(()), _approvals(tmp_path, WRITE))
+    service = ClientToolService(ClientToolCatalog(()), _approvals(tmp_path, WRITE))
     session = new_session()
     session.append(TurnStart(turn=0))
     session.append(_call("c1"))
@@ -110,7 +110,7 @@ def test_a_name_that_is_both_client_and_listed_is_refused_at_construction(tmp_pa
 
     both = ClientTool(name=WRITE, description="d", args_model=NoArgs, data_model=Nothing)
     with pytest.raises(ValueError):
-        ClientToolService(ClientTools((both,)), _approvals(tmp_path, WRITE))
+        ClientToolService(ClientToolCatalog((both,)), _approvals(tmp_path, WRITE))
 
 
 def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) -> None:

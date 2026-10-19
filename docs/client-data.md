@@ -49,7 +49,7 @@ Here, a client tool is `ClientTool(name, description, args_model, data_model)`
 and nothing more. Everything else is `tools/client/`, the same for every
 datum:
 
-- **The turn ends at the ask.** `ClientTools.tools()` turns each
+- **The turn ends at the ask.** `ClientToolCatalog.tools()` turns each
   declaration into a registered tool whose execute returns `Pending` — a
   third outcome beside `Ok` and `Failure`, so the tool service's dispatch stays the one
   door and the loop never checks a tool's name. On `Pending` the loop writes

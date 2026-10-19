@@ -21,7 +21,7 @@ from harness.tools import (
     Ok,
     Toolset,
 )
-from harness.tools.client import AcceptedAnswer, ClientTools, ClientToolService
+from harness.tools.client import AcceptedAnswer, ClientToolCatalog, ClientToolService
 from harness.tools.models.decision import DENIED
 from tests.unit.approval_fakes import WRITE, approvals_asking_for, note_writer, runtime_offering
 from tests.unit.code_fakes import FakeRunner, build, tool
@@ -76,7 +76,7 @@ async def test_deny_writes_a_denied_result_the_model_reads(tmp_path) -> None:
     session = new_session()
     runtime = runtime_offering(client, approvals_asking_for(tmp_path, WRITE), note_writer(ran))
     await drain(runtime.run("remember Kopi", session=session, bot_id="b"))
-    service = ClientToolService(ClientTools(()), approvals_asking_for(tmp_path, WRITE))
+    service = ClientToolService(ClientToolCatalog(()), approvals_asking_for(tmp_path, WRITE))
     accepted = service.accept_by_call_id(session, "c1", {"kind": "denied"})
     assert isinstance(accepted, AcceptedAnswer) and isinstance(accepted.outcome, Failure)
     assert accepted.outcome.code == DENIED
@@ -155,7 +155,7 @@ async def test_a_second_listed_call_keeps_the_turn_pending_until_it_is_answered(
     session = new_session()
     approvals = approvals_asking_for(tmp_path, WRITE)
     runtime = runtime_offering(client, approvals, note_writer(ran))
-    service = ClientToolService(ClientTools(()), approvals)
+    service = ClientToolService(ClientToolCatalog(()), approvals)
     await drain(runtime.run("remember both", session=session, bot_id="b"))
     assert {p.call_id for p in service.answerable_calls(session)} == {"c1", "c2"}
 

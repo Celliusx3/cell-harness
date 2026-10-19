@@ -47,4 +47,4 @@ def test_the_model_reads_whether_the_person_finished(finished: bool, read: str) 
         HAND_OVER, {"kind": "shared", "data": {"finished": finished}}
     )
 
-    assert CLIENT_TOOLS.outcome(output) == Ok(content=read)
+    assert CLIENT_TOOLS.tool_result(output) == Ok(content=read)
