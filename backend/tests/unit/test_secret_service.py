@@ -12,6 +12,7 @@ from pydantic import SecretStr
 
 from harness.secrets import (
     Destination,
+    DiskSecretRepository,
     SecretNotFound,
     SecretRefused,
     SecretService,
@@ -21,7 +22,6 @@ from harness.secrets import (
 ENCRYPTION_KEY = "test-encryption-key"
 KEY = "tok-9Zx=7Lm/q+Abc"
 OTHER_KEY = "sk-live-Q7xZ-2468"
-PLAINTEXT = "sk-live-PLAINTEXT-Q7xZ"
 GITHUB = Destination(origin="https://api.github.com", auth="bearer")
 NOTION = Destination(origin="https://api.notion.com", auth="bearer")
 LINEAR = Destination(origin="https://api.linear.app", auth="bearer")
@@ -37,7 +37,7 @@ def path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def store(path: Path) -> SecretService:
-    return SecretService(path, encryption_key=ENCRYPTION_KEY)
+    return SecretService(DiskSecretRepository(path), encryption_key=ENCRYPTION_KEY)
 
 
 def _raised(action: Callable[[], object]) -> Exception:
@@ -160,51 +160,17 @@ def test_summaries_list_each_key_by_name_with_its_site_and_never_its_value(
     assert OTHER_KEY not in shown
 
 
-def test_with_no_file_there_are_no_keys(store: SecretService) -> None:
-    assert store.summaries() == ()
-    assert store.find("github") is None
-
-
-def test_a_failed_write_keeps_the_saved_keys(
-    store: SecretService, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    store.save("github", GITHUB, SecretStr(KEY))
-
-    def refuse(*_: object) -> None:
-        raise OSError("disk full")
-
-    monkeypatch.setattr(os, "replace", refuse)
-    with pytest.raises(OSError):
-        store.save("notion", NOTION, SecretStr(OTHER_KEY))
-    monkeypatch.undo()
-
-    kept = store.find("github")
-    assert kept is not None
-    assert kept.value.get_secret_value() == KEY
-    assert store.find("notion") is None
-
-
-def test_the_keyring_folder_is_made_when_missing(tmp_path: Path) -> None:
-    path = tmp_path / "missing" / "secrets.json"
-    SecretService(path, encryption_key=ENCRYPTION_KEY).save("github", GITHUB, SecretStr(KEY))
-
-    reopened = SecretService(path, encryption_key=ENCRYPTION_KEY).find("github")
-
-    assert reopened is not None
-    assert reopened.value.get_secret_value() == KEY
-
-
 @pytest.mark.parametrize("blank", ["", "   ", "\t\n"])
 def test_a_blank_encryption_key_is_refused(path: Path, blank: str) -> None:
     with pytest.raises(ValueError):
-        SecretService(path, encryption_key=blank)
+        SecretService(DiskSecretRepository(path), encryption_key=blank)
 
 
 def test_a_file_sealed_under_one_encryption_key_does_not_open_under_another(
     store: SecretService, path: Path
 ) -> None:
     store.save("github", GITHUB, SecretStr(KEY))
-    other = SecretService(path, encryption_key="another-encryption-key")
+    other = SecretService(DiskSecretRepository(path), encryption_key="another-encryption-key")
 
     err = _raised(lambda: other.find("github"))
 
@@ -227,26 +193,3 @@ def test_a_sealed_key_copied_onto_another_entry_does_not_open(
     still = store.find("github")
     assert still is not None
     assert still.value.get_secret_value() == KEY
-
-
-@pytest.mark.parametrize(
-    "content",
-    [
-        f"{PLAINTEXT} is not JSON",
-        '{"secrets": [{"ciphertext": "' + PLAINTEXT,
-        json.dumps({"secrets": PLAINTEXT}),
-        json.dumps({"secrets": [], "note": PLAINTEXT}),
-        json.dumps({"secrets": [{"id": PLAINTEXT, "ciphertext": PLAINTEXT}]}),
-    ],
-    ids=["not json", "cut short", "wrong shape", "unknown field", "broken entry"],
-)
-def test_a_malformed_secrets_file_raises_without_showing_its_content(
-    store: SecretService, path: Path, content: str
-) -> None:
-    path.write_text(content, encoding="utf-8")
-
-    on_find = _raised(lambda: store.find("github"))
-    on_save = _raised(lambda: store.save("github", GITHUB, SecretStr(KEY)))
-
-    assert not _shows(on_find, PLAINTEXT)
-    assert not _shows(on_save, PLAINTEXT)

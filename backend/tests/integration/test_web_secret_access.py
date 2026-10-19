@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 
 from harness.bots import ASSISTANT_ID, BotDraft, GroupDraft
-from harness.secrets import SecretService
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
@@ -53,7 +53,9 @@ async def test_a_bot_uses_a_saved_key_only_once_the_person_allows_it(tmp_path: P
         frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json"
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
-    secrets = SecretService(tmp_path / "secrets.json", encryption_key="test-encryption-key")
+    secrets = SecretService(
+        DiskSecretRepository(tmp_path / "secrets.json"), encryption_key="test-encryption-key"
+    )
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     model = SteppedClient(

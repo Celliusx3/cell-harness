@@ -1,6 +1,6 @@
 # 03 · The secrets service keeps the rules and is handed its repository
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - `backend/harness/secrets/service.py`: `SecretService(repository: SecretRepository, *, encryption_key: str)`. It keeps the blank-key refusal, the one-site-per-name refusal, the cap, the record id and the sealing, and reads and writes only through the repository. Its file helpers, and the `os.fchmod`, `tempfile` and `Path` uses, are gone. `MAX_SECRETS` moves here from `models.py`.
