@@ -22,7 +22,7 @@ MAX_SECRETS = 100
 
 
 class SecretService:
-    """Every saved key, sealed for its own record, kept by the rules in a `SecretRepository`."""
+    """Every saved key, saved and found by the rules, kept through a `SecretRepository`."""
 
     def __init__(self, repository: SecretRepository, *, encryption_key: str) -> None:
         if not encryption_key.strip():

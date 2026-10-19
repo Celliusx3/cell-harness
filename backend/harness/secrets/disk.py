@@ -14,7 +14,7 @@ OWNER_ONLY = 0o600
 
 @dataclass(frozen=True)
 class DiskSecretRepository:
-    """The sealed keys at `path`, each write renamed into place from an owner-only temp file."""
+    """The keyring as one file at `path`, replaced whole and readable by its owner alone."""
 
     path: Path
 

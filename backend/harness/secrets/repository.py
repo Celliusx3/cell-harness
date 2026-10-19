@@ -11,7 +11,7 @@ class SecretRepository(Protocol):
     """The keyring's sealed keys, as storage."""
 
     def sealed_secrets(self) -> tuple[SealedSecret, ...]:
-        """Every saved key, sealed; `()` when there is no file."""
+        """Every saved key, sealed; `()` when none is saved."""
         ...
 
     def replace_all(self, secrets: tuple[SealedSecret, ...]) -> None:

@@ -15,13 +15,7 @@ from pydantic import SecretStr
 from harness.bots import ASSISTANT_ID, BotDraft
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
-from harness.secrets import (
-    SECRET_VALUE_RULE,
-    Destination,
-    DiskSecretRepository,
-    SecretRefused,
-    SecretService,
-)
+from harness.secrets import SECRET_VALUE_RULE, Destination, SecretRefused, SecretService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
@@ -29,7 +23,7 @@ from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
-from tests.webapp import bots_in, web_app
+from tests.webapp import bots_in, secrets_in, web_app
 
 KEY = 'tok-"q/+9Zx=7Lm'
 ECHOES = (KEY, json.dumps(KEY)[1:-1], quote(KEY, safe=""), base64.b64encode(KEY.encode()).decode())
@@ -75,9 +69,7 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
         frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json"
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
-    secrets = SecretService(
-        DiskSecretRepository(tmp_path / "secrets.json"), encryption_key="test-encryption-key"
-    )
+    secrets = secrets_in(tmp_path)
     model = SteppedClient(
         calls_tool(ASK_FOR_SECRET, ASK, id="call_ask"),
         calls_tool(FETCH_WITH_SECRET, FETCH, id="call_fetch"),
@@ -144,9 +136,7 @@ def _asking_app(
         frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json"
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
-    secrets = SecretService(
-        DiskSecretRepository(tmp_path / "secrets.json"), encryption_key="test-encryption-key"
-    )
+    secrets = secrets_in(tmp_path)
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing([]))
