@@ -12,7 +12,7 @@ from harness.tools import Approvals
 logger = logging.getLogger(__name__)
 
 
-class GrantedTools(BaseModel):
+class ApprovedTools(BaseModel):
     """Every tool the person has allowed always."""
 
     model_config = ConfigDict(frozen=True)
@@ -24,9 +24,9 @@ def build_router(approvals: Approvals) -> APIRouter:
     """List the standing grants, and revoke one."""
     router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
-    @router.get("", response_model=GrantedTools)
-    async def list_approvals() -> GrantedTools:
-        return GrantedTools(tools=sorted(approvals.always_allowed_tools()))
+    @router.get("", response_model=ApprovedTools)
+    async def list_approvals() -> ApprovedTools:
+        return ApprovedTools(tools=sorted(approvals.approved_tools()))
 
     @router.delete("/{tool}", status_code=status.HTTP_204_NO_CONTENT)
     async def revoke(tool: str) -> Response:

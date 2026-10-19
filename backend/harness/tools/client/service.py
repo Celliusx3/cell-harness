@@ -21,7 +21,7 @@ class ClientToolService:
     """The declared client tools, the approvals, and the one way to answer either."""
 
     def __init__(self, tools: ClientTools, approvals: Approvals) -> None:
-        if both := tools.names & approvals.tools_that_ask:
+        if both := tools.names & approvals.protected_tools:
             raise ValueError(f"{sorted(both)} are both client tools and tools that ask")
         self._tools = tools
         self._approvals = approvals
@@ -32,14 +32,14 @@ class ClientToolService:
         return self._tools.names
 
     @property
-    def tools_that_ask(self) -> frozenset[str]:
+    def protected_tools(self) -> frozenset[str]:
         """The tools that ask the person before running; a chat asks them with buttons."""
-        return self._approvals.tools_that_ask
+        return self._approvals.protected_tools
 
     @property
     def awaited_tools(self) -> frozenset[str]:
         """Every tool whose call waits on the person — client tools and tools that ask."""
-        return self._tools.names | self._approvals.tools_that_ask
+        return self._tools.names | self._approvals.protected_tools
 
     def tools(self) -> list[Tool]:
         """The tools to register."""
@@ -67,7 +67,7 @@ class ClientToolService:
         pending = next((p for p in self.answerable_calls(session) if matches(p)), None)
         if pending is None:
             return RefusalReason.NOT_PENDING
-        if pending.name in self._approvals.tools_that_ask:
+        if pending.name in self._approvals.protected_tools:
             return self._accept_decision(pending, raw)
         try:
             output = self._tools.parse(pending.name, raw)

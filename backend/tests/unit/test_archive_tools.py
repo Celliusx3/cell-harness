@@ -89,7 +89,7 @@ def test_it_never_asks_for_approval(name: str) -> None:
         Path("/nonexistent/cell-harness-approvals.json"),
     )
 
-    assert not approvals.should_ask(name)
+    assert not approvals.needs_approval(name)
 
 
 async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: Path) -> None:

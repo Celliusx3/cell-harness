@@ -34,9 +34,9 @@ class ChatAnswers:
         self._client_tools = client_tools
 
     @property
-    def tools_that_ask(self) -> frozenset[str]:
+    def protected_tools(self) -> frozenset[str]:
         """The tools a chat asks with Allow and Deny buttons."""
-        return self._client_tools.tools_that_ask
+        return self._client_tools.protected_tools
 
     async def answer(self, channel: Channel, chat_id: str, name: str, raw: object) -> bool:
         """Hand a platform's answer to the tool `name` to this chat's pending call."""

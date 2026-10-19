@@ -139,7 +139,7 @@ def build_runtime(
     tool_service.add_provider(mcp.tools)
     tool_service.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
-    logger.info("approval asks for: %s", sorted(approvals.tools_that_ask) or "nothing")
+    logger.info("approval asks for: %s", sorted(approvals.protected_tools) or "nothing")
     _register_code_mode(tool_service, settings)
 
     client = OpenAIClient(settings.llm, read_image=images.read)

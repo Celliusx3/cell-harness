@@ -102,7 +102,7 @@ class ToolService:
         origin: CallOrigin,
     ) -> ToolOutcome:
         """Run one call, whether the model made it or a script did — unless it must ask first."""
-        if not approved and self._approvals.should_ask(call.name):
+        if not approved and self._approvals.needs_approval(call.name):
             return Pending()
         tool = self.get(call.name)
         if tool is None:

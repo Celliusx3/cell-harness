@@ -42,7 +42,7 @@ async def ask_client(
     request: PendingCall,
     url: str,
     *,
-    tools_that_ask: frozenset[str],
+    protected_tools: frozenset[str],
 ) -> None:
     """Put `request` to the chat: a location keyboard, options, an approval card, or the page."""
     if request.name == GET_LOCATION:
@@ -52,12 +52,12 @@ async def ask_client(
     if question is not None and _choices_fit(request.call_id, question):
         await _ask_question(bot, chat_id, request.call_id, question)
         return
-    if request.name in tools_that_ask and _buttons_fit(request):
+    if request.name in protected_tools and _buttons_fit(request):
         await _ask_approval(channel, bot, chat_id, request)
         return
     text = (
         APPROVE_BY_LINK.format(label=_label(request.name))
-        if request.name in tools_that_ask
+        if request.name in protected_tools
         else ASK_BY_LINK
     )
     if not url:

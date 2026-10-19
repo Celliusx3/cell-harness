@@ -18,7 +18,7 @@ from harness.session.repository import (
     SessionNotFoundError,
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
-from harness.tools import NotGranted
+from harness.tools import NotApproved
 from harness.web.errors import STATUS_OF, exception_handlers
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
@@ -34,7 +34,7 @@ PINNED = [
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),
     pytest.param(McpNotConnectedError("stub is not connected"), 503, id="McpNotConnectedError"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),
-    pytest.param(NotGranted("'memory__write_note' is not granted"), 404, id="NotGranted"),
+    pytest.param(NotApproved("'memory__write_note' is not approved"), 404, id="NotApproved"),
     pytest.param(SecretNotFound("GITHUB_TOKEN"), 404, id="SecretNotFound"),
     pytest.param(
         SecretRefused("20 keys are already saved; remove one first"), 409, id="SecretRefused"

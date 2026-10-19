@@ -204,7 +204,7 @@ def test_it_never_asks_for_approval() -> None:
         Path("/nonexistent/cell-harness-approvals.json"),
     )
 
-    assert not approvals.should_ask(SEND_FILE)
+    assert not approvals.needs_approval(SEND_FILE)
 
 
 async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
