@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 class SecretRefused(ValueError):
-    """A key that cannot be saved; the message never holds the key."""
+    """A key that cannot be saved."""
 
 
 class SecretNotFound(LookupError):
