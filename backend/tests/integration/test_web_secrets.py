@@ -187,7 +187,7 @@ async def test_a_key_that_breaks_the_rule_is_a_422_naming_the_rule_not_the_key(t
         assert refused.status_code == 422
         assert SECRET_VALUE_RULE in refused.text
         assert _leaks(refused.text) == []
-        assert secrets.find("github") is None
+        assert secrets.secret_named("github") is None
         assert await _waiting(client) == {"call_ask"}
 
 
@@ -211,11 +211,11 @@ async def test_a_body_naming_its_own_site_is_refused_and_the_site_is_the_calls(t
 
         refused = await _save(client, "call_ask", {"value": KEY, "origin": "https://evil.example"})
         assert refused.status_code == 422
-        assert secrets.find("github") is None
+        assert secrets.secret_named("github") is None
 
         await _post(client, runs, ASSISTANT_ID, "/calls/call_ask/secret", {"value": KEY})
 
-    saved = secrets.find("github")
+    saved = secrets.secret_named("github")
     assert saved is not None
     assert saved.destination.origin == "https://api.github.com"
 

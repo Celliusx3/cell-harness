@@ -56,7 +56,7 @@ class SecretService:
             (*(secret for secret in stored if secret is not existing), sealed)
         )
 
-    def find(self, name: str) -> Secret | None:
+    def secret_named(self, name: str) -> Secret | None:
         """The key called `name`, unsealed, or `None` when none is saved."""
         sealed = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
         if sealed is None:

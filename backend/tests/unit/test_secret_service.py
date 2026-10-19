@@ -74,7 +74,7 @@ def test_saving_a_name_again_for_the_same_site_replaces_the_key(
     store.save("github", GITHUB, SecretStr(KEY))
     store.save("github", GITHUB, SecretStr(OTHER_KEY))
 
-    found = store.find("github")
+    found = store.secret_named("github")
     assert found is not None
     assert found.value.get_secret_value() == OTHER_KEY
     assert len(_entries(path)) == 1
@@ -112,8 +112,8 @@ def test_the_101st_key_is_refused_and_a_saved_one_can_still_be_replaced(
         store.save("linear", LINEAR, SecretStr(KEY))
     store.save("notion", NOTION, SecretStr(OTHER_KEY))
 
-    assert store.find("linear") is None
-    found = store.find("notion")
+    assert store.secret_named("linear") is None
+    found = store.secret_named("notion")
     assert found is not None
     assert found.value.get_secret_value() == OTHER_KEY
     assert len(_entries(path)) == 100
@@ -125,8 +125,8 @@ def test_deleting_a_key_removes_it_and_leaves_the_others(store: SecretService) -
 
     store.delete("github")
 
-    assert store.find("github") is None
-    kept = store.find("notion")
+    assert store.secret_named("github") is None
+    kept = store.secret_named("notion")
     assert kept is not None
     assert kept.value.get_secret_value() == OTHER_KEY
 
@@ -172,7 +172,7 @@ def test_a_file_sealed_under_one_encryption_key_does_not_open_under_another(
     store.save("github", GITHUB, SecretStr(KEY))
     other = SecretService(DiskSecretRepository(path), encryption_key="another-encryption-key")
 
-    err = _raised(lambda: other.find("github"))
+    err = _raised(lambda: other.secret_named("github"))
 
     assert not _shows(err, KEY)
 
@@ -186,10 +186,10 @@ def test_a_sealed_key_copied_onto_another_entry_does_not_open(
     moved = {**by_name["notion"], "ciphertext": by_name["github"]["ciphertext"]}
     _rewrite(path, [by_name["github"], moved])
 
-    err = _raised(lambda: store.find("notion"))
+    err = _raised(lambda: store.secret_named("notion"))
 
     assert not _shows(err, KEY)
     assert not _shows(err, OTHER_KEY)
-    still = store.find("github")
+    still = store.secret_named("github")
     assert still is not None
     assert still.value.get_secret_value() == KEY

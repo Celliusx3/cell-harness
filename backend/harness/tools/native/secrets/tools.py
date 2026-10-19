@@ -55,7 +55,7 @@ def fetch_with_secret_tool(
     """The tool that sends a saved key the bot may use to its site, and blanks it out after."""
 
     async def execute(args: FetchArgs, context: ToolContext) -> ToolOutcome:
-        saved = secrets.find(args.name)
+        saved = secrets.secret_named(args.name)
         if saved is None:
             return Failure(
                 NO_SECRET, f"no saved key named {args.name!r}; call ask_for_secret first"

@@ -1,6 +1,6 @@
 # 04 · The lookup says what it gives back
 
-**Status.** open
+**Status.** done
 
 **What to build.** `SecretService.find(name) -> Secret | None` becomes `secret_named(name)`, with every caller: `backend/harness/tools/native/secrets/tools.py`, `backend/tests/unit/test_secret_service.py` and `backend/tests/integration/test_web_secrets.py`.
 
