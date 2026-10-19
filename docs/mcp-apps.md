@@ -120,9 +120,9 @@ consent, and is not part of the conversation the model sees.
   `POST /api/mcp/{server}/tools/{name}` **proxies** the call to the app's own
   server — by the server's name, resolved from the server's published list,
   the `CallToolResult` returned verbatim (`_meta`, image blocks and all). Not
-  the dispatcher: that is the model's and a script's path, with a menu to
+  the tool service's dispatch: that is the model's and a script's path, with a menu to
   offer and refusals to give, and an app has neither. A first version went
-  through the dispatcher and the model-shaped `Ok`; it re-spelt the name,
+  through the tool service and the model-shaped `Ok`; it re-spelt the name,
   serialised the arguments to parse them again, and flattened the result to
   text — five steps to arrive where the service already was. Not a session
   event: nothing the model sees results from it.

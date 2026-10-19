@@ -51,7 +51,7 @@ datum:
 
 - **The turn ends at the ask.** `ClientTools.definitions()` turns each
   declaration into a registered tool whose execute returns `Pending` — a
-  third outcome beside `Ok` and `Failure`, so the dispatcher stays the one
+  third outcome beside `Ok` and `Failure`, so the tool service's dispatch stays the one
   door and the loop never checks a tool's name. On `Pending` the loop writes
   no result and closes the turn with `turn/end {reason: "pending"}`. Nothing
   runs, nothing waits in memory, there is no timer. The card is on screen
@@ -86,7 +86,7 @@ datum:
   (Claude's share sheet, "add to calendar") is the same shape with an empty
   `data_model`; documented, not built.
 - **A tool learns its call id.** `execute(args, context)` with
-  `ToolContext(call_id, progress, bot_id)`, built by the dispatcher
+  `ToolContext(call_id, progress, bot_id)`, built by `ToolService.dispatch`
   from the `ToolCall` it holds. A tool whose answer arrives from outside the
   process must know which call it is, which is why the context arrived with
   its first consumer and not before; `bot_id` arrived the same way,
@@ -202,9 +202,8 @@ from the tool's own name alone: a name with a read verb (get, list, search,
 find, read, fetch) runs, every other name asks. A server's annotations are not
 consulted, because a public server's marks cannot be trusted; honouring them
 per trusted server is build order 19. `McpService.writing_tool_names` is
-read on every check, so a server that connects after startup is covered. The
-dispatcher
-answers `Pending` instead, so the loop, the log, repair, the browser card, the
+read on every check, so a server that connects after startup is covered.
+`ToolService.dispatch` answers `Pending` instead, so the loop, the log, repair, the browser card, the
 `/answer` page and a chat's ask all behave exactly as for `get_location`. The
 difference is what the person's answer is: for a location it *is* the result;
 for an approval it is a decision, and the result still has to come from running
@@ -214,8 +213,8 @@ denied write); `Approval` runs the held call as approved and writes what it
 returned, closing the turn `cancelled` with an `INTERRUPTED` result if the run
 is stopped midway.
 
-- **The gate is at the dispatcher, not a hook.** A hook fails open; a door that
-  must stay shut cannot (rules.md). Scripts pass through the same dispatcher,
+- **The gate is in the tool service's dispatch, not a hook.** A hook fails open; a door that
+  must stay shut cannot (rules.md). Scripts pass through the same dispatch,
   so a script calling a gated tool gets a `BridgeError` telling the model to
   read the tool with `get_function_details` and call it directly.
 - **Three answers, three scopes.** `{"kind": "approved", "scope": "once" |

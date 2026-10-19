@@ -198,7 +198,7 @@ Three of the five we already owned:
    `integer`/`number`→`number`, `enum`→union, absent-from-`required`→`?`), plus
    `$ref`/`$defs` resolution because `model_json_schema()` emits them.
 5. Calling reverses nothing: the script uses the **exact** MCP name, and the
-   bridge dispatches it through `ToolDispatcher.dispatch` — the same path a
+   bridge dispatches it through `ToolService.dispatch` — the same path a
    model-issued call takes.
 
 **Names are exact.** `yt__get_subtitles`, not `Yt.getSubtitles`. Namespacing and
@@ -256,7 +256,7 @@ Four properties, verified against Deno 2.8.3 in
 That last one matters because there is no SDK here to reap the child — `mcp/service.py`
 never kills anything because the MCP transport does it. Here a `finally` must.
 
-**Every call goes through `ToolDispatcher.dispatch`.** A script reaches exactly what
+**Every call goes through `ToolService.dispatch`.** A script reaches exactly what
 the model could have reached directly, by the same route, so a future approval
 gate will cover scripts without knowing code mode exists. DeepSeek confirms the
 seam: its bindings re-enter the full pipeline and denials surface to the script as
@@ -306,7 +306,7 @@ instead of a JSON blob — and debugging failed code costs extra turns. Every
 published number is the one metric code mode trivially wins.
 
 **Measured on this deployment.** Thirteen capabilities — a clock plus twelve
-from two MCP servers — against `ToolPipeline(registry, dispatcher, ())`, whose
+from two MCP servers — against `ToolPipeline(tool_service, ())`, whose
 empty `default_tools` offers every registered spec. Two tasks, each run both
 ways. The result did not improve, so per the instruction that used to sit here,
 it is written down.
