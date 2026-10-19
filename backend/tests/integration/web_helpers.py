@@ -15,7 +15,7 @@ from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
-from harness.tools import ToolDefinition, ToolDispatcher, ToolPipeline, ToolRegistry
+from harness.tools import ToolDefinition, ToolPipeline, ToolService
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import PerBotClient
@@ -91,18 +91,18 @@ def messaging_app(
     model = PerBotClient(scripts)
     service = durable_service(tmp_path / "sessions")
     bots = BotService(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT_START)
-    registry = ToolRegistry(tools)
+    tool_service = ToolService(tools, gate=no_gate())
     offered = (MESSAGE_BOT, *(tool.name for tool in tools))
     runtime = Runtime(
         model="m",
         client=model,
         images=None,
-        tools=ToolPipeline(registry, ToolDispatcher(registry, no_gate()), offered),
+        tools=ToolPipeline(tool_service, offered),
         guidance="GUIDE",
         checkpoint=service.flush,
     )
     runs = RunService(service, runtime, bots)
-    messages = attach_bot_messages(registry, service, bots, runs)
+    messages = attach_bot_messages(tool_service, service, bots, runs)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return Messaging(client, model, runs, messages, service)

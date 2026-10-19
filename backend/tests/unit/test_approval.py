@@ -26,10 +26,9 @@ from harness.tools import (
     Failure,
     Ok,
     ToolDefinition,
-    ToolDispatcher,
     ToolOutcome,
     ToolPipeline,
-    ToolRegistry,
+    ToolService,
 )
 from harness.tools.client import AcceptedAnswer, ClientTools, ClientToolService
 from harness.tools.models.decision import DENIED
@@ -57,10 +56,8 @@ def _writer(ran: list[str]) -> ToolDefinition[EchoArgs]:
 def _runtime(
     client, gate: ApprovalGate, *tools: ToolDefinition, hooks: HookChain | None = None
 ) -> Runtime:
-    registry = ToolRegistry(tools)
-    pipeline = ToolPipeline(
-        registry, ToolDispatcher(registry, gate), default_tools=[t.name for t in tools]
-    )
+    tool_service = ToolService(tools, gate=gate)
+    pipeline = ToolPipeline(tool_service, default_tools=[t.name for t in tools])
     return Runtime(
         model="m", client=client, images=None, tools=pipeline, hooks=hooks or HookChain()
     )

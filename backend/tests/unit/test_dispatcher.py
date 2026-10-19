@@ -2,14 +2,23 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from harness.llm import ToolCall
-from harness.tools import UNKNOWN_TOOL, Failure, Ok, ToolDispatcher, ToolRegistry
+from harness.tools import (
+    UNKNOWN_TOOL,
+    ApprovalGate,
+    Failure,
+    Ok,
+    Pending,
+    ToolService,
+)
 from tests.unit.fakes import echo_tool
 from tests.unit.helpers import ORIGIN, no_gate, no_progress
 
 
-def dispatcher(*tools) -> ToolDispatcher:
-    return ToolDispatcher(ToolRegistry(tools), no_gate())
+def tool_service(*tools) -> ToolService:
+    return ToolService(tools, gate=no_gate())
 
 
 def call(name: str, arguments: str = '{"value": "hi"}') -> ToolCall:
@@ -17,7 +26,7 @@ def call(name: str, arguments: str = '{"value": "hi"}') -> ToolCall:
 
 
 async def test_a_known_tool_runs() -> None:
-    outcome = await dispatcher(echo_tool()).dispatch(
+    outcome = await tool_service(echo_tool()).dispatch(
         call("echo"), progress=no_progress, origin=ORIGIN, approved=False
     )
 
@@ -25,7 +34,7 @@ async def test_a_known_tool_runs() -> None:
 
 
 async def test_an_unknown_tool_is_a_failure_that_names_the_alternatives() -> None:
-    outcome = await dispatcher(echo_tool()).dispatch(
+    outcome = await tool_service(echo_tool()).dispatch(
         call("nope"), progress=no_progress, origin=ORIGIN, approved=False
     )
 
@@ -35,9 +44,19 @@ async def test_an_unknown_tool_is_a_failure_that_names_the_alternatives() -> Non
 
 
 async def test_an_empty_registry_says_none_rather_than_nothing() -> None:
-    outcome = await dispatcher().dispatch(
+    outcome = await tool_service().dispatch(
         call("nope"), progress=no_progress, origin=ORIGIN, approved=False
     )
 
     assert isinstance(outcome, Failure)
     assert "none" in outcome.message
+
+
+async def test_a_call_that_must_ask_waits_before_its_name_is_looked_up() -> None:
+    gate = ApprovalGate(frozenset({"ghost"}), frozenset, Path("/nonexistent/approvals.json"))
+
+    outcome = await ToolService((), gate=gate).dispatch(
+        call("ghost"), progress=no_progress, origin=ORIGIN, approved=False
+    )
+
+    assert outcome == Pending()

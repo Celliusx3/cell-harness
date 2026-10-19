@@ -9,7 +9,7 @@ from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
 from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
-from harness.tools import Ok, ToolDefinition, ToolDispatcher, ToolPipeline, ToolRegistry
+from harness.tools import Ok, ToolDefinition, ToolPipeline, ToolService
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
     GET_FUNCTION_DETAILS,
@@ -34,13 +34,12 @@ def selected(*names: str, call_id: str = "d") -> ToolResultEvent:
 
 def pipeline(*tools: ToolDefinition) -> ToolPipeline:
     """Code mode's three plus `tools`, offering the three — as the product does."""
-    registry = ToolRegistry(tools)
-    dispatcher = ToolDispatcher(registry, no_gate())
+    tool_service = ToolService(tools, gate=no_gate())
     for made in code_mode_tools(
-        registry=registry, dispatcher=dispatcher, runner=FakeRunner(), withheld=frozenset()
+        tool_service=tool_service, runner=FakeRunner(), withheld=frozenset()
     ):
-        registry.register(made)
-    return ToolPipeline(registry, dispatcher, DEFAULTS)
+        tool_service.register(made)
+    return ToolPipeline(tool_service, DEFAULTS)
 
 
 def named(built: ToolPipeline, tools_selected: tuple[str, ...]) -> list[str]:

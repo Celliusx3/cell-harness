@@ -13,8 +13,8 @@ from mcp.server.apps import APP_MIME_TYPE
 from harness.config.sections import McpServer
 from harness.mcp import connection as connection_module
 from harness.mcp.service import McpService
-from harness.tools import Failure, Ok, ToolRegistry, ToolUi
-from tests.unit.helpers import context_for
+from harness.tools import Failure, Ok, ToolService, ToolUi
+from tests.unit.helpers import context_for, no_gate
 
 STUB = Path(__file__).resolve().parent.parent / "mcp_stub.py"
 TIMEOUT = 30.0
@@ -31,8 +31,8 @@ async def live():
 
     async def start(servers: dict[str, McpServer]):
         store = McpService(servers)
-        registry = ToolRegistry()
-        registry.add_provider(store.tools)
+        tool_service = ToolService((), gate=no_gate())
+        tool_service.add_provider(store.tools)
         made.append(store)
         await store.start()
         for _ in range(int(TIMEOUT * 10)):
@@ -40,7 +40,7 @@ async def live():
                 break
             await asyncio.sleep(0.1)
         assert store.statuses()[0].status == "connected", store.statuses()[0].error
-        return store, registry
+        return store, tool_service
 
     yield start
     for store in made:
@@ -48,11 +48,11 @@ async def live():
 
 
 async def test_a_real_server_contributes_callable_tools(live) -> None:
-    _, registry = await live(stub())
+    _, tool_service = await live(stub())
 
-    assert "stub__echo" in [t.name for t in registry.all()]
+    assert "stub__echo" in [t.name for t in tool_service.all()]
 
-    echo = registry.get("stub__echo")
+    echo = tool_service.get("stub__echo")
     assert echo is not None
     outcome = await echo.invoke('{"value": "hello"}', context=context_for())
 
@@ -61,9 +61,9 @@ async def test_a_real_server_contributes_callable_tools(live) -> None:
 
 
 async def test_an_app_bound_tool_and_its_html_come_through_the_real_wire(live) -> None:
-    store, registry = await live(stub())
+    store, tool_service = await live(stub())
 
-    show = registry.get("stub__show_pid")
+    show = tool_service.get("stub__show_pid")
     assert show is not None
     outcome = await show.invoke("{}", context=context_for())
 
@@ -77,18 +77,18 @@ async def test_an_app_bound_tool_and_its_html_come_through_the_real_wire(live) -
 
 
 async def test_a_tool_that_raises_comes_back_as_a_failure(live) -> None:
-    _, registry = await live(stub())
+    _, tool_service = await live(stub())
 
-    boom = registry.get("stub__boom")
+    boom = tool_service.get("stub__boom")
     assert boom is not None
 
     assert isinstance(await boom.invoke("{}", context=context_for()), Failure)
 
 
 async def test_closing_reaps_the_subprocess(live) -> None:
-    store, registry = await live(stub())
+    store, tool_service = await live(stub())
 
-    whoami = registry.get("stub__whoami")
+    whoami = tool_service.get("stub__whoami")
     assert whoami is not None
     outcome = await whoami.invoke("{}", context=context_for())
     assert isinstance(outcome, Ok)
@@ -96,7 +96,7 @@ async def test_closing_reaps_the_subprocess(live) -> None:
 
     await store.aclose()
 
-    assert registry.all() == []
+    assert tool_service.all() == []
     for _ in range(100):
         try:
             os.kill(pid, 0)
@@ -108,9 +108,9 @@ async def test_closing_reaps_the_subprocess(live) -> None:
 
 async def test_a_server_that_stops_answering_fails_within_the_timeout(live, monkeypatch) -> None:
     monkeypatch.setattr(connection_module, "COMMAND_TIMEOUT_SECONDS", 2.0)
-    store, registry = await live(stub(STUB_MODE="deaf"))
+    store, tool_service = await live(stub(STUB_MODE="deaf"))
 
-    echo = registry.get("stub__echo")
+    echo = tool_service.get("stub__echo")
     assert echo is not None
     outcome = await asyncio.wait_for(
         echo.invoke('{"value": "anyone there"}', context=context_for()), TIMEOUT

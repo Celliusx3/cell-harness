@@ -15,7 +15,7 @@ similar paths is fine; extract at ~5 when the shape genuinely converges.
 
 This applies to infrastructure as much as features. Subpackages arrive with the
 phase that needs them: `Scope` in phase 7, `Layered` in phase 14, tool-execution
-middleware in phase 9. A registry is a flat dict until a plugin needs to
+middleware in phase 9. The tool service holds a flat dict until a plugin needs to
 register into one agent's world. Phase 2 cut four such things, phase 3 five, and
 phase 4 deferred six more before writing a line.
 
@@ -91,8 +91,8 @@ slow one there stalls every conversation's stream.
 **The guardrail is a fold, not a counter.** Phase 9's guardrail keeps no
 state: every decision is computed from the current turn's `tool/call` and
 `tool/result` events, the way `tools_selected()` is computed from
-`tool_reference` blocks. That is why it lives at the loop rather than at the
-dispatcher — the log is what it reads — and why a refusal is logged as an
+`tool_reference` blocks. That is why it lives at the loop rather than in the
+tool service's dispatch — the log is what it reads — and why a refusal is logged as an
 ordinary `BLOCKED` result and skipped when counting: the guardrail's own output
 must not feed the count that produced it. What it tells the model is its own
 `application/message`, logged once per step after the step's tool calls settle
@@ -139,14 +139,14 @@ clear still lands on the next event. The browser reads the stream with `fetch`, 
 `EventSource`: its own `Last-Event-ID` reconnect would race the cursor, it
 cannot be aborted precisely, and it treats a clean end as a reason to reconnect.
 
-**Every call goes through the one dispatcher.** The model's calls and a
+**Every call goes through `ToolService.dispatch`.** The model's calls and a
 script's calls arrive by different routes and must land in the same place, or a
 timeout, a gate or a hook installed on one path is silently absent from the
 other. An MCP App's `tools/call` is deliberately not one of those: the harness
 is proxying for a view to the view's own server, by that server's own name,
 answered verbatim — and its guards (same server, `visibility`, resource
 binding) sit at the MCP layer, where every other host puts them. Routing it
-through the dispatcher would put the model's pipeline in front of a call the
+through the tool service would put the model's pipeline in front of a call the
 model never made. `docs/mcp-apps.md`.
 
 **The sandbox is granted nothing, and knows nothing.** Deno runs with no
@@ -163,7 +163,7 @@ otherwise cost the turn *every* tool — the request is built as one string. A
 tool the model cannot type is still a tool it can call.
 
 **Registered is not offered.** Every MCP tool is registered at startup and the
-dispatcher runs whatever name it is handed, because a script's calls arrive
+tool service's dispatch runs whatever name it is handed, because a script's calls arrive
 there with names that were never in the request. That left a
 gap nobody had walked through until a 4B model did: it copied
 `instagram__fetch_reels` out of a skill body, emitted it as a plain tool call,

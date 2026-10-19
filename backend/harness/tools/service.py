@@ -1,11 +1,15 @@
-"""The set of tools an agent can call."""
+"""Every tool there is, and the one way a call to any of them runs."""
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Iterable
 
+from harness.llm import ToolCall
+from harness.tools.approval import ApprovalGate
 from harness.tools.definition import ToolDefinition
+from harness.tools.models.context import CallOrigin, ToolContext, ToolProgressReporter
+from harness.tools.models.outcome import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
 
 logger = logging.getLogger("harness.tools")
 
@@ -18,16 +22,19 @@ class DuplicateToolError(RuntimeError):
     """Two tools registered under one name."""
 
 
-class ToolRegistry:
-    """Static tools plus live providers."""
+class ToolService:
+    """Static tools plus live providers, and the one dispatch every call goes through."""
 
     def __init__(
         self,
-        tools: Iterable[ToolDefinition] = (),
+        tools: Iterable[ToolDefinition],
+        *,
+        gate: ApprovalGate,
         providers: Iterable[ToolProvider] = (),
     ) -> None:
         self._static: dict[str, ToolDefinition] = {}
         self._providers: list[ToolProvider] = list(providers)
+        self._gate = gate
         for tool in tools:
             self.register(tool)
 
@@ -85,3 +92,25 @@ class ToolRegistry:
             if tool.name == name:
                 return tool
         return None
+
+    async def dispatch(
+        self,
+        call: ToolCall,
+        *,
+        progress: ToolProgressReporter,
+        approved: bool,
+        origin: CallOrigin,
+    ) -> ToolOutcome:
+        """Run one call, whether the model made it or a script did — unless it must ask first."""
+        if not approved and self._gate.should_ask(call.name):
+            return Pending()
+        tool = self.get(call.name)
+        if tool is None:
+            return Failure(UNKNOWN_TOOL, self._unknown_tool_message(call.name))
+        context = ToolContext(call_id=call.id, progress=progress, origin=origin)
+        return await tool.invoke(call.arguments, context=context)
+
+    def _unknown_tool_message(self, name: str) -> str:
+        """The failure text for a name nobody registered, naming what is available."""
+        available = ", ".join(sorted(t.name for t in self.all())) or "none"
+        return f"tool {name!r} is not available. Available tools: {available}"

@@ -61,7 +61,7 @@ async def test_list_functions_renders_the_catalog_without_types() -> None:
 async def test_the_catalog_never_contains_code_mode_itself() -> None:
     built = build(tool("yt__a"))
     for built_tool in built.tools:
-        built.registry.register(built_tool)
+        built.tool_service.register(built_tool)
 
     outcome = await built.run(LIST_FUNCTIONS, "{}")
 

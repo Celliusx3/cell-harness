@@ -1,4 +1,4 @@
-"""Which calls a client may answer — read off the log, never the registry."""
+"""Which calls a client may answer — read off the log, never the tool service."""
 
 from __future__ import annotations
 

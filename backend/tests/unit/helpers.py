@@ -27,12 +27,11 @@ from harness.tools import (
     CallOrigin,
     ToolContext,
     ToolDefinition,
-    ToolDispatcher,
     ToolPipeline,
-    ToolRegistry,
+    ToolService,
 )
 from harness.tools.client import ClientToolService
-from harness.tools.registry import ToolProvider
+from harness.tools.service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
 
 
@@ -81,10 +80,10 @@ def pipeline_for(
     offer: Sequence[str] = (),
     gate: ApprovalGate | None = None,
 ) -> ToolPipeline:
-    """A registry, a dispatcher and a pipeline over `tools`, offering all of them."""
-    registry = ToolRegistry(tools, providers=providers)
+    """A tool service and a pipeline over `tools`, offering all of them."""
+    tool_service = ToolService(tools, gate=gate or no_gate(), providers=providers)
     names = [*(tool.name for tool in tools), *offer]
-    return ToolPipeline(registry, ToolDispatcher(registry, gate or no_gate()), default_tools=names)
+    return ToolPipeline(tool_service, default_tools=names)
 
 
 def runtime_over(

@@ -97,7 +97,7 @@ Same three tiers; the catalog is in the system prompt.
    caches its prompt prefix. Rebuilding per request drops all four pieces and
    phase 11 has nothing to re-establish.
 3. **No skills ⇒ no tool.** A provider that yields nothing is how that falls out
-   of the registry.
+   of the tool service.
 4. **Two surfaces are the norm.** `disable-model-invocation` and
    `user-invocable` are Claude Code's names and OpenClaw's; user invocation is a
    harness expansion of `/name`, not a model action.
@@ -159,7 +159,7 @@ rather than in the `SKILL.md`, because a comment there reaches the model.
   state the shapes; the model had not read them.
 - **The same run, before the pipeline gate existed** — the 4B model copied
   `instagram__fetch_reels({ urls })` out of the skill body and emitted it as a
-  *tool call*, not a program. It ran, because the dispatcher resolves any
+  *tool call*, not a program. It ran, because `ToolService.dispatch` resolves any
   registered name. Correct answer, unmetered route; see "Registered is not
   offered" in CLAUDE.md. With the gate, the same model goes through code mode
   and hits the failure above — which is the honest result.

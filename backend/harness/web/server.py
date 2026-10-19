@@ -141,7 +141,7 @@ def create_web_app() -> FastAPI:
     )
     runs = RunService(service, runtime, bots)
     assert runtime.tools is not None
-    messages = attach_bot_messages(runtime.tools.registry, service, bots, runs)
+    messages = attach_bot_messages(runtime.tools.tool_service, service, bots, runs)
     gateway, web = build_channels(
         settings, service, runs, skills, client_tools, bots, files, images
     )

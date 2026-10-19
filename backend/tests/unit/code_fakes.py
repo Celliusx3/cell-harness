@@ -12,9 +12,8 @@ from harness.tools import (
     CallOrigin,
     Ok,
     ToolDefinition,
-    ToolDispatcher,
     ToolOutcome,
-    ToolRegistry,
+    ToolService,
 )
 from harness.tools.native.code_mode import code_mode_tools
 from tests.unit.helpers import context_for, no_gate
@@ -60,11 +59,11 @@ class FakeRunner(Runner):
         return self.outcome
 
 
-class RecordingDispatcher(ToolDispatcher):
-    """A real dispatcher that remembers what it was asked to run."""
+class RecordingToolService(ToolService):
+    """A real tool service that remembers what it was asked to run."""
 
-    def __init__(self, registry: ToolRegistry, gate: ApprovalGate) -> None:
-        super().__init__(registry, gate)
+    def __init__(self, tools: tuple[ToolDefinition, ...], gate: ApprovalGate) -> None:
+        super().__init__(tools, gate=gate)
         self.calls: list[ToolCall] = []
 
     async def dispatch(
@@ -76,15 +75,14 @@ class RecordingDispatcher(ToolDispatcher):
 
 @dataclass
 class Built:
-    """The three tools, the registry behind them, and what the dispatcher saw."""
+    """The three tools, and the tool service behind them that remembers what it ran."""
 
     tools: list[ToolDefinition]
-    registry: ToolRegistry
-    dispatcher: RecordingDispatcher
+    tool_service: RecordingToolService
 
     @property
     def dispatched(self) -> list[ToolCall]:
-        return self.dispatcher.calls
+        return self.tool_service.calls
 
     def tool(self, name: str) -> ToolDefinition:
         return next(t for t in self.tools if t.name == name)
@@ -99,9 +97,8 @@ def build(
     withheld: frozenset[str] = frozenset(),
     gate: ApprovalGate | None = None,
 ) -> Built:
-    registry = ToolRegistry(tools)
-    dispatcher = RecordingDispatcher(registry, gate or no_gate())
+    tool_service = RecordingToolService(tools, gate or no_gate())
     built = code_mode_tools(
-        registry=registry, dispatcher=dispatcher, runner=runner or FakeRunner(), withheld=withheld
+        tool_service=tool_service, runner=runner or FakeRunner(), withheld=withheld
     )
-    return Built(tools=built, registry=registry, dispatcher=dispatcher)
+    return Built(tools=built, tool_service=tool_service)
