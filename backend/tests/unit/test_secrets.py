@@ -165,6 +165,35 @@ def test_with_no_file_there_are_no_keys(store: SecretService) -> None:
     assert store.find("github") is None
 
 
+def test_a_failed_write_keeps_the_saved_keys(
+    store: SecretService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store.save("github", GITHUB, SecretStr(KEY))
+
+    def refuse(*_: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(os, "replace", refuse)
+    with pytest.raises(OSError):
+        store.save("notion", NOTION, SecretStr(OTHER_KEY))
+    monkeypatch.undo()
+
+    kept = store.find("github")
+    assert kept is not None
+    assert kept.value.get_secret_value() == KEY
+    assert store.find("notion") is None
+
+
+def test_the_keyring_folder_is_made_when_missing(tmp_path: Path) -> None:
+    path = tmp_path / "missing" / "secrets.json"
+    SecretService(path, encryption_key=ENCRYPTION_KEY).save("github", GITHUB, SecretStr(KEY))
+
+    reopened = SecretService(path, encryption_key=ENCRYPTION_KEY).find("github")
+
+    assert reopened is not None
+    assert reopened.value.get_secret_value() == KEY
+
+
 @pytest.mark.parametrize("blank", ["", "   ", "\t\n"])
 def test_a_blank_encryption_key_is_refused(path: Path, blank: str) -> None:
     with pytest.raises(ValueError):
