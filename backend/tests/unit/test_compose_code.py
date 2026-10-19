@@ -20,7 +20,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
-from harness.tools import Ok, ToolDispatcher
+from harness.tools import Ok, ToolService
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.web import runtime as composition
@@ -97,15 +97,15 @@ def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:
         load()
 
 
-def test_exactly_one_dispatcher_is_built(compose, monkeypatch) -> None:
-    built: list[ToolDispatcher] = []
-    real = composition.ToolDispatcher
+def test_exactly_one_tool_service_is_built(compose, monkeypatch) -> None:
+    built: list[ToolService] = []
+    real = composition.ToolService
 
-    def spy(registry, gate) -> ToolDispatcher:
-        built.append(real(registry, gate))
+    def spy(tools, *, gate) -> ToolService:
+        built.append(real(tools, gate=gate))
         return built[-1]
 
-    monkeypatch.setattr(composition, "ToolDispatcher", spy)
+    monkeypatch.setattr(composition, "ToolService", spy)
 
     compose()
 

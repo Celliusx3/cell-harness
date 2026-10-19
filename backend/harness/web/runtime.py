@@ -28,7 +28,7 @@ from harness.sandbox import DenoRunner
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tools import ApprovalGate, ToolDispatcher, ToolPipeline, ToolRegistry
+from harness.tools import ApprovalGate, ToolPipeline, ToolService
 from harness.tools.client import ClientTools, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import clock_tool
@@ -120,7 +120,7 @@ def build_runtime(
     files: ChatFileService,
 ) -> Runtime:
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
-    registry = ToolRegistry(
+    tool_service = ToolService(
         [
             clock_tool(),
             skill_save_tool(skills),
@@ -133,63 +133,60 @@ def build_runtime(
             make_archive_tool(files),
             *([view_image_tool(files)] if settings.llm.vision else []),
             *client_tools.definitions(),
-        ]
+        ],
+        gate=gate,
     )
-    registry.add_provider(mcp.tools)
-    registry.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
+    tool_service.add_provider(mcp.tools)
+    tool_service.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
 
     logger.info("approval asks for: %s", sorted(gate.tools) or "nothing")
-    dispatcher = ToolDispatcher(registry, gate)
-    _register_code_mode(registry, dispatcher, settings)
+    _register_code_mode(tool_service, settings)
 
     client = OpenAIClient(settings.llm, read_image=images.read)
     runtime = Runtime(
         model=settings.llm.model,
         client=client,
         images=images if settings.llm.vision else None,
-        tools=ToolPipeline(registry, dispatcher, DEFAULT_TOOLS),
+        tools=ToolPipeline(tool_service, DEFAULT_TOOLS),
         guidance=GUIDANCE,
         checkpoint=store.flush,
         context_tokens=context_tokens,
         hooks=default_hooks(),
         files=files,
     )
-    _register_run_subagent(registry, dispatcher, runtime, subagent_logs)
+    _register_run_subagent(tool_service, runtime, subagent_logs)
     return runtime
 
 
-def _register_code_mode(
-    registry: ToolRegistry, dispatcher: ToolDispatcher, settings: Settings
-) -> None:
+def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
     for tool in code_mode_tools(
-        registry=registry,
-        dispatcher=dispatcher,
+        tool_service=tool_service,
         runner=DenoRunner(
             deno_path=settings.code.deno_path,
             timeout_seconds=settings.code.timeout_seconds,
         ),
         withheld=NOT_CALLABLE_FROM_SCRIPTS,
     ):
-        registry.register(tool)
+        tool_service.register(tool)
 
 
 def _register_run_subagent(
-    registry: ToolRegistry, dispatcher: ToolDispatcher, runtime: Runtime, logs: SessionService
+    tool_service: ToolService, runtime: Runtime, logs: SessionService
 ) -> None:
     subagent = dataclasses.replace(
         runtime,
-        tools=ToolPipeline(registry, dispatcher, SUBAGENT_TOOLS),
+        tools=ToolPipeline(tool_service, SUBAGENT_TOOLS),
         guidance=CODE_PROMPT,
     )
-    registry.register(run_subagent_tool(Subagents(subagent, logs)))
+    tool_service.register(run_subagent_tool(Subagents(subagent, logs)))
 
 
 def attach_bot_messages(
-    registry: ToolRegistry, sessions: SessionService, bots: BotService, runs: RunService
+    tool_service: ToolService, sessions: SessionService, bots: BotService, runs: RunService
 ) -> BotMessages:
-    """`message_bot` offered from `registry`, sending through the `BotMessages` it returns."""
+    """`message_bot` offered from `tool_service`, sending through the `BotMessages` it returns."""
     messages = BotMessages(sessions, bots, runs)
-    registry.add_provider(lambda: [message_bot_tool(bots, messages)])
+    tool_service.add_provider(lambda: [message_bot_tool(bots, messages)])
     return messages
 
 

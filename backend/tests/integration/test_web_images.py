@@ -14,10 +14,11 @@ from harness.bots import ASSISTANT_ID
 from harness.config.sections import McpServer
 from harness.llm import Image, ToolMessage, UserMessage
 from harness.mcp.service import McpService
-from harness.tools import ToolRegistry
+from harness.tools import ToolService
 from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
+from tests.unit.helpers import no_gate
 
 STUB = Path(__file__).resolve().parent.parent / "mcp_stub.py"
 MESSAGES = f"/api/conversations/{ASSISTANT_ID}/messages"
@@ -29,14 +30,14 @@ DOT_SHA256 = hashlib.sha256(DOT).hexdigest()
 @pytest.fixture
 async def snapshot_tool():
     store = McpService({"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})})
-    registry = ToolRegistry()
-    registry.add_provider(store.tools)
+    tool_service = ToolService((), gate=no_gate())
+    tool_service.add_provider(store.tools)
     await store.start()
     for _ in range(300):
         if store.statuses()[0].status != "connecting":
             break
         await asyncio.sleep(0.1)
-    tool = registry.get("stub__snapshot")
+    tool = tool_service.get("stub__snapshot")
     assert tool is not None, store.statuses()[0].error
     yield tool
     await store.aclose()

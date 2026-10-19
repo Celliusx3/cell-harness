@@ -14,10 +14,9 @@ from harness.sandbox import DenoRunner
 from harness.tools import (
     Ok,
     ToolDefinition,
-    ToolDispatcher,
     ToolOutcome,
     ToolPipeline,
-    ToolRegistry,
+    ToolService,
 )
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
@@ -121,17 +120,15 @@ async def test_a_script_reaches_a_real_tool_through_the_real_pipeline() -> None:
         parse=lambda raw: raw,
         execute=rows,
     )
-    registry = ToolRegistry([catalog])
-    dispatcher = ToolDispatcher(registry, no_gate())
+    tool_service = ToolService([catalog], gate=no_gate())
     for built in code_mode_tools(
-        registry=registry,
-        dispatcher=dispatcher,
+        tool_service=tool_service,
         runner=DenoRunner(deno_path="deno", timeout_seconds=30),
         withheld=frozenset(),
     ):
-        registry.register(built)
+        tool_service.register(built)
     pipeline = ToolPipeline(
-        registry, dispatcher, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
+        tool_service, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
     )
 
     async def run(name: str, arguments: str) -> ToolOutcome:

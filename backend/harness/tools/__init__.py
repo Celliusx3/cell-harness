@@ -2,7 +2,6 @@
 
 from harness.tools.approval import ApprovalGate
 from harness.tools.definition import NAMESPACE_SEPARATOR, ToolDefinition
-from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.models.context import CallOrigin, ToolContext
 from harness.tools.models.decision import Approval
 from harness.tools.models.outcome import (
@@ -19,7 +18,7 @@ from harness.tools.models.outcome import (
     ToolUi,
 )
 from harness.tools.pipeline import ToolPipeline
-from harness.tools.registry import ToolRegistry
+from harness.tools.service import ToolService
 
 __all__ = [
     "BLOCKED",
@@ -37,9 +36,8 @@ __all__ = [
     "ReturnedImage",
     "ToolContext",
     "ToolDefinition",
-    "ToolDispatcher",
     "ToolOutcome",
     "ToolPipeline",
-    "ToolRegistry",
+    "ToolService",
     "ToolUi",
 ]

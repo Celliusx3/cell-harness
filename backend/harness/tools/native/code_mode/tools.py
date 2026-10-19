@@ -10,7 +10,6 @@ from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
 from harness.tools.definition import ToolDefinition
-from harness.tools.dispatcher import ToolDispatcher
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import (
     EXECUTION_ERROR,
@@ -30,7 +29,7 @@ from harness.tools.native.code_mode.prompts import (
     LIST_FUNCTIONS,
     LIST_FUNCTIONS_DESCRIPTION,
 )
-from harness.tools.registry import ToolRegistry
+from harness.tools.service import ToolService
 
 AvailableTools = Callable[[], list[ToolDefinition]]
 
@@ -42,8 +41,7 @@ CODE_MODE_TOOL_NAMES = frozenset({LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_
 
 def code_mode_tools(
     *,
-    registry: ToolRegistry,
-    dispatcher: ToolDispatcher,
+    tool_service: ToolService,
     runner: Runner,
     withheld: frozenset[str],
 ) -> list[ToolDefinition]:
@@ -52,12 +50,12 @@ def code_mode_tools(
 
     def available() -> list[ToolDefinition]:
         """Everything registered, minus ourselves and the withheld."""
-        return [tool for tool in registry.all() if tool.name not in kept_out]
+        return [tool for tool in tool_service.all() if tool.name not in kept_out]
 
     return [
         _list_tool(available),
         _details_tool(available),
-        _execute_tool(available, dispatcher, runner, kept_out),
+        _execute_tool(available, tool_service, runner, kept_out),
     ]
 
 
@@ -102,13 +100,13 @@ def _details_tool(available: AvailableTools) -> ToolDefinition[DetailsArgs]:
 
 
 def _execute_tool(
-    available: AvailableTools, dispatcher: ToolDispatcher, runner: Runner, kept_out: frozenset[str]
+    available: AvailableTools, tool_service: ToolService, runner: Runner, kept_out: frozenset[str]
 ) -> ToolDefinition[ExecuteArgs]:
     async def execute(args: ExecuteArgs, context: ToolContext) -> ToolOutcome:
         names = [tool.name for tool in available()]
         try:
             script = await runner.run(
-                args.code, names=names, bridge=_bridge(dispatcher, context, kept_out)
+                args.code, names=names, bridge=_bridge(tool_service, context, kept_out)
             )
         except DenoUnavailableError as err:
             logger.error("the sandbox is unusable: %s", err)
@@ -123,7 +121,7 @@ def _execute_tool(
     )
 
 
-def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozenset[str]):
+def _bridge(tool_service: ToolService, context: ToolContext, kept_out: frozenset[str]):
     """One call from inside a script, dispatched as if the model made it."""
     counter = 0
 
@@ -133,7 +131,7 @@ def _bridge(dispatcher: ToolDispatcher, context: ToolContext, kept_out: frozense
             raise BridgeError(f"{name} cannot be called from inside a script")
         counter += 1
         call = ToolCall(id=f"sub:{counter}", name=name, arguments=json.dumps(arguments))
-        outcome = await dispatcher.dispatch(
+        outcome = await tool_service.dispatch(
             call,
             progress=context.progress,
             approved=False,

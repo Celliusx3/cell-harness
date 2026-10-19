@@ -12,11 +12,10 @@ from harness.tools import (
     Failure,
     Ok,
     ToolDefinition,
-    ToolDispatcher,
     ToolPipeline,
-    ToolRegistry,
+    ToolService,
 )
-from harness.tools.registry import DuplicateToolError
+from harness.tools.service import DuplicateToolError
 from tests.unit.fakes import echo_tool, raising_tool
 from tests.unit.helpers import ORIGIN, no_gate, no_progress, pipeline_for
 
@@ -126,50 +125,51 @@ def test_a_broken_provider_does_not_take_down_the_tool_set() -> None:
     def broken():
         raise RuntimeError("server went away")
 
-    registry = ToolRegistry([echo_tool()], providers=[broken])
+    tool_service = ToolService([echo_tool()], gate=no_gate(), providers=[broken])
 
-    assert [t.name for t in registry.all()] == ["echo"]
+    assert [t.name for t in tool_service.all()] == ["echo"]
 
 
 def test_duplicate_static_registration_fails_loudly() -> None:
-    registry = ToolRegistry([echo_tool()])
+    tool_service = ToolService([echo_tool()], gate=no_gate())
 
     with pytest.raises(DuplicateToolError):
-        registry.register(echo_tool())
+        tool_service.register(echo_tool())
 
 
 def test_a_disposer_removes_exactly_its_registration() -> None:
-    registry = ToolRegistry()
-    dispose = registry.register(echo_tool())
+    tool_service = ToolService((), gate=no_gate())
+    dispose = tool_service.register(echo_tool())
 
-    assert len(registry.all()) == 1
+    assert len(tool_service.all()) == 1
     dispose()
-    assert registry.all() == []
+    assert tool_service.all() == []
     dispose()
 
 
 def test_static_tools_win_a_name_collision_with_a_provider() -> None:
-    registry = ToolRegistry([echo_tool()], providers=[lambda: [raising_tool("echo")]])
+    tool_service = ToolService(
+        [echo_tool()], gate=no_gate(), providers=[lambda: [raising_tool("echo")]]
+    )
 
-    assert len(registry.all()) == 1
-    assert registry.get("echo") is not None
+    assert len(tool_service.all()) == 1
+    assert tool_service.get("echo") is not None
 
 
 def test_a_provider_disposer_removes_exactly_its_source() -> None:
-    registry = ToolRegistry()
-    dispose = registry.add_provider(lambda: [echo_tool()])
-    registry.add_provider(lambda: [raising_tool("boom")])
+    tool_service = ToolService((), gate=no_gate())
+    dispose = tool_service.add_provider(lambda: [echo_tool()])
+    tool_service.add_provider(lambda: [raising_tool("boom")])
 
-    assert sorted(t.name for t in registry.all()) == ["boom", "echo"]
+    assert sorted(t.name for t in tool_service.all()) == ["boom", "echo"]
     dispose()
-    assert [t.name for t in registry.all()] == ["boom"]
+    assert [t.name for t in tool_service.all()] == ["boom"]
     dispose()
 
 
 def offering(*tools: ToolDefinition, default: tuple[str, ...]) -> ToolPipeline:
     """A pipeline with a chosen `default_tools` that offers every tool it was given."""
-    registry = ToolRegistry(tools)
-    return ToolPipeline(registry, ToolDispatcher(registry, no_gate()), default)
+    return ToolPipeline(ToolService(tools, gate=no_gate()), default)
 
 
 async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:

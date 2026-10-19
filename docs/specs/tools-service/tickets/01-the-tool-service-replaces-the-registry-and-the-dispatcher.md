@@ -1,6 +1,6 @@
 # 01 · The tool service replaces the registry and the dispatcher
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 - First, in `backend/tests/unit/test_dispatcher.py`, a test that a call to a listed tool waits (`Pending`) before its name is looked up, even when no tool by that name is registered. It passes on the code as it is.
