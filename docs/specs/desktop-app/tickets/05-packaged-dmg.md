@@ -8,7 +8,7 @@
 - It adds a pinned Deno release, `backend/harness`, `desktop/config.json`, only the `create-skill` skill, and the built pages.
 - `paths.ts` gains the packaged layout under the app's Resources folder, with Deno on the children's PATH.
 - The `build` section of `desktop/package.json` makes an arm64 dmg with identity `-` and hardened runtime off.
-- The app gets an icon and a location usage string.
+- The app gets an icon.
 - The root `Makefile` gains `app:`.
 
 **Checks.**
