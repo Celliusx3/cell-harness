@@ -209,12 +209,13 @@ advertised a "capability" that is not one. So the composition root names it
 globals, and refused at the bridge. Code mode does not know what a skill is; it
 knows a name it was told not to bind.
 
-**The catalog is read, never published.** Every shipping client rebuilds the
-skill list per request in the system prompt or the tool description; only
-DeepSeek Harness writes it into the conversation as a message, and pays with a
-digest, an "empty envelope" event, an inbox to slip replacements in, and a
-re-injection after compaction. The tool list here was already rebuilt per step
-and never logged; the skill catalog is the same kind of thing. A `SKILL.md`
+**The catalog is read, never published.** Most shipping clients rebuild the
+skill list per request in the system prompt or the tool description. DeepSeek
+Harness writes it into the conversation as a message, and pays with a digest,
+an "empty envelope" event, an inbox to slip replacements in, and a re-injection
+after compaction. Claude Code moved to a message too, and sends it again after
+compaction. The tool list here was already rebuilt per step and never logged;
+the skill catalog is the same kind of thing. A `SKILL.md`
 edit is seen at the next step because the next step looks.
 
 ## Comment discipline
