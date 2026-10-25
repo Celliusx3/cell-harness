@@ -1,6 +1,6 @@
 # 01 App settings
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

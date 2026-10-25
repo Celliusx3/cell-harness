@@ -31,7 +31,12 @@ from harness.config.sections import (
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 _CONFIG_JSON = Path(os.getenv("HARNESS_CONFIG", _BACKEND_ROOT / "config.json"))
-_LOCAL_JSON = _CONFIG_JSON.with_name(_CONFIG_JSON.stem + ".local" + _CONFIG_JSON.suffix)
+_LOCAL_JSON = Path(
+    os.getenv(
+        "HARNESS_CONFIG_LOCAL",
+        _CONFIG_JSON.with_name(_CONFIG_JSON.stem + ".local" + _CONFIG_JSON.suffix),
+    )
+)
 
 
 class SkillSettings(BaseModel):

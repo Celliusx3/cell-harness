@@ -1,0 +1,46 @@
+{
+  "llm": {
+    "base_url": "https://api.ilmu.ai/v1",
+    "model": "glm-5.3-flashx",
+    "vision": true,
+    "temperature": 1.0,
+    "timeout_seconds": 600
+  },
+  "sessions": {
+    "root": "~/Library/Application Support/Cell Harness/sessions"
+  },
+  "skills": {
+    "roots": [
+      ".agents/skills",
+      "~/Library/Application Support/Cell Harness/skills"
+    ],
+    "editable": "~/Library/Application Support/Cell Harness/skills"
+  },
+  "web": {
+    "public_url": ""
+  },
+  "code": {
+    "deno_path": "deno",
+    "timeout_seconds": 600
+  },
+  "compaction": {
+    "context_tokens": null
+  },
+  "approval": {
+    "tools": ["skill_save", "skill_delete", "skill_write_file", "bot_create", "fetch_with_secret"],
+    "grants_path": "~/Library/Application Support/Cell Harness/approvals.json"
+  },
+  "bots": {
+    "path": "~/Library/Application Support/Cell Harness/bots.json"
+  },
+  "secrets": {
+    "path": "~/Library/Application Support/Cell Harness/secrets.json"
+  },
+  "files": {
+    "root": "~/Library/Application Support/Cell Harness/files",
+    "max_bytes": 209715200
+  },
+  "mcp": {
+    "servers": {}
+  }
+}
