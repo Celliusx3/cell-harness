@@ -104,6 +104,8 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 - **Tool schemas are an allowlist.** `name`, `description`, `input_schema`, nothing else.
 - **Tolerant tool failures.** A typed `Failure` rendered as `"error: …"`, never a raise.
 - **A decision hook fails open.** "Registered" never means "enforcing".
+- **A step hook's start-of-step text is never logged.** So it is only text
+  rebuilt from disk on every step, like the skill list.
 - **The guardrail is a fold, not a counter.** Every decision is computed from
   the turn's `tool/call` + `tool/result`, its own `BLOCKED` results skipped; what
   it tells the model is an `application/message`, never part of a `tool/result`.

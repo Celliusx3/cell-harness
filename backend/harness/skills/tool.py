@@ -16,21 +16,22 @@ SKILL = "skill"
 
 _DESCRIPTION = (
     "Load a skill's instructions before starting a task that matches its "
-    "description. When one matches, call this first and follow what it "
-    "returns. A skill may name bundled files; read one by passing its relative "
-    "`path`. A TypeScript file under a skill's scripts/ is a program, not a function "
+    "description. Available skills appear in a system-reminder listing with one-line "
+    "descriptions. When one matches, call this first and follow what it returns. A skill "
+    "may name bundled files; read one by passing its relative `path`. A TypeScript file "
+    "under a skill's scripts/ is a program, not a function "
     "you can call by name: read it by `path`, then pass its text as the code to "
     "execute_typescript. A script in another language runs only through a tool for "
     "running commands, when you are offered one: from the skill's folder when the skill "
     "names one, and otherwise after you read it by `path` and write it into the computer "
     "yourself. Without such a tool, follow the instructions with the capabilities you "
-    "have.\n\n"
+    "have."
 )
 
 
 def skill_tool(skills: SkillService) -> Tool[SkillArgs] | None:
     """The tool over the skills the model may load, or `None` when there are none."""
-    offered = [skill for skill in skills.snapshot().skills if skill.model_invocable]
+    offered = skills.model_invocable()
     if not offered:
         return None
     by_name = {skill.name: skill for skill in offered}
@@ -43,7 +44,7 @@ def skill_tool(skills: SkillService) -> Tool[SkillArgs] | None:
 
     return Tool.from_model(
         name=SKILL,
-        description=_DESCRIPTION + _index(offered),
+        description=_DESCRIPTION,
         args_model=_args_model(tuple(by_name)),
         execute=execute,
     )
@@ -63,7 +64,12 @@ def _args_model(names: tuple[str, ...]) -> type[SkillArgs]:
         __base__=SkillArgs,
         name=(
             Literal[names],
-            Field(description="The skill to load.", json_schema_extra=_always_enum(names)),
+            Field(
+                description=(
+                    "The name of a skill from the available-skills list. Do not guess names."
+                ),
+                json_schema_extra=_always_enum(names),
+            ),
         ),
         path=(
             str | None,
@@ -87,22 +93,6 @@ def _always_enum(names: tuple[str, ...]):
         schema["enum"] = list(names)
 
     return fix
-
-
-def _index(skills: list[Skill]) -> str:
-    lines = ["<available_skills>"]
-    for skill in skills:
-        lines.append(
-            f"  <skill><name>{skill.name}</name>"
-            f"<description>{_escape(skill.description)}</description></skill>"
-        )
-    lines.append("</available_skills>")
-    return "\n".join(lines)
-
-
-def _escape(text: str) -> str:
-    """`text` with `&`, `<` and `>` XML-escaped."""
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _instructions(skill: Skill, *, shipped: bool) -> ToolOutcome:

@@ -55,12 +55,16 @@ class GiveUp:
 StepDecision = Tell | GiveUp
 
 
-class StepHook(ABC):
-    """Something consulted when a step ends without a tool call: the model has answered."""
+class StepHook:
+    """Something consulted at the start of each step, and when one ends without a tool call."""
 
-    @abstractmethod
+    async def start_of_step(self) -> str | None:
+        """Text the model should have in front of it on this step's request, or `None`."""
+        return None
+
     async def end_of_step(self, empties: int) -> StepDecision | None:
         """What to do after the turn's `empties`-th blank reply, or `None` to accept the answer."""
+        return None
 
 
 H = TypeVar("H", ToolHook, StepHook)
@@ -86,6 +90,14 @@ class HookChain:
             self.tool_hooks, lambda hook: hook.post(sig, outcome, calls), "post"
         )
 
+    async def start_of_step(self) -> tuple[str, ...]:
+        """Every step hook's text for this step's request, in registration order."""
+        texts = [
+            await _answer(hook, lambda each: each.start_of_step(), "start_of_step")
+            for hook in self.step_hooks
+        ]
+        return tuple(text for text in texts if text)
+
     async def end_of_step(self, *, session: Session) -> StepDecision | None:
         empties = empty_replies_in_a_row(session)
         return await self._first_decision(
@@ -97,18 +109,22 @@ class HookChain:
     ) -> D | None:
         """The first decision a hook makes, asking in registration order."""
         for hook in hooks:
-            name = type(hook).__name__
-            try:
-                async with asyncio.timeout(HOOK_TIMEOUT_S):
-                    decision = await ask(hook)
-            except TimeoutError:
-                logger.warning(
-                    "hook %s.%s exceeded %.1fs and was skipped", name, point, HOOK_TIMEOUT_S
-                )
-                continue
-            except Exception:
-                logger.exception("hook %s.%s raised and was skipped", name, point)
-                continue
+            decision = await _answer(hook, ask, point)
             if decision is not None:
                 return decision
         return None
+
+
+async def _answer[Hook: (ToolHook, StepHook), Said](
+    hook: Hook, ask: Callable[[Hook], Awaitable[Said | None]], point: str
+) -> Said | None:
+    """What `hook` says at `point`, or `None` when it raised or ran out of time."""
+    name = type(hook).__name__
+    try:
+        async with asyncio.timeout(HOOK_TIMEOUT_S):
+            return await ask(hook)
+    except TimeoutError:
+        logger.warning("hook %s.%s exceeded %.1fs and was skipped", name, point, HOOK_TIMEOUT_S)
+    except Exception:
+        logger.exception("hook %s.%s raised and was skipped", name, point)
+    return None

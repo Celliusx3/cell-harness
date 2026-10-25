@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.files import ChatFile, ChatFileService
 from harness.images import ImageService
 from harness.llm import LLMClient, Message, SystemMessage, ToolCall, ToolMessage, UserMessage
-from harness.prompts import SKIPPED_RESULT
+from harness.prompts import SKIPPED_RESULT, SYSTEM_REMINDER
 from harness.runtime.compaction import (
     CompactionEvent,
     CompactionRefused,
@@ -53,9 +53,11 @@ class Runtime:
     context_tokens: int | None = None
     files: ChatFileService | None = None
 
-    def request_messages(self, session: Session) -> list[Message]:
+    def request_messages(self, session: Session, context: Sequence[str] = ()) -> list[Message]:
+        """The request for `session`, with each of the step hooks' `context` texts in it."""
         derived = derive_messages(session.events())
         history = derived if self.images is not None else without_images(derived)
+        history = _with_context(history, context)
         system = system_text(session, self.guidance)
         if not system:
             return history
@@ -141,6 +143,19 @@ class Runtime:
         async with aclosing(run_compaction(self, session, turn=None, trigger="manual")) as events:
             async for event in events:
                 yield event
+
+
+def _with_context(history: list[Message], context: Sequence[str]) -> list[Message]:
+    """`history` with each `context` text as a system-reminder on its first user message."""
+    if not context:
+        return history
+    for at, message in enumerate(history):
+        if isinstance(message, UserMessage):
+            reminders = [SYSTEM_REMINDER.format(text=text) for text in context]
+            content = "\n\n".join([message.content, *reminders])
+            reminded = message.model_copy(update={"content": content})
+            return [*history[:at], reminded, *history[at + 1 :]]
+    return history
 
 
 def _skip_calls_walked_past(session: Session) -> None:

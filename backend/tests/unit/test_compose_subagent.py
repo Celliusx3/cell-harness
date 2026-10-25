@@ -10,7 +10,14 @@ import pytest
 
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
-from harness.llm import CONTEXT_WINDOW_EXCEEDED, Failed, SystemMessage, ToolCall, ToolMessage
+from harness.llm import (
+    CONTEXT_WINDOW_EXCEEDED,
+    Failed,
+    SystemMessage,
+    ToolCall,
+    ToolMessage,
+    UserMessage,
+)
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.service import Runtime
@@ -19,6 +26,7 @@ from harness.session.models import TurnStart
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
+from harness.skills import SKILL, SkillService
 from harness.tools import Ok
 from harness.tools.native.code_mode import LIST_FUNCTIONS
 from harness.tools.native.location import GET_LOCATION
@@ -37,6 +45,7 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     no_skills,
+    skills_at,
 )
 from tests.webapp import files_in, images_in, secrets_in
 
@@ -45,7 +54,7 @@ from tests.webapp import files_in, images_in, secrets_in
 def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """The real object graph, answering through `client`."""
 
-    def build(client) -> tuple[Runtime, SessionService]:
+    def build(client, skills: SkillService | None = None) -> tuple[Runtime, SessionService]:
         monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: client)
         settings = Settings(llm={"model": "m", "api_key": "k"})
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
@@ -55,7 +64,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             settings,
             sessions,
             mcp,
-            no_skills(),
+            skills if skills is not None else no_skills(),
             client_tools(),
             no_approvals(),
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
@@ -133,6 +142,32 @@ async def test_a_subagent_is_told_it_is_a_helper_ahead_of_code_mode(compose) -> 
         "the task with your tools, then reply with a short result. That reply is all the main "
         "assistant receives." + CODE_PROMPT
     )
+
+
+async def test_a_subagent_is_shown_the_skills_it_may_load(compose, tmp_path: Path) -> None:
+    root = tmp_path / "skills"
+    (root / "pdf").mkdir(parents=True)
+    (root / "pdf" / "SKILL.md").write_text("---\ndescription: PDF work.\n---\nDo it.\n")
+    tasks = json.dumps({"tasks": [{"name": "aapl", "task": "Look up AAPL."}]})
+    client = SteppedClient(
+        calls_tool(RUN_SUBAGENT, tasks, id="c1"),
+        completed("AAPL grew 2%."),
+        completed("Apple grew 2%."),
+    )
+    runtime, sessions = compose(client, skills_at(root))
+    session = await sessions.create()
+
+    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
+        async for _ in events:
+            pass
+
+    assert SKILL in {spec.name for spec in client.seen_tools_per_call[1] or []}
+    subagent_task = client.seen_per_call[1][1]
+    assert isinstance(subagent_task, UserMessage)
+    assert subagent_task.content.startswith("Look up AAPL.\n\n<system-reminder>\n")
+    assert "\n- pdf: PDF work.\n</system-reminder>" in subagent_task.content
+    logged = [e.model_dump(mode="json") for e in session.events()]
+    assert "<system-reminder>" not in json.dumps(logged)
 
 
 async def test_a_subagent_that_overflows_compacts_like_the_bot_and_answers(

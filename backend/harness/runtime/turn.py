@@ -145,7 +145,7 @@ async def _stream_reply(
 ) -> AsyncIterator[TextChunk | ToolCallChunk | Completed | Failed | RetryStep]:
     """One model request: its chunks as they stream, then `Completed`, `Failed` or `RetryStep`."""
     specs = runtime.tools.specs(session.tools_selected()) if runtime.tools else None
-    messages = runtime.request_messages(session)
+    messages = runtime.request_messages(session, await runtime.hooks.start_of_step())
     if runtime.checkpoint is not None:
         await runtime.checkpoint(session)
 
