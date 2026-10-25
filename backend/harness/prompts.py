@@ -56,6 +56,9 @@ GUIDANCE = (
     "an earlier conversation, and save what they ask you to remember."
 ) + CODE_PROMPT
 
+SKILL_LIST_INTRO = "The following skills are available for use with the skill tool:"
+SYSTEM_REMINDER = "<system-reminder>\n{text}\n</system-reminder>"
+
 SUBAGENT_INTRO = (
     "You are a helper named {name}, started by the main assistant to do one task as part "
     "of its answer to the user. Nobody will read your questions, so do not ask any: do the "

@@ -22,6 +22,7 @@ from harness.runtime.hooks.native.exact_failure import ExactFailureHook
 from harness.runtime.hooks.native.no_progress import NoProgressHook
 from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
+from harness.runtime.hooks.native.skill_list import SkillListHook
 from harness.runtime.service import Runtime
 from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
@@ -153,7 +154,7 @@ def build_runtime(
         guidance=GUIDANCE,
         checkpoint=store.flush,
         context_tokens=context_tokens,
-        hooks=default_hooks(),
+        hooks=default_hooks(skills),
         files=files,
     )
     _register_run_subagent(tool_service, runtime, subagent_logs)
@@ -192,9 +193,9 @@ def attach_bot_messages(
     return messages
 
 
-def default_hooks() -> HookChain:
-    """The four loop detectors, specific before general, and what to do about an empty reply."""
+def default_hooks(skills: SkillService) -> HookChain:
+    """The loop detectors, specific before general, then the empty-reply and skill-list hooks."""
     return HookChain(
         (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook()),
-        step_hooks=(EmptyReplyHook(),),
+        step_hooks=(EmptyReplyHook(), SkillListHook(skills)),
     )

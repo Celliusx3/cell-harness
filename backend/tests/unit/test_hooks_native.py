@@ -13,9 +13,9 @@ from harness.session.log import Session
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools import BLOCKED, EXECUTION_ERROR, REFUSED, Failure, Ok
 from harness.web.runtime import default_hooks
-from tests.unit.helpers import new_session
+from tests.unit.helpers import new_session, no_skills
 
-GUARD = default_hooks()
+GUARD = default_hooks(no_skills())
 
 
 def call(name: str = "read", arguments: str = '{"a": 1}', *, id: str = "c") -> ToolCall:

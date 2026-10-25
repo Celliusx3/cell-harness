@@ -104,7 +104,7 @@ Nothing below is a phase. Each is written as part of the capability that needs i
 | Mechanism | Born in | Why then |
 |---|---|---|
 | Heartbeat, lease, reclaim | ~~4~~ **when a 2nd process exists** | Reclaiming a *process's* runs is a multi-process problem. One server, and phase 3's repair-on-resume already covers the single-process crash |
-| Prompt sections | ~~8~~ **10** | Skills turned out to contribute nothing to the prompt — the catalog rides on the tool. Personas are the first template with a variable |
+| Prompt sections | ~~8~~ **10** | Skills contribute nothing to the system prompt. The catalog rides as a system-reminder on the first user message, from a step hook (issue #40). Personas are the first template with a variable |
 | Seams (`FileSystem`, `Subprocess`) | 12 | Two providers is when an interface earns its keep |
 | `Layered` (scoped registries) | 14 | The first time a plugin registers into *one agent's* world |
 | Durable inbox (`followup`/`steer`/`inject`) | 16 | Phase 5 queues at the channel, which is enough while a correction can wait for the next turn. `steer` mutates a turn already running, so it needs dsh's session-event inbox |

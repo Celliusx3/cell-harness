@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from harness.prompts import SKILL_LIST_INTRO
 from harness.skills import SKILL, skill_tool
 from harness.skills.models import Skill
-from harness.skills.prompt import instructions
+from harness.skills.prompt import available_skills, instructions
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from tests.unit.helpers import context_for, no_skills, skills_at
 
@@ -30,17 +31,43 @@ def test_no_skills_means_no_tool() -> None:
     assert skill_tool(no_skills()) is None
 
 
-def test_the_enum_and_the_index_come_from_the_same_subset(tmp_path) -> None:
+def test_no_skills_means_no_list() -> None:
+    assert available_skills(no_skills().model_invocable()) == ""
+
+
+def test_the_enum_and_the_list_come_from_the_same_subset(tmp_path) -> None:
     write_skill(tmp_path, "pdf", "PDF work.")
     write_skill(tmp_path, "deploy", "Ship it.", disable_model_invocation="true")
+    skills = skills_at(tmp_path)
 
-    tool = skill_tool(skills_at(tmp_path))
+    tool = skill_tool(skills)
+    listed = available_skills(skills.model_invocable())
 
     assert tool is not None and tool.name == SKILL
-    spec = tool.spec()
-    assert spec.input_schema["properties"]["name"]["enum"] == ["pdf"]
-    assert "<name>pdf</name><description>PDF work.</description>" in spec.description
-    assert "deploy" not in spec.description
+    assert tool.spec().input_schema["properties"]["name"]["enum"] == ["pdf"]
+    assert "- pdf: PDF work." in listed
+    assert "deploy" not in listed
+
+
+def test_the_description_points_at_the_list_and_lists_no_skill(tmp_path) -> None:
+    write_skill(tmp_path, "pdf", "PDF work.")
+
+    spec = skill_tool(skills_at(tmp_path)).spec()
+
+    assert "Available skills appear in a system-reminder listing" in spec.description
+    assert spec.input_schema["properties"]["name"]["description"] == (
+        "The name of a skill from the available-skills list. Do not guess names."
+    )
+    assert "PDF work." not in spec.description
+
+
+def test_the_list_names_the_skill_tool_then_one_line_per_skill(tmp_path) -> None:
+    write_skill(tmp_path, "pdf", "PDF work.")
+    write_skill(tmp_path, "ship", "Ship it.")
+
+    listed = available_skills(skills_at(tmp_path).model_invocable())
+
+    assert listed == f"{SKILL_LIST_INTRO}\n\n- pdf: PDF work.\n- ship: Ship it."
 
 
 def test_only_hidden_skills_means_no_tool(tmp_path) -> None:
@@ -166,12 +193,12 @@ async def test_a_skill_deleted_after_the_tool_was_built_fails_softly(tmp_path) -
     assert isinstance(outcome, Failure) and "could not be read" in outcome.message
 
 
-def test_markup_in_a_description_is_escaped(tmp_path) -> None:
+def test_a_description_is_listed_as_written(tmp_path) -> None:
     write_skill(tmp_path, "pdf", "Handles <b>PDF</b> & forms.")
 
-    spec = skill_tool(skills_at(tmp_path)).spec()
+    listed = available_skills(skills_at(tmp_path).model_invocable())
 
-    assert "Handles &lt;b&gt;PDF&lt;/b&gt; &amp; forms." in spec.description
+    assert "- pdf: Handles <b>PDF</b> & forms." in listed
 
 
 async def test_a_skill_shipped_with_the_app_names_its_folder_after_its_body(tmp_path) -> None:

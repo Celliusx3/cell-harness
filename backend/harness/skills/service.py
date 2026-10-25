@@ -91,6 +91,10 @@ class SkillService:
         """What a person may type after `/`."""
         return [skill for skill in self.snapshot().skills if skill.user_invocable]
 
+    def model_invocable(self) -> list[Skill]:
+        """What the model may load with `skill`."""
+        return [skill for skill in self.snapshot().skills if skill.model_invocable]
+
     def expand(self, text: str) -> str:
         """The message the model receives for `text`."""
         name = parse(text)

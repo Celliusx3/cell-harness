@@ -9,9 +9,11 @@ import pytest
 
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
-from harness.llm import ToolCall
+from harness.llm import Message, SystemMessage, ToolCall, UserMessage
 from harness.mcp.service import McpService
+from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
+from harness.session.models import TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
@@ -80,6 +82,31 @@ def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
 
     (directory / "SKILL.md").unlink()
     assert SKILL not in [s.name for s in runtime.tools.specs()]
+
+
+async def test_the_first_user_message_lists_the_skills_exactly_while_one_exists(compose) -> None:
+    build, root = compose
+    runtime = build()
+    alone = [SystemMessage(content=GUIDANCE), UserMessage(content="hi")]
+
+    assert await request_of(runtime) == alone
+
+    directory = write_skill(root, "pdf")
+    system, user = await request_of(runtime)
+    assert system == SystemMessage(content=GUIDANCE)
+    assert user.content.startswith("hi\n\n<system-reminder>\n")
+    assert "\n- pdf: pdf things.\n</system-reminder>" in user.content
+
+    (directory / "SKILL.md").unlink()
+    assert await request_of(runtime) == alone
+
+
+async def request_of(runtime: Runtime) -> list[Message]:
+    """The request a step would send for one message, "hi"."""
+    session = new_session()
+    session.append(TurnStart(turn=0, bot_id="b"))
+    session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
+    return runtime.request_messages(session, await runtime.hooks.start_of_step())
 
 
 async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:

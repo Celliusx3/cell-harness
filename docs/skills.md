@@ -67,8 +67,8 @@ is prescriptive about the parts that matter to a harness:
 |---|---|---|---|---|---|
 | Shape | terminal coding agent | terminal + chat | terminal | **chat: CLI, Telegram, Discord** | **chat: messaging gateway, multi-agent** |
 | Roots | `~/.claude/skills`, `.claude/skills`, nested, plugins, enterprise | `.agents/skills` repo → user → `/etc/codex` → bundled | `.opencode/`, `.claude/`, `.agents/` at project and home | `~/.hermes/skills`, `.hermes/`, `.agents/skills`, external dirs | workspace, `.agents/skills`, `~/.agents/skills`, managed state dir, bundled |
-| Catalog placement | **in the `Skill` tool's description** — `<available_skills>` with name, description, location | system prompt, capped at 2 % of context or 8k chars | in the `skill` tool's description | a `skills_list()` tool (~3k tokens) | system-prompt XML; over budget it truncates descriptions but keeps names |
-| Activation | `Skill(command=name)`; result "Launching skill", then an injected message with `<command-name>`, `Base Path:` and the body | the model reads the file | `skill({name})` | `skill_view(name[, path])` — `path` reads a bundled file | model told to read `SKILL.md` |
+| Catalog placement | **a system-reminder message in the conversation** (2.1.309): "The following skills are available for use with the Skill tool:", then one `- name: description` line per skill, sent again after compaction (2.1.304). The October 2025 capture had it in the `Skill` tool's description, as `<available_skills>` with name, description, location | system prompt, capped at 2 % of context or 8k chars | in the `skill` tool's description | a `skills_list()` tool (~3k tokens) | system-prompt XML; over budget it truncates descriptions but keeps names |
+| Activation | `Skill(skill=name, args)`, `skill` a plain string with no enum (2.1.309). The October 2025 capture had `Skill(command=name)`; result "Launching skill", then an injected message with `<command-name>`, `Base Path:` and the body | the model reads the file | `skill({name})` | `skill_view(name[, path])` — `path` reads a bundled file | model told to read `SKILL.md` |
 | User invocation | `/name args`; up to 6 stacked | `$name` (Codex), `@name` (ChatGPT) | — | `/name`; up to 5 stacked; bundles | `$name` in the composer; up to 8 |
 | Visibility | `disable-model-invocation`, `user-invocable`, `skillOverrides` (on / name-only / user-invocable-only / off), `Skill(name)` permission rules | `policy.allow_implicit_invocation` | `permission.skill` glob → allow / deny / **ask** | `requires_toolsets` / `fallback_for_toolsets` | the same two flags; `agents.entries.*.skills` allowlist is the *final* set, no merge |
 | Scoping | project / user | repo / user | per agent (`skill: false`) | project trust list | **per agent workspace** |
@@ -84,20 +84,29 @@ Same three tiers; the catalog is in the system prompt.
 
 ## 3. What binds cell-harness
 
-1. **The enum-constrained activation tool is the consensus.** cell-bot's
-   generated `Literal[names]` (DESIGN.md) is what Claude Code, OpenCode and the
-   spec all do.
-2. **Nobody logs the catalog into the conversation.** Every client rebuilds it
-   per request in the system prompt or the tool description. This harness
-   already does exactly that with the tool list (`Toolset.specs`) and the
-   system prompt (`Runtime.request_messages`), neither of which is written to
-   the log. PHASES.md's original "catalog message + digest + empty envelope +
-   re-establish after compaction" was DeepSeek Harness's design and the outlier
-   — it exists there because dsh injects the catalog as a user-role message and
+1. **The enum-constrained activation tool is what the spec asks for.** cell-bot's
+   generated `Literal[names]` (DESIGN.md) is what OpenCode, Gemini CLI and the
+   spec's client guide do. Claude Code dropped its enum by 2.1.309. Its `skill`
+   argument is a plain string, and the tool's description says the name must
+   come from the list.
+2. **The catalog rides on the first user message, rebuilt per request, never
+   logged.** The other clients in §2 put it in the system prompt or the tool
+   description. Claude Code and DeepSeek Harness put it in the conversation
+   instead, and Claude Code sends it again after compaction. This harness copies
+   Claude Code. A step hook, `SkillListHook`, returns `available_skills` at the
+   start of every step, `Runtime.request_messages` puts it at the end of the
+   first user message as a `<system-reminder>`, and the `skill` tool's
+   description points at it. After compaction the first user message is the
+   summary, so the list rides there and nothing has to be sent again. It is
+   rebuilt each request like the tool list (`Toolset.specs`), and neither is
+   written to the log. §5 has the runs that chose this placement over the
+   system prompt. PHASES.md's original "catalog message + digest + empty
+   envelope + re-establish after compaction" was DeepSeek Harness's design. It
+   exists there because dsh injects the catalog as a user-role message and
    caches its prompt prefix. Rebuilding per request drops all four pieces and
    phase 11 has nothing to re-establish.
 3. **No skills ⇒ no tool.** A provider that yields nothing is how that falls out
-   of the tool service.
+   of the tool service. The list is empty too, so no reminder is appended.
 4. **Two surfaces are the norm.** `disable-model-invocation` and
    `user-invocable` are Claude Code's names and OpenClaw's; user invocation is a
    harness expansion of `/name`, not a model action.
@@ -163,6 +172,24 @@ rather than in the `SKILL.md`, because a comment there reaches the model.
   registered name. Correct answer, unmetered route; see "Registered is not
   offered" in CLAUDE.md. With the check, the same model goes through code mode
   and hits the failure above — which is the honest result.
+- **Where the list sits** (2026-10-25, issue #40). gemma-4-e4b in LM Studio was
+  asked "What is the latest stable release of Python? Look it up on the web."
+  Each run was counted by its first call.
+  - The list in the `skill` tool's description: `skill` with `search-web` in 8
+    of 10 runs. The other 2 called `search-web` as a tool and were refused.
+  - The list in the system prompt: 0 of 5 as XML, 1 of 5 with "a skill is not
+    a tool" before it, 1 of 10 with the tool's description and `name` pointing
+    at it, and 0 of 10 in Claude Code's plain `- name: description` lines. The
+    rest called `search-web` as a tool, and several then told the person that
+    `search-web` had failed.
+  - Claude Code's placement, the same lines as a system-reminder on the first
+    user message: 10 of 10.
+
+  gemma-4-12b loaded the skill in 5 of 5 runs with the list in the system
+  prompt, and 5 of 5 with the reminder. Our reading, from one model and one
+  question: a small model reads a name in the system prompt as something to
+  call. In a tool's description, or next to the question, it reads the name as
+  a value for `skill`.
 
 ## 6. Sources
 
@@ -172,7 +199,10 @@ rather than in the `SKILL.md`, because a comment there reaches the model.
 - Anthropic, *Equipping agents for the real world with Agent Skills* — https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills
 - Claude Code skills reference — https://code.claude.com/docs/en/skills
 - Claude Developer Platform, Agent Skills overview — https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview
-- Mikhail Shilkov, *Inside Claude Code Skills* (the Skill tool's schema and injected message, from the wire) — https://mikhail.io/2025/10/claude-code-skills/
+- Mikhail Shilkov, *Inside Claude Code Skills* (the Skill tool's schema and injected message, from the wire, October 2025) — https://mikhail.io/2025/10/claude-code-skills/
+- Claude Code 2.1.309, the skill list and the `Skill` tool's schema as a session receives them, observed from inside a session (issue #40)
+- Claude Code changelog, 2.1.304: "Changed compaction to send Claude the skill list again afterwards" — https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
+- Gemini CLI, `activate_skill` with an enum of names — `github.com/google-gemini/gemini-cli`, `packages/core/src/tools/definitions/dynamic-declaration-helpers.ts`
 - OpenAI, *How skills work in Codex* — https://learn.chatgpt.com/docs/build-skills
 - OpenCode skills — https://opencode.ai/docs/skills/
 - Hermes Agent skills — https://hermes-agent.nousresearch.com/docs/user-guide/features/skills

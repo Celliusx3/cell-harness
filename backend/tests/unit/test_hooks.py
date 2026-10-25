@@ -65,6 +65,19 @@ class SaysAtStepEnd(StepHook):
         return self.decision
 
 
+@dataclass(frozen=True)
+class SaysAtStepStart(StepHook):
+    text: str | None = None
+
+    async def start_of_step(self) -> str | None:
+        return self.text
+
+
+class RaisesAtStepStart(StepHook):
+    async def start_of_step(self) -> str | None:
+        raise RuntimeError("bug in a step hook")
+
+
 class Hangs(ToolHook):
     def __init__(self) -> None:
         self.started = asyncio.Event()
@@ -209,3 +222,27 @@ async def test_a_raising_step_hook_decides_nothing_and_the_next_one_is_asked(
     assert (
         await HookChain(step_hooks=(RaisesAtStepEnd(),)).end_of_step(session=new_session()) is None
     )
+
+
+async def test_every_step_hook_s_text_is_kept_in_order() -> None:
+    chain = HookChain(
+        step_hooks=(
+            SaysAtStepStart("one"),
+            SaysAtStepStart(),
+            SaysAtStepEnd(Tell("ignored at the start")),
+            SaysAtStepStart("two"),
+        )
+    )
+
+    assert await chain.start_of_step() == ("one", "two")
+
+
+async def test_a_raising_step_hook_adds_nothing_and_the_rest_still_speak(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    chain = HookChain(step_hooks=(RaisesAtStepStart(), SaysAtStepStart("after")))
+
+    with caplog.at_level(logging.ERROR, logger="harness.runtime"):
+        assert await chain.start_of_step() == ("after",)
+
+    assert "RaisesAtStepStart.start_of_step raised" in caplog.text

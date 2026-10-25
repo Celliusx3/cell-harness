@@ -199,7 +199,8 @@ carried, so the request scales with the task rather than the conversation.
 the model." So the factory returns `None`, the provider yields nothing, and the
 toolset's "skip an absent default name" does the rest. The alternative — a
 tool that is always there and sometimes says "nothing to load" — spends a schema
-on every request to describe an absence.
+on every request to describe an absence. The skill list is empty for the same
+reason, so no system-reminder is appended either.
 
 **A skill's body is context, not data.** A script that called `skill(...)`
 would get the instructions as a string and could only `return` them into the
@@ -209,13 +210,23 @@ advertised a "capability" that is not one. So the composition root names it
 globals, and refused at the bridge. Code mode does not know what a skill is; it
 knows a name it was told not to bind.
 
-**The catalog is read, never published.** Every shipping client rebuilds the
-skill list per request in the system prompt or the tool description; only
-DeepSeek Harness writes it into the conversation as a message, and pays with a
-digest, an "empty envelope" event, an inbox to slip replacements in, and a
-re-injection after compaction. The tool list here was already rebuilt per step
-and never logged; the skill catalog is the same kind of thing. A `SKILL.md`
-edit is seen at the next step because the next step looks.
+**The catalog is read, never published.** Most shipping clients rebuild the
+skill list per request in the system prompt or the tool description. DeepSeek
+Harness writes it into the conversation as a message, and pays with a digest,
+an "empty envelope" event, an inbox to slip replacements in, and a re-injection
+after compaction. Claude Code moved to a message too, and sends it again after
+compaction. The tool list here was already rebuilt per step and never logged;
+the skill catalog is the same kind of thing. A step hook, `SkillListHook`,
+reads it from disk at the start of every step, and the request carries it as a
+system-reminder on the first user message, where Claude Code places it. The log
+keeps only what the person typed. A `SKILL.md` edit is seen at the next step
+because the next step looks.
+
+**A step hook's start-of-step text is never logged.** So a step hook may only
+return text it rebuilds from disk on every step, as `SkillListHook` does.
+Anything else the model should see is an `application/message`, logged like
+every other model-visible input. A step hook that raises or runs out of time
+adds nothing, the way a decision hook fails open.
 
 ## Comment discipline
 
