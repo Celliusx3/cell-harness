@@ -72,7 +72,7 @@ async function startApp(): Promise<void> {
 /** Opens the chat window and the menu-bar icon; from now on a Dock click or a second launch shows the window. */
 function openChat(): void {
   chatWindow = openChatWindow();
-  menuBarIcon = addTray({ showChatWindow, settingsFile: files.localJson });
+  menuBarIcon = addTray({ showChatWindow, showCredentials, settingsFile: files.localJson });
   app.on("second-instance", showChatWindow);
   app.on("activate", showChatWindow);
   stopWatchingSettings = watchSettings(files.localJson, () => {
@@ -160,6 +160,14 @@ function hideUnlessQuitting(window: BrowserWindow, event: Electron.Event): void 
   if (hasStopBegun()) return;
   event.preventDefault();
   window.hide();
+}
+
+/** Shows the chat window on the Credentials page. */
+function showCredentials(): void {
+  showChatWindow();
+  chatWindow
+    ?.loadURL(`${APP_URL}/credentials`)
+    .catch((error: unknown) => dialog.showErrorBox(START_FAILURE_TITLE, messageOf(error)));
 }
 
 /** Shows the chat window, opening a new one when a page's own window.close() destroyed it, which no close event can stop. */

@@ -1,6 +1,6 @@
 # 05 Credentials in the menu bar
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 
