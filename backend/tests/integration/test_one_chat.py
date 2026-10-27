@@ -20,7 +20,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import create_app
-from tests.unit.fakes import SteppedClient, completed
+from tests.unit.fakes import OneModel, SteppedClient, completed
 from tests.unit.helpers import client_tools, no_approvals, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import secrets_in, web_gateway, web_mcp
@@ -54,7 +54,7 @@ def build_on(tmp_path, model: LLMClient):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
     )
     bots = BotService(tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT")
-    runtime = Runtime(model="m", client=model, images=None, checkpoint=sessions.flush)
+    runtime = Runtime(models=OneModel(model), images=None, checkpoint=sessions.flush)
     runs = RunService(sessions, runtime, bots)
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)

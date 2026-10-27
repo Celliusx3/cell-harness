@@ -33,6 +33,7 @@ from harness.tools import (
 from harness.tools.client import ClientToolService
 from harness.tools.service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
+from tests.unit.fakes import OneModel
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -98,8 +99,7 @@ def runtime_over(
 ) -> Runtime:
     """A runtime over `tools`, with no toolset at all when there are none."""
     return Runtime(
-        model="m",
-        client=client,
+        models=OneModel(client),
         images=images,
         tools=toolset_for(*tools, approvals=approvals) if tools else None,
         guidance=guidance,

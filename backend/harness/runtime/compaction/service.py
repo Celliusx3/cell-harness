@@ -91,7 +91,8 @@ async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) ->
     messages = [*history, UserMessage(content=COMPACTION_INSTRUCTION)]
     completed: Completed | None = None
     try:
-        async for event in runtime.client.stream_completion(messages, runtime.model, tools=None):
+        choice = await runtime.models.model_for(session.speaker_id())
+        async for event in choice.client.stream_completion(messages, choice.model, tools=None):
             if isinstance(event, Failed):
                 return CompactionEnd(turn=turn, error=f"summary request failed: {event.reason}")
             if isinstance(event, Completed):

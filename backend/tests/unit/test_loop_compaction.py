@@ -30,7 +30,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from tests.unit.fakes import SteppedClient, completed
+from tests.unit.fakes import OneModel, SteppedClient, completed
 from tests.unit.helpers import drain, new_session
 
 
@@ -61,8 +61,7 @@ class SizedClient(LLMClient):
 
 def runtime_with(client: LLMClient, context: int | None) -> Runtime:
     return Runtime(
-        model="m",
-        client=client,
+        models=OneModel(client),
         images=None,
         guidance="SYS",
         context_tokens=context,

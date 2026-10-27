@@ -25,7 +25,14 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from harness.tools.native.clock import clock_tool
-from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, calls_tool, completed
+from tests.unit.fakes import (
+    HangingClient,
+    OneModel,
+    ScriptedClient,
+    SteppedClient,
+    calls_tool,
+    completed,
+)
 from tests.unit.helpers import new_session, runtime_over
 
 NO_HOOKS = HookChain()
@@ -33,7 +40,7 @@ TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
 def runtime_with(client, *, guidance: str = "", hooks: HookChain = NO_HOOKS) -> Runtime:
-    return Runtime(model="m", client=client, images=None, guidance=guidance, hooks=hooks)
+    return Runtime(models=OneModel(client), images=None, guidance=guidance, hooks=hooks)
 
 
 async def drain(gen) -> list:

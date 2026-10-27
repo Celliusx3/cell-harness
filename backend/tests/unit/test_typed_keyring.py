@@ -99,6 +99,20 @@ def test_a_key_that_is_not_custom_is_never_handed_to_a_bot_fetch(path: Path) -> 
     )
 
 
+@pytest.mark.parametrize("name", ["github", "telegram", "absent"])
+def test_a_turn_is_never_handed_a_key_that_is_not_a_model_credential(path: Path, name: str) -> None:
+    DiskSecretRepository(path).replace_all(
+        (
+            _sealed("01", "github", CustomDetails(destination=GITHUB), "ghp-key-0001"),
+            _sealed("03", "telegram", TelegramDetails(), TOKEN),
+        )
+    )
+    store = SecretService(DiskSecretRepository(path), encryption_key=KEY)
+
+    assert store.model_credential_version(name) is None
+    assert store.model_credential_named(name) is None
+
+
 def test_a_custom_key_cannot_take_the_name_of_another_kind(path: Path) -> None:
     DiskSecretRepository(path).replace_all((_sealed("03", "telegram", TelegramDetails(), TOKEN),))
     store = SecretService(DiskSecretRepository(path), encryption_key=KEY)

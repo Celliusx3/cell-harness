@@ -1,6 +1,6 @@
 # 05 A model per bot
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

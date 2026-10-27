@@ -8,7 +8,7 @@ from typing import Annotated
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, SecretStr
 
 from harness.secrets.models.destination import Destination
-from harness.secrets.models.details import CredentialDetails
+from harness.secrets.models.details import CredentialDetails, ModelDetails
 
 SecretName = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,39}$")]
 
@@ -33,6 +33,15 @@ class UnsealedSecret(BaseModel):
 
     destination: Destination
     value: SecretStr
+
+
+class UnsealedModelCredential(BaseModel):
+    """An LLM credential, unsealed: the endpoint and model it is for, and its key."""
+
+    model_config = ConfigDict(frozen=True, hide_input_in_errors=True)
+
+    details: ModelDetails
+    key: SecretStr
 
 
 class SecretSummary(BaseModel):

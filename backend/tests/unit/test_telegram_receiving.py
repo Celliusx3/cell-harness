@@ -21,7 +21,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import no_bots, no_skills, skills_at
 from tests.unit.telegram_fakes import telegram_channel, update
 from tests.unit.test_skill_tool import write_skill
@@ -37,7 +37,7 @@ def build(tmp_path, *, skills: SkillService):
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        model="m", client=ScriptedClient(completed("ok")), images=None, checkpoint=sessions.flush
+        models=OneModel(ScriptedClient(completed("ok"))), images=None, checkpoint=sessions.flush
     )
     runs = RunService(sessions, runtime, no_bots(sessions))
     chats = JsonlChatRepository(tmp_path / "chats")

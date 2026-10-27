@@ -19,7 +19,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.client import PendingCall
-from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
@@ -63,8 +63,7 @@ def build(tmp_path, reply: str = "answered"):
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        model="m",
-        client=ScriptedClient(completed(reply)),
+        models=OneModel(ScriptedClient(completed(reply))),
         images=None,
         checkpoint=sessions.flush,
     )

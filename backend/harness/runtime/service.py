@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from harness.files import ChatFile, ChatFileService
 from harness.images import ImageService
-from harness.llm import LLMClient, Message, SystemMessage, ToolCall, ToolMessage, UserMessage
+from harness.llm import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
 from harness.prompts import SKIPPED_RESULT, SYSTEM_REMINDER
 from harness.runtime.compaction import (
     CompactionEvent,
@@ -18,6 +18,7 @@ from harness.runtime.compaction import (
 )
 from harness.runtime.events import AgentPending, TurnEvent
 from harness.runtime.hooks import HookChain
+from harness.runtime.models import BotModels
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
@@ -42,8 +43,7 @@ SKIPPED = "SKIPPED"
 class Runtime:
     """A runtime that answers by running the tool loop."""
 
-    model: str
-    client: LLMClient
+    models: BotModels
     images: ImageService | None
     """The images the model is shown; `None` means the model cannot see."""
     tools: Toolset | None = None

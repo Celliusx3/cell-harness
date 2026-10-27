@@ -8,14 +8,14 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels
-from tests.unit.fakes import ScriptedClient
+from tests.unit.fakes import OneModel, ScriptedClient
 from tests.unit.helpers import client_tools, no_bots, no_skills
 from tests.webapp import files_in, images_in
 
 
 def _services(tmp_path) -> tuple[SessionService, RunService]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runtime = Runtime(model="m", client=ScriptedClient([]), images=None)
+    runtime = Runtime(models=OneModel(ScriptedClient([])), images=None)
     return sessions, RunService(sessions, runtime, no_bots(sessions))
 
 

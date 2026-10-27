@@ -18,7 +18,7 @@ from harness.session.service import SessionService
 from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
-from tests.unit.fakes import PerBotClient
+from tests.unit.fakes import OneModel, PerBotClient
 from tests.unit.helpers import durable_service, no_approvals, no_skills, run_service
 from tests.webapp import bots_in, images_in, web_app
 
@@ -94,8 +94,7 @@ def messaging_app(
     tool_service = ToolService(tools, approvals=no_approvals())
     offered = (MESSAGE_BOT, *(tool.name for tool in tools))
     runtime = Runtime(
-        model="m",
-        client=model,
+        models=OneModel(model),
         images=None,
         tools=Toolset(tool_service, offered),
         guidance="GUIDE",

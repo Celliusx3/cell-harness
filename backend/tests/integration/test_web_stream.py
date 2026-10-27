@@ -18,7 +18,14 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.integration.web_helpers import assistant_chat
-from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool, hanging_tool
+from tests.unit.fakes import (
+    OneModel,
+    SteppedClient,
+    calls_tool,
+    completed,
+    gated_tool,
+    hanging_tool,
+)
 from tests.unit.helpers import no_bots, no_skills, toolset_for
 from tests.webapp import web_app
 
@@ -57,7 +64,7 @@ async def served(
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        model="m", client=client, images=None, tools=toolset_for(*tools), checkpoint=service.flush
+        models=OneModel(client), images=None, tools=toolset_for(*tools), checkpoint=service.flush
     )
     runs = RunService(service, runtime, no_bots(service))
     async with (

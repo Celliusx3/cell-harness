@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Mapping, Sequence
+from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +19,7 @@ from harness.llm import (
     ToolCallChunk,
     ToolSpec,
 )
+from harness.runtime.models import ModelChoice
 from harness.tools import Ok, Pending, Tool, ToolContext, ToolOutcome
 
 
@@ -98,6 +100,16 @@ class HangingClient(LLMClient):
             await asyncio.Event().wait()
         finally:
             self.closed = True
+
+
+@dataclass(frozen=True)
+class OneModel:
+    """Every bot's turns, and every compaction, ask `client` for the model `m`."""
+
+    client: LLMClient
+
+    async def model_for(self, bot_id: str | None) -> ModelChoice:
+        return ModelChoice(self.client, "m")
 
 
 def completed(text: str) -> list[StreamEvent]:

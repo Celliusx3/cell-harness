@@ -8,10 +8,15 @@ from pydantic import SecretStr
 
 from harness.secrets.masking import last_four
 from harness.secrets.models.destination import Destination
-from harness.secrets.models.details import CredentialDetails, CustomDetails
+from harness.secrets.models.details import CredentialDetails, CustomDetails, ModelDetails
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
-from harness.secrets.models.secret import SavedCredential, SecretSummary, UnsealedSecret
+from harness.secrets.models.secret import (
+    SavedCredential,
+    SecretSummary,
+    UnsealedModelCredential,
+    UnsealedSecret,
+)
 from harness.secrets.repository import SecretRepository
 from harness.secrets.sealing import sealed, unsealed
 
@@ -100,6 +105,22 @@ class SecretService:
             destination=sealed_secret.details.destination, value=SecretStr(plaintext)
         )
 
+    def model_credential_version(self, name: str) -> str | None:
+        """The record id the LLM credential `name` is sealed under, new on every save, or `None`."""
+        sealed_secret = self._sealed_named(name)
+        if sealed_secret is None or not isinstance(sealed_secret.details, ModelDetails):
+            return None
+        return sealed_secret.id
+
+    def model_credential_named(self, name: str) -> UnsealedModelCredential | None:
+        """The LLM credential called `name`, unsealed, or `None`; no other kind is handed out."""
+        sealed_secret = self._sealed_named(name)
+        if sealed_secret is None or not isinstance(sealed_secret.details, ModelDetails):
+            return None
+        return UnsealedModelCredential(
+            details=sealed_secret.details, key=SecretStr(self._plaintext(sealed_secret))
+        )
+
     def delete(self, name: str) -> None:
         """Remove the key called `name`; `SecretNotFound` when none is saved."""
         stored = self._repository.sealed_secrets()
@@ -122,6 +143,9 @@ class SecretService:
             self._saved_credential(secret)
             for secret in sorted(self._repository.sealed_secrets(), key=lambda secret: secret.name)
         )
+
+    def _sealed_named(self, name: str) -> SealedSecret | None:
+        return next((s for s in self._repository.sealed_secrets() if s.name == name), None)
 
     def _sealed_secret(self, name: str, details: CredentialDetails, plaintext: str) -> SealedSecret:
         record_id = os.urandom(RECORD_ID_BYTES).hex()

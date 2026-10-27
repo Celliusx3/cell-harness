@@ -8,6 +8,7 @@ from harness.secrets.models.secret import (
     SecretName,
     SecretSummary,
     SecretValue,
+    UnsealedModelCredential,
     UnsealedSecret,
 )
 from harness.secrets.redaction import redacted
@@ -25,6 +26,7 @@ __all__ = [
     "SecretService",
     "SecretSummary",
     "SecretValue",
+    "UnsealedModelCredential",
     "UnsealedSecret",
     "redacted",
 ]
