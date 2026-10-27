@@ -10,11 +10,10 @@ from harness.secrets.masking import last_four
 from harness.secrets.models.destination import Destination
 from harness.secrets.models.details import (
     ChatPlatform,
+    ChatPlatformDetails,
     CredentialDetails,
     CustomDetails,
-    DiscordDetails,
     ModelDetails,
-    TelegramDetails,
 )
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
@@ -73,10 +72,12 @@ class SecretService:
         )
 
     def add_credential(self, name: str, details: CredentialDetails, value: SecretStr) -> None:
-        """Seal `value` as a new credential; `SecretRefused` for a name taken by any kind."""
+        """Seal `value` as a new credential; refused for a name taken, or a platform saved twice."""
         stored = self._repository.sealed_secrets()
         if any(secret.name == name for secret in stored):
             raise SecretRefused(f"a credential is already named {name!r}; pick another name")
+        if isinstance(details, ChatPlatformDetails):
+            _refuse_a_second(stored, details.kind)
         if len(stored) >= MAX_SECRETS:
             raise SecretRefused(f"{MAX_SECRETS} keys are already saved; remove one first")
         added = self._sealed_secret(name, details, value.get_secret_value())
@@ -102,13 +103,13 @@ class SecretService:
 
     def add_or_replace_key(self, name: str, details: CredentialDetails, value: SecretStr) -> None:
         """Add `name` for `details`; when one of that kind is saved, replace only its key."""
-        existing = self._sealed_named(name)
+        existing = self._replaced_by(name, details)
         if existing is None:
             self.add_credential(name, details, value)
             return
         if existing.details.kind != details.kind:
             raise SecretRefused(f"a {existing.details.kind} credential is already named {name!r}")
-        self.change_credential(name, existing.details, value)
+        self.change_credential(existing.name, existing.details, value)
 
     def secret_named(self, name: str) -> UnsealedSecret | None:
         """The custom key called `name`, unsealed, or `None`; no other kind is ever handed out."""
@@ -142,26 +143,19 @@ class SecretService:
 
     def chat_platform_token(self, platform: ChatPlatform) -> SecretStr | None:
         """The Telegram or Discord credential's token, unsealed, or `None`; no other kind."""
-        sealed_secret = next(
-            (
-                secret
-                for secret in self._repository.sealed_secrets()
-                if isinstance(secret.details, TelegramDetails | DiscordDetails)
-                and secret.details.kind == platform
-            ),
-            None,
-        )
+        sealed_secret = _platform_credential(self._repository.sealed_secrets(), platform)
         return None if sealed_secret is None else SecretStr(self._plaintext(sealed_secret))
 
-    def delete(self, name: str) -> None:
-        """Remove the key called `name`; `SecretNotFound` if none, and the Default is refused."""
+    def delete(self, name: str) -> CredentialDetails:
+        """Remove the key called `name` and say what it was for; the Default is refused."""
         stored = self._repository.sealed_secrets()
         if any(secret.name == name and _is_default_model(secret) for secret in stored):
             raise SecretRefused(DEFAULT_MODEL_REMOVAL_REFUSAL)
-        kept = tuple(secret for secret in stored if secret.name != name)
-        if kept == stored:
+        removed = next((secret for secret in stored if secret.name == name), None)
+        if removed is None:
             raise SecretNotFound(name)
-        self._repository.replace_all(kept)
+        self._repository.replace_all(tuple(secret for secret in stored if secret is not removed))
+        return removed.details
 
     def summaries(self) -> tuple[SecretSummary, ...]:
         """Every custom key's name and site, by name; never a value."""
@@ -180,6 +174,14 @@ class SecretService:
 
     def _sealed_named(self, name: str) -> SealedSecret | None:
         return next((s for s in self._repository.sealed_secrets() if s.name == name), None)
+
+    def _replaced_by(self, name: str, details: CredentialDetails) -> SealedSecret | None:
+        """What a key for `details` replaces: its platform's one credential, else the one `name`."""
+        if isinstance(details, ChatPlatformDetails):
+            saved = _platform_credential(self._repository.sealed_secrets(), details.kind)
+            if saved is not None:
+                return saved
+        return self._sealed_named(name)
 
     def _sealed_secret(self, name: str, details: CredentialDetails, plaintext: str) -> SealedSecret:
         record_id = os.urandom(RECORD_ID_BYTES).hex()
@@ -204,3 +206,27 @@ class SecretService:
 
 def _is_default_model(secret: SealedSecret) -> bool:
     return secret.name == DEFAULT_MODEL_CREDENTIAL and isinstance(secret.details, ModelDetails)
+
+
+def _platform_credential(
+    stored: tuple[SealedSecret, ...], platform: ChatPlatform
+) -> SealedSecret | None:
+    """The one credential for `platform` in `stored`, whatever its name, or `None`."""
+    return next(
+        (
+            secret
+            for secret in stored
+            if isinstance(secret.details, ChatPlatformDetails) and secret.details.kind == platform
+        ),
+        None,
+    )
+
+
+def _refuse_a_second(stored: tuple[SealedSecret, ...], platform: ChatPlatform) -> None:
+    """`SecretRefused` when `stored` already holds `platform`'s one credential."""
+    saved = _platform_credential(stored, platform)
+    if saved is not None:
+        raise SecretRefused(
+            f"the {platform} credential is already saved as {saved.name!r}; "
+            "there is one per platform, so edit or remove it"
+        )

@@ -6,11 +6,10 @@ import asyncio
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Annotated
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 from harness.bots import Bot, BotNotFound, BotService, served_bots
 from harness.secrets import (
@@ -21,8 +20,9 @@ from harness.secrets import (
     SecretService,
     SecretValue,
 )
-from harness.secrets.models.details import CustomDetails, ModelDetails
+from harness.secrets.models.details import ChatPlatform, ChatPlatformDetails, CredentialDetails
 from harness.web.errors import STATUS_OF
+from harness.web.platforms import PlatformChannels
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,7 @@ PROXY_HEADER_NAMES = ("forwarded", "x-real-ip")
 PROXY_HEADER_PREFIX = "x-forwarded-"
 ALLOWED_METHODS = "GET, POST, PATCH, DELETE, OPTIONS"
 ALLOWED_HEADERS = "content-type"
-
-TieableDetails = Annotated[CustomDetails | ModelDetails, Field(discriminator="kind")]
+PLATFORM_SERVES_NO_BOTS = "a Telegram or Discord credential serves no bots; tick none"
 
 
 class BotRef(BaseModel):
@@ -66,9 +65,14 @@ class NewCredential(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", hide_input_in_errors=True)
 
     name: SecretName
-    details: TieableDetails
+    details: CredentialDetails
     value: SecretValue
     bot_ids: tuple[str, ...]
+
+    @model_validator(mode="after")
+    def _platform_serves_no_bots(self) -> NewCredential:
+        _refuse_bots_for_a_platform(self.details, self.bot_ids)
+        return self
 
 
 class CredentialChange(BaseModel):
@@ -76,12 +80,19 @@ class CredentialChange(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid", hide_input_in_errors=True)
 
-    details: TieableDetails
+    details: CredentialDetails
     value: SecretValue | None
     bot_ids: tuple[str, ...]
 
+    @model_validator(mode="after")
+    def _platform_serves_no_bots(self) -> CredentialChange:
+        _refuse_bots_for_a_platform(self.details, self.bot_ids)
+        return self
 
-def build_router(secrets: SecretService, bots: BotService) -> APIRouter:
+
+def build_router(
+    secrets: SecretService, bots: BotService, platforms: PlatformChannels
+) -> APIRouter:
     """List the keyring's credentials with their bots; add, change and remove one from this Mac."""
     router = APIRouter(prefix="/api/credentials", tags=["credentials"])
 
@@ -108,7 +119,11 @@ def build_router(secrets: SecretService, bots: BotService) -> APIRouter:
         with _refusals_answered_with(headers):
             _refuse_inactive_bots(bots, body.bot_ids)
             await asyncio.to_thread(secrets.add_credential, body.name, body.details, body.value)
-        bots.tie_credential(body.name, body.details.kind, body.bot_ids)
+        platform = _platform_of(body.details)
+        if platform is None:
+            bots.tie_credential(body.name, body.details.kind, body.bot_ids)
+        else:
+            await platforms.restart(platform)
         logger.info("credential %r added for bots %s", body.name, list(body.bot_ids))
         return Response(status_code=status.HTTP_201_CREATED, headers=headers)
 
@@ -119,7 +134,11 @@ def build_router(secrets: SecretService, bots: BotService) -> APIRouter:
         with _refusals_answered_with(headers):
             _refuse_inactive_bots(bots, body.bot_ids)
             await asyncio.to_thread(secrets.change_credential, name, body.details, body.value)
-        bots.tie_credential(name, body.details.kind, body.bot_ids)
+        platform = _platform_of(body.details)
+        if platform is None:
+            bots.tie_credential(name, body.details.kind, body.bot_ids)
+        elif body.value is not None:
+            await platforms.restart(platform)
         logger.info("credential %r changed for bots %s", name, list(body.bot_ids))
         return Response(status_code=status.HTTP_200_OK, headers=headers)
 
@@ -127,12 +146,25 @@ def build_router(secrets: SecretService, bots: BotService) -> APIRouter:
     async def remove_credential(name: str, request: Request) -> Response:
         headers = _permitted_write_headers(request)
         with _refusals_answered_with(headers):
-            secrets.delete(name)
+            removed = secrets.delete(name)
         bots.forget_secret(name)
+        platform = _platform_of(removed)
+        if platform is not None:
+            await platforms.restart(platform)
         logger.info("credential %r removed from the keyring and every bot", name)
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
 
     return router
+
+
+def _refuse_bots_for_a_platform(details: CredentialDetails, bot_ids: tuple[str, ...]) -> None:
+    if isinstance(details, ChatPlatformDetails) and bot_ids:
+        raise ValueError(PLATFORM_SERVES_NO_BOTS)
+
+
+def _platform_of(details: CredentialDetails) -> ChatPlatform | None:
+    """The chat platform a credential signs in, or `None` for a key that serves bots."""
+    return details.kind if isinstance(details, ChatPlatformDetails) else None
 
 
 def _credential_entry(credential: SavedCredential, active: tuple[Bot, ...]) -> CredentialEntry:

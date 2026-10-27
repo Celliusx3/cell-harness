@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 
 from harness.channels.chat_tasks import ChatTasks
@@ -9,6 +10,7 @@ from harness.channels.chats import state_of
 from harness.channels.following import Following
 from harness.channels.protocol import (
     Channel,
+    ChannelDisposer,
     DuplicateChannelError,
     InboundMessage,
     Pushing,
@@ -45,6 +47,7 @@ class ChannelGateway:
         self._sessions = sessions
         self._skills = skills
         self._channels: dict[str, RunningChannel] = {}
+        self._is_receiving = False
         self._tasks = ChatTasks()
         self._following = Following(
             repository,
@@ -56,13 +59,25 @@ class ChannelGateway:
             Replies(repository, public_url=public_url),
         )
 
-    def register(self, channel: Channel) -> None:
-        """Add one platform: how to reply on it, and its background task."""
+    def register(self, channel: Channel) -> ChannelDisposer:
+        """Add one platform, receiving now if the gateway has started; the disposer takes it off."""
         if channel.channel in self._channels:
             raise DuplicateChannelError(f"{channel.channel!r} is already registered")
-        self._channels[channel.channel] = RunningChannel(channel)
+        running = RunningChannel(channel)
+        self._channels[channel.channel] = running
         mode = "push" if isinstance(channel, Pushing) else "pull"
         logger.info("%s channel registered (%s)", channel.channel, mode)
+        if self._is_receiving:
+            running.start()
+        return functools.partial(self._remove, running)
+
+    async def _remove(self, running: RunningChannel) -> None:
+        """Take `running` off the gateway and stop it; nothing once it has gone."""
+        if self._channels.get(running.name) is not running:
+            return
+        del self._channels[running.name]
+        await running.aclose()
+        logger.info("%s channel removed", running.name)
 
     @property
     def channels(self) -> list[str]:
@@ -85,9 +100,10 @@ class ChannelGateway:
         return self._skills
 
     async def start(self) -> None:
-        """Begin receiving on every registered channel."""
+        """Begin receiving on every registered channel, and on each registered from now on."""
+        self._is_receiving = True
         for supervised in self._channels.values():
-            await supervised.start()
+            supervised.start()
 
     async def receive(self, message: InboundMessage) -> Run | None:
         """One inbound message, from any platform."""
@@ -135,8 +151,9 @@ class ChannelGateway:
         await self._following.drained(channel, chat_id)
 
     async def aclose(self) -> None:
-        """Stop receiving, then stop delivering."""
-        for supervised in self._channels.values():
+        """Stop receiving on every channel left, then stop delivering."""
+        self._is_receiving = False
+        for supervised in tuple(self._channels.values()):
             await supervised.aclose()
         await self._tasks.aclose()
 

@@ -7,8 +7,9 @@ import {
   credentialChange,
   credentialDraft,
   initialForm,
+  isChatPlatform,
   type CredentialForm,
-  type EditableCredential,
+  type CredentialKind,
 } from "@/components/credentials/credentialForm";
 import {
   Dialog,
@@ -19,19 +20,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/api";
-import { addCredential, changeCredential } from "@/lib/credentials";
+import { addCredential, changeCredential, type Credential } from "@/lib/credentials";
 import type { Bot } from "@/lib/types";
 
 interface CredentialDialogProps {
   directUrl: string;
-  credential: EditableCredential | null;
+  credential: Credential | null;
+  kinds: CredentialKind[];
   bots: Bot[];
   onClose: () => void;
   onSaved: () => void;
 }
 
 /** Adds a credential, or edits one with its type and name fixed; an empty key keeps the saved one. */
-export function CredentialDialog({ directUrl, credential, bots, onClose, onSaved }: CredentialDialogProps) {
+export function CredentialDialog({ directUrl, credential, kinds, bots, onClose, onSaved }: CredentialDialogProps) {
   const [form, setForm] = useState<CredentialForm>(() => initialForm(credential));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +58,12 @@ export function CredentialDialog({ directUrl, credential, bots, onClose, onSaved
           <DialogHeader>
             <DialogTitle>{credential === null ? "Add credential" : `Edit ${credential.name}`}</DialogTitle>
             <DialogDescription>
-              {credential === null ? "Pick a type, then fill in its fields." : "Leave the key empty to keep the one saved."}
+              {credential === null
+                ? "Pick a type, then fill in its fields."
+                : `Leave the ${isChatPlatform(form.kind) ? "token" : "key"} empty to keep the one saved.`}
             </DialogDescription>
           </DialogHeader>
-          <CredentialFields form={form} isEditing={credential !== null} bots={bots} onChange={setForm} />
+          <CredentialFields form={form} kinds={kinds} isEditing={credential !== null} bots={bots} onChange={setForm} />
           {error && (
             <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm break-words text-danger">
               {error}
@@ -87,7 +91,7 @@ export function CredentialDialog({ directUrl, credential, bots, onClose, onSaved
   );
 }
 
-function saveForm(directUrl: string, credential: EditableCredential | null, form: CredentialForm): Promise<void> {
+function saveForm(directUrl: string, credential: Credential | null, form: CredentialForm): Promise<void> {
   return credential === null
     ? addCredential(directUrl, credentialDraft(form))
     : changeCredential(directUrl, credential.name, credentialChange(form));

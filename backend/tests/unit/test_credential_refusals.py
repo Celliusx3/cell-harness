@@ -13,6 +13,7 @@ from harness.secrets import DiskSecretRepository, SecretService
 from harness.web.errors import exception_handlers
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
+from tests.webapp import no_platforms
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://localhost:4887"
@@ -35,7 +36,7 @@ def http(tmp_path: Path) -> httpx.AsyncClient:
         tmp_path / "bots.json", durable_service(tmp_path / "sessions"), assistant_instructions="Hi."
     )
     app = FastAPI(exception_handlers=exception_handlers())
-    app.include_router(build_router(secrets, bots))
+    app.include_router(build_router(secrets, bots, no_platforms(secrets)))
     transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
     return httpx.AsyncClient(
         transport=transport, base_url="http://127.0.0.1:4886", headers={"origin": PAGE}

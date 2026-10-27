@@ -15,7 +15,7 @@ from telegram import (
     WebAppInfo,
 )
 from telegram.constants import ChatAction
-from telegram.error import TelegramError
+from telegram.error import InvalidToken, TelegramError
 from telegram.ext import (
     AIORateLimiter,
     Application,
@@ -30,7 +30,7 @@ from harness.channels.client import ChatAnswers
 from harness.channels.commands import apply as apply_command
 from harness.channels.commands import unknown_skill
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import InboundMessage
+from harness.channels.protocol import InboundMessage, TokenRefused
 from harness.channels.telegram import commands
 from harness.channels.telegram.asking import (
     BUTTONS,
@@ -50,6 +50,7 @@ logger = logging.getLogger("harness.channels.telegram")
 CHANNEL = "telegram"
 
 OPEN_LABEL = "Open"
+REFUSED_TOKEN = "Telegram refused the bot token; replace it on the Credentials page"
 
 RECEIPTS: dict[str, str] = {
     "once": "✅ Allowed once",
@@ -86,8 +87,11 @@ class TelegramChannel:
         return ASSISTANT_ID
 
     async def run(self) -> None:
-        """Poll until cancelled."""
-        await self._app.initialize()
+        """Poll until cancelled; a refused token is said without the token, which PTB's says."""
+        try:
+            await self._app.initialize()
+        except InvalidToken:
+            raise TokenRefused(REFUSED_TOKEN) from None
         await self._app.start()
         await self._app.updater.start_polling(
             allowed_updates=[Update.MESSAGE, Update.CALLBACK_QUERY],

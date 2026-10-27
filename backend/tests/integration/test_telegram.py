@@ -24,7 +24,7 @@ from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import channel_services, secrets_in, web_gateway, web_mcp
+from tests.webapp import channel_services, channels_of, secrets_in, web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -48,8 +48,7 @@ def build(tmp_path):
     gateway.register(channel)
     app = create_app(
         runs,
-        gateway,
-        web,
+        channels_of(gateway, web, secrets_in(tmp_path)),
         web_mcp(),
         no_skills(),
         tools,
@@ -118,8 +117,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     wired = create_app(
         runs,
-        gateway,
-        web,
+        channels_of(gateway, web, secrets_in(tmp_path)),
         web_mcp(),
         no_skills(),
         tools,
@@ -171,17 +169,20 @@ async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_pat
     assert bot.sent == [(CHAT, "the answer")]
 
 
-def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
+async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
+    """The gateway once the saved tokens are registered on it, with nothing started."""
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunService(
         sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
     )
     settings = Settings(local_settings_path=tmp_path / "config.local.json")
-    return build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)[0]
+    channels = build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)
+    await channels.platforms.start_saved()
+    return channels.gateway
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    assert _channels(tmp_path, secrets_in(tmp_path)).channels == ["web"]
+    assert (await _channels(tmp_path, secrets_in(tmp_path))).channels == ["web"]
 
 
 async def test_a_custom_key_named_telegram_is_not_a_token(tmp_path) -> None:
@@ -189,14 +190,14 @@ async def test_a_custom_key_named_telegram_is_not_a_token(tmp_path) -> None:
     site = Destination(origin="https://telegram.example", auth="bearer")
     keyring.save("telegram", site, SecretStr("custom-key-not-a-token"))
 
-    assert _channels(tmp_path, keyring).channels == ["web"]
+    assert (await _channels(tmp_path, keyring)).channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
     keyring = secrets_in(tmp_path)
     keyring.add_credential("telegram", TelegramDetails(), SecretStr("123:abc-telegram"))
 
-    built = _channels(tmp_path, keyring)
+    built = await _channels(tmp_path, keyring)
 
     assert built.channels == ["web", "telegram"]
     await built.aclose()

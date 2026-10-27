@@ -26,14 +26,17 @@ def _services(tmp_path: Path) -> tuple[SessionService, RunService]:
     return sessions, RunService(sessions, runtime, no_bots(sessions))
 
 
-def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
+async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
+    """The gateway once the saved tokens are registered on it, with nothing started."""
     sessions, runs = _services(tmp_path)
     settings = Settings(local_settings_path=tmp_path / "config.local.json")
-    return build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)[0]
+    channels = build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)
+    await channels.platforms.start_saved()
+    return channels.gateway
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    assert _channels(tmp_path, secrets_in(tmp_path)).channels == ["web"]
+    assert (await _channels(tmp_path, secrets_in(tmp_path))).channels == ["web"]
 
 
 async def test_a_custom_key_named_discord_is_not_a_token(tmp_path) -> None:
@@ -41,14 +44,14 @@ async def test_a_custom_key_named_discord_is_not_a_token(tmp_path) -> None:
     site = Destination(origin="https://discord.example", auth="bearer")
     keyring.save("discord", site, SecretStr("custom-key-not-a-token"))
 
-    assert _channels(tmp_path, keyring).channels == ["web"]
+    assert (await _channels(tmp_path, keyring)).channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
     keyring = secrets_in(tmp_path)
     keyring.add_credential("discord", DiscordDetails(), SecretStr("discord-token-abc"))
 
-    built = _channels(tmp_path, keyring)
+    built = await _channels(tmp_path, keyring)
 
     assert built.channels == ["web", "discord"]
     await built.aclose()
@@ -59,7 +62,7 @@ async def test_both_bots_share_one_gateway(tmp_path) -> None:
     keyring.add_credential("telegram", TelegramDetails(), SecretStr("123:abc-telegram"))
     keyring.add_credential("discord", DiscordDetails(), SecretStr("discord-token-abc"))
 
-    built = _channels(tmp_path, keyring)
+    built = await _channels(tmp_path, keyring)
 
     assert built.channels == ["web", "telegram", "discord"]
     await built.aclose()

@@ -8,7 +8,7 @@ import logging
 from harness.bots import GroupEmpty
 from harness.channels.chat_tasks import ChatKey, ChatTasks
 from harness.channels.chats import session_for, state_of
-from harness.channels.protocol import Pushing, RunningChannel
+from harness.channels.protocol import Channel, Pushing, RunningChannel
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
 from harness.files import ChatFile
@@ -42,8 +42,13 @@ class Following:
         self._replies = replies
         self._tasks = tasks
 
-    async def _state(self, channel: str, chat_id: str) -> ChatState:
-        return await state_of(self._repository, self._channels[channel].channel, chat_id)
+    def _platform(self, key: ChatKey) -> Channel | None:
+        """The platform `key`'s chat is on, or `None`, said in one line, once it has left."""
+        running = self._channels.get(key.channel)
+        if running is None:
+            logger.info("%s has left; chat %s is followed no further", *key)
+            return None
+        return running.channel
 
     async def turn_for_chat(
         self, state: ChatState, text: str, files: tuple[ChatFile, ...]
@@ -83,10 +88,11 @@ class Following:
 
     async def _follow(self, key: ChatKey, run: Run) -> None:
         """See this turn to its end, then start whatever queued behind it."""
-        channel, chat_id = key
-        transport = self._channels[channel].channel
+        transport = self._platform(key)
+        if transport is None:
+            return
         if isinstance(transport, Pushing):
-            await self._replies.deliver(transport, channel, chat_id, run)
+            await self._replies.deliver(transport, key.channel, key.chat_id, run)
         await self._wait_out(key, run)
 
     async def _wait_out(self, key: ChatKey, run: Run) -> None:
@@ -97,7 +103,10 @@ class Following:
 
     async def _drain(self, channel: str, chat_id: str) -> None:
         """Run whatever queued during the last turn, as one turn."""
-        state = await self._state(channel, chat_id)
+        platform = self._platform(ChatKey(channel, chat_id))
+        if platform is None:
+            return
+        state = await state_of(self._repository, platform, chat_id)
         if not state.pending:
             return
         text = QUEUE_JOIN.join(state.pending)
@@ -115,10 +124,14 @@ class Following:
 
     async def drained(self, channel: str, chat_id: str) -> None:
         """Wait while this chat is between turns."""
-        task = self._tasks.get((channel, chat_id))
+        key = ChatKey(channel, chat_id)
+        task = self._tasks.get(key)
         if task is None:
             return
-        state = await self._state(channel, chat_id)
+        platform = self._platform(key)
+        if platform is None:
+            return
+        state = await state_of(self._repository, platform, chat_id)
         if state.conversation_id and self._runs.active(state.conversation_id) is not None:
             return
         await asyncio.wait({task})

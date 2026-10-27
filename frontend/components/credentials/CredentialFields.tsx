@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
 import {
-  EditableKind,
+  CredentialKind,
+  isChatPlatform,
   KeyAuth,
   tickedIds,
+  withKind,
   type CredentialForm,
 } from "@/components/credentials/credentialForm";
 import type { Bot } from "@/lib/types";
@@ -11,28 +13,75 @@ import type { Bot } from "@/lib/types";
 const INPUT =
   "rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent disabled:opacity-60";
 
+const KIND_LABELS: Record<CredentialKind, string> = {
+  custom: "Custom",
+  llm: "LLM",
+  telegram: "Telegram",
+  discord: "Discord",
+};
+
 interface CredentialFieldsProps {
   form: CredentialForm;
+  kinds: CredentialKind[];
   isEditing: boolean;
   bots: Bot[];
   onChange: (form: CredentialForm) => void;
 }
 
-/** The type, then that type's fields, the key and the bots; type and name are fixed on an edit. */
-export function CredentialFields({ form, isEditing, bots, onChange }: CredentialFieldsProps) {
+/** The type, then that type's fields, the key and the bots; an edit fixes type and name, and a platform's shows its token alone. */
+export function CredentialFields({ form, kinds, isEditing, bots, onChange }: CredentialFieldsProps) {
   const change = (update: Partial<CredentialForm>) => onChange({ ...form, ...update });
+  const isPlatform = isChatPlatform(form.kind);
+  const secret = isPlatform ? "token" : "key";
   return (
     <div className="grid gap-3">
+      {!(isEditing && isPlatform) && (
+        <TypeAndName form={form} kinds={isEditing ? [form.kind] : kinds} isEditing={isEditing} onChange={change} />
+      )}
+      {form.kind === "custom" && <WebsiteFields form={form} onChange={change} />}
+      {form.kind === "llm" && <ModelFields form={form} onChange={change} />}
+      <Field label={isPlatform ? "Token" : "Key"} htmlFor="credential-key">
+        <input
+          id="credential-key"
+          type="password"
+          value={form.value}
+          onChange={(event) => change({ value: event.target.value })}
+          placeholder={isEditing ? `Leave empty to keep the saved ${secret}` : `Paste the ${secret}`}
+          autoComplete="off"
+          className={INPUT}
+        />
+      </Field>
+      {!isPlatform && <BotChecks bots={bots} botIds={form.botIds} onChange={(botIds) => change({ botIds })} />}
+      {form.kind === "llm" && (
+        <p className="text-xs text-ink-soft">A bot uses one model; ticking it here moves it from another.</p>
+      )}
+    </div>
+  );
+}
+
+interface TypeAndNameProps {
+  form: CredentialForm;
+  kinds: CredentialKind[];
+  isEditing: boolean;
+  onChange: (update: Partial<CredentialForm>) => void;
+}
+
+function TypeAndName({ form, kinds, isEditing, onChange }: TypeAndNameProps) {
+  return (
+    <>
       <Field label="Type" htmlFor="credential-type">
         <select
           id="credential-type"
           value={form.kind}
           disabled={isEditing}
-          onChange={(event) => change({ kind: EditableKind.parse(event.target.value) })}
+          onChange={(event) => onChange(withKind(form, CredentialKind.parse(event.target.value)))}
           className={INPUT}
         >
-          <option value="custom">Custom</option>
-          <option value="llm">LLM</option>
+          {kinds.map((kind) => (
+            <option key={kind} value={kind}>
+              {KIND_LABELS[kind]}
+            </option>
+          ))}
         </select>
       </Field>
       <Field label="Name" htmlFor="credential-name">
@@ -40,29 +89,13 @@ export function CredentialFields({ form, isEditing, bots, onChange }: Credential
           id="credential-name"
           value={form.name}
           disabled={isEditing}
-          onChange={(event) => change({ name: event.target.value })}
+          onChange={(event) => onChange({ name: event.target.value })}
           placeholder="lowercase letters, digits and _"
           autoComplete="off"
           className={`font-mono ${INPUT}`}
         />
       </Field>
-      {form.kind === "custom" ? <WebsiteFields form={form} onChange={change} /> : <ModelFields form={form} onChange={change} />}
-      <Field label="Key" htmlFor="credential-key">
-        <input
-          id="credential-key"
-          type="password"
-          value={form.value}
-          onChange={(event) => change({ value: event.target.value })}
-          placeholder={isEditing ? "Leave empty to keep the saved key" : "Paste the key"}
-          autoComplete="off"
-          className={INPUT}
-        />
-      </Field>
-      <BotChecks bots={bots} botIds={form.botIds} onChange={(botIds) => change({ botIds })} />
-      {form.kind === "llm" && (
-        <p className="text-xs text-ink-soft">A bot uses one model; ticking it here moves it from another.</p>
-      )}
-    </div>
+    </>
   );
 }
 

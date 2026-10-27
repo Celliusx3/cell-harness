@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { CredentialDialog } from "@/components/credentials/CredentialDialog";
 import { CredentialRow } from "@/components/credentials/CredentialRow";
-import { isEditable, type EditableCredential } from "@/components/credentials/credentialForm";
+import { addableKinds, isChatPlatform } from "@/components/credentials/credentialForm";
 import { ApiError, listBots } from "@/lib/api";
 import {
   canSaveCredentials,
@@ -23,7 +23,7 @@ const KIND_HEADINGS: { kind: CredentialDetails["kind"]; heading: string }[] = [
 ];
 
 /** Whether the dialog is shown, and for a new credential or which one. */
-type DialogState = { isOpen: false } | { isOpen: true; credential: EditableCredential | null };
+type DialogState = { isOpen: false } | { isOpen: true; credential: Credential | null };
 
 const CLOSED: DialogState = { isOpen: false };
 
@@ -64,7 +64,7 @@ export default function CredentialsPage() {
   }, [directUrl]);
 
   async function handleRemove(credential: Credential) {
-    if (directUrl === null || !window.confirm(`Remove ${credential.name}? The bots it serves lose it.`)) return;
+    if (directUrl === null || !window.confirm(removalQuestion(credential))) return;
     try {
       await removeCredential(directUrl, credential.name);
       await loadCredentials();
@@ -118,6 +118,7 @@ export default function CredentialsPage() {
         <CredentialDialog
           directUrl={directUrl}
           credential={dialog.credential}
+          kinds={addableKinds(credentials)}
           bots={bots}
           onClose={() => setDialog(CLOSED)}
           onSaved={() => {
@@ -133,7 +134,7 @@ export default function CredentialsPage() {
 interface CredentialGroupProps {
   heading: string;
   credentials: Credential[];
-  onEdit: ((credential: EditableCredential) => void) | null;
+  onEdit: ((credential: Credential) => void) | null;
   onRemove: ((credential: Credential) => void) | null;
 }
 
@@ -147,11 +148,17 @@ function CredentialGroup({ heading, credentials, onEdit, onRemove }: CredentialG
           <CredentialRow
             key={credential.name}
             credential={credential}
-            onEdit={onEdit !== null && isEditable(credential) ? () => onEdit(credential) : null}
+            onEdit={onEdit !== null ? () => onEdit(credential) : null}
             onRemove={onRemove !== null && !credential.is_default_model ? () => onRemove(credential) : null}
           />
         ))}
       </ul>
     </section>
   );
+}
+
+function removalQuestion(credential: Credential): string {
+  return isChatPlatform(credential.details.kind)
+    ? `Remove ${credential.name}? Its bot stops answering.`
+    : `Remove ${credential.name}? The bots it serves lose it.`;
 }

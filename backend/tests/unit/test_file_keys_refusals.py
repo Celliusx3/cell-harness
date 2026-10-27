@@ -113,3 +113,15 @@ def test_a_saved_token_of_the_same_kind_is_replaced_in_place(local_json, keyring
 
     [saved] = keyring.saved_credentials()
     assert (saved.name, saved.last_four) == ("telegram", "2222")
+
+
+def test_a_telegram_credential_under_another_name_is_the_one_replaced(local_json, keyring) -> None:
+    keyring.add_credential("my_telegram", TelegramDetails(), SecretStr("t-old-token-1111"))
+    _write(local_json, {"telegram": {"bot_token": "t-new-token-2222"}})
+
+    move_file_keys(local_json, LLM, keyring)
+
+    [saved] = keyring.saved_credentials()
+    assert (saved.name, saved.last_four) == ("my_telegram", "2222")
+    assert keyring.chat_platform_token("telegram") == SecretStr("t-new-token-2222")
+    assert json.loads(local_json.read_text()) == {}

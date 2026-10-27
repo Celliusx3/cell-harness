@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
@@ -32,6 +32,13 @@ class DuplicateChannelError(RuntimeError):
 
 class UnknownChannelError(RuntimeError):
     """A message arrived from a platform with no registered transport."""
+
+
+class TokenRefused(RuntimeError):
+    """A platform refused the token its channel was started with."""
+
+
+ChannelDisposer = Callable[[], Awaitable[None]]
 
 
 class Channel(Protocol):
@@ -83,7 +90,7 @@ class RunningChannel:
     def name(self) -> str:
         return self.channel.channel
 
-    async def start(self) -> None:
+    def start(self) -> None:
         logger.info("%s channel starting", self.name)
         self._task = asyncio.create_task(self.channel.run())
         self._task.add_done_callback(self._report_exit)
@@ -93,8 +100,7 @@ class RunningChannel:
         if self._task is None:
             return
         self._task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await self._task
+        await _ended(self._task)
         self._task = None
 
     def _report_exit(self, task: asyncio.Task[None]) -> None:
@@ -108,3 +114,8 @@ class RunningChannel:
             logger.warning("%s channel stopped; it will not answer", self.name)
         else:
             logger.info("%s channel stopped waiting", self.name)
+
+
+async def _ended(task: asyncio.Task[None]) -> None:
+    """Wait for `task` to end, never raising what it raised."""
+    await asyncio.wait({task})

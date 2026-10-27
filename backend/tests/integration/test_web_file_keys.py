@@ -10,8 +10,6 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from harness.channels.gateway import ChannelGateway
-from harness.channels.web.channel import WebChannel
 from harness.config.settings import MissingConfigError
 from harness.web import server
 from tests.webapp import TEST_ENCRYPTION_KEY, startup_settings
@@ -29,25 +27,25 @@ ALL_KEYS = {
 
 class Started(NamedTuple):
     app: FastAPI
-    gateway: ChannelGateway
+    channels: server.Channels
 
 
 def _start(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
-    """`create_web_app` over folders in `tmp_path`, and the gateway it registered channels on."""
-    gateways: list[ChannelGateway] = []
+    """`create_web_app` over folders in `tmp_path`, and the channels it built."""
+    built: list[server.Channels] = []
     real_channels = server.build_channels
 
-    def channels_seen(*args) -> tuple[ChannelGateway, WebChannel]:
-        gateway, web = real_channels(*args)
-        gateways.append(gateway)
-        return gateway, web
+    def channels_seen(*args) -> server.Channels:
+        channels = real_channels(*args)
+        built.append(channels)
+        return channels
 
     monkeypatch.setattr(server, "load", lambda: startup_settings(tmp_path))
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     monkeypatch.setattr(server, "build_channels", channels_seen)
     app = server.create_web_app()
-    [gateway] = gateways
-    return Started(app, gateway)
+    [channels] = built
+    return Started(app, channels)
 
 
 async def _listed(app: FastAPI) -> list[dict]:
@@ -70,14 +68,16 @@ async def test_a_file_holding_all_three_keys_starts_with_three_credentials(
 
     started = _start(tmp_path, monkeypatch)
     listed = await _listed(started.app)
-    await started.gateway.aclose()
+    await started.channels.platforms.start_saved()
+    gateway = started.channels.gateway
+    await gateway.aclose()
 
     assert {entry["name"]: entry["is_default_model"] for entry in listed} == {
         "default_model": True,
         "discord": False,
         "telegram": False,
     }
-    assert started.gateway.channels == ["web", "telegram", "discord"]
+    assert gateway.channels == ["web", "telegram", "discord"]
     text = local.read_text(encoding="utf-8")
     assert all(key not in text for key in (MODEL_KEY, TELEGRAM_TOKEN, DISCORD_TOKEN))
     assert json.loads(text) == {
@@ -90,11 +90,11 @@ async def test_a_second_start_moves_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     local = _write_local(tmp_path, ALL_KEYS)
-    await _start(tmp_path, monkeypatch).gateway.aclose()
+    await _start(tmp_path, monkeypatch).channels.gateway.aclose()
     file_before = local.read_bytes()
     keyring_before = (tmp_path / "secrets.json").read_bytes()
 
-    await _start(tmp_path, monkeypatch).gateway.aclose()
+    await _start(tmp_path, monkeypatch).channels.gateway.aclose()
 
     assert local.read_bytes() == file_before
     assert (tmp_path / "secrets.json").read_bytes() == keyring_before

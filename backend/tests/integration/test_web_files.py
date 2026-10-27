@@ -167,6 +167,6 @@ def test_the_web_channel_keeps_files_in_the_service_it_is_built_with(tmp_path) -
     settings = Settings(local_settings_path=tmp_path / "config.local.json")
     services = replace(channel_services(tmp_path, sessions, runs), files=files)
 
-    _, web = build_channels(settings, services, secrets_in(tmp_path))
+    web = build_channels(settings, services, secrets_in(tmp_path)).web
 
     assert web.files is files

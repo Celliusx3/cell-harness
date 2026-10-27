@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -12,10 +13,8 @@ from fastapi import FastAPI
 
 from harness.bots import BotService
 from harness.channels.client import ChatAnswers
-from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
@@ -41,6 +40,7 @@ from harness.web.bot_models import llm_settings_for
 from harness.web.errors import exception_handlers
 from harness.web.file_keys import move_file_keys, require_default_model
 from harness.web.logs import configure_logging
+from harness.web.platforms import PlatformChannels, platform_channel
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
@@ -96,10 +96,19 @@ class ChannelServices:
     images: ImageService
 
 
+@dataclass(frozen=True)
+class Channels:
+    """The gateway, the browser's channel on it, and the chat platforms that join and leave it."""
+
+    gateway: ChannelGateway
+    web: WebChannel
+    platforms: PlatformChannels
+
+
 def build_channels(
     settings: Settings, services: ChannelServices, keyring: SecretService
-) -> tuple[ChannelGateway, WebChannel]:
-    """The gateway with the web and each platform the keyring holds a token for, and the web."""
+) -> Channels:
+    """The gateway with the web on it, and the platforms the keyring's tokens will start there."""
     chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
     gateway = ChannelGateway(
         chats, services.runs, services.sessions, services.skills, public_url=settings.web.public_url
@@ -109,15 +118,8 @@ def build_channels(
     web = WebChannel(gateway, services.bots, services.files, services.images)
     gateway.register(web)
 
-    telegram = keyring.chat_platform_token("telegram")
-    if telegram is not None:
-        gateway.register(TelegramChannel(telegram.get_secret_value(), gateway, chat_answers))
-
-    discord = keyring.chat_platform_token("discord")
-    if discord is not None:
-        gateway.register(DiscordChannel(discord.get_secret_value(), gateway))
-
-    return gateway, web
+    make_channel = functools.partial(platform_channel, gateway, chat_answers)
+    return Channels(gateway, web, PlatformChannels(gateway, keyring, make_channel))
 
 
 def _resolve_context_tokens(settings: Settings, keyring: SecretService) -> int | None:
@@ -175,18 +177,15 @@ def create_web_app() -> FastAPI:
     runs = RunService(service, runtime, bots)
     assert runtime.tools is not None
     messages = attach_bot_messages(runtime.tools.tool_service, service, bots, runs)
-    gateway, web = build_channels(
+    channels = build_channels(
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
-    return create_app(
-        runs, gateway, web, mcp, skills, client_tools, approvals, bots, secrets, messages
-    )
+    return create_app(runs, channels, mcp, skills, client_tools, approvals, bots, secrets, messages)
 
 
 def create_app(
     runs: RunService,
-    gateway: ChannelGateway,
-    web: WebChannel,
+    channels: Channels,
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
@@ -197,9 +196,12 @@ def create_app(
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
+    gateway, web = channels.gateway, channels.web
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await mcp.start()
+        await channels.platforms.start_saved()
         await gateway.start()
         yield
         await gateway.aclose()
@@ -216,7 +218,7 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_credentials_router(secrets, bots))
+    app.include_router(build_credentials_router(secrets, bots, channels.platforms))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

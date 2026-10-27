@@ -14,8 +14,8 @@ export type CredentialDetails =
   | { kind: "telegram" }
   | { kind: "discord" };
 
-/** The kinds the dialog adds and changes. */
-export type EditableDetails = Extract<CredentialDetails, { kind: "custom" | "llm" }>;
+/** The kinds that sign the app in to a chat platform. */
+export type ChatPlatform = Extract<CredentialDetails["kind"], "telegram" | "discord">;
 
 /** `GET /api/credentials`: one keyring entry, the bots it serves, and its last four characters at most. */
 export interface Credential {
@@ -35,14 +35,14 @@ export interface CredentialList {
 /** `POST /api/credentials`: a new credential, its key, and the bots it serves. */
 export interface CredentialDraft {
   name: string;
-  details: EditableDetails;
+  details: CredentialDetails;
   value: string;
   bot_ids: string[];
 }
 
 /** `PATCH /api/credentials/{name}`: what it is for, a new key or null to keep the saved one, and its bots. */
 export interface CredentialChange {
-  details: EditableDetails;
+  details: CredentialDetails;
   value: string | null;
   bot_ids: string[];
 }

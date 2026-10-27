@@ -8,7 +8,6 @@ from typing import NamedTuple
 
 import pytest
 
-from harness.channels.gateway import ChannelGateway
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings
 from harness.images import ImageService
@@ -58,7 +57,7 @@ def test_the_web_channel_keeps_images_in_the_service_it_is_built_with(tmp_path) 
     settings = Settings(local_settings_path=tmp_path / "config.local.json")
     services = replace(channel_services(tmp_path, sessions, runs), images=images)
 
-    _, web = build_channels(settings, services, secrets_in(tmp_path))
+    web = build_channels(settings, services, secrets_in(tmp_path)).web
 
     assert web.images is images
 
@@ -92,10 +91,10 @@ def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
         runtimes.append(real_runtime(*args, **kwargs))
         return runtimes[-1]
 
-    def channels_seen(*args) -> tuple[ChannelGateway, WebChannel]:
-        gateway, web = real_channels(*args)
-        webs.append(web)
-        return gateway, web
+    def channels_seen(*args) -> server.Channels:
+        channels = real_channels(*args)
+        webs.append(channels.web)
+        return channels
 
     monkeypatch.setattr(server, "load", lambda: settings)
     monkeypatch.setattr(server, "configure_logging", lambda: None)

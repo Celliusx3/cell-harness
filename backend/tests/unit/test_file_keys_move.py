@@ -17,6 +17,7 @@ from harness.secrets.models.details import ModelDetails
 from harness.web.file_keys import move_file_keys, require_default_model
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
+from tests.webapp import no_platforms
 
 KEY = "0123456789abcdef0123456789abcdef"
 MODEL_KEY = "sk-file-model-key-1234"
@@ -147,7 +148,7 @@ async def test_the_default_model_cannot_be_removed(tmp_path: Path, local_json, k
         tmp_path / "bots.json", durable_service(tmp_path / "s"), assistant_instructions=""
     )
     app = FastAPI()
-    app.include_router(build_router(keyring, bots))
+    app.include_router(build_router(keyring, bots, no_platforms(keyring)))
     transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
 
     async with httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1:4886") as http:

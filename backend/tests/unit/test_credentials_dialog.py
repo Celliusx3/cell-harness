@@ -12,6 +12,7 @@ from harness.bots import BotDraft, BotService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
+from tests.webapp import no_platforms
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
@@ -39,7 +40,7 @@ def bots(tmp_path: Path) -> BotService:
 
 def _client(secrets: SecretService, bots: BotService, peer=THIS_MAC) -> httpx.AsyncClient:
     app = FastAPI()
-    app.include_router(build_router(secrets, bots))
+    app.include_router(build_router(secrets, bots, no_platforms(secrets)))
     transport = httpx.ASGITransport(app=app, client=peer)
     return httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1:4886")
 
