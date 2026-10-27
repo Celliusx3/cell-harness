@@ -39,7 +39,7 @@ def read_saved(path: Path) -> dict[str, object]:
 
 
 def write_saved(path: Path, saved: Mapping[str, object]) -> None:
-    """Replaces the file in one rename, so a crash never leaves half of it; owner-only."""
+    """Replaces the file in one rename, readable by its owner only."""
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:

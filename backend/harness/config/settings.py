@@ -120,7 +120,7 @@ class Settings(BaseSettings):
 
 
 def local_file() -> Path:
-    """The per-machine settings file this harness reads, the one a saved credential goes into."""
+    """The per-machine settings file this harness reads."""
     return _LOCAL_JSON
 
 

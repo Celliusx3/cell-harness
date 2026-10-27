@@ -168,7 +168,7 @@ export const listSecrets = () => request<SecretSummary[]>("/secrets");
 /** The harness's own keys, each by its last four characters at most. */
 export const listCredentials = () => request<CredentialList>("/credentials");
 
-/** Whether this browser reaches the harness directly, which only a page on its own Mac does. */
+/** Whether this browser reaches the harness directly. */
 export async function canSaveCredentials(directUrl: string): Promise<boolean> {
   try {
     return (await fetch(`${directUrl}/api/credentials`)).ok;
@@ -177,7 +177,7 @@ export async function canSaveCredentials(directUrl: string): Promise<boolean> {
   }
 }
 
-/** Saves keys straight to the harness, never through the page server, which the harness refuses. */
+/** Saves keys straight to the harness. */
 export async function saveCredentials(
   directUrl: string,
   values: CredentialValues,

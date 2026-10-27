@@ -21,8 +21,6 @@ THIS_MAC = ("127.0.0.1", 50000)
 
 @dataclass
 class FakeRuns:
-    """A run service whose only answer is whether a reply is being written."""
-
     busy: bool = False
 
     def is_busy(self) -> bool:
@@ -31,7 +29,6 @@ class FakeRuns:
 
 @pytest.fixture
 def harness(tmp_path, monkeypatch):
-    """The credentials routes over a throwaway config pair; returns the local file and the runs."""
     committed = tmp_path / "config.json"
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)

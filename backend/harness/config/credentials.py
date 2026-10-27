@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict
 from pydantic.fields import FieldInfo
 
 from harness.config.settings import Settings
@@ -12,8 +12,6 @@ from harness.config.settings import Settings
 SECRET = "x-secret"
 READ_ONLY = "x-readonly"
 REQUIRED = "x-required"
-ENV_PREFIX = "HARNESS_"
-ENV_NESTING = "__"
 SHOWN_CHARACTERS = 4
 MASKABLE_LENGTH = 8
 
@@ -72,17 +70,18 @@ def _credential(
 
 
 def _variable_setting(section: str, name: str, env: Mapping[str, str]) -> str | None:
-    """The environment variable that sets this key, matched in any case as the settings read it."""
-    wanted = f"{ENV_PREFIX}{section}{ENV_NESTING}{name}".upper()
+    """The environment variable that sets this key, named as the settings name it."""
+    config = Settings.model_config
+    wanted = f"{config['env_prefix']}{section}{config['env_nested_delimiter']}{name}".upper()
     return next((variable for variable in env if variable.upper() == wanted), None)
 
 
 class NotSettable(ValueError):
-    """A path the page may not set: not a listed key, or one an environment variable sets."""
+    """A path the page may not set."""
 
 
 class RefusedValue(ValueError):
-    """A value the harness would not keep; the message names the key, never the value."""
+    """A value the harness would not keep."""
 
 
 MASK = "…"
@@ -91,7 +90,7 @@ MASK = "…"
 def check_values(
     settings: Settings, env: Mapping[str, str], values: Mapping[str, str | None]
 ) -> None:
-    """Raises unless each path is a listed key no variable sets, with a value worth keeping."""
+    """Raises NotSettable or RefusedValue for the first value the page may not save."""
     listed = {credential.path: credential for credential in credentials(settings, env)}
     for path, value in values.items():
         credential = listed.get(path)
@@ -102,18 +101,11 @@ def check_values(
         if value is None and credential.required:
             raise NotSettable(f"{path} cannot be removed; the harness cannot start without it")
         if value is not None:
-            _check_value(settings, path, value)
+            _check_value(path, value)
 
 
-def _check_value(settings: Settings, path: str, value: str) -> None:
+def _check_value(path: str, value: str) -> None:
     if not value.strip():
         raise RefusedValue(f"{path}: an empty key is not saved; use Remove instead")
     if MASK in value:
         raise RefusedValue(f"{path}: that is the masked preview, not the key; paste the whole key")
-    section_name, name = path.split(".", 1)
-    section = getattr(settings, section_name)
-    try:
-        type(section).model_validate({**section.model_dump(), name: value})
-    except ValidationError as err:
-        reasons = "; ".join(error["msg"] for error in err.errors())
-        raise RefusedValue(f"{path}: {reasons}") from err

@@ -80,7 +80,7 @@ function openChat(): void {
   });
 }
 
-/** Restarts only the harness, so a saved key takes effect; the window and the page server stay. */
+/** Restarts only the harness; the window and the page server stay. */
 async function restartHarness(): Promise<void> {
   const [harness, pages] = children;
   if (hasStopBegun() || harness === undefined || pages === undefined) return;

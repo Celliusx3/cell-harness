@@ -3,7 +3,7 @@ import path from "node:path";
 
 const SETTLE_MS = 500;
 
-/** Whether a change the folder reported is the settings file itself, not a save's temp file. */
+/** Whether a change the folder reported is the settings file itself. */
 export function isSettingsChange(changed: string | null, settingsFile: string): boolean {
   return changed === path.basename(settingsFile);
 }

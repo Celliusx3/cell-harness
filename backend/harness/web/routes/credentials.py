@@ -80,9 +80,9 @@ def build_router(
 
     @router.put("", response_model=Saved)
     async def save(request: Request, response: Response, body: CredentialValues) -> Saved:
-        """Writes the keys into the per-machine settings file; the harness restarts to read them."""
+        """Writes the keys into the per-machine settings file."""
         headers = _page_headers(request)
-        refusal = _not_from_this_mac(request)
+        refusal = _save_refusal(request)
         if refusal is not None:
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail=refusal, headers=headers)
         _check(settings, env, body, headers)
@@ -110,7 +110,7 @@ def _check(
         ) from err
 
 
-def _not_from_this_mac(request: Request) -> str | None:
+def _save_refusal(request: Request) -> str | None:
     """Why a save is refused, or None for a page on this Mac that reached the harness directly."""
     if any(_is_proxy_header(name) for name in request.headers):
         return "Saving through a proxy is refused; open the page on the Mac that runs the harness."
@@ -147,7 +147,7 @@ def _page_headers(request: Request) -> dict[str, str]:
 
 
 def _own_url(request: Request) -> str:
-    """The address the harness itself listens on, which only this Mac can reach."""
+    """The address the harness itself listens on."""
     server = request.scope.get("server")
     if server is None:
         return str(request.base_url).rstrip("/")

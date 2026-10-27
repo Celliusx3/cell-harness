@@ -26,7 +26,7 @@ Today the harness's keys and tokens live in a JSON file. A friend with the Mac a
 - Save goes straight to the harness's own port, not through the page server. That port listens on this Mac only, so another device cannot reach it. The page server forwards requests without the browser's address, so it cannot tell this Mac from another device.
 - The harness refuses a save that came through any proxy or from an address that is not this Mac. It also refuses a save from a page that is not one of its own. OpenMausBot refuses proxied requests in the same way.
 - Save writes the per-machine settings file and keeps every value it does not change. The write replaces the file in one step, readable by its owner only, as the Mac app's setup window does.
-- A save is checked against the whole settings model before it is written. A refused value is shown with the harness's message, and the key typed is never echoed back.
+- A save is checked before it is written: a listed key, not set by a variable, not blank, and not the masked preview pasted back. A refused value is named by its key, never echoed back.
 - A change to the settings file restarts the harness. `make dev`'s reloader watches the file, and the Mac app watches it too. anibridge restarts after a save, and its page waits for the server to return.
 - If a reply is running, Save first asks, then restarts. To decide at approval: the strict reading is to refuse while busy, but you chose to ask.
 - The page is named Credentials and holds the harness's own keys. The Keys page stays the keyring of keys the bots use.

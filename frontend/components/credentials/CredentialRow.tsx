@@ -18,7 +18,6 @@ interface CredentialRowProps {
   onChange: (draft: Draft) => void;
 }
 
-/** One key: its path, its state and what it is for; on this Mac, a field to replace it and Remove. */
 export function CredentialRow({ credential, editable, draft, onChange }: CredentialRowProps) {
   const settable = editable && credential.set_by_env === null;
   return (

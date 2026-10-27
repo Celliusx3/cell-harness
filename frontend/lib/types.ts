@@ -289,7 +289,7 @@ export interface Credential {
   set_by_env: string | null;
 }
 
-/** `GET /api/credentials`, with the harness's own address, which only this Mac can reach. */
+/** `GET /api/credentials`, with the harness's own address. */
 export interface CredentialList {
   credentials: Credential[];
   direct_url: string;

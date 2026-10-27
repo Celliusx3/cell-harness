@@ -113,7 +113,7 @@ async function saveAsking(directUrl: string, values: CredentialValues): Promise<
   return true;
 }
 
-/** Whether a new harness process answers within the wait, which means the saved keys are in use. */
+/** Whether a new harness process answers within the wait. */
 async function restarted(previousPid: number): Promise<boolean> {
   const deadline = Date.now() + RESTART_WAIT_MS;
   while (Date.now() < deadline) {

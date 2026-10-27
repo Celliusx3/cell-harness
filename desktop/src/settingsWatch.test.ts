@@ -8,6 +8,9 @@ import { setTimeout as delay } from "node:timers/promises";
 import { isSettingsChange, watchSettings } from "./settingsWatch";
 
 const FILE = "/d/config.local.json";
+const NOTICE_WITHIN_MS = 5000;
+const POLL_MS = 50;
+const NO_SECOND_CHANGE_MS = 1000;
 
 test("a change to the settings file is one", () => {
   assert.equal(isSettingsChange("config.local.json", FILE), true);
@@ -31,7 +34,9 @@ test("replacing the file the way a save does is noticed once", async () => {
   const temp = path.join(folder, ".config.local.json.abc.tmp");
   writeFileSync(temp, '{"telegram": {"bot_token": "t"}}');
   renameSync(temp, file);
-  await delay(1500);
+  const deadline = Date.now() + NOTICE_WITHIN_MS;
+  while (changes === 0 && Date.now() < deadline) await delay(POLL_MS);
+  await delay(NO_SECOND_CHANGE_MS);
   stop();
 
   assert.equal(changes, 1);

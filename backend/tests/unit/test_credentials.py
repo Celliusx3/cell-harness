@@ -26,7 +26,6 @@ class NotBusy:
 
 @pytest.fixture
 def settings_with(tmp_path, monkeypatch):
-    """A `Settings` built from a throwaway config pair, with no `HARNESS_` variable in the way."""
     committed = tmp_path / "config.json"
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
@@ -82,6 +81,10 @@ def test_only_the_model_api_key_is_required(settings_with) -> None:
     listed = credentials(settings_with({}), env={})
 
     assert [c.path for c in listed if c.required] == ["llm.api_key"]
+
+
+def test_the_settings_read_their_variables_in_any_case_as_the_list_does() -> None:
+    assert Settings.model_config["case_sensitive"] is False
 
 
 def test_every_credential_says_what_it_is(settings_with) -> None:
