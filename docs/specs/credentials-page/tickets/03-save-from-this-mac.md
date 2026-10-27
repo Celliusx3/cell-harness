@@ -10,7 +10,7 @@
 - It refuses a peer that is not loopback, and an `Origin` that is not a loopback origin.
 - It merges the patch into `config.local.json`, keeps every other value, and checks the result against `Settings`.
 - A refused value returns 422 with the field and the harness's message, without the input. Nothing is written.
-- If any reply is running and `confirm` is not set, it returns 409. `RunService` gains `is_busy()`.
+- If any reply is running and `may_stop_reply` is not set, it returns 409. `RunService` gains `is_busy()`.
 - The file is written in one rename, with mode 600, by a pure merge in `harness/config/` and a small writer.
 - The harness answers CORS for loopback origins on this route only.
 - `GET /api/credentials` also tells the page the harness's own address, from `request.scope["server"]`.
@@ -20,7 +20,7 @@
 **Checks.**
 
 - Route tests cover each refusal: a forwarded header, a foreign origin, an unknown path and a masked preview.
-- They also cover a key set by the environment, a bad value with no input echoed, and a busy harness without confirm.
+- They also cover a key set by the environment, a bad value with no input echoed, and a busy harness without `may_stop_reply`.
 - A route test saves a patch and asserts the file keeps its other values and has mode 600.
 - By hand: a save through `127.0.0.1:4897/api/credentials` is refused, and the same save from the page succeeds.
 

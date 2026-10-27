@@ -172,7 +172,7 @@ async def test_a_busy_harness_asks_first_and_saves_once_confirmed(harness) -> No
     assert asked.status_code == 409
     assert local.read_text() == before
 
-    confirmed = await _put(_app(harness), {**patch, "confirm": True})
+    confirmed = await _put(_app(harness), {**patch, "may_stop_reply": True})
     assert confirmed.status_code == 200
     assert _saved(local)["telegram"] == {"bot_token": "123:t-abcd"}
 
@@ -183,7 +183,7 @@ async def test_the_list_tells_the_page_the_harness_own_address(harness) -> None:
         response = await http.get("/api/credentials", headers={"origin": PAGE})
 
     assert response.json()["direct_url"] == "http://127.0.0.1:4896"
-    assert response.json()["harness_pid"] == os.getpid()
+    assert response.json()["answering_pid"] == os.getpid()
     assert response.headers["access-control-allow-origin"] == PAGE
 
 

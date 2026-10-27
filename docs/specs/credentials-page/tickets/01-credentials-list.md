@@ -7,7 +7,7 @@
 - `harness/config/sections.py` marks each secret field with `json_schema_extra={"x-secret": True}`: the API key, both bot tokens, and the encryption key.
 - It marks the encryption key `"x-readonly": True`, so the page never lists it.
 - A pure module `harness/config/credentials.py` walks the `Settings` model and returns a tuple of `Credential`, one per secret field that is not read-only.
-- A `Credential` has its dotted path, its section, its one-line description, and its last four characters, or none when unset. Its full value never leaves the harness.
+- A `Credential` has its dotted path, its one-line description, and its last four characters, or none when unset. Its full value never leaves the harness.
 - It also says when a `HARNESS_` environment variable sets it, which makes it read-only.
 - `harness/web/routes/credentials.py` serves `GET /api/credentials`, and `web/server.py` mounts it.
 

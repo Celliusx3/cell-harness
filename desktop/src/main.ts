@@ -45,7 +45,7 @@ let chatWindow: BrowserWindow | null = null;
 /** Held for the app's whole life: Electron drops a Tray from the menu bar once it is garbage-collected. */
 let menuBarIcon: Tray | null = null;
 let stopWatchingSettings: (() => void) | null = null;
-let restarting: Promise<void> = Promise.resolve();
+let restartQueue: Promise<void> = Promise.resolve();
 
 async function startApp(): Promise<void> {
   mkdirSync(path.dirname(files.harnessLog), { recursive: true });
@@ -76,7 +76,7 @@ function openChat(): void {
   app.on("second-instance", showChatWindow);
   app.on("activate", showChatWindow);
   stopWatchingSettings = watchSettings(files.localJson, () => {
-    restarting = restarting.then(restartHarness);
+    restartQueue = restartQueue.then(restartHarness);
   });
 }
 
@@ -86,10 +86,10 @@ async function restartHarness(): Promise<void> {
   if (hasStopBegun() || harness === undefined || pages === undefined) return;
   await harness.stop();
   if (hasStopBegun()) return;
-  const next = startHarness(harnessSpec(layout, files, process.env), files.harnessLog, files.pidFile);
-  children = [next, pages];
+  const newHarness = startHarness(harnessSpec(layout, files, process.env), files.harnessLog, files.pidFile);
+  children = [newHarness, pages];
   try {
-    await waitForPort({ host: HOST, port: HARNESS_PORT }, HARNESS_START_MS, next.exited);
+    await waitForPort({ host: HOST, port: HARNESS_PORT }, HARNESS_START_MS, newHarness.exited);
   } catch (error) {
     dialog.showErrorBox(`${APP_NAME} could not restart its harness`, `${messageOf(error)}\n\n${logTail(files.harnessLog)}`);
   }

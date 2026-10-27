@@ -4,7 +4,7 @@ import { messageOf } from "./errors";
 import { APP_URL } from "./origin";
 import { APP_NAME } from "./paths";
 import { TRAY_ICON_POINTS, trayIconPixels } from "./trayIcon";
-import { trayMenu } from "./trayMenu";
+import { trayMenuItems } from "./trayMenu";
 
 export interface TrayInput {
   readonly showChatWindow: () => void;
@@ -20,7 +20,7 @@ export function addTray(input: TrayInput): Tray {
   tray.setToolTip(APP_NAME);
   tray.setContextMenu(
     Menu.buildFromTemplate(
-      trayMenu({
+      trayMenuItems({
         showChatWindow: input.showChatWindow,
         showCredentials: input.showCredentials,
         openInBrowser: openAppInBrowser,

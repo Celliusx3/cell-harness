@@ -119,7 +119,7 @@ class Settings(BaseSettings):
         )
 
 
-def local_file() -> Path:
+def local_settings_path() -> Path:
     """The per-machine settings file this harness reads."""
     return _LOCAL_JSON
 

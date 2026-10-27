@@ -7,6 +7,10 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+SECRET_MARKER = "x-secret"
+READ_ONLY_MARKER = "x-readonly"
+REQUIRED_MARKER = "x-required"
+
 
 class LLMSettings(BaseModel):
     """Which model answers, whether it can see images, and how it is reached."""
@@ -14,7 +18,7 @@ class LLMSettings(BaseModel):
     api_key: str = Field(
         default="",
         description="The model provider's API key.",
-        json_schema_extra={"x-secret": True, "x-required": True},
+        json_schema_extra={SECRET_MARKER: True, REQUIRED_MARKER: True},
     )
     model: str = ""
     vision: bool
@@ -64,7 +68,7 @@ class SecretSettings(BaseModel):
     encryption_key: str = Field(
         default="",
         description="The key that locks the bots' saved keys; changing it makes them unreadable.",
-        json_schema_extra={"x-secret": True, "x-readonly": True},
+        json_schema_extra={SECRET_MARKER: True, READ_ONLY_MARKER: True},
     )
 
     @field_validator("path")
@@ -93,7 +97,7 @@ class TelegramSettings(BaseModel):
     bot_token: str = Field(
         default="",
         description="The token BotFather gave your Telegram bot. Empty turns Telegram off.",
-        json_schema_extra={"x-secret": True},
+        json_schema_extra={SECRET_MARKER: True},
     )
 
 
@@ -103,7 +107,7 @@ class DiscordSettings(BaseModel):
     bot_token: str = Field(
         default="",
         description="Your Discord bot's token, from the Developer Portal. Empty turns Discord off.",
-        json_schema_extra={"x-secret": True},
+        json_schema_extra={SECRET_MARKER: True},
     )
 
 

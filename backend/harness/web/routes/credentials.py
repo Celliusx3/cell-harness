@@ -13,23 +13,23 @@ from pydantic import BaseModel, ConfigDict
 
 from harness.config.credentials import (
     Credential,
-    NotSettable,
     RefusedValue,
+    UnsettablePath,
     check_values,
     credentials,
 )
-from harness.config.credentials_file import read_saved, with_values, write_saved
+from harness.config.local_settings import read_local_settings, with_values, write_local_settings
 from harness.config.settings import Settings
 
-LOOPBACK_PEERS = frozenset({"127.0.0.1", "::1"})
-LOOPBACK_PAGES = frozenset({"localhost", "127.0.0.1", "::1"})
-PROXY_HEADERS = ("forwarded", "x-real-ip")
+LOOPBACK_ADDRESSES = frozenset({"127.0.0.1", "::1"})
+LOOPBACK_HOSTNAMES = frozenset({"localhost", "127.0.0.1", "::1"})
+PROXY_HEADER_NAMES = ("forwarded", "x-real-ip")
 PROXY_HEADER_PREFIX = "x-forwarded-"
-SAVE_METHODS = "GET, PUT, OPTIONS"
-SAVE_HEADERS = "content-type"
+ALLOWED_METHODS = "GET, PUT, OPTIONS"
+ALLOWED_HEADERS = "content-type"
 
 
-class Busyness(Protocol):
+class RunActivity(Protocol):
     def is_busy(self) -> bool: ...
 
 
@@ -40,7 +40,7 @@ class CredentialList(BaseModel):
 
     credentials: tuple[Credential, ...]
     direct_url: str
-    harness_pid: int
+    answering_pid: int
 
 
 class CredentialValues(BaseModel):
@@ -49,60 +49,67 @@ class CredentialValues(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     values: dict[str, str | None]
-    confirm: bool = False
+    may_stop_reply: bool = False
 
 
-class Saved(BaseModel):
+class SaveReceipt(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    saved: tuple[str, ...]
+    paths: tuple[str, ...]
 
 
 def build_router(
-    settings: Settings, env: Mapping[str, str], runs: Busyness, local: Path
+    settings: Settings, env: Mapping[str, str], runs: RunActivity, local_settings_path: Path
 ) -> APIRouter:
     router = APIRouter(prefix="/api/credentials", tags=["credentials"])
 
     @router.get("", response_model=CredentialList)
     async def list_credentials(request: Request, response: Response) -> CredentialList:
         """The keys as they were when the harness started."""
-        response.headers.update(_page_headers(request))
+        response.headers.update(_cors_headers(request))
         return CredentialList(
             credentials=credentials(settings, env),
-            direct_url=_own_url(request),
-            harness_pid=os.getpid(),
+            direct_url=_direct_url(request),
+            answering_pid=os.getpid(),
         )
 
     @router.options("")
-    async def ask_before_saving(request: Request) -> Response:
+    async def answer_preflight(request: Request) -> Response:
         """A page on this Mac may save here; any other page gets no permission."""
-        return Response(status_code=status.HTTP_204_NO_CONTENT, headers=_page_headers(request))
+        return Response(status_code=status.HTTP_204_NO_CONTENT, headers=_cors_headers(request))
 
-    @router.put("", response_model=Saved)
-    async def save(request: Request, response: Response, body: CredentialValues) -> Saved:
+    @router.put("", response_model=SaveReceipt)
+    async def save_credentials(
+        request: Request, response: Response, body: CredentialValues
+    ) -> SaveReceipt:
         """Writes the keys into the per-machine settings file."""
-        headers = _page_headers(request)
-        refusal = _save_refusal(request)
+        headers = _cors_headers(request)
+        refusal = _save_refusal_reason(request)
         if refusal is not None:
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail=refusal, headers=headers)
-        _check(settings, env, body, headers)
-        if runs.is_busy() and not body.confirm:
+        _refuse_unsavable_values(settings, env, body.values, headers)
+        if runs.is_busy() and not body.may_stop_reply:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail="A reply will stop.", headers=headers
             )
-        write_saved(local, with_values(read_saved(local), body.values))
+        write_local_settings(
+            local_settings_path, with_values(read_local_settings(local_settings_path), body.values)
+        )
         response.headers.update(headers)
-        return Saved(saved=tuple(body.values))
+        return SaveReceipt(paths=tuple(body.values))
 
     return router
 
 
-def _check(
-    settings: Settings, env: Mapping[str, str], body: CredentialValues, headers: dict[str, str]
+def _refuse_unsavable_values(
+    settings: Settings,
+    env: Mapping[str, str],
+    values: Mapping[str, str | None],
+    headers: dict[str, str],
 ) -> None:
     try:
-        check_values(settings, env, body.values)
-    except NotSettable as err:
+        check_values(settings, env, values)
+    except UnsettablePath as err:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(err), headers=headers) from err
     except RefusedValue as err:
         raise HTTPException(
@@ -110,11 +117,11 @@ def _check(
         ) from err
 
 
-def _save_refusal(request: Request) -> str | None:
+def _save_refusal_reason(request: Request) -> str | None:
     """Why a save is refused, or None for a page on this Mac that reached the harness directly."""
     if any(_is_proxy_header(name) for name in request.headers):
         return "Saving through a proxy is refused; open the page on the Mac that runs the harness."
-    if request.client is None or request.client.host not in LOOPBACK_PEERS:
+    if request.client is None or request.client.host not in LOOPBACK_ADDRESSES:
         return "Saving is refused from another device."
     if not _is_page_on_this_mac(request.headers.get("origin")):
         return "Saving is refused from a page that is not this harness's own."
@@ -123,30 +130,30 @@ def _save_refusal(request: Request) -> str | None:
 
 def _is_proxy_header(name: str) -> bool:
     lowered = name.lower()
-    return lowered.startswith(PROXY_HEADER_PREFIX) or lowered in PROXY_HEADERS
+    return lowered.startswith(PROXY_HEADER_PREFIX) or lowered in PROXY_HEADER_NAMES
 
 
 def _is_page_on_this_mac(origin: str | None) -> bool:
     if origin is None:
         return False
     parts = urlsplit(origin)
-    return parts.scheme == "http" and parts.hostname in LOOPBACK_PAGES
+    return parts.scheme == "http" and parts.hostname in LOOPBACK_HOSTNAMES
 
 
-def _page_headers(request: Request) -> dict[str, str]:
+def _cors_headers(request: Request) -> dict[str, str]:
     """Cross-origin permission for a page served from this Mac, and none for any other page."""
     origin = request.headers.get("origin")
     if not _is_page_on_this_mac(origin):
         return {}
     return {
         "access-control-allow-origin": str(origin),
-        "access-control-allow-methods": SAVE_METHODS,
-        "access-control-allow-headers": SAVE_HEADERS,
+        "access-control-allow-methods": ALLOWED_METHODS,
+        "access-control-allow-headers": ALLOWED_HEADERS,
         "vary": "Origin",
     }
 
 
-def _own_url(request: Request) -> str:
+def _direct_url(request: Request) -> str:
     """The address the harness itself listens on."""
     server = request.scope.get("server")
     if server is None:

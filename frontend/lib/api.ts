@@ -181,12 +181,12 @@ export async function canSaveCredentials(directUrl: string): Promise<boolean> {
 export async function saveCredentials(
   directUrl: string,
   values: CredentialValues,
-  confirm: boolean,
+  mayStopReply: boolean,
 ): Promise<void> {
   const response = await fetch(`${directUrl}/api/credentials`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ values, confirm }),
+    body: JSON.stringify({ values, may_stop_reply: mayStopReply }),
   });
   if (!response.ok) throw new ApiError(response.status, await detailOf(response));
 }

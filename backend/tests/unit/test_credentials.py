@@ -73,14 +73,14 @@ def test_an_unset_key_shows_as_not_set(settings_with) -> None:
 def test_a_key_given_by_the_environment_names_its_variable(settings_with) -> None:
     listed = credentials(settings_with({}), env={"harness_telegram__bot_token": "t-1"})
 
-    assert listed[1].set_by_env == "harness_telegram__bot_token"
-    assert listed[0].set_by_env is None
+    assert listed[1].env_variable == "harness_telegram__bot_token"
+    assert listed[0].env_variable is None
 
 
 def test_only_the_model_api_key_is_required(settings_with) -> None:
     listed = credentials(settings_with({}), env={})
 
-    assert [c.path for c in listed if c.required] == ["llm.api_key"]
+    assert [c.path for c in listed if c.is_required] == ["llm.api_key"]
 
 
 def test_the_settings_read_their_variables_in_any_case_as_the_list_does() -> None:
@@ -116,7 +116,7 @@ def test_every_text_setting_named_like_a_key_or_token_is_marked_secret() -> None
 async def test_the_page_reads_the_list_with_no_key_in_full(settings_with) -> None:
     app = FastAPI()
     settings = settings_with({"llm": {"api_key": API_KEY}})
-    app.include_router(build_router(settings, {}, NotBusy(), settings_module.local_file()))
+    app.include_router(build_router(settings, {}, NotBusy(), settings_module.local_settings_path()))
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://t"
     ) as http:

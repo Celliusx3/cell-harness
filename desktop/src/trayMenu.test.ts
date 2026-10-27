@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { trayMenu } from "./trayMenu";
+import { trayMenuItems } from "./trayMenu";
 
 const NOTHING = (): void => undefined;
 
 test("the menu opens the chat, the credentials, the browser and the file, then quits", () => {
-  const labels = trayMenu({
+  const labels = trayMenuItems({
     showChatWindow: NOTHING,
     showCredentials: NOTHING,
     openInBrowser: NOTHING,
@@ -26,7 +26,7 @@ test("the menu opens the chat, the credentials, the browser and the file, then q
 
 test("Credentials… shows the credentials", () => {
   let shown = 0;
-  const credentials = trayMenu({
+  const credentials = trayMenuItems({
     showChatWindow: NOTHING,
     showCredentials: () => {
       shown += 1;

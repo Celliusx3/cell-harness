@@ -8,13 +8,17 @@ import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 
-OWNER_ONLY = 0o600
+from pydantic import JsonValue
+
+OWNER_ONLY_MODE = 0o600
 
 
-def with_values(saved: Mapping[str, object], values: Mapping[str, str | None]) -> dict[str, object]:
+def with_values(
+    contents: dict[str, JsonValue], values: Mapping[str, str | None]
+) -> dict[str, JsonValue]:
     """The contents with each `section.name` set, or removed when its value is None."""
     merged = {
-        key: dict(value) if isinstance(value, dict) else value for key, value in saved.items()
+        key: dict(value) if isinstance(value, dict) else value for key, value in contents.items()
     }
     for path, value in values.items():
         section, name = path.split(".", 1)
@@ -28,7 +32,7 @@ def with_values(saved: Mapping[str, object], values: Mapping[str, str | None]) -
     return merged
 
 
-def read_saved(path: Path) -> dict[str, object]:
+def read_local_settings(path: Path) -> dict[str, JsonValue]:
     """The file's contents, or nothing when there is no file yet; a file that is not JSON raises."""
     if not path.exists():
         return {}
@@ -38,15 +42,15 @@ def read_saved(path: Path) -> dict[str, object]:
     return loaded
 
 
-def write_saved(path: Path, saved: Mapping[str, object]) -> None:
+def write_local_settings(path: Path, contents: dict[str, JsonValue]) -> None:
     """Replaces the file in one rename, readable by its owner only."""
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
         with os.fdopen(descriptor, "w") as handle:
-            json.dump(saved, handle, indent=2)
+            json.dump(contents, handle, indent=2)
             handle.write("\n")
-        os.chmod(temp, OWNER_ONLY)
+        os.chmod(temp, OWNER_ONLY_MODE)
         os.replace(temp, path)
     except BaseException:
         Path(temp).unlink(missing_ok=True)

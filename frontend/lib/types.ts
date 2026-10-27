@@ -281,19 +281,18 @@ export interface Approvals {
 /** `GET /api/credentials`: one key the harness itself holds, never its value. */
 export interface Credential {
   path: string;
-  section: string;
   description: string;
   is_set: boolean;
-  required: boolean;
+  is_required: boolean;
   last_four: string | null;
-  set_by_env: string | null;
+  env_variable: string | null;
 }
 
 /** `GET /api/credentials`, with the harness's own address. */
 export interface CredentialList {
   credentials: Credential[];
   direct_url: string;
-  harness_pid: number;
+  answering_pid: number;
 }
 
 /** `PUT /api/credentials`: a new key by path, or null to remove it. */

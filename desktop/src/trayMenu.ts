@@ -11,7 +11,7 @@ export interface TrayActions {
 }
 
 /** The menu-bar icon's menu, in order. */
-export function trayMenu(actions: TrayActions): MenuItemConstructorOptions[] {
+export function trayMenuItems(actions: TrayActions): MenuItemConstructorOptions[] {
   return [
     { label: `Open ${APP_NAME}`, click: actions.showChatWindow },
     { label: "Credentials…", click: actions.showCredentials },
