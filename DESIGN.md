@@ -375,8 +375,10 @@ From cell-bot:
    member then has to be routed around everywhere.
 
    What genuinely varies came out at two, not the four first planned: `Pushing`,
-   and `conversation_for` (a browser chat is the bot's chat it names; every
-   Telegram and Discord chat writes into Assistant's). `busy` and `mapping` were dropped when both channels started
+   and `conversation_for`. A browser chat is the bot's chat it names. A Telegram
+   or Discord chat names none, and writes where its link code put it. One stored
+   before link codes, or a Discord server channel, writes into Assistant's; any
+   other is silent. `busy` and `mapping` were dropped when both channels started
    queueing — being able to *show* a refusal is not a reason to refuse.
 9. **The session log is the run's event buffer** (phase 4). It is already
    append-only with its index as a stable cursor, and the loop appends before it

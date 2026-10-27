@@ -35,7 +35,7 @@ install:
 
 dev:
 	@echo "backend :4896  ·  frontend :4897   (Ctrl-C stops both)"
-	@echo "note: the API key belongs in backend/config.local.json"
+	@echo "note: the API key and bot tokens in backend/config.local.json move into the keyring on start"
 	@trap 'kill 0' INT TERM EXIT; \
 	( $(BACKEND_RUN) ) & \
 	( $(FRONTEND_RUN) ) & \

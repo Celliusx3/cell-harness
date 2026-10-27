@@ -1,6 +1,6 @@
 # 09 Docs
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

@@ -39,8 +39,9 @@ Four shapes that hold everywhere:
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
+# on start the API key and bot tokens move into the keyring (the Credentials page);
 # everything else — model, endpoint, sessions root, MCP servers — is in
-# backend/config.json (committed); secrets go in config.local.json (gitignored)
+# backend/config.json (committed); other secrets stay in config.local.json (gitignored)
 make install && make test          # needs Deno on PATH — https://deno.com
 make dev                           # backend :4896 + frontend :4897; `sysmon` needs Node (npx)
 make app                           # the Mac app, desktop/dist-app/Cell Harness-<version>-arm64.dmg

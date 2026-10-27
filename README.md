@@ -27,7 +27,8 @@ phase ordering.
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # add your API key
-# and secrets.encryption_key (`openssl rand -hex 32`), which seals the keys bots save
+# and secrets.encryption_key (`openssl rand -hex 32`), which seals the keyring;
+# on start the API key and any bot tokens move into the keyring (see Credentials)
 # everything else — model, endpoint, sessions root, MCP servers — is in
 # backend/config.json (committed); a server's `env` secrets go in config.local.json
 make install                           # uv sync the backend package + dev deps
@@ -63,18 +64,13 @@ curl -s localhost:4896/api/conversations/assistant
 
 ## Telegram
 
-Optional. Message [@BotFather](https://t.me/BotFather), send `/newbot`, and paste
-the token on the **Credentials** page (the lock icon), or put it in
-`backend/config.local.json`:
+Optional. Message [@BotFather](https://t.me/BotFather), send `/newbot`, and add
+the token on the **Credentials** page (the lock icon) as a Telegram credential.
 
-```json
-{ "telegram": { "bot_token": "123456:AA…" } }
-```
-
-`make dev` then polls for messages alongside the web server — no public URL and no
-tunnel, because it long-polls rather than taking a webhook. Text the bot and it
-writes into Assistant's chat, the same one the browser shows; Telegram hears only
-the replies to what it sent.
+The harness then polls for messages alongside the web server — no public URL and no
+tunnel, because it long-polls rather than taking a webhook. A direct chat that
+sent a [link code](#link-codes) writes into that bot's chat, the same one the
+browser shows. Telegram hears only the replies to what it sent.
 
 `/new` clears the chat in place, like the browser's Clear button; `/stop` cancels the current reply. A message
 sent while it is working is answered next rather than refused — and since phase 6
@@ -90,38 +86,85 @@ With no token the channel simply does not start.
 ## Discord
 
 Optional, same shape. Create a bot in the
-[Developer Portal](https://discord.com/developers/applications), invite it with
-the `bot` and `applications.commands` scopes, and paste the token on the
-**Credentials** page, or put it in `backend/config.local.json`:
+[Developer Portal](https://discord.com/developers/applications) and invite it
+with the `bot` and `applications.commands` scopes. Add the token on the
+**Credentials** page as a Discord credential.
 
-```json
-{ "discord": { "bot_token": "…" } }
-```
-
-DMs are always answered. In a server, only messages that `@mention` the bot are
-read — that is what keeps the privileged *Message Content* intent unnecessary,
-so the bot never sees a channel's traffic it was not addressed in. `/new`, `/stop` and
+A DM is answered once it has sent a [link code](#link-codes). In a server, only
+messages that `@mention` the bot are read, and the Assistant answers them. That
+is what keeps the privileged *Message Content* intent unnecessary, so the bot
+never sees a channel's traffic it was not addressed in. `/new`, `/stop` and
 `/skills` are slash commands. With no token the channel does not start.
+
+## Link codes
+
+One Telegram bot and one Discord bot serve the whole app. A link code picks
+which of the app's bots a direct chat talks to.
+
+On a bot's page, click **Link Telegram** or **Link Discord**. It shows a
+six-digit code that names that bot, lasts 15 minutes and works once. Send
+exactly that code to the Telegram or Discord bot. The chat is then linked to
+that bot, and gets "Linked to {name}. Say hi."
+
+A new code moves the chat to another bot. Five wrong guesses silence a chat for
+15 minutes. Codes are kept in memory, so after a restart ask for a new one.
+A code needs that platform's token on the Credentials page first.
+
+A direct chat that never linked gets silence: no answer to its messages,
+commands, taps or answers. Telegram groups are silent too, while in a Discord
+server the Assistant still answers an `@mention`. A chat stored before link
+codes keeps talking to the Assistant. A chat linked to an archived or deleted
+bot is silent, never the Assistant, and answers again when the bot is restored.
 
 ## Credentials
 
-The lock icon in the sidebar opens the harness's own keys: the model's API
-key and the Telegram and Discord bot tokens. Each shows only whether it is
-saved and its last four characters, never the whole key. These are not the
-**Keys** page's keys, which bots ask for and use themselves.
+The lock icon in the sidebar opens the Credentials page (`/credentials`), which
+holds every key. Each key shows only its last four characters, never the whole
+key. **Add credential** opens a dialog: pick a type, and that type's fields appear.
 
-A key is changed only from a page on the Mac that runs the harness. The page
-saves straight to the harness's own port, which listens on this Mac only;
-the page server forwards requests without the browser's address, so the
-harness refuses any save that came through it, or from another device. On a
-phone the page is read-only.
+- **LLM**: a name, an endpoint, a model, a key, and the bots it serves. A bot
+  uses at most one LLM credential, and ticking it in another one moves it there.
+  A bot with none uses the **Default model**.
+- **Custom**: a name, a website, a key, and the bots allowed to use it. This
+  replaces the old Keys page. A bot can still ask for a key on a card in the
+  chat, from any device.
+- **Telegram** and **Discord**: a name and a token. There is at most one of
+  each, and it serves no bots. Saving one starts that channel at once, and
+  removing it stops it. A new token restarts only that channel.
 
-Save writes `config.local.json`, keeping every other value, and the harness
-restarts to read it: `make dev`'s reloader watches the file, and the Mac app
-restarts its harness. If a reply is being written, the page asks first. The
-model's API key can be replaced but not removed, since the harness cannot
-start without it. A key set by a `HARNESS_` environment variable is read-only
-on the page.
+Changes apply right away, with no restart. Each bot answers with its own model:
+its LLM credential, or the Default model. Temperature, timeout and vision come
+from settings for every model. The compaction window is shared too:
+`compaction.context_tokens`, or else the window the Default model's endpoint
+reports. Compaction uses the model of the bot that spoke last in the chat.
+
+Only a page on the Mac that runs the harness can add, edit or remove a
+credential. The page saves straight to the harness's own port, which listens on
+this Mac only. The page server forwards requests without the browser's address,
+so the harness refuses any save that came through it, or from another device.
+Anywhere else, such as on a phone, the page is read-only.
+
+On start, the harness moves the keys in its per-machine settings file into the
+keyring. For `make dev`, that file is `backend/config.local.json` and the
+keyring is `~/.harness/secrets.json`. `llm.api_key` becomes the LLM credential
+`default_model`, shown as "Default model", with the endpoint and model from
+settings. `telegram.bot_token` and `discord.bot_token` become the Telegram and
+Discord credentials.
+
+The file then loses those keys and keeps every other value, including
+`secrets.encryption_key`, the keyring's own key. It is rewritten readable by
+its owner only. A key put back in the file later replaces only that
+credential's key. The environment is no longer read for these keys:
+`HARNESS_LLM__API_KEY`, `HARNESS_TELEGRAM__BOT_TOKEN` and
+`HARNESS_DISCORD__BOT_TOKEN` are ignored.
+
+The Default model can be edited but not removed. With no Default model in the
+keyring, the harness refuses to start, and says to put the key in the
+per-machine file as `{"llm": {"api_key": "…"}}`.
+
+If you run `make dev`, the first start after this change moves your keys out of
+`backend/config.local.json` into `~/.harness/secrets.json`. If you want a copy
+of the file as it was, make one before that start.
 
 ## Desktop app
 
@@ -140,9 +183,13 @@ Security, click **Open Anyway**, once. There are no automatic updates; a new
 version is a new dmg.
 
 On first start a setup window asks for the friend's own API key, with the
-endpoint and model from `desktop/config.json` filled in. Everything the app
-keeps is in `~/Library/Application Support/Cell Harness/`: the settings file
-`config.local.json` (readable by its owner only), the chats, and `logs/`. A
+endpoint and model from `desktop/config.json` filled in. It writes the key into
+the app's settings file, and the harness moves it into the keyring when it
+starts. The window shows only while that file holds no key and the keyring
+holds no Default model. Everything the app keeps is in
+`~/Library/Application Support/Cell Harness/`: the settings file
+`config.local.json` (readable by its owner only), the keyring `secrets.json`,
+the chats, and `logs/`. A
 Telegram or Discord token is pasted on the Credentials page, which the menu-bar
 icon's **Credentials…** opens; **Show Settings File** finds the file itself.
 Closing the window keeps the harness running in the menu bar; **Quit** stops it.
