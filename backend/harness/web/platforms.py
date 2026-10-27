@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import assert_never, get_args
 
 from pydantic import SecretStr
@@ -11,6 +12,7 @@ from pydantic import SecretStr
 from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
+from harness.channels.links import ChatLinks
 from harness.channels.protocol import Channel, ChannelDisposer
 from harness.channels.telegram.channel import TelegramChannel
 from harness.secrets import SecretService
@@ -50,14 +52,23 @@ class PlatformChannels:
                 self._disposers[platform] = self._gateway.register(channel)
 
 
-def platform_channel(
-    gateway: ChannelGateway, answers: ChatAnswers, platform: ChatPlatform, token: SecretStr
-) -> Channel:
-    """The Telegram or Discord channel on `gateway` that `token` signs in."""
+@dataclass(frozen=True)
+class PlatformChats:
+    """What a Telegram or Discord chat reaches: the gateway, its answers, and the link codes."""
+
+    gateway: ChannelGateway
+    answers: ChatAnswers
+    links: ChatLinks
+
+
+def platform_channel(chats: PlatformChats, platform: ChatPlatform, token: SecretStr) -> Channel:
+    """The Telegram or Discord channel on `chats.gateway` that `token` signs in."""
     match platform:
         case "telegram":
-            return TelegramChannel(token.get_secret_value(), gateway, answers)
+            return TelegramChannel(
+                token.get_secret_value(), chats.gateway, chats.answers, chats.links
+            )
         case "discord":
-            return DiscordChannel(token.get_secret_value(), gateway)
+            return DiscordChannel(token.get_secret_value(), chats.gateway, chats.links)
         case _:
             assert_never(platform)

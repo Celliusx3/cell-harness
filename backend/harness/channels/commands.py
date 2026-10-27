@@ -40,8 +40,12 @@ def skills_reply(skills: Sequence[Skill]) -> str:
     return f"Skills you can type:\n{lines}\n\n{COMMANDS}"
 
 
-async def apply(gateway: ChannelGateway, channel: str, chat_id: str, command: Command) -> str:
-    """Run one command."""
+async def apply(
+    gateway: ChannelGateway, channel: str, chat_id: str, command: Command
+) -> str | None:
+    """Run one command, and what to say; `None`, saying nothing, for a chat linked to no bot."""
+    if not await gateway.is_linked(channel, chat_id):
+        return None
     if command is Command.NEW:
         await gateway.clear(channel, chat_id)
         return CLEARED

@@ -106,8 +106,8 @@ class Following:
         platform = self._platform(ChatKey(channel, chat_id))
         if platform is None:
             return
-        state = await state_of(self._repository, platform, chat_id)
-        if not state.pending:
+        state = await state_of(self._repository, platform, chat_id, self._runs.bots)
+        if not state.conversation_id or not state.pending:
             return
         text = QUEUE_JOIN.join(state.pending)
         cleared = state.model_copy(update={"pending": (), "pending_files": ()})
@@ -131,7 +131,7 @@ class Following:
         platform = self._platform(key)
         if platform is None:
             return
-        state = await state_of(self._repository, platform, chat_id)
+        state = await state_of(self._repository, platform, chat_id, self._runs.bots)
         if state.conversation_id and self._runs.active(state.conversation_id) is not None:
             return
         await asyncio.wait({task})

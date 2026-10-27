@@ -12,6 +12,7 @@ from pydantic import SecretStr
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
+from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.config.settings import Settings
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
@@ -22,7 +23,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
+from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import channel_services, channels_of, secrets_in, web_gateway, web_mcp
 
@@ -134,6 +135,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
 
 async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
+    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
 
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="hello there"))
     await settle(runs, gateway)
@@ -150,6 +152,7 @@ async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) ->
 
 async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
+    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone"))
     await settle(runs, gateway)
 

@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import time
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.bots import BotService
+from harness.bots import ASSISTANT_ID, BotService
+from harness.channels.links import ChatLinks, LinkCodes
+from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository import ChatRepository, ChatState
 from harness.config.settings import SkillSettings
 from harness.images import ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage
@@ -54,6 +58,7 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
 
 
 CONVERSATION_ID = "s"
+NO_LINK_STORAGE = Path("/nonexistent/cell-harness-links")
 ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID)
 
 
@@ -196,3 +201,15 @@ def no_skills() -> SkillService:
 def client_tools() -> ClientToolService:
     """The real declarations, as the server composes them."""
     return ClientToolService(CLIENT_TOOLS, no_approvals())
+
+
+def no_links() -> ChatLinks:
+    """Links over codes nobody issues, and chats and bots in folders that cannot exist."""
+    sessions = SessionService(JsonlSessionRepository(NO_LINK_STORAGE / "sessions"))
+    chats = JsonlChatRepository(NO_LINK_STORAGE / "chats")
+    return ChatLinks(chats, LinkCodes(time.monotonic), no_bots(sessions))
+
+
+async def link_to_assistant(chats: ChatRepository, channel: str, chat_id: str) -> None:
+    """Store this chat's link to Assistant."""
+    await chats.save(ChatState(channel=channel, chat_id=chat_id, conversation_id=ASSISTANT_ID))

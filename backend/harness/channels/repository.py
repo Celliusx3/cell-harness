@@ -21,6 +21,8 @@ class ChatState(BaseModel):
     channel: str
     chat_id: str
     conversation_id: str = ""
+    linked_bot_id: str | None = None
+    """The bot a link code moved this chat to; `None` for a chat no code has linked."""
     pending: tuple[str, ...] = ()
     pending_files: tuple[ChatFile, ...] = ()
     """The files the queued messages carry, in the order they were queued."""

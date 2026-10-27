@@ -19,7 +19,14 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.channel import TelegramChannel
 from harness.web.logs import keep_token_urls_out
 from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import client_tools, durable_service, no_skills, run_service, until
+from tests.unit.helpers import (
+    client_tools,
+    durable_service,
+    no_links,
+    no_skills,
+    run_service,
+    until,
+)
 
 TELEGRAM_TOKEN = "123456:AAsecret-telegram-token-7777"
 DISCORD_TOKEN = "discord-secret-token-8888"
@@ -49,7 +56,7 @@ async def test_a_refused_telegram_token_is_logged_without_the_token(
     await gateway.start()
     answers = ChatAnswers(None, None, gateway, client_tools())
 
-    gateway.register(TelegramChannel(TELEGRAM_TOKEN, gateway, answers))
+    gateway.register(TelegramChannel(TELEGRAM_TOKEN, gateway, answers, no_links()))
     await until(lambda: "telegram channel stopped" in caplog.text, what="the refusal")
 
     assert [url.rsplit("/", 1)[-1] for url in asked] == ["getMe"]
@@ -75,7 +82,7 @@ async def test_a_refused_discord_token_is_logged_without_the_token(
     gateway = _gateway(tmp_path)
     await gateway.start()
 
-    gateway.register(DiscordChannel(DISCORD_TOKEN, gateway))
+    gateway.register(DiscordChannel(DISCORD_TOKEN, gateway, no_links()))
     await until(lambda: "discord channel stopped" in caplog.text, what="the refusal")
 
     assert asked == ["/users/@me"]

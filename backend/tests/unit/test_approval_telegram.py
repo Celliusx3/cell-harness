@@ -14,7 +14,7 @@ from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
-from tests.unit.helpers import no_skills
+from tests.unit.helpers import link_to_assistant, no_skills
 from tests.unit.telegram_fakes import decision_update
 
 WRITE = "memory__write_note"
@@ -55,7 +55,7 @@ async def _log(sessions, chats):
 
 async def test_a_call_that_asks_gets_four_inline_buttons(tmp_path) -> None:
     ran: list[str] = []
-    bot, gateway, runs, chats, sessions = _asking(tmp_path, ran)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path, ran)
 
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -74,7 +74,7 @@ async def test_a_call_that_asks_gets_four_inline_buttons(tmp_path) -> None:
 
 async def test_a_tap_answers_the_call_and_edits_the_card_into_a_receipt(tmp_path) -> None:
     ran: list[str] = []
-    bot, gateway, runs, chats, sessions = _asking(tmp_path, ran)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path, ran)
     channel = gateway._channels["telegram"].channel
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -97,8 +97,9 @@ async def test_a_tap_answers_the_call_and_edits_the_card_into_a_receipt(tmp_path
 
 async def test_a_tap_sends_the_rest_of_the_turn_to_the_asked_chat_only(tmp_path) -> None:
     ran: list[str] = []
-    bot, gateway, runs, chats, _ = _asking(tmp_path, ran, completed("hello"))
+    bot, gateway, runs, chats, _ = await _asking(tmp_path, ran, completed("hello"))
     channel = gateway._channels["telegram"].channel
+    await link_to_assistant(chats, "telegram", "5151")
     await gateway.receive(InboundMessage(channel="telegram", chat_id="5151", text="hi"))
     await settle(runs, gateway, "5151")
     await gateway.receive(msg("remember Kopi"))
@@ -115,7 +116,7 @@ async def test_a_tap_sends_the_rest_of_the_turn_to_the_asked_chat_only(tmp_path)
 
 async def test_a_deny_tap_writes_the_denied_result(tmp_path) -> None:
     ran: list[str] = []
-    bot, gateway, runs, chats, sessions = _asking(tmp_path, ran)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path, ran)
     channel = gateway._channels["telegram"].channel
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -132,7 +133,7 @@ async def test_a_deny_tap_writes_the_denied_result(tmp_path) -> None:
 
 async def test_a_stale_tap_is_told_so(tmp_path) -> None:
     ran: list[str] = []
-    bot, gateway, runs, chats, sessions = _asking(tmp_path, ran)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path, ran)
     channel = gateway._channels["telegram"].channel
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -152,7 +153,7 @@ async def test_a_stale_tap_is_told_so(tmp_path) -> None:
 async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> None:
     ran: list[str] = []
     long_id = "call_" + "x" * 60
-    bot, gateway, runs, chats, sessions = _asking(tmp_path, ran, call_id=long_id)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path, ran, call_id=long_id)
 
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -171,7 +172,7 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(calls_tool(send, '{"value": "hi"}', id="c1"), completed("sent"))
-    bot, gateway, runs, _chats, _sessions = build(
+    bot, gateway, runs, _chats, _sessions = await build(
         tmp_path,
         model,
         _writer(ran, send),
@@ -193,7 +194,7 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
 
 async def test_an_always_allowed_tool_runs_without_buttons(tmp_path) -> None:
     ran: list[str] = []
-    bot, gateway, runs, _chats, _sessions = _asking(tmp_path, ran)
+    bot, gateway, runs, _chats, _sessions = await _asking(tmp_path, ran)
     ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json").grant(WRITE)
 
     await gateway.receive(msg("remember Kopi"))
@@ -213,7 +214,7 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
     step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
     approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
     tools = ClientToolService(CLIENT_TOOLS, approvals)
-    bot, gateway, runs, _chats, _sessions = build(
+    bot, gateway, runs, _chats, _sessions = await build(
         tmp_path,
         SteppedClient(step, completed("done")),
         _writer(ran, quote),

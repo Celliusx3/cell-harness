@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -10,6 +11,7 @@ from pydantic import SecretStr
 
 from harness.bots import BotService
 from harness.channels.gateway import ChannelGateway
+from harness.channels.links import LinkCodes
 from harness.channels.protocol import Channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
@@ -136,7 +138,8 @@ def no_platform_channel(platform: ChatPlatform, token: SecretStr) -> Channel:
 
 def channels_of(gateway: ChannelGateway, web: WebChannel, secrets: SecretService) -> Channels:
     """What `create_app` takes: the gateway and the web, and platforms a test never starts."""
-    return Channels(gateway, web, PlatformChannels(gateway, secrets, no_platform_channel))
+    platforms = PlatformChannels(gateway, secrets, no_platform_channel)
+    return Channels(gateway, web, platforms, LinkCodes(time.monotonic))
 
 
 def no_platforms(secrets: SecretService) -> PlatformChannels:

@@ -44,7 +44,7 @@ async def _log(sessions, chats, chat_id: str):
 
 async def test_telegram_is_asked_with_its_own_share_button_and_the_turn_ends(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
     )
 
@@ -64,7 +64,7 @@ async def test_telegram_is_asked_with_its_own_share_button_and_the_turn_ends(tmp
 
 async def test_a_pin_from_telegram_opens_the_turn_that_answers(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
     )
     channel = gateway._channels["telegram"].channel
@@ -85,7 +85,7 @@ async def test_a_pin_from_telegram_opens_the_turn_that_answers(tmp_path) -> None
 
 async def test_typing_instead_skips_the_ask_and_answers_the_message(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path,
         _asks_then_answers("9pm in Tokyo"),
         *tools.tools(),
@@ -107,7 +107,7 @@ async def test_typing_instead_skips_the_ask_and_answers_the_message(tmp_path) ->
 
 
 async def test_an_unprompted_pin_is_a_message(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("noted")), skills=no_skills()
     )
     channel = gateway._channels["telegram"].channel
@@ -199,7 +199,7 @@ def test_the_answer_page_is_addressed_like_an_app_page() -> None:
 
 async def test_a_chat_with_nothing_pending_refuses_an_answer(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, SteppedClient(calls_tool("echo", "{}"), completed("ok")), skills=no_skills()
     )
     channel = gateway._channels["telegram"].channel
@@ -215,7 +215,7 @@ async def test_a_chat_with_nothing_pending_refuses_an_answer(tmp_path) -> None:
 
 async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
     )
     channel = gateway._channels["telegram"].channel
@@ -235,7 +235,7 @@ async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
 
 async def test_an_answer_from_the_page_is_still_delivered_to_the_chat(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
     )
     await gateway.receive(msg("what's near me"))
@@ -254,7 +254,7 @@ async def test_an_answer_from_the_page_is_still_delivered_to_the_chat(tmp_path) 
 
 async def test_the_ask_is_sent_once_even_though_the_answer_opens_a_new_turn(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
     )
     channel = gateway._channels["telegram"].channel

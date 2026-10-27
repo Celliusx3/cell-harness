@@ -76,6 +76,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
     ),
+    "POST /api/bots/{bot_id}/link-codes": NotATool(
+        "a code lets someone's chat talk to a bot; only the person hands one out, from its page"
+    ),
     "OPTIONS /api/credentials": NotATool("a browser's preflight; it changes nothing"),
     "OPTIONS /api/credentials/{name}": NotATool("a browser's preflight; it changes nothing"),
     "POST /api/credentials": NotATool(

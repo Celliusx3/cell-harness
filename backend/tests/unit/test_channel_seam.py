@@ -20,7 +20,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.client import PendingCall
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import no_bots, no_skills
+from tests.unit.helpers import link_to_assistant, no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
 WHATSAPP = "whatsapp"
@@ -134,11 +134,12 @@ async def test_a_platform_with_no_typing_indicator_is_fine(tmp_path) -> None:
 
 
 async def test_two_platforms_share_one_gateway(tmp_path) -> None:
-    gateway, runs, _ = build(tmp_path)
+    gateway, runs, chats = build(tmp_path)
     whatsapp = FakeWhatsApp()
     telegram, telegram_bot = telegram_channel(gateway)
     gateway.register(whatsapp)
     gateway.register(telegram)
+    await link_to_assistant(chats, "telegram", "9")
 
     await gateway.receive(InboundMessage(channel=WHATSAPP, chat_id="9", text="from whatsapp"))
     await settle(runs, gateway, (WHATSAPP, "9"))
@@ -155,6 +156,7 @@ async def test_every_platform_writes_into_assistants_chat(tmp_path) -> None:
     telegram, _ = telegram_channel(gateway)
     gateway.register(whatsapp)
     gateway.register(telegram)
+    await link_to_assistant(chats, "telegram", "9")
 
     await gateway.receive(InboundMessage(channel=WHATSAPP, chat_id="9", text="a"))
     await settle(runs, gateway, (WHATSAPP, "9"))

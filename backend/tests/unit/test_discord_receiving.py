@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import logging
 
+import pytest
+
 from harness.bots import ASSISTANT_ID
+from harness.session.repository import SessionNotFoundError
 from tests.unit.discord_fakes import BOT_ID, build, message, settle
+from tests.unit.helpers import link_to_assistant
 
 CHAT = "77"
 
@@ -18,6 +22,7 @@ async def prompts_of(sessions, chats, chat_id: str = CHAT) -> list[str]:
 
 async def test_a_dm_becomes_a_turn_and_a_reply(tmp_path) -> None:
     channel, client, gateway, runs, chats, sessions = build(tmp_path)
+    await link_to_assistant(chats, "discord", CHAT)
     chat = client.chat(CHAT)
 
     await channel.on_message(message(CHAT, "hello"))
@@ -86,8 +91,10 @@ async def test_a_bot_author_is_ignored(tmp_path) -> None:
     assert await chats.load("discord", CHAT) is None
 
 
-async def test_every_channel_or_thread_writes_into_assistants_chat(tmp_path) -> None:
+async def test_every_dm_linked_to_assistant_writes_into_assistants_chat(tmp_path) -> None:
     channel, client, gateway, runs, chats, sessions = build(tmp_path)
+    await link_to_assistant(chats, "discord", "1")
+    await link_to_assistant(chats, "discord", "2")
     first, second = client.chat("1"), client.chat("2")
 
     await channel.on_message(message("1", "one"))
@@ -117,11 +124,12 @@ async def test_a_gateway_failure_is_logged_not_raised(tmp_path, caplog) -> None:
 
 def test_the_transport_names_its_channel(tmp_path) -> None:
     assert build(tmp_path)[0].channel == "discord"
-    assert build(tmp_path)[0].conversation_for(CHAT) == ASSISTANT_ID
+    assert build(tmp_path)[0].conversation_for(CHAT) == ""
 
 
 async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path) -> None:
     channel, client, gateway, runs, chats, sessions = build(tmp_path)
+    await link_to_assistant(chats, "discord", CHAT)
     chat = client.chat(CHAT)
 
     await channel.on_message(message(CHAT, "/summarise this"))
@@ -130,4 +138,5 @@ async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path)
     assert chat.sent == [
         "No skill named 'summarise'. Skills: none. Commands: /new, /stop, /compact."
     ]
-    assert await chats.load("discord", CHAT) is None
+    with pytest.raises(SessionNotFoundError):
+        await sessions.read(ASSISTANT_ID)

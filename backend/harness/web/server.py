@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from harness.bots import BotService
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
+from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
@@ -40,13 +41,14 @@ from harness.web.bot_models import llm_settings_for
 from harness.web.errors import exception_handlers
 from harness.web.file_keys import move_file_keys, require_default_model
 from harness.web.logs import configure_logging
-from harness.web.platforms import PlatformChannels, platform_channel
+from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
 from harness.web.routes.compact import build_router as build_compact_router
 from harness.web.routes.credentials import build_router as build_credentials_router
 from harness.web.routes.groups import build_router as build_groups_router
+from harness.web.routes.link_codes import build_router as build_link_codes_router
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.relay import build_router as build_relay_router
 from harness.web.routes.secret_card import build_router as build_secret_card_router
@@ -98,11 +100,12 @@ class ChannelServices:
 
 @dataclass(frozen=True)
 class Channels:
-    """The gateway, the browser's channel on it, and the chat platforms that join and leave it."""
+    """The gateway, the browser's channel on it, the chat platforms, and the codes linking them."""
 
     gateway: ChannelGateway
     web: WebChannel
     platforms: PlatformChannels
+    link_codes: LinkCodes
 
 
 def build_channels(
@@ -114,12 +117,14 @@ def build_channels(
         chats, services.runs, services.sessions, services.skills, public_url=settings.web.public_url
     )
     chat_answers = ChatAnswers(chats, services.sessions, gateway, services.client_tools)
+    link_codes = LinkCodes(time.monotonic)
+    links = ChatLinks(chats, link_codes, services.bots)
 
     web = WebChannel(gateway, services.bots, services.files, services.images)
     gateway.register(web)
 
-    make_channel = functools.partial(platform_channel, gateway, chat_answers)
-    return Channels(gateway, web, PlatformChannels(gateway, keyring, make_channel))
+    make_channel = functools.partial(platform_channel, PlatformChats(gateway, chat_answers, links))
+    return Channels(gateway, web, PlatformChannels(gateway, keyring, make_channel), link_codes)
 
 
 def _resolve_context_tokens(settings: Settings, keyring: SecretService) -> int | None:
@@ -223,4 +228,5 @@ def create_app(
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))
     app.include_router(build_groups_router(bots))
+    app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

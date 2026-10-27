@@ -50,7 +50,7 @@ class Channel(Protocol):
         ...
 
     def conversation_for(self, chat_id: str) -> str:
-        """The conversation this platform chat writes into."""
+        """The conversation this platform puts a chat in; `""` leaves it to what the chat stored."""
         ...
 
     async def run(self) -> None:

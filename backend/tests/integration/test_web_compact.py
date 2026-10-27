@@ -6,9 +6,10 @@ import httpx
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
+from harness.channels.repositories.jsonl import JsonlChatRepository
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import durable_service, no_skills, run_service
+from tests.unit.helpers import durable_service, link_to_assistant, no_skills, run_service
 from tests.webapp import idle, web_app, web_app_with_telegram
 
 
@@ -107,6 +108,7 @@ async def test_a_browser_compaction_sends_nothing_to_telegram(tmp_path) -> None:
     client = ScriptedClient(completed("SUMMARY"))
     runs = run_service(service, client, context_tokens=None)
     app, gateway, bot = web_app_with_telegram(tmp_path, service, runs, skills=no_skills())
+    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", "909")
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         await gateway.receive(InboundMessage(channel="telegram", chat_id="909", text="hello"))
         await idle(runs, gateway)

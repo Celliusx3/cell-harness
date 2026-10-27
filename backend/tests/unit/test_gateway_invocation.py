@@ -16,7 +16,7 @@ from tests.unit.test_skill_tool import write_skill
 async def test_a_slash_name_expands_before_the_turn_starts(tmp_path) -> None:
     root = tmp_path / "skills"
     write_skill(root, "find-place")
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("Village Park")), skills=skills_at(root)
     )
 
@@ -33,7 +33,7 @@ async def test_a_slash_name_expands_before_the_turn_starts(tmp_path) -> None:
 async def test_an_unknown_slash_name_is_refused_before_anything_is_queued(tmp_path) -> None:
     root = tmp_path / "skills"
     write_skill(root, "find-place")
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("never")), skills=skills_at(root)
     )
 
@@ -41,7 +41,7 @@ async def test_an_unknown_slash_name_is_refused_before_anything_is_queued(tmp_pa
         await gateway.receive(msg("/summarise this", 1))
 
     assert caught.value.name == "summarise"
-    assert await chats.load("telegram", CHAT) is None
+    assert (await chats.load("telegram", CHAT)).pending == ()
     assert list((tmp_path / "sessions").glob("*.jsonl")) == []
 
 
@@ -49,7 +49,7 @@ async def test_a_queued_slash_name_is_expanded_when_it_drains(tmp_path) -> None:
     root = tmp_path / "skills"
     write_skill(root, "find-place")
     gate = asyncio.Event()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path,
         SteppedClient(
             calls_tool("gate", '{"value": "x"}'), completed("first"), completed("second")

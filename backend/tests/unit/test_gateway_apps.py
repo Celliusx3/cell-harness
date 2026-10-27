@@ -28,7 +28,7 @@ def app_tool() -> Tool[EchoArgs]:
 
 
 async def test_a_result_with_an_app_is_delivered_as_a_link_before_the_reply(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(
+    bot, gateway, runs, _, _ = await build(
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
         app_tool(),
@@ -45,7 +45,7 @@ async def test_a_result_with_an_app_is_delivered_as_a_link_before_the_reply(tmp_
 
 
 async def test_a_link_the_platform_refuses_does_not_cost_the_reply(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(
+    bot, gateway, runs, _, _ = await build(
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
         app_tool(),
@@ -61,7 +61,7 @@ async def test_a_link_the_platform_refuses_does_not_cost_the_reply(tmp_path) -> 
 
 
 async def test_no_public_url_means_no_link(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(
+    bot, gateway, runs, _, _ = await build(
         tmp_path,
         SteppedClient(calls_tool("srv__show", '{"value": "42"}'), completed("there it is")),
         app_tool(),
@@ -77,7 +77,7 @@ async def test_no_public_url_means_no_link(tmp_path) -> None:
 
 
 async def test_a_result_without_an_app_sends_no_link(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(
+    bot, gateway, runs, _, _ = await build(
         tmp_path,
         SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
         echo_tool(),

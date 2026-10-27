@@ -6,6 +6,7 @@ import httpx
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
+from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
@@ -14,7 +15,7 @@ from harness.tools.models.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import assistant_chat, events_from, settle
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
-from tests.unit.helpers import durable_service, no_skills, run_service
+from tests.unit.helpers import durable_service, link_to_assistant, no_skills, run_service
 from tests.webapp import idle, web_app, web_app_with_telegram
 
 WRITE = "memory__write_note"
@@ -175,6 +176,9 @@ async def test_an_answer_here_to_a_call_telegram_was_asked_goes_to_that_chat_onl
         completed("saved"),
         ran=ran,
     )
+    chats = JsonlChatRepository(tmp_path / "chats")
+    await link_to_assistant(chats, "telegram", OTHER)
+    await link_to_assistant(chats, "telegram", CHAT)
     async with client:
         await gateway.receive(_telegram(OTHER, "hi"))
         await idle(runs, gateway)
@@ -201,6 +205,7 @@ async def test_a_browser_turn_answered_here_sends_nothing_to_telegram(tmp_path) 
         completed("saved"),
         ran=ran,
     )
+    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
     async with client:
         await gateway.receive(_telegram(CHAT, "hi"))
         await idle(runs, gateway)
