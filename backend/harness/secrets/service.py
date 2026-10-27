@@ -7,6 +7,7 @@ import os
 from pydantic import SecretStr
 
 from harness.secrets.models.destination import Destination
+from harness.secrets.models.details import CustomDetails
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.models.secret import SecretSummary, UnsealedSecret
@@ -30,9 +31,13 @@ class SecretService:
         """Seal `value` as the key `name`; one with the same destination is replaced."""
         stored = self._repository.sealed_secrets()
         existing = next((secret for secret in stored if secret.name == name), None)
-        if existing is not None and existing.destination != destination:
+        if existing is not None and not isinstance(existing.details, CustomDetails):
             raise SecretRefused(
-                f"a key named {name!r} is already saved for {existing.destination.origin}; "
+                f"a {existing.details.kind} credential is already named {name!r}; pick another name"
+            )
+        if existing is not None and existing.details.destination != destination:
+            raise SecretRefused(
+                f"a key named {name!r} is already saved for {existing.details.destination.origin}; "
                 "remove it before saving it for another site"
             )
         if existing is None and len(stored) >= MAX_SECRETS:
@@ -41,7 +46,7 @@ class SecretService:
         sealed_secret = SealedSecret(
             id=record_id,
             name=name,
-            destination=destination,
+            details=CustomDetails(destination=destination),
             ciphertext=sealed(
                 value.get_secret_value(),
                 encryption_key=self._encryption_key,
@@ -53,16 +58,18 @@ class SecretService:
         )
 
     def secret_named(self, name: str) -> UnsealedSecret | None:
-        """The key called `name`, unsealed, or `None` when none is saved."""
+        """The custom key called `name`, unsealed, or `None`; no other kind is ever handed out."""
         sealed_secret = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
-        if sealed_secret is None:
+        if sealed_secret is None or not isinstance(sealed_secret.details, CustomDetails):
             return None
         plaintext = unsealed(
             sealed_secret.ciphertext,
             encryption_key=self._encryption_key,
             record_id=sealed_secret.id,
         )
-        return UnsealedSecret(destination=sealed_secret.destination, value=SecretStr(plaintext))
+        return UnsealedSecret(
+            destination=sealed_secret.details.destination, value=SecretStr(plaintext)
+        )
 
     def delete(self, name: str) -> None:
         """Remove the key called `name`; `SecretNotFound` when none is saved."""
@@ -73,8 +80,9 @@ class SecretService:
         self._repository.replace_all(kept)
 
     def summaries(self) -> tuple[SecretSummary, ...]:
-        """Every saved key's name and site, by name; never a value."""
+        """Every custom key's name and site, by name; never a value."""
         return tuple(
-            SecretSummary(name=secret.name, destination=secret.destination)
+            SecretSummary(name=secret.name, destination=secret.details.destination)
             for secret in sorted(self._repository.sealed_secrets(), key=lambda secret: secret.name)
+            if isinstance(secret.details, CustomDetails)
         )

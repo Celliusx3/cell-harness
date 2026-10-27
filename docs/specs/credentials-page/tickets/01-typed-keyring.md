@@ -1,6 +1,6 @@
 # 01 Typed keyring
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 
