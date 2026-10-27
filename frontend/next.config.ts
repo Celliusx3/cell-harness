@@ -4,6 +4,9 @@ const BACKEND_PORT = process.env.BACKEND_PORT ?? "4896";
 
 /** `/api` is proxied to the harness rather than called cross-origin. */
 const nextConfig: NextConfig = {
+  output: "standalone",
+  // Next roots the trace at a lockfile higher up when it finds one, which nests server.js below the standalone folder.
+  outputFileTracingRoot: __dirname,
   // Next's rewrite proxy gzips the event stream and holds the whole body until close.
   compress: false,
   experimental: {

@@ -43,6 +43,7 @@ cp backend/config.local.example.json backend/config.local.json   # add your API 
 # backend/config.json (committed); secrets go in config.local.json (gitignored)
 make install && make test          # needs Deno on PATH — https://deno.com
 make dev                           # backend :4896 + frontend :4897; `sysmon` needs Node (npx)
+make app                           # the Mac app, desktop/dist-app/Cell Harness-<version>-arm64.dmg
 # open http://localhost:4897 — there is no CLI, the API is the only surface
 ```
 
@@ -73,6 +74,7 @@ backend/tests/  unit/ and integration/
 mcp-servers/    the capabilities we build — one uv project each, own tests
 .agents/skills/ the skills shipped with the repo — a skill's scripts/ is its own uv project
 frontend/       Next.js chat — app/, components/, lib/
+desktop/        the Mac app — Electron around the same pages; scripts/ builds the dmg
 docs/           source teardowns + long-form rules
 ```
 
@@ -140,6 +142,7 @@ Breaking one is not a style disagreement. The reasoning behind each is in
   `mcp-servers/`, so are `make lint-mcp-servers` and `make test-mcp-servers` —
   deliberately separate, so one server's flake cannot fail the harness's suite.
   If you touched a skill's `scripts/`, so are `make lint-skills` and `make test-skills`.
+  If you touched `desktop/`, so is `make test-desktop`.
 - The phase's acceptance criteria in [PHASES.md](./PHASES.md) are met, as tests.
 - **Every new definition has a caller outside `tests/`.** `grep -rn '\bname\b'
   harness/` — if the only hits are the definition and test files, it belongs in

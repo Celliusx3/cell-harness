@@ -6,7 +6,7 @@ MAX=300
 cd "$(dirname "$0")/.."
 
 over=$(find backend/harness backend/tests mcp-servers .agents/skills \
-        frontend/app frontend/components frontend/lib \
+        frontend/app frontend/components frontend/lib desktop/src \
         -type f \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' \) \
         -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/__pycache__/*' \
         -not -path '*/.next/*' \

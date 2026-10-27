@@ -1,5 +1,5 @@
 .PHONY: help install dev dev-backend dev-web test test-unit test-integration \
-        test-mcp-servers test-skills lint lint-mcp-servers lint-skills fmt cov build
+        test-mcp-servers test-skills lint lint-mcp-servers lint-skills fmt cov build app test-desktop
 
 BACKEND = cd backend && uv run
 
@@ -18,12 +18,14 @@ help:
 	@echo "  make test-integration  integration tests only, no coverage gate"
 	@echo "  make test-mcp-servers   each MCP server's own suite and its own gate"
 	@echo "  make test-skills       each skill's scripts' own suite and its own gate"
+	@echo "  make test-desktop      the Mac app's own tests (node:test)"
 	@echo "  make lint              ruff check + format check + complexity 10 + every file under 300 lines"
 	@echo "  make lint-mcp-servers   ruff check + format check in each MCP server"
 	@echo "  make lint-skills       ruff check + format check in each skill's scripts"
 	@echo "  make fmt               ruff format + fix"
 	@echo "  make cov               tests with an HTML coverage report"
 	@echo "  make build             frontend production build"
+	@echo "  make app               the Mac app, as desktop/dist-app/Cell Harness-<version>-arm64.dmg"
 	@echo ""
 	@echo "Current phase and its acceptance criteria: PHASES.md"
 
@@ -64,6 +66,9 @@ SKILL_SCRIPTS = .agents/skills/translate-comic/scripts
 test-skills:
 	@for s in $(SKILL_SCRIPTS); do (cd $$s && PYTHONDONTWRITEBYTECODE=1 uv run pytest) || exit 1; done
 
+test-desktop:
+	cd desktop && npm test
+
 lint:
 	$(BACKEND) ruff check .
 	$(BACKEND) ruff format --check .
@@ -91,3 +96,6 @@ cov:
 
 build:
 	cd frontend && npm run build
+
+app:
+	cd desktop && npm ci && npm run dist

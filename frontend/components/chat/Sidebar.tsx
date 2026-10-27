@@ -6,7 +6,8 @@ import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { ArchivedBots } from "@/components/chat/ArchivedBots";
-import { BUILDER_ID, listArchivedBots, listBots, listGroups } from "@/lib/api";
+import { SERVER as COMPUTER_SERVER } from "@/components/computer/server";
+import { BUILDER_ID, listArchivedBots, listBots, listGroups, listServers } from "@/lib/api";
 import type { Bot, Group } from "@/lib/types";
 
 const STALE = "harness:sidebar-stale";
@@ -25,11 +26,24 @@ export function Sidebar() {
   const params = useParams<{ id?: string }>();
   const currentId = params?.id;
   const [stale, setStale] = useState(0);
+  const [hasComputer, setHasComputer] = useState(false);
 
   useEffect(() => {
     const bump = () => setStale((count) => count + 1);
     window.addEventListener(STALE, bump);
     return () => window.removeEventListener(STALE, bump);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    listServers()
+      .then(({ servers }) => {
+        if (!cancelled) setHasComputer(servers.includes(COMPUTER_SERVER));
+      })
+      .catch(() => setHasComputer(false));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -80,15 +94,17 @@ export function Sidebar() {
           >
             <KeyRound size={18} />
           </Link>
-          <Link
-            href="/computer"
-            aria-label="Computer"
-            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
-              pathname === "/computer" ? "bg-accent-soft text-ink" : "text-ink-soft"
-            }`}
-          >
-            <Monitor size={18} />
-          </Link>
+          {hasComputer && (
+            <Link
+              href="/computer"
+              aria-label="Computer"
+              className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
+                pathname === "/computer" ? "bg-accent-soft text-ink" : "text-ink-soft"
+              }`}
+            >
+              <Monitor size={18} />
+            </Link>
+          )}
           <Link
             href="/bots/new"
             aria-label="New bot"

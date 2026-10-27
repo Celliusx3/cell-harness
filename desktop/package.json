@@ -1,0 +1,62 @@
+{
+  "name": "cell-harness-desktop",
+  "productName": "Cell Harness",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
+    "pages": "./scripts/build-pages.sh",
+    "start": "npm run build && electron .",
+    "bundle": "./scripts/bundle.sh",
+    "dist": "npm run build && npm run bundle && electron-builder --mac"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "44.9.3",
+    "electron-builder": "26.15.3",
+    "typescript": "^5.6.3"
+  },
+  "build": {
+    "appId": "io.cell-harness.desktop",
+    "productName": "Cell Harness",
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.test.js",
+      "src/setup.html",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/bundle",
+        "to": ".",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "directories": {
+      "output": "dist-app"
+    },
+    "asar": true,
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "identity": "-",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "icon": "build/icon.svg.png",
+      "category": "public.app-category.productivity"
+    },
+    "dmg": {
+      "artifactName": "Cell Harness-${version}-arm64.${ext}"
+    }
+  }
+}

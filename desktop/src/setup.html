@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'" />
+    <title>Set up Cell Harness</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font: 13px -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 20px 28px;
+        background: Canvas;
+        color: CanvasText;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 17px;
+      }
+      .lead {
+        margin: 0 0 16px;
+        line-height: 1.4;
+        opacity: 0.75;
+      }
+      label {
+        display: block;
+        margin: 0 0 4px;
+        font-weight: 600;
+      }
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0 0 12px;
+        padding: 6px 8px;
+        font: inherit;
+      }
+      #error {
+        min-height: 1.4em;
+        margin: 0 0 10px;
+        color: #c4000f;
+      }
+      .actions {
+        text-align: right;
+      }
+      button {
+        padding: 5px 20px;
+        font: inherit;
+      }
+      @media (prefers-color-scheme: dark) {
+        #error {
+          color: #ff6b6b;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Set up Cell Harness</h1>
+    <p class="lead">Paste your API key. The endpoint and model are filled in; change them only if your provider gave you others.</p>
+    <form id="setup">
+      <label for="api-key">API key</label>
+      <input id="api-key" type="password" autocomplete="off" spellcheck="false" autofocus />
+      <label for="base-url">Endpoint</label>
+      <input id="base-url" type="text" autocomplete="off" spellcheck="false" />
+      <label for="model">Model</label>
+      <input id="model" type="text" autocomplete="off" spellcheck="false" />
+      <p id="error" role="alert"></p>
+      <div class="actions"><button id="start" type="submit">Start</button></div>
+    </form>
+    <script src="../dist/setupPage.js"></script>
+  </body>
+</html>

@@ -77,6 +77,11 @@ export interface ToolUi {
   data: unknown;
 }
 
+/** `GET /api/mcp`: every server the harness is set up with, by its tool namespace. */
+export interface ServerList {
+  servers: string[];
+}
+
 /** `GET /api/mcp/{server}/resources` */
 export interface AppResource {
   html: string;
