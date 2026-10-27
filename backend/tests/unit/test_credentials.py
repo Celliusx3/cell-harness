@@ -19,11 +19,6 @@ from harness.web.routes.credentials import build_router
 API_KEY = "sk-abcdefgh1234"
 
 
-class NotBusy:
-    def is_busy(self) -> bool:
-        return False
-
-
 @pytest.fixture
 def settings_with(tmp_path, monkeypatch):
     committed = tmp_path / "config.json"
@@ -116,7 +111,7 @@ def test_every_text_setting_named_like_a_key_or_token_is_marked_secret() -> None
 async def test_the_page_reads_the_list_with_no_key_in_full(settings_with) -> None:
     app = FastAPI()
     settings = settings_with({"llm": {"api_key": API_KEY}})
-    app.include_router(build_router(settings, {}, NotBusy(), settings_module.local_settings_path()))
+    app.include_router(build_router(settings, {}))
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://t"
     ) as http:

@@ -1,6 +1,6 @@
 # 04 Remove the settings-file save
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 
@@ -13,4 +13,4 @@
 - No caller of the removed names is left (`grep` across `backend`, `frontend` and `desktop`).
 - `make test` and `make test-desktop` pass.
 
-**Blocked by.** 03
+**Blocked by.** 01

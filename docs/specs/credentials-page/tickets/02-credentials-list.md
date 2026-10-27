@@ -16,4 +16,4 @@
 - No value appears in full in the response.
 - By hand: a key saved through a bot's card shows on Credentials as Custom, with the bots allowed to use it.
 
-**Blocked by.** 01
+**Blocked by.** 04

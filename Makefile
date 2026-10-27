@@ -4,7 +4,7 @@
 BACKEND = cd backend && uv run
 
 BACKEND_PORT ?= 4896
-BACKEND_RUN  = cd backend && uv run uvicorn harness.web.server:create_web_app --factory --reload --reload-include config.local.json --host 127.0.0.1 --port $(BACKEND_PORT)
+BACKEND_RUN  = cd backend && uv run uvicorn harness.web.server:create_web_app --factory --reload --host 127.0.0.1 --port $(BACKEND_PORT)
 FRONTEND_RUN = cd frontend && BACKEND_PORT=$(BACKEND_PORT) npm run dev
 
 help:

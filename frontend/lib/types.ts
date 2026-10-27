@@ -288,12 +288,8 @@ export interface Credential {
   env_variable: string | null;
 }
 
-/** `GET /api/credentials`, with the harness's own address. */
+/** `GET /api/credentials` */
 export interface CredentialList {
   credentials: Credential[];
-  direct_url: string;
-  answering_pid: number;
 }
 
-/** `PUT /api/credentials`: a new key by path, or null to remove it. */
-export type CredentialValues = Record<string, string | null>;

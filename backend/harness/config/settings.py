@@ -119,11 +119,6 @@ class Settings(BaseSettings):
         )
 
 
-def local_settings_path() -> Path:
-    """The per-machine settings file this harness reads."""
-    return _LOCAL_JSON
-
-
 class MissingConfigError(RuntimeError):
     """A value with no possible default was not supplied anywhere."""
 

@@ -20,7 +20,6 @@ import {
 } from "./paths";
 import { firstPortInUse, harnessSpec, pagesSpec, waitForPort } from "./processes";
 import { committedEndpoint, needsSetup, readLocalSettings } from "./setup";
-import { watchSettings } from "./settingsWatch";
 import { askForSetup } from "./setupWindow";
 import { portInUseReason } from "./strays";
 import { addTray } from "./tray";
@@ -44,8 +43,6 @@ let childrenStopped = false;
 let chatWindow: BrowserWindow | null = null;
 /** Held for the app's whole life: Electron drops a Tray from the menu bar once it is garbage-collected. */
 let menuBarIcon: Tray | null = null;
-let stopWatchingSettings: (() => void) | null = null;
-let restartQueue: Promise<void> = Promise.resolve();
 
 async function startApp(): Promise<void> {
   mkdirSync(path.dirname(files.harnessLog), { recursive: true });
@@ -75,24 +72,6 @@ function openChat(): void {
   menuBarIcon = addTray({ showChatWindow, showCredentials, settingsFile: files.localJson });
   app.on("second-instance", showChatWindow);
   app.on("activate", showChatWindow);
-  stopWatchingSettings = watchSettings(files.localJson, () => {
-    restartQueue = restartQueue.then(restartHarness);
-  });
-}
-
-/** Restarts only the harness; the window and the page server stay. */
-async function restartHarness(): Promise<void> {
-  const [harness, pages] = children;
-  if (hasStopBegun() || harness === undefined || pages === undefined) return;
-  await harness.stop();
-  if (hasStopBegun()) return;
-  const newHarness = startHarness(harnessSpec(layout, files, process.env), files.harnessLog, files.pidFile);
-  children = [newHarness, pages];
-  try {
-    await waitForPort({ host: HOST, port: HARNESS_PORT }, HARNESS_START_MS, newHarness.exited);
-  } catch (error) {
-    dialog.showErrorBox(`${APP_NAME} could not restart its harness`, `${messageOf(error)}\n\n${logTail(files.harnessLog)}`);
-  }
 }
 
 /** Why the app cannot start yet, or null when the pages are built. */
@@ -119,7 +98,6 @@ async function failStart(message: string): Promise<void> {
 }
 
 function stopChildren(): Promise<void> {
-  stopWatchingSettings?.();
   stopping ??= Promise.all(children.map((child) => child.stop())).then(() => undefined);
   return stopping;
 }

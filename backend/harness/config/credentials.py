@@ -66,38 +66,3 @@ def _variable_that_sets(path: str, env: Mapping[str, str]) -> str | None:
     section, name = path.split(".", 1)
     wanted = f"{config['env_prefix']}{section}{config['env_nested_delimiter']}{name}".upper()
     return next((variable for variable in env if variable.upper() == wanted), None)
-
-
-class UnsettablePath(ValueError):
-    """A path the page may not set."""
-
-
-class RefusedValue(ValueError):
-    """A value the harness would not keep."""
-
-
-PREVIEW_ELLIPSIS = "…"
-
-
-def check_values(
-    settings: Settings, env: Mapping[str, str], values: Mapping[str, str | None]
-) -> None:
-    """Raises UnsettablePath or RefusedValue for the first value the page may not save."""
-    listed = {credential.path: credential for credential in credentials(settings, env)}
-    for path, value in values.items():
-        credential = listed.get(path)
-        if credential is None:
-            raise UnsettablePath(f"{path} is not a credential this page sets")
-        if credential.env_variable is not None:
-            raise UnsettablePath(f"{path} is set by {credential.env_variable}; change it there")
-        if value is None and credential.is_required:
-            raise UnsettablePath(f"{path} cannot be removed; the harness cannot start without it")
-        if value is not None:
-            _check_value(path, value)
-
-
-def _check_value(path: str, value: str) -> None:
-    if not value.strip():
-        raise RefusedValue(f"{path}: an empty key is not saved; use Remove instead")
-    if PREVIEW_ELLIPSIS in value:
-        raise RefusedValue(f"{path}: that is the masked preview, not the key; paste the whole key")
