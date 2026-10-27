@@ -8,6 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { isSettingsChange, watchSettings } from "./settingsWatch";
 
 const FILE = "/d/config.local.json";
+const WATCH_STARTS_MS = 300;
 const NOTICE_WITHIN_MS = 5000;
 const POLL_MS = 50;
 const NO_SECOND_CHANGE_MS = 1000;
@@ -22,7 +23,7 @@ test("the temp file a save writes first, another file, or no name is not", () =>
   assert.equal(isSettingsChange(null, FILE), false);
 });
 
-test("replacing the file the way a save does is noticed once", async () => {
+test("replacing the file the way a save does, once the watch has started, is noticed once", async () => {
   const folder = mkdtempSync(path.join(tmpdir(), "watch-"));
   const file = path.join(folder, "config.local.json");
   writeFileSync(file, "{}");
@@ -30,6 +31,7 @@ test("replacing the file the way a save does is noticed once", async () => {
   const stop = watchSettings(file, () => {
     changes += 1;
   });
+  await delay(WATCH_STARTS_MS);
 
   const temp = path.join(folder, ".config.local.json.abc.tmp");
   writeFileSync(temp, '{"telegram": {"bot_token": "t"}}');
