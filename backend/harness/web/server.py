@@ -17,7 +17,7 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
-from harness.config.settings import Settings, load
+from harness.config.settings import Settings, load, local_file
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.llm.adapters import context_window_tokens
@@ -153,7 +153,7 @@ def create_web_app() -> FastAPI:
     app = create_app(
         runs, gateway, web, mcp, skills, client_tools, approvals, bots, secrets, messages
     )
-    app.include_router(build_credentials_router(settings, os.environ))
+    app.include_router(build_credentials_router(settings, os.environ, runs, local_file()))
     return app
 
 

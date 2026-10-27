@@ -52,6 +52,10 @@ class RunService:
         self._bots = bots
         self._runs: dict[str, Run] = {}
 
+    def is_busy(self) -> bool:
+        """Whether any chat has a reply being written now."""
+        return bool(self._runs)
+
     def active(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)

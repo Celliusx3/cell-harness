@@ -7,6 +7,7 @@ import type {
   BundledFile,
   ConversationDetail,
   CredentialList,
+  CredentialValues,
   ClientAnswer,
   Decision,
   Group,
@@ -166,6 +167,29 @@ export const listSecrets = () => request<SecretSummary[]>("/secrets");
 
 /** The harness's own keys, each by its last four characters at most. */
 export const listCredentials = () => request<CredentialList>("/credentials");
+
+/** Whether this browser reaches the harness directly, which only a page on its own Mac does. */
+export async function canSaveCredentials(directUrl: string): Promise<boolean> {
+  try {
+    return (await fetch(`${directUrl}/api/credentials`)).ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Saves keys straight to the harness, never through the page server, which the harness refuses. */
+export async function saveCredentials(
+  directUrl: string,
+  values: CredentialValues,
+  confirm: boolean,
+): Promise<void> {
+  const response = await fetch(`${directUrl}/api/credentials`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ values, confirm }),
+  });
+  if (!response.ok) throw new ApiError(response.status, await detailOf(response));
+}
 
 /** Remove a key from the keyring and from every bot's list. */
 export const deleteSecret = (name: string) =>

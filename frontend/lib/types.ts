@@ -284,11 +284,16 @@ export interface Credential {
   section: string;
   description: string;
   is_set: boolean;
+  required: boolean;
   last_four: string | null;
   set_by_env: string | null;
 }
 
-/** `GET /api/credentials` */
+/** `GET /api/credentials`, with the harness's own address, which only this Mac can reach. */
 export interface CredentialList {
   credentials: Credential[];
+  direct_url: string;
 }
+
+/** `PUT /api/credentials`: a new key by path, or null to remove it. */
+export type CredentialValues = Record<string, string | null>;

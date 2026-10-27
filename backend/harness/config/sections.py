@@ -14,7 +14,7 @@ class LLMSettings(BaseModel):
     api_key: str = Field(
         default="",
         description="The model provider's API key.",
-        json_schema_extra={"x-secret": True},
+        json_schema_extra={"x-secret": True, "x-required": True},
     )
     model: str = ""
     vision: bool

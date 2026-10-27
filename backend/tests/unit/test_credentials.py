@@ -19,6 +19,11 @@ from harness.web.routes.credentials import build_router
 API_KEY = "sk-abcdefgh1234"
 
 
+class NotBusy:
+    def is_busy(self) -> bool:
+        return False
+
+
 @pytest.fixture
 def settings_with(tmp_path, monkeypatch):
     """A `Settings` built from a throwaway config pair, with no `HARNESS_` variable in the way."""
@@ -73,6 +78,12 @@ def test_a_key_given_by_the_environment_names_its_variable(settings_with) -> Non
     assert listed[0].set_by_env is None
 
 
+def test_only_the_model_api_key_is_required(settings_with) -> None:
+    listed = credentials(settings_with({}), env={})
+
+    assert [c.path for c in listed if c.required] == ["llm.api_key"]
+
+
 def test_every_credential_says_what_it_is(settings_with) -> None:
     assert all(c.description.strip() for c in credentials(settings_with({}), env={}))
 
@@ -101,7 +112,8 @@ def test_every_text_setting_named_like_a_key_or_token_is_marked_secret() -> None
 
 async def test_the_page_reads_the_list_with_no_key_in_full(settings_with) -> None:
     app = FastAPI()
-    app.include_router(build_router(settings_with({"llm": {"api_key": API_KEY}}), env={}))
+    settings = settings_with({"llm": {"api_key": API_KEY}})
+    app.include_router(build_router(settings, {}, NotBusy(), settings_module.local_file()))
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://t"
     ) as http:
