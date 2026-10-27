@@ -1,6 +1,6 @@
 # 03 Add, edit and remove: Custom and LLM
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

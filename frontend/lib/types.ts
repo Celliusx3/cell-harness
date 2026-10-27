@@ -277,24 +277,3 @@ export type Decision = { kind: "approved"; scope: Scope } | { kind: "denied" };
 export interface Approvals {
   tools: string[];
 }
-
-/** What a credential is for, by its kind: a website's key, a model, or a chat platform's token. */
-export type CredentialDetails =
-  | { kind: "custom"; destination: { origin: string; auth: "bearer" | "header"; header_name: string | null } }
-  | { kind: "llm"; base_url: string; model: string }
-  | { kind: "telegram" }
-  | { kind: "discord" };
-
-/** `GET /api/credentials`: one keyring entry, the bots it serves, and its last four characters at most. */
-export interface Credential {
-  name: string;
-  details: CredentialDetails;
-  last_four: string | null;
-  bots: { id: string; name: string }[];
-}
-
-/** `GET /api/credentials` */
-export interface CredentialList {
-  credentials: Credential[];
-}
-

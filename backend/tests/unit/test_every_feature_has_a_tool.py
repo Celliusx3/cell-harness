@@ -78,8 +78,16 @@ ROUTES: dict[str, Tool | NotATool] = {
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
     ),
-    "DELETE /api/secrets/{name}": NotATool(
-        "removing a key is the person's call, from the Keys page"
+    "OPTIONS /api/credentials": NotATool("a browser's preflight; it changes nothing"),
+    "OPTIONS /api/credentials/{name}": NotATool("a browser's preflight; it changes nothing"),
+    "POST /api/credentials": NotATool(
+        "the person types the key on the Mac that runs the harness; it never passes the model"
+    ),
+    "PATCH /api/credentials/{name}": NotATool(
+        "a new key or new bots for a credential is the person's call; a bot never gives itself one"
+    ),
+    "DELETE /api/credentials/{name}": NotATool(
+        "removing a key is the person's call, from the Credentials page"
     ),
 }
 

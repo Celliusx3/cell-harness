@@ -8,7 +8,7 @@ from pydantic import SecretStr
 
 from harness.secrets.masking import last_four
 from harness.secrets.models.destination import Destination
-from harness.secrets.models.details import CustomDetails
+from harness.secrets.models.details import CredentialDetails, CustomDetails
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.models.secret import SavedCredential, SecretSummary, UnsealedSecret
@@ -58,6 +58,34 @@ class SecretService:
             (*(secret for secret in stored if secret is not existing), sealed_secret)
         )
 
+    def add_credential(self, name: str, details: CredentialDetails, value: SecretStr) -> None:
+        """Seal `value` as a new credential; `SecretRefused` for a name taken by any kind."""
+        stored = self._repository.sealed_secrets()
+        if any(secret.name == name for secret in stored):
+            raise SecretRefused(f"a credential is already named {name!r}; pick another name")
+        if len(stored) >= MAX_SECRETS:
+            raise SecretRefused(f"{MAX_SECRETS} keys are already saved; remove one first")
+        added = self._sealed_secret(name, details, value.get_secret_value())
+        self._repository.replace_all((*stored, added))
+
+    def change_credential(
+        self, name: str, details: CredentialDetails, value: SecretStr | None
+    ) -> None:
+        """Replace what `name` is for, and its key unless `value` is `None`; its kind stays."""
+        stored = self._repository.sealed_secrets()
+        existing = next((secret for secret in stored if secret.name == name), None)
+        if existing is None:
+            raise SecretNotFound(name)
+        if existing.details.kind != details.kind:
+            raise SecretRefused(
+                f"{name!r} is a {existing.details.kind} credential; its type cannot change"
+            )
+        plaintext = self._plaintext(existing) if value is None else value.get_secret_value()
+        changed = self._sealed_secret(name, details, plaintext)
+        self._repository.replace_all(
+            tuple(changed if secret is existing else secret for secret in stored)
+        )
+
     def secret_named(self, name: str) -> UnsealedSecret | None:
         """The custom key called `name`, unsealed, or `None`; no other kind is ever handed out."""
         sealed_secret = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
@@ -95,10 +123,19 @@ class SecretService:
             for secret in sorted(self._repository.sealed_secrets(), key=lambda secret: secret.name)
         )
 
+    def _sealed_secret(self, name: str, details: CredentialDetails, plaintext: str) -> SealedSecret:
+        record_id = os.urandom(RECORD_ID_BYTES).hex()
+        return SealedSecret(
+            id=record_id,
+            name=name,
+            details=details,
+            ciphertext=sealed(plaintext, encryption_key=self._encryption_key, record_id=record_id),
+        )
+
     def _saved_credential(self, secret: SealedSecret) -> SavedCredential:
-        plaintext = unsealed(
-            secret.ciphertext, encryption_key=self._encryption_key, record_id=secret.id
-        )
         return SavedCredential(
-            name=secret.name, details=secret.details, last_four=last_four(plaintext)
+            name=secret.name, details=secret.details, last_four=last_four(self._plaintext(secret))
         )
+
+    def _plaintext(self, secret: SealedSecret) -> str:
+        return unsealed(secret.ciphertext, encryption_key=self._encryption_key, record_id=secret.id)

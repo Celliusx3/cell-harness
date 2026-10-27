@@ -1,6 +1,15 @@
-import type { Credential, CredentialDetails } from "@/lib/types";
+import type { Credential, CredentialDetails } from "@/lib/credentials";
 
-export function CredentialRow({ credential }: { credential: Credential }) {
+const ROW_BUTTON =
+  "shrink-0 rounded-md border border-line bg-surface px-2 py-0.5 text-xs text-ink-soft transition hover:bg-line hover:text-ink";
+
+interface CredentialRowProps {
+  credential: Credential;
+  onEdit: (() => void) | null;
+  onRemove: (() => void) | null;
+}
+
+export function CredentialRow({ credential, onEdit, onRemove }: CredentialRowProps) {
   const purpose = purposeLabel(credential.details);
   return (
     <li className="px-3 py-2 text-sm">
@@ -9,7 +18,19 @@ export function CredentialRow({ credential }: { credential: Credential }) {
         {purpose !== null && <span className="min-w-0 break-words text-xs text-ink-soft">{purpose}</span>}
         <span className="ml-auto shrink-0 text-xs text-ink-soft">{maskLabel(credential.last_four)}</span>
       </div>
-      <p className="mt-1 break-words text-xs text-ink-soft">{botsLabel(credential.bots)}</p>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="min-w-0 flex-1 break-words text-xs text-ink-soft">{botsLabel(credential.bots)}</p>
+        {onEdit !== null && (
+          <button type="button" onClick={onEdit} className={ROW_BUTTON}>
+            Edit
+          </button>
+        )}
+        {onRemove !== null && (
+          <button type="button" onClick={onRemove} className={ROW_BUTTON}>
+            Remove
+          </button>
+        )}
+      </div>
     </li>
   );
 }

@@ -41,7 +41,7 @@ class BotDraft(BaseModel):
 
 
 class Bot(BaseModel):
-    """A name, its instructions, the saved keys it may use, and its one chat, whose id is its id."""
+    """A name, its instructions, its keys and model credential, and its chat, whose id is its id."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -50,6 +50,7 @@ class Bot(BaseModel):
     instructions: str
     archived: bool = False
     secret_names: tuple[SecretName, ...] = ()
+    model_credential: SecretName | None = None
 
 
 class GroupDraft(BaseModel):

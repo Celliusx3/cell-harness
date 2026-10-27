@@ -1,4 +1,4 @@
-"""The Keys page lists the keyring startup is given, and refuses a key or a bot nobody made."""
+"""The bot page lists the keyring startup is given, and refuses a bot nobody made."""
 
 from __future__ import annotations
 
@@ -26,16 +26,6 @@ def _client(tmp_path: Path) -> httpx.AsyncClient:
     runs = run_service(service, SteppedClient(completed("hi")), bots=bots)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
-
-
-async def test_removing_a_key_nobody_saved_is_a_404_naming_it(tmp_path: Path) -> None:
-    async with _client(tmp_path) as client:
-        response = await client.delete("/api/secrets/notion")
-        listed = (await client.get("/api/secrets")).json()
-
-    assert response.status_code == 404
-    assert "'notion'" in response.json()["detail"]
-    assert [key["name"] for key in listed] == ["github"]
 
 
 async def test_allowing_a_key_to_a_bot_nobody_made_is_a_404(tmp_path: Path) -> None:
