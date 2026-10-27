@@ -1,6 +1,6 @@
 # 03 First-start setup
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 
