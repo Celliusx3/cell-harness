@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and nineteen insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and twenty insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -39,7 +39,9 @@ what they save; the comic translator is the first such skill. Known risk: the
 app has no login, and the computer reaches every port on this Mac through
 `host.docker.internal`, so a bot allowed to run commands can call the app's API
 as the person; a network guard such as Tailscale does not cover it;
-phase 13, built in the computer, spec in `docs/specs/comic-skill/`). Their plans
+phase 13, built in the computer, spec in `docs/specs/comic-skill/`), 20 a Mac app
+friends install (`make app`: Electron around the same pages, its own Python and
+Deno, signed ad-hoc; chat and skills only; spec in `docs/specs/desktop-app/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made

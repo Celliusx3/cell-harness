@@ -15,7 +15,7 @@ Every bot shares one Linux desktop with Chrome (Rakazo's image, a Docker contain
 
 ## How to get to it (user POV)
 
-Click the screen icon in the sidebar, or go to `/computer`. Docker must be running. For the bots' side, ask a bot to look something up on a website; with `llm` on a small local model the bot may fail to call the tools.
+Click the screen icon in the sidebar, or go to `/computer`. The icon shows only when `mcp.servers` has a `computer` server; the desktop app has none. Docker must be running. For the bots' side, ask a bot to look something up on a website; with `llm` on a small local model the bot may fail to call the tools.
 
 ## Driving it with Playwright MCP
 

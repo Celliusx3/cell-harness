@@ -1,6 +1,6 @@
 # 07 Docs
 
-**Status:** open
+**Status:** done
 
 **What to build.** `README.md` gains a Desktop app section: build it, install it, Open Anyway, and where the settings file is. `CLAUDE.md` gains a Layout line for `desktop/` and a run line for `make app`. `PHASES.md` status gains one line. `scripts/check-file-lengths.sh` also checks `desktop/src`, and the `Makefile` gains `test-desktop`.
 
