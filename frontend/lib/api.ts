@@ -6,6 +6,7 @@ import type {
   BotDraft,
   BundledFile,
   ConversationDetail,
+  CredentialList,
   ClientAnswer,
   Decision,
   Group,
@@ -162,6 +163,9 @@ export const createGroup = (draft: GroupDraft) =>
 
 /** Every saved key, by name, with the bots allowed to use it. */
 export const listSecrets = () => request<SecretSummary[]>("/secrets");
+
+/** The harness's own keys, each by its last four characters at most. */
+export const listCredentials = () => request<CredentialList>("/credentials");
 
 /** Remove a key from the keyring and from every bot's list. */
 export const deleteSecret = (name: string) =>

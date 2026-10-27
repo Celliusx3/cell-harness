@@ -277,3 +277,18 @@ export type Decision = { kind: "approved"; scope: Scope } | { kind: "denied" };
 export interface Approvals {
   tools: string[];
 }
+
+/** `GET /api/credentials`: one key the harness itself holds, never its value. */
+export interface Credential {
+  path: string;
+  section: string;
+  description: string;
+  is_set: boolean;
+  last_four: string | null;
+  set_by_env: string | null;
+}
+
+/** `GET /api/credentials` */
+export interface CredentialList {
+  credentials: Credential[];
+}

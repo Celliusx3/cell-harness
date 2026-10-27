@@ -1,6 +1,6 @@
 # 02 Credentials page, read-only
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

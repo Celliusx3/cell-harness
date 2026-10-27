@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, BotMessageSquare, KeyRound, Monitor, ShieldCheck, Users } from "lucide-react";
+import { BookOpen, BotMessageSquare, KeyRound, LockKeyhole, Monitor, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -93,6 +93,15 @@ export function Sidebar() {
             }`}
           >
             <KeyRound size={18} />
+          </Link>
+          <Link
+            href="/credentials"
+            aria-label="Credentials"
+            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
+              pathname === "/credentials" ? "bg-accent-soft text-ink" : "text-ink-soft"
+            }`}
+          >
+            <LockKeyhole size={18} />
           </Link>
           {hasComputer && (
             <Link

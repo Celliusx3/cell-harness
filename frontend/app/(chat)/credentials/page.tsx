@@ -1,0 +1,70 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+import { ApiError, listCredentials } from "@/lib/api";
+import type { Credential } from "@/lib/types";
+
+/** The harness's own keys and tokens, each shown only by whether it is saved and its last four characters. */
+export default function CredentialsPage() {
+  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      setCredentials((await listCredentials()).credentials);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof ApiError ? err.message : "Could not load credentials.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return (
+    <>
+      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
+        <h1 className="min-w-0 truncate text-sm font-medium">Credentials</h1>
+        <span className="shrink-0 text-xs text-ink-soft">
+          {credentials.filter((credential) => credential.is_set).length} of {credentials.length} saved
+        </span>
+      </header>
+
+      {error && (
+        <div className="border-b border-danger/30 bg-danger-soft px-6 py-2 text-sm text-danger">
+          {error}
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+        <ul className="max-w-2xl divide-y divide-line rounded-xl border border-line bg-surface-sunken">
+          {credentials.map((credential) => (
+            <CredentialRow key={credential.path} credential={credential} />
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+}
+
+function CredentialRow({ credential }: { credential: Credential }) {
+  return (
+    <li className="px-3 py-2 text-sm">
+      <div className="flex items-center gap-2">
+        <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px]">
+          {credential.path}
+        </span>
+        <span className="text-xs text-ink-soft">{stateOf(credential)}</span>
+      </div>
+      <p className="mt-1 break-words text-xs text-ink-soft">{credential.description}</p>
+    </li>
+  );
+}
+
+function stateOf(credential: Credential): string {
+  if (credential.set_by_env !== null) return `set by ${credential.set_by_env}`;
+  if (!credential.is_set) return "not set";
+  return credential.last_four === null ? "saved" : `saved, ends in …${credential.last_four}`;
+}
