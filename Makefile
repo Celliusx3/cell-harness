@@ -1,5 +1,5 @@
 .PHONY: help install dev dev-backend dev-web test test-unit test-integration \
-        test-mcp-servers test-skills lint lint-mcp-servers lint-skills fmt cov build
+        test-mcp-servers test-skills lint lint-mcp-servers lint-skills fmt cov build app
 
 BACKEND = cd backend && uv run
 
@@ -24,6 +24,7 @@ help:
 	@echo "  make fmt               ruff format + fix"
 	@echo "  make cov               tests with an HTML coverage report"
 	@echo "  make build             frontend production build"
+	@echo "  make app               the Mac app, as desktop/dist-app/Cell Harness-<version>-arm64.dmg"
 	@echo ""
 	@echo "Current phase and its acceptance criteria: PHASES.md"
 
@@ -91,3 +92,6 @@ cov:
 
 build:
 	cd frontend && npm run build
+
+app:
+	cd desktop && npm ci && npm run dist

@@ -48,6 +48,7 @@ export function harnessSpec(layout: Layout, files: DataFiles, baseEnv: NodeJS.Pr
       HARNESS_CONFIG_LOCAL: files.localJson,
       PATH: searchPath(layout.extraPath, baseEnv.PATH),
       ...pythonPathEnv(layout.pythonPath),
+      ...layout.harnessEnv,
     },
   };
 }

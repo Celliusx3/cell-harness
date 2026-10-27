@@ -101,3 +101,11 @@ test("the first port another program holds is named, and none when all are free"
   await new Promise((resolve) => server.once("close", resolve));
   assert.equal(await firstPortInUse("127.0.0.1", [9, port]), null);
 });
+
+test("the layout's own settings for Python reach the harness, after the parent's", () => {
+  const layout = { ...checkoutLayout(REPO), harnessEnv: { PYTHONDONTWRITEBYTECODE: "1" } };
+
+  const spec = harnessSpec(layout, dataFiles("/d"), { PATH: "/usr/bin", PYTHONDONTWRITEBYTECODE: "" });
+
+  assert.equal(spec.env.PYTHONDONTWRITEBYTECODE, "1");
+});

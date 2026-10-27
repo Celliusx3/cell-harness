@@ -7,7 +7,17 @@ import { app, BrowserWindow, dialog, session, shell, type Session, type Tray, ty
 import { startHarness, startPages, stopStrayHarness, type Child } from "./children";
 import { messageOf } from "./errors";
 import { APP_URL, isAppOrigin, isBrowserLink, isPermissionGranted } from "./origin";
-import { APP_NAME, checkoutLayout, dataFiles, HARNESS_PORT, HOST, PAGES_PORT, userDataFolder, type Layout } from "./paths";
+import {
+  APP_NAME,
+  checkoutLayout,
+  dataFiles,
+  HARNESS_PORT,
+  HOST,
+  packagedLayout,
+  PAGES_PORT,
+  userDataFolder,
+  type Layout,
+} from "./paths";
 import { firstPortInUse, harnessSpec, pagesSpec, waitForPort } from "./processes";
 import { committedEndpoint, needsSetup, readLocalSettings } from "./setup";
 import { askForSetup } from "./setupWindow";
@@ -23,7 +33,9 @@ const WINDOW_SIZE = { width: 1200, height: 820 } as const;
 app.setPath("userData", userDataFolder(os.homedir()));
 
 const files = dataFiles(app.getPath("userData"));
-const layout = checkoutLayout(path.resolve(app.getAppPath(), ".."));
+const layout = app.isPackaged
+  ? packagedLayout(process.resourcesPath)
+  : checkoutLayout(path.resolve(app.getAppPath(), ".."));
 
 let children: readonly Child[] = [];
 let stopping: Promise<void> | null = null;

@@ -17,6 +17,7 @@ export interface Layout {
   readonly pagesServer: string;
   readonly extraPath: readonly string[];
   readonly pythonPath: readonly string[];
+  readonly harnessEnv: Readonly<Record<string, string>>;
 }
 
 export interface DataFiles {
@@ -54,5 +55,20 @@ export function checkoutLayout(repoRoot: string): Layout {
     pagesServer: path.join(desktop, "build", "pages", "server.js"),
     extraPath: [],
     pythonPath: [],
+    harnessEnv: {},
+  };
+}
+
+/** Where the programs are inside the packaged app's Resources folder, Deno among them; Python never writes into the signed app. */
+export function packagedLayout(resources: string): Layout {
+  const backendDir = path.join(resources, "app", "backend");
+  return {
+    python: { command: path.join(resources, "python", "bin", "python3"), args: [] },
+    backendDir,
+    configJson: path.join(resources, "app", "desktop", "config.json"),
+    pagesServer: path.join(resources, "pages", "server.js"),
+    extraPath: [path.join(resources, "bin")],
+    pythonPath: [backendDir, path.join(resources, "site-packages")],
+    harnessEnv: { PYTHONDONTWRITEBYTECODE: "1" },
   };
 }

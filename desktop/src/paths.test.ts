@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 
-import { APP_NAME, checkoutLayout, dataFiles, HARNESS_PORT, userDataFolder } from "./paths";
+import { APP_NAME, checkoutLayout, dataFiles, HARNESS_PORT, packagedLayout, userDataFolder } from "./paths";
 
 const DESKTOP = path.resolve(__dirname, "..");
 const REPO = path.resolve(DESKTOP, "..");
@@ -56,9 +56,38 @@ test("on the checkout, the harness runs through uv from the backend folder", () 
   assert.equal(layout.pagesServer, path.join(REPO, "desktop", "build", "pages", "server.js"));
   assert.deepEqual(layout.extraPath, []);
   assert.deepEqual(layout.pythonPath, []);
+  assert.deepEqual(layout.harnessEnv, {});
 });
 
 test("the pages are built to call the harness on its port", () => {
   const script = readFileSync(path.join(DESKTOP, "scripts", "build-pages.sh"), "utf8");
   assert.ok(script.includes(`BACKEND_PORT=${HARNESS_PORT}`));
+});
+
+test("in the packaged app, the harness runs on the app's own Python, with Deno on its PATH", () => {
+  const layout = packagedLayout("/Applications/Cell Harness.app/Contents/Resources");
+  const resources = "/Applications/Cell Harness.app/Contents/Resources";
+
+  assert.deepEqual(layout.python, { command: `${resources}/python/bin/python3`, args: [] });
+  assert.equal(layout.backendDir, `${resources}/app/backend`);
+  assert.equal(layout.configJson, `${resources}/app/desktop/config.json`);
+  assert.equal(layout.pagesServer, `${resources}/pages/server.js`);
+  assert.deepEqual(layout.extraPath, [`${resources}/bin`]);
+  assert.deepEqual(layout.pythonPath, [`${resources}/app/backend`, `${resources}/site-packages`]);
+  assert.deepEqual(layout.harnessEnv, { PYTHONDONTWRITEBYTECODE: "1" });
+});
+
+test("the bundle puts each program where the packaged layout looks for it", () => {
+  const script = readFileSync(path.join(DESKTOP, "scripts", "bundle.sh"), "utf8");
+  assert.ok(script.includes("compileall --invalidation-mode unchecked-hash"), "bundle.sh never compiles the bytecode");
+  for (const folder of ["python", "site-packages", "bin", "app/backend", "app/desktop", "app/.agents/skills/create-skill", "pages"]) {
+    assert.ok(script.includes(`$BUNDLE/${folder}`), `bundle.sh never fills ${folder}`);
+  }
+});
+
+test("electron-builder copies the whole bundle into Resources", () => {
+  const manifest = JSON.parse(readFileSync(path.join(DESKTOP, "package.json"), "utf8"));
+  assert.deepEqual(manifest.build.extraResources, [{ from: "build/bundle", to: ".", filter: ["**/*"] }]);
+  assert.equal(manifest.build.mac.identity, "-");
+  assert.deepEqual(manifest.build.mac.target, [{ target: "dmg", arch: ["arm64"] }]);
 });
