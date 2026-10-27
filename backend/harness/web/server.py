@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -37,6 +38,7 @@ from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
 from harness.web.routes.compact import build_router as build_compact_router
+from harness.web.routes.credentials import build_router as build_credentials_router
 from harness.web.routes.groups import build_router as build_groups_router
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.relay import build_router as build_relay_router
@@ -148,9 +150,11 @@ def create_web_app() -> FastAPI:
     gateway, web = build_channels(
         settings, service, runs, skills, client_tools, bots, files, images
     )
-    return create_app(
+    app = create_app(
         runs, gateway, web, mcp, skills, client_tools, approvals, bots, secrets, messages
     )
+    app.include_router(build_credentials_router(settings, os.environ))
+    return app
 
 
 def create_app(

@@ -11,7 +11,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class LLMSettings(BaseModel):
     """Which model answers, whether it can see images, and how it is reached."""
 
-    api_key: str = ""
+    api_key: str = Field(
+        default="",
+        description="The model provider's API key.",
+        json_schema_extra={"x-secret": True},
+    )
     model: str = ""
     vision: bool
     base_url: str = "https://api.openai.com/v1"
@@ -57,7 +61,11 @@ class SecretSettings(BaseModel):
     """Where the API keys bots ask for are kept, and the key that locks them."""
 
     path: Path = Path.home() / ".harness" / "secrets.json"
-    encryption_key: str = ""
+    encryption_key: str = Field(
+        default="",
+        description="The key that locks the bots' saved keys; changing it makes them unreadable.",
+        json_schema_extra={"x-secret": True, "x-readonly": True},
+    )
 
     @field_validator("path")
     @classmethod
@@ -82,13 +90,21 @@ class FileSettings(BaseModel):
 class TelegramSettings(BaseModel):
     """The bot to answer as, if any."""
 
-    bot_token: str = ""
+    bot_token: str = Field(
+        default="",
+        description="The token BotFather gave your Telegram bot. Empty turns Telegram off.",
+        json_schema_extra={"x-secret": True},
+    )
 
 
 class DiscordSettings(BaseModel):
     """The Discord bot to answer as, if any. Off when empty, as Telegram's is."""
 
-    bot_token: str = ""
+    bot_token: str = Field(
+        default="",
+        description="Your Discord bot's token, from the Developer Portal. Empty turns Discord off.",
+        json_schema_extra={"x-secret": True},
+    )
 
 
 class WebSettings(BaseModel):
