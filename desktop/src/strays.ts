@@ -1,6 +1,5 @@
 import { APP_NAME, HARNESS_PORT } from "./paths";
-
-export const HARNESS_MARKER = "harness.web.server:create_web_app";
+import { HARNESS_APP_FACTORY } from "./processes";
 
 export interface PidRecord {
   readonly harnessPid: number;
@@ -25,7 +24,7 @@ export function parsePidFile(text: string): PidRecord | null {
 export function isOurHarness(command: string | null): boolean {
   if (command === null) return false;
   const words = command.trim().split(/\s+/);
-  return words.includes(HARNESS_MARKER) && words.some((word, i) => isOurPortFlag(word, words[i + 1]));
+  return words.includes(HARNESS_APP_FACTORY) && words.some((word, i) => isOurPortFlag(word, words[i + 1]));
 }
 
 /** Why the app cannot start while another program holds one of its ports. */

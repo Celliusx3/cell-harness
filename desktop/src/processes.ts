@@ -3,7 +3,6 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { HARNESS_PORT, HOST, PAGES_PORT, type DataFiles, type Layout } from "./paths";
-import { HARNESS_MARKER } from "./strays";
 
 export interface ChildSpec {
   readonly command: string;
@@ -23,6 +22,8 @@ export interface Target {
   readonly port: number;
 }
 
+export const HARNESS_APP_FACTORY = "harness.web.server:create_web_app";
+
 const HARNESS_SETTING_PREFIX = "HARNESS_";
 const RETRY_MS = 200;
 
@@ -34,7 +35,7 @@ export function harnessSpec(layout: Layout, files: DataFiles, baseEnv: NodeJS.Pr
       ...layout.python.args,
       "-m",
       "uvicorn",
-      HARNESS_MARKER,
+      HARNESS_APP_FACTORY,
       "--factory",
       "--host",
       HOST,

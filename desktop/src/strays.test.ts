@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { HARNESS_PORT } from "./paths";
-import { HARNESS_MARKER, isOurHarness, parsePidFile, pidFileText, portInUseReason } from "./strays";
+import { HARNESS_APP_FACTORY } from "./processes";
+import { isOurHarness, parsePidFile, pidFileText, portInUseReason } from "./strays";
 
-const OURS = `/x/python3 -m uvicorn ${HARNESS_MARKER} --factory --host 127.0.0.1 --port ${HARNESS_PORT}`;
+const OURS = `/x/python3 -m uvicorn ${HARNESS_APP_FACTORY} --factory --host 127.0.0.1 --port ${HARNESS_PORT}`;
 
 test("the pid file holds the harness's pid, and reads back the same", () => {
   assert.deepEqual(parsePidFile(pidFileText(4242)), { harnessPid: 4242 });
@@ -26,7 +27,7 @@ test("a live pid that runs another program is not stopped", () => {
 });
 
 test("a live pid that runs a harness on another port is not stopped", () => {
-  assert.equal(isOurHarness(`python -m uvicorn ${HARNESS_MARKER} --factory --port 4896`), false);
+  assert.equal(isOurHarness(`python -m uvicorn ${HARNESS_APP_FACTORY} --factory --port 4896`), false);
 });
 
 test("a live pid that runs our harness on our port is stopped", () => {
