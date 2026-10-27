@@ -6,11 +6,12 @@ import os
 
 from pydantic import SecretStr
 
+from harness.secrets.masking import last_four
 from harness.secrets.models.destination import Destination
 from harness.secrets.models.details import CustomDetails
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
-from harness.secrets.models.secret import SecretSummary, UnsealedSecret
+from harness.secrets.models.secret import SavedCredential, SecretSummary, UnsealedSecret
 from harness.secrets.repository import SecretRepository
 from harness.secrets.sealing import sealed, unsealed
 
@@ -85,4 +86,19 @@ class SecretService:
             SecretSummary(name=secret.name, destination=secret.details.destination)
             for secret in sorted(self._repository.sealed_secrets(), key=lambda secret: secret.name)
             if isinstance(secret.details, CustomDetails)
+        )
+
+    def saved_credentials(self) -> tuple[SavedCredential, ...]:
+        """Every credential of every kind, by name, with its last four characters at most."""
+        return tuple(
+            self._saved_credential(secret)
+            for secret in sorted(self._repository.sealed_secrets(), key=lambda secret: secret.name)
+        )
+
+    def _saved_credential(self, secret: SealedSecret) -> SavedCredential:
+        plaintext = unsealed(
+            secret.ciphertext, encryption_key=self._encryption_key, record_id=secret.id
+        )
+        return SavedCredential(
+            name=secret.name, details=secret.details, last_four=last_four(plaintext)
         )

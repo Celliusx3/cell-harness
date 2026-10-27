@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -150,11 +149,9 @@ def create_web_app() -> FastAPI:
     gateway, web = build_channels(
         settings, service, runs, skills, client_tools, bots, files, images
     )
-    app = create_app(
+    return create_app(
         runs, gateway, web, mcp, skills, client_tools, approvals, bots, secrets, messages
     )
-    app.include_router(build_credentials_router(settings, os.environ))
-    return app
 
 
 def create_app(
@@ -190,6 +187,7 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
+    app.include_router(build_credentials_router(secrets, bots))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

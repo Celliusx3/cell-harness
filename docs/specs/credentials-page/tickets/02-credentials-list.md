@@ -1,6 +1,6 @@
 # 02 Credentials list
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

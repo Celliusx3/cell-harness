@@ -7,19 +7,11 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-SECRET_MARKER = "x-secret"
-READ_ONLY_MARKER = "x-readonly"
-REQUIRED_MARKER = "x-required"
-
 
 class LLMSettings(BaseModel):
     """Which model answers, whether it can see images, and how it is reached."""
 
-    api_key: str = Field(
-        default="",
-        description="The model provider's API key.",
-        json_schema_extra={SECRET_MARKER: True, REQUIRED_MARKER: True},
-    )
+    api_key: str = ""
     model: str = ""
     vision: bool
     base_url: str = "https://api.openai.com/v1"
@@ -65,11 +57,7 @@ class SecretSettings(BaseModel):
     """Where the API keys bots ask for are kept, and the key that locks them."""
 
     path: Path = Path.home() / ".harness" / "secrets.json"
-    encryption_key: str = Field(
-        default="",
-        description="The key that locks the bots' saved keys; changing it makes them unreadable.",
-        json_schema_extra={SECRET_MARKER: True, READ_ONLY_MARKER: True},
-    )
+    encryption_key: str = ""
 
     @field_validator("path")
     @classmethod
@@ -94,21 +82,13 @@ class FileSettings(BaseModel):
 class TelegramSettings(BaseModel):
     """The bot to answer as, if any."""
 
-    bot_token: str = Field(
-        default="",
-        description="The token BotFather gave your Telegram bot. Empty turns Telegram off.",
-        json_schema_extra={SECRET_MARKER: True},
-    )
+    bot_token: str = ""
 
 
 class DiscordSettings(BaseModel):
     """The Discord bot to answer as, if any. Off when empty, as Telegram's is."""
 
-    bot_token: str = Field(
-        default="",
-        description="Your Discord bot's token, from the Developer Portal. Empty turns Discord off.",
-        json_schema_extra={SECRET_MARKER: True},
-    )
+    bot_token: str = ""
 
 
 class WebSettings(BaseModel):

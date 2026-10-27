@@ -278,14 +278,19 @@ export interface Approvals {
   tools: string[];
 }
 
-/** `GET /api/credentials`: one key the harness itself holds, never its value. */
+/** What a credential is for, by its kind: a website's key, a model, or a chat platform's token. */
+export type CredentialDetails =
+  | { kind: "custom"; destination: { origin: string; auth: "bearer" | "header"; header_name: string | null } }
+  | { kind: "llm"; base_url: string; model: string }
+  | { kind: "telegram" }
+  | { kind: "discord" };
+
+/** `GET /api/credentials`: one keyring entry, the bots it serves, and its last four characters at most. */
 export interface Credential {
-  path: string;
-  description: string;
-  is_set: boolean;
-  is_required: boolean;
+  name: string;
+  details: CredentialDetails;
   last_four: string | null;
-  env_variable: string | null;
+  bots: { id: string; name: string }[];
 }
 
 /** `GET /api/credentials` */

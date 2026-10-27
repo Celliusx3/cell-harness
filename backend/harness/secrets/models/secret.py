@@ -8,6 +8,7 @@ from typing import Annotated
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, SecretStr
 
 from harness.secrets.models.destination import Destination
+from harness.secrets.models.details import CredentialDetails
 
 SecretName = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,39}$")]
 
@@ -41,3 +42,13 @@ class SecretSummary(BaseModel):
 
     name: SecretName
     destination: Destination
+
+
+class SavedCredential(BaseModel):
+    """A credential of any kind: its name, what it is for, and its last four characters at most."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: SecretName
+    details: CredentialDetails
+    last_four: str | None

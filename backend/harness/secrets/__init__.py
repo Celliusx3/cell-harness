@@ -4,6 +4,7 @@ from harness.secrets.models.destination import Destination
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.secret import (
     SECRET_VALUE_RULE,
+    SavedCredential,
     SecretName,
     SecretSummary,
     SecretValue,
@@ -17,6 +18,7 @@ __all__ = [
     "SECRET_VALUE_RULE",
     "Destination",
     "DiskSecretRepository",
+    "SavedCredential",
     "SecretName",
     "SecretNotFound",
     "SecretRefused",
