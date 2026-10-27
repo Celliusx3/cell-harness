@@ -91,8 +91,6 @@ def _origins(values: object) -> list[str]:
 
 
 def _server_list_route(router: APIRouter, mcp: McpService) -> None:
-    """The servers this harness is set up with, read by a page that hides what is not set up."""
-
     @router.get("", response_model=ServerList)
     async def list_servers() -> ServerList:
         """Every configured server, connected or not."""

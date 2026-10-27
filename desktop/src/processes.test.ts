@@ -102,10 +102,16 @@ test("the first port another program holds is named, and none when all are free"
   assert.equal(await firstPortInUse("127.0.0.1", [9, port]), null);
 });
 
-test("the layout's own settings for Python reach the harness, after the parent's", () => {
-  const layout = { ...checkoutLayout(REPO), harnessEnv: { PYTHONDONTWRITEBYTECODE: "1" } };
+test("a layout that writes no bytecode tells Python so, whatever the parent says", () => {
+  const layout = { ...checkoutLayout(REPO), writesBytecode: false };
 
   const spec = harnessSpec(layout, dataFiles("/d"), { PATH: "/usr/bin", PYTHONDONTWRITEBYTECODE: "" });
 
   assert.equal(spec.env.PYTHONDONTWRITEBYTECODE, "1");
+});
+
+test("a layout that writes bytecode leaves Python to its default", () => {
+  const spec = harnessSpec(checkoutLayout(REPO), dataFiles("/d"), { PATH: "/usr/bin" });
+
+  assert.equal(spec.env.PYTHONDONTWRITEBYTECODE, undefined);
 });

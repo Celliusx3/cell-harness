@@ -49,7 +49,7 @@ export function harnessSpec(layout: Layout, files: DataFiles, baseEnv: NodeJS.Pr
       HARNESS_CONFIG_LOCAL: files.localJson,
       PATH: searchPath(layout.extraPath, baseEnv.PATH),
       ...pythonPathEnv(layout.pythonPath),
-      ...layout.harnessEnv,
+      ...bytecodeEnv(layout.writesBytecode),
     },
   };
 }
@@ -106,6 +106,10 @@ function isHarnessSetting(key: string): boolean {
 
 function searchPath(extraPath: readonly string[], basePath: string | undefined): string {
   return [...extraPath, ...(basePath === undefined ? [] : [basePath])].join(":");
+}
+
+function bytecodeEnv(writesBytecode: boolean): Record<string, string> {
+  return writesBytecode ? {} : { PYTHONDONTWRITEBYTECODE: "1" };
 }
 
 function pythonPathEnv(pythonPath: readonly string[]): Record<string, string> {

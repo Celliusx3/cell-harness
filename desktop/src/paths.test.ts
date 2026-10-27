@@ -56,7 +56,7 @@ test("on the checkout, the harness runs through uv from the backend folder", () 
   assert.equal(layout.pagesServer, path.join(REPO, "desktop", "build", "pages", "server.js"));
   assert.deepEqual(layout.extraPath, []);
   assert.deepEqual(layout.pythonPath, []);
-  assert.deepEqual(layout.harnessEnv, {});
+  assert.equal(layout.writesBytecode, true);
 });
 
 test("the pages are built to call the harness on its port", () => {
@@ -64,7 +64,7 @@ test("the pages are built to call the harness on its port", () => {
   assert.ok(script.includes(`BACKEND_PORT=${HARNESS_PORT}`));
 });
 
-test("in the packaged app, the harness runs on the app's own Python, with Deno on its PATH", () => {
+test("in the packaged app, the harness runs on the app's own Python, with Deno on its PATH, and writes no bytecode into the signed app", () => {
   const layout = packagedLayout("/Applications/Cell Harness.app/Contents/Resources");
   const resources = "/Applications/Cell Harness.app/Contents/Resources";
 
@@ -74,7 +74,7 @@ test("in the packaged app, the harness runs on the app's own Python, with Deno o
   assert.equal(layout.pagesServer, `${resources}/pages/server.js`);
   assert.deepEqual(layout.extraPath, [`${resources}/bin`]);
   assert.deepEqual(layout.pythonPath, [`${resources}/app/backend`, `${resources}/site-packages`]);
-  assert.deepEqual(layout.harnessEnv, { PYTHONDONTWRITEBYTECODE: "1" });
+  assert.equal(layout.writesBytecode, false);
 });
 
 test("the bundle puts each program where the packaged layout looks for it", () => {

@@ -17,7 +17,7 @@ export interface Layout {
   readonly pagesServer: string;
   readonly extraPath: readonly string[];
   readonly pythonPath: readonly string[];
-  readonly harnessEnv: Readonly<Record<string, string>>;
+  readonly writesBytecode: boolean;
 }
 
 export interface DataFiles {
@@ -55,11 +55,11 @@ export function checkoutLayout(repoRoot: string): Layout {
     pagesServer: path.join(desktop, "build", "pages", "server.js"),
     extraPath: [],
     pythonPath: [],
-    harnessEnv: {},
+    writesBytecode: true,
   };
 }
 
-/** Where the programs are inside the packaged app's Resources folder, Deno among them; Python never writes into the signed app. */
+/** Where the programs are inside the packaged app's Resources folder. */
 export function packagedLayout(resources: string): Layout {
   const backendDir = path.join(resources, "app", "backend");
   return {
@@ -69,6 +69,6 @@ export function packagedLayout(resources: string): Layout {
     pagesServer: path.join(resources, "pages", "server.js"),
     extraPath: [path.join(resources, "bin")],
     pythonPath: [backendDir, path.join(resources, "site-packages")],
-    harnessEnv: { PYTHONDONTWRITEBYTECODE: "1" },
+    writesBytecode: false,
   };
 }

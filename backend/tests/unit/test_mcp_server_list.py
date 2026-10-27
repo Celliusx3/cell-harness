@@ -1,4 +1,4 @@
-"""`GET /api/mcp`: the capabilities this harness is set up with, so a page shows only theirs."""
+"""`GET /api/mcp`: the capabilities this harness is set up with."""
 
 from __future__ import annotations
 

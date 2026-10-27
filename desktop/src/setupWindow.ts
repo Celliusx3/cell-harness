@@ -24,6 +24,8 @@ export interface SetupInput {
 const SETUP_WINDOW_SIZE = { width: 460, height: 400 } as const;
 const SETUP_PAGE = path.join(__dirname, "..", "src", "setup.html");
 const SETUP_PRELOAD = path.join(__dirname, "setupPreload.js");
+export type SetupChannel = typeof DEFAULTS_CHANNEL | typeof SAVE_CHANNEL;
+
 const DEFAULTS_CHANNEL = "setup:defaults";
 const SAVE_CHANNEL = "setup:save";
 
