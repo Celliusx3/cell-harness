@@ -1,6 +1,6 @@
 # 06 Hide Computer
 
-**Status:** open
+**Status:** done
 
 **What to build.** `harness/web/routes/mcp.py` gains `GET /api/mcp`, which returns the configured server ids as a typed list. `frontend/lib/api.ts` reads it. `frontend/components/chat/Sidebar.tsx` shows the Computer link only when the computer server is in that list.
 

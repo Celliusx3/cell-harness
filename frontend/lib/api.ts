@@ -12,6 +12,7 @@ import type {
   GroupDraft,
   MessageAccepted,
   SecretSummary,
+  ServerList,
   SkillFile,
   SkillList,
   SkillSummary,
@@ -199,6 +200,9 @@ export const listApprovals = () => request<Approvals>("/approvals");
 /** Make the tool ask again. */
 export const revokeApproval = (tool: string) =>
   request<void>(`/approvals/${encodeURIComponent(tool)}`, { method: "DELETE" });
+
+/** Every MCP server the harness is set up with, connected or not. */
+export const listServers = () => request<ServerList>("/mcp");
 
 /** An MCP App's HTML, read from its server through the harness. */
 export const getAppResource = (server: string, uri: string) =>

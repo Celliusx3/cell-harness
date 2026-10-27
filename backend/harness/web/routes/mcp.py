@@ -44,6 +44,14 @@ class AppResource(BaseModel):
     csp: str
 
 
+class ServerList(BaseModel):
+    """The servers this harness is set up with, each by its tool namespace."""
+
+    model_config = ConfigDict(frozen=True)
+
+    servers: tuple[str, ...]
+
+
 class AppToolCall(BaseModel):
     """What the app asks: a tool of its own server, and which app is asking."""
 
@@ -82,8 +90,18 @@ def _origins(values: object) -> list[str]:
     return origins
 
 
+def _server_list_route(router: APIRouter, mcp: McpService) -> None:
+    """The servers this harness is set up with, read by a page that hides what is not set up."""
+
+    @router.get("", response_model=ServerList)
+    async def list_servers() -> ServerList:
+        """Every configured server, connected or not."""
+        return ServerList(servers=tuple(s.id for s in mcp.statuses()))
+
+
 def build_router(mcp: McpService, relays: Relays) -> APIRouter:
     router = APIRouter(prefix="/api/mcp", tags=["mcp"])
+    _server_list_route(router, mcp)
 
     def known(server: str) -> None:
         if server not in {s.id for s in mcp.statuses()}:
