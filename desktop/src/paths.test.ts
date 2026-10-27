@@ -40,11 +40,12 @@ test("every data path in the app's settings is in the data folder", () => {
   }
 });
 
-test("the friend's settings file and the logs are in the data folder", () => {
+test("the friend's settings file, the logs and the harness's pid file are in the data folder", () => {
   const files = dataFiles("/d");
   assert.equal(files.localJson, "/d/config.local.json");
   assert.equal(files.harnessLog, "/d/logs/harness.log");
   assert.equal(files.pagesLog, "/d/logs/pages.log");
+  assert.equal(files.pidFile, "/d/harness.pid");
 });
 
 test("on the checkout, the harness runs through uv from the backend folder", () => {

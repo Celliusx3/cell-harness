@@ -24,6 +24,7 @@ export interface DataFiles {
   readonly localJson: string;
   readonly harnessLog: string;
   readonly pagesLog: string;
+  readonly pidFile: string;
 }
 
 /** The app's data folder, under Application Support in the home folder. */
@@ -39,6 +40,7 @@ export function dataFiles(folder: string): DataFiles {
     localJson: path.join(folder, "config.local.json"),
     harnessLog: path.join(logs, "harness.log"),
     pagesLog: path.join(logs, "pages.log"),
+    pidFile: path.join(folder, "harness.pid"),
   };
 }
 

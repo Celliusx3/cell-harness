@@ -3,6 +3,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { HARNESS_PORT, HOST, PAGES_PORT, type DataFiles, type Layout } from "./paths";
+import { HARNESS_MARKER } from "./strays";
 
 export interface ChildSpec {
   readonly command: string;
@@ -33,7 +34,7 @@ export function harnessSpec(layout: Layout, files: DataFiles, baseEnv: NodeJS.Pr
       ...layout.python.args,
       "-m",
       "uvicorn",
-      "harness.web.server:create_web_app",
+      HARNESS_MARKER,
       "--factory",
       "--host",
       HOST,
@@ -77,6 +78,14 @@ export function waitForPort(target: Target, timeoutMs: number, exited: Promise<u
   });
   const outcomes = [pollUntilOpen(target, stopPolling.signal), late, exited.then(exitedFirst, exitedFirst)];
   return Promise.race(outcomes).finally(() => stopPolling.abort());
+}
+
+/** The first of the ports that already accepts a connection on the host, or null when every one is free. */
+export async function firstPortInUse(host: string, ports: readonly number[]): Promise<number | null> {
+  for (const port of ports) {
+    if (await isListening({ host, port })) return port;
+  }
+  return null;
 }
 
 /** The parent's environment without unset keys or a harness setting. */

@@ -4,7 +4,7 @@ import path from "node:path";
 import { test } from "node:test";
 
 import { checkoutLayout, dataFiles } from "./paths";
-import { harnessSpec, pagesSpec, waitForPort } from "./processes";
+import { firstPortInUse, harnessSpec, pagesSpec, waitForPort } from "./processes";
 
 const REPO = path.resolve(__dirname, "..", "..");
 const NEVER = new Promise<never>(() => undefined);
@@ -89,4 +89,15 @@ test("waiting for a port fails when the program exits first", async () => {
 
 test("waiting for a port fails when nothing listens in time", async () => {
   await assert.rejects(waitForPort({ host: "127.0.0.1", port: 9 }, 300, NEVER), /did not answer/);
+});
+
+test("the first port another program holds is named, and none when all are free", async () => {
+  const server = createServer().listen(0, "127.0.0.1");
+  await new Promise((resolve) => server.once("listening", resolve));
+  const { port } = server.address() as AddressInfo;
+
+  assert.equal(await firstPortInUse("127.0.0.1", [9, port]), port);
+  server.close();
+  await new Promise((resolve) => server.once("close", resolve));
+  assert.equal(await firstPortInUse("127.0.0.1", [9, port]), null);
 });
