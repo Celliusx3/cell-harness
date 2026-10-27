@@ -63,8 +63,9 @@ curl -s localhost:4896/api/conversations/assistant
 
 ## Telegram
 
-Optional. Message [@BotFather](https://t.me/BotFather), send `/newbot`, and put
-the token in `backend/config.local.json`:
+Optional. Message [@BotFather](https://t.me/BotFather), send `/newbot`, and paste
+the token on the **Credentials** page (the lock icon), or put it in
+`backend/config.local.json`:
 
 ```json
 { "telegram": { "bot_token": "123456:AA…" } }
@@ -90,8 +91,8 @@ With no token the channel simply does not start.
 
 Optional, same shape. Create a bot in the
 [Developer Portal](https://discord.com/developers/applications), invite it with
-the `bot` and `applications.commands` scopes, and put the token in
-`backend/config.local.json`:
+the `bot` and `applications.commands` scopes, and paste the token on the
+**Credentials** page, or put it in `backend/config.local.json`:
 
 ```json
 { "discord": { "bot_token": "…" } }
@@ -101,6 +102,26 @@ DMs are always answered. In a server, only messages that `@mention` the bot are
 read — that is what keeps the privileged *Message Content* intent unnecessary,
 so the bot never sees a channel's traffic it was not addressed in. `/new`, `/stop` and
 `/skills` are slash commands. With no token the channel does not start.
+
+## Credentials
+
+The lock icon in the sidebar opens the harness's own keys: the model's API
+key and the Telegram and Discord bot tokens. Each shows only whether it is
+saved and its last four characters, never the whole key. These are not the
+**Keys** page's keys, which bots ask for and use themselves.
+
+A key is changed only from a page on the Mac that runs the harness. The page
+saves straight to the harness's own port, which listens on this Mac only;
+the page server forwards requests without the browser's address, so the
+harness refuses any save that came through it, or from another device. On a
+phone the page is read-only.
+
+Save writes `config.local.json`, keeping every other value, and the harness
+restarts to read it: `make dev`'s reloader watches the file, and the Mac app
+restarts its harness. If a reply is being written, the page asks first. The
+model's API key can be replaced but not removed, since the harness cannot
+start without it. A key set by a `HARNESS_` environment variable is read-only
+on the page.
 
 ## Desktop app
 
@@ -122,8 +143,8 @@ On first start a setup window asks for the friend's own API key, with the
 endpoint and model from `desktop/config.json` filled in. Everything the app
 keeps is in `~/Library/Application Support/Cell Harness/`: the settings file
 `config.local.json` (readable by its owner only), the chats, and `logs/`. A
-Telegram or Discord token goes in that file, in the same shape as
-`backend/config.local.json`; the menu-bar icon's **Show Settings File** finds it.
+Telegram or Discord token is pasted on the Credentials page, which the menu-bar
+icon's **Credentials…** opens; **Show Settings File** finds the file itself.
 Closing the window keeps the harness running in the menu bar; **Quit** stops it.
 
 The app listens on `127.0.0.1:4886` (harness) and `:4887` (pages) only, and
