@@ -26,8 +26,6 @@ class NotATool(NamedTuple):
     reason: str
 
 
-SECRET = NotATool("a bot token is a secret, and secrets never pass through the model")
-
 ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/conversations/{conversation_id}/messages": NotATool(
         "sending is the person's; the model answers in the conversation it is in"
@@ -92,10 +90,11 @@ ROUTES: dict[str, Tool | NotATool] = {
 }
 
 CONFIG: dict[str, Tool | NotATool] = {
+    "local_settings_path": NotATool(
+        "where this machine's settings file is; the harness reads it once, at start"
+    ),
     "llm": NotATool("not yet: switching model from chat; the api key never passes the model"),
     "sessions": NotATool("where conversations are stored; moving it while running loses them"),
-    "telegram": SECRET,
-    "discord": SECRET,
     "web": NotATool("the address the app is reached at belongs to whoever hosts it"),
     "code": NotATool("the sandbox's limits; the model never loosens its own"),
     "compaction": NotATool("the model's window size, set once per model"),
@@ -132,7 +131,9 @@ def test_every_config_section_names_its_tool_or_a_reason() -> None:
 
 def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(llm={"model": "m", "api_key": "k"}),
+        Settings(
+            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
+        ),
         SessionService(JsonlSessionRepository(tmp_path)),
         McpService({}),
         no_skills(),

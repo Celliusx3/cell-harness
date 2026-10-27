@@ -141,6 +141,7 @@ def _credential_entry(credential: SavedCredential, active: tuple[Bot, ...]) -> C
         name=credential.name,
         details=credential.details,
         last_four=credential.last_four,
+        is_default_model=credential.is_default_model,
         bots=tuple(BotRef(id=bot.id, name=bot.name) for bot in served),
     )
 

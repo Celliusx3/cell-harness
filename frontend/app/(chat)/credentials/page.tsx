@@ -148,7 +148,7 @@ function CredentialGroup({ heading, credentials, onEdit, onRemove }: CredentialG
             key={credential.name}
             credential={credential}
             onEdit={onEdit !== null && isEditable(credential) ? () => onEdit(credential) : null}
-            onRemove={onRemove !== null ? () => onRemove(credential) : null}
+            onRemove={onRemove !== null && !credential.is_default_model ? () => onRemove(credential) : null}
           />
         ))}
       </ul>

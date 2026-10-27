@@ -208,7 +208,9 @@ def test_it_never_asks_for_approval() -> None:
 
 async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(llm={"model": "m", "api_key": "k"}),
+        Settings(
+            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
+        ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}),
         no_skills(),

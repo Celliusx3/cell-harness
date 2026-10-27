@@ -15,6 +15,7 @@ export function CredentialRow({ credential, onEdit, onRemove }: CredentialRowPro
     <li className="px-3 py-2 text-sm">
       <div className="flex items-baseline gap-2">
         <span className="min-w-0 break-all font-mono text-[13px]">{credential.name}</span>
+        {credential.is_default_model && <span className="shrink-0 text-xs font-medium text-ink">Default model</span>}
         {purpose !== null && <span className="min-w-0 break-words text-xs text-ink-soft">{purpose}</span>}
         <span className="ml-auto shrink-0 text-xs text-ink-soft">{maskLabel(credential.last_four)}</span>
       </div>

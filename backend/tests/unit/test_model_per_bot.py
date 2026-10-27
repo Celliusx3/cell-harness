@@ -13,7 +13,12 @@ from harness.config.sections import LLMSettings
 from harness.llm import AssistantMessage, LLMClient, UserMessage
 from harness.runtime.models import ModelChoice
 from harness.runtime.service import Runtime
-from harness.secrets import DiskSecretRepository, SecretService
+from harness.secrets import (
+    DEFAULT_MODEL_CREDENTIAL,
+    DiskSecretRepository,
+    SecretNotFound,
+    SecretService,
+)
 from harness.secrets.models.details import ModelDetails
 from harness.session.log import Session
 from harness.session.models import AssistantMessageEvent, TurnEnd, TurnStart, UserMessageEvent
@@ -25,13 +30,14 @@ KEY = "0123456789abcdef0123456789abcdef"
 TRADER_URL = "https://api.trader.example/v1"
 TRADER_KEY = "sk-trader-key-1234"
 TRADER_MODEL = ModelDetails(base_url=TRADER_URL, model="big")
+DEFAULT_KEY = "sk-default-key-0000"
 DEFAULT = LLMSettings(
-    api_key="sk-default-key-0000",
     model="small",
     vision=False,
     base_url="https://api.default.example/v1",
     temperature=0.3,
 )
+DEFAULT_MODEL = ModelDetails(base_url=DEFAULT.base_url, model=DEFAULT.model)
 
 
 @dataclass
@@ -135,7 +141,9 @@ class ClientsMade:
 
 @pytest.fixture
 def keyring(tmp_path: Path) -> SecretService:
-    return SecretService(DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=KEY)
+    sealed = SecretService(DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=KEY)
+    sealed.add_credential(DEFAULT_MODEL_CREDENTIAL, DEFAULT_MODEL, SecretStr(DEFAULT_KEY))
+    return sealed
 
 
 @pytest.fixture
@@ -171,7 +179,7 @@ async def test_a_bot_with_no_llm_credential_gets_the_default(keyring, bots) -> N
     choice = await CredentialModels(keyring, bots, DEFAULT, clients).model_for(chef.id)
 
     assert choice.model == "small"
-    assert clients.settings_of(choice.client).api_key == DEFAULT.api_key
+    assert clients.settings_of(choice.client).api_key == DEFAULT_KEY
 
 
 @pytest.mark.parametrize("bot_id", [None, "no-such-bot"])
@@ -180,7 +188,7 @@ async def test_no_bot_or_an_unknown_one_gets_the_default(keyring, bots, bot_id) 
 
     choice = await CredentialModels(keyring, bots, DEFAULT, clients).model_for(bot_id)
 
-    assert clients.settings_of(choice.client).api_key == DEFAULT.api_key
+    assert clients.settings_of(choice.client).api_key == DEFAULT_KEY
 
 
 async def test_untying_a_bot_hands_its_next_turn_to_the_default(keyring, bots) -> None:
@@ -206,3 +214,20 @@ async def test_the_key_is_unsealed_once_until_the_credential_changes(keyring, bo
 
     assert clients.made_for(TRADER_URL) == 2
     assert changed.model == "bigger"
+
+
+async def test_an_edit_to_the_default_model_applies_to_the_next_turn(keyring, bots) -> None:
+    models = CredentialModels(keyring, bots, DEFAULT, ClientsMade())
+    await models.model_for(None)
+
+    edited = DEFAULT_MODEL.model_copy(update={"model": "edited"})
+    keyring.change_credential(DEFAULT_MODEL_CREDENTIAL, edited, None)
+
+    assert (await models.model_for(None)).model == "edited"
+
+
+async def test_a_keyring_with_no_default_model_is_refused(tmp_path: Path, bots) -> None:
+    empty = SecretService(DiskSecretRepository(tmp_path / "empty.json"), encryption_key=KEY)
+
+    with pytest.raises(SecretNotFound, match=DEFAULT_MODEL_CREDENTIAL):
+        await CredentialModels(empty, bots, DEFAULT, ClientsMade()).model_for(None)

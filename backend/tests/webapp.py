@@ -6,6 +6,7 @@ import asyncio
 from pathlib import Path
 
 from fastapi import FastAPI
+from pydantic import SecretStr
 
 from harness.bots import BotService
 from harness.channels.gateway import ChannelGateway
@@ -20,23 +21,26 @@ from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import DiskSecretRepository, SecretService
+from harness.secrets import DEFAULT_MODEL_CREDENTIAL, DiskSecretRepository, SecretService
+from harness.secrets.models.details import ModelDetails
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
-from harness.web.server import create_app
+from harness.web.server import ChannelServices, create_app
 from tests.unit.helpers import client_tools as default_client_tools
-from tests.unit.helpers import no_approvals, no_bots
+from tests.unit.helpers import no_approvals, no_bots, no_skills
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
+DEFAULT_MODEL_KEY = "sk-test-default-0000"
 
 
 def startup_settings(tmp_path: Path) -> Settings:
     """Settings that keep all `create_web_app` makes under `tmp_path`, keys as `secrets_in`."""
     return Settings(
-        llm={"model": "m", "api_key": "k", "vision": True},
+        local_settings_path=tmp_path / "config.local.json",
+        llm={"model": "m", "vision": True},
         sessions={"root": tmp_path / "sessions"},
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
@@ -44,8 +48,6 @@ def startup_settings(tmp_path: Path) -> Settings:
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
         compaction={"context_tokens": 1000},
-        telegram={"bot_token": ""},
-        discord={"bot_token": ""},
         mcp={"servers": {}},
     )
 
@@ -54,6 +56,27 @@ def secrets_in(tmp_path: Path) -> SecretService:
     """Keys a test saves, sealed in a secrets file under `tmp_path`."""
     return SecretService(
         DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=TEST_ENCRYPTION_KEY
+    )
+
+
+def secrets_with_default_model(tmp_path: Path) -> SecretService:
+    """`secrets_in`, holding the Default model a start needs."""
+    secrets = secrets_in(tmp_path)
+    default = ModelDetails(base_url="https://api.example.com/v1", model="m")
+    secrets.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr(DEFAULT_MODEL_KEY))
+    return secrets
+
+
+def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService) -> ChannelServices:
+    """What `build_channels` wires its channels to: no skills or bots, files under `tmp_path`."""
+    return ChannelServices(
+        sessions,
+        runs,
+        no_skills(),
+        default_client_tools(),
+        no_bots(sessions),
+        files_in(tmp_path),
+        images_in(tmp_path),
     )
 
 

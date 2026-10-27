@@ -1,4 +1,4 @@
-"""Each bot's model: its LLM credential from the keyring, or the Default model."""
+"""Each bot's model: its LLM credential from the keyring, or the Default model credential."""
 
 from __future__ import annotations
 
@@ -10,7 +10,13 @@ from harness.bots import BotNotFound, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import LLMClient
 from harness.runtime.models import ModelChoice
-from harness.secrets import SecretName, SecretService, UnsealedModelCredential
+from harness.secrets import (
+    DEFAULT_MODEL_CREDENTIAL,
+    SecretName,
+    SecretNotFound,
+    SecretService,
+    UnsealedModelCredential,
+)
 
 
 @dataclass(frozen=True)
@@ -21,38 +27,44 @@ class CachedChoice:
     choice: ModelChoice
 
 
+def llm_settings_for(credential: UnsealedModelCredential, base: LLMSettings) -> LLMSettings:
+    """`base` pointed at `credential`'s endpoint, model and key; its other values stay."""
+    details = credential.details
+    return base.model_copy(
+        update={
+            "base_url": details.base_url,
+            "model": details.model,
+            "api_key": credential.key.get_secret_value(),
+        }
+    )
+
+
 class CredentialModels:
-    """A bot's LLM credential as its model, made once per saved version; else the Default model."""
+    """A bot's LLM credential as its model, else the Default model's; made once per version."""
 
     def __init__(
         self,
         secrets: SecretService,
         bots: BotService,
-        default: LLMSettings,
+        base: LLMSettings,
         client_for: Callable[[LLMSettings], LLMClient],
     ) -> None:
         self._secrets = secrets
         self._bots = bots
-        self._default_settings = default
+        self._base = base
         self._client_for = client_for
-        self._default: ModelChoice | None = None
         self._by_credential: dict[str, CachedChoice] = {}
 
     async def model_for(self, bot_id: str | None) -> ModelChoice:
         """`bot_id`'s LLM credential; the Default for no bot, an unknown one, or one with none."""
         name = self._credential_of(bot_id)
-        version = None if name is None else self._secrets.model_credential_version(name)
-        if name is None or version is None:
-            return self._default_choice()
-        cached = self._by_credential.get(name)
-        if cached is not None and cached.version == version:
-            return cached.choice
-        credential = await asyncio.to_thread(self._secrets.model_credential_named, name)
-        if credential is None:
-            return self._default_choice()
-        choice = self._choice_of(credential)
-        self._by_credential[name] = CachedChoice(version=version, choice=choice)
-        return choice
+        own = None if name is None else await self._choice_named(name)
+        if own is not None:
+            return own
+        default = await self._choice_named(DEFAULT_MODEL_CREDENTIAL)
+        if default is None:
+            raise SecretNotFound(DEFAULT_MODEL_CREDENTIAL)
+        return default
 
     def _credential_of(self, bot_id: str | None) -> SecretName | None:
         if bot_id is None:
@@ -62,19 +74,18 @@ class CredentialModels:
         except BotNotFound:
             return None
 
-    def _default_choice(self) -> ModelChoice:
-        if self._default is None:
-            settings = self._default_settings
-            self._default = ModelChoice(self._client_for(settings), settings.model)
-        return self._default
-
-    def _choice_of(self, credential: UnsealedModelCredential) -> ModelChoice:
-        details = credential.details
-        settings = self._default_settings.model_copy(
-            update={
-                "base_url": details.base_url,
-                "model": details.model,
-                "api_key": credential.key.get_secret_value(),
-            }
-        )
-        return ModelChoice(self._client_for(settings), details.model)
+    async def _choice_named(self, name: str) -> ModelChoice | None:
+        """The LLM credential `name` as a model, unsealed only for a new version; or `None`."""
+        version = self._secrets.model_credential_version(name)
+        if version is None:
+            return None
+        cached = self._by_credential.get(name)
+        if cached is not None and cached.version == version:
+            return cached.choice
+        credential = await asyncio.to_thread(self._secrets.model_credential_named, name)
+        if credential is None:
+            return None
+        client = self._client_for(llm_settings_for(credential, self._base))
+        choice = ModelChoice(client, credential.details.model)
+        self._by_credential[name] = CachedChoice(version=version, choice=choice)
+        return choice

@@ -19,13 +19,11 @@ from harness.config.sections import (
     BotSettings,
     CodeModeSettings,
     CompactionSettings,
-    DiscordSettings,
     FileSettings,
     LLMSettings,
     McpSettings,
     SecretSettings,
     SessionSettings,
-    TelegramSettings,
     WebSettings,
 )
 
@@ -87,10 +85,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    local_settings_path: Path = Field(exclude=True)
     llm: LLMSettings
     sessions: SessionSettings = Field(default_factory=SessionSettings)
-    telegram: TelegramSettings = Field(default_factory=TelegramSettings)
-    discord: DiscordSettings = Field(default_factory=DiscordSettings)
     web: WebSettings = Field(default_factory=WebSettings)
     code: CodeModeSettings = Field(default_factory=CodeModeSettings)
     compaction: CompactionSettings = Field(default_factory=CompactionSettings)
@@ -125,26 +122,15 @@ class MissingConfigError(RuntimeError):
 
 def load() -> Settings:
     """Settings for a real run, with the two unguessable values checked."""
-    settings = Settings()
+    settings = Settings(local_settings_path=_LOCAL_JSON)
     if shutil.which(settings.code.deno_path) is None:
         raise MissingConfigError(
             f"{settings.code.deno_path!r} is not on PATH, and the harness runs "
             "every tool call through a Deno sandbox. Install Deno "
             f"(https://deno.com) or set code.deno_path in {_CONFIG_JSON}."
         )
-    missing = [
-        name
-        for name, value in (("model", settings.llm.model), ("api_key", settings.llm.api_key))
-        if not value.strip()
-    ]
-    if missing:
-        names = " and ".join(f"llm.{name}" for name in missing)
-        verb = "is" if len(missing) == 1 else "are"
-        raise MissingConfigError(
-            f"{names} {verb} not set. Non-secret values belong in {_CONFIG_JSON}; "
-            f"the API key belongs in {_LOCAL_JSON} (gitignored) as "
-            f'{{"llm": {{"api_key": "…"}}}}, or in HARNESS_LLM__API_KEY.'
-        )
+    if not settings.llm.model.strip():
+        raise MissingConfigError(f"llm.model is not set. It belongs in {_CONFIG_JSON}.")
     if not settings.secrets.encryption_key.strip():
         raise MissingConfigError(
             f"secrets.encryption_key is not set. It belongs in {_LOCAL_JSON} (gitignored) as "

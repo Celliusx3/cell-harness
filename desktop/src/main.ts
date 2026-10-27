@@ -19,7 +19,7 @@ import {
   type Layout,
 } from "./paths";
 import { firstPortInUse, harnessSpec, pagesSpec, waitForPort } from "./processes";
-import { committedEndpoint, needsSetup, readLocalSettings } from "./setup";
+import { committedEndpoint, committedKeyringPath, needsSetup, readLocalSettings, readTextIfPresent } from "./setup";
 import { askForSetup } from "./setupWindow";
 import { portInUseReason } from "./strays";
 import { addTray } from "./tray";
@@ -82,11 +82,12 @@ function missingPagesReason(layout: Layout): string | null {
   return null;
 }
 
-/** True once the settings file holds an API key; false when the friend closed the setup window instead. */
+/** True once the settings file or the keyring holds a model key; false when the friend closed the setup window instead. */
 async function askForApiKeyIfMissing(): Promise<boolean> {
-  if (!needsSetup(readLocalSettings(files.localJson))) return true;
-  const committed = committedEndpoint(readFileSync(layout.configJson, "utf8"));
-  return askForSetup({ localJson: files.localJson, committed });
+  const configJson = readFileSync(layout.configJson, "utf8");
+  const keyringText = readTextIfPresent(committedKeyringPath(configJson, os.homedir()));
+  if (!needsSetup(readLocalSettings(files.localJson), keyringText)) return true;
+  return askForSetup({ localJson: files.localJson, committed: committedEndpoint(configJson) });
 }
 
 /** Stops both children, says why the app could not start, and quits. */

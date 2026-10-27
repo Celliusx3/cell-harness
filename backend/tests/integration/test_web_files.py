@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -13,8 +14,8 @@ from harness.config.settings import Settings
 from harness.web.server import build_channels
 from tests.integration.web_helpers import api, build, of_type, once_said, settle
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, gated_tool
-from tests.unit.helpers import client_tools, no_bots, no_skills
-from tests.webapp import files_in, images_in, web_app
+from tests.unit.helpers import no_skills
+from tests.webapp import channel_services, files_in, secrets_in, web_app
 
 PNG_HEADER = b"\x89PNG\r\n\x1a\n"
 FILES = f"/api/conversations/{ASSISTANT_ID}/files"
@@ -163,17 +164,9 @@ async def test_a_message_queued_behind_a_turn_keeps_its_files(tmp_path) -> None:
 def test_the_web_channel_keeps_files_in_the_service_it_is_built_with(tmp_path) -> None:
     sessions, runs = build(tmp_path, ScriptedClient([]))
     files = files_in(tmp_path)
-    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
+    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    services = replace(channel_services(tmp_path, sessions, runs), files=files)
 
-    _, web = build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files,
-        images_in(tmp_path),
-    )
+    _, web = build_channels(settings, services, secrets_in(tmp_path))
 
     assert web.files is files

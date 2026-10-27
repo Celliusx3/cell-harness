@@ -63,7 +63,10 @@ def viewing(path: Path) -> str:
 
 def runtime_seeing(tmp_path: Path, *, vision: bool) -> Runtime:
     return build_runtime(
-        Settings(llm={"model": "m", "api_key": "k", "vision": vision}),
+        Settings(
+            local_settings_path=tmp_path / "config.local.json",
+            llm={"model": "m", "api_key": "k", "vision": vision},
+        ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}),
         no_skills(),

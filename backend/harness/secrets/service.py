@@ -8,10 +8,18 @@ from pydantic import SecretStr
 
 from harness.secrets.masking import last_four
 from harness.secrets.models.destination import Destination
-from harness.secrets.models.details import CredentialDetails, CustomDetails, ModelDetails
+from harness.secrets.models.details import (
+    ChatPlatform,
+    CredentialDetails,
+    CustomDetails,
+    DiscordDetails,
+    ModelDetails,
+    TelegramDetails,
+)
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.models.secret import (
+    DEFAULT_MODEL_CREDENTIAL,
     SavedCredential,
     SecretSummary,
     UnsealedModelCredential,
@@ -22,6 +30,7 @@ from harness.secrets.sealing import sealed, unsealed
 
 RECORD_ID_BYTES = 12
 MAX_SECRETS = 100
+DEFAULT_MODEL_REMOVAL_REFUSAL = "The Default model cannot be removed; edit it instead."
 
 
 class SecretService:
@@ -91,6 +100,16 @@ class SecretService:
             tuple(changed if secret is existing else secret for secret in stored)
         )
 
+    def add_or_replace_key(self, name: str, details: CredentialDetails, value: SecretStr) -> None:
+        """Add `name` for `details`; when one of that kind is saved, replace only its key."""
+        existing = self._sealed_named(name)
+        if existing is None:
+            self.add_credential(name, details, value)
+            return
+        if existing.details.kind != details.kind:
+            raise SecretRefused(f"a {existing.details.kind} credential is already named {name!r}")
+        self.change_credential(name, existing.details, value)
+
     def secret_named(self, name: str) -> UnsealedSecret | None:
         """The custom key called `name`, unsealed, or `None`; no other kind is ever handed out."""
         sealed_secret = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
@@ -121,9 +140,24 @@ class SecretService:
             details=sealed_secret.details, key=SecretStr(self._plaintext(sealed_secret))
         )
 
+    def chat_platform_token(self, platform: ChatPlatform) -> SecretStr | None:
+        """The Telegram or Discord credential's token, unsealed, or `None`; no other kind."""
+        sealed_secret = next(
+            (
+                secret
+                for secret in self._repository.sealed_secrets()
+                if isinstance(secret.details, TelegramDetails | DiscordDetails)
+                and secret.details.kind == platform
+            ),
+            None,
+        )
+        return None if sealed_secret is None else SecretStr(self._plaintext(sealed_secret))
+
     def delete(self, name: str) -> None:
-        """Remove the key called `name`; `SecretNotFound` when none is saved."""
+        """Remove the key called `name`; `SecretNotFound` if none, and the Default is refused."""
         stored = self._repository.sealed_secrets()
+        if any(secret.name == name and _is_default_model(secret) for secret in stored):
+            raise SecretRefused(DEFAULT_MODEL_REMOVAL_REFUSAL)
         kept = tuple(secret for secret in stored if secret.name != name)
         if kept == stored:
             raise SecretNotFound(name)
@@ -158,8 +192,15 @@ class SecretService:
 
     def _saved_credential(self, secret: SealedSecret) -> SavedCredential:
         return SavedCredential(
-            name=secret.name, details=secret.details, last_four=last_four(self._plaintext(secret))
+            name=secret.name,
+            details=secret.details,
+            last_four=last_four(self._plaintext(secret)),
+            is_default_model=_is_default_model(secret),
         )
 
     def _plaintext(self, secret: SealedSecret) -> str:
         return unsealed(secret.ciphertext, encryption_key=self._encryption_key, record_id=secret.id)
+
+
+def _is_default_model(secret: SealedSecret) -> bool:
+    return secret.name == DEFAULT_MODEL_CREDENTIAL and isinstance(secret.details, ModelDetails)

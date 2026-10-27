@@ -23,6 +23,9 @@ const COMMITTED_CONFIG = "desktop/config.json";
 const API_KEY_REFUSAL = "Paste your API key.";
 const ENDPOINT_REFUSAL = "The endpoint must be an http:// or https:// address.";
 const MODEL_REFUSAL = "Type the model's name.";
+const DEFAULT_MODEL_CREDENTIAL = "default_model";
+const LLM_KIND = "llm";
+const HOME_PREFIX = "~/";
 
 /** The friend's settings file, refused when it is not a JSON object. */
 export function parseLocalSettings(text: string, file: string): LocalSettings {
@@ -37,9 +40,17 @@ export function readLocalSettings(file: string): LocalSettings | null {
   return text === null ? null : parseLocalSettings(text, file);
 }
 
-/** Whether the setup window must ask for an API key first. */
-export function needsSetup(settings: LocalSettings | null): boolean {
-  return settings === null || !isFilled(sectionOf(settings, "llm").api_key);
+/** Whether the setup window must ask for an API key first: the file holds none, and the keyring has no Default model. */
+export function needsSetup(settings: LocalSettings | null, keyringText: string | null): boolean {
+  return !isFilled(sectionOf(settings, "llm").api_key) && !holdsDefaultModel(keyringText);
+}
+
+/** Where the harness keeps its keyring: the committed `secrets.path`, with a leading `~` as the home folder. */
+export function committedKeyringPath(configJson: string, home: string): string {
+  const parsed: unknown = JSON.parse(configJson);
+  const secrets = isJsonObject(parsed) ? sectionOf(parsed, "secrets") : {};
+  const keyring = committedString(secrets.path, "secrets.path");
+  return keyring.startsWith(HOME_PREFIX) ? path.join(home, keyring.slice(HOME_PREFIX.length)) : keyring;
 }
 
 /** What the form shows first: the file's endpoint and model, else the app's own. */
@@ -122,12 +133,37 @@ function parseJson(text: string, file: string): unknown {
   }
 }
 
-function readTextIfPresent(file: string): string | null {
+/** The file's text, or null when there is no such file. */
+export function readTextIfPresent(file: string): string | null {
   try {
     return readFileSync(file, "utf8");
   } catch (error) {
     if (isNoSuchFile(error)) return null;
     throw error;
+  }
+}
+
+/** Whether the keyring's text holds an LLM credential named as the Default model; text that is not a keyring holds none. */
+function holdsDefaultModel(keyringText: string | null): boolean {
+  const parsed = keyringText === null ? null : parsedOrNull(keyringText);
+  const entries: unknown[] = isJsonObject(parsed) && Array.isArray(parsed.secrets) ? parsed.secrets : [];
+  return entries.some(isDefaultModelEntry);
+}
+
+function isDefaultModelEntry(entry: unknown): boolean {
+  return (
+    isJsonObject(entry) &&
+    entry.name === DEFAULT_MODEL_CREDENTIAL &&
+    isJsonObject(entry.details) &&
+    entry.details.kind === LLM_KIND
+  );
+}
+
+function parsedOrNull(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
 }
 

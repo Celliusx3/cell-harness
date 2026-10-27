@@ -8,8 +8,18 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
-from harness.secrets import Destination, DiskSecretRepository, SecretService
-from harness.secrets.models.details import CustomDetails, ModelDetails, TelegramDetails
+from harness.secrets import (
+    DEFAULT_MODEL_CREDENTIAL,
+    Destination,
+    DiskSecretRepository,
+    SecretService,
+)
+from harness.secrets.models.details import (
+    CustomDetails,
+    DiscordDetails,
+    ModelDetails,
+    TelegramDetails,
+)
 from harness.secrets.models.errors import SecretRefused
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.sealing import sealed
@@ -141,3 +151,27 @@ def test_a_model_credential_needs_a_web_endpoint_and_a_model() -> None:
         ModelDetails(base_url="ftp://example.com", model="m")
     with pytest.raises(ValueError):
         ModelDetails(base_url="https://api.example.com/v1", model="  ")
+
+
+def test_the_default_model_cannot_be_removed_but_a_custom_key_of_its_name_can(path: Path) -> None:
+    keyring = SecretService(DiskSecretRepository(path), encryption_key=KEY)
+    keyring.save(DEFAULT_MODEL_CREDENTIAL, GITHUB, SecretStr("custom-key-5555"))
+    keyring.delete(DEFAULT_MODEL_CREDENTIAL)
+    default = ModelDetails(base_url="https://api.example.com/v1", model="glm")
+    keyring.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr("sk-default-key-1234"))
+
+    with pytest.raises(SecretRefused, match="cannot be removed"):
+        keyring.delete(DEFAULT_MODEL_CREDENTIAL)
+
+    [saved] = keyring.saved_credentials()
+    assert saved.is_default_model
+
+
+def test_only_a_telegram_or_discord_credential_hands_out_its_token(path: Path) -> None:
+    keyring = SecretService(DiskSecretRepository(path), encryption_key=KEY)
+    keyring.save("telegram", GITHUB, SecretStr("custom-key-5555"))
+    keyring.add_credential("chat_bot", DiscordDetails(), SecretStr("d-token-1234"))
+
+    assert keyring.chat_platform_token("telegram") is None
+    token = keyring.chat_platform_token("discord")
+    assert token is not None and token.get_secret_value() == "d-token-1234"

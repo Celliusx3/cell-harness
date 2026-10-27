@@ -94,7 +94,9 @@ def test_it_never_asks_for_approval(name: str) -> None:
 
 async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(llm={"model": "m", "api_key": "k"}),
+        Settings(
+            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
+        ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}),
         no_skills(),

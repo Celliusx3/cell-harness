@@ -1,6 +1,6 @@
 # 06 Move the settings file's keys into the keyring
 
-**Status:** open
+**Status:** done, except the by-hand Mac app check
 
 **What to build.**
 
@@ -17,3 +17,9 @@
 - By hand: the Mac app's first start asks for a key and chats, and a second start does not ask again.
 
 **Blocked by.** 05
+
+**Notes.**
+
+- The Mac app's first-start window still writes the key into the per-machine settings file, and the harness moves it into the keyring when it starts. This replaces "saves through the harness" above: the window asks before the harness runs, so there is no harness to save through yet.
+- The window shows only when that file holds no `llm.api_key` and the keyring at the committed `secrets.path` holds no LLM credential named `default_model`.
+- The by-hand Mac app check has not run: a run on this Mac would share its data folder and ports with the installed app. The harness alone was checked by hand on port 4986 with a scratch settings file.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import NamedTuple
 
@@ -21,13 +22,23 @@ from harness.web.server import build_channels
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
-from tests.webapp import files_in, images_in, secrets_in, startup_settings
+from tests.webapp import (
+    channel_services,
+    files_in,
+    images_in,
+    secrets_in,
+    secrets_with_default_model,
+    startup_settings,
+)
 
 
 def runtime_over(tmp_path: Path, images: ImageService, *, vision: bool) -> Runtime:
     """The runtime `build_runtime` composes over `images`, for a model that sees or does not."""
     return build_runtime(
-        Settings(llm={"model": "m", "api_key": "k", "vision": vision}),
+        Settings(
+            local_settings_path=tmp_path / "config.local.json",
+            llm={"model": "m", "api_key": "k", "vision": vision},
+        ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}),
         no_skills(),
@@ -44,18 +55,10 @@ def runtime_over(tmp_path: Path, images: ImageService, *, vision: bool) -> Runti
 def test_the_web_channel_keeps_images_in_the_service_it_is_built_with(tmp_path) -> None:
     sessions, runs = build(tmp_path, ScriptedClient([]))
     images = images_in(tmp_path)
-    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
+    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    services = replace(channel_services(tmp_path, sessions, runs), images=images)
 
-    _, web = build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images,
-    )
+    _, web = build_channels(settings, services, secrets_in(tmp_path))
 
     assert web.images is images
 
@@ -80,6 +83,7 @@ class Started(NamedTuple):
 def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
     """The runtime and the web channel `create_web_app` builds, over folders in `tmp_path`."""
     settings = startup_settings(tmp_path)
+    secrets_with_default_model(tmp_path)
     runtimes: list[Runtime] = []
     webs: list[WebChannel] = []
     real_runtime, real_channels = server.build_runtime, server.build_channels

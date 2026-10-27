@@ -22,6 +22,7 @@ export interface Credential {
   name: string;
   details: CredentialDetails;
   last_four: string | null;
+  is_default_model: boolean;
   bots: { id: string; name: string }[];
 }
 

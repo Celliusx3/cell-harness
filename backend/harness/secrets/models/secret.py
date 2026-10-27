@@ -12,6 +12,8 @@ from harness.secrets.models.details import CredentialDetails, ModelDetails
 
 SecretName = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,39}$")]
 
+DEFAULT_MODEL_CREDENTIAL = "default_model"
+
 SECRET_VALUE_RULE = "a key is 8 to 16384 printable ASCII characters, with no space at either end"
 
 _TYPED_KEY = re.compile(r"[\x21-\x7e][\x20-\x7e]{6,16382}[\x21-\x7e]")
@@ -61,3 +63,4 @@ class SavedCredential(BaseModel):
     name: SecretName
     details: CredentialDetails
     last_four: str | None
+    is_default_model: bool

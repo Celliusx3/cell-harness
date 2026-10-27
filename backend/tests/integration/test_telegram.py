@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
+from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
@@ -14,13 +16,15 @@ from harness.config.settings import Settings
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
+from harness.secrets import Destination, SecretService
+from harness.secrets.models.details import TelegramDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import files_in, images_in, secrets_in, web_gateway, web_mcp
+from tests.webapp import channel_services, secrets_in, web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -167,62 +171,32 @@ async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_pat
     assert bot.sent == [(CHAT, "the answer")]
 
 
+def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
+    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
+    runs = RunService(
+        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
+    )
+    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    return build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)[0]
+
+
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunService(
-        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
-    )
-    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
-
-    assert build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )[0].channels == ["web"]
+    assert _channels(tmp_path, secrets_in(tmp_path)).channels == ["web"]
 
 
-async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
-    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunService(
-        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
-    )
+async def test_a_custom_key_named_telegram_is_not_a_token(tmp_path) -> None:
+    keyring = secrets_in(tmp_path)
+    site = Destination(origin="https://telegram.example", auth="bearer")
+    keyring.save("telegram", site, SecretStr("custom-key-not-a-token"))
 
-    settings = Settings(telegram={"bot_token": "   "}, discord={"bot_token": ""})
-
-    assert build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )[0].channels == ["web"]
+    assert _channels(tmp_path, keyring).channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
-    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunService(
-        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
-    )
-    settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": ""})
+    keyring = secrets_in(tmp_path)
+    keyring.add_credential("telegram", TelegramDetails(), SecretStr("123:abc-telegram"))
 
-    built, _ = build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )
+    built = _channels(tmp_path, keyring)
 
     assert built.channels == ["web", "telegram"]
     await built.aclose()
