@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Protocol
@@ -33,12 +34,13 @@ class Busyness(Protocol):
 
 
 class CredentialList(BaseModel):
-    """Every key the harness holds, masked, and the harness's own address to save them at."""
+    """Every key masked, the harness's own address to save at, and which process answered."""
 
     model_config = ConfigDict(frozen=True)
 
     credentials: tuple[Credential, ...]
     direct_url: str
+    harness_pid: int
 
 
 class CredentialValues(BaseModel):
@@ -65,7 +67,11 @@ def build_router(
     async def list_credentials(request: Request, response: Response) -> CredentialList:
         """The keys as they were when the harness started."""
         response.headers.update(_page_headers(request))
-        return CredentialList(credentials=credentials(settings, env), direct_url=_own_url(request))
+        return CredentialList(
+            credentials=credentials(settings, env),
+            direct_url=_own_url(request),
+            harness_pid=os.getpid(),
+        )
 
     @router.options("")
     async def ask_before_saving(request: Request) -> Response:

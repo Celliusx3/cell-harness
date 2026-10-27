@@ -293,6 +293,7 @@ export interface Credential {
 export interface CredentialList {
   credentials: Credential[];
   direct_url: string;
+  harness_pid: number;
 }
 
 /** `PUT /api/credentials`: a new key by path, or null to remove it. */

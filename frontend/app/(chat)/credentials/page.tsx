@@ -7,6 +7,8 @@ import { ApiError, canSaveCredentials, listCredentials, saveCredentials } from "
 import type { Credential, CredentialValues } from "@/lib/types";
 
 const BUSY = 409;
+const RESTART_WAIT_MS = 60_000;
+const RESTART_POLL_MS = 1_000;
 const BUSY_QUESTION = "A reply is being written and will stop. Save and restart?";
 const SAVE =
   "rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-40";
@@ -15,6 +17,7 @@ const SAVE =
 export default function CredentialsPage() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [directUrl, setDirectUrl] = useState<string | null>(null);
+  const [harnessPid, setHarnessPid] = useState<number | null>(null);
   const [editable, setEditable] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,7 @@ export default function CredentialsPage() {
       const listed = await listCredentials();
       setCredentials(listed.credentials);
       setDirectUrl(listed.direct_url);
+      setHarnessPid(listed.harness_pid);
       setEditable(await canSaveCredentials(listed.direct_url));
       setError(null);
     } catch (err: unknown) {
@@ -38,7 +42,7 @@ export default function CredentialsPage() {
 
   const values = changedValues(drafts);
   const save = async () => {
-    if (directUrl === null) return;
+    if (directUrl === null || harnessPid === null) return;
     setNotice(null);
     try {
       if (!(await saveAsking(directUrl, values))) {
@@ -46,7 +50,10 @@ export default function CredentialsPage() {
         return;
       }
       setDrafts({});
-      setNotice("Saved. The harness restarts to use the new keys.");
+      setNotice("Saved. Restarting the harness…");
+      const applied = await restarted(harnessPid);
+      setNotice(applied ? "Saved and applied." : "Saved, but the harness has not come back yet. Check its log.");
+      await refresh();
     } catch (err: unknown) {
       setError(err instanceof ApiError ? err.message : "Could not save the credentials.");
     }
@@ -104,6 +111,20 @@ async function saveAsking(directUrl: string, values: CredentialValues): Promise<
   if (!window.confirm(BUSY_QUESTION)) return false;
   await saveCredentials(directUrl, values, true);
   return true;
+}
+
+/** Whether a new harness process answers within the wait, which means the saved keys are in use. */
+async function restarted(previousPid: number): Promise<boolean> {
+  const deadline = Date.now() + RESTART_WAIT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, RESTART_POLL_MS));
+    const pid = await listCredentials().then(
+      (listed) => listed.harness_pid,
+      () => previousPid,
+    );
+    if (pid !== previousPid) return true;
+  }
+  return false;
 }
 
 function changedValues(drafts: Record<string, Draft>): CredentialValues {

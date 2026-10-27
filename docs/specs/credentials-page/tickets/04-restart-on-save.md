@@ -1,6 +1,6 @@
 # 04 Restart on save
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

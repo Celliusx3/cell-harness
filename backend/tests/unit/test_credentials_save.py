@@ -186,6 +186,7 @@ async def test_the_list_tells_the_page_the_harness_own_address(harness) -> None:
         response = await http.get("/api/credentials", headers={"origin": PAGE})
 
     assert response.json()["direct_url"] == "http://127.0.0.1:4896"
+    assert response.json()["harness_pid"] == os.getpid()
     assert response.headers["access-control-allow-origin"] == PAGE
 
 
