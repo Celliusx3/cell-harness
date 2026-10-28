@@ -18,12 +18,12 @@ from tests.unit.fakes import (
     hanging_tool,
 )
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
-from tests.unit.helpers import no_skills, skills_at
+from tests.unit.helpers import link_to_assistant, no_skills, skills_at
 from tests.unit.test_skill_tool import write_skill
 
 
 async def test_new_clears_assistants_chat_in_place(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
     await gateway.receive(msg("hello", 1))
@@ -38,7 +38,7 @@ async def test_new_clears_assistants_chat_in_place(tmp_path) -> None:
 
 
 async def test_new_before_assistants_chat_was_ever_written_is_quiet(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
     await chats.save(ChatState(channel="telegram", chat_id=CHAT, conversation_id="an-old-chat"))
@@ -49,7 +49,7 @@ async def test_new_before_assistants_chat_was_ever_written_is_quiet(tmp_path) ->
 
 
 async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
-    bot, gateway, runs, chats, _ = build(
+    bot, gateway, runs, chats, _ = await build(
         tmp_path,
         SteppedClient(calls_tool("hang", '{"value": "x"}')),
         hanging_tool(),
@@ -71,7 +71,9 @@ async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
 
 
 async def test_stop_on_an_idle_chat_says_so(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
+    bot, gateway, runs, _, _ = await build(
+        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+    )
 
     assert await apply(gateway, "telegram", CHAT, Command.STOP) == "Nothing is running."
 
@@ -104,7 +106,7 @@ def named(*names: str) -> list[Skill]:
 
 
 async def test_stopping_before_the_first_checkpoint_does_not_break_the_chat(tmp_path) -> None:
-    bot, gateway, runs, chats, _ = build(
+    bot, gateway, runs, chats, _ = await build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
     await gateway.receive(msg("hello", 1))
@@ -117,7 +119,7 @@ async def test_stopping_before_the_first_checkpoint_does_not_break_the_chat(tmp_
 
 
 async def test_a_drained_turn_delivers_its_reply(tmp_path) -> None:
-    bot, gateway, runs, chats, _ = build(
+    bot, gateway, runs, chats, _ = await build(
         tmp_path, ScriptedClient(completed("answered")), skills=no_skills()
     )
     await gateway.receive(msg("opening"))
@@ -133,7 +135,7 @@ async def test_skills_lists_what_can_be_typed(tmp_path) -> None:
     root = tmp_path / "skills"
     write_skill(root, "find-place", "Where a reel was filmed.")
     write_skill(root, "internal", "Not for typing.", user_invocable="false")
-    bot, gateway, runs, _, _ = build(
+    bot, gateway, runs, _, _ = await build(
         tmp_path, ScriptedClient(completed("hi")), skills=skills_at(root)
     )
 
@@ -154,7 +156,7 @@ async def test_compact_summarizes_this_chats_conversation(tmp_path) -> None:
     from tests.unit.gateway_helpers import build as build_gw
 
     client = ScriptedClient(completed("SUMMARY"))
-    bot, gateway, runs, chats, sessions = build_gw(
+    bot, gateway, runs, chats, sessions = await build_gw(
         tmp_path, client, skills=no_skills(), context_tokens=None
     )
     await gateway.receive(msg("some conversation", 1))
@@ -170,13 +172,18 @@ async def test_compact_summarizes_this_chats_conversation(tmp_path) -> None:
 
 
 async def test_compact_on_an_idle_chat_says_nothing_to_do(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
+    bot, gateway, runs, _, _ = await build(
+        tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
+    )
     assert await apply(gateway, "telegram", CHAT, Command.COMPACT) == "Nothing to compact yet."
 
 
 async def test_compact_from_a_chat_is_reported_in_that_chat_only(tmp_path) -> None:
     client = ScriptedClient(completed("SUMMARY"))
-    bot, gateway, runs, _, _ = build(tmp_path, client, skills=no_skills(), context_tokens=None)
+    bot, gateway, runs, chats, _ = await build(
+        tmp_path, client, skills=no_skills(), context_tokens=None
+    )
+    await link_to_assistant(chats, "telegram", "5151")
     await gateway.receive(msg("from here", 1))
     await settle(runs, gateway)
     await gateway.receive(InboundMessage(channel="telegram", chat_id="5151", text="from there"))

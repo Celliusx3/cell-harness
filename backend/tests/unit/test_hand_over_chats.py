@@ -17,7 +17,13 @@ from harness.tools.native.hand_over import HAND_OVER
 from tests.unit import discord_fakes
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
-from tests.unit.helpers import client_tools, durable_service, no_skills, run_service
+from tests.unit.helpers import (
+    client_tools,
+    durable_service,
+    link_to_assistant,
+    no_skills,
+    run_service,
+)
 
 ASKED = json.dumps({"step": "Type the two-factor code from your phone on GitHub."})
 PAGE = f"http://t/answer/{ASSISTANT_ID}/call_h1"
@@ -29,7 +35,7 @@ def _hands_over_then_carries_on() -> SteppedClient:
 
 async def test_telegram_is_sent_the_answer_page_and_the_turn_waits(tmp_path) -> None:
     tools = client_tools()
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path,
         _hands_over_then_carries_on(),
         *tools.tools(),
@@ -52,11 +58,11 @@ async def test_telegram_is_sent_the_answer_page_and_the_turn_waits(tmp_path) -> 
 async def test_discord_is_sent_the_open_button_to_the_answer_page(tmp_path) -> None:
     sessions = durable_service(tmp_path / "sessions")
     runs = run_service(sessions, _hands_over_then_carries_on(), *client_tools().tools())
-    gateway = ChannelGateway(
-        JsonlChatRepository(tmp_path / "chats"), runs, sessions, no_skills(), public_url="http://t"
-    )
+    chats = JsonlChatRepository(tmp_path / "chats")
+    gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     channel, client = discord_fakes.discord_channel(gateway)
     gateway.register(channel)
+    await link_to_assistant(chats, "discord", "42")
     chat = client.chat("42")
 
     await channel.on_message(discord_fakes.message("42", "push my branch"))

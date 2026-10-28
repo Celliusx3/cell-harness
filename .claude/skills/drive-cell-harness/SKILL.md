@@ -15,14 +15,33 @@ From the checkout being proved (a worktree is fine), with a scratch folder `$RUN
 RUN=<scratchpad>/drive-run && mkdir -p "$RUN"
 [ -f "$RUN/encryption_key" ] || (umask 077 && openssl rand -hex 32 > "$RUN/encryption_key")
 cd backend && uv sync --quiet && cd ..
+[ -f "$RUN/config.local.json" ] || (cd backend && umask 077 && uv run python - "$RUN/config.local.json") <<'PY'
+import json, sys
+from pathlib import Path
+from harness.config.settings import load
+from harness.secrets import DEFAULT_MODEL_CREDENTIAL, DiskSecretRepository, SecretService
+settings = load()
+local = settings.local_settings_path
+held = json.loads(local.read_text()).get("llm", {}) if local.exists() else {}
+if held.get("api_key"):
+    llm = {"api_key": held["api_key"], "base_url": settings.llm.base_url, "model": settings.llm.model}
+else:
+    keyring = SecretService(DiskSecretRepository(settings.secrets.path), encryption_key=settings.secrets.encryption_key)
+    default = keyring.model_credential_named(DEFAULT_MODEL_CREDENTIAL)
+    if default is None:
+        sys.exit("no model key: neither the per-machine settings file nor the keyring holds one")
+    llm = {"api_key": default.key.get_secret_value(), "base_url": default.details.base_url, "model": default.details.model}
+Path(sys.argv[1]).write_text(json.dumps({"llm": llm}))
+PY
 [ -d frontend/node_modules ] || (cd frontend && npm ci --silent)
-cd backend && HARNESS_SESSIONS__ROOT="$RUN/harness/sessions" \
+cd backend && HARNESS_CONFIG_LOCAL="$RUN/config.local.json" \
+  HARNESS_SESSIONS__ROOT="$RUN/harness/sessions" \
   HARNESS_FILES__ROOT="$RUN/harness/files" \
   HARNESS_APPROVAL__GRANTS_PATH="$RUN/harness/approvals.json" \
   HARNESS_BOTS__PATH="$RUN/harness/bots.json" \
   HARNESS_SECRETS__PATH="$RUN/harness/secrets.json" \
   HARNESS_SECRETS__ENCRYPTION_KEY="$(cat "$RUN/encryption_key")" \
-  HARNESS_TELEGRAM__BOT_TOKEN="" HARNESS_DISCORD__BOT_TOKEN="" HARNESS_WEB__PUBLIC_URL="" \
+  HARNESS_WEB__PUBLIC_URL="" \
   uv run uvicorn harness.web.server:create_web_app --factory --host 127.0.0.1 --port 4996 \
   > "$RUN/backend.log" 2>&1 &
 echo $! > "$RUN/backend.pid"; cd ..
@@ -32,7 +51,7 @@ echo $! > "$RUN/frontend.pid"; cd ..
 
 Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The backend connects every MCP server in `backend/config.json` at startup; the first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
 
-Why each variable: the sessions root, files root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. The bot tokens are blanked because `backend/config.local.json` holds live ones; a copy with them answers the person's real Telegram and Discord chats.
+Why each variable: the sessions root, files root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. `HARNESS_CONFIG_LOCAL` points at a scratch file holding only the model's key and endpoint, copied without printing them from the per-machine file while it still holds the key, else from the keyring's Default model: on start the harness moves every key in its per-machine file into the keyring and strips the file, so it must never be `backend/config.local.json`. That file also holds live Telegram and Discord tokens, and a copy with them answers the person's real chats.
 
 ## Doctor
 
@@ -55,7 +74,7 @@ Load the browser tools with ToolSearch (`select:mcp__plugin_everything-claude-co
 4. Click "Done · N tools" to unfold a finished turn's cards, then click a tool card's name (for example `run_subagent`) to open it: its arguments and its result appear under it.
 5. An approval card offers "Allow once", "Allow for this conversation", "Always allow" and "Deny".
 
-Handles: placeholder "Send a message", labels "Send", "Stop", "Clear", "New bot", "Edit bot", "Archive", "Archived", "Restore", "Skills", "Approvals", "Keys", "Remove". Never click by coordinates.
+Handles: placeholder "Send a message", labels "Send", "Stop", "Clear", "New bot", "Edit bot", "Archive", "Archived", "Restore", "Skills", "Approvals", "Credentials". The Credentials page has "Add credential", "Edit" and "Remove", and a bot's page "Link Telegram" and "Link Discord". Never click by coordinates.
 
 ## Evidence
 

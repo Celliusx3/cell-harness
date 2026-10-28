@@ -8,8 +8,11 @@ from telegram import ReplyKeyboardRemove
 
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
+from harness.channels.links import ChatLinks
 from harness.channels.telegram.channel import TelegramChannel
-from tests.unit.helpers import client_tools
+from tests.unit.helpers import client_tools, no_links
+
+PRIVATE = "private"
 
 
 class FakeBot:
@@ -45,10 +48,12 @@ class FakeBot:
 
 
 def telegram_channel(
-    gateway: ChannelGateway, locations: ChatAnswers | None = None
+    gateway: ChannelGateway, locations: ChatAnswers | None = None, links: ChatLinks | None = None
 ) -> tuple[TelegramChannel, FakeBot]:
     """A real `TelegramChannel` whose PTB bot is a fake."""
-    channel = TelegramChannel("123:fake-token", gateway, locations or _no_locations())
+    channel = TelegramChannel(
+        "123:fake-token", gateway, locations or _no_locations(), links or no_links()
+    )
     bot = FakeBot()
     channel._bot = bot
     return channel, bot
@@ -59,21 +64,25 @@ def _no_locations() -> ChatAnswers:
     return ChatAnswers(None, None, None, client_tools())
 
 
-def location_update(chat_id: str, latitude: float, longitude: float) -> SimpleNamespace:
+def location_update(
+    chat_id: str, latitude: float, longitude: float, chat_type: str = PRIVATE
+) -> SimpleNamespace:
     """A PTB `Update` carrying a pin — what tapping the share button sends."""
     pin = SimpleNamespace(latitude=latitude, longitude=longitude, horizontal_accuracy=None)
     return SimpleNamespace(
         effective_message=SimpleNamespace(text=None, location=pin, message_id=1),
-        effective_chat=SimpleNamespace(id=int(chat_id)),
+        effective_chat=SimpleNamespace(id=int(chat_id), type=chat_type),
     )
 
 
-def update(chat_id: str, text: str, message_id: int = 1) -> SimpleNamespace:
+def update(
+    chat_id: str, text: str, message_id: int = 1, chat_type: str = PRIVATE
+) -> SimpleNamespace:
     """The shape of a PTB `Update` that the handler actually reads."""
     message = SimpleNamespace(text=text, message_id=message_id)
     return SimpleNamespace(
         effective_message=message,
-        effective_chat=SimpleNamespace(id=int(chat_id)),
+        effective_chat=SimpleNamespace(id=int(chat_id), type=chat_type),
     )
 
 
@@ -95,11 +104,13 @@ class FakeCallbackQuery:
         self.edits.append((text, reply_markup))
 
 
-def decision_update(chat_id: str, data: str, card_text: str) -> SimpleNamespace:
+def decision_update(
+    chat_id: str, data: str, card_text: str, chat_type: str = PRIVATE
+) -> SimpleNamespace:
     """A PTB `Update` carrying a callback query — what tapping Allow or Deny sends."""
     return SimpleNamespace(
         callback_query=FakeCallbackQuery(chat_id, data, card_text),
-        effective_chat=SimpleNamespace(id=int(chat_id)),
+        effective_chat=SimpleNamespace(id=int(chat_id), type=chat_type),
         effective_message=None,
     )
 
@@ -108,6 +119,6 @@ def choice_update(chat_id: str, data: str, card_text: str, markup: object) -> Si
     """A tap on one of a question's buttons, on the message that carries them."""
     return SimpleNamespace(
         callback_query=FakeCallbackQuery(chat_id, data, card_text, markup),
-        effective_chat=SimpleNamespace(id=int(chat_id)),
+        effective_chat=SimpleNamespace(id=int(chat_id), type=PRIVATE),
         effective_message=None,
     )

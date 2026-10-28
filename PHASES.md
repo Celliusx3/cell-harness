@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and twenty insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and twenty-two insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -41,7 +41,16 @@ app has no login, and the computer reaches every port on this Mac through
 as the person; a network guard such as Tailscale does not cover it;
 phase 13, built in the computer, spec in `docs/specs/comic-skill/`), 20 a Mac app
 friends install (`make app`: Electron around the same pages, its own Python and
-Deno, signed ad-hoc; chat and skills only; spec in `docs/specs/desktop-app/`). Their plans
+Deno, signed ad-hoc; chat and skills only; spec in `docs/specs/desktop-app/`), 21 a
+Credentials page (the harness's own keys, masked to their last four characters,
+saved only from this Mac straight to the harness, which then restarts; spec in
+`docs/specs/credentials-page/`), 22 typed credentials (that page holds every
+key, the Keys page's too, and nothing restarts; an LLM credential gives the bots
+ticked their own model, and the rest use the Default model; a saved Telegram or
+Discord token starts its channel; the settings file's keys move into the keyring
+on start; a link code from a bot's page ties a Telegram or Discord direct chat
+to that bot, and an unlinked one gets silence; spec in
+`docs/specs/credentials-page/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made

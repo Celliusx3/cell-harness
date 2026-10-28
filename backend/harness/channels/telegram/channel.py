@@ -15,7 +15,7 @@ from telegram import (
     WebAppInfo,
 )
 from telegram.constants import ChatAction
-from telegram.error import TelegramError
+from telegram.error import InvalidToken, TelegramError
 from telegram.ext import (
     AIORateLimiter,
     Application,
@@ -25,12 +25,12 @@ from telegram.ext import (
     filters,
 )
 
-from harness.bots import ASSISTANT_ID
 from harness.channels.client import ChatAnswers
 from harness.channels.commands import apply as apply_command
 from harness.channels.commands import unknown_skill
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import InboundMessage
+from harness.channels.links import ChatLinks, link_or_receive
+from harness.channels.protocol import InboundMessage, TokenRefused
 from harness.channels.telegram import commands
 from harness.channels.telegram.asking import (
     BUTTONS,
@@ -40,6 +40,7 @@ from harness.channels.telegram.asking import (
     ask_client,
 )
 from harness.channels.telegram.batching import JOIN, Batch, batch_delay
+from harness.channels.telegram.private import private_chat_id
 from harness.channels.text import split_message
 from harness.skills import UnknownSkill
 from harness.tools.client import PendingCall
@@ -50,6 +51,7 @@ logger = logging.getLogger("harness.channels.telegram")
 CHANNEL = "telegram"
 
 OPEN_LABEL = "Open"
+REFUSED_TOKEN = "Telegram refused the bot token; replace it on the Credentials page"
 
 RECEIPTS: dict[str, str] = {
     "once": "✅ Allowed once",
@@ -66,9 +68,12 @@ class TelegramChannel:
 
     channel = CHANNEL
 
-    def __init__(self, token: str, gateway: ChannelGateway, answers: ChatAnswers) -> None:
+    def __init__(
+        self, token: str, gateway: ChannelGateway, answers: ChatAnswers, links: ChatLinks
+    ) -> None:
         self._gateway = gateway
         self._answers = answers
+        self._links = links
         self._app: Application = (
             ApplicationBuilder().token(token).rate_limiter(AIORateLimiter()).build()
         )
@@ -82,12 +87,15 @@ class TelegramChannel:
         self._app.add_handler(CallbackQueryHandler(self._on_choice, pattern=rf"^{CHOICE_PREFIX}:"))
 
     def conversation_for(self, chat_id: str) -> str:
-        """Every Telegram chat writes into Assistant's chat."""
-        return ASSISTANT_ID
+        """None: a Telegram chat writes where its stored state says, or nowhere."""
+        return ""
 
     async def run(self) -> None:
-        """Poll until cancelled."""
-        await self._app.initialize()
+        """Poll until cancelled; a refused token is said without the token, which PTB's says."""
+        try:
+            await self._app.initialize()
+        except InvalidToken:
+            raise TokenRefused(REFUSED_TOKEN) from None
         await self._app.start()
         await self._app.updater.start_polling(
             allowed_updates=[Update.MESSAGE, Update.CALLBACK_QUERY],
@@ -109,19 +117,19 @@ class TelegramChannel:
         await self._app.shutdown()
 
     async def _on(self, update: Update, _context: object) -> None:
-        """One inbound message from PTB."""
+        """One inbound message from PTB, from a private chat."""
         message = update.effective_message
-        chat = update.effective_chat
-        if message is None or chat is None or not message.text:
+        chat_id = private_chat_id(update)
+        if message is None or chat_id is None or not message.text:
             return
-        chat_id = str(chat.id)
         text = message.text
 
         command = commands.parse(text)
         if command is not None:
             await self._flush(chat_id)
             reply = await apply_command(self._gateway, CHANNEL, chat_id, command)
-            await self.send_message(chat_id, reply)
+            if reply is not None:
+                await self.send_message(chat_id, reply)
             return
 
         existing = self._batches.pop(chat_id, None)
@@ -136,10 +144,9 @@ class TelegramChannel:
     async def _on_location(self, update: Update, _context: object) -> None:
         """A location: the answer to a pending `get_location`, else a message as text."""
         message = update.effective_message
-        chat = update.effective_chat
-        if message is None or chat is None or message.location is None:
+        chat_id = private_chat_id(update)
+        if message is None or chat_id is None or message.location is None:
             return
-        chat_id = str(chat.id)
         pin = message.location
         shared = {
             "kind": "shared",
@@ -158,13 +165,13 @@ class TelegramChannel:
     async def _on_decision(self, update: Update, _context: object) -> None:
         """A tap on Allow or Deny: answer the pending call, then turn the card into a receipt."""
         query = update.callback_query
-        chat = update.effective_chat
-        if query is None or chat is None:
+        chat_id = private_chat_id(update)
+        if query is None or chat_id is None or not await self._gateway.is_linked(CHANNEL, chat_id):
             return
         await query.answer()
         tap = _parse_tap(query.data)
         if tap is None:
-            logger.warning("chat %s tapped a button with unreadable data %r", chat.id, query.data)
+            logger.warning("chat %s tapped a button with unreadable data %r", chat_id, query.data)
             await self._edit_card(query, STALE_TAP)
             return
         body = (
@@ -172,23 +179,23 @@ class TelegramChannel:
             if tap.choice == "deny"
             else {"kind": "approved", "scope": tap.choice}
         )
-        ok = await self._answers.answer_call(self, str(chat.id), tap.call_id, body)
+        ok = await self._answers.answer_call(self, chat_id, tap.call_id, body)
         await self._edit_card(query, RECEIPTS[tap.choice] if ok else STALE_TAP)
 
     async def _on_choice(self, update: Update, _context: object) -> None:
         query = update.callback_query
-        chat = update.effective_chat
-        if query is None or chat is None:
+        chat_id = private_chat_id(update)
+        if query is None or chat_id is None or not await self._gateway.is_linked(CHANNEL, chat_id):
             return
         await query.answer()
         choice = _parse_choice(query.data)
         label = _option_label(query.message.reply_markup, choice.index) if choice else None
         if choice is None or label is None:
-            logger.warning("chat %s tapped an option with unreadable data %r", chat.id, query.data)
+            logger.warning("chat %s tapped an option with unreadable data %r", chat_id, query.data)
             await self._edit_card(query, STALE_TAP)
             return
         shared = {"kind": "shared", "data": {"choice": label}}
-        ok = await self._answers.answer_call(self, str(chat.id), choice.call_id, shared)
+        ok = await self._answers.answer_call(self, chat_id, choice.call_id, shared)
         await self._edit_card(query, f"✅ {label}" if ok else STALE_TAP)
 
     async def _edit_card(self, query: CallbackQuery, receipt: str) -> None:
@@ -205,15 +212,16 @@ class TelegramChannel:
         await self._flush(chat_id)
 
     async def _flush(self, chat_id: str) -> None:
-        """Hand one chat's accumulated text to the gateway, as one message."""
+        """Hand one chat's accumulated text over as one message, to the links, then the gateway."""
         batch = self._batches.pop(chat_id, None)
         if batch is None:
             return
         batch.timer.cancel()
+        message = InboundMessage(channel=CHANNEL, chat_id=chat_id, text=batch.text)
         try:
-            await self._gateway.receive(
-                InboundMessage(channel=CHANNEL, chat_id=chat_id, text=batch.text)
-            )
+            reply = await link_or_receive(self._links, self._gateway, message)
+            if reply is not None:
+                await self.send_message(chat_id, reply)
         except UnknownSkill as err:
             await self.send_message(
                 chat_id, unknown_skill(err.name, self._gateway.skills.invocable())

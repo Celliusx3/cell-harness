@@ -1,93 +1,68 @@
-"""The Discord channel wired into the app: present with a token, absent without."""
+"""The Discord channel wired into the app: present with a keyring token, absent without."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from pydantic import SecretStr
+
+from harness.channels.gateway import ChannelGateway
 from harness.config.settings import Settings
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
+from harness.secrets import Destination, SecretService
+from harness.secrets.models.details import DiscordDetails, TelegramDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels
-from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import client_tools, no_bots, no_skills
-from tests.webapp import files_in, images_in
+from tests.unit.fakes import OneModel, ScriptedClient
+from tests.unit.helpers import no_bots
+from tests.webapp import channel_services, secrets_in
 
 
-def _services(tmp_path) -> tuple[SessionService, RunService]:
+def _services(tmp_path: Path) -> tuple[SessionService, RunService]:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runtime = Runtime(model="m", client=ScriptedClient([]), images=None)
+    runtime = Runtime(models=OneModel(ScriptedClient([])), images=None)
     return sessions, RunService(sessions, runtime, no_bots(sessions))
 
 
+async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
+    """The gateway once the saved tokens are registered on it, with nothing started."""
+    sessions, runs = _services(tmp_path)
+    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    channels = build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)
+    await channels.platforms.start_saved()
+    return channels.gateway
+
+
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    sessions, runs = _services(tmp_path)
-    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
-
-    assert build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )[0].channels == ["web"]
+    assert (await _channels(tmp_path, secrets_in(tmp_path))).channels == ["web"]
 
 
-async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
-    sessions, runs = _services(tmp_path)
-    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": "  "})
+async def test_a_custom_key_named_discord_is_not_a_token(tmp_path) -> None:
+    keyring = secrets_in(tmp_path)
+    site = Destination(origin="https://discord.example", auth="bearer")
+    keyring.save("discord", site, SecretStr("custom-key-not-a-token"))
 
-    assert build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )[0].channels == ["web"]
+    assert (await _channels(tmp_path, keyring)).channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
-    sessions, runs = _services(tmp_path)
-    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": "abc"})
+    keyring = secrets_in(tmp_path)
+    keyring.add_credential("discord", DiscordDetails(), SecretStr("discord-token-abc"))
 
-    built, _ = build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )
+    built = await _channels(tmp_path, keyring)
 
     assert built.channels == ["web", "discord"]
     await built.aclose()
 
 
 async def test_both_bots_share_one_gateway(tmp_path) -> None:
-    sessions, runs = _services(tmp_path)
-    settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": "abc"})
+    keyring = secrets_in(tmp_path)
+    keyring.add_credential("telegram", TelegramDetails(), SecretStr("123:abc-telegram"))
+    keyring.add_credential("discord", DiscordDetails(), SecretStr("discord-token-abc"))
 
-    built, _ = build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )
+    built = await _channels(tmp_path, keyring)
 
     assert built.channels == ["web", "telegram", "discord"]
     await built.aclose()
-
-
-def test_the_token_reads_from_settings() -> None:
-    assert Settings(discord={"bot_token": "abc"}).discord.bot_token == "abc"

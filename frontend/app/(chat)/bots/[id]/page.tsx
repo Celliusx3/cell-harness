@@ -5,6 +5,7 @@ import { use } from "react";
 
 import { BotForm } from "@/components/bots/BotForm";
 import { BotKeys } from "@/components/bots/BotKeys";
+import { BotLinks } from "@/components/bots/BotLinks";
 import { refreshSidebar } from "@/components/chat/Sidebar";
 import { useFound } from "@/components/chat/useFound";
 import { ASSISTANT_ID, archiveBot, listBots, updateBot } from "@/lib/api";
@@ -54,6 +55,7 @@ export default function EditBotPage({
               onArchive={id === ASSISTANT_ID ? null : archive}
             />
             <BotKeys bot={lookup.item} />
+            <BotLinks bot={lookup.item} />
           </>
         )}
       </div>

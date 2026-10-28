@@ -14,13 +14,13 @@ from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from tests.unit.helpers import client_tools as default_client_tools
-from tests.unit.helpers import durable_service, run_service
+from tests.unit.helpers import durable_service, link_to_assistant, run_service
 from tests.unit.telegram_fakes import telegram_channel
 
 CHAT = "4242"
 
 
-def build(
+async def build(
     tmp_path: Path,
     model,
     *tools,
@@ -37,6 +37,7 @@ def build(
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url=public_url)
     channel, bot = telegram_channel(gateway, ChatAnswers(chats, sessions, gateway, client_tools))
     gateway.register(channel)
+    await link_to_assistant(chats, "telegram", CHAT)
     return bot, gateway, runs, chats, sessions
 
 

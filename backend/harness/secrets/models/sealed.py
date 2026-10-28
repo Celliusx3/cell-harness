@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
-from harness.secrets.models.destination import Destination
+from harness.secrets.models.details import CredentialDetails
 from harness.secrets.models.secret import SecretName
 
 
@@ -15,8 +15,17 @@ class SealedSecret(BaseModel):
 
     id: str = Field(pattern=r"^[0-9a-f]+$")
     name: SecretName
-    destination: Destination
+    details: CredentialDetails
     ciphertext: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _custom_when_saved_before_kinds(cls, data: JsonValue) -> JsonValue:
+        """An entry from before credentials had kinds holds a site, so it is a custom key."""
+        if isinstance(data, dict) and "destination" in data and "details" not in data:
+            kept = {key: value for key, value in data.items() if key != "destination"}
+            return {**kept, "details": {"kind": "custom", "destination": data["destination"]}}
+        return data
 
 
 class SecretsFile(BaseModel):

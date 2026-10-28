@@ -7,10 +7,10 @@ import logging
 import discord
 from discord import app_commands
 
-from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, unknown_skill
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
+from harness.channels.links import ChatLinks, link_or_receive
 from harness.channels.protocol import InboundMessage
 from harness.channels.text import split_message
 from harness.skills import UnknownSkill
@@ -35,9 +35,10 @@ class DiscordChannel:
 
     channel = CHANNEL
 
-    def __init__(self, token: str, gateway: ChannelGateway) -> None:
+    def __init__(self, token: str, gateway: ChannelGateway, links: ChatLinks) -> None:
         self._token = token
         self._gateway = gateway
+        self._links = links
         self._client = discord.Client(
             intents=discord.Intents.default(),
             allowed_mentions=discord.AllowedMentions.none(),
@@ -69,8 +70,8 @@ class DiscordChannel:
             await self._on_command(interaction, Command.COMPACT)
 
     def conversation_for(self, chat_id: str) -> str:
-        """Every Discord chat writes into Assistant's chat."""
-        return ASSISTANT_ID
+        """None: a Discord chat writes where its stored state says, or nowhere."""
+        return ""
 
     async def run(self) -> None:
         """Hold the websocket until cancelled."""
@@ -92,14 +93,24 @@ class DiscordChannel:
         if not text:
             return
         chat_id = str(message.channel.id)
+        inbound = InboundMessage(channel=CHANNEL, chat_id=chat_id, text=text)
         try:
-            await self._gateway.receive(InboundMessage(channel=CHANNEL, chat_id=chat_id, text=text))
+            if message.guild is not None:
+                await self._store_on_assistant_and_receive(inbound)
+                return
+            reply = await link_or_receive(self._links, self._gateway, inbound)
+            if reply is not None:
+                await self.send_message(chat_id, reply)
         except UnknownSkill as err:
             await self.send_message(
                 chat_id, unknown_skill(err.name, self._gateway.skills.invocable())
             )
         except Exception:
             logger.exception("handling message from chat %s failed", chat_id)
+
+    async def _store_on_assistant_and_receive(self, message: InboundMessage) -> None:
+        await self._links.store_on_assistant_unless_stored(CHANNEL, message.chat_id)
+        await self._gateway.receive(message)
 
     def _mentions_me(self, message: discord.Message) -> bool:
         me = self._client.user
@@ -113,10 +124,14 @@ class DiscordChannel:
         return content.replace(f"<@{me.id}>", "").replace(f"<@!{me.id}>", "")
 
     async def _on_command(self, interaction: discord.Interaction, command: Command) -> None:
-        """One slash command."""
+        """One slash command; a chat linked to no bot is not even acknowledged."""
+        chat_id = str(interaction.channel_id)
+        if not await self._gateway.is_linked(CHANNEL, chat_id):
+            return
         await interaction.response.defer()
-        reply = await apply_command(self._gateway, CHANNEL, str(interaction.channel_id), command)
-        await interaction.followup.send(reply)
+        reply = await apply_command(self._gateway, CHANNEL, chat_id, command)
+        if reply is not None:
+            await interaction.followup.send(reply)
 
     async def send_message(self, chat_id: str, text: str) -> None:
         """Send `text`, split across messages if it exceeds the limit."""

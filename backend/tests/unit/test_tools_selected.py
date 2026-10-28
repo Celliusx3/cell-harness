@@ -18,7 +18,7 @@ from harness.tools.native.code_mode import (
 )
 from harness.tools.toolset import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
-from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool
+from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed, echo_tool
 from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_progress
 
 DEFAULTS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
@@ -158,7 +158,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    runtime = Runtime(model="m", client=client, images=None, tools=toolset(echo_tool("a")))
+    runtime = Runtime(models=OneModel(client), images=None, tools=toolset(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
@@ -176,7 +176,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    runtime = Runtime(model="m", client=client, images=None, tools=toolset(echo_tool("a")))
+    runtime = Runtime(models=OneModel(client), images=None, tools=toolset(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:

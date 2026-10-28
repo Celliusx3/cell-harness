@@ -15,8 +15,10 @@ APP_FOLDER = Path("Library") / "Application Support" / "Cell Harness"
 
 _PRINT_LOADED = """
 import json
+import sys
+from pathlib import Path
 from harness.config.settings import Settings
-s = Settings()
+s = Settings(local_settings_path=Path(sys.argv[1]))
 print(json.dumps({
     "api_key": s.llm.api_key,
     "servers": list(s.mcp.servers),
@@ -43,7 +45,7 @@ def _load_as_the_app(home: Path, local: Path) -> Loaded:
         "HARNESS_CONFIG_LOCAL": str(local),
     }
     result = subprocess.run(
-        [sys.executable, "-c", _PRINT_LOADED],
+        [sys.executable, "-c", _PRINT_LOADED, str(local)],
         cwd=BACKEND,
         env=env,
         capture_output=True,

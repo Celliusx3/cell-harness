@@ -6,7 +6,7 @@ A bot that needs an API key calls `ask_for_secret`: a card under the call names 
 
 - The card: label, "Sent only to <host>. The assistant never sees it.", a password box and Save; no decline button. Answered, it reads "Saved as <name>."; typing a message instead reads "Skipped. You continued without saving."
 - A key that breaks the rule (8 to 16,384 printable characters) is refused on the card with the rule.
-- The Keys page (sidebar key icon) lists every saved key, its site, the bots that may use it, and Remove, which takes it from every bot.
+- A saved key is a Custom row on the Credentials page (sidebar lock icon), with its site and its bots. See [credentials.md](credentials.md).
 - A bot not allowed a key gets `NOT_ALLOWED`; ticking the key under "Keys this bot can use" on its Edit bot page allows it, saved at once.
 - Telegram and Discord get a link to the card's page, saying not to paste the key into the chat.
 

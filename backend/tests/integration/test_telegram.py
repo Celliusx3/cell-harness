@@ -4,23 +4,28 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
+from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
+from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.config.settings import Settings
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
+from harness.secrets import Destination, SecretService
+from harness.secrets.models.details import TelegramDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
-from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
+from tests.unit.fakes import OneModel, ScriptedClient, completed
+from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import files_in, images_in, secrets_in, web_gateway, web_mcp
+from tests.webapp import channel_services, channels_of, secrets_in, web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -33,8 +38,7 @@ def build(tmp_path):
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        model="m",
-        client=ScriptedClient(completed("the answer")),
+        models=OneModel(ScriptedClient(completed("the answer"))),
         images=None,
         checkpoint=sessions.flush,
     )
@@ -45,8 +49,7 @@ def build(tmp_path):
     gateway.register(channel)
     app = create_app(
         runs,
-        gateway,
-        web,
+        channels_of(gateway, web, secrets_in(tmp_path)),
         web_mcp(),
         no_skills(),
         tools,
@@ -109,14 +112,13 @@ async def test_the_lifespan_starts_and_stops_the_gateway(tmp_path) -> None:
 async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunService(
-        sessions, Runtime(model="m", client=ScriptedClient([]), images=None), no_bots(sessions)
+        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
     )
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     wired = create_app(
         runs,
-        gateway,
-        web,
+        channels_of(gateway, web, secrets_in(tmp_path)),
         web_mcp(),
         no_skills(),
         tools,
@@ -133,6 +135,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
 
 async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
+    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
 
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="hello there"))
     await settle(runs, gateway)
@@ -149,6 +152,7 @@ async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) ->
 
 async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
+    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone"))
     await settle(runs, gateway)
 
@@ -168,62 +172,35 @@ async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_pat
     assert bot.sent == [(CHAT, "the answer")]
 
 
+async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
+    """The gateway once the saved tokens are registered on it, with nothing started."""
+    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
+    runs = RunService(
+        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
+    )
+    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    channels = build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)
+    await channels.platforms.start_saved()
+    return channels.gateway
+
+
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunService(
-        sessions, Runtime(model="m", client=ScriptedClient([]), images=None), no_bots(sessions)
-    )
-    settings = Settings(telegram={"bot_token": ""}, discord={"bot_token": ""})
-
-    assert build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )[0].channels == ["web"]
+    assert (await _channels(tmp_path, secrets_in(tmp_path))).channels == ["web"]
 
 
-async def test_a_whitespace_token_is_not_a_token(tmp_path) -> None:
-    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunService(
-        sessions, Runtime(model="m", client=ScriptedClient([]), images=None), no_bots(sessions)
-    )
+async def test_a_custom_key_named_telegram_is_not_a_token(tmp_path) -> None:
+    keyring = secrets_in(tmp_path)
+    site = Destination(origin="https://telegram.example", auth="bearer")
+    keyring.save("telegram", site, SecretStr("custom-key-not-a-token"))
 
-    settings = Settings(telegram={"bot_token": "   "}, discord={"bot_token": ""})
-
-    assert build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )[0].channels == ["web"]
+    assert (await _channels(tmp_path, keyring)).channels == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
-    sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-    runs = RunService(
-        sessions, Runtime(model="m", client=ScriptedClient([]), images=None), no_bots(sessions)
-    )
-    settings = Settings(telegram={"bot_token": "123:abc"}, discord={"bot_token": ""})
+    keyring = secrets_in(tmp_path)
+    keyring.add_credential("telegram", TelegramDetails(), SecretStr("123:abc-telegram"))
 
-    built, _ = build_channels(
-        settings,
-        sessions,
-        runs,
-        no_skills(),
-        client_tools(),
-        no_bots(sessions),
-        files_in(tmp_path),
-        images_in(tmp_path),
-    )
+    built = await _channels(tmp_path, keyring)
 
     assert built.channels == ["web", "telegram"]
     await built.aclose()

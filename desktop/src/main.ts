@@ -19,7 +19,7 @@ import {
   type Layout,
 } from "./paths";
 import { firstPortInUse, harnessSpec, pagesSpec, waitForPort } from "./processes";
-import { committedEndpoint, needsSetup, readLocalSettings } from "./setup";
+import { committedEndpoint, committedKeyringPath, needsSetup, readLocalSettings, readTextIfPresent } from "./setup";
 import { askForSetup } from "./setupWindow";
 import { portInUseReason } from "./strays";
 import { addTray } from "./tray";
@@ -69,7 +69,7 @@ async function startApp(): Promise<void> {
 /** Opens the chat window and the menu-bar icon; from now on a Dock click or a second launch shows the window. */
 function openChat(): void {
   chatWindow = openChatWindow();
-  menuBarIcon = addTray({ showChatWindow, settingsFile: files.localJson });
+  menuBarIcon = addTray({ showChatWindow, showCredentials, settingsFile: files.localJson });
   app.on("second-instance", showChatWindow);
   app.on("activate", showChatWindow);
 }
@@ -82,11 +82,12 @@ function missingPagesReason(layout: Layout): string | null {
   return null;
 }
 
-/** True once the settings file holds an API key; false when the friend closed the setup window instead. */
+/** True once the settings file or the keyring holds a model key; false when the friend closed the setup window instead. */
 async function askForApiKeyIfMissing(): Promise<boolean> {
-  if (!needsSetup(readLocalSettings(files.localJson))) return true;
-  const committed = committedEndpoint(readFileSync(layout.configJson, "utf8"));
-  return askForSetup({ localJson: files.localJson, committed });
+  const configJson = readFileSync(layout.configJson, "utf8");
+  const keyringText = readTextIfPresent(committedKeyringPath(configJson, os.homedir()));
+  if (!needsSetup(readLocalSettings(files.localJson), keyringText)) return true;
+  return askForSetup({ localJson: files.localJson, committed: committedEndpoint(configJson) });
 }
 
 /** Stops both children, says why the app could not start, and quits. */
@@ -138,6 +139,14 @@ function hideUnlessQuitting(window: BrowserWindow, event: Electron.Event): void 
   if (hasStopBegun()) return;
   event.preventDefault();
   window.hide();
+}
+
+/** Shows the chat window on the Credentials page. */
+function showCredentials(): void {
+  showChatWindow();
+  chatWindow
+    ?.loadURL(`${APP_URL}/credentials`)
+    .catch((error: unknown) => dialog.showErrorBox(START_FAILURE_TITLE, messageOf(error)));
 }
 
 /** Shows the chat window, opening a new one when a page's own window.close() destroyed it, which no close event can stop. */

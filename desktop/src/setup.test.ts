@@ -7,6 +7,7 @@ import { test } from "node:test";
 import {
   checkAnswers,
   committedEndpoint,
+  committedKeyringPath,
   formDefaults,
   needsSetup,
   newEncryptionKey,
@@ -19,18 +20,63 @@ import {
 const COMMITTED = { baseUrl: "https://api.ilmu.ai/v1", model: "glm-5.3-flashx" };
 const ANSWERS = { apiKey: "sk-new", ...COMMITTED };
 const NO_KEY_EXPECTED = (): string => assert.fail("a new encryption key was made");
+const HOME = "/Users/friend";
 
-test("a missing settings file needs setup", () => {
-  assert.equal(needsSetup(null), true);
+function keyringOf(...entries: unknown[]): string {
+  return JSON.stringify({ secrets: entries });
+}
+
+const DEFAULT_MODEL_ENTRY = {
+  id: "0a",
+  name: "default_model",
+  details: { kind: "llm", base_url: "https://api.ilmu.ai/v1", model: "glm-5.3-flashx" },
+  ciphertext: "c2VhbGVk",
+};
+
+test("no settings file and no keyring needs setup", () => {
+  assert.equal(needsSetup(null, null), true);
 });
 
-test("a settings file with no API key, or a blank one, needs setup", () => {
-  assert.equal(needsSetup({}), true);
-  assert.equal(needsSetup({ llm: { api_key: "   " } }), true);
+test("a settings file with no API key, or a blank one, and no keyring needs setup", () => {
+  assert.equal(needsSetup({}, null), true);
+  assert.equal(needsSetup({ llm: { api_key: "   " } }, null), true);
 });
 
 test("a settings file with an API key needs no setup", () => {
-  assert.equal(needsSetup({ llm: { api_key: "sk-x" } }), false);
+  assert.equal(needsSetup({ llm: { api_key: "sk-x" } }, null), false);
+});
+
+test("no key in the file but a Default model in the keyring needs no setup", () => {
+  assert.equal(needsSetup(null, keyringOf(DEFAULT_MODEL_ENTRY)), false);
+  assert.equal(needsSetup({ llm: { api_key: "" } }, keyringOf(DEFAULT_MODEL_ENTRY)), false);
+});
+
+test("a custom key named default_model is not the Default model, so setup is needed", () => {
+  const custom = { ...DEFAULT_MODEL_ENTRY, details: { kind: "custom", destination: { origin: "https://a.b" } } };
+  const fromBeforeKinds = { id: "0b", name: "default_model", destination: { origin: "https://a.b" }, ciphertext: "x" };
+
+  assert.equal(needsSetup(null, keyringOf(custom)), true);
+  assert.equal(needsSetup(null, keyringOf(fromBeforeKinds)), true);
+});
+
+test("a keyring that cannot be read as one needs setup", () => {
+  assert.equal(needsSetup(null, "{nope"), true);
+  assert.equal(needsSetup(null, "[]"), true);
+  assert.equal(needsSetup(null, JSON.stringify({ secrets: "none" })), true);
+});
+
+test("the keyring is the app's committed secrets.path, in the home folder", () => {
+  const configJson = readFileSync(path.resolve(__dirname, "..", "config.json"), "utf8");
+
+  assert.equal(
+    committedKeyringPath(configJson, HOME),
+    "/Users/friend/Library/Application Support/Cell Harness/secrets.json",
+  );
+});
+
+test("a keyring path with no leading ~ is kept as written, and committed settings with none are refused", () => {
+  assert.equal(committedKeyringPath('{"secrets": {"path": "/srv/keys.json"}}', HOME), "/srv/keys.json");
+  assert.throws(() => committedKeyringPath('{"llm": {}}', HOME), /secrets\.path/);
 });
 
 test("a settings file that is not JSON is refused, naming the file", () => {

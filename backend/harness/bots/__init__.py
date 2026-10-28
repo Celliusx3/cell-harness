@@ -14,6 +14,7 @@ from harness.bots.models import (
     GroupEmpty,
 )
 from harness.bots.service import BotService
+from harness.bots.ties import served_bots
 
 __all__ = [
     "ASSISTANT_ID",
@@ -28,4 +29,5 @@ __all__ = [
     "Group",
     "GroupDraft",
     "GroupEmpty",
+    "served_bots",
 ]

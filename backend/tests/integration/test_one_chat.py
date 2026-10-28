@@ -1,4 +1,4 @@
-"""Telegram and Discord write into Assistant's one chat, the same one the browser shows."""
+"""A Telegram chat linked to Assistant writes into its one chat, the same one the browser shows."""
 
 from __future__ import annotations
 
@@ -20,10 +20,10 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import create_app
-from tests.unit.fakes import SteppedClient, completed
-from tests.unit.helpers import client_tools, no_approvals, no_skills
+from tests.unit.fakes import OneModel, SteppedClient, completed
+from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import secrets_in, web_gateway, web_mcp
+from tests.webapp import channels_of, secrets_in, web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -54,15 +54,14 @@ def build_on(tmp_path, model: LLMClient):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
     )
     bots = BotService(tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT")
-    runtime = Runtime(model="m", client=model, images=None, checkpoint=sessions.flush)
+    runtime = Runtime(models=OneModel(model), images=None, checkpoint=sessions.flush)
     runs = RunService(sessions, runtime, bots)
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
     app = create_app(
         runs,
-        gateway,
-        web,
+        channels_of(gateway, web, secrets_in(tmp_path)),
         web_mcp(),
         no_skills(),
         client_tools(),
@@ -89,8 +88,13 @@ def _prompts(chat: dict) -> list[str]:
     return [e["message"]["content"] for e in chat["events"] if e["type"] == "user/message"]
 
 
+async def _linked(tmp_path) -> None:
+    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
+
+
 async def test_a_telegram_message_lands_in_assistants_chat(tmp_path) -> None:
     bot, http, gateway, runs = build(tmp_path, "the answer")
+    await _linked(tmp_path)
     async with http:
         await gateway.receive(
             InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone")
@@ -104,6 +108,7 @@ async def test_a_telegram_message_lands_in_assistants_chat(tmp_path) -> None:
 
 async def test_a_browser_turn_is_not_sent_to_telegram(tmp_path) -> None:
     bot, http, gateway, runs = build(tmp_path, "one", "from the web", "three")
+    await _linked(tmp_path)
     async with http:
         await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="first"))
         await settle(runs, gateway)
@@ -147,6 +152,7 @@ async def test_a_telegram_chat_from_before_lands_in_assistants_chat_too(tmp_path
 async def test_a_telegram_message_sent_during_a_browser_turn_is_answered_after_it(tmp_path) -> None:
     release = asyncio.Event()
     bot, http, gateway, runs = build_on(tmp_path, HeldClient(release, "from the web", "to you"))
+    await _linked(tmp_path)
     async with http:
         sent = await http.post(
             f"/api/conversations/{ASSISTANT_ID}/messages", json={"prompt": "in the browser"}

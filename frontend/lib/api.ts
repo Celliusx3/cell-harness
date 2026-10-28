@@ -34,7 +34,7 @@ function headersFor(body: BodyInit | null | undefined) {
   return typeof body === "string" ? { "content-type": "application/json" } : undefined;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
     headers: headersFor(init?.body),
@@ -48,7 +48,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /** The backend's message, or a fallback. */
-async function detailOf(response: Response): Promise<string> {
+export async function detailOf(response: Response): Promise<string> {
   try {
     const body = await response.json();
     if (typeof body?.detail === "string") return body.detail;
@@ -162,10 +162,6 @@ export const createGroup = (draft: GroupDraft) =>
 
 /** Every saved key, by name, with the bots allowed to use it. */
 export const listSecrets = () => request<SecretSummary[]>("/secrets");
-
-/** Remove a key from the keyring and from every bot's list. */
-export const deleteSecret = (name: string) =>
-  request<void>(`/secrets/${encodeURIComponent(name)}`, { method: "DELETE" });
 
 export const listSkills = () => request<SkillList>("/skills");
 

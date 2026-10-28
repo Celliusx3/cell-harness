@@ -35,7 +35,7 @@ from harness.web.runtime import (
     SUBAGENT_TOOLS,
     build_runtime,
 )
-from tests.unit.fakes import SteppedClient, calls_tool, completed
+from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed
 from tests.unit.helpers import (
     ORIGIN,
     client_tools,
@@ -65,8 +65,7 @@ async def chunks_of(body: bytes) -> AsyncIterator[bytes]:
 async def session_after(tool: Tool, files: ChatFileService, arguments: str) -> Session:
     """Chat `s` after the model calls `tool` once with `arguments` and then answers."""
     runtime = Runtime(
-        model="m",
-        client=SteppedClient(calls_tool(tool.name, arguments), completed("done")),
+        models=OneModel(SteppedClient(calls_tool(tool.name, arguments), completed("done"))),
         images=None,
         tools=toolset_for(tool),
         files=files,
@@ -82,7 +81,7 @@ def the_result(session: Session) -> ToolResultEvent:
 
 
 def what_the_model_reads(session: Session) -> str:
-    runtime = Runtime(model="m", client=SteppedClient(), images=None)
+    runtime = Runtime(models=OneModel(SteppedClient()), images=None)
     (message,) = [m for m in runtime.request_messages(session) if isinstance(m, ToolMessage)]
     return text_of(message.content)
 
@@ -209,7 +208,9 @@ def test_it_never_asks_for_approval() -> None:
 
 async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(llm={"model": "m", "api_key": "k"}),
+        Settings(
+            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
+        ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}),
         no_skills(),

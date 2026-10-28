@@ -26,6 +26,7 @@ from harness.runtime.events import (
     TurnEvent,
 )
 from harness.runtime.hooks import GiveUp, Tell
+from harness.runtime.models import ModelChoice
 from harness.runtime.tool_run import run_tool_calls
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
 from harness.session.log import Session
@@ -67,11 +68,13 @@ async def run_turn(
 
     try:
         for step in itertools.count():
+            at = TurnStep(turn=turn, step=step)
             session.append(StepStart(turn=turn, step=step))
             await _shrink_history_when_due(runtime, session, turn=turn)
+            choice = await runtime.models.model_for(bot_id)
 
             reply: Completed | Failed | RetryStep | None = None
-            async with aclosing(_stream_reply(runtime, session, turn=turn, step=step)) as chunks:
+            async with aclosing(_stream_reply(runtime, session, choice, at=at)) as chunks:
                 async for event in chunks:
                     if isinstance(event, (TextChunk, ToolCallChunk)):
                         yield event
@@ -80,9 +83,7 @@ async def run_turn(
             assert reply is not None
 
             if isinstance(reply, (RetryStep, Failed)) or not reply.tool_calls:
-                ended = await _outcome_without_tools(
-                    runtime, session, reply, at=TurnStep(turn=turn, step=step)
-                )
+                ended = await _outcome_without_tools(runtime, session, reply, at=at)
                 if ended is None:
                     continue
                 outcome = ended
@@ -141,7 +142,7 @@ async def _outcome_without_tools(
 
 
 async def _stream_reply(
-    runtime: Runtime, session: Session, *, turn: int, step: int
+    runtime: Runtime, session: Session, choice: ModelChoice, *, at: TurnStep
 ) -> AsyncIterator[TextChunk | ToolCallChunk | Completed | Failed | RetryStep]:
     """One model request: its chunks as they stream, then `Completed`, `Failed` or `RetryStep`."""
     specs = runtime.tools.specs(session.tools_selected()) if runtime.tools else None
@@ -154,10 +155,10 @@ async def _stream_reply(
     partial = ""
     try:
         async with aclosing(
-            runtime.client.stream_completion(messages, runtime.model, tools=specs)
+            choice.client.stream_completion(messages, choice.model, tools=specs)
         ) as stream:
             async for event in stream:
-                session.append(AssistantChunk(turn=turn, step=step, chunk=event))
+                session.append(AssistantChunk(turn=at.turn, step=at.step, chunk=event))
                 if isinstance(event, TextChunk):
                     partial += event.text
                     yield event
@@ -170,13 +171,13 @@ async def _stream_reply(
 
         if failed is not None or completed is None:
             failure = failed if failed is not None else Failed(reason=NO_TERMINAL)
-            yield await _failure_or_retry(runtime, session, failure, turn=turn)
+            yield await _failure_or_retry(runtime, session, failure, turn=at.turn)
             return
 
         session.append(
             AssistantMessageEvent(
-                turn=turn,
-                step=step,
+                turn=at.turn,
+                step=at.step,
                 message=AssistantMessage(
                     content=completed.full_text, tool_calls=completed.tool_calls
                 ),
@@ -185,7 +186,7 @@ async def _stream_reply(
         )
         yield completed
     except BaseException:
-        _log_interrupted_reply(session, partial, turn=turn, step=step)
+        _log_interrupted_reply(session, partial, turn=at.turn, step=at.step)
         raise
 
 

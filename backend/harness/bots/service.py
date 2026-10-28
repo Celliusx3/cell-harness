@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from harness.bots import _turn_order
+from harness.bots import _turn_order, ties
 from harness.bots.models import (
     ASSISTANT_ID,
     ASSISTANT_NAME,
@@ -22,6 +22,7 @@ from harness.bots.models import (
     GroupDraft,
     GroupEmpty,
 )
+from harness.bots.ties import TiedKind
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, GroupMembersEvent
@@ -163,15 +164,15 @@ class BotService:
             stored, bot.model_copy(update={"secret_names": _without_repeats(secret_names)})
         )
 
-    def forget_secret(self, secret_name: str) -> None:
-        """Take the key `secret_name` off the list of every stored bot, archived ones too."""
+    def tie_credential(self, name: str, kind: TiedKind, bot_ids: tuple[str, ...]) -> None:
+        """Make the credential `name` serve exactly the active bots `bot_ids`, and save them."""
         stored = self._read_file()
-        kept = tuple(
-            bot.model_copy(
-                update={"secret_names": tuple(n for n in bot.secret_names if n != secret_name)}
-            )
-            for bot in stored.bots
-        )
+        self._save_bots(stored, ties.retied_bots(self._active_bots_in(stored), name, kind, bot_ids))
+
+    def forget_secret(self, secret_name: str) -> None:
+        """Take `secret_name` off every stored bot, archived ones too, as a key and as a model."""
+        stored = self._read_file()
+        kept = tuple(ties.untied_bot(bot, secret_name) for bot in stored.bots)
         if kept != stored.bots:
             self._write_file(stored.model_copy(update={"bots": kept}))
 
@@ -217,10 +218,15 @@ class BotService:
             raise BotNotFound(bot_id)
 
     def _save_bot(self, stored: BotsFile, bot: Bot) -> Bot:
-        replaced = tuple(bot if saved.id == bot.id else saved for saved in stored.bots)
-        bots = replaced if bot.id in {saved.id for saved in stored.bots} else (bot, *stored.bots)
-        self._write_file(stored.model_copy(update={"bots": bots}))
+        self._save_bots(stored, (bot,))
         return bot
+
+    def _save_bots(self, stored: BotsFile, bots: tuple[Bot, ...]) -> None:
+        by_id = {bot.id: bot for bot in bots}
+        stored_ids = {saved.id for saved in stored.bots}
+        added = tuple(bot for bot in bots if bot.id not in stored_ids)
+        replaced = tuple(by_id.get(saved.id, saved) for saved in stored.bots)
+        self._write_file(stored.model_copy(update={"bots": (*added, *replaced)}))
 
     def _set_archived(self, stored: BotsFile, bot_id: str, *, archived: bool) -> None:
         if bot_id not in {bot.id for bot in stored.bots}:

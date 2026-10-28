@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 
 from fastapi import FastAPI
 
 from harness.bots import BotService
 from harness.channels.client import ChatAnswers
-from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
+from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.telegram.channel import TelegramChannel
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
@@ -25,19 +26,29 @@ from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import DiskSecretRepository, SecretService
+from harness.secrets import (
+    DEFAULT_MODEL_CREDENTIAL,
+    DiskSecretRepository,
+    SecretNotFound,
+    SecretService,
+)
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
+from harness.web.bot_models import llm_settings_for
 from harness.web.errors import exception_handlers
+from harness.web.file_keys import move_file_keys, require_default_model
 from harness.web.logs import configure_logging
+from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
 from harness.web.routes.compact import build_router as build_compact_router
+from harness.web.routes.credentials import build_router as build_credentials_router
 from harness.web.routes.groups import build_router as build_groups_router
+from harness.web.routes.link_codes import build_router as build_link_codes_router
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.relay import build_router as build_relay_router
 from harness.web.routes.secret_card import build_router as build_secret_card_router
@@ -63,40 +74,69 @@ def build_mcp(settings: Settings) -> McpService:
     return McpService(settings.mcp.servers)
 
 
-def build_channels(
-    settings: Settings,
-    sessions: SessionService,
-    runs: RunService,
-    skills: SkillService,
-    client_tools: ClientToolService,
-    bots: BotService,
-    files: ChatFileService,
-    images: ImageService,
-) -> tuple[ChannelGateway, WebChannel]:
-    """The gateway with a channel registered per configured platform, and the web channel."""
-    chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
-    gateway = ChannelGateway(chats, runs, sessions, skills, public_url=settings.web.public_url)
-    chat_answers = ChatAnswers(chats, sessions, gateway, client_tools)
+def build_keyring(settings: Settings) -> SecretService:
+    """The keyring, once the settings file's keys are moved in; refused with no Default model."""
+    keyring = SecretService(
+        DiskSecretRepository(settings.secrets.path),
+        encryption_key=settings.secrets.encryption_key,
+    )
+    move_file_keys(settings.local_settings_path, settings.llm, keyring)
+    require_default_model(keyring, settings.local_settings_path)
+    return keyring
 
-    web = WebChannel(gateway, bots, files, images)
+
+@dataclass(frozen=True)
+class ChannelServices:
+    """What every channel's chats reach."""
+
+    sessions: SessionService
+    runs: RunService
+    skills: SkillService
+    client_tools: ClientToolService
+    bots: BotService
+    files: ChatFileService
+    images: ImageService
+
+
+@dataclass(frozen=True)
+class Channels:
+    """The gateway, the browser's channel on it, the chat platforms, and the codes linking them."""
+
+    gateway: ChannelGateway
+    web: WebChannel
+    platforms: PlatformChannels
+    link_codes: LinkCodes
+
+
+def build_channels(
+    settings: Settings, services: ChannelServices, keyring: SecretService
+) -> Channels:
+    """The gateway with the web on it, and the platforms the keyring's tokens will start there."""
+    chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
+    gateway = ChannelGateway(
+        chats, services.runs, services.sessions, services.skills, public_url=settings.web.public_url
+    )
+    chat_answers = ChatAnswers(chats, services.sessions, gateway, services.client_tools)
+    link_codes = LinkCodes(time.monotonic)
+    links = ChatLinks(chats, link_codes, services.bots)
+
+    web = WebChannel(gateway, services.bots, services.files, services.images)
     gateway.register(web)
 
-    if settings.telegram.bot_token.strip():
-        gateway.register(TelegramChannel(settings.telegram.bot_token, gateway, chat_answers))
-
-    if settings.discord.bot_token.strip():
-        gateway.register(DiscordChannel(settings.discord.bot_token, gateway))
-
-    return gateway, web
+    make_channel = functools.partial(platform_channel, PlatformChats(gateway, chat_answers, links))
+    return Channels(gateway, web, PlatformChannels(gateway, keyring, make_channel), link_codes)
 
 
-def _resolve_context_tokens(settings: Settings) -> int | None:
-    """The compaction window: the configured cap, the endpoint's report, or `None`."""
+def _resolve_context_tokens(settings: Settings, keyring: SecretService) -> int | None:
+    """The compaction window: the configured cap, the Default model endpoint's report, or `None`."""
     configured = settings.compaction.context_tokens
     if configured is not None:
         logger.info("compaction: context window %d tokens (from config)", configured)
         return configured
-    discovered = context_window_tokens(settings.llm)
+    default = keyring.model_credential_named(DEFAULT_MODEL_CREDENTIAL)
+    if default is None:
+        raise SecretNotFound(DEFAULT_MODEL_CREDENTIAL)
+    discovered = context_window_tokens(llm_settings_for(default, settings.llm))
     if discovered is not None:
         logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
     else:
@@ -111,6 +151,7 @@ def create_web_app() -> FastAPI:
     """The application uvicorn starts."""
     configure_logging()
     settings = load()
+    secrets = build_keyring(settings)
     service = build_store(settings)
     disk = DiskChatFileRepository(settings.files.root)
     disk.create_root()
@@ -122,12 +163,8 @@ def create_web_app() -> FastAPI:
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
-    context_tokens = _resolve_context_tokens(settings)
+    context_tokens = _resolve_context_tokens(settings, secrets)
     bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
-    secrets = SecretService(
-        DiskSecretRepository(settings.secrets.path),
-        encryption_key=settings.secrets.encryption_key,
-    )
     runtime = build_runtime(
         settings,
         service,
@@ -145,18 +182,15 @@ def create_web_app() -> FastAPI:
     runs = RunService(service, runtime, bots)
     assert runtime.tools is not None
     messages = attach_bot_messages(runtime.tools.tool_service, service, bots, runs)
-    gateway, web = build_channels(
-        settings, service, runs, skills, client_tools, bots, files, images
+    channels = build_channels(
+        settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
-    return create_app(
-        runs, gateway, web, mcp, skills, client_tools, approvals, bots, secrets, messages
-    )
+    return create_app(runs, channels, mcp, skills, client_tools, approvals, bots, secrets, messages)
 
 
 def create_app(
     runs: RunService,
-    gateway: ChannelGateway,
-    web: WebChannel,
+    channels: Channels,
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
@@ -167,9 +201,12 @@ def create_app(
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
+    gateway, web = channels.gateway, channels.web
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await mcp.start()
+        await channels.platforms.start_saved()
         await gateway.start()
         yield
         await gateway.aclose()
@@ -186,8 +223,10 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
+    app.include_router(build_credentials_router(secrets, bots, channels.platforms))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))
     app.include_router(build_groups_router(bots))
+    app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

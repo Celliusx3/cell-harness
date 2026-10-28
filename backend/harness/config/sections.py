@@ -79,18 +79,6 @@ class FileSettings(BaseModel):
         return value.expanduser()
 
 
-class TelegramSettings(BaseModel):
-    """The bot to answer as, if any."""
-
-    bot_token: str = ""
-
-
-class DiscordSettings(BaseModel):
-    """The Discord bot to answer as, if any. Off when empty, as Telegram's is."""
-
-    bot_token: str = ""
-
-
 class WebSettings(BaseModel):
     """Where the browser UI is reached from *outside* this machine."""
 

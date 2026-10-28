@@ -1,4 +1,4 @@
-"""The Keys page lists the keyring startup is given, and refuses a key or a bot nobody made."""
+"""The bot page lists the keyring startup is given, and refuses a bot nobody made."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from harness.secrets import Destination
 from harness.web import server
 from tests.unit.fakes import SteppedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
-from tests.webapp import bots_in, secrets_in, startup_settings, web_app
+from tests.webapp import bots_in, secrets_in, secrets_with_default_model, startup_settings, web_app
 
 GITHUB = Destination(origin="https://api.github.com", auth="bearer")
 
@@ -26,16 +26,6 @@ def _client(tmp_path: Path) -> httpx.AsyncClient:
     runs = run_service(service, SteppedClient(completed("hi")), bots=bots)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
-
-
-async def test_removing_a_key_nobody_saved_is_a_404_naming_it(tmp_path: Path) -> None:
-    async with _client(tmp_path) as client:
-        response = await client.delete("/api/secrets/notion")
-        listed = (await client.get("/api/secrets")).json()
-
-    assert response.status_code == 404
-    assert "'notion'" in response.json()["detail"]
-    assert [key["name"] for key in listed] == ["github"]
 
 
 async def test_allowing_a_key_to_a_bot_nobody_made_is_a_404(tmp_path: Path) -> None:
@@ -58,7 +48,7 @@ async def test_a_body_with_more_than_names_is_refused(tmp_path: Path) -> None:
 async def test_startup_lists_the_keys_in_the_configured_keyring(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    secrets_in(tmp_path).save("github", GITHUB, SecretStr("tok-9Zx=7Lm"))
+    secrets_with_default_model(tmp_path).save("github", GITHUB, SecretStr("tok-9Zx=7Lm"))
     monkeypatch.setattr(server, "load", lambda: startup_settings(tmp_path))
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     transport = httpx.ASGITransport(app=server.create_web_app())

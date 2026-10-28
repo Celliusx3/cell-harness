@@ -4,9 +4,11 @@ import { messageOf } from "./errors";
 import { APP_URL } from "./origin";
 import { APP_NAME } from "./paths";
 import { TRAY_ICON_POINTS, trayIconPixels } from "./trayIcon";
+import { trayMenuItems } from "./trayMenu";
 
 export interface TrayInput {
   readonly showChatWindow: () => void;
+  readonly showCredentials: () => void;
   readonly settingsFile: string;
 }
 
@@ -17,13 +19,15 @@ export function addTray(input: TrayInput): Tray {
   const tray = new Tray(templateTrayImage());
   tray.setToolTip(APP_NAME);
   tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: `Open ${APP_NAME}`, click: input.showChatWindow },
-      { label: "Open in Browser", click: openAppInBrowser },
-      { label: "Show Settings File", click: () => shell.showItemInFolder(input.settingsFile) },
-      { type: "separator" },
-      { label: `Quit ${APP_NAME}`, click: () => app.quit() },
-    ]),
+    Menu.buildFromTemplate(
+      trayMenuItems({
+        showChatWindow: input.showChatWindow,
+        showCredentials: input.showCredentials,
+        openInBrowser: openAppInBrowser,
+        showSettingsFile: () => shell.showItemInFolder(input.settingsFile),
+        quit: () => app.quit(),
+      }),
+    ),
   );
   return tray;
 }

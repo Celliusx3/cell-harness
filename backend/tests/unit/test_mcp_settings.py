@@ -84,7 +84,12 @@ def config_file(tmp_path, monkeypatch):
     )
 
 
-def test_the_two_config_files_merge_per_server(config_file) -> None:
+def settings_in(tmp_path: Path) -> Settings:
+    """Settings as the throwaway files and the environment give them."""
+    return Settings(local_settings_path=tmp_path / "config.local.json")
+
+
+def test_the_two_config_files_merge_per_server(tmp_path, config_file) -> None:
     write_committed, write_local = config_file
     write_committed(
         {
@@ -98,7 +103,7 @@ def test_the_two_config_files_merge_per_server(config_file) -> None:
     )
     write_local({"mcp": {"servers": {"gh": {"env": {"TOKEN": "s3cret"}}}}})
 
-    loaded = Settings()
+    loaded = settings_in(tmp_path)
 
     assert loaded.mcp.servers["fs"].env == {}
     assert loaded.mcp.servers["gh"].command == "npx"
@@ -106,16 +111,19 @@ def test_the_two_config_files_merge_per_server(config_file) -> None:
     assert loaded.mcp.servers["gh"].env == {"TOKEN": "s3cret"}
 
 
-def test_a_bad_server_in_config_fails_the_load(config_file) -> None:
+def test_a_bad_server_in_config_fails_the_load(tmp_path, config_file) -> None:
     write_committed, _ = config_file
     write_committed({"mcp": {"servers": {"fs": {"command": ""}}}})
 
     with pytest.raises(ValidationError, match="command must not be blank"):
-        Settings()
+        settings_in(tmp_path)
 
 
-def test_servers_can_come_from_the_environment() -> None:
-    configured = Settings(mcp={"servers": {"fs": {"command": "npx"}}})
+def test_servers_can_come_from_the_environment(tmp_path) -> None:
+    configured = Settings(
+        local_settings_path=tmp_path / "config.local.json",
+        mcp={"servers": {"fs": {"command": "npx"}}},
+    )
     assert configured.mcp.servers["fs"].command == "npx"
 
 

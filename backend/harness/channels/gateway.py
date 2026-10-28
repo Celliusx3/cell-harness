@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 
 from harness.channels.chat_tasks import ChatTasks
@@ -9,6 +10,7 @@ from harness.channels.chats import state_of
 from harness.channels.following import Following
 from harness.channels.protocol import (
     Channel,
+    ChannelDisposer,
     DuplicateChannelError,
     InboundMessage,
     Pushing,
@@ -45,6 +47,7 @@ class ChannelGateway:
         self._sessions = sessions
         self._skills = skills
         self._channels: dict[str, RunningChannel] = {}
+        self._is_receiving = False
         self._tasks = ChatTasks()
         self._following = Following(
             repository,
@@ -56,13 +59,25 @@ class ChannelGateway:
             Replies(repository, public_url=public_url),
         )
 
-    def register(self, channel: Channel) -> None:
-        """Add one platform: how to reply on it, and its background task."""
+    def register(self, channel: Channel) -> ChannelDisposer:
+        """Add one platform, receiving now if the gateway has started; the disposer takes it off."""
         if channel.channel in self._channels:
             raise DuplicateChannelError(f"{channel.channel!r} is already registered")
-        self._channels[channel.channel] = RunningChannel(channel)
+        running = RunningChannel(channel)
+        self._channels[channel.channel] = running
         mode = "push" if isinstance(channel, Pushing) else "pull"
         logger.info("%s channel registered (%s)", channel.channel, mode)
+        if self._is_receiving:
+            running.start()
+        return functools.partial(self._remove, running)
+
+    async def _remove(self, running: RunningChannel) -> None:
+        """Take `running` off the gateway and stop it; nothing once it has gone."""
+        if self._channels.get(running.name) is not running:
+            return
+        del self._channels[running.name]
+        await running.aclose()
+        logger.info("%s channel removed", running.name)
 
     @property
     def channels(self) -> list[str]:
@@ -85,16 +100,18 @@ class ChannelGateway:
         return self._skills
 
     async def start(self) -> None:
-        """Begin receiving on every registered channel."""
+        """Begin receiving on every registered channel, and on each registered from now on."""
+        self._is_receiving = True
         for supervised in self._channels.values():
-            await supervised.start()
+            supervised.start()
 
     async def receive(self, message: InboundMessage) -> Run | None:
-        """One inbound message, from any platform."""
+        """One inbound message, from any platform; nothing at all for a chat linked to no bot."""
         self._require(message.channel)
-        content = self._skills.expand(message.text)
-
         state = await self._state(message.channel, message.chat_id)
+        if _ignored_as_unlinked(state):
+            return None
+        content = self._skills.expand(message.text)
         if self._runs.active(state.conversation_id) is not None:
             await self._following.queue(state, message.text, message.files)
             return None
@@ -104,9 +121,9 @@ class ChannelGateway:
     async def clear(self, channel: str, chat_id: str) -> None:
         """Clear this chat in place, as a run that stops its turn and wipes it under the same id."""
         state = await self._state(channel, chat_id)
-        await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
-        if not state.conversation_id:
+        if _ignored_as_unlinked(state):
             return
+        await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
         in_flight = self._runs.active(state.conversation_id)
         try:
             session = (
@@ -125,18 +142,24 @@ class ChannelGateway:
     async def stop(self, channel: str, chat_id: str) -> bool:
         """Cancel the turn in flight, discarding anything queued behind it."""
         state = await self._state(channel, chat_id)
-        await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
-        if not state.conversation_id:
+        if _ignored_as_unlinked(state):
             return False
+        await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
         return await self._runs.stop(state.conversation_id)
+
+    async def is_linked(self, channel: str, chat_id: str) -> bool:
+        """Whether this chat writes into a conversation."""
+        self._require(channel)
+        return not _ignored_as_unlinked(await self._state(channel, chat_id))
 
     async def drained(self, channel: str, chat_id: str) -> None:
         """Wait while this chat is between turns — see `Following.drained`."""
         await self._following.drained(channel, chat_id)
 
     async def aclose(self) -> None:
-        """Stop receiving, then stop delivering."""
-        for supervised in self._channels.values():
+        """Stop receiving on every channel left, then stop delivering."""
+        self._is_receiving = False
+        for supervised in tuple(self._channels.values()):
             await supervised.aclose()
         await self._tasks.aclose()
 
@@ -145,7 +168,8 @@ class ChannelGateway:
             raise UnknownChannelError(f"no channel registered for {channel!r}")
 
     async def _state(self, channel: str, chat_id: str) -> ChatState:
-        return await state_of(self._repository, self._channels[channel].channel, chat_id)
+        platform = self._channels[channel].channel
+        return await state_of(self._repository, platform, chat_id, self._runs.bots)
 
     def compact(self, session: Session, followers: tuple[ChatState, ...]) -> Run:
         """Begin a manual compaction, followed by `followers` and no other chat."""
@@ -159,7 +183,7 @@ class ChannelGateway:
         """`/compact` from a chat: the run, or `None` when nothing can be compacted now."""
         self._require(channel)
         state = await self._state(channel, chat_id)
-        if self._runs.active(state.conversation_id) is not None:
+        if _ignored_as_unlinked(state) or self._runs.active(state.conversation_id) is not None:
             return None
         try:
             session = await self._sessions.resume(state.conversation_id)
@@ -180,3 +204,11 @@ class ChannelGateway:
                 await self._repository.save(state.model_copy(update={"asked": answered}))
                 self._following.begin(state, run)
         return run
+
+
+def _ignored_as_unlinked(state: ChatState) -> bool:
+    """Whether `state` writes nowhere, and so is ignored with a line at debug."""
+    if state.conversation_id:
+        return False
+    logger.debug("%s chat %s is linked to no bot; ignored", state.channel, state.chat_id)
+    return True

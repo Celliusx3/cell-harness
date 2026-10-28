@@ -22,7 +22,7 @@ from harness.web.runtime import build_runtime
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, drain, no_approvals, no_bots, no_skills
-from tests.webapp import files_in, images_in, secrets_in
+from tests.webapp import files_in, images_in, secrets_with_default_model
 
 DOT = base64.b64decode(DOT_PNG)
 NOT_THIS_CHAT = "is not a file in this chat"
@@ -47,7 +47,10 @@ async def result_in_chat_s(
     monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: model)
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runtime = build_runtime(
-        Settings(llm={"model": "m", "api_key": "k", "vision": True}),
+        Settings(
+            local_settings_path=tmp_path / "config.local.json",
+            llm={"model": "m", "api_key": "k", "vision": True},
+        ),
         sessions,
         McpService({}),
         no_skills(),
@@ -55,7 +58,7 @@ async def result_in_chat_s(
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
-        secrets=secrets_in(tmp_path),
+        secrets=secrets_with_default_model(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )

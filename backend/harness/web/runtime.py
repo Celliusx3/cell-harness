@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import logging
 
 import httpx
 
 from harness.bots import BotService
+from harness.config.sections import LLMSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService
 from harness.images import ImageService
+from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient
 from harness.mcp.service import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
@@ -66,6 +69,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
+from harness.web.bot_models import CredentialModels
 
 logger = logging.getLogger("harness.web")
 
@@ -145,10 +149,10 @@ def build_runtime(
     logger.info("approval asks for: %s", sorted(approvals.protected_tools) or "nothing")
     _register_code_mode(tool_service, settings)
 
-    client = OpenAIClient(settings.llm, read_image=images.read)
     runtime = Runtime(
-        model=settings.llm.model,
-        client=client,
+        models=CredentialModels(
+            secrets, bots, settings.llm, functools.partial(_openai_client, images)
+        ),
         images=images if settings.llm.vision else None,
         tools=Toolset(tool_service, DEFAULT_TOOLS),
         guidance=GUIDANCE,
@@ -159,6 +163,10 @@ def build_runtime(
     )
     _register_run_subagent(tool_service, runtime, subagent_logs)
     return runtime
+
+
+def _openai_client(images: ImageService, settings: LLMSettings) -> LLMClient:
+    return OpenAIClient(settings, read_image=images.read)
 
 
 def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:

@@ -5,13 +5,17 @@ from __future__ import annotations
 import json
 
 import httpx
+from pydantic import SecretStr
 
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
 from harness.llm.adapters import context_window_tokens
 from harness.llm.adapters.openai import client as adapter_module
+from harness.secrets import DEFAULT_MODEL_CREDENTIAL
+from harness.secrets.models.details import ModelDetails
 from harness.web.server import _resolve_context_tokens
 from tests.unit.test_openai_adapter import settings
+from tests.webapp import secrets_in
 
 # ilmu serves the field on `/models`, not on `/models/{id}` (404).
 ILMU = {
@@ -78,8 +82,11 @@ def test_a_missing_model_a_bad_body_and_a_dead_endpoint_yield_none(monkeypatch) 
     assert context_window_tokens(settings()) is None
 
 
-async def test_the_window_is_found_from_inside_a_running_loop(monkeypatch) -> None:
+async def test_the_window_is_found_from_inside_a_running_loop(tmp_path, monkeypatch) -> None:
+    seen: list[httpx.Request] = []
+
     def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
         return httpx.Response(200, content=json.dumps(ILMU).encode())
 
     def client(**kwargs):
@@ -90,4 +97,10 @@ async def test_the_window_is_found_from_inside_a_running_loop(monkeypatch) -> No
         llm=settings(), compaction=CompactionSettings(context_tokens=None)
     )
 
-    assert _resolve_context_tokens(unset) == 1000000
+    keyring = secrets_in(tmp_path)
+    default = ModelDetails(base_url="https://default.example/v1", model="m")
+    keyring.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr("sk-default-window"))
+
+    assert _resolve_context_tokens(unset, keyring) == 1000000
+    assert seen[0].url == "https://default.example/v1/models"
+    assert seen[0].headers["authorization"] == "Bearer sk-default-window"

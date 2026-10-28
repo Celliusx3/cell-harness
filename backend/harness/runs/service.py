@@ -52,6 +52,11 @@ class RunService:
         self._bots = bots
         self._runs: dict[str, Run] = {}
 
+    @property
+    def bots(self) -> BotService:
+        """Who answers in each chat — for a chat app finding whether its linked bot still does."""
+        return self._bots
+
     def active(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)

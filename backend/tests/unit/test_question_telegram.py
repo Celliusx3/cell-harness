@@ -30,7 +30,7 @@ async def _log(sessions, chats):
 
 
 async def test_a_question_is_asked_with_one_button_per_option(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = _asking(tmp_path)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path)
 
     await gateway.receive(msg("find me a Pokémon ETB"))
     await settle(runs, gateway)
@@ -43,7 +43,7 @@ async def test_a_question_is_asked_with_one_button_per_option(tmp_path) -> None:
 
 
 async def test_a_tap_answers_with_its_label_and_edits_the_message(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = _asking(tmp_path)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path)
     channel = gateway._channels["telegram"].channel
     await gateway.receive(msg("find me a Pokémon ETB"))
     await settle(runs, gateway)
@@ -61,7 +61,7 @@ async def test_a_tap_answers_with_its_label_and_edits_the_message(tmp_path) -> N
 
 
 async def test_a_stale_tap_is_told_so(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = _asking(tmp_path)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path)
     channel = gateway._channels["telegram"].channel
     await gateway.receive(msg("find me a Pokémon ETB"))
     await settle(runs, gateway)
@@ -79,7 +79,7 @@ async def test_a_stale_tap_is_told_so(tmp_path) -> None:
 
 async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> None:
     long_id = "call_" + "x" * 60
-    bot, gateway, runs, chats, sessions = _asking(tmp_path, call_id=long_id)
+    bot, gateway, runs, chats, sessions = await _asking(tmp_path, call_id=long_id)
 
     await gateway.receive(msg("find me a Pokémon ETB"))
     await settle(runs, gateway)

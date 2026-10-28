@@ -25,7 +25,7 @@ from harness.tools.client import AcceptedAnswer, ClientToolCatalog, ClientToolSe
 from harness.tools.models.decision import DENIED
 from tests.unit.approval_fakes import WRITE, approvals_asking_for, note_writer, runtime_offering
 from tests.unit.code_fakes import FakeRunner, build, tool
-from tests.unit.fakes import SteppedClient, calls_tool, completed
+from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed
 from tests.unit.helpers import drain, new_session
 
 
@@ -134,7 +134,9 @@ async def test_a_tool_allowed_for_the_conversation_is_refused_once_it_is_not_off
     assert first.tools is not None
     later = dataclasses.replace(
         first,
-        client=SteppedClient(calls_tool(WRITE, '{"value": "Teh"}', id="c2"), completed("ok")),
+        models=OneModel(
+            SteppedClient(calls_tool(WRITE, '{"value": "Teh"}', id="c2"), completed("ok"))
+        ),
         tools=Toolset(first.tools.tool_service, default_tools=[]),
     )
 

@@ -117,11 +117,6 @@ async def test_a_bot_uses_a_saved_key_only_once_the_person_allows_it(tmp_path: P
         assert (await _result(client, chat, "call_allowed"))["error"] is None
         assert len(seen) == 2
 
-        removed = await client.delete("/api/secrets/github")
-        assert removed.status_code == 204, removed.text
-        assert (await client.get("/api/secrets")).json() == []
-        assert all("github" not in names for names in (await _bots_allowed(client)).values())
-
 
 async def test_a_bot_cannot_be_allowed_a_key_that_is_not_saved(tmp_path: Path) -> None:
     service = durable_service(tmp_path / "sessions")

@@ -20,7 +20,7 @@ from tests.unit.helpers import no_skills
 
 
 async def test_a_message_becomes_a_turn_and_a_reply(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(
+    bot, gateway, runs, _, _ = await build(
         tmp_path, ScriptedClient(completed("hello there")), skills=no_skills()
     )
 
@@ -31,7 +31,7 @@ async def test_a_message_becomes_a_turn_and_a_reply(tmp_path) -> None:
 
 
 async def test_first_contact_writes_into_assistants_chat_creating_it(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
 
@@ -44,7 +44,7 @@ async def test_first_contact_writes_into_assistants_chat_creating_it(tmp_path) -
 
 
 async def test_a_second_message_continues_the_same_conversation(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("ok")), skills=no_skills()
     )
 
@@ -61,7 +61,7 @@ async def test_a_second_message_continues_the_same_conversation(tmp_path) -> Non
 
 
 async def test_a_tool_step_sends_no_empty_message(tmp_path) -> None:
-    bot, gateway, runs, _, _ = build(
+    bot, gateway, runs, _, _ = await build(
         tmp_path,
         SteppedClient(calls_tool("echo", '{"value": "42"}'), completed("it is 42")),
         echo_tool(),
@@ -75,7 +75,7 @@ async def test_a_tool_step_sends_no_empty_message(tmp_path) -> None:
 
 
 async def test_a_message_during_a_turn_is_queued(tmp_path) -> None:
-    bot, gateway, runs, chats, _ = build(
+    bot, gateway, runs, chats, _ = await build(
         tmp_path,
         SteppedClient(calls_tool("hang", '{"value": "x"}')),
         hanging_tool(),
@@ -97,7 +97,7 @@ async def test_a_message_during_a_turn_is_queued(tmp_path) -> None:
 
 
 async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("answered")), skills=no_skills()
     )
     await gateway.receive(msg("opening", 1))
@@ -115,14 +115,14 @@ async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
 
 
 async def test_drained_returns_at_once_for_an_idle_chat(tmp_path) -> None:
-    _, gateway, _, _, _ = build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
+    _, gateway, _, _, _ = await build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
 
     await asyncio.wait_for(gateway.drained("telegram", CHAT), timeout=1)
 
 
 async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: asyncio.Event):
     """A turn parked in `gate`, with a queued message whose own turn parks in `gate2`."""
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path,
         SteppedClient(
             calls_tool("gate", '{"value": "x"}'),
@@ -200,7 +200,7 @@ async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -
 
 
 async def test_a_turn_is_delivered_from_its_own_first_event(tmp_path) -> None:
-    bot, gateway, runs, _, sessions = build(
+    bot, gateway, runs, _, sessions = await build(
         tmp_path, SteppedClient(completed("one"), completed("two")), skills=no_skills()
     )
 
@@ -216,14 +216,14 @@ async def test_a_turn_is_delivered_from_its_own_first_event(tmp_path) -> None:
 
 
 async def test_a_restart_does_not_resend(tmp_path) -> None:
-    bot, gateway, runs, chats, sessions = build(
+    bot, gateway, runs, chats, sessions = await build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
     await gateway.receive(msg("hello", 1))
     await settle(runs, gateway)
     delivered = len(bot.sent)
 
-    reopened_bot, reopened, reopened_runs, _, _ = build(
+    reopened_bot, reopened, reopened_runs, _, _ = await build(
         tmp_path, ScriptedClient(completed("second")), skills=no_skills()
     )
     await reopened.receive(msg("again", 2))

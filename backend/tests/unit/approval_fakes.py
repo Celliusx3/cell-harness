@@ -7,7 +7,7 @@ from pathlib import Path
 from harness.runtime.hooks import HookChain
 from harness.runtime.service import Runtime
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome, ToolService, Toolset
-from tests.unit.fakes import EchoArgs
+from tests.unit.fakes import EchoArgs, OneModel
 
 WRITE = "memory__write_note"
 
@@ -31,4 +31,4 @@ def runtime_offering(
 ) -> Runtime:
     tool_service = ToolService(tools, approvals=approvals)
     toolset = Toolset(tool_service, default_tools=[t.name for t in tools])
-    return Runtime(model="m", client=client, images=None, tools=toolset, hooks=hooks or HookChain())
+    return Runtime(models=OneModel(client), images=None, tools=toolset, hooks=hooks or HookChain())

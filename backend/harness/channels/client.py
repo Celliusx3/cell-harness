@@ -63,7 +63,7 @@ class ChatAnswers:
         answered: str,
         accept: Callable[[Session], AcceptedAnswer | RefusalReason],
     ) -> bool:
-        state = await state_of(self._repository, channel, chat_id)
+        state = await state_of(self._repository, channel, chat_id, self._gateway.runs.bots)
         if (
             not state.conversation_id
             or self._gateway.runs.active(state.conversation_id) is not None

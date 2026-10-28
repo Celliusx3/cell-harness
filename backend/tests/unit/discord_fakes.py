@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
+from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm import LLMClient
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import no_bots, no_skills
+from tests.unit.fakes import OneModel, ScriptedClient, completed
+from tests.unit.helpers import no_bots, no_links, no_skills
 
 BOT_ID = 900
 
@@ -67,9 +69,11 @@ class FakeClient:
         return self.cached.setdefault(int(chat_id), FakeMessageable())
 
 
-def discord_channel(gateway: ChannelGateway) -> tuple[DiscordChannel, FakeClient]:
+def discord_channel(
+    gateway: ChannelGateway, links: ChatLinks | None = None
+) -> tuple[DiscordChannel, FakeClient]:
     """A real `DiscordChannel` whose discord.py client is a fake."""
-    channel = DiscordChannel("fake-token", gateway)
+    channel = DiscordChannel("fake-token", gateway, links or no_links())
     client = FakeClient()
     channel._client = client
     return channel, client
@@ -121,15 +125,15 @@ def build(tmp_path, client: LLMClient | None = None):
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        model="m",
-        client=client or ScriptedClient(completed("ok")),
+        models=OneModel(client or ScriptedClient(completed("ok"))),
         images=None,
         checkpoint=sessions.flush,
     )
-    runs = RunService(sessions, runtime, no_bots(sessions))
+    bots = no_bots(sessions)
+    runs = RunService(sessions, runtime, bots)
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
-    channel, fake = discord_channel(gateway)
+    channel, fake = discord_channel(gateway, ChatLinks(chats, LinkCodes(time.monotonic), bots))
     gateway.register(channel)
     return channel, fake, gateway, runs, chats, sessions
 
