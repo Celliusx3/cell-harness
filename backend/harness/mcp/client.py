@@ -15,7 +15,7 @@ from harness.config.sections import McpServer
 
 
 class ClientLike(Protocol):
-    """What this package needs of an MCP session."""
+    """One live session to one configured server."""
 
     async def list_tools(self, *, cursor: str | None = None) -> ListToolsResult: ...
 
