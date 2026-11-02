@@ -34,16 +34,18 @@ class ReturnedFile(BaseModel):
 
 
 def outcome_of(
-    result: CallToolResult, *, name: str, server: str, resource_uri: str | None
+    result: CallToolResult, *, tool_name: str, server_id: str, resource_uri: str | None
 ) -> ToolOutcome:
     """What the model gets back."""
     rendered = render_content(result.content)
     if not rendered and result.structured_content is not None:
         rendered = json.dumps(result.structured_content)
     if result.is_error:
-        return Failure(EXECUTION_ERROR, rendered or f"{name} reported an error with no message")
+        return Failure(
+            EXECUTION_ERROR, rendered or f"{tool_name} reported an error with no message"
+        )
     ui = (
-        ToolUi(server=server, resource_uri=resource_uri, data=result.structured_content)
+        ToolUi(server=server_id, resource_uri=resource_uri, data=result.structured_content)
         if resource_uri is not None
         else None
     )
@@ -51,29 +53,29 @@ def outcome_of(
         content=rendered,
         data=result.structured_content,
         ui=ui,
-        paths_to_send=returned_paths(result, name=name),
-        images=returned_images(result.content, name=name),
+        paths_to_send=returned_paths(result, tool_name=tool_name),
+        images=returned_images(result.content, tool_name=tool_name),
     )
 
 
-def returned_paths(result: CallToolResult, *, name: str) -> tuple[str, ...]:
+def returned_paths(result: CallToolResult, *, tool_name: str) -> tuple[str, ...]:
     """The paths a result's `_meta` names under FILES_META; a malformed entry is dropped."""
     if result.meta is None or FILES_META not in result.meta:
         return ()
     entries = result.meta[FILES_META]
     if not isinstance(entries, list):
-        logger.warning("dropped the files %s returned: %s is not a list", name, FILES_META)
+        logger.warning("dropped the files %s returned: %s is not a list", tool_name, FILES_META)
         return ()
     paths: list[str] = []
     for entry in entries:
         try:
             paths.append(ReturnedFile.model_validate(entry).path)
         except ValidationError as err:
-            logger.warning("dropped a file %s returned: %s", name, err)
+            logger.warning("dropped a file %s returned: %s", tool_name, err)
     return tuple(paths)
 
 
-def returned_images(blocks: Sequence[ContentBlock], *, name: str) -> tuple[ReturnedImage, ...]:
+def returned_images(blocks: Sequence[ContentBlock], *, tool_name: str) -> tuple[ReturnedImage, ...]:
     """Each image block's bytes, decoded; one whose data is not base64 is dropped."""
     images: list[ReturnedImage] = []
     for block in blocks:
@@ -82,7 +84,9 @@ def returned_images(blocks: Sequence[ContentBlock], *, name: str) -> tuple[Retur
         try:
             data = base64.b64decode(block.data, validate=True)
         except binascii.Error as err:
-            logger.warning("dropped an image %s returned: its data is not base64: %s", name, err)
+            logger.warning(
+                "dropped an image %s returned: its data is not base64: %s", tool_name, err
+            )
             continue
         images.append(ReturnedImage(media_type=block.mime_type, data=data))
     return tuple(images)

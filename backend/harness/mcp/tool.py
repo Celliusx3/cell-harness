@@ -35,33 +35,33 @@ _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 CallTool = Callable[[str, dict], Awaitable[CallToolResult]]
 
 
-def namespaced(server: str, tool: str) -> str:
+def namespaced(server_id: str, server_tool_name: str) -> str:
     """`yt` + `get_subtitles` -> `yt__get_subtitles`."""
-    return f"{server}{NAMESPACE_SEPARATOR}{tool.replace('-', '_')}"
+    return f"{server_id}{NAMESPACE_SEPARATOR}{server_tool_name.replace('-', '_')}"
 
 
-def build_tools(server: str, tools: Iterable[McpTool], call: CallTool) -> list[Tool[dict]]:
+def build_tools(server_id: str, published: Iterable[McpTool], call: CallTool) -> list[Tool[dict]]:
     """Every tool this server offers that the model can actually be told about."""
     built: list[Tool[dict]] = []
     seen: set[str] = set()
-    for tool in tools:
-        name = namespaced(server, tool.name)
-        if not _TS_IDENTIFIER.match(name):
+    for tool in published:
+        tool_name = namespaced(server_id, tool.name)
+        if not _TS_IDENTIFIER.match(tool_name):
             logger.warning(
                 "dropping MCP tool %r from %r: %r is not a usable tool name — it must be a "
                 "valid identifier, because code mode declares it as a TypeScript function",
                 tool.name,
-                server,
-                name,
+                server_id,
+                tool_name,
             )
             continue
-        if name in seen:
+        if tool_name in seen:
             logger.warning(
-                "dropping MCP tool %r from %r: %r is already taken", tool.name, server, name
+                "dropping MCP tool %r from %r: %r is already taken", tool.name, server_id, tool_name
             )
             continue
-        seen.add(name)
-        built.append(mcp_tool(server=server, tool=tool, call=call))
+        seen.add(tool_name)
+        built.append(as_tool(server_id=server_id, published=tool, call=call))
     return built
 
 
@@ -85,24 +85,28 @@ def ui_resource_uri(tool: McpTool) -> str | None:
     return uri if isinstance(uri, str) and uri.startswith("ui://") else None
 
 
-def mcp_tool(*, server: str, tool: McpTool, call: CallTool) -> Tool[dict]:
+def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict]:
     """One MCP tool, wired to the connection that owns it."""
-    name = namespaced(server, tool.name)
-    resource_uri = ui_resource_uri(tool)
+    tool_name = namespaced(server_id, published.name)
+    resource_uri = ui_resource_uri(published)
 
     async def execute(arguments: dict, _context: ToolContext) -> ToolOutcome:
         try:
-            result = await call(tool.name, arguments)
+            result = await call(published.name, arguments)
         except McpNotConnectedError:
-            return Failure(UNKNOWN_TOOL, f"{name} is no longer available: {server} is disconnected")
+            return Failure(
+                UNKNOWN_TOOL, f"{tool_name} is no longer available: {server_id} is disconnected"
+            )
         except McpTimeoutError as err:
             return Failure(EXECUTION_ERROR, str(err))
-        return outcome_of(result, name=name, server=server, resource_uri=resource_uri)
+        return outcome_of(
+            result, tool_name=tool_name, server_id=server_id, resource_uri=resource_uri
+        )
 
     return Tool(
-        name=name,
-        description=tool.description or "",
-        input_schema=tool.input_schema or dict(_EMPTY_SCHEMA),
+        name=tool_name,
+        description=published.description or "",
+        input_schema=published.input_schema or dict(_EMPTY_SCHEMA),
         parse=lambda raw: raw,
         execute=execute,
     )

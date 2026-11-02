@@ -75,12 +75,12 @@ class FakeClient:
         nxt = index + size
         return ListToolsResult(tools=chunk, nextCursor=str(nxt) if nxt < len(self.tools) else None)
 
-    async def call_tool(self, name: str, arguments: dict) -> CallToolResult:
-        self.calls.append((name, arguments))
-        outcome = self.behaviour.get(name, f"{name} ok")
+    async def call_tool(self, server_tool_name: str, arguments: dict) -> CallToolResult:
+        self.calls.append((server_tool_name, arguments))
+        outcome = self.behaviour.get(server_tool_name, f"{server_tool_name} ok")
         if isinstance(outcome, float):
             await asyncio.sleep(outcome)
-            return text_result(f"{name} finally")
+            return text_result(f"{server_tool_name} finally")
         if isinstance(outcome, BaseException):
             raise outcome
         if isinstance(outcome, CallToolResult):
