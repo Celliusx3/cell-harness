@@ -2,7 +2,7 @@
 
 ## Status
 
-open
+done
 
 ## What to build
 

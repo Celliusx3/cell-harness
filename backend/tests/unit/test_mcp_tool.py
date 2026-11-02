@@ -9,7 +9,7 @@ from mcp.types import AudioContent, CallToolResult, ImageContent, TextContent
 
 from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
 from harness.mcp.result import render_content
-from harness.mcp.tool import build_tools, can_write, mcp_tool, ui_resource_uri
+from harness.mcp.tool import as_tool, build_tools, can_write, ui_resource_uri
 from harness.tools import EXECUTION_ERROR, UNKNOWN_TOOL, Failure, Ok, ToolUi
 from tests.unit.helpers import context_for
 from tests.unit.mcp_fakes import text_result, tool
@@ -218,7 +218,7 @@ def test_every_relayed_name_is_a_usable_typescript_identifier() -> None:
 
 
 def test_a_server_publishing_no_schema_still_gets_a_usable_one() -> None:
-    built = mcp_tool(server="srv", tool=tool("bare", schema={}), call=never_called)
+    built = as_tool(server_id="srv", published=tool("bare", schema={}), call=never_called)
     assert built.input_schema == {"type": "object", "properties": {}}
 
 

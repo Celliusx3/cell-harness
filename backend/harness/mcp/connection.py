@@ -44,13 +44,13 @@ class ServerStatus:
 
 @dataclass
 class _Call:
-    name: str
+    server_tool_name: str
     arguments: dict
     deadline: float
     reply: asyncio.Future[CallToolResult]
 
     def describe(self) -> str:
-        return repr(self.name)
+        return repr(self.server_tool_name)
 
 
 @dataclass
@@ -94,10 +94,10 @@ class Connection:
         self.task = asyncio.create_task(self._serve(), name=f"mcp:{self.id}")
         self.task.add_done_callback(self._report_exit)
 
-    async def call(self, tool: str, arguments: dict) -> CallToolResult:
+    async def call(self, server_tool_name: str, arguments: dict) -> CallToolResult:
         loop = asyncio.get_running_loop()
         command = _Call(
-            name=tool,
+            server_tool_name=server_tool_name,
             arguments=arguments,
             deadline=loop.time() + COMMAND_TIMEOUT_SECONDS,
             reply=loop.create_future(),
@@ -171,7 +171,7 @@ class Connection:
             async with asyncio.timeout_at(command.deadline):
                 result: CallToolResult | ReadResourceResult
                 if isinstance(command, _Call):
-                    result = await client.call_tool(command.name, command.arguments)
+                    result = await client.call_tool(command.server_tool_name, command.arguments)
                 else:
                     result = await client.read_resource(command.uri)
         except TimeoutError:

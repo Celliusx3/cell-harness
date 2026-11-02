@@ -9,7 +9,7 @@ from mcp.types import CallToolResult, TextContent
 
 from harness.files import ChatFile, ChatFileService, DiskChatFileRepository
 from harness.mcp.result import FILES_META, outcome_of
-from harness.mcp.tool import mcp_tool
+from harness.mcp.tool import as_tool
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import ToolResultEvent
@@ -29,7 +29,7 @@ def result_with(meta: dict[str, object] | None, *, is_error: bool = False) -> Ca
 
 
 def ok_of(result: CallToolResult) -> Ok:
-    outcome = outcome_of(result, name="srv__draw", server="srv", resource_uri=None)
+    outcome = outcome_of(result, tool_name="srv__draw", server_id="srv", resource_uri=None)
     assert isinstance(outcome, Ok)
     return outcome
 
@@ -48,7 +48,7 @@ async def logged_files(files: ChatFileService | None, meta: dict[str, object]) -
         model="m",
         client=SteppedClient(calls_tool("srv__draw"), completed("done")),
         images=None,
-        tools=toolset_for(mcp_tool(server="srv", tool=tool("draw"), call=call)),
+        tools=toolset_for(as_tool(server_id="srv", published=tool("draw"), call=call)),
         files=files,
     )
     session: Session = new_session("s")
@@ -127,6 +127,8 @@ async def test_a_runtime_with_no_chat_files_logs_no_file(tmp_path) -> None:
 def test_a_failed_call_hands_back_no_files() -> None:
     meta = {FILES_META: [{"path": "/a.png"}]}
 
-    outcome = outcome_of(result_with(meta, is_error=True), name="x", server="s", resource_uri=None)
+    outcome = outcome_of(
+        result_with(meta, is_error=True), tool_name="x", server_id="s", resource_uri=None
+    )
 
     assert outcome == Failure(EXECUTION_ERROR, "drew it")

@@ -36,19 +36,19 @@ class McpService:
         """Every tool on offer right now that may change something, as the model calls it."""
         offered = {tool.name for tool in self.tools()}
         return frozenset(
-            name
+            tool_name
             for connection in self._connections.values()
             for tool in connection.published
-            if can_write(tool) and (name := namespaced(connection.id, tool.name)) in offered
+            if can_write(tool) and (tool_name := namespaced(connection.id, tool.name)) in offered
         )
 
     def published(self, server_id: str) -> tuple[McpTool, ...]:
         """One server's tools as it published them. `KeyError` if not configured."""
         return self._connection(server_id).published
 
-    async def call(self, server_id: str, name: str, arguments: dict) -> CallToolResult:
+    async def call(self, server_id: str, server_tool_name: str, arguments: dict) -> CallToolResult:
         """One `tools/call` on one server, answered verbatim, proxied for an MCP App."""
-        return await self._connection(server_id).call(name, arguments)
+        return await self._connection(server_id).call(server_tool_name, arguments)
 
     async def read_resource(self, server_id: str, uri: str) -> ReadResourceResult:
         """One `resources/read` on one server — the browser fetching an app's HTML."""

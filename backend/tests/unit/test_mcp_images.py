@@ -11,7 +11,7 @@ from mcp.types import CallToolResult, ImageContent
 from harness.images import IMAGE_MAX_BYTES, ImageService
 from harness.llm import Image, Text, ToolMessage
 from harness.mcp.result import outcome_of
-from harness.mcp.tool import mcp_tool
+from harness.mcp.tool import as_tool
 from harness.prompts import IMAGE_TOO_LARGE
 from harness.runtime.service import Runtime
 from harness.tools import Ok, ReturnedImage
@@ -41,7 +41,7 @@ async def result_seen(images: ImageService | None, result: CallToolResult) -> To
         model="m",
         client=model,
         images=images,
-        tools=toolset_for(mcp_tool(server="srv", tool=tool("snap"), call=call)),
+        tools=toolset_for(as_tool(server_id="srv", published=tool("snap"), call=call)),
     )
     await drain(runtime.run("look", session=new_session(), bot_id="b"))
     (message,) = [m for m in model.seen_per_call[1] if isinstance(m, ToolMessage)]
@@ -84,7 +84,7 @@ async def test_an_image_of_a_type_no_model_is_sent_stays_in_words(tmp_path, capl
 
 
 def test_a_tool_s_image_is_carried_decoded_beside_its_words() -> None:
-    outcome = outcome_of(image_result(), name="srv__snap", server="srv", resource_uri=None)
+    outcome = outcome_of(image_result(), tool_name="srv__snap", server_id="srv", resource_uri=None)
 
     assert isinstance(outcome, Ok)
     assert outcome.text == IN_WORDS
@@ -94,7 +94,7 @@ def test_a_tool_s_image_is_carried_decoded_beside_its_words() -> None:
 def test_an_image_whose_data_is_not_base64_is_dropped_with_a_warning(caplog) -> None:
     with caplog.at_level(logging.WARNING, logger="harness.mcp"):
         outcome = outcome_of(
-            image_result("not base64!"), name="srv__snap", server="srv", resource_uri=None
+            image_result("not base64!"), tool_name="srv__snap", server_id="srv", resource_uri=None
         )
 
     assert isinstance(outcome, Ok)
