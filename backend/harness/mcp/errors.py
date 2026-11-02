@@ -15,7 +15,7 @@ class McpNotConnectedError(RuntimeError):
     """There is no live session to carry this command."""
 
 
-def describe(error: BaseException) -> str:
+def describe_error(error: BaseException) -> str:
     """A one-line cause an operator can act on."""
     while isinstance(error, BaseExceptionGroup) and len(error.exceptions) == 1:
         error = error.exceptions[0]
