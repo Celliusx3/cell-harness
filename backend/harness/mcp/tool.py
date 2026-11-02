@@ -65,7 +65,7 @@ def build_tools(server_id: str, published: Iterable[McpTool], call: CallTool) ->
     return built
 
 
-def app_visible(tool: McpTool) -> bool:
+def is_app_visible(tool: McpTool) -> bool:
     """Whether an app may call this tool — `_meta.ui.visibility` includes `app`."""
     ui = (tool.meta or {}).get("ui")
     visibility = ui.get("visibility") if isinstance(ui, dict) else None

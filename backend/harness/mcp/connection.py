@@ -17,7 +17,7 @@ from harness.mcp.errors import (
     McpConnectionError,
     McpNotConnectedError,
     McpTimeoutError,
-    describe,
+    describe_error,
 )
 from harness.mcp.tool import build_tools
 from harness.tools import Tool
@@ -159,7 +159,7 @@ class Connection:
             raise
         except BaseException as err:  # anyio raises BaseExceptionGroup, which Exception misses
             self.status = "failed"
-            self.error = describe(err)
+            self.error = describe_error(err)
             logger.warning("MCP server %s failed: %s", self.id, self.error)
         finally:
             self.tools = ()
@@ -186,7 +186,7 @@ class Connection:
             _fail(command.reply, McpNotConnectedError(f"{self.id} is shutting down"))
             raise
         except BaseException as err:  # anyio raises BaseExceptionGroup, which Exception misses
-            _fail(command.reply, McpConnectionError(describe(err)))
+            _fail(command.reply, McpConnectionError(describe_error(err)))
         else:
             _resolve(command.reply, result)
 
