@@ -470,7 +470,7 @@ The bot takes a screenshot, says what it sees, and clicks by coordinates.
   OpenAI adapter's mapping for it. Check the endpoint first: many
   OpenAI-compatible endpoints refuse an image inside a `tool` message, and then it
   rides a user message after the result.
-- `mcp/tool.py` — `ImageContent` becomes an `Image` block, not `[image …]` text
+- `mcp/result.py` — `ImageContent` becomes an `Image` block, not `[image …]` text
 - `session/` — the bytes in `blobs/<sha256>.png` beside the session, the event
   holding the hash: still logged, and the JSONL stays small. This answers the
   open question in mcp-apps.md §7.
