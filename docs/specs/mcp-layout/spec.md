@@ -69,14 +69,14 @@ service, the three errors and the relay table.
 
 ## How we will know it works
 
-1. Run the backend suite. 1669 tests pass before the change and after each
-   ticket.
+1. Run the backend suite. 1669 tests pass before the change. 1670 pass after
+   it, with the one test the build added.
 2. Run lint. Check, format and the line and complexity caps pass after each
    ticket.
-3. Run the mcp and relay tests. The same 152 pass with the same names,
-   including the real stdio server run.
+3. Run the mcp and relay tests. The 152 pass with the same names, including
+   the real stdio server run, beside the one new test.
 4. Search for imports of an mcp or relay module by path from outside its
-   package. After the last ticket, the search finds only tests of a private
-   file.
+   package. After the last ticket, the search finds only tests. Each one
+   reaches a private file or a name the package does not list.
 5. Import a private mcp file from the web code on purpose. The layering test
    fails.

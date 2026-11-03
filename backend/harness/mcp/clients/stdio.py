@@ -18,8 +18,7 @@ def open_stdio_client(server: McpServer) -> AbstractAsyncContextManager[McpClien
         StdioServerParameters(
             command=server.command,
             args=list(server.args),
-            # The MCP SDK merges a mapping onto its safe defaults; `{}` would strip `PATH`.
-            env=dict(server.env) or None,
+            env=dict(server.env),
         ),
         extensions=[advertise(EXTENSION_ID, {"mimeTypes": [APP_MIME_TYPE]})],
     )

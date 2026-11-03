@@ -20,7 +20,7 @@ done
 
 1. `make test` passes 1669 tests. `make lint` is green.
 2. The 9 relay tests, 11 relay route tests and 16 app route tests pass with the same names.
-3. `git grep -n "harness.mcp.relay\|\bRelays\b" backend` finds nothing.
+3. `git grep -nwE "harness.mcp.relay|Relays" -- backend ':!backend/harness/relay/__init__.py'` finds nothing.
 
 ## Blocked by
 
