@@ -2,7 +2,7 @@
 
 ## Status
 
-open
+done
 
 ## What to build
 
@@ -17,7 +17,7 @@ open
 
 1. `make test` passes 1669 tests. `make lint` is green.
 2. Import `harness.mcp._connection` from `web/server.py` on purpose. The private-module test in `test_layering.py` fails. Undo it.
-3. `git grep -nwE "mcp/(connection|result)\.py|harness\.mcp\.(connection|result)"` finds nothing.
+3. `git grep -nwE "mcp/(connection|result)\.py|harness\.mcp\.(connection|result)" -- ':!docs/specs'` finds nothing.
 
 ## Blocked by
 

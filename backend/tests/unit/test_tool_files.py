@@ -8,8 +8,8 @@ from collections.abc import AsyncIterator
 from mcp.types import CallToolResult, TextContent
 
 from harness.files import ChatFile, ChatFileService, DiskChatFileRepository
+from harness.mcp._result import outcome_of
 from harness.mcp.models.returned_file import FILES_META
-from harness.mcp.result import outcome_of
 from harness.mcp.tool import as_tool
 from harness.runtime.service import Runtime
 from harness.session.log import Session

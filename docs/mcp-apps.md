@@ -112,7 +112,7 @@ consent, and is not part of the conversation the model sees.
   draws and a reloaded conversation must draw the same thing.
 - **`resources/read` is one more command on the connection's loop.**
   `ResourceReadCommand` beside `ToolCallCommand`, same owner task, same timeout,
-  same error mapping — the anyio task-affinity constraint in `connection.py`
+  same error mapping — the anyio task-affinity constraint in `_connection.py`
   applies to every request kind.
 - **Two browser endpoints, `harness/web/routes/mcp.py`.**
   `GET /api/mcp/{server}/resources?uri=` returns the HTML and a CSP string the

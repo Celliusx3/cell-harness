@@ -136,7 +136,7 @@ Four properties the harness makes non-negotiable. Each is enforced by a test in
 4. **Never write to stdout.** stdout is the protocol. Log to stderr, which the
    harness attaches to its own.
 
-One call is capped at **60 seconds** (`mcp/connection.py`, a module constant), and one
+One call is capped at **60 seconds** (`mcp/_connection.py`, a module constant), and one
 connection serves **one call at a time** — so `Promise.all` over several calls to
 the same server serializes them. A server that can be slow should batch
 internally and return partial results rather than hoping.

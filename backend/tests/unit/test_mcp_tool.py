@@ -8,7 +8,7 @@ import pytest
 from mcp.types import AudioContent, CallToolResult, ImageContent, TextContent
 
 from harness.mcp import McpConnectionError, McpNotConnectedError, McpTimeoutError, ui_resource_uri
-from harness.mcp.result import render_content
+from harness.mcp._result import render_content
 from harness.mcp.tool import as_tool, build_tools, can_write
 from harness.tools import EXECUTION_ERROR, UNKNOWN_TOOL, Failure, Ok, ToolUi
 from tests.unit.helpers import context_for
