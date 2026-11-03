@@ -2,55 +2,81 @@
 
 ## Problem
 
-The mcp package took its shape before the house layout settled, and it kept the
-older one. One file promises tools but also holds the sorting of tools and the
-rendering of tool results. A reader who knows the session, secrets, files and
-images packages re-learns the conventions here. Two different names travel as
-one: the name a server knows a tool by, and the name the model calls the tool
-by. One function is named for what it takes, not for what the caller gets
-back. A yes-or-no helper does not say yes-or-no in its name. The flattening of
-an exception group into one log line has no test.
+The mcp package took its shape before the house layout settled. Its first
+cleanup gave each file one job and fixed the names, but the package still reads
+unlike tools, secrets and the model code. Its shapes hide inside the files that
+use them. The contract for a server session and the real stdio session share
+one file. The relay, a table of loopback pages for the browser, sits in a
+package about tool servers. Callers reach into six modules by path, because the
+package lists nothing that it offers.
 
 ## What changes for you
 
-Nothing you see changes. Routes, responses and events are what they were.
+Nothing a person sees changes. Routes, responses, events and logs are what they
+were.
 
-1. You chat, add a server and open an app exactly as before.
-2. You open the mcp package and find one file per job: the service, the
-   connection loop, the client boundary, the errors, the tools, and a new file
-   for what a tool result becomes for the model.
-3. Names say what they hold. A function that returns a tool is named for the
-   tool. A yes-or-no helper starts with is. The server-side tool name and the
-   model-facing tool name are two different names everywhere they travel.
-4. The exception-group flattening has a test that guards it.
+How the code reads after it, with one example. The web startup needs the
+service, the three errors and the relay table.
+
+1. Today it imports them from three modules by path. After, it imports the
+   service and the errors from the mcp package itself. It imports the relay
+   table from a new relay package.
+2. The relay package has three files. A service holds the open relays. A
+   models file holds the shapes. A third file points a tool result's relay
+   entry at a new relay.
+3. The mcp shapes live in a models folder, one file per subject. Its subjects
+   are the errors, a server's status, the queued commands, and a file a tool
+   hands back. This is how secrets keeps its shapes.
+4. The session contract is one file. The real stdio session lives under a
+   clients folder. This is how the model client and the keyring store are
+   split.
+5. The package's first file lists the names other packages may use. The
+   connection loop and the result renderer are used only inside, so their
+   files are marked private.
+6. The first part of this branch stays. The result renderer has its own file.
+   The names say which side of the tool boundary they name. The error
+   unwinding has a test.
 
 ## Decisions
 
-- The client boundary keeps its name. It holds a live session to a server
-  process, not storage, and the model boundary is named client the same way.
-  (to decide at approval)
-- No shared shapes file. The status shape stays beside the connection that
-  produces it. The relay and result shapes are their own subject's data. (to
+- The relay becomes its own package, beside mcp. Its table class becomes a
+  service, as bots, runs and mcp name theirs. (to decide at approval)
+- The real session goes under a clients folder, as secrets puts its disk store
+  under repositories. Files and images keep theirs flat, the other choice. (to
   decide at approval)
-- The relay module stays one file. The relay table and the meta rewrite are one
-  flow with no import line between them. (to decide at approval)
+- The service keeps the stdio session as its default. Passing it in from
+  startup would touch 13 test files that never start a server. (to decide at
+  approval)
+- The package lists only the names other packages import, as the model package
+  does. A file it does not list gets a leading underscore. (to decide at
+  approval)
+- The models files keep plain names, even the two that only the package uses.
+  The tools models folder does the same. (to decide at approval)
+- The error describer moves beside the connection, its one caller. Then the
+  models folder holds only shapes. (to decide at approval)
+- The result builder keeps its name, which ends in "of". A strict reading of
+  the naming rule would rename it, because it builds a new value. (to decide at
+  approval)
 
 ## Out of scope
 
-- The service keeps building its connections over the injected client factory.
-  A second factory with one implementation is a layer, not a cleanup.
-- The package keeps importing per module. Callers already import the module
-  they need, and package re-exports would be new surface with no reader.
+- The app routes and the relay routes keep their files and names.
 - Stale build output under the package stays untouched.
-- Test helper locals keep their names. Only imports and names the change
+- Test helper locals keep their names. Only imports and the names the change
   touches move.
+- No new test guards the list of names, as the model package has none. The
+  layering test already fails when another package imports a private file.
 
 ## How we will know it works
 
-1. Run the unit suite. 1325 tests pass before the change and after it.
-2. Run the integration suite. 186 tests pass before and after, including the
-   real stdio server run.
-3. Run lint. Check, format and the line and complexity caps pass before and
-   after.
-4. Run the new error test. It passes on the code as it stands, before any
-   rename.
+1. Run the backend suite. 1669 tests pass before the change and after each
+   ticket.
+2. Run lint. Check, format and the line and complexity caps pass after each
+   ticket.
+3. Run the mcp and relay tests. The same 152 pass with the same names,
+   including the real stdio server run.
+4. Search for imports of an mcp or relay module by path from outside its
+   package. After the last ticket, the search finds only tests of a private
+   file.
+5. Import a private mcp file from the web code on purpose. The layering test
+   fails.
