@@ -11,8 +11,7 @@ from mcp.server.apps import APP_MIME_TYPE
 from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
-from harness.mcp.service import McpService
-from harness.mcp.tool import is_app_visible, ui_resource_uri
+from harness.mcp import McpService, is_app_visible, ui_resource_uri
 from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")

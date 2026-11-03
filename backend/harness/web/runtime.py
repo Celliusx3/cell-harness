@@ -15,7 +15,7 @@ from harness.files import ChatFileService
 from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient
-from harness.mcp.service import McpService
+from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
