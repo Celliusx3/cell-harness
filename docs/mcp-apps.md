@@ -110,9 +110,10 @@ consent, and is not part of the conversation the model sees.
   is untouched; `derive.py` reads only `message`. `data` is the result's
   `structuredContent`, logged beside the reference because it is what the view
   draws and a reloaded conversation must draw the same thing.
-- **`resources/read` is one more command on the service's loop.** `_Read` beside
-  `_Call`, same owner task, same timeout, same error mapping — the anyio
-  task-affinity constraint in `service.py` applies to every request kind.
+- **`resources/read` is one more command on the connection's loop.**
+  `ResourceReadCommand` beside `ToolCallCommand`, same owner task, same timeout,
+  same error mapping — the anyio task-affinity constraint in `connection.py`
+  applies to every request kind.
 - **Two browser endpoints, `harness/web/routes/mcp.py`.**
   `GET /api/mcp/{server}/resources?uri=` returns the HTML and a CSP string the
   harness composed (spec defaults, widened only by the https origins the

@@ -9,7 +9,7 @@ from collections.abc import Awaitable, Callable, Iterable
 from mcp.types import CallToolResult
 from mcp.types import Tool as McpTool
 
-from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
+from harness.mcp.models.errors import McpNotConnectedError, McpTimeoutError
 from harness.mcp.result import outcome_of
 from harness.tools import (
     EXECUTION_ERROR,

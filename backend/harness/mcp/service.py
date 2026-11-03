@@ -10,8 +10,9 @@ from mcp.types import Tool as McpTool
 from harness.config.sections import McpServer
 from harness.mcp.client import McpClientFactory
 from harness.mcp.clients.stdio import open_stdio_client
-from harness.mcp.connection import Connection, ServerStatus
-from harness.mcp.errors import McpNotConnectedError
+from harness.mcp.connection import Connection
+from harness.mcp.models.errors import McpNotConnectedError
+from harness.mcp.models.status import ServerStatus
 from harness.mcp.tool import can_write, namespaced
 from harness.tools import Tool
 

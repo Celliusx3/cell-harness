@@ -9,8 +9,9 @@ import logging
 from collections.abc import Sequence
 
 from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import ValidationError
 
+from harness.mcp.models.returned_file import FILES_META, ReturnedFile
 from harness.tools import (
     EXECUTION_ERROR,
     Failure,
@@ -21,16 +22,6 @@ from harness.tools import (
 )
 
 logger = logging.getLogger("harness.mcp")
-
-FILES_META = "io.cell-harness/files"
-
-
-class ReturnedFile(BaseModel):
-    """One entry of a tool result's `_meta` under FILES_META: a file the tool hands back."""
-
-    model_config = ConfigDict(frozen=True)
-
-    path: str
 
 
 def outcome_of(
