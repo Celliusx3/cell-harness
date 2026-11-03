@@ -11,9 +11,9 @@ from mcp.server.apps import APP_MIME_TYPE
 from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
-from harness.mcp.relay import Relays, with_relay_url
 from harness.mcp.service import McpService
 from harness.mcp.tool import is_app_visible, ui_resource_uri
+from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")
 
@@ -97,7 +97,7 @@ def _server_list_route(router: APIRouter, mcp: McpService) -> None:
         return ServerList(servers=tuple(s.id for s in mcp.statuses()))
 
 
-def build_router(mcp: McpService, relays: Relays) -> APIRouter:
+def build_router(mcp: McpService, relays: RelayService) -> APIRouter:
     router = APIRouter(prefix="/api/mcp", tags=["mcp"])
     _server_list_route(router, mcp)
 

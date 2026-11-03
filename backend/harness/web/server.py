@@ -21,9 +21,9 @@ from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.llm.adapters import context_window_tokens
-from harness.mcp.relay import Relays
 from harness.mcp.service import McpService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
+from harness.relay import RelayService
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.secrets import (
@@ -214,7 +214,7 @@ def create_app(
         await runs.aclose()
         await mcp.aclose()
 
-    relays = Relays(now=time.monotonic)
+    relays = RelayService(now=time.monotonic)
     app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
     app.include_router(build_skills_router(skills))

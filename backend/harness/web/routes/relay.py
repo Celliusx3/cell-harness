@@ -13,7 +13,7 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, InvalidHandshake
 from websockets.typing import Subprotocol
 
-from harness.mcp.relay import RELAY_PREFIX, Relays
+from harness.relay import RELAY_PREFIX, RelayService
 
 logger = logging.getLogger("harness.relay")
 
@@ -68,7 +68,7 @@ async def pump(browser: WebSocket, remote: ClientConnection) -> None:
             await browser.close()
 
 
-def build_router(relays: Relays) -> APIRouter:
+def build_router(relays: RelayService) -> APIRouter:
     router = APIRouter(prefix=RELAY_PREFIX, tags=["relay"])
 
     @router.get("/{relay_id}/{path:path}")

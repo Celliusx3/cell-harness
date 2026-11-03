@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 from websockets.sync.server import Server, ServerConnection, serve
 
-from harness.mcp.relay import RELAY_TTL_SECONDS, Relays, Upstream
+from harness.relay import RELAY_TTL_SECONDS, RelayService, Upstream
 from harness.web.routes.relay import build_router
 
 GREETING = b"RFB 003.008\n"
@@ -85,12 +85,12 @@ def now() -> Now:
 
 
 @pytest.fixture
-def relays(now: Now) -> Relays:
-    return Relays(now=now)
+def relays(now: Now) -> RelayService:
+    return RelayService(now=now)
 
 
 @pytest.fixture
-def client(relays: Relays) -> Iterator[TestClient]:
+def client(relays: RelayService) -> Iterator[TestClient]:
     app = FastAPI()
     app.include_router(build_router(relays))
     with TestClient(app) as client:
@@ -98,7 +98,7 @@ def client(relays: Relays) -> Iterator[TestClient]:
 
 
 def test_a_page_is_fetched_from_its_origin_with_status_type_and_body(
-    client: TestClient, relays: Relays, page: Upstream
+    client: TestClient, relays: RelayService, page: Upstream
 ) -> None:
     relay_id = relays.open(page)
 
@@ -111,7 +111,9 @@ def test_a_page_is_fetched_from_its_origin_with_status_type_and_body(
     assert Page.asked == ["/core/rfb.js?v=1&x=a%20b"]
 
 
-def test_an_upstream_404_is_passed_on(client: TestClient, relays: Relays, page: Upstream) -> None:
+def test_an_upstream_404_is_passed_on(
+    client: TestClient, relays: RelayService, page: Upstream
+) -> None:
     response = client.get(f"/api/relay/{relays.open(page)}/nothing.html")
 
     assert response.status_code == 404
@@ -125,7 +127,7 @@ def test_an_unknown_relay_is_not_found(client: TestClient, page: Upstream) -> No
 
 
 def test_an_expired_relay_is_not_found(
-    client: TestClient, relays: Relays, now: Now, page: Upstream
+    client: TestClient, relays: RelayService, now: Now, page: Upstream
 ) -> None:
     relay_id = relays.open(page)
     now.seconds += RELAY_TTL_SECONDS
@@ -135,7 +137,7 @@ def test_an_expired_relay_is_not_found(
 
 
 def test_an_origin_that_does_not_answer_is_a_bad_gateway(
-    client: TestClient, relays: Relays
+    client: TestClient, relays: RelayService
 ) -> None:
     relay_id = relays.open(Upstream(host="127.0.0.1", port=1))
 
@@ -143,7 +145,7 @@ def test_an_origin_that_does_not_answer_is_a_bad_gateway(
 
 
 def test_frames_pass_both_ways_and_the_chosen_subprotocol_comes_back(
-    client: TestClient, relays: Relays, socket: Upstream
+    client: TestClient, relays: RelayService, socket: Upstream
 ) -> None:
     relay_id = relays.open(socket)
     url = f"/api/relay/{relay_id}/websockify?token=Zk3_q-9x"
@@ -164,7 +166,7 @@ def test_frames_pass_both_ways_and_the_chosen_subprotocol_comes_back(
 
 
 def test_the_browser_hanging_up_closes_the_upstream(
-    client: TestClient, relays: Relays, socket: Upstream
+    client: TestClient, relays: RelayService, socket: Upstream
 ) -> None:
     url = f"/api/relay/{relays.open(socket)}/websockify"
     with client.websocket_connect(url, subprotocols=["binary"]) as screen:
@@ -174,7 +176,7 @@ def test_the_browser_hanging_up_closes_the_upstream(
 
 
 def test_the_upstream_hanging_up_closes_the_browser(
-    client: TestClient, relays: Relays, socket: Upstream
+    client: TestClient, relays: RelayService, socket: Upstream
 ) -> None:
     url = f"/api/relay/{relays.open(socket)}/websockify"
     with client.websocket_connect(url, subprotocols=["binary"]) as screen:
@@ -196,7 +198,7 @@ def test_an_unknown_relay_closes_the_socket_with_1008(client: TestClient) -> Non
 
 
 def test_an_expired_relay_closes_the_socket_with_1008(
-    client: TestClient, relays: Relays, now: Now, socket: Upstream
+    client: TestClient, relays: RelayService, now: Now, socket: Upstream
 ) -> None:
     relay_id = relays.open(socket)
     now.seconds += RELAY_TTL_SECONDS
@@ -211,7 +213,7 @@ def test_an_expired_relay_closes_the_socket_with_1008(
 
 
 def test_an_upstream_that_refuses_the_socket_closes_the_browser_with_1011(
-    client: TestClient, relays: Relays, page: Upstream
+    client: TestClient, relays: RelayService, page: Upstream
 ) -> None:
     relay_id = relays.open(page)
 

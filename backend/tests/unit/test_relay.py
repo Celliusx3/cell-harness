@@ -7,7 +7,7 @@ import logging
 import pytest
 from mcp.types import CallToolResult, TextContent
 
-from harness.mcp.relay import RELAY_TTL_SECONDS, Relays, Upstream, with_relay_url
+from harness.relay import RELAY_TTL_SECONDS, RelayService, Upstream, with_relay_url
 
 RELAY_META = "io.cell-harness/relay"
 PAGE = "/embed.html?path=websockify%3Ftoken%3DZk3_q-9x&view_only=1"
@@ -33,7 +33,7 @@ def relay_id_of(url: str) -> str:
 
 @pytest.mark.parametrize("host", ["127.0.0.1", "localhost"])
 def test_a_loopback_entry_becomes_a_relay_url_with_the_same_path_and_query(host: str) -> None:
-    relays = Relays(now=Now())
+    relays = RelayService(now=Now())
 
     rewritten = with_relay_url(
         result_with({RELAY_META: {"url": f"http://{host}:62480{PAGE}"}}), relays
@@ -48,7 +48,7 @@ def test_a_loopback_entry_becomes_a_relay_url_with_the_same_path_and_query(host:
 
 
 def test_every_entry_gets_its_own_relay() -> None:
-    relays = Relays(now=Now())
+    relays = RelayService(now=Now())
     entry = {RELAY_META: {"url": f"http://127.0.0.1:62480{PAGE}"}}
 
     first = with_relay_url(result_with(entry), relays).meta
@@ -59,7 +59,7 @@ def test_every_entry_gets_its_own_relay() -> None:
 
 
 def test_the_rest_of_the_result_is_left_as_it_was() -> None:
-    relays = Relays(now=Now())
+    relays = RelayService(now=Now())
     original = result_with({RELAY_META: {"url": f"http://127.0.0.1:1{PAGE}"}, "ts": 1})
 
     rewritten = with_relay_url(original, relays)
@@ -87,7 +87,7 @@ def test_the_rest_of_the_result_is_left_as_it_was() -> None:
 def test_an_entry_that_is_not_http_on_loopback_is_dropped_and_no_relay_made(
     entry: object, caplog: pytest.LogCaptureFixture
 ) -> None:
-    relays = Relays(now=Now())
+    relays = RelayService(now=Now())
 
     with caplog.at_level(logging.WARNING, logger="harness.relay"):
         rewritten = with_relay_url(result_with({RELAY_META: entry, "ts": 1}), relays)
@@ -98,7 +98,7 @@ def test_an_entry_that_is_not_http_on_loopback_is_dropped_and_no_relay_made(
 
 
 def test_a_result_without_the_entry_is_unchanged() -> None:
-    relays = Relays(now=Now())
+    relays = RelayService(now=Now())
     plain = result_with({"ts": 1})
 
     assert with_relay_url(plain, relays) is plain
@@ -108,7 +108,7 @@ def test_a_result_without_the_entry_is_unchanged() -> None:
 
 def test_a_relay_ends_sixty_minutes_after_it_was_made() -> None:
     now = Now()
-    relays = Relays(now=now)
+    relays = RelayService(now=now)
     relay_id = relays.open(Upstream(host="127.0.0.1", port=1))
 
     now.seconds += RELAY_TTL_SECONDS - 1
@@ -120,12 +120,12 @@ def test_a_relay_ends_sixty_minutes_after_it_was_made() -> None:
 
 
 def test_an_unknown_relay_reaches_nothing() -> None:
-    assert Relays(now=Now()).upstream("nope") is None
+    assert RelayService(now=Now()).upstream("nope") is None
 
 
 def test_ended_relays_are_forgotten_when_the_next_one_opens() -> None:
     now = Now()
-    relays = Relays(now=now)
+    relays = RelayService(now=now)
     old = relays.open(Upstream(host="127.0.0.1", port=1))
     now.seconds += RELAY_TTL_SECONDS
 
