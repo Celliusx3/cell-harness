@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from harness.bots import BotNotFound, BotPermanent, GroupEmpty
 from harness.files import FileTooLarge, UnsafeFileName
-from harness.mcp.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
+from harness.mcp import McpConnectionError, McpNotConnectedError, McpTimeoutError
 from harness.secrets import SecretNotFound, SecretRefused
 from harness.session.repository import (
     SessionCorruptionError,

@@ -2,29 +2,23 @@
 
 from __future__ import annotations
 
-import base64
-import binascii
-import json
 import logging
 import re
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable
 
-from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
+from mcp.types import CallToolResult
 from mcp.types import Tool as McpTool
-from pydantic import BaseModel, ConfigDict, ValidationError
 
-from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
+from harness.mcp._result import outcome_of
+from harness.mcp.models.errors import McpNotConnectedError, McpTimeoutError
 from harness.tools import (
     EXECUTION_ERROR,
     NAMESPACE_SEPARATOR,
     UNKNOWN_TOOL,
     Failure,
-    Ok,
-    ReturnedImage,
     Tool,
     ToolContext,
     ToolOutcome,
-    ToolUi,
 )
 
 logger = logging.getLogger("harness.mcp")
@@ -40,48 +34,38 @@ _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 
 CallTool = Callable[[str, dict], Awaitable[CallToolResult]]
 
-FILES_META = "io.cell-harness/files"
 
-
-class ReturnedFile(BaseModel):
-    """One entry of a tool result's `_meta` under FILES_META: a file the tool hands back."""
-
-    model_config = ConfigDict(frozen=True)
-
-    path: str
-
-
-def namespaced(server: str, tool: str) -> str:
+def namespaced(server_id: str, server_tool_name: str) -> str:
     """`yt` + `get_subtitles` -> `yt__get_subtitles`."""
-    return f"{server}{NAMESPACE_SEPARATOR}{tool.replace('-', '_')}"
+    return f"{server_id}{NAMESPACE_SEPARATOR}{server_tool_name.replace('-', '_')}"
 
 
-def build_tools(server: str, tools: Iterable[McpTool], call: CallTool) -> list[Tool[dict]]:
+def build_tools(server_id: str, published: Iterable[McpTool], call: CallTool) -> list[Tool[dict]]:
     """Every tool this server offers that the model can actually be told about."""
     built: list[Tool[dict]] = []
     seen: set[str] = set()
-    for tool in tools:
-        name = namespaced(server, tool.name)
-        if not _TS_IDENTIFIER.match(name):
+    for tool in published:
+        tool_name = namespaced(server_id, tool.name)
+        if not _TS_IDENTIFIER.match(tool_name):
             logger.warning(
                 "dropping MCP tool %r from %r: %r is not a usable tool name — it must be a "
                 "valid identifier, because code mode declares it as a TypeScript function",
                 tool.name,
-                server,
-                name,
+                server_id,
+                tool_name,
             )
             continue
-        if name in seen:
+        if tool_name in seen:
             logger.warning(
-                "dropping MCP tool %r from %r: %r is already taken", tool.name, server, name
+                "dropping MCP tool %r from %r: %r is already taken", tool.name, server_id, tool_name
             )
             continue
-        seen.add(name)
-        built.append(mcp_tool(server=server, tool=tool, call=call))
+        seen.add(tool_name)
+        built.append(as_tool(server_id=server_id, published=tool, call=call))
     return built
 
 
-def app_visible(tool: McpTool) -> bool:
+def is_app_visible(tool: McpTool) -> bool:
     """Whether an app may call this tool — `_meta.ui.visibility` includes `app`."""
     ui = (tool.meta or {}).get("ui")
     visibility = ui.get("visibility") if isinstance(ui, dict) else None
@@ -101,93 +85,28 @@ def ui_resource_uri(tool: McpTool) -> str | None:
     return uri if isinstance(uri, str) and uri.startswith("ui://") else None
 
 
-def mcp_tool(*, server: str, tool: McpTool, call: CallTool) -> Tool[dict]:
+def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict]:
     """One MCP tool, wired to the connection that owns it."""
-    name = namespaced(server, tool.name)
-    resource_uri = ui_resource_uri(tool)
+    tool_name = namespaced(server_id, published.name)
+    resource_uri = ui_resource_uri(published)
 
     async def execute(arguments: dict, _context: ToolContext) -> ToolOutcome:
         try:
-            result = await call(tool.name, arguments)
+            result = await call(published.name, arguments)
         except McpNotConnectedError:
-            return Failure(UNKNOWN_TOOL, f"{name} is no longer available: {server} is disconnected")
+            return Failure(
+                UNKNOWN_TOOL, f"{tool_name} is no longer available: {server_id} is disconnected"
+            )
         except McpTimeoutError as err:
             return Failure(EXECUTION_ERROR, str(err))
-        return outcome_of(result, name=name, server=server, resource_uri=resource_uri)
+        return outcome_of(
+            result, tool_name=tool_name, server_id=server_id, resource_uri=resource_uri
+        )
 
     return Tool(
-        name=name,
-        description=tool.description or "",
-        input_schema=tool.input_schema or dict(_EMPTY_SCHEMA),
+        name=tool_name,
+        description=published.description or "",
+        input_schema=published.input_schema or dict(_EMPTY_SCHEMA),
         parse=lambda raw: raw,
         execute=execute,
     )
-
-
-def outcome_of(
-    result: CallToolResult, *, name: str, server: str, resource_uri: str | None
-) -> ToolOutcome:
-    """What the model gets back."""
-    rendered = render_content(result.content)
-    if not rendered and result.structured_content is not None:
-        rendered = json.dumps(result.structured_content)
-    if result.is_error:
-        return Failure(EXECUTION_ERROR, rendered or f"{name} reported an error with no message")
-    ui = (
-        ToolUi(server=server, resource_uri=resource_uri, data=result.structured_content)
-        if resource_uri is not None
-        else None
-    )
-    return Ok(
-        content=rendered,
-        data=result.structured_content,
-        ui=ui,
-        paths_to_send=returned_paths(result, name=name),
-        images=returned_images(result.content, name=name),
-    )
-
-
-def returned_paths(result: CallToolResult, *, name: str) -> tuple[str, ...]:
-    """The paths a result's `_meta` names under FILES_META; a malformed entry is dropped."""
-    if result.meta is None or FILES_META not in result.meta:
-        return ()
-    entries = result.meta[FILES_META]
-    if not isinstance(entries, list):
-        logger.warning("dropped the files %s returned: %s is not a list", name, FILES_META)
-        return ()
-    paths: list[str] = []
-    for entry in entries:
-        try:
-            paths.append(ReturnedFile.model_validate(entry).path)
-        except ValidationError as err:
-            logger.warning("dropped a file %s returned: %s", name, err)
-    return tuple(paths)
-
-
-def returned_images(blocks: Sequence[ContentBlock], *, name: str) -> tuple[ReturnedImage, ...]:
-    """Each image block's bytes, decoded; one whose data is not base64 is dropped."""
-    images: list[ReturnedImage] = []
-    for block in blocks:
-        if not isinstance(block, ImageContent):
-            continue
-        try:
-            data = base64.b64decode(block.data, validate=True)
-        except binascii.Error as err:
-            logger.warning("dropped an image %s returned: its data is not base64: %s", name, err)
-            continue
-        images.append(ReturnedImage(media_type=block.mime_type, data=data))
-    return tuple(images)
-
-
-def render_content(blocks: Sequence[ContentBlock]) -> str:
-    """Content blocks as the one string the model sees."""
-    parts: list[str] = []
-    for block in blocks:
-        match block:
-            case TextContent():
-                parts.append(block.text)
-            case ImageContent():
-                parts.append(f"[image {block.mime_type}, {len(block.data)} base64 chars]")
-            case _:
-                parts.append(f"[{type(block).__name__}]")
-    return "\n".join(parts)

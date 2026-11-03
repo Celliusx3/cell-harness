@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from harness.config.settings import Settings
-from harness.mcp.service import McpService
+from harness.mcp import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.native.bots import BOT_CREATE

@@ -11,7 +11,7 @@ import pytest
 from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings
 from harness.images import ImageService
-from harness.mcp.service import McpService
+from harness.mcp import McpService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

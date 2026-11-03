@@ -10,7 +10,7 @@ import pytest
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm import Message, SystemMessage, ToolCall, UserMessage
-from harness.mcp.service import McpService
+from harness.mcp import McpService
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.models import TurnStart, UserMessageEvent

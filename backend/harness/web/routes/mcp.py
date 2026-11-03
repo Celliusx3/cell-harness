@@ -11,9 +11,8 @@ from mcp.server.apps import APP_MIME_TYPE
 from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
-from harness.mcp.relay import Relays, with_relay_url
-from harness.mcp.service import McpService
-from harness.mcp.tool import app_visible, ui_resource_uri
+from harness.mcp import McpService, is_app_visible, ui_resource_uri
+from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")
 
@@ -97,7 +96,7 @@ def _server_list_route(router: APIRouter, mcp: McpService) -> None:
         return ServerList(servers=tuple(s.id for s in mcp.statuses()))
 
 
-def build_router(mcp: McpService, relays: Relays) -> APIRouter:
+def build_router(mcp: McpService, relays: RelayService) -> APIRouter:
     router = APIRouter(prefix="/api/mcp", tags=["mcp"])
     _server_list_route(router, mcp)
 
@@ -127,7 +126,7 @@ def build_router(mcp: McpService, relays: Relays) -> APIRouter:
         tool = next((t for t in published if t.name == name), None)
         if tool is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"{server} has no tool {name!r}")
-        if not app_visible(tool):
+        if not is_app_visible(tool):
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, detail=f"{name!r} is not callable by apps"
             )

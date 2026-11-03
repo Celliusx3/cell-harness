@@ -6,19 +6,15 @@ import asyncio
 import contextlib
 import logging
 from dataclasses import dataclass, field
-from typing import Literal
 
 from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
 
 from harness.config.sections import McpServer
-from harness.mcp.client import ClientFactory, ClientLike
-from harness.mcp.errors import (
-    McpConnectionError,
-    McpNotConnectedError,
-    McpTimeoutError,
-    describe,
-)
+from harness.mcp.client import McpClient, McpClientFactory
+from harness.mcp.models.commands import Command, ResourceReadCommand, ToolCallCommand
+from harness.mcp.models.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
+from harness.mcp.models.status import ServerStatus, Status
 from harness.mcp.tool import build_tools
 from harness.tools import Tool
 
@@ -29,44 +25,6 @@ REPLY_GRACE_SECONDS = 1.0
 CLOSE_TIMEOUT_SECONDS = 10.0
 MAX_TOOL_PAGES = 20
 
-Status = Literal["connecting", "connected", "failed", "disconnected"]
-
-
-@dataclass(frozen=True)
-class ServerStatus:
-    """One connection as the outside world sees it."""
-
-    id: str
-    status: Status
-    error: str
-    tool_names: tuple[str, ...]
-
-
-@dataclass
-class _Call:
-    name: str
-    arguments: dict
-    deadline: float
-    reply: asyncio.Future[CallToolResult]
-
-    def describe(self) -> str:
-        return repr(self.name)
-
-
-@dataclass
-class _Read:
-    """`resources/read` — how an MCP App's HTML is fetched, over the same loop."""
-
-    uri: str
-    deadline: float
-    reply: asyncio.Future[ReadResourceResult]
-
-    def describe(self) -> str:
-        return repr(self.uri)
-
-
-_Command = _Call | _Read
-
 
 @dataclass
 class Connection:
@@ -74,12 +32,12 @@ class Connection:
 
     id: str
     server: McpServer
-    factory: ClientFactory
+    factory: McpClientFactory
     status: Status = "connecting"
     error: str = ""
     tools: tuple[Tool[dict], ...] = ()
     published: tuple[McpTool, ...] = ()
-    commands: asyncio.Queue[_Command] = field(default_factory=asyncio.Queue)
+    commands: asyncio.Queue[Command] = field(default_factory=asyncio.Queue)
     task: asyncio.Task[None] | None = None
 
     def snapshot(self) -> ServerStatus:
@@ -94,10 +52,10 @@ class Connection:
         self.task = asyncio.create_task(self._serve(), name=f"mcp:{self.id}")
         self.task.add_done_callback(self._report_exit)
 
-    async def call(self, tool: str, arguments: dict) -> CallToolResult:
+    async def call(self, server_tool_name: str, arguments: dict) -> CallToolResult:
         loop = asyncio.get_running_loop()
-        command = _Call(
-            name=tool,
+        command = ToolCallCommand(
+            server_tool_name=server_tool_name,
             arguments=arguments,
             deadline=loop.time() + COMMAND_TIMEOUT_SECONDS,
             reply=loop.create_future(),
@@ -106,12 +64,12 @@ class Connection:
 
     async def read_resource(self, uri: str) -> ReadResourceResult:
         loop = asyncio.get_running_loop()
-        command = _Read(
+        command = ResourceReadCommand(
             uri=uri, deadline=loop.time() + COMMAND_TIMEOUT_SECONDS, reply=loop.create_future()
         )
         return await self._submit(command, command.reply)
 
-    async def _submit[T](self, command: _Command, reply: asyncio.Future[T]) -> T:
+    async def _submit[T](self, command: Command, reply: asyncio.Future[T]) -> T:
         """Queue one command for the owner and wait for its reply."""
         if self.task is None or self.task.done():
             raise McpNotConnectedError(f"{self.id} is not connected")
@@ -159,19 +117,19 @@ class Connection:
             raise
         except BaseException as err:  # anyio raises BaseExceptionGroup, which Exception misses
             self.status = "failed"
-            self.error = describe(err)
+            self.error = describe_error(err)
             logger.warning("MCP server %s failed: %s", self.id, self.error)
         finally:
             self.tools = ()
             self.published = ()
             self._fail_queued()
 
-    async def _run(self, client: ClientLike, command: _Command) -> None:
+    async def _run(self, client: McpClient, command: Command) -> None:
         try:
             async with asyncio.timeout_at(command.deadline):
                 result: CallToolResult | ReadResourceResult
-                if isinstance(command, _Call):
-                    result = await client.call_tool(command.name, command.arguments)
+                if isinstance(command, ToolCallCommand):
+                    result = await client.call_tool(command.server_tool_name, command.arguments)
                 else:
                     result = await client.read_resource(command.uri)
         except TimeoutError:
@@ -186,7 +144,7 @@ class Connection:
             _fail(command.reply, McpNotConnectedError(f"{self.id} is shutting down"))
             raise
         except BaseException as err:  # anyio raises BaseExceptionGroup, which Exception misses
-            _fail(command.reply, McpConnectionError(describe(err)))
+            _fail(command.reply, McpConnectionError(describe_error(err)))
         else:
             _resolve(command.reply, result)
 
@@ -206,7 +164,7 @@ class Connection:
             logger.error("MCP server %s stopped: %s", self.id, error, exc_info=error)
 
 
-async def _list_all(client: ClientLike) -> list[McpTool]:
+async def _list_all(client: McpClient) -> list[McpTool]:
     """Every tool the server offers, following its pagination."""
     tools: list[McpTool] = []
     cursor: str | None = None
@@ -233,3 +191,11 @@ def _fail(future: asyncio.Future, error: BaseException) -> None:
         # asyncio warns "exception was never retrieved" unless someone reads it.
         with contextlib.suppress(BaseException):
             future.exception()
+
+
+def describe_error(error: BaseException) -> str:
+    """A one-line cause an operator can act on."""
+    while isinstance(error, BaseExceptionGroup) and len(error.exceptions) == 1:
+        error = error.exceptions[0]
+    message = str(error).strip()
+    return message or type(error).__name__

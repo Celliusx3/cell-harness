@@ -7,8 +7,9 @@ import re
 import pytest
 from mcp.types import AudioContent, CallToolResult, ImageContent, TextContent
 
-from harness.mcp.errors import McpNotConnectedError, McpTimeoutError
-from harness.mcp.tool import build_tools, can_write, mcp_tool, render_content, ui_resource_uri
+from harness.mcp import McpConnectionError, McpNotConnectedError, McpTimeoutError, ui_resource_uri
+from harness.mcp._result import render_content
+from harness.mcp.tool import as_tool, build_tools, can_write
 from harness.tools import EXECUTION_ERROR, UNKNOWN_TOOL, Failure, Ok, ToolUi
 from tests.unit.helpers import context_for
 from tests.unit.mcp_fakes import text_result, tool
@@ -91,6 +92,16 @@ async def test_a_timeout_is_an_execution_error_carrying_the_reason() -> None:
     outcome = await built.invoke("{}", context=context_for())
 
     assert outcome == Failure(EXECUTION_ERROR, "stub did not answer 'echo' within 60s")
+
+
+async def test_a_server_that_dies_mid_call_is_a_failure_naming_the_tool_and_the_cause() -> None:
+    async def call(name: str, arguments: dict) -> CallToolResult:
+        raise McpConnectionError("server died")
+
+    built = one("stub", tool("echo"), call)
+    outcome = await built.invoke("{}", context=context_for())
+
+    assert outcome == Failure(EXECUTION_ERROR, "stub__echo failed: McpConnectionError: server died")
 
 
 async def test_structured_content_is_used_when_there_are_no_blocks() -> None:
@@ -217,7 +228,7 @@ def test_every_relayed_name_is_a_usable_typescript_identifier() -> None:
 
 
 def test_a_server_publishing_no_schema_still_gets_a_usable_one() -> None:
-    built = mcp_tool(server="srv", tool=tool("bare", schema={}), call=never_called)
+    built = as_tool(server_id="srv", published=tool("bare", schema={}), call=never_called)
     assert built.input_schema == {"type": "object", "properties": {}}
 
 
