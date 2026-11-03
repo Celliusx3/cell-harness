@@ -96,7 +96,7 @@ async def test_a_timed_out_call_leaves_the_connection_usable(monkeypatch) -> Non
     store = await connected(factory)
     connection = store._connections["stub"]
 
-    with pytest.raises(McpTimeoutError):
+    with pytest.raises(McpTimeoutError, match="'slow'"):
         await connection.call("slow", {})
 
     assert connection.status == "connected"
