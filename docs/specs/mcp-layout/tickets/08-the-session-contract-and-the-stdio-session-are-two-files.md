@@ -2,7 +2,7 @@
 
 ## Status
 
-open
+done
 
 ## What to build
 
@@ -17,7 +17,7 @@ open
 
 1. `make test` passes 1669 tests. `make lint` is green.
 2. The 5 stdio tests in `test_mcp_stdio.py` connect a real server through the moved session.
-3. `git grep -nE "ClientLike|\bClientFactory\b|\bopen_client\b" backend` finds nothing.
+3. `git grep -nwE "ClientLike|ClientFactory|open_client" backend` finds nothing.
 
 ## Blocked by
 

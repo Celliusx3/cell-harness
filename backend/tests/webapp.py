@@ -19,7 +19,7 @@ from harness.config.sections import FileSettings, McpServer
 from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.mcp import ClientFactory, McpService, open_client
+from harness.mcp import McpClientFactory, McpService, open_stdio_client
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
@@ -157,7 +157,7 @@ def no_platforms(secrets: SecretService) -> PlatformChannels:
 def web_mcp(
     servers: dict[str, McpServer] | None = None,
     *,
-    client_factory: ClientFactory = open_client,
+    client_factory: McpClientFactory = open_stdio_client,
 ) -> McpService:
     """A service over whatever servers a test declares — none, by default."""
     return McpService(servers or {}, client_factory=client_factory)

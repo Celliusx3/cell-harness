@@ -12,7 +12,7 @@ from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
 
 from harness.config.sections import McpServer
-from harness.mcp.client import ClientFactory, ClientLike
+from harness.mcp.client import McpClient, McpClientFactory
 from harness.mcp.errors import (
     McpConnectionError,
     McpNotConnectedError,
@@ -74,7 +74,7 @@ class Connection:
 
     id: str
     server: McpServer
-    factory: ClientFactory
+    factory: McpClientFactory
     status: Status = "connecting"
     error: str = ""
     tools: tuple[Tool[dict], ...] = ()
@@ -166,7 +166,7 @@ class Connection:
             self.published = ()
             self._fail_queued()
 
-    async def _run(self, client: ClientLike, command: _Command) -> None:
+    async def _run(self, client: McpClient, command: _Command) -> None:
         try:
             async with asyncio.timeout_at(command.deadline):
                 result: CallToolResult | ReadResourceResult
@@ -206,7 +206,7 @@ class Connection:
             logger.error("MCP server %s stopped: %s", self.id, error, exc_info=error)
 
 
-async def _list_all(client: ClientLike) -> list[McpTool]:
+async def _list_all(client: McpClient) -> list[McpTool]:
     """Every tool the server offers, following its pagination."""
     tools: list[McpTool] = []
     cursor: str | None = None

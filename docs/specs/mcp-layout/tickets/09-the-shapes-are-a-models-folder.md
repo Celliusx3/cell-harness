@@ -19,7 +19,7 @@ open
 
 1. `make test` passes 1669 tests. `make lint` is green.
 2. The 6 error tests, 18 service tests and 9 returned-file tests pass with the same names.
-3. `git grep -n "harness.mcp.errors\|_Call\b\|_Read\b" backend` finds nothing.
+3. `git grep -nwE "harness.mcp.errors|_Call|_Read|_Command" backend` finds nothing.
 
 ## Blocked by
 

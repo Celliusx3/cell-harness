@@ -8,7 +8,8 @@ from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
 
 from harness.config.sections import McpServer
-from harness.mcp.client import ClientFactory, open_client
+from harness.mcp.client import McpClientFactory
+from harness.mcp.clients.stdio import open_stdio_client
 from harness.mcp.connection import Connection, ServerStatus
 from harness.mcp.errors import McpNotConnectedError
 from harness.mcp.tool import can_write, namespaced
@@ -22,7 +23,7 @@ class McpService:
         self,
         servers: dict[str, McpServer],
         *,
-        client_factory: ClientFactory = open_client,
+        client_factory: McpClientFactory = open_stdio_client,
     ) -> None:
         self._servers = servers
         self._factory = client_factory
