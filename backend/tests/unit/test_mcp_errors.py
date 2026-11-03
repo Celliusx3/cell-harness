@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-from harness.mcp.errors import (
-    McpConnectionError,
-    McpNotConnectedError,
-    McpTimeoutError,
-    describe_error,
-)
+from harness.mcp import McpConnectionError, McpNotConnectedError, McpTimeoutError
+from harness.mcp.errors import describe_error
 
 
 def test_a_one_member_group_comes_back_as_its_member_message() -> None:

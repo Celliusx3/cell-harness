@@ -19,8 +19,7 @@ from harness.config.sections import FileSettings, McpServer
 from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.mcp.client import ClientFactory, open_client
-from harness.mcp.service import McpService
+from harness.mcp import ClientFactory, McpService, open_client
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService

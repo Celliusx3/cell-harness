@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from harness.config.settings import Settings
-from harness.mcp.service import McpService
+from harness.mcp import McpService
 from harness.session.models import ToolResultEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

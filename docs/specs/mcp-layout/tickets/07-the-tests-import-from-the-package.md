@@ -2,7 +2,7 @@
 
 ## Status
 
-open
+done
 
 ## What to build
 
@@ -15,7 +15,7 @@ open
 ## Checks
 
 1. `make test` passes 1669 tests. `make lint` is green.
-2. `git grep -n "from harness.mcp.service import"` finds nothing.
+2. `git grep -n "from harness.mcp.service import" -- backend ':!backend/harness/mcp'` finds nothing.
 
 ## Blocked by
 

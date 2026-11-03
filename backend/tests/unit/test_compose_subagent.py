@@ -18,7 +18,7 @@ from harness.llm import (
     ToolMessage,
     UserMessage,
 )
-from harness.mcp.service import McpService
+from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
