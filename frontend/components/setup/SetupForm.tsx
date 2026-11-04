@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { Field, INPUT } from "@/components/credentials/CredentialFields";
+import { Field, INPUT_CLASSES } from "@/components/credentials/CredentialFields";
 import { ApiError } from "@/lib/api";
 import { addCredential, DEFAULT_MODEL_CREDENTIAL, type ModelDetails } from "@/lib/credentials";
 
@@ -50,7 +50,7 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
             autoFocus
             autoComplete="off"
             spellCheck={false}
-            className={INPUT}
+            className={INPUT_CLASSES}
           />
         </Field>
         {isOtherProvider && <ProviderFields details={details} onChange={setDetails} />}
@@ -98,7 +98,7 @@ function ProviderFields({ details, onChange }: ProviderFieldsProps) {
           inputMode="url"
           autoComplete="off"
           spellCheck={false}
-          className={INPUT}
+          className={INPUT_CLASSES}
         />
       </Field>
       <Field label="Model" htmlFor="setup-model">
@@ -108,7 +108,7 @@ function ProviderFields({ details, onChange }: ProviderFieldsProps) {
           onChange={(event) => onChange({ ...details, model: event.target.value })}
           autoComplete="off"
           spellCheck={false}
-          className={`font-mono ${INPUT}`}
+          className={`font-mono ${INPUT_CLASSES}`}
         />
       </Field>
     </>

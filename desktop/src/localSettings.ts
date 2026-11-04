@@ -56,7 +56,6 @@ function parseJson(text: string, file: string): unknown {
   }
 }
 
-/** The file's text, or null when there is no such file. */
 function readTextIfPresent(file: string): string | null {
   try {
     return readFileSync(file, "utf8");
