@@ -11,7 +11,7 @@ export type Part =
 /** A turn's answer is one block under the bot that gave it, which is null in a bot's own chat. */
 export type Row =
   | { kind: "item"; item: TimelineItem }
-  | { kind: "answer"; key: string; speaker: Speaker | null; parts: Part[] };
+  | { kind: "answer"; key: string; turn: number; speaker: Speaker | null; parts: Part[] };
 
 export interface TurnShape {
   /** In a group's chat, the bot that spoke each turn. */
@@ -57,6 +57,7 @@ function oneTurn(items: TimelineItem[], turn: number, shape: TurnShape): Row[] {
     {
       kind: "answer",
       key: `r${first.key}`,
+      turn,
       speaker,
       parts: partsOf(answer, turn, reply, shape.stays),
     },
@@ -80,9 +81,8 @@ function partsOf(
       folded.push(item);
     }
   }
-  const first = folded[0];
-  if (first !== undefined) {
-    parts.splice(foldAt, 0, { kind: "activity", key: `w${first.key}`, turn, items: folded });
+  if (folded.length > 0) {
+    parts.splice(foldAt, 0, { kind: "activity", key: `w${turn}`, turn, items: folded });
   }
   return parts;
 }

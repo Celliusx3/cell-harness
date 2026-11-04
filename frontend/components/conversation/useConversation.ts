@@ -22,6 +22,8 @@ export interface Conversation {
   events: SessionEvent[];
   /** Messages sent while a turn was running, not yet in the log. */
   queued: string[];
+  /** The prompt pressed, until the log holds it, the server queues it, or the send fails. */
+  sending: string | null;
   running: boolean;
   loading: boolean;
   error: string | null;
@@ -38,6 +40,7 @@ export interface Conversation {
 export function useConversation(conversationId: string): Conversation {
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [queued, setQueued] = useState<string[]>([]);
+  const [sending, setSending] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +55,7 @@ export function useConversation(conversationId: string): Conversation {
 
     setEvents([]);
     setQueued([]);
+    setSending(null);
     setRunning(false);
     setLoading(true);
     setError(null);
@@ -82,7 +86,10 @@ export function useConversation(conversationId: string): Conversation {
           onEvent(event, number) {
             cursor.current = number + 1;
             setEvents((previous) => [...previous, event]);
-            if (event.type === "user/message") setQueued([]);
+            if (event.type === "user/message") {
+              setQueued([]);
+              setSending(null);
+            }
             setRunning(true);
           },
           onEnd(end) {
@@ -123,11 +130,16 @@ export function useConversation(conversationId: string): Conversation {
   const send = useCallback(
     async (prompt: string, files: ChatFile[]) => {
       setError(null);
+      setSending(prompt);
       try {
         const accepted = await sendMessage(conversationId, prompt, files);
-        if (accepted.queued) setQueued((previous) => [...previous, prompt]);
+        if (accepted.queued) {
+          setSending(null);
+          setQueued((previous) => [...previous, prompt]);
+        }
         wake();
       } catch (err) {
+        setSending(null);
         setError(
           err instanceof ApiError ? err.message : "could not send that message",
         );
@@ -169,5 +181,5 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId]);
 
-  return { events, queued, running, loading, error, send, stop, compact, clear, wake };
+  return { events, queued, sending, running, loading, error, send, stop, compact, clear, wake };
 }

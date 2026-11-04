@@ -15,11 +15,7 @@ export function UserBubble({ item, chatId }: { item: UserItem; chatId: string })
   const said = item.invoked ? (
     <InvokedBubble item={item} invoked={item.invoked} />
   ) : (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
-        {item.content}
-      </div>
-    </div>
+    <PlainBubble content={item.content} />
   );
   if (item.files.length === 0) return said;
   return (
@@ -32,12 +28,23 @@ export function UserBubble({ item, chatId }: { item: UserItem; chatId: string })
   );
 }
 
+/** What the person wrote, as it reads in their bubble. */
+export function PlainBubble({ content }: { content: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent-soft px-4 py-2.5 text-sm text-ink">
+        {content}
+      </div>
+    </div>
+  );
+}
+
 /** A `/name` message: the typed line, with the skill it loaded as a chip. */
 function InvokedBubble({ item, invoked }: { item: UserItem; invoked: Invocation }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent-soft px-4 py-2.5 text-sm text-ink">
         {invoked.typed}
       </div>
       <button
@@ -101,7 +108,7 @@ export function AssistantBubble({ item }: { item: AssistantItem }) {
   return (
     <div className="flex flex-col gap-1">
       <div
-        className={`prose prose-sm max-w-none prose-pre:bg-surface-sunken prose-pre:text-ink ${
+        className={`prose prose-sm max-w-none prose-pre:bg-surface-sunken prose-pre:text-ink prose-code:before:content-none prose-code:after:content-none [&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:bg-surface-sunken [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:font-normal ${
           item.streaming ? "caret" : ""
         }`}
       >

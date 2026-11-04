@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { NewMenu } from "@/components/chat/NewMenu";
 import { SidebarLink } from "@/components/chat/SidebarLink";
+import { useWorkingChat } from "@/components/chat/workingChat";
 import { SERVER as COMPUTER_SERVER } from "@/components/computer/server";
 import { rememberChatPath } from "@/components/settings/chatReturn";
 import { BUILDER_ID, listBots, listGroups, listServers } from "@/lib/api";
@@ -26,6 +27,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const params = useParams<{ id?: string }>();
   const currentId = params?.id;
+  const workingChat = useWorkingChat();
   const [stale, setStale] = useState(0);
   const [hasComputer, setHasComputer] = useState(false);
 
@@ -81,6 +83,7 @@ export function Sidebar() {
                 href={`/c/${bot.id}`}
                 label={bot.name}
                 current={bot.id === currentId}
+                working={bot.id === workingChat}
               />
             ))}
         </SidebarSection>
@@ -92,6 +95,7 @@ export function Sidebar() {
                 href={`/c/${group.id}`}
                 label={group.name}
                 current={group.id === currentId}
+                working={group.id === workingChat}
               />
             ))}
           </SidebarSection>
@@ -118,16 +122,33 @@ function SidebarSection({ title, children }: { title: string; children: ReactNod
   );
 }
 
-function SidebarRow({ href, label, current }: { href: string; label: string; current: boolean }) {
+function SidebarRow({
+  href,
+  label,
+  current,
+  working,
+}: {
+  href: string;
+  label: string;
+  current: boolean;
+  working: boolean;
+}) {
   return (
     <li>
       <Link
         href={href}
-        className={`block truncate rounded-md px-2 py-2 text-sm transition ${
+        className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition ${
           current ? "bg-accent-soft font-medium text-ink" : "text-ink-soft hover:bg-line hover:text-ink"
         }`}
       >
-        {label}
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        {working && (
+          <span
+            role="img"
+            aria-label="Working"
+            className="size-[7px] shrink-0 animate-pulse rounded-full bg-accent motion-reduce:animate-none"
+          />
+        )}
       </Link>
     </li>
   );

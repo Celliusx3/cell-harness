@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { waitingApproval } from "@/components/answer/approval";
@@ -10,12 +9,14 @@ import { HandOverBar, HandOverPanel } from "@/components/answer/HandOverPanel";
 import { questionOf, waitingQuestion } from "@/components/answer/question";
 import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
 import { refreshSidebar } from "@/components/chat/Sidebar";
-import { useFound } from "@/components/chat/useFound";
+import { type Found, useFound } from "@/components/chat/useFound";
+import { announceWorking } from "@/components/chat/workingChat";
+import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
-import { QueuedBubble } from "@/components/conversation/Message";
 import { Timeline } from "@/components/conversation/Timeline";
-import type { TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
+import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { useConversation } from "@/components/conversation/useConversation";
+import { useElapsed } from "@/components/conversation/useElapsed";
 import { useTimeline } from "@/components/conversation/useTimeline";
 import { listBots, listGroups } from "@/lib/api";
 
@@ -23,9 +24,6 @@ type Waiting =
   | { kind: "question"; item: ToolItem }
   | { kind: "hand_over"; item: ToolItem }
   | { kind: "approval"; item: ToolItem };
-
-const CLEAR_CONFIRMATION =
-  "Clear this chat? This permanently removes every message and stops what the bot is doing. The chat stays.";
 
 /** One bot's or one group's chat, under its name. */
 export default function ConversationPage({
@@ -42,6 +40,7 @@ export default function ConversationPage({
     () => (conversation.running ? null : waitingCall(items, openTurn)),
     [conversation.running, items, openTurn],
   );
+  const elapsed = useElapsed(conversation.running || conversation.sending !== null);
   const [folded, setFolded] = useState<string | null>(null);
   const wasRunning = useRef(false);
 
@@ -50,71 +49,42 @@ export default function ConversationPage({
     wasRunning.current = conversation.running;
   }, [conversation.running]);
 
+  useEffect(() => {
+    announceWorking(id, conversation.running);
+    return () => announceWorking(id, false);
+  }, [id, conversation.running]);
+
+  const host = speakerOf(bot);
+
   if (bot.kind === "none" && group.kind === "none") {
     return <p className="px-6 py-6 text-sm text-danger">No bot or group has the id {id}.</p>;
   }
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
-        <h1 className="min-w-0 truncate text-sm font-medium">
-          {bot.kind === "found" ? bot.item.name : group.kind === "found" ? group.item.name : ""}
-        </h1>
-        {conversation.running && (
-          <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-ink-soft">
-            working
-          </span>
-        )}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          {bot.kind === "found" && (
-            <Link
-              href={`/bots/${id}`}
-              className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink"
-            >
-              Edit bot
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={() => void conversation.compact()}
-            disabled={conversation.running}
-            title="Summarize older messages to free up context"
-            className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink disabled:opacity-40"
-          >
-            Compact
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm(CLEAR_CONFIRMATION)) void conversation.clear();
-            }}
-            title="Start this chat fresh"
-            className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink"
-          >
-            Clear
-          </button>
-        </div>
-      </header>
+      <ChatHeader
+        chat={host ?? speakerOf(group)}
+        editHref={host === null ? null : `/bots/${id}`}
+        elapsed={elapsed}
+        canCompact={!conversation.running}
+        onCompact={() => void conversation.compact()}
+        onClear={() => void conversation.clear()}
+      />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {conversation.loading ? (
           <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
         ) : (
-          <>
-            <Timeline
-              items={items}
-              openTurn={openTurn}
-              speakers={speakers}
-              onAnswered={conversation.wake}
-            />
-            {conversation.queued.length > 0 && (
-              <div className="flex flex-col gap-3 px-6 pb-4">
-                {conversation.queued.map((text, index) => (
-                  <QueuedBubble key={index} content={text} />
-                ))}
-              </div>
-            )}
-          </>
+          <Timeline
+            items={items}
+            openTurn={openTurn}
+            speakers={speakers}
+            host={host}
+            sending={conversation.sending}
+            queued={conversation.queued}
+            elapsed={elapsed}
+            onAnswered={conversation.wake}
+          />
         )}
       </div>
 
@@ -148,6 +118,10 @@ export default function ConversationPage({
       )}
     </>
   );
+}
+
+function speakerOf(found: Found<Speaker>): Speaker | null {
+  return found.kind === "found" ? { id: found.item.id, name: found.item.name } : null;
 }
 
 function waitingCall(items: TimelineItem[], openTurn: number | null): Waiting | null {

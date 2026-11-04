@@ -70,11 +70,13 @@ Load the browser tools with ToolSearch (`select:mcp__plugin_everything-claude-co
 
 1. `browser_navigate` to `http://localhost:4997`.
 2. `browser_snapshot`, find the textbox with placeholder "Send a message", `browser_type` the prompt into it, `browser_click` the button labelled "Send".
-3. The URL becomes `/c/<conversation id>`. While a turn runs, the Stop button (label "Stop") shows, and the turn's tool cards sit open under a "Working… · N tools" line; when it ends the line reads "Done · N tools" and folds them away.
-4. Click "Done · N tools" to unfold a finished turn's cards, then click a tool card's name (for example `run_subagent`) to open it: its arguments and its result appear under it.
-5. An approval card offers "Allow once", "Allow for this conversation", "Always allow" and "Deny".
+3. The URL becomes `/c/<conversation id>`. Under your message, the bot's name and "Thinking" show at once. The header under the bot's name reads "Working · 0:07" and counts up.
+4. While tools run, a line names the step, "Running <tool> · N tools", or "Thinking · N tools" between steps, with the tool cards open under it. When the reply starts, the line folds to "Used N tools", with "· M failed" when tools failed.
+5. The turn has ended when the header reads "Ready". Do not wait for "Stop" to disappear: it also hides while the message box holds text.
+6. Click "Used N tools" to unfold a finished turn's cards, then click a tool card's name (for example "run subagent") to open it: its arguments and its result appear under it.
+7. An approval card offers "Allow once", "Allow for this conversation", "Always allow" and "Deny".
 
-Handles: placeholder "Send a message", labels "Send", "Stop", "Clear", "New" (a menu of "Bot" and "Group"), "Edit bot", "Archive", "Restore", "Delete". The sidebar's foot has "Bots", "Computer" and "Settings". The Settings menu has "Back to chats", "Credentials", "Approvals" and "Skills". The Credentials page has "Add credential", "Edit" and "Remove", and a bot's page "Link Telegram" and "Link Discord". Never click by coordinates.
+Handles: placeholder "Send a message" ("Reply, and it is answered after this turn" during a turn), labels "Send", "Stop", "More" (a menu of "Compact" and "Clear chat"), "New" (a menu of "Bot" and "Group"), "Edit bot", "Archive", "Restore", "Delete". The sidebar's foot has "Bots", "Computer" and "Settings". The Settings menu has "Back to chats", "Credentials", "Approvals" and "Skills". The Credentials page has "Add credential", "Edit" and "Remove", and a bot's page "Link Telegram" and "Link Discord". Never click by coordinates.
 
 ## Evidence
 
