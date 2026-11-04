@@ -1,6 +1,6 @@
 # 01 The harness starts with no Default model
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

@@ -29,7 +29,6 @@ from harness.runs.service import RunService
 from harness.secrets import (
     DEFAULT_MODEL_CREDENTIAL,
     DiskSecretRepository,
-    SecretNotFound,
     SecretService,
 )
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -39,7 +38,7 @@ from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.bot_models import llm_settings_for
 from harness.web.errors import exception_handlers
-from harness.web.file_keys import move_file_keys, require_default_model
+from harness.web.file_keys import move_file_keys
 from harness.web.logs import configure_logging
 from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.web.routes.approvals import build_router as build_approvals_router
@@ -75,13 +74,12 @@ def build_mcp(settings: Settings) -> McpService:
 
 
 def build_keyring(settings: Settings) -> SecretService:
-    """The keyring, once the settings file's keys are moved in; refused with no Default model."""
+    """The keyring, once the settings file's keys are moved in."""
     keyring = SecretService(
         DiskSecretRepository(settings.secrets.path),
         encryption_key=settings.secrets.encryption_key,
     )
     move_file_keys(settings.local_settings_path, settings.llm, keyring)
-    require_default_model(keyring, settings.local_settings_path)
     return keyring
 
 
@@ -135,7 +133,12 @@ def _resolve_context_tokens(settings: Settings, keyring: SecretService) -> int |
         return configured
     default = keyring.model_credential_named(DEFAULT_MODEL_CREDENTIAL)
     if default is None:
-        raise SecretNotFound(DEFAULT_MODEL_CREDENTIAL)
+        logger.warning(
+            "compaction: context window unknown — no config value and no Default model saved "
+            "yet; automatic compaction is off until the next start, only a provider overflow "
+            "triggers it"
+        )
+        return None
     discovered = context_window_tokens(llm_settings_for(default, settings.llm))
     if discovered is not None:
         logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)

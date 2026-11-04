@@ -66,7 +66,7 @@ def secrets_in(tmp_path: Path) -> SecretService:
 
 
 def secrets_with_default_model(tmp_path: Path) -> SecretService:
-    """`secrets_in`, holding the Default model a start needs."""
+    """`secrets_in`, holding the Default model a turn needs."""
     secrets = secrets_in(tmp_path)
     default = ModelDetails(base_url="https://api.example.com/v1", model="m")
     secrets.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr(DEFAULT_MODEL_KEY))

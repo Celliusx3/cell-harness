@@ -10,12 +10,13 @@ import pytest
 from fastapi import FastAPI
 
 from harness.bots import BotService
-from harness.config.sections import LLMSettings
-from harness.config.settings import MissingConfigError
+from harness.config.sections import LLMSettings, SecretSettings
+from harness.config.settings import Settings
 from harness.secrets import DEFAULT_MODEL_CREDENTIAL, DiskSecretRepository, SecretService
 from harness.secrets.models.details import ModelDetails
-from harness.web.file_keys import move_file_keys, require_default_model
+from harness.web.file_keys import move_file_keys
 from harness.web.routes.credentials import build_router
+from harness.web.server import build_keyring
 from tests.unit.helpers import durable_service
 from tests.webapp import no_platforms
 
@@ -127,18 +128,25 @@ def test_a_missing_file_is_left_alone(tmp_path: Path, keyring) -> None:
     assert not absent.exists()
 
 
-def test_with_no_default_model_the_harness_refuses_to_start(local_json, keyring) -> None:
-    with pytest.raises(MissingConfigError, match="api_key") as refused:
-        require_default_model(keyring, local_json)
-
-    assert str(local_json) in str(refused.value)
+def _start_settings(tmp_path: Path, local_json: Path) -> Settings:
+    secrets = SecretSettings(path=tmp_path / "secrets.json", encryption_key=KEY)
+    return Settings.model_construct(llm=LLM, secrets=secrets, local_settings_path=local_json)
 
 
-def test_with_a_default_model_it_starts(local_json, keyring) -> None:
+def test_with_no_default_model_the_harness_still_starts(tmp_path: Path, local_json) -> None:
+    keyring = build_keyring(_start_settings(tmp_path, local_json))
+
+    assert keyring.model_credential_version(DEFAULT_MODEL_CREDENTIAL) is None
+
+
+def test_a_model_key_in_the_file_becomes_the_default_model_at_start(
+    tmp_path: Path, local_json
+) -> None:
     _write(local_json, ALL_KEYS)
-    move_file_keys(local_json, LLM, keyring)
 
-    require_default_model(keyring, local_json)
+    keyring = build_keyring(_start_settings(tmp_path, local_json))
+
+    assert keyring.model_credential_version(DEFAULT_MODEL_CREDENTIAL) is not None
 
 
 async def test_the_default_model_cannot_be_removed(tmp_path: Path, local_json, keyring) -> None:
