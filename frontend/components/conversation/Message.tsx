@@ -108,7 +108,7 @@ export function AssistantBubble({ item }: { item: AssistantItem }) {
   return (
     <div className="flex flex-col gap-1">
       <div
-        className={`prose prose-sm max-w-none prose-pre:bg-surface-sunken prose-pre:text-ink ${
+        className={`prose prose-sm max-w-none prose-pre:bg-surface-sunken prose-pre:text-ink prose-code:before:content-none prose-code:after:content-none [&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:bg-surface-sunken [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:font-normal ${
           item.streaming ? "caret" : ""
         }`}
       >
