@@ -37,7 +37,7 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
   return (
     <form onSubmit={(event) => void handleSubmit(event)} className="grid gap-6">
       <div className="grid gap-2 text-center">
-        <h1 className="font-serif text-4xl tracking-tight">Welcome to Cell Harness</h1>
+        <h1 className="font-serif text-4xl tracking-tight text-balance">Welcome to Cell Harness</h1>
         <p className="text-sm text-ink-soft">Paste your API key to start.</p>
       </div>
       <div className="grid gap-3">

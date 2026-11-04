@@ -43,7 +43,7 @@ export default function SetupPage() {
       {state.kind === "loading" && <p className="text-sm text-ink-soft">Loading…</p>}
       {state.kind === "failed" && <p className="text-sm text-danger">{state.message}</p>}
       {state.kind === "cannotSave" && (
-        <h1 className="text-center font-serif text-4xl tracking-tight">
+        <h1 className="text-center font-serif text-4xl tracking-tight text-balance">
           Finish setup on the Mac that runs Cell Harness
         </h1>
       )}
