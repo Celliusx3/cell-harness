@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and twenty-three insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and twenty-four insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -54,7 +54,11 @@ to that bot, and an unlinked one gets silence; spec in
 starts with no Default model; every chat page shows a setup screen in the app's
 look until one is saved through the Credentials save; another device sees a
 note; the Mac app has no setup window of its own; spec in
-`docs/specs/setup-screen/`). Their plans
+`docs/specs/setup-screen/`), 24 the UI in layers (Settings is its own screen,
+with Credentials, Approvals and Skills and a way back to the chat page you
+left; a Bots page lists every bot, group and archived bot; the sidebar has one
+New button, and Bots, Computer and Settings at its foot; spec in
+`docs/specs/ui-layers/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
@@ -188,7 +192,7 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
   `packages/adapters/src/messaging-delivery.ts:87-90`). There is no
   conversation list, no way to start another chat, and no title.
 - Archive, as in Rakazo (`Bot.archivedAt`): an archived bot and its chat are
-  hidden and refused; the sidebar's Archived section restores one, or deletes
+  hidden and refused; the Bots page's Archived section restores one, or deletes
   it with its chat for good.
 - Groups — two to six bots sharing one chat, kept in the bots file, made from
   the New group page. Your message lines up who speaks: the members you
@@ -344,7 +348,7 @@ scripts; a TypeScript script runs by passing its text to `execute_typescript`, i
 same sandbox, granted nothing. Next is MCP connect and disconnect,
 no longer cut, because the gate exists; `conversation_*` is superseded by insertion 9.
 
-**Depends on.** 8 (the editor service and the `/skills` page it shares).
+**Depends on.** 8 (the editor service and the Skills page it shares).
 
 **Ships.**
 - `tools/native/skills/` — `skill_save(name, text)`, `skill_delete(name)`, thin

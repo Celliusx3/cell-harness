@@ -5,7 +5,7 @@ A call to a tool that writes (listed in `approval.tools`, or a server tool whose
 ## Sub-features
 
 - "Allow once", "Allow for this conversation", "Always allow", "Deny".
-- The Approvals page lists the tools allowed always, and takes them back.
+- The Approvals page in Settings (`/settings/approvals`) lists the tools allowed always, and takes them back.
 
 ## How to get to it (user POV)
 

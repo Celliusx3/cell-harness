@@ -4,18 +4,19 @@ Each bot has a name, instructions and one chat. The sidebar lists them under Bot
 
 ## Sub-features
 
-- "New bot" in the sidebar header opens "What kind of bot do you want?" with four kinds, numbered 1 to 4. Picking one puts its sentence in the message box to finish. Sending clears Bot builder's chat, sends the message there and opens `/c/builder`, where it asks up to two questions as buttons, then calls `bot_create`, which asks first.
-- "Edit bot" in a bot's chat header opens the same form with Archive (not for Assistant). After an edit, the chat shows "Instructions updated" before the next turn.
-- Archived in the sidebar, collapsed with a count, lists archived bots with Restore and Delete. An archived bot's chat is a 404; Delete asks first and removes the bot and its chat for good.
+- "New", then "Bot", at the sidebar's top opens "What kind of bot do you want?" with four kinds, numbered 1 to 4. Picking one puts its sentence in the message box to finish. Sending clears Bot builder's chat, sends the message there and opens `/c/builder`, where it asks up to two questions as buttons, then calls `bot_create`, which asks first.
+- "Bots" at the sidebar's foot opens the Bots page (`/bots`). It lists every bot but Bot builder with the start of its instructions, then the groups with their members' names, then Archived.
+- "Edit bot" in a bot's chat header, or the bot's row on the Bots page, opens the same form with Archive (not for Assistant). Its header reads "Bots", then the bot's name, and "Bots" leads back. Archive opens the Bots page. After an edit, the chat shows "Instructions updated" before the next turn.
+- Archived, at the bottom of the Bots page, lists archived bots with Restore and Delete. It shows only while a bot is archived. An archived bot's chat is a 404; Delete asks first and removes the bot and its chat for good.
 - From chat: ask a bot to make one ("make a bot called Translator that translates into Malay"). It calls `bot_create`, which asks first; after "Allow once" the bot appears in the sidebar when the turn ends.
 
 ## How to get to it (user POV)
 
-Press the bot icon in the sidebar header, or ask any bot for a new bot.
+Click "New", then "Bot", at the sidebar's top, or ask any bot for a new bot. Click "Bots" at the sidebar's foot to see every bot.
 
 ## Driving it with Playwright MCP
 
-`browser_click` "New bot", click a kind (its label, for example "Markets & money"), `browser_type` the rest of the sentence into "Send a message" with `slowly: true` so it lands after the sentence, `browser_click` "Send"; the URL becomes `/c/builder`. Answer its question buttons, `browser_wait_for` "Allow once", click it, then `browser_wait_for` the bot's name in the sidebar. From chat: send the request, `browser_wait_for` "Allow once", click it, then `browser_wait_for` the bot's name in the sidebar.
+`browser_click` "New", then the menu item "Bot", click a kind (its label, for example "Markets & money"), `browser_type` the rest of the sentence into "Send a message" with `slowly: true` so it lands after the sentence, `browser_click` "Send"; the URL becomes `/c/builder`. Answer its question buttons, `browser_wait_for` "Allow once", click it, then `browser_wait_for` the bot's name in the sidebar. From chat: send the request, `browser_wait_for` "Allow once", click it, then `browser_wait_for` the bot's name in the sidebar.
 
 ## Gotchas
 

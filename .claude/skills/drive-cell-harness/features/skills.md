@@ -1,6 +1,6 @@
 # Skills
 
-A page listing the skills the bot can load, with an editor for the ones in the editable folder and an upload for a zip.
+A page in Settings listing the skills the bot can load, with an editor for the ones in the editable folder and an upload for a zip.
 
 ## Sub-features
 
@@ -9,11 +9,11 @@ A page listing the skills the bot can load, with an editor for the ones in the e
 
 ## How to get to it (user POV)
 
-Click "Skills" in the sidebar.
+Click "Settings" at the sidebar's foot, then "Skills" in its menu, or go to `/settings/skills`.
 
 ## Driving it with Playwright MCP
 
-`browser_click` "Skills", snapshot the list, edit in the textbox labelled "SKILL.md".
+`browser_click` "Settings", then "Skills", snapshot the list, edit in the textbox labelled "SKILL.md".
 
 ## Gotchas
 

@@ -1,6 +1,6 @@
 # 05 The docs say where each page now lives
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

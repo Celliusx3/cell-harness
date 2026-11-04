@@ -66,7 +66,7 @@ curl -s localhost:4896/api/conversations/assistant
 ## Telegram
 
 Optional. Message [@BotFather](https://t.me/BotFather), send `/newbot`, and add
-the token on the **Credentials** page (the lock icon) as a Telegram credential.
+the token on the **Credentials** page (**Settings**, then **Credentials**) as a Telegram credential.
 
 The harness then polls for messages alongside the web server — no public URL and no
 tunnel, because it long-polls rather than taking a webhook. A direct chat that
@@ -119,8 +119,8 @@ bot is silent, never the Assistant, and answers again when the bot is restored.
 
 ## Credentials
 
-The lock icon in the sidebar opens the Credentials page (`/credentials`), which
-holds every key. Each key shows only its last four characters, never the whole
+**Settings** at the sidebar's foot opens the Credentials page
+(`/settings/credentials`), which holds every key. Each key shows only its last four characters, never the whole
 key. **Add credential** opens a dialog: pick a type, and that type's fields appear.
 
 - **LLM**: a name, an endpoint, a model, a key, and the bots it serves. A bot
@@ -235,7 +235,7 @@ Subpackages arrive with the phase that needs them; the full intended layout is i
 
 Status: **phases 1–8 and 10 done.** Type `/find-place <url>` in the browser or
 on a phone and the skill is loaded for the model; paste a public `SKILL.md` on
-the `/skills` page and it is used next turn. Seven capabilities not in the
+the Skills page in Settings and it is used next turn. Seven capabilities not in the
 original arc have shipped since phase 7 — code mode, Instagram → Places, skills,
 tool references, Discord, MCP Apps, markets — each recorded in
 [PHASES.md §Status](./PHASES.md#status). Every phase in PHASES.md is a capability
