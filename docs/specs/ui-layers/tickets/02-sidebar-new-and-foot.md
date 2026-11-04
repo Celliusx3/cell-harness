@@ -1,6 +1,6 @@
 # 02 The sidebar has one New button and labelled links at its foot
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

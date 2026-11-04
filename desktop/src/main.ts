@@ -142,7 +142,7 @@ function hideUnlessQuitting(window: BrowserWindow, event: Electron.Event): void 
 function showCredentials(): void {
   showChatWindow();
   chatWindow
-    ?.loadURL(`${APP_URL}/credentials`)
+    ?.loadURL(`${APP_URL}/settings/credentials`)
     .catch((error: unknown) => dialog.showErrorBox(START_FAILURE_TITLE, messageOf(error)));
 }
 
