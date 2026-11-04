@@ -30,7 +30,7 @@ export default function BotsPage() {
     void load();
   }, [load]);
 
-  function changed() {
+  function reloadBots() {
     refreshSidebar();
     void load();
   }
@@ -46,7 +46,7 @@ export default function BotsPage() {
         {catalog.kind === "loaded" && (
           <>
             <BotList bots={catalog.bots} groups={catalog.groups} archived={catalog.archived} />
-            {catalog.archived.length > 0 && <ArchivedBots bots={catalog.archived} onChange={changed} />}
+            {catalog.archived.length > 0 && <ArchivedBots bots={catalog.archived} onChange={reloadBots} />}
           </>
         )}
       </div>

@@ -7,13 +7,13 @@ import { useEffect, useState } from "react";
 import { SidebarLink } from "@/components/chat/SidebarLink";
 import { chatPathToReturnTo } from "@/components/settings/chatReturn";
 
-interface SettingsPage {
+interface SettingsLink {
   href: string;
   label: string;
   icon: LucideIcon;
 }
 
-const PAGES: SettingsPage[] = [
+const PAGES: SettingsLink[] = [
   { href: "/settings/credentials", label: "Credentials", icon: LockKeyhole },
   { href: "/settings/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/settings/skills", label: "Skills", icon: BookOpen },
