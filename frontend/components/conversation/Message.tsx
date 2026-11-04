@@ -32,7 +32,7 @@ export function UserBubble({ item, chatId }: { item: UserItem; chatId: string })
 export function PlainBubble({ content }: { content: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent-soft px-4 py-2.5 text-sm text-ink">
         {content}
       </div>
     </div>
@@ -44,7 +44,7 @@ function InvokedBubble({ item, invoked }: { item: UserItem; invoked: Invocation 
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent-soft px-4 py-2.5 text-sm text-ink">
         {invoked.typed}
       </div>
       <button

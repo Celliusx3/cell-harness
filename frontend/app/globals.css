@@ -13,10 +13,10 @@
   --color-surface-sunken: oklch(94.5% 0.012 88);
   --color-line: oklch(89% 0.014 88);
   --color-ink: oklch(25% 0.006 75);
-  --color-ink-soft: oklch(54% 0.012 85);
+  --color-ink-soft: oklch(50% 0.012 85);
   --color-accent: oklch(58% 0.13 40);
   --color-accent-soft: oklch(93.5% 0.022 55);
-  --color-danger: oklch(55% 0.18 25);
+  --color-danger: oklch(50% 0.18 25);
   --color-danger-soft: oklch(94% 0.03 25);
 
   --animate-progress-slide: progress-slide 1.6s ease-in-out infinite;

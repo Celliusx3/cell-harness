@@ -62,7 +62,7 @@ export function ChatHeader({
 function ChatState({ elapsed }: { elapsed: string | null }) {
   if (elapsed === null) return <span className="text-xs text-ink-soft">Ready</span>;
   return (
-    <span className="flex items-center gap-1.5 text-xs tabular-nums text-accent">
+    <span className="flex items-center gap-1.5 text-xs tabular-nums text-ink-soft">
       <span
         aria-hidden
         className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent motion-reduce:animate-none"
