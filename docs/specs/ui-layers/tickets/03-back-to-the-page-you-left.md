@@ -1,6 +1,6 @@
 # 03 Back to chats opens the page you left
 
-**Status:** open
+**Status:** done
 
 This ticket is dropped if the person picks "always open Assistant's chat" at approval.
 

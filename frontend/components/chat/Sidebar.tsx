@@ -9,6 +9,7 @@ import { ArchivedBots } from "@/components/chat/ArchivedBots";
 import { NewMenu } from "@/components/chat/NewMenu";
 import { SidebarLink } from "@/components/chat/SidebarLink";
 import { SERVER as COMPUTER_SERVER } from "@/components/computer/server";
+import { rememberChatPath } from "@/components/settings/chatReturn";
 import { BUILDER_ID, listArchivedBots, listBots, listGroups, listServers } from "@/lib/api";
 import type { Bot, Group } from "@/lib/types";
 
@@ -29,6 +30,8 @@ export function Sidebar() {
   const currentId = params?.id;
   const [stale, setStale] = useState(0);
   const [hasComputer, setHasComputer] = useState(false);
+
+  useEffect(() => rememberChatPath(pathname), [pathname]);
 
   useEffect(() => {
     const bump = () => setStale((count) => count + 1);
