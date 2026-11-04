@@ -37,6 +37,7 @@ export function Timeline({
   speakers,
   host,
   sending,
+  elapsed,
   onAnswered,
 }: {
   items: TimelineItem[];
@@ -44,6 +45,7 @@ export function Timeline({
   speakers: ReadonlyMap<number, Speaker>;
   host: Speaker | null;
   sending: string | null;
+  elapsed: string | null;
   onAnswered: () => void;
 }) {
   const floor = useRef<HTMLDivElement>(null);
@@ -105,7 +107,7 @@ export function Timeline({
         );
       })}
       {sending !== null && <PlainBubble content={sending} />}
-      {isStarting && <ThinkingRow speaker={thinker} />}
+      {isStarting && <ThinkingRow speaker={thinker} elapsed={elapsed} />}
       <div ref={floor} />
     </div>
   );
