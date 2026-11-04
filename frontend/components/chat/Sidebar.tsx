@@ -1,13 +1,15 @@
 "use client";
 
-import { BookOpen, BotMessageSquare, LockKeyhole, Monitor, ShieldCheck, Users } from "lucide-react";
+import { BotMessageSquare, Monitor, Settings } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { ArchivedBots } from "@/components/chat/ArchivedBots";
+import { NewMenu } from "@/components/chat/NewMenu";
+import { SidebarLink } from "@/components/chat/SidebarLink";
 import { SERVER as COMPUTER_SERVER } from "@/components/computer/server";
-import { BUILDER_ID, listArchivedBots, listBots, listGroups, listServers } from "@/lib/api";
+import { rememberChatPath } from "@/components/settings/chatReturn";
+import { BUILDER_ID, listBots, listGroups, listServers } from "@/lib/api";
 import type { Bot, Group } from "@/lib/types";
 
 const STALE = "harness:sidebar-stale";
@@ -17,16 +19,17 @@ export function refreshSidebar(): void {
   window.dispatchEvent(new Event(STALE));
 }
 
-/** The bots, each a link to its one chat, the groups, then the archived bots. */
+/** The New button, the bots, each a link to its one chat, and the groups, then the other pages. */
 export function Sidebar() {
   const [bots, setBots] = useState<Bot[]>([]);
-  const [archived, setArchived] = useState<Bot[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const pathname = usePathname();
   const params = useParams<{ id?: string }>();
   const currentId = params?.id;
   const [stale, setStale] = useState(0);
   const [hasComputer, setHasComputer] = useState(false);
+
+  useEffect(() => rememberChatPath(pathname), [pathname]);
 
   useEffect(() => {
     const bump = () => setStale((count) => count + 1);
@@ -48,11 +51,10 @@ export function Sidebar() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([listBots(), listArchivedBots(), listGroups()])
-      .then(([listedBots, listedArchived, listedGroups]) => {
+    Promise.all([listBots(), listGroups()])
+      .then(([listedBots, listedGroups]) => {
         if (cancelled) return;
         setBots(listedBots);
-        setArchived(listedArchived);
         setGroups(listedGroups);
       })
       .catch(() => {
@@ -66,64 +68,7 @@ export function Sidebar() {
     <aside className="flex w-72 shrink-0 flex-col border-r border-line bg-surface-sunken">
       <div className="flex items-center justify-between px-4 py-4">
         <span className="text-sm font-semibold tracking-tight">cell-harness</span>
-        <div className="flex items-center gap-0.5">
-          <Link
-            href="/skills"
-            aria-label="Skills"
-            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
-              pathname === "/skills" ? "bg-accent-soft text-ink" : "text-ink-soft"
-            }`}
-          >
-            <BookOpen size={18} />
-          </Link>
-          <Link
-            href="/approvals"
-            aria-label="Approvals"
-            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
-              pathname === "/approvals" ? "bg-accent-soft text-ink" : "text-ink-soft"
-            }`}
-          >
-            <ShieldCheck size={18} />
-          </Link>
-          <Link
-            href="/credentials"
-            aria-label="Credentials"
-            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
-              pathname === "/credentials" ? "bg-accent-soft text-ink" : "text-ink-soft"
-            }`}
-          >
-            <LockKeyhole size={18} />
-          </Link>
-          {hasComputer && (
-            <Link
-              href="/computer"
-              aria-label="Computer"
-              className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
-                pathname === "/computer" ? "bg-accent-soft text-ink" : "text-ink-soft"
-              }`}
-            >
-              <Monitor size={18} />
-            </Link>
-          )}
-          <Link
-            href="/bots/new"
-            aria-label="New bot"
-            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
-              pathname === "/bots/new" ? "bg-accent-soft text-ink" : "text-ink-soft"
-            }`}
-          >
-            <BotMessageSquare size={18} />
-          </Link>
-          <Link
-            href="/groups/new"
-            aria-label="New group"
-            className={`rounded-md p-1.5 transition hover:bg-line hover:text-ink ${
-              pathname === "/groups/new" ? "bg-accent-soft text-ink" : "text-ink-soft"
-            }`}
-          >
-            <Users size={18} />
-          </Link>
-        </div>
+        <NewMenu />
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 pb-4">
@@ -151,8 +96,15 @@ export function Sidebar() {
             ))}
           </SidebarSection>
         )}
-        {archived.length > 0 && <ArchivedBots bots={archived} onChange={refreshSidebar} />}
       </nav>
+
+      <div className="space-y-0.5 border-t border-line px-2 py-3">
+        <SidebarLink href="/bots" label="Bots" icon={BotMessageSquare} current={pathname === "/bots"} />
+        {hasComputer && (
+          <SidebarLink href="/computer" label="Computer" icon={Monitor} current={pathname === "/computer"} />
+        )}
+        <SidebarLink href="/settings" label="Settings" icon={Settings} current={false} />
+      </div>
     </aside>
   );
 }

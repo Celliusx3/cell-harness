@@ -1,6 +1,6 @@
 # Computer
 
-Every bot shares one Linux desktop with Chrome (Rakazo's image, a Docker container named `cell-harness-computer`). The bots use it through `computer__browser_navigate`, `computer__browser_read_page` and `computer__browser_act`, reading pages as text. The person uses it on the Computer page (the screen icon in the sidebar): a live screen streamed over VNC through the backend's `/api/relay`, so any device that can open the app can watch and control it.
+Every bot shares one Linux desktop with Chrome (Rakazo's image, a Docker container named `cell-harness-computer`). The bots use it through `computer__browser_navigate`, `computer__browser_read_page` and `computer__browser_act`, reading pages as text. The person uses it on the Computer page ("Computer" at the sidebar's foot): a live screen streamed over VNC through the backend's `/api/relay`, so any device that can open the app can watch and control it.
 
 ## Sub-features
 
@@ -15,7 +15,7 @@ Every bot shares one Linux desktop with Chrome (Rakazo's image, a Docker contain
 
 ## How to get to it (user POV)
 
-Click the screen icon in the sidebar, or go to `/computer`. The icon shows only when `mcp.servers` has a `computer` server; the desktop app has none. Docker must be running. For the bots' side, ask a bot to look something up on a website; with `llm` on a small local model the bot may fail to call the tools.
+Click "Computer" at the sidebar's foot, or go to `/computer`. The link shows only when `mcp.servers` has a `computer` server; the desktop app has none. Docker must be running. For the bots' side, ask a bot to look something up on a website; with `llm` on a small local model the bot may fail to call the tools.
 
 ## Driving it with Playwright MCP
 

@@ -18,13 +18,13 @@ Every key the harness holds, on one page: model keys (LLM), the Telegram and Dis
 
 ## How to get to it (user POV)
 
-Click the lock icon in the sidebar, or go to `/credentials`. In the Mac app, the menu-bar icon's "Credentials…" opens it. The link buttons are on a bot's page: "Edit bot" in its chat header.
+Click "Settings" at the sidebar's foot; Credentials opens first. Or go to `/settings/credentials`, where the old `/credentials` also leads. In the Mac app, the menu-bar icon's "Credentials…" opens it. The link buttons are on a bot's page: "Edit bot" in its chat header.
 
 ## Driving it with Playwright MCP
 
 Add only fake keys. The launch's scratch `HARNESS_CONFIG_LOCAL` gives the copy only the model's key, and the copy's keyring is `$RUN/harness/secrets.json`. Never point either at the person's own files.
 
-`browser_navigate` to `/credentials` and wait for "Add credential". It shows only once the page reaches the harness on port 4996 directly. Click it, `browser_select_option` the type in "Type", and type into each field by its label. A Custom "Website" must be a bare `https://` origin. Tick bots by name, then click "Save". The new row ends in the last four characters you typed.
+`browser_navigate` to `/settings/credentials` and wait for "Add credential". It shows only once the page reaches the harness on port 4996 directly. Click it, `browser_select_option` the type in "Type", and type into each field by its label. A Custom "Website" must be a bare `https://` origin. Tick bots by name, then click "Save". The new row ends in the last four characters you typed.
 
 To remove one, click its "Remove", then `browser_handle_dialog` with `accept: true`. A save through the page server must answer 403: `curl -s -o /dev/null -w '%{http_code}' -X POST localhost:4997/api/credentials`.
 
