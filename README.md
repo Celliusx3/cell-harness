@@ -189,8 +189,8 @@ version is a new dmg.
 
 On first start the app writes its settings file with a new encryption key, and
 the chat window opens on the setup screen. It asks for the friend's own API
-key. "Use another provider" shows the endpoint and model from
-`desktop/config.json`, filled in. Start saves the key in the keyring as the
+key, beside the endpoint and model from `desktop/config.json`, filled in and
+open to change. Start saves the key in the keyring as the
 Default model, and the chat opens in the same window. Everything the app keeps is in
 `~/Library/Application Support/Cell Harness/`: the settings file
 `config.local.json` (readable by its owner only), the keyring `secrets.json`,

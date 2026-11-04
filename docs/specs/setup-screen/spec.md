@@ -10,11 +10,11 @@ The Mac app asks for the model key in its own small window. That window uses the
 2. The app makes its encryption key and starts the harness. The friend sees none of this.
 3. The chat window opens on a setup screen. It fills the window, with no sidebar.
 4. The screen uses the app's colours and font, light or dark as the Mac is.
-5. The screen shows one API key box, a Start button and a "Use another provider" link.
+5. The screen shows API key, Endpoint and Model boxes and a Start button. Endpoint and Model hold the app's own values.
 6. The friend pastes the key and clicks Start.
 7. The chat opens in the same window. "hi" gets an answer, with no restart.
 8. The key now shows on the Credentials page as the Default model.
-9. Someone with another provider clicks "Use another provider". The endpoint and model boxes appear, filled with the app's own values.
+9. Someone with another provider sees which endpoint and model the key goes to.
 10. They change both values, paste their key and click Start.
 11. The next time the app opens, the chat opens straight away.
 12. You run `make dev` with an encryption key but no model key. The harness starts.
@@ -51,7 +51,7 @@ The Mac app asks for the model key in its own small window. That window uses the
 - Paste a key and click Start. The chat opens in the same window and answers "hi".
 - Open Credentials. The key shows as the Default model, with the app's endpoint and model.
 - Quit the app and open it again. The chat opens with no setup screen.
-- Click "Use another provider", change the endpoint and model, and click Start. The Default model shows those values.
+- Change the endpoint and model, and click Start. The Default model shows those values.
 - Before setup, open a bot's page or the Skills page. It goes to the setup screen.
 - After setup, open the setup screen's address. It goes to the chat.
 - Run `make dev` with an encryption key and no model key. The harness starts, and the browser shows the setup screen.

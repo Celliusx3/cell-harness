@@ -12,12 +12,11 @@ interface SetupFormProps {
   directUrl: string;
 }
 
-/** The API key saved as the Default model, at the shipped endpoint and model unless another provider is typed in. */
+/** The API key saved as the Default model, at the endpoint and model shown, which start as the shipped ones. */
 export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
   const router = useRouter();
   const [apiKey, setApiKey] = useState("");
   const [details, setDetails] = useState<ModelDetails>(shippedModel);
-  const [isOtherProvider, setIsOtherProvider] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +52,7 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
             className={INPUT_CLASSES}
           />
         </Field>
-        {isOtherProvider && <ProviderFields details={details} onChange={setDetails} />}
+        <ProviderFields details={details} onChange={setDetails} />
       </div>
       {error && (
         <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm break-words text-danger">
@@ -61,15 +60,6 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
         </p>
       )}
       <div className="flex items-center gap-3">
-        {!isOtherProvider && (
-          <button
-            type="button"
-            onClick={() => setIsOtherProvider(true)}
-            className="text-xs text-ink-soft transition hover:text-ink"
-          >
-            Use another provider
-          </button>
-        )}
         <button
           type="submit"
           disabled={isStarting}
