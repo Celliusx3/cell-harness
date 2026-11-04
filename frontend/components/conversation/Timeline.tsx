@@ -8,7 +8,12 @@ import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import { Activity } from "@/components/conversation/Activity";
 import { BotBlock } from "@/components/conversation/BotAvatar";
 import { Compaction } from "@/components/conversation/Compaction";
-import { AssistantBubble, PlainBubble, UserBubble } from "@/components/conversation/Message";
+import {
+  AssistantBubble,
+  PlainBubble,
+  QueuedBubble,
+  UserBubble,
+} from "@/components/conversation/Message";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { ToolCard } from "@/components/conversation/ToolCard";
@@ -37,6 +42,7 @@ export function Timeline({
   speakers,
   host,
   sending,
+  queued,
   elapsed,
   onAnswered,
 }: {
@@ -45,6 +51,7 @@ export function Timeline({
   speakers: ReadonlyMap<number, Speaker>;
   host: Speaker | null;
   sending: string | null;
+  queued: string[];
   elapsed: string | null;
   onAnswered: () => void;
 }) {
@@ -77,7 +84,7 @@ export function Timeline({
 
   useEffect(() => {
     if (pinned.current) floor.current?.scrollIntoView({ block: "end" });
-  }, [items, sending, isStarting]);
+  }, [items, sending, isStarting, queued]);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6">
@@ -108,6 +115,9 @@ export function Timeline({
       })}
       {sending !== null && <PlainBubble content={sending} />}
       {isStarting && <ThinkingRow speaker={thinker} elapsed={elapsed} />}
+      {queued.map((text, index) => (
+        <QueuedBubble key={index} content={text} />
+      ))}
       <div ref={floor} />
     </div>
   );

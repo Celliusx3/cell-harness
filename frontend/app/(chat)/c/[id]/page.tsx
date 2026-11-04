@@ -13,7 +13,6 @@ import { type Found, useFound } from "@/components/chat/useFound";
 import { announceWorking } from "@/components/chat/workingChat";
 import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
-import { QueuedBubble } from "@/components/conversation/Message";
 import { Timeline } from "@/components/conversation/Timeline";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { useConversation } from "@/components/conversation/useConversation";
@@ -76,24 +75,16 @@ export default function ConversationPage({
         {conversation.loading ? (
           <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
         ) : (
-          <>
-            <Timeline
-              items={items}
-              openTurn={openTurn}
-              speakers={speakers}
-              host={host}
-              sending={conversation.sending}
-              elapsed={elapsed}
-              onAnswered={conversation.wake}
-            />
-            {conversation.queued.length > 0 && (
-              <div className="flex flex-col gap-3 px-6 pb-4">
-                {conversation.queued.map((text, index) => (
-                  <QueuedBubble key={index} content={text} />
-                ))}
-              </div>
-            )}
-          </>
+          <Timeline
+            items={items}
+            openTurn={openTurn}
+            speakers={speakers}
+            host={host}
+            sending={conversation.sending}
+            queued={conversation.queued}
+            elapsed={elapsed}
+            onAnswered={conversation.wake}
+          />
         )}
       </div>
 
