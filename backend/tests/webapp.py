@@ -39,6 +39,7 @@ from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
 DEFAULT_MODEL_KEY = "sk-test-default-0000"
+SHIPPED_MODEL = ModelDetails(base_url="https://shipped.example/v1", model="shipped-model")
 NO_PLATFORM_STORAGE = Path("/nonexistent/cell-harness-platforms")
 
 
@@ -66,7 +67,7 @@ def secrets_in(tmp_path: Path) -> SecretService:
 
 
 def secrets_with_default_model(tmp_path: Path) -> SecretService:
-    """`secrets_in`, holding the Default model a start needs."""
+    """`secrets_in`, holding the Default model a turn needs."""
     secrets = secrets_in(tmp_path)
     default = ModelDetails(base_url="https://api.example.com/v1", model="m")
     secrets.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr(DEFAULT_MODEL_KEY))
@@ -191,6 +192,7 @@ def web_app(
         bots,
         secrets,
         BotMessages(service, bots, runs),
+        SHIPPED_MODEL,
     )
 
 
@@ -220,6 +222,7 @@ def web_app_with_telegram(
         bots,
         secrets,
         BotMessages(service, bots, runs),
+        SHIPPED_MODEL,
     )
     return app, gateway, bot
 

@@ -26,8 +26,9 @@ phase ordering.
 ## Getting started
 
 ```sh
-cp backend/config.local.example.json backend/config.local.json   # add your API key
-# and secrets.encryption_key (`openssl rand -hex 32`), which seals the keyring;
+cp backend/config.local.example.json backend/config.local.json
+# set secrets.encryption_key (`openssl rand -hex 32`), which seals the keyring;
+# put your API key in llm.api_key, or delete it and paste the key on the chat's setup screen;
 # on start the API key and any bot tokens move into the keyring (see Credentials)
 # everything else — model, endpoint, sessions root, MCP servers — is in
 # backend/config.json (committed); a server's `env` secrets go in config.local.json
@@ -159,8 +160,12 @@ credential's key. The environment is no longer read for these keys:
 `HARNESS_DISCORD__BOT_TOKEN` are ignored.
 
 The Default model can be edited but not removed. With no Default model in the
-keyring, the harness refuses to start, and says to put the key in the
-per-machine file as `{"llm": {"api_key": "…"}}`.
+keyring, the harness still starts, and every chat page shows a setup screen
+until one is saved. The screen asks for the API key, saves it as the Default
+model, and opens the chat with no restart. Only a page on the Mac that runs the
+harness shows the form. Another device sees a note to finish setup there.
+Automatic compaction stays off until the next start, because the harness asks
+the Default model's endpoint for its context window only when it starts.
 
 If you run `make dev`, the first start after this change moves your keys out of
 `backend/config.local.json` into `~/.harness/secrets.json`. If you want a copy
@@ -182,11 +187,11 @@ first open says Apple could not verify it: in System Settings → Privacy &
 Security, click **Open Anyway**, once. There are no automatic updates; a new
 version is a new dmg.
 
-On first start a setup window asks for the friend's own API key, with the
-endpoint and model from `desktop/config.json` filled in. It writes the key into
-the app's settings file, and the harness moves it into the keyring when it
-starts. The window shows only while that file holds no key and the keyring
-holds no Default model. Everything the app keeps is in
+On first start the app writes its settings file with a new encryption key, and
+the chat window opens on the setup screen. It asks for the friend's own API
+key, beside the endpoint and model from `desktop/config.json`, filled in and
+open to change. Start saves the key in the keyring as the
+Default model, and the chat opens in the same window. Everything the app keeps is in
 `~/Library/Application Support/Cell Harness/`: the settings file
 `config.local.json` (readable by its owner only), the keyring `secrets.json`,
 the chats, and `logs/`. A

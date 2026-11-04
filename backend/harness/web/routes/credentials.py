@@ -20,7 +20,12 @@ from harness.secrets import (
     SecretService,
     SecretValue,
 )
-from harness.secrets.models.details import ChatPlatform, ChatPlatformDetails, CredentialDetails
+from harness.secrets.models.details import (
+    ChatPlatform,
+    ChatPlatformDetails,
+    CredentialDetails,
+    ModelDetails,
+)
 from harness.web.errors import STATUS_OF
 from harness.web.platforms import PlatformChannels
 
@@ -51,12 +56,13 @@ class CredentialEntry(SavedCredential):
 
 
 class CredentialList(BaseModel):
-    """Every credential in the keyring, by name, and the harness's own address to save at."""
+    """Every credential by name, the address to save at, and the model the app ships with."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     credentials: tuple[CredentialEntry, ...]
     direct_url: str
+    shipped_model: ModelDetails
 
 
 class NewCredential(BaseModel):
@@ -91,7 +97,10 @@ class CredentialChange(BaseModel):
 
 
 def build_router(
-    secrets: SecretService, bots: BotService, platforms: PlatformChannels
+    secrets: SecretService,
+    bots: BotService,
+    platforms: PlatformChannels,
+    shipped_model: ModelDetails,
 ) -> APIRouter:
     """List the keyring's credentials with their bots; add, change and remove one from this Mac."""
     router = APIRouter(prefix="/api/credentials", tags=["credentials"])
@@ -104,6 +113,7 @@ def build_router(
         return CredentialList(
             credentials=tuple(_credential_entry(credential, active) for credential in saved),
             direct_url=_direct_url(request),
+            shipped_model=shipped_model,
         )
 
     @router.options("")

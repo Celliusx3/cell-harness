@@ -20,6 +20,7 @@ from harness.web.platforms import PlatformChannels
 from harness.web.routes.credentials import build_router
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
+from tests.webapp import SHIPPED_MODEL
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
@@ -167,7 +168,7 @@ async def _app_with_platforms(
     platforms = PlatformChannels(gateway, keyring, factory)
     await gateway.start()
     app = FastAPI()
-    app.include_router(build_router(keyring, bots, platforms))
+    app.include_router(build_router(keyring, bots, platforms, SHIPPED_MODEL))
     return app, gateway, factory.started
 
 

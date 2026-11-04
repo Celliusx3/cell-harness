@@ -25,7 +25,14 @@ from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_bots, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import channel_services, channels_of, secrets_in, web_gateway, web_mcp
+from tests.webapp import (
+    SHIPPED_MODEL,
+    channel_services,
+    channels_of,
+    secrets_in,
+    web_gateway,
+    web_mcp,
+)
 
 CHAT = "909"
 
@@ -57,6 +64,7 @@ def build(tmp_path):
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(sessions, no_bots(sessions), runs),
+        SHIPPED_MODEL,
     )
     return bot, app, gateway, runs, sessions
 
@@ -126,6 +134,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(sessions, no_bots(sessions), runs),
+        SHIPPED_MODEL,
     )
 
     assert gateway.channels == ["web"]

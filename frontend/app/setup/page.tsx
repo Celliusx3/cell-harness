@@ -1,0 +1,61 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { SetupColumn } from "@/components/setup/SetupColumn";
+import { SetupForm } from "@/components/setup/SetupForm";
+import { ApiError } from "@/lib/api";
+import { canSaveCredentials, hasDefaultModel, listCredentials, type CredentialList } from "@/lib/credentials";
+
+type SetupState =
+  | { kind: "loading" }
+  | { kind: "failed"; message: string }
+  | { kind: "alreadySetUp" }
+  | { kind: "cannotSave" }
+  | { kind: "canSave"; list: CredentialList };
+
+/** Asks for the API key that becomes the Default model, on the Mac that runs the harness and only before one is saved. */
+export default function SetupPage() {
+  const router = useRouter();
+  const [state, setState] = useState<SetupState>({ kind: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    readSetupState()
+      .then((next) => {
+        if (cancelled) return;
+        setState(next);
+        if (next.kind === "alreadySetUp") router.replace("/");
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setState({ kind: "failed", message: err instanceof ApiError ? err.message : "Could not load the setup." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  if (state.kind === "alreadySetUp") return null;
+  return (
+    <SetupColumn>
+      {state.kind === "loading" && <p className="text-sm text-ink-soft">Loading…</p>}
+      {state.kind === "failed" && <p className="text-sm text-danger">{state.message}</p>}
+      {state.kind === "cannotSave" && (
+        <h1 className="text-center font-serif text-4xl tracking-tight text-balance">
+          Finish setup on the Mac that runs Cell Harness
+        </h1>
+      )}
+      {state.kind === "canSave" && (
+        <SetupForm shippedModel={state.list.shipped_model} directUrl={state.list.direct_url} />
+      )}
+    </SetupColumn>
+  );
+}
+
+async function readSetupState(): Promise<SetupState> {
+  const list = await listCredentials();
+  if (hasDefaultModel(list.credentials)) return { kind: "alreadySetUp" };
+  return (await canSaveCredentials(list.direct_url)) ? { kind: "canSave", list } : { kind: "cannotSave" };
+}

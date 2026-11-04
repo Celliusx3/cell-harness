@@ -10,7 +10,7 @@ import {
 } from "@/components/credentials/credentialForm";
 import type { Bot } from "@/lib/types";
 
-const INPUT =
+export const INPUT_CLASSES =
   "rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent disabled:opacity-60";
 
 const KIND_LABELS: Record<CredentialKind, string> = {
@@ -48,7 +48,7 @@ export function CredentialFields({ form, kinds, isEditing, bots, onChange }: Cre
           onChange={(event) => change({ value: event.target.value })}
           placeholder={isEditing ? `Leave empty to keep the saved ${secret}` : `Paste the ${secret}`}
           autoComplete="off"
-          className={INPUT}
+          className={INPUT_CLASSES}
         />
       </Field>
       {!isPlatform && <BotChecks bots={bots} botIds={form.botIds} onChange={(botIds) => change({ botIds })} />}
@@ -75,7 +75,7 @@ function TypeAndName({ form, kinds, isEditing, onChange }: TypeAndNameProps) {
           value={form.kind}
           disabled={isEditing}
           onChange={(event) => onChange(withKind(form, CredentialKind.parse(event.target.value)))}
-          className={INPUT}
+          className={INPUT_CLASSES}
         >
           {kinds.map((kind) => (
             <option key={kind} value={kind}>
@@ -92,7 +92,7 @@ function TypeAndName({ form, kinds, isEditing, onChange }: TypeAndNameProps) {
           onChange={(event) => onChange({ name: event.target.value })}
           placeholder="lowercase letters, digits and _"
           autoComplete="off"
-          className={`font-mono ${INPUT}`}
+          className={`font-mono ${INPUT_CLASSES}`}
         />
       </Field>
     </>
@@ -115,7 +115,7 @@ function WebsiteFields({ form, onChange }: TypeFieldsProps) {
           placeholder="https://api.example.com"
           inputMode="url"
           autoComplete="off"
-          className={INPUT}
+          className={INPUT_CLASSES}
         />
       </Field>
       <Field label="The site takes the key" htmlFor="credential-auth">
@@ -123,7 +123,7 @@ function WebsiteFields({ form, onChange }: TypeFieldsProps) {
           id="credential-auth"
           value={form.auth}
           onChange={(event) => onChange({ auth: KeyAuth.parse(event.target.value) })}
-          className={INPUT}
+          className={INPUT_CLASSES}
         >
           <option value="bearer">As a bearer token</option>
           <option value="header">In a header</option>
@@ -137,7 +137,7 @@ function WebsiteFields({ form, onChange }: TypeFieldsProps) {
             onChange={(event) => onChange({ headerName: event.target.value })}
             placeholder="X-Api-Key"
             autoComplete="off"
-            className={`font-mono ${INPUT}`}
+            className={`font-mono ${INPUT_CLASSES}`}
           />
         </Field>
       )}
@@ -156,7 +156,7 @@ function ModelFields({ form, onChange }: TypeFieldsProps) {
           placeholder="https://api.openai.com/v1"
           inputMode="url"
           autoComplete="off"
-          className={INPUT}
+          className={INPUT_CLASSES}
         />
       </Field>
       <Field label="Model" htmlFor="credential-model">
@@ -165,7 +165,7 @@ function ModelFields({ form, onChange }: TypeFieldsProps) {
           value={form.model}
           onChange={(event) => onChange({ model: event.target.value })}
           autoComplete="off"
-          className={`font-mono ${INPUT}`}
+          className={`font-mono ${INPUT_CLASSES}`}
         />
       </Field>
     </>
@@ -201,7 +201,7 @@ function BotChecks({ bots, botIds, onChange }: BotChecksProps) {
   );
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+export function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs text-ink-soft" htmlFor={htmlFor}>

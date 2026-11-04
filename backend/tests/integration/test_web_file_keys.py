@@ -1,4 +1,4 @@
-"""A start moves the settings file's keys into the keyring once, or refuses with no Default."""
+"""A start moves the settings file's keys into the keyring once, and goes ahead with no key."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from harness.config.settings import MissingConfigError
 from harness.web import server
 from tests.webapp import TEST_ENCRYPTION_KEY, startup_settings
 
@@ -100,11 +99,12 @@ async def test_a_second_start_moves_nothing(
     assert (tmp_path / "secrets.json").read_bytes() == keyring_before
 
 
-def test_with_no_model_key_anywhere_the_harness_refuses_to_start(
+async def test_with_no_model_key_anywhere_the_harness_still_starts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with pytest.raises(MissingConfigError, match="no Default model") as refused:
-        _start(tmp_path, monkeypatch)
+    started = _start(tmp_path, monkeypatch)
+    listed = await _listed(started.app)
+    await started.channels.gateway.aclose()
 
-    assert str(tmp_path / "config.local.json") in str(refused.value)
+    assert listed == []
     assert not (tmp_path / "config.local.json").exists()

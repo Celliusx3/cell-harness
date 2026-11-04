@@ -85,16 +85,6 @@ def move_file_keys(local_json: Path, llm: LLMSettings, keyring: SecretService) -
     _write_owner_only(local_json, _without_keys(values, tuple(move.place for move in moves)))
 
 
-def require_default_model(keyring: SecretService, local_json: Path) -> None:
-    """`MissingConfigError` saying where to put the model key when no Default model is saved."""
-    if keyring.model_credential_version(DEFAULT_MODEL_CREDENTIAL) is None:
-        raise MissingConfigError(
-            "The keyring holds no Default model. Put its key in "
-            f'{local_json} as {{"llm": {{"api_key": "…"}}}}, and the harness moves it '
-            "into the keyring when it starts."
-        )
-
-
 def _key_moves(keys: KeysInFile, llm: LLMSettings) -> tuple[KeyMove, ...]:
     """Each key the file holds, with what it becomes; an empty one moves nothing."""
     model = _move_if_held(

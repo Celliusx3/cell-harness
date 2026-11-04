@@ -29,9 +29,9 @@ from harness.runs.service import RunService
 from harness.secrets import (
     DEFAULT_MODEL_CREDENTIAL,
     DiskSecretRepository,
-    SecretNotFound,
     SecretService,
 )
+from harness.secrets.models.details import ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
@@ -39,7 +39,7 @@ from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.bot_models import llm_settings_for
 from harness.web.errors import exception_handlers
-from harness.web.file_keys import move_file_keys, require_default_model
+from harness.web.file_keys import move_file_keys
 from harness.web.logs import configure_logging
 from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.web.routes.approvals import build_router as build_approvals_router
@@ -75,13 +75,12 @@ def build_mcp(settings: Settings) -> McpService:
 
 
 def build_keyring(settings: Settings) -> SecretService:
-    """The keyring, once the settings file's keys are moved in; refused with no Default model."""
+    """The keyring, once the settings file's keys are moved in."""
     keyring = SecretService(
         DiskSecretRepository(settings.secrets.path),
         encryption_key=settings.secrets.encryption_key,
     )
     move_file_keys(settings.local_settings_path, settings.llm, keyring)
-    require_default_model(keyring, settings.local_settings_path)
     return keyring
 
 
@@ -135,7 +134,12 @@ def _resolve_context_tokens(settings: Settings, keyring: SecretService) -> int |
         return configured
     default = keyring.model_credential_named(DEFAULT_MODEL_CREDENTIAL)
     if default is None:
-        raise SecretNotFound(DEFAULT_MODEL_CREDENTIAL)
+        logger.warning(
+            "compaction: context window unknown — no config value and no Default model saved "
+            "yet; automatic compaction is off until the next start, only a provider overflow "
+            "triggers it"
+        )
+        return None
     discovered = context_window_tokens(llm_settings_for(default, settings.llm))
     if discovered is not None:
         logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
@@ -185,7 +189,10 @@ def create_web_app() -> FastAPI:
     channels = build_channels(
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
-    return create_app(runs, channels, mcp, skills, client_tools, approvals, bots, secrets, messages)
+    shipped_model = ModelDetails(base_url=settings.llm.base_url, model=settings.llm.model)
+    return create_app(
+        runs, channels, mcp, skills, client_tools, approvals, bots, secrets, messages, shipped_model
+    )
 
 
 def create_app(
@@ -198,6 +205,7 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
+    shipped_model: ModelDetails,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -223,7 +231,7 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_credentials_router(secrets, bots, channels.platforms))
+    app.include_router(build_credentials_router(secrets, bots, channels.platforms, shipped_model))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

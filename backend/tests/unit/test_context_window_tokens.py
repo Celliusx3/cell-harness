@@ -104,3 +104,11 @@ async def test_the_window_is_found_from_inside_a_running_loop(tmp_path, monkeypa
     assert _resolve_context_tokens(unset, keyring) == 1000000
     assert seen[0].url == "https://default.example/v1/models"
     assert seen[0].headers["authorization"] == "Bearer sk-default-window"
+
+
+def test_with_no_default_model_and_no_cap_the_window_is_unknown(tmp_path) -> None:
+    unset = Settings.model_construct(
+        llm=settings(), compaction=CompactionSettings(context_tokens=None)
+    )
+
+    assert _resolve_context_tokens(unset, secrets_in(tmp_path)) is None
