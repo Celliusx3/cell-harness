@@ -105,6 +105,8 @@ export default function ConversationPage({
               items={items}
               openTurn={openTurn}
               speakers={speakers}
+              host={bot.kind === "found" ? { id: bot.item.id, name: bot.item.name } : null}
+              sending={conversation.sending}
               onAnswered={conversation.wake}
             />
             {conversation.queued.length > 0 && (

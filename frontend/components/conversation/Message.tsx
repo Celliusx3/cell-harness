@@ -15,11 +15,7 @@ export function UserBubble({ item, chatId }: { item: UserItem; chatId: string })
   const said = item.invoked ? (
     <InvokedBubble item={item} invoked={item.invoked} />
   ) : (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
-        {item.content}
-      </div>
-    </div>
+    <PlainBubble content={item.content} />
   );
   if (item.files.length === 0) return said;
   return (
@@ -28,6 +24,17 @@ export function UserBubble({ item, chatId }: { item: UserItem; chatId: string })
         <FileList chatId={chatId} files={item.files} align="end" />
       </div>
       {said}
+    </div>
+  );
+}
+
+/** What the person wrote, as it reads in their bubble. */
+export function PlainBubble({ content }: { content: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken px-4 py-2.5 text-sm text-ink">
+        {content}
+      </div>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { Speaker } from "@/components/conversation/timelineItems";
 
 const HUES = [25, 70, 145, 195, 250, 310];
@@ -18,5 +20,20 @@ export function BotAvatar({ speaker }: { speaker: Speaker }) {
     >
       {speaker.name.trim().charAt(0).toUpperCase() || "?"}
     </span>
+  );
+}
+
+/** What a bot shows, under its avatar and name, or bare when no bot is named. */
+export function BotBlock({ speaker, children }: { speaker: Speaker | null; children: ReactNode }) {
+  return (
+    <div className="flex gap-3">
+      {speaker !== null && <BotAvatar speaker={speaker} />}
+      <div className="min-w-0 flex-1 space-y-3">
+        {speaker !== null && (
+          <p className="text-sm font-semibold leading-7 text-ink">{speaker.name}</p>
+        )}
+        {children}
+      </div>
+    </div>
   );
 }

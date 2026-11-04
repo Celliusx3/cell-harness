@@ -6,11 +6,13 @@ import { useEffect, useRef } from "react";
 import { ApprovalRecord } from "@/components/answer/ApprovalPanel";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import { Activity } from "@/components/conversation/Activity";
-import { BotAvatar } from "@/components/conversation/BotAvatar";
+import { BotBlock } from "@/components/conversation/BotAvatar";
 import { Compaction } from "@/components/conversation/Compaction";
-import { AssistantBubble, UserBubble } from "@/components/conversation/Message";
+import { AssistantBubble, PlainBubble, UserBubble } from "@/components/conversation/Message";
+import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { ToolCard } from "@/components/conversation/ToolCard";
+import { progressOf } from "@/components/conversation/turnProgress";
 import { turnRows } from "@/components/conversation/turnRows";
 
 function scrollParent(node: HTMLElement | null): HTMLElement | null {
@@ -33,11 +35,15 @@ export function Timeline({
   items,
   openTurn,
   speakers,
+  host,
+  sending,
   onAnswered,
 }: {
   items: TimelineItem[];
   openTurn: number | null;
   speakers: ReadonlyMap<number, Speaker>;
+  host: Speaker | null;
+  sending: string | null;
   onAnswered: () => void;
 }) {
   const floor = useRef<HTMLDivElement>(null);
@@ -56,26 +62,26 @@ export function Timeline({
     return () => scroller.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    if (pinned.current) floor.current?.scrollIntoView({ block: "end" });
-  }, [items]);
-
   const stays = (item: ToolItem) =>
     item.call.name in CLIENT_TOOLS ||
     item.ui !== null ||
     item.files.length > 0 ||
     (item.result === null && openTurn === null);
   const shared = { openTurn, conversationId, onAnswered };
+  const rows = turnRows(items, { speakers, stays });
+  const isThinking = progressOf(rows, openTurn, sending)?.kind === "thinking";
+  const thinker = (openTurn === null ? undefined : speakers.get(openTurn)) ?? host;
+
+  useEffect(() => {
+    if (pinned.current) floor.current?.scrollIntoView({ block: "end" });
+  }, [items, sending, isThinking]);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6">
-      {turnRows(items, { speakers, stays }).map((row) => {
+      {rows.map((row) => {
         if (row.kind === "item") return <Item key={row.item.key} item={row.item} {...shared} />;
-        const parts = (
-          <div className="min-w-0 flex-1 space-y-3">
-            {row.speaker !== null && (
-              <p className="text-sm font-semibold leading-7 text-ink">{row.speaker.name}</p>
-            )}
+        return (
+          <BotBlock key={row.key} speaker={row.speaker ?? host}>
             {row.parts.map((part) =>
               part.kind === "item" ? (
                 <Item key={part.item.key} item={part.item} {...shared} />
@@ -91,16 +97,11 @@ export function Timeline({
                 </Activity>
               ),
             )}
-          </div>
-        );
-        if (row.speaker === null) return <div key={row.key}>{parts}</div>;
-        return (
-          <div key={row.key} className="flex gap-3">
-            <BotAvatar speaker={row.speaker} />
-            {parts}
-          </div>
+          </BotBlock>
         );
       })}
+      {sending !== null && <PlainBubble content={sending} />}
+      {isThinking && <ThinkingRow speaker={thinker} />}
       <div ref={floor} />
     </div>
   );
