@@ -13,7 +13,7 @@ type Catalog =
   | { kind: "failed"; message: string }
   | { kind: "loaded"; bots: Bot[]; groups: Group[]; archived: Bot[] };
 
-/** Every bot and group, then the archived bots. */
+/** Every bot but Bot builder, every group, then the archived bots. */
 export default function BotsPage() {
   const [catalog, setCatalog] = useState<Catalog>({ kind: "loading" });
 
