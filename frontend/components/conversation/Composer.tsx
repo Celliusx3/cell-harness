@@ -20,7 +20,7 @@ interface Props {
   initialDraft?: string;
 }
 
-/** The composer, with the files attached to the next message, and a moving bar and Stop while a turn runs. */
+/** The composer, with the files attached to the next message; while a turn runs, a moving bar, and Stop until a reply is typed. */
 export function Composer({ chatId, running, onSend, onStop, autoFocus, initialDraft }: Props) {
   const [draft, setDraft] = useState(initialDraft ?? "");
   const [dragging, setDragging] = useState(false);

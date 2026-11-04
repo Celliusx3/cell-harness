@@ -1,4 +1,4 @@
-import { BotBlock } from "@/components/conversation/BotAvatar";
+import { BotBlock } from "@/components/conversation/BotBlock";
 import type { Speaker } from "@/components/conversation/timelineItems";
 import { Trace, TraceDescription, TraceLine, TraceTitle } from "@/components/ui/trace";
 

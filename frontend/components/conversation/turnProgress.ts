@@ -19,10 +19,10 @@ export function progressOf(
   if (sending === null && openTurn === null) return null;
   const answered = rows.some((row) => row.kind === "answer" && row.turn === openTurn);
   if (!answered) return { kind: "starting" };
-  return stepOf(items.filter((item) => item.kind !== "instructions" && item.turn === openTurn));
+  return openTurnProgress(items.filter((item) => item.kind !== "instructions" && item.turn === openTurn));
 }
 
-function stepOf(turn: TimelineItem[]): Progress {
+function openTurnProgress(turn: TimelineItem[]): Progress {
   const running = turn.filter((item): item is ToolItem => item.kind === "tool" && item.result === null);
   const newestCall = running.at(-1);
   if (newestCall !== undefined) return { kind: "running", tool: humanise(newestCall.call.name).label };

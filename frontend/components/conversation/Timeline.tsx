@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { ApprovalRecord } from "@/components/answer/ApprovalPanel";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import { Activity } from "@/components/conversation/Activity";
-import { BotBlock } from "@/components/conversation/BotAvatar";
+import { BotBlock } from "@/components/conversation/BotBlock";
 import { Compaction } from "@/components/conversation/Compaction";
 import {
   AssistantBubble,
@@ -80,7 +80,7 @@ export function Timeline({
   const rows = turnRows(items, { speakers, stays });
   const progress = progressOf(rows, items, openTurn, sending);
   const isStarting = progress?.kind === "starting";
-  const thinker = (openTurn === null ? undefined : speakers.get(openTurn)) ?? host;
+  const openTurnSpeaker = (openTurn === null ? undefined : speakers.get(openTurn)) ?? host;
 
   useEffect(() => {
     if (pinned.current) floor.current?.scrollIntoView({ block: "end" });
@@ -114,7 +114,7 @@ export function Timeline({
         );
       })}
       {sending !== null && <PlainBubble content={sending} />}
-      {isStarting && <ThinkingRow speaker={thinker} elapsed={elapsed} />}
+      {isStarting && <ThinkingRow speaker={openTurnSpeaker} elapsed={elapsed} />}
       {queued.map((text, index) => (
         <QueuedBubble key={index} content={text} />
       ))}
