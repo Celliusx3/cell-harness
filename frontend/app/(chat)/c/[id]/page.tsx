@@ -10,6 +10,7 @@ import { questionOf, waitingQuestion } from "@/components/answer/question";
 import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
 import { refreshSidebar } from "@/components/chat/Sidebar";
 import { type Found, useFound } from "@/components/chat/useFound";
+import { announceWorking } from "@/components/chat/workingChat";
 import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
 import { QueuedBubble } from "@/components/conversation/Message";
@@ -48,6 +49,11 @@ export default function ConversationPage({
     if (wasRunning.current && !conversation.running) refreshSidebar();
     wasRunning.current = conversation.running;
   }, [conversation.running]);
+
+  useEffect(() => {
+    announceWorking(id, conversation.running);
+    return () => announceWorking(id, false);
+  }, [id, conversation.running]);
 
   const host = speakerOf(bot);
 
