@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{color-scheme:light}
+body{margin:0;background:#ebeae6;color:#222;font-family:Inter,-apple-system,"Segoe UI",Roboto,sans-serif}
+.page{max-width:1328px;margin:0 auto;padding:24px 24px 96px}
+.intro h1{margin:8px 0 4px;font-size:20px}
+.intro p{margin:0 0 24px;color:#55534d;font-size:14px}
+.controls{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 24px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-bottom:1px solid #dddbd5;font-size:13px}
+.controls .label{color:#55534d;margin-right:4px}
+.controls button{min-height:32px;padding:4px 12px;border:1px solid #d6d4cd;border-radius:999px;background:#fff;color:#222;font:inherit;cursor:pointer}
+.controls button[aria-pressed="true"]{background:#222;border-color:#222;color:#fff}
+.controls .play{margin-right:8px;font-weight:600}
+.board{margin:0 0 56px}
+.board h2{margin:0 0 4px;font-size:16px}
+.board .cap{margin:0 0 12px;color:#55534d;font-size:13px}
+.frame{border-radius:12px;overflow:hidden;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.06),0 10px 30px rgba(0,0,0,.06)}
+
+.look-today{--surface:oklch(97.8% 0.008 85);--raised:#fff;--sunken:oklch(94.5% 0.012 88);--side:oklch(94.5% 0.012 88);--line:oklch(89% 0.014 88);--ink:oklch(25% 0.006 75);--soft:oklch(54% 0.012 85);--accent:oklch(58% 0.13 40);--accent-soft:oklch(93.5% 0.022 55);--on-accent:#fff;--danger:oklch(55% 0.18 25);--avatar:oklch(58% 0.13 40)}
+.look-warm{--surface:oklch(97.8% 0.008 85);--raised:#fff;--sunken:oklch(94.5% 0.012 88);--side:oklch(95.5% 0.011 88);--line:oklch(89% 0.014 88);--ink:oklch(25% 0.006 75);--soft:oklch(48% 0.012 85);--accent:oklch(55% 0.13 40);--accent-soft:oklch(93.5% 0.022 55);--on-accent:#fff;--user:oklch(93.5% 0.022 55);--ring:oklch(55% 0.13 40 / .45);--avatar:oklch(55% 0.12 40);--danger:oklch(50% 0.18 25);--danger-soft:oklch(95.5% 0.025 25)}
+.look-neutral{--surface:#fff;--raised:#fff;--sunken:#f2f2f4;--side:#f7f7f8;--line:#e4e4e8;--ink:#17171a;--soft:#5b5b64;--accent:#3451d1;--accent-soft:#eceffc;--on-accent:#fff;--user:#f0f0f3;--ring:rgba(52,81,209,.4);--avatar:#3451d1;--danger:#c4321f;--danger-soft:#fdeeec}
+
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.i.s14{width:14px;height:14px}
+.i.s12{width:12px;height:12px}
+.i.fill{fill:currentColor;stroke:none}
+.i.bold{stroke-width:2.5}
+
+.app{display:flex;flex-wrap:wrap;min-height:760px;background:var(--surface);color:var(--ink);font-size:14px;line-height:1.5}
+.side{flex:1 1 288px;max-width:100%;display:flex;flex-direction:column;background:var(--side);border-right:1px solid var(--line)}
+.side-top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+.brand{font-weight:600;letter-spacing:-.01em}
+.side-nav{flex:1;padding:4px 8px 16px}
+.side-nav h3{margin:0;padding:0 8px 4px;font-size:12px;font-weight:500;color:var(--soft)}
+.side-nav ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;color:var(--soft);text-decoration:none}
+.row.current{background:var(--accent-soft);color:var(--ink);font-weight:500}
+.row .dot{margin-left:auto}
+.side-foot{border-top:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:2px}
+.avatar{display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--avatar);color:#fff;font-size:12px;font-weight:600}
+.avatar.sm{width:22px;height:22px;font-size:11px}
+.avatar.lg{width:30px;height:30px;font-size:13px}
+.main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.hdr{display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid var(--line);min-height:56px}
+.hdr h1{margin:0;font-size:14px;font-weight:600;line-height:1.3}
+.hdr-title{display:flex;flex-direction:column;min-width:0}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums}
+.status.idle{color:var(--soft)}
+.hdr-actions{margin-left:auto;display:flex;gap:4px}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:8px;background:transparent;color:var(--soft);cursor:pointer}
+.iconbtn:hover{background:var(--sunken);color:var(--ink)}
+.iconbtn.boxed{width:32px;height:32px;border:1px solid var(--line);background:var(--raised);color:var(--ink)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.status .dot{width:6px;height:6px}
+.timeline{flex:1;padding:28px 24px 12px}
+.col{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.user-row{display:flex;justify-content:flex-end}
+.user{max-width:80%;padding:10px 16px;border-radius:18px 18px 6px 18px;background:var(--user);white-space:pre-wrap;overflow-wrap:anywhere}
+.bot{display:flex;gap:12px}
+.bot-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.name{margin:0;font-weight:600;line-height:28px}
+.thinking{display:flex;align-items:center;gap:10px;min-height:24px}
+.dots{display:inline-flex;gap:4px;color:var(--accent)}
+.d{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;animation:dot 1.2s ease-in-out infinite}
+.d:nth-child(2){animation-delay:.15s}
+.d:nth-child(3){animation-delay:.3s}
+.clock{font-size:12px;color:var(--soft);font-variant-numeric:tabular-nums}
+.shimmer{font-weight:500;background-image:linear-gradient(90deg,var(--soft) 0%,var(--soft) 35%,var(--ink) 50%,var(--soft) 65%,var(--soft) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 1.8s linear infinite}
+.act-btn{display:flex;align-items:center;min-height:28px;padding:2px 0;border:0;background:none;font:inherit;font-size:13px;color:var(--soft);cursor:pointer}
+.act-btn:hover{color:var(--ink)}
+.act-live,.act-folded{display:inline-flex;align-items:center;gap:8px}
+.small{font-size:12px}
+.chev{transition:transform .15s}
+.cards{margin:6px 0 2px 6px;padding-left:14px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.card{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--raised);font-size:13px}
+.card .label{font-weight:500}
+.card .server{color:var(--soft)}
+.card .note{margin-left:auto;font-size:12px;color:var(--soft)}
+.card.failed{border-color:color-mix(in oklch,var(--danger) 35%,transparent);background:var(--danger-soft)}
+.card.failed .note{color:var(--danger)}
+.ok{color:var(--soft)}
+.run{color:var(--accent)}
+.bad{color:var(--danger)}
+.reply{line-height:1.7}
+.chip{padding:1px 6px;border-radius:5px;background:var(--sunken);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12.5px}
+.caret::after{content:"";display:inline-block;width:.5em;height:1em;margin-left:.1em;vertical-align:text-bottom;background:var(--accent);animation:caret 1s step-end infinite}
+.composer-wrap{padding:8px 24px 22px}
+.composer{position:relative;max-width:720px;margin:0 auto;border:1px solid var(--line);border-radius:16px;background:var(--raised);box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}
+.bar-track{position:absolute;top:0;left:0;right:0;height:2px;overflow:hidden}
+.bar{width:30%;height:100%;border-radius:2px;background:var(--accent);animation:bar 1.6s ease-in-out infinite}
+.composer-row{display:flex;align-items:flex-end;gap:8px;padding:8px}
+.composer textarea{flex:1;min-height:36px;padding:8px 4px;border:0;outline:none;resize:none;background:transparent;color:var(--ink);font:inherit}
+.composer .ghost{flex:1;padding:6px 8px;color:var(--soft)}
+.composer .typed{flex:1;padding:6px 8px}
+.send,.stop{display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:10px;cursor:pointer}
+.send{background:var(--accent);color:var(--on-accent)}
+.stop{background:var(--ink);color:var(--surface)}
+
+.spin{animation:spin .9s linear infinite}
+.ring{animation:ring 1.4s ease-out infinite}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes dot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@keyframes shimmer{0%{background-position:150% 0}100%{background-position:-50% 0}}
+@keyframes ring{0%{box-shadow:0 0 0 0 var(--ring)}100%{box-shadow:0 0 0 7px transparent}}
+@keyframes bar{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
+@keyframes caret{0%,45%{opacity:1}55%,100%{opacity:0}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.spin,.ring,.pulse,.d,.shimmer,.bar{animation:none}}
+
+.today .side-top .new{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink);font:inherit;font-size:12px}
+.today .row.current{background:var(--accent-soft)}
+.today .hdr{min-height:0;padding:12px 24px}
+.today .hdr h1{font-weight:500}
+.today .pill{padding:2px 8px;border-radius:999px;background:var(--accent-soft);font-size:12px;color:var(--soft)}
+.today .small-btn{padding:2px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--soft);font:inherit;font-size:12px;text-decoration:none}
+.today .col{max-width:768px}
+.today .user{background:var(--sunken);border-radius:16px}
+.today .composer{border-color:var(--accent)}
+.today .stop{background:var(--danger);color:#fff;border-radius:12px}
+.today .send{opacity:.35;border-radius:12px}
+
+.sheet{background:var(--surface);color:var(--ink);font-size:14px;line-height:1.5;padding:40px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.sheet section{display:flex;flex-direction:column;gap:10px;min-width:0}
+.sheet h3{margin:0;font-size:13px;font-weight:600;color:var(--soft)}
+.tile{display:flex;flex-direction:column;gap:10px;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--raised)}
+.tag{flex-shrink:0;width:76px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--soft)}
+.tag.new{color:var(--accent)}
+.compare{display:flex;align-items:baseline;gap:12px}
+.menu{align-self:flex-end;width:220px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--raised);box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.menu button{display:flex;flex-direction:column;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;font:inherit;text-align:left;color:var(--ink);cursor:pointer}
+.menu button:hover{background:var(--sunken)}
+.menu .hint{font-size:12px;color:var(--soft)}
+.menu .danger{color:var(--danger)}
+@media (max-width:860px){.sheet{grid-template-columns:minmax(0,1fr);padding:20px}.page{padding:16px 16px 64px}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+<symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="m4.9 4.9 2.1 2.1"/><path d="m17 17 2.1 2.1"/><path d="M2 12h3"/><path d="M19 12h3"/><path d="m4.9 19.1 2.1-2.1"/><path d="m17 7 2.1-2.1"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+<symbol id="i-spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="3"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+</svg>
+
+<div class="controls" role="toolbar" aria-label="Play the turn">
+<button type="button" class="play" data-play>Pause</button>
+<span class="label">Jump to:</span>
+</div>
+
+<div class="page">
+<div class="intro">
+<h1>cell-harness chat redesign</h1>
+<p>Both proposed screens play the same turn on a loop. Pause, or jump to a moment with the buttons above. Click "Used 2 tools" after the turn to unfold it.</p>
+</div>
+
+<section class="board">
+<h2>Today, 2.5 s after send</h2>
+<p class="cap">Drawn from a screenshot of the running app. The chat shows nothing until the first tool call, 5.6 s after send.</p>
+<div class="frame look-today today">
+<div class="app">
+<aside class="side">
+<div class="side-top"><span class="brand">cell-harness</span><button type="button" class="new"><svg class="i s14"><use href="#i-plus"/></svg>New</button></div>
+<nav class="side-nav"><h3>Bots</h3><ul><li><a href="#" class="row current">Assistant</a></li></ul></nav>
+<div class="side-foot">
+<a href="#" class="row"><svg class="i"><use href="#i-bot"/></svg>Bots</a>
+<a href="#" class="row"><svg class="i"><use href="#i-monitor"/></svg>Computer</a>
+<a href="#" class="row"><svg class="i"><use href="#i-gear"/></svg>Settings</a>
+</div>
+</aside>
+<main class="main">
+<header class="hdr">
+<h1>Assistant</h1>
+<span class="pill">working</span>
+<div class="hdr-actions" style="gap:8px">
+<a href="#" class="small-btn">Edit bot</a>
+<button type="button" class="small-btn" disabled style="opacity:.4">Compact</button>
+<button type="button" class="small-btn">Clear</button>
+</div>
+</header>
+<div class="timeline"><div class="col">
+<div class="user-row"><div class="user">List the files in your computer's home folder, then tell me in two sentences what you found.</div></div>
+</div></div>
+<div class="composer-wrap"><div class="composer"><div class="composer-row">
+<button type="button" class="iconbtn" aria-label="Attach files"><svg class="i"><use href="#i-clip"/></svg></button>
+<textarea rows="1" aria-label="Message" placeholder="Reply — it will be answered next"></textarea>
+<button type="button" class="stop" aria-label="Stop"><svg class="i s12 fill"><use href="#i-stop"/></svg></button>
+<button type="button" class="send" aria-label="Send" disabled><svg class="i"><use href="#i-up"/></svg></button>
+</div></div></div>
+</main>
+</div>
+</div>
+</section>
+
+<section class="board">
+<h2>Proposed, warm look</h2>
+<p class="cap">Today's colours, tidied up. The grey text is a little darker so it is easier to read.</p>
+<div class="frame look-warm" data-proto></div>
+</section>
+
+<section class="board">
+<h2>Proposed, neutral look</h2>
+<p class="cap">The same screen in white and blue.</p>
+<div class="frame look-neutral" data-proto></div>
+</section>
+
+<section class="board">
+<h2>Every loading state, side by side</h2>
+<p class="cap">Warm look. Today's version is shown next to the proposed one where they differ.</p>
+<div class="frame look-warm">
+<div class="sheet">
+
+<section>
+<h3>1. The moment you press send</h3>
+<div class="tile" style="flex-direction:row;gap:12px">
+<span class="avatar ring" aria-hidden="true">A</span>
+<div style="display:flex;flex-direction:column;gap:6px">
+<p class="name">Assistant</p>
+<div class="thinking"><span class="dots" aria-hidden="true"><span class="d"></span><span class="d"></span><span class="d"></span></span><span class="shimmer">Thinking</span><span class="clock">0:01</span></div>
+</div>
+</div>
+</section>
+
+<section>
+<h3>2. Between two tool calls</h3>
+<div class="tile" style="gap:6px">
+<span class="act-live" style="font-size:13px;color:var(--soft)"><svg class="i s14 bold spin run"><use href="#i-spin"/></svg><span class="shimmer">Thinking</span><span class="small">· 2 tools</span></span>
+<div class="cards">
+<div class="card"><svg class="i s14 bold ok"><use href="#i-check"/></svg><span class="label">list functions</span></div>
+<div class="card"><svg class="i s14 bold ok"><use href="#i-check"/></svg><span class="server">computer</span><span class="label">file list</span></div>
+</div>
+</div>
+</section>
+
+<section>
+<h3>3. A tool call: running, done, failed</h3>
+<div class="tile" style="gap:6px">
+<div class="card"><svg class="i s14 bold spin run"><use href="#i-spin"/></svg><span class="server">computer</span><span class="label">file list</span><span class="note">running</span></div>
+<div class="card"><svg class="i s14 bold ok"><use href="#i-check"/></svg><span class="server">computer</span><span class="label">file list</span></div>
+<div class="card failed"><svg class="i s14 bad"><use href="#i-alert"/></svg><span class="server">computer</span><span class="label">file list</span><span class="note">missing required field: path</span></div>
+</div>
+</section>
+
+<section>
+<h3>4. After the turn, folded</h3>
+<div class="tile" style="gap:14px">
+<div class="compare" style="align-items:center"><span class="tag">Today</span><span class="act-folded" style="gap:4px;font-size:12px;color:var(--soft)"><svg class="i s14"><use href="#i-chev"/></svg>Done · 19 tools</span></div>
+<div class="compare" style="align-items:center"><span class="tag new">Proposed</span><span class="act-folded" style="font-size:13px;color:var(--soft)"><svg class="i s14"><use href="#i-chev"/></svg>Used 19 tools <span class="bad">· 17 failed</span></span></div>
+</div>
+</section>
+
+<section>
+<h3>5. The message box while the bot works</h3>
+<div class="tile" style="gap:12px">
+<div class="composer" style="margin:0;max-width:none"><div class="bar-track" aria-hidden="true"><div class="bar"></div></div><div class="composer-row" style="align-items:center"><span class="ghost">Reply, and it is answered after this turn</span><button type="button" class="stop" aria-label="Stop"><svg class="i s12 fill"><use href="#i-stop"/></svg></button></div></div>
+<div class="composer" style="margin:0;max-width:none"><div class="bar-track" aria-hidden="true"><div class="bar"></div></div><div class="composer-row" style="align-items:center"><span class="typed">Also check the Downloads folder</span><button type="button" class="send" aria-label="Send"><svg class="i"><use href="#i-up"/></svg></button></div></div>
+</div>
+</section>
+
+<section>
+<h3>6. Code inside a sentence</h3>
+<div class="tile" style="gap:14px">
+<div class="compare"><span class="tag">Today</span><span>An issue with how the <code style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12.5px;font-weight:700">`computer__file_list`</code> tool is called.</span></div>
+<div class="compare"><span class="tag new">Proposed</span><span>An issue with how the <code class="chip">computer__file_list</code> tool is called.</span></div>
+</div>
+</section>
+
+<section>
+<h3>7. The chat's header, with More open</h3>
+<div class="tile">
+<div style="display:flex;align-items:center;gap:12px">
+<span class="avatar lg" aria-hidden="true">A</span>
+<div class="hdr-title"><span style="font-weight:600;line-height:1.3">Assistant</span><span class="status"><span class="dot pulse"></span>Working · 0:07</span></div>
+<div class="hdr-actions">
+<button type="button" class="iconbtn" aria-label="Edit bot"><svg class="i"><use href="#i-pencil"/></svg></button>
+<button type="button" class="iconbtn" aria-label="More: compact or clear this chat" aria-expanded="true" style="background:var(--sunken);color:var(--ink)"><svg class="i"><use href="#i-more"/></svg></button>
+</div>
+</div>
+<div class="menu" role="menu">
+<button type="button" role="menuitem">Compact<span class="hint">Summarise older messages</span></button>
+<button type="button" role="menuitem" class="danger">Clear chat</button>
+</div>
+</div>
+</section>
+
+<section>
+<h3>8. The sidebar while a bot works</h3>
+<div class="tile" style="padding:12px 8px;background:var(--side)">
+<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px">
+<li><a href="#" class="row current"><span class="avatar sm" aria-hidden="true">A</span>Assistant<span class="dot pulse" aria-label="Working"></span></a></li>
+<li><a href="#" class="row"><span class="avatar sm" aria-hidden="true" style="background:oklch(52% 0.11 230)">R</span>Researcher</a></li>
+</ul>
+</div>
+</section>
+
+</div>
+</div>
+</section>
+</div>
+
+<template id="proto">
+<div class="app">
+<aside class="side">
+<div class="side-top"><span class="brand">cell-harness</span><button type="button" class="iconbtn boxed" aria-label="New"><svg class="i"><use href="#i-plus"/></svg></button></div>
+<nav class="side-nav"><h3>Bots</h3><ul><li><a href="#" class="row current"><span class="avatar sm" aria-hidden="true">A</span>Assistant<span class="dot pulse" data-when="running" aria-label="Working"></span></a></li></ul></nav>
+<div class="side-foot">
+<a href="#" class="row"><svg class="i"><use href="#i-bot"/></svg>Bots</a>
+<a href="#" class="row"><svg class="i"><use href="#i-monitor"/></svg>Computer</a>
+<a href="#" class="row"><svg class="i"><use href="#i-gear"/></svg>Settings</a>
+</div>
+</aside>
+<main class="main">
+<header class="hdr">
+<span class="avatar lg" aria-hidden="true">A</span>
+<div class="hdr-title">
+<h1>Assistant</h1>
+<span class="status" data-when="running"><span class="dot pulse"></span>Working · <span data-text="clock">0:00</span></span>
+<span class="status idle" data-when="idle">Ready</span>
+</div>
+<div class="hdr-actions">
+<button type="button" class="iconbtn" aria-label="Edit bot"><svg class="i"><use href="#i-pencil"/></svg></button>
+<button type="button" class="iconbtn" aria-label="More: compact or clear this chat"><svg class="i"><use href="#i-more"/></svg></button>
+</div>
+</header>
+<div class="timeline"><div class="col">
+<div class="user-row"><div class="user">List the files in your computer's home folder, then tell me in two sentences what you found.</div></div>
+<div class="bot">
+<span class="avatar" data-ring aria-hidden="true">A</span>
+<div class="bot-body">
+<p class="name">Assistant</p>
+<div class="thinking" data-when="thinking" role="status"><span class="dots" aria-hidden="true"><span class="d"></span><span class="d"></span><span class="d"></span></span><span class="shimmer">Thinking</span><span class="clock" data-text="clock">0:00</span></div>
+<div data-when="activity">
+<button type="button" class="act-btn" data-toggle aria-expanded="true">
+<span class="act-live" data-when="live"><svg class="i s14 bold spin run"><use href="#i-spin"/></svg><span class="shimmer" data-text="liveLabel">Thinking</span><span class="small">· <span data-text="steps">1 tool</span></span></span>
+<span class="act-folded" data-when="folded"><svg class="i s14 chev" data-chevron><use href="#i-chev"/></svg><span data-text="foldLabel">Used 2 tools</span></span>
+</button>
+<div class="cards" data-when="cards">
+<div class="card" data-card="0"><svg class="i s14 bold spin run" data-icon="running"><use href="#i-spin"/></svg><svg class="i s14 bold ok" data-icon="done"><use href="#i-check"/></svg><span class="label">list functions</span><span class="note" data-note></span></div>
+<div class="card" data-card="1"><svg class="i s14 bold spin run" data-icon="running"><use href="#i-spin"/></svg><svg class="i s14 bold ok" data-icon="done"><use href="#i-check"/></svg><span class="server">computer</span><span class="label">file list</span><span class="note" data-note></span></div>
+</div>
+</div>
+<div class="reply" data-when="reply"><span data-part="0"></span><code class="chip" data-part="1"></code><span data-part="2"></span><code class="chip" data-part="3"></code><span data-part="4"></span><code class="chip" data-part="5"></code><span data-part="6"></span><code class="chip" data-part="7"></code><span data-part="8"></span></div>
+</div>
+</div>
+</div></div>
+<div class="composer-wrap"><div class="composer">
+<div class="bar-track" data-when="running" aria-hidden="true"><div class="bar"></div></div>
+<div class="composer-row">
+<button type="button" class="iconbtn" aria-label="Attach files"><svg class="i"><use href="#i-clip"/></svg></button>
+<textarea rows="1" aria-label="Message"></textarea>
+<button type="button" class="stop" data-when="running" aria-label="Stop"><svg class="i s12 fill"><use href="#i-stop"/></svg></button>
+<button type="button" class="send" data-when="idle" aria-label="Send"><svg class="i"><use href="#i-up"/></svg></button>
+</div>
+</div></div>
+</main>
+</div>
+</template>
+
+<script>
+const PHASES = [
+  { name: "Just sent", at: 0 },
+  { name: "Tool 1", at: 2200 },
+  { name: "Tool 2", at: 3600 },
+  { name: "Between steps", at: 6000 },
+  { name: "Writing", at: 7200, jump: 8800 },
+  { name: "Done", at: 10400 },
+];
+const END = 10400;
+const CYCLE = 14600;
+const TICK = 100;
+const TOOLS = [
+  { label: "list functions", start: 2200, end: 3600 },
+  { label: "file list", start: 3600, end: 6000 },
+];
+const PARTS = [
+  "Your home folder has three entries: ", "notes.md", ", ", "projects/", " and ",
+  "downloads/", ". Only ", "projects/", " has anything in it, so that is where your work lives.",
+];
+const TOTAL = PARTS.join("").length;
+
+const template = document.getElementById("proto");
+const roots = [...document.querySelectorAll("[data-proto]")].map((host) => {
+  host.appendChild(template.content.cloneNode(true));
+  return host;
+});
+const controls = document.querySelector(".controls");
+const playButton = controls.querySelector("[data-play]");
+const phaseButtons = PHASES.map((phase) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = phase.name;
+  button.addEventListener("click", () => {
+    state = { ...state, t: phase.jump ?? phase.at, playing: false };
+    render();
+  });
+  controls.appendChild(button);
+  return button;
+});
+
+let state = { t: 0, playing: true, open: false };
+
+function frameOf(t, open) {
+  const done = t >= END;
+  const live = t >= 2200 && t < 7200;
+  const folded = t >= 7200;
+  const shown = TOOLS.filter((tool) => t >= tool.start);
+  const current = TOOLS.find((tool) => t >= tool.start && t < tool.end);
+  const count = shown.length + (shown.length === 1 ? " tool" : " tools");
+  const seconds = Math.floor(Math.min(t, END) / 1000);
+  let budget = done ? TOTAL : Math.floor((TOTAL * Math.max(0, t - 7200)) / 3200);
+  const parts = PARTS.map((text) => {
+    const piece = text.slice(0, Math.max(0, budget));
+    budget -= piece.length;
+    return piece;
+  });
+  return {
+    when: {
+      running: !done, idle: done, thinking: t < 2200, activity: t >= 2200,
+      live, folded, cards: live || (folded && open), reply: t >= 7200,
+    },
+    text: {
+      clock: "0:" + String(seconds).padStart(2, "0"),
+      liveLabel: current ? "Running " + current.label : "Thinking",
+      steps: count,
+      foldLabel: "Used " + count,
+    },
+    tools: TOOLS.map((tool) => ({ shown: t >= tool.start, running: t < tool.end })),
+    parts,
+    streaming: folded && !done,
+    open,
+    expanded: live || open,
+    placeholder: done ? "Send a message" : "Reply, and it is answered after this turn",
+  };
+}
+
+function paint(root, frame) {
+  for (const [name, on] of Object.entries(frame.when)) {
+    root.querySelectorAll(`[data-when="${name}"]`).forEach((el) => el.toggleAttribute("hidden", !on));
+  }
+  for (const [name, value] of Object.entries(frame.text)) {
+    root.querySelectorAll(`[data-text="${name}"]`).forEach((el) => {
+      if (el.textContent !== value) el.textContent = value;
+    });
+  }
+  frame.tools.forEach((tool, index) => {
+    const card = root.querySelector(`[data-card="${index}"]`);
+    card.toggleAttribute("hidden", !tool.shown);
+    card.querySelector('[data-icon="running"]').toggleAttribute("hidden", !tool.running);
+    card.querySelector('[data-icon="done"]').toggleAttribute("hidden", tool.running);
+    card.querySelector("[data-note]").textContent = tool.running ? "running" : "";
+  });
+  frame.parts.forEach((piece, index) => {
+    const el = root.querySelector(`[data-part="${index}"]`);
+    if (el.textContent !== piece) el.textContent = piece;
+    el.toggleAttribute("hidden", piece === "");
+  });
+  root.querySelector(".reply").classList.toggle("caret", frame.streaming);
+  root.querySelector("[data-ring]").classList.toggle("ring", frame.when.running);
+  root.querySelector("[data-chevron]").style.transform = frame.open ? "rotate(90deg)" : "none";
+  root.querySelector("[data-toggle]").setAttribute("aria-expanded", String(frame.expanded));
+  root.querySelector("textarea").placeholder = frame.placeholder;
+}
+
+function render() {
+  const frame = frameOf(state.t, state.open);
+  roots.forEach((root) => paint(root, frame));
+  const active = PHASES.reduce((found, phase, index) => (state.t >= phase.at ? index : found), 0);
+  phaseButtons.forEach((button, index) => button.setAttribute("aria-pressed", String(index === active)));
+  playButton.textContent = state.playing ? "Pause" : "Play";
+}
+
+playButton.addEventListener("click", () => {
+  state = { ...state, playing: !state.playing };
+  render();
+});
+
+roots.forEach((root) => root.querySelector("[data-toggle]").addEventListener("click", () => {
+  if (state.t < 7200) return;
+  state = { ...state, open: !state.open };
+  render();
+}));
+
+setInterval(() => {
+  if (!state.playing) return;
+  const next = state.t + TICK;
+  state = next >= CYCLE ? { ...state, t: 0, open: false } : { ...state, t: next };
+  render();
+}, TICK);
+
+render();
+</script>
+</body>
+</html>
