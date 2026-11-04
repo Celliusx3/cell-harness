@@ -23,7 +23,7 @@ from harness.web.server import create_app
 from tests.unit.fakes import OneModel, SteppedClient, completed
 from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import channels_of, secrets_in, web_gateway, web_mcp
+from tests.webapp import SHIPPED_MODEL, channels_of, secrets_in, web_gateway, web_mcp
 
 CHAT = "909"
 
@@ -69,6 +69,7 @@ def build_on(tmp_path, model: LLMClient):
         bots,
         secrets_in(tmp_path),
         BotMessages(sessions, bots, runs),
+        SHIPPED_MODEL,
     )
     http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return bot, http, gateway, runs

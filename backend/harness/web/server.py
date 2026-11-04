@@ -31,6 +31,7 @@ from harness.secrets import (
     DiskSecretRepository,
     SecretService,
 )
+from harness.secrets.models.details import ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
@@ -188,7 +189,10 @@ def create_web_app() -> FastAPI:
     channels = build_channels(
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
-    return create_app(runs, channels, mcp, skills, client_tools, approvals, bots, secrets, messages)
+    shipped_model = ModelDetails(base_url=settings.llm.base_url, model=settings.llm.model)
+    return create_app(
+        runs, channels, mcp, skills, client_tools, approvals, bots, secrets, messages, shipped_model
+    )
 
 
 def create_app(
@@ -201,6 +205,7 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
+    shipped_model: ModelDetails,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -226,7 +231,7 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_credentials_router(secrets, bots, channels.platforms))
+    app.include_router(build_credentials_router(secrets, bots, channels.platforms, shipped_model))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

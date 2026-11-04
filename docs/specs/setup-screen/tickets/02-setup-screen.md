@@ -1,6 +1,6 @@
 # 02 The setup screen saves the Default model
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

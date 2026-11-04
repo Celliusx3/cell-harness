@@ -14,8 +14,14 @@ export type CredentialDetails =
   | { kind: "telegram" }
   | { kind: "discord" };
 
+/** A model provider's endpoint and the model to ask there. */
+export type ModelDetails = Extract<CredentialDetails, { kind: "llm" }>;
+
 /** The kinds that sign the app in to a chat platform. */
 export type ChatPlatform = Extract<CredentialDetails["kind"], "telegram" | "discord">;
+
+/** The name the harness gives the Default model. */
+export const DEFAULT_MODEL_CREDENTIAL = "default_model";
 
 /** `GET /api/credentials`: one keyring entry, the bots it serves, and its last four characters at most. */
 export interface Credential {
@@ -26,10 +32,11 @@ export interface Credential {
   bots: { id: string; name: string }[];
 }
 
-/** `GET /api/credentials`, with the harness's own address, where every save goes. */
+/** `GET /api/credentials`, with the harness's own address, where every save goes, and the model the app ships with. */
 export interface CredentialList {
   credentials: Credential[];
   direct_url: string;
+  shipped_model: ModelDetails;
 }
 
 /** `POST /api/credentials`: a new credential, its key, and the bots it serves. */

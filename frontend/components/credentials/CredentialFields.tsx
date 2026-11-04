@@ -10,7 +10,7 @@ import {
 } from "@/components/credentials/credentialForm";
 import type { Bot } from "@/lib/types";
 
-const INPUT =
+export const INPUT =
   "rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent disabled:opacity-60";
 
 const KIND_LABELS: Record<CredentialKind, string> = {
@@ -201,7 +201,7 @@ function BotChecks({ bots, botIds, onChange }: BotChecksProps) {
   );
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
+export function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs text-ink-soft" htmlFor={htmlFor}>
