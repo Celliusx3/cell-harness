@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, ExternalLink, TriangleAlert, Wrench } from "lucide-react";
+import { Check, ChevronRight, ExternalLink, LoaderCircle, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import { CodeBlock } from "@/components/conversation/CodeBlock";
 import { FileList } from "@/components/conversation/FileList";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import { imageUrl } from "@/lib/api";
+import { humanise } from "@/lib/toolName";
 import type { ContentBlock, ImageBlock } from "@/lib/types";
 
 /** The argument field of each tool that is shown as a program. */
@@ -18,14 +19,14 @@ const SCRIPT_FIELDS: Record<string, string> = { execute_typescript: "code" };
 export function ToolCard({ item }: { item: ToolItem }) {
   const [open, setOpen] = useState(false);
   const { id: conversationId } = useParams<{ id: string }>();
-  const failed = item.error !== null;
-  const pending = item.result === null;
+  const status = statusOf(item);
+  const { server, label } = humanise(item.call.name);
   const images = (item.result ?? []).filter((b): b is ImageBlock => b.type === "image");
 
   return (
     <div
       className={`overflow-hidden rounded-xl border text-sm ${
-        failed ? "border-danger/40 bg-danger-soft" : "border-line bg-surface-sunken"
+        status.kind === "failed" ? "border-danger/40 bg-danger-soft" : "border-line bg-surface-sunken"
       }`}
     >
       <button
@@ -36,15 +37,10 @@ export function ToolCard({ item }: { item: ToolItem }) {
           size={14}
           className={`shrink-0 text-ink-soft transition-transform ${open ? "rotate-90" : ""}`}
         />
-        {failed ? (
-          <TriangleAlert size={14} className="shrink-0 text-danger" />
-        ) : (
-          <Wrench size={14} className="shrink-0 text-ink-soft" />
-        )}
-        <span className="font-mono text-xs font-medium">{item.call.name}</span>
-        <span className="ml-auto shrink-0 text-xs text-ink-soft">
-          {pending ? "running…" : failed ? item.error : "done"}
-        </span>
+        <StatusIcon status={status} />
+        {server !== null && <span className="text-ink-soft">{server}</span>}
+        <span className="font-medium">{label}</span>
+        <StatusNote status={status} />
       </button>
 
       {item.ui !== null && (
@@ -81,6 +77,49 @@ export function ToolCard({ item }: { item: ToolItem }) {
       )}
     </div>
   );
+}
+
+type ToolStatus = { kind: "running" } | { kind: "done" } | { kind: "failed"; error: string };
+
+function statusOf(item: ToolItem): ToolStatus {
+  if (item.result === null) return { kind: "running" };
+  if (item.error !== null) return { kind: "failed", error: item.error };
+  return { kind: "done" };
+}
+
+function StatusIcon({ status }: { status: ToolStatus }) {
+  switch (status.kind) {
+    case "running":
+      return (
+        <LoaderCircle
+          size={14}
+          className="shrink-0 animate-spin text-accent motion-reduce:animate-none"
+        />
+      );
+    case "done":
+      return <Check size={14} className="shrink-0 text-ink-soft" />;
+    case "failed":
+      return <TriangleAlert size={14} className="shrink-0 text-danger" />;
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+function StatusNote({ status }: { status: ToolStatus }) {
+  switch (status.kind) {
+    case "running":
+      return <span className="ml-auto shrink-0 text-xs text-ink-soft">running</span>;
+    case "failed":
+      return <span className="ml-auto shrink-0 text-xs text-danger">{status.error}</span>;
+    case "done":
+      return null;
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
 }
 
 /** The images a result showed the model, as thumbnails that open full size in a new tab. */

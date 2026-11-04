@@ -69,12 +69,13 @@ export function Timeline({
     (item.result === null && openTurn === null);
   const shared = { openTurn, conversationId, onAnswered };
   const rows = turnRows(items, { speakers, stays });
-  const isThinking = progressOf(rows, openTurn, sending)?.kind === "thinking";
+  const progress = progressOf(rows, items, openTurn, sending);
+  const isStarting = progress?.kind === "starting";
   const thinker = (openTurn === null ? undefined : speakers.get(openTurn)) ?? host;
 
   useEffect(() => {
     if (pinned.current) floor.current?.scrollIntoView({ block: "end" });
-  }, [items, sending, isThinking]);
+  }, [items, sending, isStarting]);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6">
@@ -88,8 +89,11 @@ export function Timeline({
               ) : (
                 <Activity
                   key={part.key}
-                  live={part.turn === openTurn}
+                  progress={part.turn === openTurn ? progress : null}
                   tools={part.items.filter((item) => item.kind === "tool").length}
+                  failed={
+                    part.items.filter((item) => item.kind === "tool" && item.error !== null).length
+                  }
                 >
                   {part.items.map((item) => (
                     <Item key={item.key} item={item} {...shared} />
@@ -101,7 +105,7 @@ export function Timeline({
         );
       })}
       {sending !== null && <PlainBubble content={sending} />}
-      {isThinking && <ThinkingRow speaker={thinker} />}
+      {isStarting && <ThinkingRow speaker={thinker} />}
       <div ref={floor} />
     </div>
   );

@@ -81,9 +81,8 @@ function partsOf(
       folded.push(item);
     }
   }
-  const first = folded[0];
-  if (first !== undefined) {
-    parts.splice(foldAt, 0, { kind: "activity", key: `w${first.key}`, turn, items: folded });
+  if (folded.length > 0) {
+    parts.splice(foldAt, 0, { kind: "activity", key: `w${turn}`, turn, items: folded });
   }
   return parts;
 }
