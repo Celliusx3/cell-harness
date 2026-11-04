@@ -1,6 +1,6 @@
 # 01 Settings is its own screen
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 
