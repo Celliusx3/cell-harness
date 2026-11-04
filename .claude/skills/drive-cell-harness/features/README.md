@@ -3,6 +3,7 @@
 One file per thing a person can see in the browser chat. Add a file when a feature ships.
 
 - [chat.md](chat.md): sending a message and reading the reply
+- [chat-progress.md](chat-progress.md): what shows from the moment you press send until the turn ends
 - [tool-cards.md](tool-cards.md): a tool call as a card, including `run_subagent` helpers
 - [files.md](files.md): files you attach, images the model sees, and the files a bot unpacks, packs, views and hands back
 - [approvals.md](approvals.md): a card that asks before a write runs

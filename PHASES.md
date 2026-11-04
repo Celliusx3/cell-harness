@@ -210,7 +210,9 @@ chat per bot, as in Rakazo ("one bot has one continuous visible thread",
   bot stops a discussion it is speaking in, as Rakazo's archive cancels the
   bot's runs (`packages/adapters/src/child-bots.ts:274-288`). In the chat each
   turn sits under the bot's name and colored initial, and its tool calls fold
-  behind one "Done · N tools" line, as Rakazo's `ToolActivityDisclosure` does.
+  behind one "Used N tools" line, as Rakazo's `ToolActivityDisclosure` does.
+  The line names the running step and folds when the reply starts, per the
+  [chat redesign](docs/specs/chat-redesign/spec.md).
 - Bot messages — `message_bot` writes a message into another bot's own chat,
   where a `bot/message` event opens a turn, and returns at once, as Rakazo's
   `message_bot` does (`packages/adapters/src/bot-messages.ts`). When that turn

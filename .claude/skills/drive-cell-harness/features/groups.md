@@ -5,7 +5,7 @@ Two to six bots share one chat. The sidebar lists groups under Groups, below Bot
 ## Sub-features
 
 - "New", then "Group", at the sidebar's top opens a form: a name and a checkbox per bot, numbered in the order you tick them. "Make group" is enabled once there is a name and two to six bots, and opens the group's chat at `/c/<group id>`.
-- Each turn sits under the bot's colored initial and its name in bold. Its tool calls, the text between them and its notes fold into one line, "Working…" while it runs and "Done · N tools" after; click it to open. The last reply, a question or approval card, an error and an app view stay in sight.
+- Each turn sits under the bot's colored initial and its name in bold. Its tool calls, the text between them and its notes fold into one line. It names the step while the bot works and reads "Used N tools" once the reply starts; click it to open. The last reply, a question or approval card, an error and an app view stay in sight.
 - A bot with nothing to add replies `NO_RESPONSE`: its turn shows only its name and the folded line, or nothing when it used no tools.
 - Answering a bot's question or approval resumes that bot's turn, then the rest of the line speaks.
 - Archiving or deleting a bot stops the discussion it is speaking in. A group whose bots are all archived keeps its chat and refuses a new message with a 409.
