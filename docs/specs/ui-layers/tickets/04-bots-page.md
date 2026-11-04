@@ -1,6 +1,6 @@
 # 04 A Bots page lists every bot and group
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

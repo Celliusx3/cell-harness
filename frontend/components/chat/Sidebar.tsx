@@ -1,16 +1,15 @@
 "use client";
 
-import { Monitor, Settings } from "lucide-react";
+import { BotMessageSquare, Monitor, Settings } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { ArchivedBots } from "@/components/chat/ArchivedBots";
 import { NewMenu } from "@/components/chat/NewMenu";
 import { SidebarLink } from "@/components/chat/SidebarLink";
 import { SERVER as COMPUTER_SERVER } from "@/components/computer/server";
 import { rememberChatPath } from "@/components/settings/chatReturn";
-import { BUILDER_ID, listArchivedBots, listBots, listGroups, listServers } from "@/lib/api";
+import { BUILDER_ID, listBots, listGroups, listServers } from "@/lib/api";
 import type { Bot, Group } from "@/lib/types";
 
 const STALE = "harness:sidebar-stale";
@@ -20,10 +19,9 @@ export function refreshSidebar(): void {
   window.dispatchEvent(new Event(STALE));
 }
 
-/** The New button, the bots, each a link to its one chat, the groups and the archived bots, then the other pages. */
+/** The New button, the bots, each a link to its one chat, and the groups, then the other pages. */
 export function Sidebar() {
   const [bots, setBots] = useState<Bot[]>([]);
-  const [archived, setArchived] = useState<Bot[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const pathname = usePathname();
   const params = useParams<{ id?: string }>();
@@ -53,11 +51,10 @@ export function Sidebar() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([listBots(), listArchivedBots(), listGroups()])
-      .then(([listedBots, listedArchived, listedGroups]) => {
+    Promise.all([listBots(), listGroups()])
+      .then(([listedBots, listedGroups]) => {
         if (cancelled) return;
         setBots(listedBots);
-        setArchived(listedArchived);
         setGroups(listedGroups);
       })
       .catch(() => {
@@ -99,10 +96,10 @@ export function Sidebar() {
             ))}
           </SidebarSection>
         )}
-        {archived.length > 0 && <ArchivedBots bots={archived} onChange={refreshSidebar} />}
       </nav>
 
       <div className="space-y-0.5 border-t border-line px-2 py-3">
+        <SidebarLink href="/bots" label="Bots" icon={BotMessageSquare} current={pathname === "/bots"} />
         {hasComputer && (
           <SidebarLink href="/computer" label="Computer" icon={Monitor} current={pathname === "/computer"} />
         )}
