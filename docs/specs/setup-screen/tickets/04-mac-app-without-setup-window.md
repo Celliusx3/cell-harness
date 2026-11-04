@@ -1,6 +1,6 @@
 # 04 The Mac app has no setup window
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

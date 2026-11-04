@@ -6,6 +6,7 @@ import { app, BrowserWindow, dialog, session, shell, type Session, type Tray, ty
 
 import { startHarness, startPages, stopStrayHarness, type Child } from "./children";
 import { messageOf } from "./errors";
+import { newEncryptionKey, readLocalSettings, withEncryptionKey, writeLocalSettings } from "./localSettings";
 import { APP_URL, isAppOrigin, isBrowserLink, isPermissionGranted } from "./origin";
 import {
   APP_NAME,
@@ -19,8 +20,6 @@ import {
   type Layout,
 } from "./paths";
 import { firstPortInUse, harnessSpec, pagesSpec, waitForPort } from "./processes";
-import { committedEndpoint, committedKeyringPath, needsSetup, readLocalSettings, readTextIfPresent } from "./setup";
-import { askForSetup } from "./setupWindow";
 import { portInUseReason } from "./strays";
 import { addTray } from "./tray";
 
@@ -48,7 +47,7 @@ async function startApp(): Promise<void> {
   mkdirSync(path.dirname(files.harnessLog), { recursive: true });
   const missing = missingPagesReason(layout);
   if (missing !== null) return failStart(missing);
-  if (!(await askForApiKeyIfMissing())) return app.quit();
+  addMissingEncryptionKey();
   await stopStrayHarness(files.pidFile);
   const portInUse = await firstPortInUse(HOST, [HARNESS_PORT, PAGES_PORT]);
   if (portInUse !== null) return failStart(portInUseReason(portInUse));
@@ -82,12 +81,10 @@ function missingPagesReason(layout: Layout): string | null {
   return null;
 }
 
-/** True once the settings file or the keyring holds a model key; false when the friend closed the setup window instead. */
-async function askForApiKeyIfMissing(): Promise<boolean> {
-  const configJson = readFileSync(layout.configJson, "utf8");
-  const keyringText = readTextIfPresent(committedKeyringPath(configJson, os.homedir()));
-  if (!needsSetup(readLocalSettings(files.localJson), keyringText)) return true;
-  return askForSetup({ localJson: files.localJson, committed: committedEndpoint(configJson) });
+function addMissingEncryptionKey(): void {
+  const settings = readLocalSettings(files.localJson);
+  const settingsWithKey = withEncryptionKey(settings, newEncryptionKey);
+  if (settingsWithKey !== settings) writeLocalSettings(files.localJson, settingsWithKey);
 }
 
 /** Stops both children, says why the app could not start, and quits. */
