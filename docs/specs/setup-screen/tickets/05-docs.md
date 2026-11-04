@@ -1,6 +1,6 @@
 # 05 The docs say where setup happens
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 
