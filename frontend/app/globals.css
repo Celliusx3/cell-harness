@@ -18,6 +18,17 @@
   --color-accent-soft: oklch(93.5% 0.022 55);
   --color-danger: oklch(55% 0.18 25);
   --color-danger-soft: oklch(94% 0.03 25);
+
+  --animate-progress-slide: progress-slide 1.6s ease-in-out infinite;
+
+  @keyframes progress-slide {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(340%);
+    }
+  }
 }
 
 /* `:root`, not `@theme`. Tailwind v4 hoists every `@theme` body into

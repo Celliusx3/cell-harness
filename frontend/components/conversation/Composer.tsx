@@ -20,7 +20,7 @@ interface Props {
   initialDraft?: string;
 }
 
-/** The composer, with the files attached to the next message, and the stop button while a turn runs. */
+/** The composer, with the files attached to the next message, and a moving bar and Stop while a turn runs. */
 export function Composer({ chatId, running, onSend, onStop, autoFocus, initialDraft }: Props) {
   const [draft, setDraft] = useState(initialDraft ?? "");
   const [dragging, setDragging] = useState(false);
@@ -34,6 +34,7 @@ export function Composer({ chatId, running, onSend, onStop, autoFocus, initialDr
   }, [autoFocus, initialDraft]);
 
   const canSend = draft.trim() !== "" && !attachments.uploading;
+  const showsStop = running && draft.trim() === "";
 
   const submit = () => {
     const prompt = draft.trim();
@@ -69,10 +70,19 @@ export function Composer({ chatId, running, onSend, onStop, autoFocus, initialDr
         onDragOver={dragOver}
         onDragLeave={dragLeave}
         onDrop={drop}
-        className={`mx-auto flex max-w-3xl flex-col rounded-2xl border bg-surface-raised p-2 shadow-sm transition focus-within:border-accent ${
+        className={`relative mx-auto flex max-w-3xl flex-col overflow-hidden rounded-2xl border bg-surface-raised p-2 shadow-sm transition focus-within:border-accent ${
           dragging ? "border-accent bg-accent-soft" : "border-line"
         }`}
       >
+        {running && (
+          <div
+            data-slot="composer-progress"
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden"
+          >
+            <div className="h-full w-[30%] animate-progress-slide rounded-full bg-accent motion-reduce:animate-none" />
+          </div>
+        )}
         <AttachmentChips items={attachments.items} onRemove={attachments.remove} />
         <div className="flex items-end gap-2">
           <input
@@ -107,27 +117,28 @@ export function Composer({ chatId, running, onSend, onStop, autoFocus, initialDr
                 submit();
               }
             }}
-            placeholder={running ? "Reply — it will be answered next" : "Send a message"}
+            placeholder={running ? "Reply, and it is answered after this turn" : "Send a message"}
             className="max-h-48 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-ink-soft disabled:opacity-60"
           />
-          {running && (
+          {showsStop ? (
             <button
               onClick={onStop}
               aria-label="Stop"
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-danger text-white transition hover:opacity-90"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ink text-surface transition hover:opacity-90"
             >
               <Square size={14} fill="currentColor" />
             </button>
+          ) : (
+            <button
+              onClick={submit}
+              disabled={!canSend}
+              aria-label="Send"
+              title={attachments.uploading ? "Waiting for files to finish uploading" : undefined}
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition hover:opacity-90 disabled:opacity-35"
+            >
+              <ArrowUp size={16} />
+            </button>
           )}
-          <button
-            onClick={submit}
-            disabled={!canSend}
-            aria-label="Send"
-            title={attachments.uploading ? "Waiting for files to finish uploading" : undefined}
-            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition hover:opacity-90 disabled:opacity-35"
-          >
-            <ArrowUp size={16} />
-          </button>
         </div>
       </div>
     </div>
