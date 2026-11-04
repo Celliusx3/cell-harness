@@ -57,6 +57,11 @@ export interface CredentialChange {
 /** Every credential in the keyring, with its bots, each by its last four characters at most. */
 export const listCredentials = () => request<CredentialList>("/credentials");
 
+/** Whether setup is done: the keyring holds the Default model. */
+export function hasDefaultModel(credentials: Credential[]): boolean {
+  return credentials.some((credential) => credential.is_default_model);
+}
+
 /** Whether this browser reaches the harness directly, which only a page on its own Mac does. */
 export async function canSaveCredentials(directUrl: string): Promise<boolean> {
   try {

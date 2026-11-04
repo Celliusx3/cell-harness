@@ -1,6 +1,6 @@
 # 03 Every chat page waits for setup
 
-**Status:** open
+**Status:** done
 
 **What to build.**
 

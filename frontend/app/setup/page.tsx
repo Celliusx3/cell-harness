@@ -1,41 +1,61 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { SetupColumn } from "@/components/setup/SetupColumn";
 import { SetupForm } from "@/components/setup/SetupForm";
 import { ApiError } from "@/lib/api";
-import { listCredentials, type CredentialList } from "@/lib/credentials";
+import { canSaveCredentials, hasDefaultModel, listCredentials, type CredentialList } from "@/lib/credentials";
 
-/** Asks for the API key that becomes the Default model, at the endpoint and model the harness ships with. */
+type SetupState =
+  | { kind: "loading" }
+  | { kind: "failed"; message: string }
+  | { kind: "alreadySetUp" }
+  | { kind: "cannotSave" }
+  | { kind: "canSave"; list: CredentialList };
+
+/** Asks for the API key that becomes the Default model, on the Mac that runs the harness and only before one is saved. */
 export default function SetupPage() {
-  const [listed, setListed] = useState<CredentialList | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [state, setState] = useState<SetupState>({ kind: "loading" });
 
   useEffect(() => {
     let cancelled = false;
-    listCredentials()
-      .then((list) => {
-        if (!cancelled) setListed(list);
+    readSetupState()
+      .then((next) => {
+        if (cancelled) return;
+        setState(next);
+        if (next.kind === "alreadySetUp") router.replace("/");
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load the setup.");
+        if (cancelled) return;
+        setState({ kind: "failed", message: err instanceof ApiError ? err.message : "Could not load the setup." });
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
+  if (state.kind === "alreadySetUp") return null;
   return (
-    <main className="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 py-10">
-      <div className="m-auto w-full max-w-sm">
-        {error !== null ? (
-          <p className="text-sm text-danger">{error}</p>
-        ) : listed === null ? (
-          <p className="text-sm text-ink-soft">Loading…</p>
-        ) : (
-          <SetupForm shippedModel={listed.shipped_model} directUrl={listed.direct_url} />
-        )}
-      </div>
-    </main>
+    <SetupColumn>
+      {state.kind === "loading" && <p className="text-sm text-ink-soft">Loading…</p>}
+      {state.kind === "failed" && <p className="text-sm text-danger">{state.message}</p>}
+      {state.kind === "cannotSave" && (
+        <h1 className="text-center font-serif text-4xl tracking-tight">
+          Finish setup on the Mac that runs Cell Harness
+        </h1>
+      )}
+      {state.kind === "canSave" && (
+        <SetupForm shippedModel={state.list.shipped_model} directUrl={state.list.direct_url} />
+      )}
+    </SetupColumn>
   );
+}
+
+async function readSetupState(): Promise<SetupState> {
+  const list = await listCredentials();
+  if (hasDefaultModel(list.credentials)) return { kind: "alreadySetUp" };
+  return (await canSaveCredentials(list.direct_url)) ? { kind: "canSave", list } : { kind: "cannotSave" };
 }
