@@ -1,6 +1,6 @@
 # 01 The PC image boots in microsandbox, built by GitHub
 
-**Status.** open
+**Status.** done
 
 **What to build.** `mcp-servers/computer/image/Dockerfile` on a
 `debian:bookworm-slim` pinned by digest. It installs Xvfb, fluxbox, Chromium,
