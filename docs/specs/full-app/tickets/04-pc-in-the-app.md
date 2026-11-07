@@ -1,6 +1,6 @@
 # 04 The PC runs from inside the app
 
-**Status.** open
+**Status.** done
 
 **What to build.** The bundle installs the `computer` server like the others.
 The app's signing keeps `msb`'s hypervisor and library-validation
