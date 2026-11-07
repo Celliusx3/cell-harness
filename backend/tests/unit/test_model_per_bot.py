@@ -26,16 +26,15 @@ from harness.session.models import (
 )
 from harness.web.bot_models import CredentialModels
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import drain, durable_service, new_session
+from tests.unit.helpers import drain, durable_service, new_session, no_images
 from tests.webapp import put_on_model
 
 KEY = "0123456789abcdef0123456789abcdef"
 TRADER_URL = "https://api.trader.example/v1"
 TRADER_KEY = "sk-trader-key-1234"
-TRADER_MODEL = ModelDetails(base_url=TRADER_URL, model="big")
+TRADER_MODEL = ModelDetails(base_url=TRADER_URL, model="big", vision=False)
 BASE = LLMSettings(
     model="small",
-    vision=False,
     base_url="https://api.base.example/v1",
     temperature=0.3,
 )
@@ -54,7 +53,7 @@ class ChoicePerBot:
 
 def _trader_client() -> tuple[ScriptedClient, ChoicePerBot]:
     trader = ScriptedClient(completed("trader"))
-    return trader, ChoicePerBot({"trader": ModelChoice(trader, "big")})
+    return trader, ChoicePerBot({"trader": ModelChoice(trader, "big", False)})
 
 
 async def _reply(runtime: Runtime, bot_id: str, tmp_path: Path) -> None:
@@ -74,7 +73,7 @@ def _spoken_turn(session: Session, turn: int, bot_id: str | None) -> None:
 async def test_a_bot_with_its_own_model_is_answered_by_it(tmp_path: Path) -> None:
     trader, models = _trader_client()
 
-    await _reply(Runtime(models=models, images=None), "trader", tmp_path)
+    await _reply(Runtime(models=models, images=no_images()), "trader", tmp_path)
 
     assert trader.calls == 1
 
@@ -84,7 +83,9 @@ async def test_a_bot_with_no_model_asks_nothing_and_ends_with_the_line(tmp_path:
     sessions = durable_service(tmp_path / "sessions")
     session = await sessions.create("chef")
 
-    await drain(Runtime(models=models, images=None).run("hi", session=session, bot_id="chef"))
+    await drain(
+        Runtime(models=models, images=no_images()).run("hi", session=session, bot_id="chef")
+    )
 
     chunks = [e.chunk for e in session.events() if isinstance(e, AssistantChunk)]
     assert trader.calls == 0
@@ -94,11 +95,11 @@ async def test_a_bot_with_no_model_asks_nothing_and_ends_with_the_line(tmp_path:
 
 async def test_a_changed_choice_applies_to_the_next_turn(tmp_path: Path) -> None:
     first, second = ScriptedClient(completed("one")), ScriptedClient(completed("two"))
-    models = ChoicePerBot({"trader": ModelChoice(first, "big")})
-    runtime = Runtime(models=models, images=None)
+    models = ChoicePerBot({"trader": ModelChoice(first, "big", False)})
+    runtime = Runtime(models=models, images=no_images())
     await _reply(runtime, "trader", tmp_path)
 
-    models.per_bot["trader"] = ModelChoice(second, "bigger")
+    models.per_bot["trader"] = ModelChoice(second, "bigger", False)
     await _reply(runtime, "trader", tmp_path / "again")
 
     assert (first.calls, second.calls) == (1, 1)
@@ -110,7 +111,7 @@ async def test_a_compaction_asks_the_model_of_the_bot_that_spoke_last() -> None:
     _spoken_turn(session, 0, "chef")
     _spoken_turn(session, 1, "trader")
 
-    await drain(Runtime(models=models, images=None).compact(session=session))
+    await drain(Runtime(models=models, images=no_images()).compact(session=session))
 
     assert trader.calls == 1
 
@@ -121,7 +122,7 @@ async def test_a_compaction_with_no_model_ends_with_the_line(speaker: str | None
     session = new_session()
     _spoken_turn(session, 0, speaker)
 
-    events = await drain(Runtime(models=models, images=None).compact(session=session))
+    events = await drain(Runtime(models=models, images=no_images()).compact(session=session))
 
     assert trader.calls == 0
     assert events[-1] == CompactionEnd(turn=None, error=PICK_A_MODEL)

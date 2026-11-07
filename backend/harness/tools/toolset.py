@@ -25,16 +25,28 @@ class ToolChoices(Protocol):
 class Toolset:
     """The tool list one step is built from."""
 
-    def __init__(self, tool_service: ToolService, default_tools: Sequence[str]) -> None:
+    def __init__(
+        self,
+        tool_service: ToolService,
+        default_tools: Sequence[str],
+        *,
+        sight_tools: frozenset[str],
+    ) -> None:
         self.tool_service = tool_service
         self._default_tools = tuple(default_tools)
+        self._sight_tools = sight_tools
 
-    def specs(self, tools_selected: Sequence[str] = ()) -> list[ToolSpec]:
+    def specs(self, tools_selected: Sequence[str] = (), *, sees_images: bool) -> list[ToolSpec]:
         """What the model is offered this step — the only place visibility is decided."""
-        return [tool.spec() for tool in self._offered_tools(tools_selected)]
+        return [tool.spec() for tool in self._offered_tools(tools_selected, sees_images)]
 
-    def _offered_tools(self, tools_selected: Sequence[str]) -> list[Tool]:
-        by_name = {t.name: t for t in self.tool_service.all()}
+    def _offered_tools(self, tools_selected: Sequence[str], sees_images: bool) -> list[Tool]:
+        """The defaults, then the latest selections; `sight_tools` only to a model that sees."""
+        by_name = {
+            t.name: t
+            for t in self.tool_service.all()
+            if sees_images or t.name not in self._sight_tools
+        }
         defaults = [by_name[n] for n in self._default_tools if n in by_name]
         default_names = {tool.name for tool in defaults}
         recent = tuple(tools_selected)[-MAX_TOOLS_SELECTED:]
@@ -51,9 +63,11 @@ class Toolset:
         progress: ToolProgressReporter,
         origin: CallOrigin,
         session: ToolChoices,
+        sees_images: bool,
     ) -> ToolOutcome:
         """Run one of the model's own calls if it was offered, unasked if allowed for the chat."""
-        if call.name not in {tool.name for tool in self._offered_tools(session.tools_selected())}:
+        offered = self._offered_tools(session.tools_selected(), sees_images)
+        if call.name not in {tool.name for tool in offered}:
             return Failure(REFUSED, _not_offered_message(call.name))
         return await self.tool_service.dispatch(
             call,

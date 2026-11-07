@@ -137,7 +137,7 @@ async def test_a_tool_allowed_for_the_conversation_is_refused_once_it_is_not_off
         models=OneModel(
             SteppedClient(calls_tool(WRITE, '{"value": "Teh"}', id="c2"), completed("ok"))
         ),
-        tools=Toolset(first.tools.tool_service, default_tools=[]),
+        tools=Toolset(first.tools.tool_service, default_tools=[], sight_tools=frozenset()),
     )
 
     await drain(later.run("and Teh", session=session, bot_id="b"))

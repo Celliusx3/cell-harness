@@ -88,7 +88,7 @@ def test_a_credential_of_each_kind_reads_back_equal(path: Path) -> None:
         _sealed(
             "02",
             "trader_model",
-            ModelDetails(base_url="https://api.example.com/v1", model="big-model"),
+            ModelDetails(base_url="https://api.example.com/v1", model="big-model", vision=False),
             "sk-model-0002",
         ),
         _sealed("03", "telegram", TelegramDetails(), TOKEN),
@@ -147,14 +147,14 @@ def test_the_keys_list_holds_only_custom_keys(path: Path) -> None:
 
 def test_a_model_credential_needs_a_web_endpoint_and_a_model() -> None:
     with pytest.raises(ValueError):
-        ModelDetails(base_url="ftp://example.com", model="m")
+        ModelDetails(base_url="ftp://example.com", model="m", vision=False)
     with pytest.raises(ValueError):
-        ModelDetails(base_url="https://api.example.com/v1", model="  ")
+        ModelDetails(base_url="https://api.example.com/v1", model="  ", vision=False)
 
 
 def test_an_llm_credential_is_removed_like_any_other(path: Path) -> None:
     keyring = SecretService(DiskSecretRepository(path), encryption_key=KEY)
-    model = ModelDetails(base_url="https://api.example.com/v1", model="glm")
+    model = ModelDetails(base_url="https://api.example.com/v1", model="glm", vision=False)
     keyring.add_credential("first_model", model, SecretStr("sk-model-key-1234"))
 
     removed = keyring.delete("first_model")

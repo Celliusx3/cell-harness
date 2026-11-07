@@ -173,7 +173,30 @@ function ModelFields({ form, onChange }: TypeFieldsProps) {
           className={`font-mono ${INPUT_CLASSES}`}
         />
       </Field>
+      <VisionCheck id="credential-vision" isChecked={form.vision} onChange={(vision) => onChange({ vision })} />
     </>
+  );
+}
+
+interface VisionCheckProps {
+  id: string;
+  isChecked: boolean;
+  onChange: (isChecked: boolean) => void;
+}
+
+/** Whether the model can see images; a bot on one that cannot is sent no images and no image tools. */
+export function VisionCheck({ id, isChecked, onChange }: VisionCheckProps) {
+  return (
+    <label htmlFor={id} className="flex items-center gap-2 text-sm">
+      <input
+        id={id}
+        type="checkbox"
+        checked={isChecked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="accent-accent"
+      />
+      Can see images
+    </label>
   );
 }
 

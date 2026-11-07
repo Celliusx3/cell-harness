@@ -30,7 +30,7 @@ def store(tmp_path: Path) -> BotService:
 @pytest.fixture
 def keyring(tmp_path: Path) -> SecretService:
     secrets = secrets_in(tmp_path)
-    details = ModelDetails(base_url="https://api.example.com/v1", model="m")
+    details = ModelDetails(base_url="https://api.example.com/v1", model="m", vision=False)
     secrets.add_credential(MODEL_CREDENTIAL, details, SecretStr("sk-test-0000"))
     return secrets
 
@@ -95,7 +95,7 @@ def test_with_no_llm_credential_saved_there_is_no_tool(store: BotService, tmp_pa
 def test_the_model_sees_a_name_instructions_and_the_saved_models(
     store: BotService, keyring: SecretService
 ) -> None:
-    details = ModelDetails(base_url="https://other.example/v1", model="o")
+    details = ModelDetails(base_url="https://other.example/v1", model="o", vision=False)
     keyring.add_credential("other_model", details, SecretStr("sk-other-0000"))
     tool = bot_create_tool(store, keyring)
     assert tool is not None

@@ -31,12 +31,12 @@ from tests.webapp import (
 )
 
 
-def runtime_over(tmp_path: Path, images: ImageService, *, vision: bool) -> Runtime:
-    """The runtime `build_runtime` composes over `images`, for a model that sees or does not."""
+def runtime_over(tmp_path: Path, images: ImageService) -> Runtime:
+    """The runtime `build_runtime` composes over `images`."""
     return build_runtime(
         Settings(
             local_settings_path=tmp_path / "config.local.json",
-            llm={"model": "m", "api_key": "k", "vision": vision},
+            llm={"model": "m", "api_key": "k"},
         ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}, saved={}, keys=no_keys()),
@@ -62,16 +62,10 @@ def test_the_web_channel_keeps_images_in_the_service_it_is_built_with(tmp_path) 
     assert web.images is images
 
 
-def test_a_runtime_for_a_model_that_sees_shows_images_through_the_service_it_is_built_with(
-    tmp_path,
-) -> None:
+def test_a_runtime_shows_images_through_the_service_it_is_built_with(tmp_path) -> None:
     images = images_in(tmp_path)
 
-    assert runtime_over(tmp_path, images, vision=True).images is images
-
-
-def test_a_runtime_for_a_model_that_cannot_see_holds_no_images(tmp_path) -> None:
-    assert runtime_over(tmp_path, images_in(tmp_path), vision=False).images is None
+    assert runtime_over(tmp_path, images).images is images
 
 
 class Started(NamedTuple):

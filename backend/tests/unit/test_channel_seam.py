@@ -20,7 +20,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.client import PendingCall
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import link_to_assistant, no_bots, no_skills
+from tests.unit.helpers import link_to_assistant, no_bots, no_images, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
 WHATSAPP = "whatsapp"
@@ -64,7 +64,7 @@ def build(tmp_path, reply: str = "answered"):
     )
     runtime = Runtime(
         models=OneModel(ScriptedClient(completed(reply))),
-        images=None,
+        images=no_images(),
         checkpoint=sessions.flush,
     )
     runs = RunService(sessions, runtime, no_bots(sessions))

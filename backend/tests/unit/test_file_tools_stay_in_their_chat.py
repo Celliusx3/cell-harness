@@ -52,7 +52,7 @@ async def result_in_chat_s(
     runtime = build_runtime(
         Settings(
             local_settings_path=tmp_path / "config.local.json",
-            llm={"model": "m", "api_key": "k", "vision": True},
+            llm={"model": "m", "api_key": "k"},
         ),
         sessions,
         McpService({}, saved={}, keys=no_keys()),

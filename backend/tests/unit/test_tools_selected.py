@@ -19,7 +19,7 @@ from harness.tools.native.code_mode import (
 from harness.tools.toolset import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed, echo_tool
-from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_progress
+from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_images, no_progress
 
 DEFAULTS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT)
 
@@ -39,11 +39,11 @@ def toolset(*tools: Tool) -> Toolset:
         tool_service=tool_service, runner=FakeRunner(), withheld=frozenset()
     ):
         tool_service.register(made)
-    return Toolset(tool_service, DEFAULTS)
+    return Toolset(tool_service, DEFAULTS, sight_tools=frozenset())
 
 
 def named(built: Toolset, tools_selected: tuple[str, ...]) -> list[str]:
-    return [spec.name for spec in built.specs(tools_selected)]
+    return [spec.name for spec in built.specs(tools_selected, sees_images=False)]
 
 
 async def test_details_states_what_it_made_callable() -> None:
@@ -56,6 +56,7 @@ async def test_details_states_what_it_made_callable() -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Ok)
@@ -145,8 +146,12 @@ async def test_a_selected_tool_may_be_called_and_an_unselected_one_is_told_to_se
     read_it = new_session()
     read_it.append(selected("a"))
 
-    refused = await built.execute(call, progress=no_progress, origin=ORIGIN, session=new_session())
-    allowed = await built.execute(call, progress=no_progress, origin=ORIGIN, session=read_it)
+    refused = await built.execute(
+        call, progress=no_progress, origin=ORIGIN, session=new_session(), sees_images=False
+    )
+    allowed = await built.execute(
+        call, progress=no_progress, origin=ORIGIN, session=read_it, sees_images=False
+    )
 
     assert "get_function_details" in str(refused)
     assert isinstance(allowed, Ok) and allowed.text == "hi"
@@ -158,7 +163,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
         calls_tool("a", '{"value": "direct"}'),
         completed("done"),
     )
-    runtime = Runtime(models=OneModel(client), images=None, tools=toolset(echo_tool("a")))
+    runtime = Runtime(models=OneModel(client), images=no_images(), tools=toolset(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:
@@ -176,7 +181,7 @@ async def test_reading_a_schema_in_one_step_offers_the_tool_in_the_next() -> Non
 
 async def test_a_direct_call_before_selecting_is_refused_and_logged() -> None:
     client = SteppedClient(calls_tool("a", '{"value": "direct"}'), completed("ok"))
-    runtime = Runtime(models=OneModel(client), images=None, tools=toolset(echo_tool("a")))
+    runtime = Runtime(models=OneModel(client), images=no_images(), tools=toolset(echo_tool("a")))
     session = new_session()
 
     async with aclosing(runtime.run("go", session=session, bot_id="b")) as events:

@@ -26,7 +26,12 @@ GITHUB = {
     "value": "ghp-new-key-1234",
     "bot_ids": [],
 }
-MODEL_DETAILS = {"kind": "llm", "base_url": "https://api.example.com/v1", "model": "big"}
+MODEL_DETAILS = {
+    "kind": "llm",
+    "base_url": "https://api.example.com/v1",
+    "model": "big",
+    "vision": False,
+}
 
 
 @pytest.fixture

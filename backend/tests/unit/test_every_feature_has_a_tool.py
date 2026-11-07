@@ -170,7 +170,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
     )
     assert runtime.tools is not None
 
-    offered = {spec.name for spec in runtime.tools.specs()}
+    offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
     named = {
         entry.name for entry in (*ROUTES.values(), *CONFIG.values()) if isinstance(entry, Tool)
     }

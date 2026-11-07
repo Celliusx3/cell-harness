@@ -23,7 +23,14 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_bots, no_skills
+from tests.unit.helpers import (
+    client_tools,
+    link_to_assistant,
+    no_approvals,
+    no_bots,
+    no_images,
+    no_skills,
+)
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import (
     SHIPPED_MODEL,
@@ -47,7 +54,7 @@ def build(tmp_path):
     )
     runtime = Runtime(
         models=OneModel(ScriptedClient(completed("the answer"))),
-        images=None,
+        images=no_images(),
         checkpoint=sessions.flush,
     )
     runs = RunService(sessions, runtime, no_bots(sessions))
@@ -122,7 +129,9 @@ async def test_the_lifespan_starts_and_stops_the_gateway(tmp_path) -> None:
 async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunService(
-        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
+        sessions,
+        Runtime(models=OneModel(ScriptedClient([])), images=no_images()),
+        no_bots(sessions),
     )
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
@@ -188,7 +197,9 @@ async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
     """The gateway once the saved tokens are registered on it, with nothing started."""
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     runs = RunService(
-        sessions, Runtime(models=OneModel(ScriptedClient([])), images=None), no_bots(sessions)
+        sessions,
+        Runtime(models=OneModel(ScriptedClient([])), images=no_images()),
+        no_bots(sessions),
     )
     settings = Settings(local_settings_path=tmp_path / "config.local.json")
     channels = build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)

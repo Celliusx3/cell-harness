@@ -26,7 +26,7 @@ from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import link_to_assistant, no_bots, no_skills, skills_at
+from tests.unit.helpers import link_to_assistant, no_bots, no_images, no_skills, skills_at
 from tests.unit.telegram_fakes import telegram_channel, update
 from tests.unit.test_skill_tool import write_skill
 
@@ -41,7 +41,9 @@ def build(tmp_path, *, skills: SkillService):
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        models=OneModel(ScriptedClient(completed("ok"))), images=None, checkpoint=sessions.flush
+        models=OneModel(ScriptedClient(completed("ok"))),
+        images=no_images(),
+        checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)
     runs = RunService(sessions, runtime, bots)

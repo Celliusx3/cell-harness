@@ -16,7 +16,7 @@ from harness.runtime.service import Runtime
 from harness.session.models import ToolResultEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tools import INVALID_ARGUMENTS, REFUSED, UNKNOWN_TOOL, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.files import VIEW_IMAGE, view_image_tool
 from harness.web.runtime import (
     DEFAULT_TOOLS,
@@ -62,11 +62,11 @@ def viewing(path: Path) -> str:
     return json.dumps({"path": str(path)})
 
 
-def runtime_seeing(tmp_path: Path, *, vision: bool) -> Runtime:
+def composed(tmp_path: Path) -> Runtime:
     return build_runtime(
         Settings(
             local_settings_path=tmp_path / "config.local.json",
-            llm={"model": "m", "api_key": "k", "vision": vision},
+            llm={"model": "m", "api_key": "k"},
         ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}, saved={}, keys=no_keys()),
@@ -81,9 +81,9 @@ def runtime_seeing(tmp_path: Path, *, vision: bool) -> Runtime:
     )
 
 
-def offered(runtime: Runtime) -> list[str]:
+def offered(runtime: Runtime, *, sees_images: bool) -> list[str]:
     assert runtime.tools is not None
-    return [spec.name for spec in runtime.tools.specs()]
+    return [spec.name for spec in runtime.tools.specs(sees_images=sees_images)]
 
 
 async def test_a_png_in_this_chat_s_folder_comes_back_as_an_image(tmp_path: Path) -> None:
@@ -183,21 +183,19 @@ def test_the_main_chat_may_be_offered_it_and_scripts_and_helpers_are_not() -> No
 
 
 def test_a_model_that_can_see_is_offered_it(tmp_path: Path) -> None:
-    assert VIEW_IMAGE in offered(runtime_seeing(tmp_path, vision=True))
+    assert VIEW_IMAGE in offered(composed(tmp_path), sees_images=True)
 
 
 async def test_a_model_that_cannot_see_is_not_offered_it_and_cannot_call_it(
     tmp_path: Path,
 ) -> None:
-    runtime = runtime_seeing(tmp_path, vision=False)
+    runtime = composed(tmp_path)
     page = await saved_in_the_chat(tmp_path, "page.png", ONE_PIXEL_PNG)
     call = ToolCall(id="c1", name=VIEW_IMAGE, arguments=viewing(page))
 
-    assert VIEW_IMAGE not in offered(runtime)
+    assert VIEW_IMAGE not in offered(runtime, sees_images=False)
     assert runtime.tools is not None
     called = await runtime.tools.execute(
-        call, progress=no_progress, origin=ORIGIN, session=new_session()
+        call, progress=no_progress, origin=ORIGIN, session=new_session(), sees_images=False
     )
-    approved = await runtime.tools.execute_approved(call, progress=no_progress, origin=ORIGIN)
     assert isinstance(called, Failure) and called.code == REFUSED
-    assert isinstance(approved, Failure) and approved.code == UNKNOWN_TOOL

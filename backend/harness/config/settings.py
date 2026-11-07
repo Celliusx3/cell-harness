@@ -88,7 +88,7 @@ class Settings(BaseSettings):
     )
 
     local_settings_path: Path = Field(exclude=True)
-    llm: LLMSettings
+    llm: LLMSettings = Field(default_factory=LLMSettings)
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     web: WebSettings = Field(default_factory=WebSettings)
     code: CodeModeSettings = Field(default_factory=CodeModeSettings)

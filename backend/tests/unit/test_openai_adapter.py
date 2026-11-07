@@ -14,7 +14,7 @@ from harness.llm.adapters.openai import client as adapter_module
 
 
 def settings() -> LLMSettings:
-    return LLMSettings(_env_file=None, api_key="k", model="m", vision=True, base_url="https://x/v1")
+    return LLMSettings(_env_file=None, api_key="k", model="m", base_url="https://x/v1")
 
 
 def sse(*frames: str) -> bytes:

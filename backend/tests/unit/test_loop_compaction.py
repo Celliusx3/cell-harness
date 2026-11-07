@@ -31,7 +31,7 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from tests.unit.fakes import OneModel, SteppedClient, completed
-from tests.unit.helpers import drain, new_session
+from tests.unit.helpers import drain, new_session, no_images
 
 
 class SizedClient(LLMClient):
@@ -62,7 +62,7 @@ class SizedClient(LLMClient):
 def runtime_with(client: LLMClient, context: int | None) -> Runtime:
     return Runtime(
         models=OneModel(client),
-        images=None,
+        images=no_images(),
         guidance="SYS",
         context_tokens=context,
     )

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { Field, INPUT_CLASSES } from "@/components/credentials/CredentialFields";
+import { Field, INPUT_CLASSES, VisionCheck } from "@/components/credentials/CredentialFields";
 import { ApiError, ASSISTANT_ID, listBots, updateBot } from "@/lib/api";
 import { addCredential, type ModelDetails } from "@/lib/credentials";
 
@@ -111,6 +111,11 @@ function ProviderFields({ details, onChange }: ProviderFieldsProps) {
           className={`font-mono ${INPUT_CLASSES}`}
         />
       </Field>
+      <VisionCheck
+        id="setup-vision"
+        isChecked={details.vision}
+        onChange={(vision) => onChange({ ...details, vision })}
+      />
     </>
   );
 }

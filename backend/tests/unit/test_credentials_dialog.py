@@ -21,7 +21,12 @@ GITHUB_DETAILS = {
     "kind": "custom",
     "destination": {"origin": "https://api.github.com", "auth": "bearer"},
 }
-MODEL_DETAILS = {"kind": "llm", "base_url": "https://api.example.com/v1", "model": "big"}
+MODEL_DETAILS = {
+    "kind": "llm",
+    "base_url": "https://api.example.com/v1",
+    "model": "big",
+    "vision": False,
+}
 
 
 @pytest.fixture

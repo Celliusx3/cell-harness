@@ -55,7 +55,11 @@ def test_from_model_derives_schema_and_parser_from_one_source() -> None:
 )
 async def test_bad_arguments_are_a_failure_not_an_exception(arguments, reason) -> None:
     outcome = await toolset(echo_tool()).execute(
-        call("echo", arguments), progress=no_progress, origin=ORIGIN, session=new_session()
+        call("echo", arguments),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Failure)
@@ -65,7 +69,7 @@ async def test_bad_arguments_are_a_failure_not_an_exception(arguments, reason) -
 
 async def test_a_tool_that_raises_does_not_kill_the_turn() -> None:
     outcome = await toolset(raising_tool()).execute(
-        call("boom"), progress=no_progress, origin=ORIGIN, session=new_session()
+        call("boom"), progress=no_progress, origin=ORIGIN, session=new_session(), sees_images=False
     )
 
     assert isinstance(outcome, Failure)
@@ -75,7 +79,11 @@ async def test_a_tool_that_raises_does_not_kill_the_turn() -> None:
 
 async def test_empty_arguments_mean_no_arguments() -> None:
     outcome = await toolset(echo_tool()).execute(
-        call("echo", ""), progress=no_progress, origin=ORIGIN, session=new_session()
+        call("echo", ""),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Failure)
@@ -108,17 +116,17 @@ async def test_a_tool_from_a_provider_is_callable_the_turn_it_appears() -> None:
     connected: list = []
     tools = toolset(providers=[lambda: list(connected)], offer=("echo",))
 
-    assert tools.specs() == []
+    assert tools.specs(sees_images=False) == []
     outcome = await tools.execute(
-        call("echo"), progress=no_progress, origin=ORIGIN, session=new_session()
+        call("echo"), progress=no_progress, origin=ORIGIN, session=new_session(), sees_images=False
     )
     assert isinstance(outcome, Failure)
 
     connected.append(echo_tool())
 
-    assert [s.name for s in tools.specs()] == ["echo"]
+    assert [s.name for s in tools.specs(sees_images=False)] == ["echo"]
     assert await tools.execute(
-        call("echo"), progress=no_progress, origin=ORIGIN, session=new_session()
+        call("echo"), progress=no_progress, origin=ORIGIN, session=new_session(), sees_images=False
     ) == Ok(content="hi")
 
 
@@ -171,7 +179,7 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
 
 def offering(*tools: Tool, default: tuple[str, ...]) -> Toolset:
     """A toolset with a chosen `default_tools` that offers every tool it was given."""
-    return Toolset(ToolService(tools, approvals=no_approvals()), default)
+    return Toolset(ToolService(tools, approvals=no_approvals()), default, sight_tools=frozenset())
 
 
 async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:
@@ -182,6 +190,7 @@ async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Failure) and outcome.code == REFUSED
@@ -197,6 +206,7 @@ async def test_an_offered_tool_executes() -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Ok) and outcome.text == "hi"
@@ -205,11 +215,12 @@ async def test_an_offered_tool_executes() -> None:
 async def test_an_empty_default_offers_nothing_and_refuses_everything() -> None:
     toolset = offering(echo_tool(), default=())
 
-    assert toolset.specs() == []
+    assert toolset.specs(sees_images=False) == []
     outcome = await toolset.execute(
         ToolCall(id="c1", name="echo", arguments='{"value": "hi"}'),
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(outcome, Failure) and outcome.code == REFUSED

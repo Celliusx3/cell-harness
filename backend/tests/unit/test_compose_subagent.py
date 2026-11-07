@@ -86,7 +86,7 @@ def test_the_bot_is_offered_run_subagent(compose) -> None:
     runtime, _ = compose(SteppedClient(completed("hi")))
     assert runtime.tools is not None
 
-    assert RUN_SUBAGENT in [spec.name for spec in runtime.tools.specs()]
+    assert RUN_SUBAGENT in [spec.name for spec in runtime.tools.specs(sees_images=False)]
 
 
 async def test_a_script_cannot_reach_run_subagent(compose) -> None:
@@ -98,6 +98,7 @@ async def test_a_script_cannot_reach_run_subagent(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(listed, Ok)

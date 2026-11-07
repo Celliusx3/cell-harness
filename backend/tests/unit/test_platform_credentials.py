@@ -38,7 +38,12 @@ GITHUB = {
 }
 MODEL = {
     "name": "trader_model",
-    "details": {"kind": "llm", "base_url": "https://api.example.com/v1", "model": "big"},
+    "details": {
+        "kind": "llm",
+        "base_url": "https://api.example.com/v1",
+        "model": "big",
+        "vision": False,
+    },
     "value": "sk-model-4444",
     "bot_ids": [],
 }

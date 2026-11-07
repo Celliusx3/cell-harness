@@ -12,10 +12,11 @@ PICK_A_MODEL = "Pick a model for this bot in Edit bot."
 
 @dataclass(frozen=True)
 class ModelChoice:
-    """The client a request goes through, and the model it names there."""
+    """The client a request goes through, the model it names there, and whether that model sees."""
 
     client: LLMClient
     model: str
+    vision: bool
 
 
 @dataclass(frozen=True)

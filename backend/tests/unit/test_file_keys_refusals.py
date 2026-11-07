@@ -20,7 +20,7 @@ from harness.web.file_keys import MODEL_CREDENTIAL, move_file_keys
 
 KEY = "0123456789abcdef0123456789abcdef"
 MODEL_KEY = "sk-file-model-key-1234"
-LLM = LLMSettings(model="glm", vision=True, base_url="https://api.example.com/v1")
+LLM = LLMSettings(model="glm", base_url="https://api.example.com/v1")
 SITE = Destination(origin="https://api.example.com", auth="bearer")
 
 

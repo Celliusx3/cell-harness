@@ -26,7 +26,7 @@ from tests.unit.fakes import (
     gated_tool,
     hanging_tool,
 )
-from tests.unit.helpers import no_bots, no_skills, toolset_for
+from tests.unit.helpers import no_bots, no_images, no_skills, toolset_for
 from tests.webapp import web_app
 
 TIMEOUT = 10.0
@@ -64,7 +64,10 @@ async def served(
         new_id=lambda: next(ids),
     )
     runtime = Runtime(
-        models=OneModel(client), images=None, tools=toolset_for(*tools), checkpoint=service.flush
+        models=OneModel(client),
+        images=no_images(),
+        tools=toolset_for(*tools),
+        checkpoint=service.flush,
     )
     runs = RunService(service, runtime, no_bots(service))
     async with (

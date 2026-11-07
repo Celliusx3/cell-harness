@@ -63,7 +63,7 @@ async def test_every_kind_is_listed_by_name_with_its_last_four_characters(
     tmp_path: Path, secrets: SecretService, bots: BotService
 ) -> None:
     secrets.save("github", GITHUB, SecretStr(GITHUB_KEY))
-    model = ModelDetails(base_url="https://api.example.com/v1", model="big")
+    model = ModelDetails(base_url="https://api.example.com/v1", model="big", vision=False)
     _add_sealed(tmp_path, "trader_model", model, MODEL_KEY)
     _add_sealed(tmp_path, "telegram", TelegramDetails(), TELEGRAM_TOKEN)
 
@@ -114,4 +114,5 @@ async def test_the_list_carries_the_endpoint_and_model_the_app_ships_with(
         "kind": "llm",
         "base_url": SHIPPED_MODEL.base_url,
         "model": SHIPPED_MODEL.model,
+        "vision": False,
     }

@@ -33,14 +33,14 @@ from tests.unit.fakes import (
     calls_tool,
     completed,
 )
-from tests.unit.helpers import new_session, runtime_over
+from tests.unit.helpers import new_session, no_images, runtime_over
 
 NO_HOOKS = HookChain()
 TOLD = HookChain(step_hooks=(EmptyReplyHook(),))
 
 
 def runtime_with(client, *, guidance: str = "", hooks: HookChain = NO_HOOKS) -> Runtime:
-    return Runtime(models=OneModel(client), images=None, guidance=guidance, hooks=hooks)
+    return Runtime(models=OneModel(client), images=no_images(), guidance=guidance, hooks=hooks)
 
 
 async def drain(gen) -> list:

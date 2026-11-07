@@ -10,12 +10,12 @@ export interface Destination {
 /** What a credential is for, by its kind: a website's key, a model, a chat platform's token, or a capability's key. */
 export type CredentialDetails =
   | { kind: "custom"; destination: Destination }
-  | { kind: "llm"; base_url: string; model: string }
+  | { kind: "llm"; base_url: string; model: string; vision: boolean }
   | { kind: "telegram" }
   | { kind: "discord" }
   | { kind: "capability"; server: string; variable: string };
 
-/** A model provider's endpoint and the model to ask there. */
+/** A model provider's endpoint, the model to ask there, and whether it can see images. */
 export type ModelDetails = Extract<CredentialDetails, { kind: "llm" }>;
 
 /** The kinds that sign the app in to a chat platform. */

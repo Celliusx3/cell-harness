@@ -18,6 +18,7 @@ export interface CredentialForm {
   headerName: string;
   baseUrl: string;
   model: string;
+  vision: boolean;
   server: string;
   variable: string;
   value: string;
@@ -32,6 +33,7 @@ const EMPTY_FORM: CredentialForm = {
   headerName: "",
   baseUrl: "",
   model: "",
+  vision: false,
   server: "",
   variable: "",
   value: "",
@@ -63,7 +65,7 @@ export function initialForm(credential: Credential | null): CredentialForm {
   const details = credential.details;
   switch (details.kind) {
     case "llm":
-      return { ...shared, kind: "llm", baseUrl: details.base_url, model: details.model };
+      return { ...shared, kind: "llm", baseUrl: details.base_url, model: details.model, vision: details.vision };
     case "custom": {
       const { origin, auth, header_name } = details.destination;
       return { ...shared, kind: "custom", origin, auth, headerName: header_name ?? "" };
@@ -102,7 +104,7 @@ export function tickedIds(bots: Bot[], botIds: string[], botId: string, isTicked
 function formDetails(form: CredentialForm): CredentialDetails {
   switch (form.kind) {
     case "llm":
-      return { kind: "llm", base_url: form.baseUrl, model: form.model };
+      return { kind: "llm", base_url: form.baseUrl, model: form.model, vision: form.vision };
     case "custom": {
       const headerName = form.auth === "header" ? form.headerName : null;
       return { kind: "custom", destination: { origin: form.origin, auth: form.auth, header_name: headerName } };

@@ -78,10 +78,10 @@ def _with_hand_over_lines(message: ToolMessage, handed: HandedOver) -> ToolMessa
 
 
 def _with_result_images(
-    runtime: Runtime, message: ToolMessage, outcome: Ok | Failure
+    runtime: Runtime, message: ToolMessage, outcome: Ok | Failure, *, sees_images: bool
 ) -> ToolMessage:
     """The result as the model reads it: its words, then its images when the model can see."""
-    if runtime.images is None or not isinstance(outcome, Ok) or not outcome.images:
+    if not sees_images or not isinstance(outcome, Ok) or not outcome.images:
         return message
     seen = runtime.images.of_result(outcome.images)
     return message.model_copy(update={"content": (*message.content, *seen)})
@@ -146,13 +146,13 @@ async def _answer_call(
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending | Reminder]:
     """Any `ToolProgress`, then a `ToolPending`, or an optional `Reminder` then a `ToolResult`."""
     refusal = await runtime.hooks.pre_tool_call(call, session=session)
+    sees_images = await runtime.sees_images(bot_id)
     outcome: ToolOutcome | None = None
     if refusal is not None:
         outcome = Failure(BLOCKED, refusal)
     else:
-        async with aclosing(
-            _execute(runtime, call, session=session, approved=approved, bot_id=bot_id)
-        ) as events:
+        run = ToolRun(session=session, approved=approved, bot_id=bot_id, sees_images=sees_images)
+        async with aclosing(_execute(runtime, call, run)) as events:
             async for event in events:
                 if isinstance(event, ToolProgress):
                     yield event
@@ -171,7 +171,10 @@ async def _answer_call(
     logged = result.model_copy(
         update={
             "message": _with_result_images(
-                runtime, _with_hand_over_lines(result.message, handed), outcome
+                runtime,
+                _with_hand_over_lines(result.message, handed),
+                outcome,
+                sees_images=sees_images,
             ),
             "files": handed.files,
         }
@@ -211,11 +214,21 @@ async def run_approved_call(
             session.append(unknown_result(call.id, turn=turn, step=0))
 
 
+@dataclass(frozen=True)
+class ToolRun:
+    """How one call runs: in which chat, for which bot, approved or not, for a model that sees."""
+
+    session: Session
+    approved: bool
+    bot_id: str
+    sees_images: bool
+
+
 async def _execute(
-    runtime: Runtime, call: ToolCall, *, session: Session, approved: bool, bot_id: str
+    runtime: Runtime, call: ToolCall, run: ToolRun
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
-    origin = CallOrigin(bot_id=bot_id, conversation_id=session.id)
+    origin = CallOrigin(bot_id=run.bot_id, conversation_id=run.session.id)
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 
     async def report(*, percent: float | None, message: str | None) -> None:
@@ -223,18 +236,22 @@ async def _execute(
             ToolProgress(tool_call_id=call.id, name=call.name, percent=percent, message=message)
         )
 
-    async def run() -> ToolOutcome:
+    async def outcome_of_call() -> ToolOutcome:
         try:
             assert runtime.tools is not None
-            if approved:
+            if run.approved:
                 return await runtime.tools.execute_approved(call, progress=report, origin=origin)
             return await runtime.tools.execute(
-                call, progress=report, origin=origin, session=session
+                call,
+                progress=report,
+                origin=origin,
+                session=run.session,
+                sees_images=run.sees_images,
             )
         finally:
             queue.put_nowait(None)
 
-    task = asyncio.create_task(run())
+    task = asyncio.create_task(outcome_of_call())
     try:
         while (event := await queue.get()) is not None:
             yield event

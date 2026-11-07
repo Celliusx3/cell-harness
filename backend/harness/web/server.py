@@ -201,7 +201,9 @@ def create_web_app() -> FastAPI:
     channels = build_channels(
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
-    shipped_model = ModelDetails(base_url=settings.llm.base_url, model=settings.llm.model)
+    shipped_model = ModelDetails(
+        base_url=settings.llm.base_url, model=settings.llm.model, vision=False
+    )
     return create_app(
         runs,
         channels,

@@ -83,6 +83,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(ran, Ok), ran

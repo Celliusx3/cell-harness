@@ -94,6 +94,7 @@ DEFAULT_TOOLS = (
     *sorted(CLIENT_TOOLS.names),
 )
 SUBAGENT_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
+SIGHT_TOOLS = frozenset({VIEW_IMAGE})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,
@@ -137,7 +138,7 @@ def build_runtime(
             send_file_tool(),
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
-            *([view_image_tool(files)] if settings.llm.vision else []),
+            view_image_tool(files),
             *client_tools.tools(),
         ],
         approvals=approvals,
@@ -153,8 +154,8 @@ def build_runtime(
         models=CredentialModels(
             secrets, bots, settings.llm, functools.partial(_openai_client, images)
         ),
-        images=images if settings.llm.vision else None,
-        tools=Toolset(tool_service, DEFAULT_TOOLS),
+        images=images,
+        tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
         guidance=GUIDANCE,
         checkpoint=store.flush,
         context_tokens=context_tokens,
@@ -187,7 +188,7 @@ def _register_run_subagent(
 ) -> None:
     subagent = dataclasses.replace(
         runtime,
-        tools=Toolset(tool_service, SUBAGENT_TOOLS),
+        tools=Toolset(tool_service, SUBAGENT_TOOLS, sight_tools=SIGHT_TOOLS),
         guidance=CODE_PROMPT,
     )
     tool_service.register(run_subagent_tool(Subagents(subagent, logs)))

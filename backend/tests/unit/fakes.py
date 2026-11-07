@@ -104,12 +104,13 @@ class HangingClient(LLMClient):
 
 @dataclass(frozen=True)
 class OneModel:
-    """Every bot's turns, and every compaction, ask `client` for the model `m`."""
+    """Every bot's turns, and every compaction, ask `client` for the model `m`, seeing or not."""
 
     client: LLMClient
+    vision: bool = False
 
     async def model_for(self, bot_id: str | None) -> ModelChoice:
-        return ModelChoice(self.client, "m")
+        return ModelChoice(self.client, "m", self.vision)
 
 
 def completed(text: str) -> list[StreamEvent]:

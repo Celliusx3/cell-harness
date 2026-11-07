@@ -41,7 +41,7 @@ function purposeLabel(details: CredentialDetails): string | null {
     case "custom":
       return new URL(details.destination.origin).host;
     case "llm":
-      return `${details.model} at ${new URL(details.base_url).host}`;
+      return `${details.model} at ${new URL(details.base_url).host}${details.vision ? ", sees images" : ""}`;
     case "telegram":
     case "discord":
       return null;

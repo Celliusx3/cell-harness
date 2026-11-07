@@ -92,7 +92,7 @@ def _key_moves(keys: KeysInFile, llm: LLMSettings) -> tuple[KeyMove, ...]:
         KeyPlace("llm", "api_key"),
         MODEL_CREDENTIAL,
         keys.llm.api_key,
-        lambda: ModelDetails(base_url=llm.base_url, model=llm.model),
+        lambda: ModelDetails(base_url=llm.base_url, model=llm.model, vision=False),
     )
     telegram = _move_if_held(
         KeyPlace("telegram", "bot_token"),

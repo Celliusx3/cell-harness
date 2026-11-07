@@ -100,7 +100,7 @@ async def test_the_window_is_found_from_inside_a_running_loop(tmp_path, monkeypa
 
     keyring = secrets_in(tmp_path)
     bots = bots_in(tmp_path, durable_service(tmp_path / "sessions"))
-    model = ModelDetails(base_url="https://assistant.example/v1", model="m")
+    model = ModelDetails(base_url="https://assistant.example/v1", model="m", vision=False)
     keyring.add_credential("first_model", model, SecretStr("sk-assistant-window"))
     put_on_model(bots, ASSISTANT_ID, "first_model")
 

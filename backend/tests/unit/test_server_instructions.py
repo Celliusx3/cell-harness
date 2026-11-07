@@ -108,6 +108,6 @@ def test_the_prompt_holds_each_server_s_latest_instructions_as_a_paragraph() -> 
     ):
         session.append(event)
 
-    system = runtime.request_messages(session)[0]
+    system = runtime.request_messages(session, sees_images=False)[0]
 
     assert system.content == f"GUIDE\n\n{PC}\n\nFind places."

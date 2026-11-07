@@ -76,15 +76,15 @@ def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
     runtime = build()
     assert runtime.tools is not None
 
-    assert SKILL not in [s.name for s in runtime.tools.specs()]
+    assert SKILL not in [s.name for s in runtime.tools.specs(sees_images=False)]
 
     directory = write_skill(root, "pdf")
-    offered = [s.name for s in runtime.tools.specs()]
+    offered = [s.name for s in runtime.tools.specs(sees_images=True)]
     assert SKILL in offered
     assert offered == [name for name in DEFAULT_TOOLS if name not in (MESSAGE_BOT, BOT_CREATE)]
 
     (directory / "SKILL.md").unlink()
-    assert SKILL not in [s.name for s in runtime.tools.specs()]
+    assert SKILL not in [s.name for s in runtime.tools.specs(sees_images=False)]
 
 
 def test_bot_create_is_offered_exactly_while_an_llm_credential_is_saved(
@@ -94,13 +94,13 @@ def test_bot_create_is_offered_exactly_while_an_llm_credential_is_saved(
     runtime = build()
     assert runtime.tools is not None
 
-    assert BOT_CREATE not in [s.name for s in runtime.tools.specs()]
+    assert BOT_CREATE not in [s.name for s in runtime.tools.specs(sees_images=False)]
 
     saved = a_model_saved_in(tmp_path)
-    assert BOT_CREATE in [s.name for s in runtime.tools.specs()]
+    assert BOT_CREATE in [s.name for s in runtime.tools.specs(sees_images=False)]
 
     saved.delete(MODEL_CREDENTIAL)
-    assert BOT_CREATE not in [s.name for s in runtime.tools.specs()]
+    assert BOT_CREATE not in [s.name for s in runtime.tools.specs(sees_images=False)]
 
 
 async def test_the_first_user_message_lists_the_skills_exactly_while_one_exists(compose) -> None:
@@ -125,7 +125,7 @@ async def request_of(runtime: Runtime) -> list[Message]:
     session = new_session()
     session.append(TurnStart(turn=0, bot_id="b"))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
-    return runtime.request_messages(session, await runtime.hooks.start_of_step())
+    return runtime.request_messages(session, await runtime.hooks.start_of_step(), sees_images=False)
 
 
 async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
@@ -139,6 +139,7 @@ async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Ok) and "Do pdf." in outcome.text
@@ -155,6 +156,7 @@ async def test_a_script_cannot_reach_it(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(listed, Ok) and "skill" not in listed.text
 
@@ -169,6 +171,7 @@ async def test_a_script_cannot_reach_it(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert "skill is not defined" in str(ran).lower() or "cannot be called" in str(ran)
 
@@ -177,15 +180,15 @@ def test_a_skill_saved_through_the_editor_is_offered_next_request(compose) -> No
     build, root = compose
     runtime = build()
     assert runtime.tools is not None
-    assert SKILL not in [s.name for s in runtime.tools.specs()]
+    assert SKILL not in [s.name for s in runtime.tools.specs(sees_images=False)]
 
     skills_at(root).save("notes", "---\ndescription: Notes.\n---\nWrite them.\n")
 
-    (spec,) = [s for s in runtime.tools.specs() if s.name == SKILL]
+    (spec,) = [s for s in runtime.tools.specs(sees_images=False) if s.name == SKILL]
     assert spec.input_schema["properties"]["name"]["enum"] == ["notes"]
 
     skills_at(root).delete("notes")
-    assert SKILL not in [s.name for s in runtime.tools.specs()]
+    assert SKILL not in [s.name for s in runtime.tools.specs(sees_images=False)]
 
 
 def test_every_skill_write_is_offered_before_any_skill_exists(compose) -> None:
@@ -193,7 +196,7 @@ def test_every_skill_write_is_offered_before_any_skill_exists(compose) -> None:
     runtime = build()
     assert runtime.tools is not None
 
-    offered = [s.name for s in runtime.tools.specs()]
+    offered = [s.name for s in runtime.tools.specs(sees_images=False)]
 
     assert {SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE} <= set(offered)
 
@@ -209,6 +212,7 @@ async def test_a_script_cannot_write_a_skill(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(listed, Ok)
     assert not any(name in listed.text for name in (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE))
@@ -224,6 +228,7 @@ async def test_a_script_cannot_write_a_skill(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert "skill_delete is not defined" in str(ran) or "cannot be called" in str(ran)
     assert (root / "pdf" / "SKILL.md").exists()
@@ -256,6 +261,7 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(wrote, Ok)
 
@@ -266,6 +272,7 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(read, Ok)
     script = read.text.split("\n", 1)[1].rsplit("\n</skill_file>", 1)[0]
@@ -279,5 +286,6 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(ran, Ok) and ran.data == 3.107

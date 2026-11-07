@@ -21,7 +21,7 @@ from harness.tools import Failure, Ok
 from harness.tools.native.bots import bot_create_tool
 from harness.web.bot_models import CredentialModels
 from tests.integration.web_helpers import settle
-from tests.unit.helpers import context_for, durable_service, no_skills
+from tests.unit.helpers import context_for, durable_service, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
 
 PICK_A_MODEL = "Pick a model for this bot in Edit bot."
@@ -29,14 +29,14 @@ PAGE = "http://127.0.0.1:4887"
 PROVIDER = "https://api.provider.example/v1"
 SETUP_CREDENTIAL = {
     "name": "first_model",
-    "details": {"kind": "llm", "base_url": PROVIDER, "model": "provider-model"},
+    "details": {"kind": "llm", "base_url": PROVIDER, "model": "provider-model", "vision": False},
     "value": "sk-provider-key-1234",
     "bot_ids": [],
 }
 OTHER_PROVIDER = "https://api.other.example/v1"
 OTHER_CREDENTIAL = {
     "name": "other_model",
-    "details": {"kind": "llm", "base_url": OTHER_PROVIDER, "model": "other-model"},
+    "details": {"kind": "llm", "base_url": OTHER_PROVIDER, "model": "other-model", "vision": False},
     "value": "sk-other-key-5678",
     "bot_ids": [],
 }
@@ -82,9 +82,9 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     secrets = secrets_in(tmp_path)
-    base = LLMSettings(_env_file=None, model="unused", vision=False, base_url=PROVIDER)
+    base = LLMSettings(_env_file=None, model="unused", base_url=PROVIDER)
     models = CredentialModels(secrets, bots, base, lambda s: OpenAIClient(s, read_image=no_image))
-    runtime = Runtime(models=models, images=None, checkpoint=service.flush)
+    runtime = Runtime(models=models, images=no_images(), checkpoint=service.flush)
     runs = RunService(service, runtime, bots)
     asgi = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     transport = httpx.ASGITransport(app=asgi, client=("127.0.0.1", 50000))

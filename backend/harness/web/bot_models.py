@@ -75,6 +75,6 @@ class CredentialModels:
         if credential is None:
             return None
         client = self._client_for(llm_settings_for(credential, self._base))
-        choice = ModelChoice(client, credential.details.model)
+        choice = ModelChoice(client, credential.details.model, credential.details.vision)
         self._by_credential[name] = CachedChoice(version=version, choice=choice)
         return choice

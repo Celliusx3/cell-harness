@@ -18,7 +18,7 @@ from harness.runtime.compaction import (
 )
 from harness.runtime.events import AgentPending, TurnEvent
 from harness.runtime.hooks import HookChain
-from harness.runtime.models import BotModels
+from harness.runtime.models import BotModels, ModelChoice
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
@@ -45,8 +45,8 @@ class Runtime:
     """A runtime that answers by running the tool loop."""
 
     models: BotModels
-    images: ImageService | None
-    """The images the model is shown; `None` means the model cannot see."""
+    images: ImageService
+    """The images a model that sees is shown."""
     tools: Toolset | None = None
     guidance: str = ""
     hooks: HookChain = HookChain()
@@ -56,10 +56,12 @@ class Runtime:
     server_instructions: Callable[[], Mapping[str, str]] | None = None
     """Each connected server's instructions now, by server id; `None` means no servers."""
 
-    def request_messages(self, session: Session, context: Sequence[str] = ()) -> list[Message]:
-        """The request for `session`, with each of the step hooks' `context` texts in it."""
+    def request_messages(
+        self, session: Session, context: Sequence[str] = (), *, sees_images: bool
+    ) -> list[Message]:
+        """The request for `session`, with the step hooks' `context`; images only for a seer."""
         derived = derive_messages(session.events())
-        history = derived if self.images is not None else without_images(derived)
+        history = derived if sees_images else without_images(derived)
         history = _with_context(history, context)
         system = system_text(session, self.guidance)
         if not system:
@@ -77,12 +79,17 @@ class Runtime:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = self._open_turn(session, bot_id)
-        images = self.images.of_attachments(files) if self.images is not None else ()
+        images = self.images.of_attachments(files) if await self.sees_images(bot_id) else ()
         message = UserMessage(content=user_input, images=images)
         session.append(UserMessageEvent(turn=turn, message=message, files=files))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
+
+    async def sees_images(self, bot_id: str) -> bool:
+        """Whether `bot_id`'s model can be shown images now; `False` when it has none."""
+        choice = await self.models.model_for(bot_id)
+        return isinstance(choice, ModelChoice) and choice.vision
 
     async def hear(
         self, message: BotMessage, *, session: Session, bot_id: str

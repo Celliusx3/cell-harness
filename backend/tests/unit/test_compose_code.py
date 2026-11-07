@@ -72,7 +72,7 @@ def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> Non
     runtime = compose()
 
     assert runtime.tools is not None
-    assert [spec.name for spec in runtime.tools.specs()] == WITHOUT_SKILLS
+    assert [spec.name for spec in runtime.tools.specs(sees_images=True)] == WITHOUT_SKILLS
 
 
 async def test_the_three_tools_actually_dispatch(compose) -> None:
@@ -84,6 +84,7 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Ok)
@@ -142,7 +143,7 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
 async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:
     runtime = compose()
     assert runtime.tools is not None
-    offered = {spec.name for spec in runtime.tools.specs()}
+    offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
     assert CLIENT_TOOLS.names <= offered
 
     listed = await runtime.tools.execute(
@@ -150,6 +151,7 @@ async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> No
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(listed, Ok)
     assert not any(name in listed.text for name in CLIENT_TOOLS.names)

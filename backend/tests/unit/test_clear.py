@@ -116,13 +116,13 @@ async def test_clearing_twice_keeps_counting_up(tmp_path) -> None:
 async def test_after_a_clear_the_model_sees_nothing_from_before(tmp_path) -> None:
     service, before = await _chat_with_history(tmp_path / "sessions")
     runtime = runtime_over(ScriptedClient([]))
-    assert UserMessage(content="SUMMARY") in runtime.request_messages(before)
+    assert UserMessage(content="SUMMARY") in runtime.request_messages(before, sees_images=False)
 
     await service.clear(before.id)
     session = await service.resume(before.id)
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="fresh")))
 
-    assert runtime.request_messages(session) == [UserMessage(content="fresh")]
+    assert runtime.request_messages(session, sees_images=False) == [UserMessage(content="fresh")]
 
 
 async def test_after_a_clear_nothing_is_left_to_compact_granted_or_selected(tmp_path) -> None:

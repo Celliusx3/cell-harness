@@ -14,14 +14,13 @@ from harness.config.settings import MissingConfigError, Settings, load
 
 @pytest.fixture
 def config_file(tmp_path, monkeypatch):
-    """Point the loader at a throwaway config pair; `llm.vision` is set."""
+    """Point the loader at a throwaway config pair."""
     committed = tmp_path / "config.json"
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
     monkeypatch.setattr(settings_module, "_LOCAL_JSON", local)
     for name in ("HARNESS_LLM__MODEL", "HARNESS_LLM__API_KEY", "HARNESS_SESSIONS__ROOT"):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("HARNESS_LLM__VISION", "false")
 
     return (
         lambda data: committed.write_text(json.dumps(data)),
@@ -60,7 +59,7 @@ def test_constructor_arguments_beat_everything(tmp_path, config_file, monkeypatc
     assert (
         Settings(
             local_settings_path=tmp_path / "config.local.json",
-            llm=LLMSettings(model="explicit", vision=False),
+            llm=LLMSettings(model="explicit"),
         ).llm.model
         == "explicit"
     )
@@ -120,7 +119,7 @@ def test_a_blank_value_counts_as_absent(config_file, blank) -> None:
 
 
 def test_temperature_is_pinned_not_inherited() -> None:
-    assert LLMSettings(vision=False).temperature == 1.0
+    assert LLMSettings().temperature == 1.0
 
 
 @pytest.mark.parametrize("bad", [-0.1, 2.1])
@@ -128,7 +127,7 @@ def test_temperature_is_bounded(bad: float) -> None:
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        LLMSettings(vision=False, temperature=bad)
+        LLMSettings(temperature=bad)
 
 
 def test_the_sessions_root_expands_a_tilde() -> None:
@@ -269,22 +268,3 @@ def test_the_committed_config_sets_where_files_go_and_how_big_one_may_be(config_
     committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
 
     assert committed["files"] == {"root": "~/.harness/files", "max_bytes": 209715200}
-
-
-def test_a_config_that_does_not_say_whether_the_model_can_see_is_refused(
-    tmp_path, config_file, monkeypatch
-) -> None:
-    from pydantic import ValidationError
-
-    write_committed, _ = config_file
-    monkeypatch.delenv("HARNESS_LLM__VISION")
-    write_committed({"llm": {"model": "m", "api_key": "k"}})
-
-    with pytest.raises(ValidationError, match="llm.vision"):
-        settings_in(tmp_path)
-
-
-def test_the_committed_config_shows_the_model_images(config_file) -> None:
-    committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
-
-    assert committed["llm"]["vision"] is True

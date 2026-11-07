@@ -17,7 +17,7 @@ from harness.runtime.service import Runtime
 from harness.tools import Ok, ReturnedImage
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed
-from tests.unit.helpers import drain, new_session, toolset_for
+from tests.unit.helpers import drain, new_session, no_images, toolset_for
 from tests.unit.mcp_fakes import tool
 from tests.unit.test_image_service import images_at
 
@@ -38,8 +38,8 @@ async def result_seen(images: ImageService | None, result: CallToolResult) -> To
 
     model = SteppedClient(calls_tool("srv__snap"), completed("seen"))
     runtime = Runtime(
-        models=OneModel(model),
-        images=images,
+        models=OneModel(model, vision=images is not None),
+        images=images or no_images(),
         tools=toolset_for(as_tool(server_id="srv", published=tool("snap"), call=call)),
     )
     await drain(runtime.run("look", session=new_session(), bot_id="b"))

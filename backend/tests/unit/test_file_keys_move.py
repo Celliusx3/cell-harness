@@ -18,7 +18,7 @@ KEY = "0123456789abcdef0123456789abcdef"
 MODEL_KEY = "sk-file-model-key-1234"
 TELEGRAM_TOKEN = "123456:AAfile-telegram-5678"
 DISCORD_TOKEN = "discord-file-token-9012"
-LLM = LLMSettings(model="glm", vision=True, base_url="https://api.example.com/v1")
+LLM = LLMSettings(model="glm", base_url="https://api.example.com/v1")
 ALL_KEYS = {
     "llm": {"api_key": MODEL_KEY, "temperature": 0.5},
     "telegram": {"bot_token": TELEGRAM_TOKEN},
@@ -53,7 +53,7 @@ def test_every_key_in_the_file_becomes_a_credential(local_json, keyring) -> None
 
     saved = _saved(keyring)
     model = saved[MODEL_CREDENTIAL]
-    assert model.details == ModelDetails(base_url=LLM.base_url, model=LLM.model)
+    assert model.details == ModelDetails(base_url=LLM.base_url, model=LLM.model, vision=False)
     assert (saved["telegram"].details.kind, saved["discord"].details.kind) == (
         "telegram",
         "discord",
@@ -91,7 +91,7 @@ def test_a_second_start_moves_nothing(tmp_path: Path, local_json, keyring) -> No
 def test_a_key_put_back_in_the_file_replaces_only_the_saved_key(local_json, keyring) -> None:
     _write(local_json, ALL_KEYS)
     move_file_keys(local_json, LLM, keyring)
-    edited = ModelDetails(base_url="https://other.example/v1", model="edited")
+    edited = ModelDetails(base_url="https://other.example/v1", model="edited", vision=False)
     keyring.change_credential(MODEL_CREDENTIAL, edited, None)
 
     _write(local_json, {"llm": {"api_key": "sk-rotated-key-4321"}})

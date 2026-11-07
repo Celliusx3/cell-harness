@@ -110,7 +110,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
-    offered = [spec.name for spec in runtime.tools.specs()]
+    offered = [spec.name for spec in runtime.tools.specs(sees_images=False)]
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered
 
     listed = await runtime.tools.execute(
@@ -118,6 +118,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     script = (
         'await extract_archive({path: "/tmp/a.cbz"}); '
@@ -132,6 +133,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(listed, Ok)

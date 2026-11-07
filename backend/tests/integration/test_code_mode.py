@@ -127,15 +127,19 @@ async def test_a_script_reaches_a_real_tool_through_a_real_toolset() -> None:
         withheld=frozenset(),
     ):
         tool_service.register(built)
-    toolset = Toolset(tool_service, (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT))
+    toolset = Toolset(
+        tool_service,
+        (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT),
+        sight_tools=frozenset(),
+    )
 
     async def run(name: str, arguments: str) -> ToolOutcome:
         call = ToolCall(id="c1", name=name, arguments=arguments)
         return await toolset.execute(
-            call, progress=no_progress, origin=ORIGIN, session=new_session()
+            call, progress=no_progress, origin=ORIGIN, session=new_session(), sees_images=False
         )
 
-    assert [spec.name for spec in toolset.specs()] == [
+    assert [spec.name for spec in toolset.specs(sees_images=False)] == [
         LIST_FUNCTIONS,
         GET_FUNCTION_DETAILS,
         EXECUTE_TYPESCRIPT,
