@@ -1,6 +1,6 @@
 # 08 MCP keys are saved with their server
 
-**Status.** open
+**Status.** done
 
 **What to build.** The MCP servers screen asks for each key a server `needs` in a hidden field, and saves it in that server's `env` in the servers file, written 0600. `CapabilityDetails`, `capability_keys` and the capability parts of Credentials go. The list on MCP servers shows each key as set or missing, never its value. Files: `web/routes/mcp_servers.py`, `mcp/keys.py`, `mcp/service.py`, `secrets/` (capability removal), `web/credential_effects.py`, `frontend/components/mcp/ServerFields.tsx`.
 

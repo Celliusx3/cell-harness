@@ -6,13 +6,20 @@ export interface SettingRow {
   value: string;
 }
 
+/** One key a server needs: its name, the value typed (empty keeps the saved one), and whether one is saved. */
+export interface KeyRow {
+  name: string;
+  value: string;
+  isSet: boolean;
+}
+
 /** What the server dialog's fields hold, as the person typed them. */
 export interface ServerForm {
   name: string;
   command: string;
   argumentLines: string;
   settings: SettingRow[];
-  needs: string[];
+  needs: KeyRow[];
 }
 
 /** A dialog field an error is shown under; `form` for one that is about the whole server. */
@@ -30,6 +37,7 @@ const FIELD_OF_REQUEST_KEY = new Map<string, ServerField>([
   ["args", "argumentLines"],
   ["env", "settings"],
   ["needs", "needs"],
+  ["keys", "needs"],
 ]);
 
 const PYDANTIC_VALUE_ERROR = "Value error, ";
@@ -42,7 +50,7 @@ export function initialServerForm(server: McpServer | null): ServerForm {
     command: server.command,
     argumentLines: server.args.join("\n"),
     settings: Object.entries(server.env).map(([name, value]) => ({ name, value })),
-    needs: [...server.needs],
+    needs: server.keys.map((key) => ({ name: key.name, value: "", isSet: key.is_set })),
   };
 }
 
@@ -61,13 +69,19 @@ export function serverDraft(form: ServerForm): Built<McpServerDraft> {
 export function serverChange(form: ServerForm): Built<McpServerChange> {
   const settings = settingsFrom(form.settings);
   if (!settings.ok) return settings;
+  const named = form.needs.map((row) => ({ ...row, name: row.name.trim() }));
+  if (named.some((row) => row.name === "" && row.value !== "")) {
+    return { ok: false, errors: { needs: ["Each key needs a name."] } };
+  }
+  const needed = named.filter((row) => row.name !== "");
   return {
     ok: true,
     request: {
       command: form.command,
       args: parseArgumentLines(form.argumentLines),
       env: settings.request,
-      needs: form.needs.map((name) => name.trim()).filter((name) => name !== ""),
+      needs: needed.map((row) => row.name),
+      keys: Object.fromEntries(needed.filter((row) => row.value !== "").map((row) => [row.name, row.value])),
     },
   };
 }

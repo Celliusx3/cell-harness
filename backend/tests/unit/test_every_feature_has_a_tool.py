@@ -15,7 +15,6 @@ from harness.web.runtime import build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import a_model_saved_in, files_in, images_in, web_app
 
 
@@ -153,7 +152,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}, saved={}),
         no_skills(),
         client_tools(),
         no_approvals(),

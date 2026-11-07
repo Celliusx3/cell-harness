@@ -23,7 +23,6 @@ from tests.integration.test_web_no_model import PAGE, FakeProvider
 from tests.integration.web_helpers import settle
 from tests.mcp_stub import DOT_PNG
 from tests.unit.helpers import client_tools, durable_service, no_approvals, no_skills
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import bots_in, files_in, images_in, secrets_in, web_app
 
 DOT = base64.b64decode(DOT_PNG)
@@ -51,7 +50,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     runtime = build_runtime(
         Settings(),
         service,
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}, saved={}),
         no_skills(),
         client_tools(),
         no_approvals(),

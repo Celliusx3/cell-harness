@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
@@ -17,7 +16,6 @@ from mcp.types import (
     Tool,
     ToolAnnotations,
 )
-from pydantic import SecretStr
 
 from harness.config.sections import McpServer
 
@@ -127,18 +125,3 @@ class FakeFactory:
                 self.client.exited_in = asyncio.current_task()
 
         return session()
-
-
-@dataclass
-class SavedKeys:
-    """A keyring's capability keys, by server id, that a test can add to as it goes."""
-
-    by_server: dict[str, dict[str, SecretStr]] = field(default_factory=dict)
-
-    def capability_keys(self, server_id: str) -> Mapping[str, SecretStr]:
-        return dict(self.by_server.get(server_id, {}))
-
-
-def no_keys() -> SavedKeys:
-    """A keyring holding no capability key."""
-    return SavedKeys()

@@ -67,12 +67,11 @@ def build_saved_servers(settings: Settings) -> SavedServerService:
     )
 
 
-def build_mcp(settings: Settings, keyring: SecretService, saved: SavedServerService) -> McpService:
+def build_mcp(settings: Settings, saved: SavedServerService) -> McpService:
     """Connections to `config.json`'s `mcp.servers` and the person's saved ones, with their keys."""
     return McpService(
         settings.mcp.servers,
         saved={server.id: server.server() for server in saved.servers()},
-        keys=keyring,
     )
 
 
@@ -137,7 +136,7 @@ def create_web_app() -> FastAPI:
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
     saved_servers = build_saved_servers(settings)
-    mcp = build_mcp(settings, secrets, saved_servers)
+    mcp = build_mcp(settings, saved_servers)
     skills = SkillService(settings.skills)
     approvals = ApprovalService(
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
@@ -212,10 +211,10 @@ def create_app(
     app.include_router(build_mcp_router(mcp, relays))
     app.include_router(build_relay_router(relays))
     app.include_router(build_client_router(web, client_tools))
-    effects = CredentialEffects(bots, channels.platforms, mcp)
+    effects = CredentialEffects(bots, channels.platforms)
     app.include_router(build_secret_card_router(web, client_tools, secrets, effects))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_credentials_router(secrets, bots, channels.platforms, mcp))
+    app.include_router(build_credentials_router(secrets, bots, channels.platforms))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

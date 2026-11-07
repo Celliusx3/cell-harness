@@ -26,7 +26,6 @@ from tests.unit.helpers import (
     no_progress,
     skills_at,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 PROJECT_SKILLS = Path(__file__).parents[3] / ".agents" / "skills"
@@ -59,7 +58,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys()),
+        McpService({"stub": McpServer(command="does-not-run")}, saved={}),
         skills_at(tmp_path / "skills"),
         client_tools(),
         no_approvals(),

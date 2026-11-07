@@ -1,4 +1,4 @@
-"""What a credential is for beside its key: a site, a model, a chat platform, or a capability."""
+"""What a credential is for beside its key: a site, a model, or a chat platform."""
 
 from __future__ import annotations
 
@@ -70,28 +70,11 @@ class DiscordDetails(BaseModel):
     kind: Literal["discord"] = "discord"
 
 
-class CapabilityDetails(BaseModel):
-    """One env variable of one MCP server, by the server's id; the key is the sealed value."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: Literal["capability"] = "capability"
-    server: str
-    variable: str
-
-    @field_validator("server", "variable")
-    @classmethod
-    def _named(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("a capability key names its server and its env variable")
-        return value
-
-
 ChatPlatform = Literal["telegram", "discord"]
 
 ChatPlatformDetails = TelegramDetails | DiscordDetails
 
 CredentialDetails = Annotated[
-    CustomDetails | ModelDetails | TelegramDetails | DiscordDetails | CapabilityDetails,
+    CustomDetails | ModelDetails | TelegramDetails | DiscordDetails,
     Field(discriminator="kind"),
 ]

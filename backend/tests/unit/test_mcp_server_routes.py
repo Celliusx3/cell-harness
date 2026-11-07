@@ -33,7 +33,7 @@ async def test_the_list_holds_the_built_in_servers_and_the_saved_ones(world) -> 
                 "command": "uv",
                 "args": ["run", "computer"],
                 "env": {},
-                "needs": [],
+                "keys": [],
                 "built_in": True,
                 "status": "connected",
                 "error": "",
@@ -43,7 +43,7 @@ async def test_the_list_holds_the_built_in_servers_and_the_saved_ones(world) -> 
                 "command": "npx",
                 "args": ["-y", "exa-mcp-server"],
                 "env": {"EXA_LIMIT": "5"},
-                "needs": [],
+                "keys": [],
                 "built_in": False,
                 "status": "connected",
                 "error": "",
@@ -175,12 +175,9 @@ async def test_the_preflight_grants_a_page_on_this_mac_a_change(world) -> None:
     assert "access-control-allow-origin" not in withheld.headers
 
 
-async def test_the_sidebar_list_names_a_saved_server_and_the_key_it_waits_for(world) -> None:
+async def test_the_sidebar_list_names_every_server_and_nothing_else(world) -> None:
     await world.send("POST", "/api/mcp/servers", exa(needs=["EXA_API_KEY"]))
 
     body = (await world.send("GET", "/api/mcp")).json()
 
-    assert body["servers"] == ["computer", "exa"]
-    assert body["keyed"] == [
-        {"id": "exa", "needs": ["EXA_API_KEY"], "status": "waiting", "error": "needs EXA_API_KEY"}
-    ]
+    assert body == {"servers": ["computer", "exa"]}

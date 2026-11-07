@@ -38,7 +38,6 @@ from tests.unit.helpers import (
     no_skills,
     runtime_over,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 MOST_BYTES = 5 * 1024 * 1024
@@ -66,7 +65,7 @@ def composed(tmp_path: Path) -> Runtime:
     return build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}, saved={}),
         no_skills(),
         client_tools(),
         no_approvals(),

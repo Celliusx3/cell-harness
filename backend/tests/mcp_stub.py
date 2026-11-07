@@ -51,6 +51,12 @@ async def snapshot() -> ImageContent:
 
 
 @server.tool()
+async def env_value(name: str) -> str:
+    """The value this server was started with for the env variable `name`, or "" for none."""
+    return os.environ.get(name, "")
+
+
+@server.tool()
 async def whoami() -> int:
     """This server's pid, so a test can prove the process is gone."""
     return os.getpid()

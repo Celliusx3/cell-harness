@@ -49,7 +49,6 @@ from tests.unit.helpers import (
     no_skills,
     toolset_for,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -216,7 +215,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}, saved={}),
         no_skills(),
         client_tools(),
         no_approvals(),

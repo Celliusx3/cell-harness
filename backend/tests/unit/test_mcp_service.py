@@ -8,12 +8,12 @@ import pytest
 
 from harness.mcp import McpConnectionError, McpNotConnectedError, McpService, McpTimeoutError
 from harness.mcp import _connection as connection_module
-from tests.unit.mcp_fakes import FakeFactory, html_resource, no_keys, servers, tool
+from tests.unit.mcp_fakes import FakeFactory, html_resource, servers, tool
 
 
 async def connected(factory: FakeFactory, *ids: str) -> McpService:
     """A started service, waited until its connections have settled."""
-    store = McpService(servers(*ids), client_factory=factory, saved={}, keys=no_keys())
+    store = McpService(servers(*ids), client_factory=factory, saved={})
     await store.start()
     for _ in range(200):
         if all(s.status != "connecting" for s in store.statuses()):
@@ -186,7 +186,6 @@ async def test_one_failed_server_does_not_cost_the_others_their_tools() -> None:
         {**servers("good"), **servers("bad")},
         client_factory=factory,
         saved={},
-        keys=no_keys(),
     )
     await store.start()
     await asyncio.sleep(0.05)
@@ -206,7 +205,7 @@ async def test_calling_a_closed_connection_raises_not_connected() -> None:
 
 
 async def test_a_store_with_no_configured_servers_offers_nothing() -> None:
-    store = McpService({}, saved={}, keys=no_keys())
+    store = McpService({}, saved={})
     await store.start()
 
     assert store.tools() == []
@@ -216,7 +215,7 @@ async def test_a_store_with_no_configured_servers_offers_nothing() -> None:
 
 async def test_start_does_not_wait_for_a_slow_server() -> None:
     factory = FakeFactory(connect_delay=5.0)
-    store = McpService(servers(), client_factory=factory, saved={}, keys=no_keys())
+    store = McpService(servers(), client_factory=factory, saved={})
 
     await asyncio.wait_for(store.start(), 0.5)
 

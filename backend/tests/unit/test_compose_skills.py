@@ -31,7 +31,6 @@ from tests.unit.helpers import (
     no_progress,
     skills_at,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, files_in, images_in, secrets_in
 
 COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
@@ -51,7 +50,7 @@ def compose(tmp_path: Path):
     def build() -> Runtime:
         settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-        mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys())
+        mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={})
         return build_runtime(
             settings,
             sessions,

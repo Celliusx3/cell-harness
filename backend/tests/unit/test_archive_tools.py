@@ -36,7 +36,6 @@ from tests.unit.helpers import (
     no_progress,
     no_skills,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -97,7 +96,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}, saved={}),
         no_skills(),
         client_tools(),
         no_approvals(),

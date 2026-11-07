@@ -28,9 +28,10 @@ class SavedServerService:
         self._repository.replace_all((*stored, server))
 
     def change(self, server_id: str, draft: ServerDraft) -> SavedServer:
-        """Save `draft` over the server `server_id`, keeping its id and its place."""
+        """Save `draft` over `server_id`, keeping its id, its place and each key not typed."""
         stored = self._saved_or_refused(server_id)
-        changed = SavedServer(id=server_id, **draft.model_dump())
+        existing = next(saved for saved in stored if saved.id == server_id)
+        changed = draft.saved(server_id, existing.env)
         self._repository.replace_all(
             tuple(changed if saved.id == server_id else saved for saved in stored)
         )

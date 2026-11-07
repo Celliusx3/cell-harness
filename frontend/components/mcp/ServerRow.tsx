@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { commandLine, stateLabel, type McpServer } from "@/lib/mcpServers";
 
 const ROW_BUTTON =
@@ -12,7 +10,7 @@ export interface ServerActions {
   onRestart: (() => void) | null;
 }
 
-/** One server: its name, its command line, whether it is built in, its state, and what may be done to it. */
+/** One server: its name, its command line, whether it is built in, its state, each key set or missing, and what may be done to it. */
 export function ServerRow({ server, actions }: { server: McpServer; actions: ServerActions }) {
   return (
     <li className="px-3 py-2 text-sm">
@@ -25,13 +23,13 @@ export function ServerRow({ server, actions }: { server: McpServer; actions: Ser
       </div>
       <p className="mt-1 break-all font-mono text-xs text-ink-soft">{commandLine(server)}</p>
       <div className="mt-1 flex items-center gap-2">
-        <div className="min-w-0 flex-1 text-xs">
-          {server.status === "waiting" && (
-            <Link href="/settings/credentials" className="text-accent hover:underline">
-              Add its key on Credentials
-            </Link>
-          )}
-        </div>
+        <ul className="min-w-0 flex-1 text-xs text-ink-soft">
+          {server.keys.map((key) => (
+            <li key={key.name} className="break-all">
+              <span className="font-mono">{key.name}</span> {key.is_set ? "set" : "missing"}
+            </li>
+          ))}
+        </ul>
         <RowButton label="Restart" onClick={actions.onRestart} />
         <RowButton label="Edit" onClick={actions.onEdit} />
         <RowButton label="Remove" onClick={actions.onRemove} />

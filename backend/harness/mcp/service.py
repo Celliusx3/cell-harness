@@ -13,7 +13,7 @@ from harness.config.sections import McpServer
 from harness.mcp._connection import Connection
 from harness.mcp.client import McpClientFactory
 from harness.mcp.clients.stdio import open_stdio_client
-from harness.mcp.keys import CapabilityKeys, missing_keys, with_saved_keys
+from harness.mcp.keys import missing_keys
 from harness.mcp.models.errors import (
     McpNotConnectedError,
     McpServerBuiltIn,
@@ -37,7 +37,6 @@ class McpService:
         servers: Mapping[str, McpServer],
         *,
         saved: Mapping[str, McpServer],
-        keys: CapabilityKeys,
         client_factory: McpClientFactory = open_stdio_client,
     ) -> None:
         clashes = sorted(set(servers) & set(saved))
@@ -47,7 +46,6 @@ class McpService:
             )
         self._built_in_ids = frozenset(servers)
         self._servers: Mapping[str, McpServer] = {**servers, **saved}
-        self._keys = keys
         self._factory = client_factory
         self._connections: dict[str, Connection] = {}
         self._changing = asyncio.Lock()
@@ -74,12 +72,8 @@ class McpService:
             if can_write(tool) and (tool_name := namespaced(connection.id, tool.name)) in offered
         )
 
-    def needs(self, server_id: str) -> tuple[str, ...]:
-        """The env keys `server_id` waits for until they are found. `KeyError` if not configured."""
-        return self._servers[server_id].needs
-
     def server(self, server_id: str) -> McpServer:
-        """How `server_id` is run, without its saved keys. `KeyError` if not configured."""
+        """How `server_id` is run, its keys in its env. `KeyError` if not configured."""
         return self._servers[server_id]
 
     def is_built_in(self, server_id: str) -> bool:
@@ -117,7 +111,7 @@ class McpService:
             raise RequiredServerError(refusal)
 
     async def restart(self, server_id: str) -> None:
-        """Close `server_id`, then open it again with the keys found now. `KeyError` if unknown."""
+        """Close `server_id`, then open it again. `KeyError` if unknown."""
         if server_id not in self._servers:
             raise KeyError(server_id)
         async with self._changing:
@@ -161,9 +155,8 @@ class McpService:
             await running.aclose()
 
     async def _open(self, server_id: str) -> None:
-        """Start `server_id` with its config env and saved keys, or leave it waiting for a key."""
-        saved = await asyncio.to_thread(self._keys.capability_keys, server_id)
-        server = with_saved_keys(self._servers[server_id], saved)
+        """Start `server_id` with its env, or leave it waiting for a key that env lacks."""
+        server = self._servers[server_id]
         connection = Connection(id=server_id, server=server, factory=self._factory)
         self._connections[server_id] = connection
         missing = missing_keys(server)

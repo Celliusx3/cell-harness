@@ -9,7 +9,6 @@ import {
   withKind,
   type CredentialForm,
 } from "@/components/credentials/credentialForm";
-import { capabilityKeyLabel, type CapabilityKey } from "@/lib/capabilityKeys";
 import type { Bot } from "@/lib/types";
 
 export const INPUT_CLASSES =
@@ -20,7 +19,6 @@ const KIND_LABELS: Record<CredentialKind, string> = {
   llm: "LLM",
   telegram: "Telegram",
   discord: "Discord",
-  capability: "Capability key",
 };
 
 interface CredentialFieldsProps {
@@ -28,12 +26,11 @@ interface CredentialFieldsProps {
   kinds: CredentialKind[];
   isEditing: boolean;
   bots: Bot[];
-  capabilityKeys: CapabilityKey[];
   onChange: (form: CredentialForm) => void;
 }
 
 /** The type, then that type's fields, the key and the bots; an edit fixes type and name, and a platform's shows its token alone. */
-export function CredentialFields({ form, kinds, isEditing, bots, capabilityKeys, onChange }: CredentialFieldsProps) {
+export function CredentialFields({ form, kinds, isEditing, bots, onChange }: CredentialFieldsProps) {
   const change = (update: Partial<CredentialForm>) => onChange({ ...form, ...update });
   const isPlatform = isChatPlatform(form.kind);
   const secret = isPlatform ? "token" : "key";
@@ -44,7 +41,6 @@ export function CredentialFields({ form, kinds, isEditing, bots, capabilityKeys,
       )}
       {form.kind === "custom" && <WebsiteFields form={form} onChange={change} />}
       {form.kind === "llm" && <ModelFields form={form} onChange={change} />}
-      {form.kind === "capability" && <CapabilityField form={form} keys={capabilityKeys} onChange={change} />}
       <Field label={isPlatform ? "Token" : "Key"} htmlFor="credential-key">
         <input
           id="credential-key"
@@ -197,37 +193,6 @@ export function VisionCheck({ id, isChecked, onChange }: VisionCheckProps) {
       />
       Can see images
     </label>
-  );
-}
-
-interface CapabilityFieldProps extends TypeFieldsProps {
-  keys: CapabilityKey[];
-}
-
-function CapabilityField({ form, keys, onChange }: CapabilityFieldProps) {
-  const chosen = keys.findIndex((key) => key.server === form.server && key.variable === form.variable);
-  const choose = (index: string) => {
-    const key = keys[Number(index)];
-    if (key !== undefined) onChange({ server: key.server, variable: key.variable });
-  };
-  return (
-    <Field label="Capability" htmlFor="credential-capability">
-      <select
-        id="credential-capability"
-        value={chosen === -1 ? "" : String(chosen)}
-        onChange={(event) => choose(event.target.value)}
-        className={INPUT_CLASSES}
-      >
-        <option value="" disabled>
-          Choose the key a capability needs
-        </option>
-        {keys.map((key, index) => (
-          <option key={capabilityKeyLabel(key)} value={String(index)}>
-            {capabilityKeyLabel(key)}
-          </option>
-        ))}
-      </select>
-    </Field>
   );
 }
 

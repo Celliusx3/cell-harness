@@ -7,13 +7,12 @@ export interface Destination {
   header_name: string | null;
 }
 
-/** What a credential is for, by its kind: a website's key, a model, a chat platform's token, or a capability's key. */
+/** What a credential is for, by its kind: a website's key, a model, or a chat platform's token. */
 export type CredentialDetails =
   | { kind: "custom"; destination: Destination }
   | { kind: "llm"; base_url: string; model: string; vision: boolean }
   | { kind: "telegram" }
-  | { kind: "discord" }
-  | { kind: "capability"; server: string; variable: string };
+  | { kind: "discord" };
 
 /** A model provider's endpoint, the model to ask there, and whether it can see images. */
 export type ModelDetails = Extract<CredentialDetails, { kind: "llm" }>;

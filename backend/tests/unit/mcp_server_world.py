@@ -1,4 +1,4 @@
-"""The MCP servers screen's routes, the credentials routes and the keyring, over fakes."""
+"""The MCP servers screen's routes, over fakes."""
 
 from __future__ import annotations
 
@@ -10,20 +10,14 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI
 
-from harness.bots import BotService
 from harness.config.sections import McpServer
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServer, SavedServerService
 from harness.relay import RelayService
-from harness.secrets import DiskSecretRepository, SecretService
 from harness.web.errors import exception_handlers
-from harness.web.routes.credentials import build_router as build_credentials_router
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.mcp_servers import build_router
-from tests.unit.helpers import durable_service
 from tests.unit.mcp_fakes import FakeFactory, tool
-from tests.webapp import no_platforms
 
-KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
 THIS_MAC = ("127.0.0.1", 50000)
 
@@ -53,9 +47,6 @@ class ServerWorld:
 
     def __init__(self, tmp_path: Path, factory: FakeFactory | None = None) -> None:
         self.path = tmp_path / "mcp.json"
-        self.secrets = SecretService(
-            DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=KEY
-        )
         self.factory = factory or FakeFactory()
         self.factory.client.tools = [tool("search")]
         self.repository = BreakableRepository(DiskSavedServerRepository(self.path))
@@ -63,20 +54,11 @@ class ServerWorld:
         self.mcp = McpService(
             built_ins(),
             saved={server.id: server.server() for server in self.saved.servers()},
-            keys=self.secrets,
             client_factory=self.factory,
-        )
-        bots = BotService(
-            tmp_path / "bots.json",
-            durable_service(tmp_path / "sessions"),
-            assistant_instructions="Be kind.",
         )
         app = FastAPI(exception_handlers=exception_handlers())
         app.include_router(build_router(self.mcp, self.saved))
         app.include_router(build_mcp_router(self.mcp, RelayService(now=time.monotonic)))
-        app.include_router(
-            build_credentials_router(self.secrets, bots, no_platforms(self.secrets), self.mcp)
-        )
         self.app = app
 
     async def send(
@@ -114,6 +96,7 @@ def exa(**overrides: object) -> dict:
         "args": ["-y", "exa-mcp-server"],
         "env": {"EXA_LIMIT": "5"},
         "needs": [],
+        "keys": {},
         **overrides,
     }
 

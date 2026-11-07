@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ChatPlatform, Credential, CredentialChange, CredentialDetails, CredentialDraft } from "@/lib/credentials";
 import type { Bot } from "@/lib/types";
 
-export const CredentialKind = z.enum(["custom", "llm", "telegram", "discord", "capability"]);
+export const CredentialKind = z.enum(["custom", "llm", "telegram", "discord"]);
 export type CredentialKind = z.infer<typeof CredentialKind>;
 
 export const KeyAuth = z.enum(["bearer", "header"]);
@@ -19,8 +19,6 @@ export interface CredentialForm {
   baseUrl: string;
   model: string;
   vision: boolean;
-  server: string;
-  variable: string;
   value: string;
   botIds: string[];
 }
@@ -34,8 +32,6 @@ const EMPTY_FORM: CredentialForm = {
   baseUrl: "",
   model: "",
   vision: false,
-  server: "",
-  variable: "",
   value: "",
   botIds: [],
 };
@@ -44,17 +40,15 @@ export function isChatPlatform(kind: CredentialKind): kind is ChatPlatform {
   return kind === "telegram" || kind === "discord";
 }
 
-/** Whether a credential of `kind` is ticked for no bots: a chat platform, a capability, or a model, which is picked in Edit bot. */
+/** Whether a credential of `kind` is ticked for no bots: a chat platform, or a model, which is picked in Edit bot. */
 export function servesNoBots(kind: CredentialKind): boolean {
-  return isChatPlatform(kind) || kind === "capability" || kind === "llm";
+  return isChatPlatform(kind) || kind === "llm";
 }
 
-/** The types a new credential may take: every one, but a chat platform already saved, or a capability key with none open. */
-export function addableKinds(credentials: Credential[], hasOpenCapabilityKey: boolean): CredentialKind[] {
+/** The types a new credential may take: every one, but a chat platform already saved. */
+export function addableKinds(credentials: Credential[]): CredentialKind[] {
   const saved = new Set(credentials.map((credential) => credential.details.kind));
-  return CredentialKind.options.filter((kind) =>
-    kind === "capability" ? hasOpenCapabilityKey : !isChatPlatform(kind) || !saved.has(kind),
-  );
+  return CredentialKind.options.filter((kind) => !isChatPlatform(kind) || !saved.has(kind));
 }
 
 /** The fields for a new credential, or `credential`'s with its key left empty. */
@@ -73,8 +67,6 @@ export function initialForm(credential: Credential | null): CredentialForm {
     case "telegram":
     case "discord":
       return { ...shared, kind: details.kind };
-    case "capability":
-      return { ...shared, kind: "capability", server: details.server, variable: details.variable };
   }
 }
 
@@ -112,7 +104,5 @@ function formDetails(form: CredentialForm): CredentialDetails {
     case "telegram":
     case "discord":
       return { kind: form.kind };
-    case "capability":
-      return { kind: "capability", server: form.server, variable: form.variable };
   }
 }

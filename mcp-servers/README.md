@@ -62,11 +62,12 @@ Open **Settings → MCP servers** and click **Add server**. For one of ours, in
 | Command | `uv` |
 | Arguments | `run`, `--quiet`, `--project`, `../mcp-servers/places`, `places`, one per line |
 | Settings | `PLACES_MAX_RESULTS=3` |
-| Keys it needs | `GOOGLE_MAPS_API_KEY` |
+| Keys it needs | `GOOGLE_MAPS_API_KEY`, with its value in the hidden field beside it |
 
-It is saved in `mcp.json` (`~/.harness/mcp.json` for `make dev`) and starts at
-once. A key is never a setting: add its value on the Credentials page as a
-**Capability key**, and the server starts when it is saved. Only `computer` is
+It is saved in `mcp.json` (`~/.harness/mcp.json` for `make dev`), owner-only,
+with each key's value in the server's `env`, and starts at once. The list shows
+a key as set or missing, never its value; an edit that leaves a key empty keeps
+the one saved, and a server missing a key waits until an edit gives it. Only `computer` is
 declared in `backend/config.json`; a server listed only in
 `backend/config.local.json` stops the start, with a message to add it on the
 screen.

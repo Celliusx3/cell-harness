@@ -1,5 +1,5 @@
 import { Field, INPUT_CLASSES } from "@/components/credentials/CredentialFields";
-import type { FieldErrors, ServerField, ServerForm, SettingRow } from "@/lib/mcpServerForm";
+import type { FieldErrors, KeyRow, ServerField, ServerForm, SettingRow } from "@/lib/mcpServerForm";
 
 const ROW_BUTTON =
   "shrink-0 rounded-md border border-line bg-surface px-2 py-0.5 text-xs text-ink-soft transition hover:bg-line hover:text-ink";
@@ -11,7 +11,7 @@ interface ServerFieldsProps {
   onChange: (form: ServerForm) => void;
 }
 
-/** Name (for a new server), command, arguments one per line, plain settings, and the keys it needs; each with its errors. */
+/** Name (for a new server), command, arguments one per line, plain settings, and each key it needs with its hidden value; each with its errors. */
 export function ServerFields({ form, isEditing, errors, onChange }: ServerFieldsProps) {
   const change = (update: Partial<ServerForm>) => onChange({ ...form, ...update });
   return (
@@ -52,7 +52,7 @@ export function ServerFields({ form, isEditing, errors, onChange }: ServerFields
         <Errors errors={errors} field="argumentLines" />
       </Field>
       <SettingRows rows={form.settings} errors={errors} onChange={(settings) => change({ settings })} />
-      <NeedRows names={form.needs} errors={errors} onChange={(needs) => change({ needs })} />
+      <KeyRows rows={form.needs} errors={errors} onChange={(needs) => change({ needs })} />
     </div>
   );
 }
@@ -91,37 +91,48 @@ function SettingRows({ rows, errors, onChange }: SettingRowsProps) {
         </div>
       ))}
       <AddRow label="Add setting" onClick={() => onChange([...rows, { name: "", value: "" }])} />
-      <p className="text-xs text-ink-soft">Plain settings only; a key goes on Credentials.</p>
+      <p className="text-xs text-ink-soft">Plain settings only; a key goes under Keys it needs.</p>
       <Errors errors={errors} field="settings" />
     </fieldset>
   );
 }
 
-interface NeedRowsProps {
-  names: string[];
+interface KeyRowsProps {
+  rows: KeyRow[];
   errors: FieldErrors;
-  onChange: (names: string[]) => void;
+  onChange: (rows: KeyRow[]) => void;
 }
 
-function NeedRows({ names, errors, onChange }: NeedRowsProps) {
+function KeyRows({ rows, errors, onChange }: KeyRowsProps) {
+  const changeRow = (index: number, update: Partial<KeyRow>) =>
+    onChange(rows.map((row, at) => (at === index ? { ...row, ...update } : row)));
   return (
     <fieldset className="flex min-w-0 flex-col gap-1.5">
       <legend className="pb-1.5 text-xs text-ink-soft">Keys it needs</legend>
-      {names.map((name, index) => (
+      {rows.map((row, index) => (
         <div key={index} className="flex items-center gap-2">
           <input
             aria-label={`Key ${index + 1} name`}
-            value={name}
-            onChange={(event) => onChange(names.map((held, at) => (at === index ? event.target.value : held)))}
+            value={row.name}
+            onChange={(event) => changeRow(index, { name: event.target.value, isSet: false })}
             placeholder="EXA_API_KEY"
             autoComplete="off"
             className={`min-w-0 flex-1 font-mono ${INPUT_CLASSES}`}
           />
-          <RemoveRow label={`Remove key ${index + 1}`} onClick={() => onChange(names.filter((_, at) => at !== index))} />
+          <input
+            aria-label={`Key ${index + 1} value`}
+            type="password"
+            value={row.value}
+            onChange={(event) => changeRow(index, { value: event.target.value })}
+            placeholder={row.isSet ? "Saved; leave empty to keep it" : "Paste the key"}
+            autoComplete="off"
+            className={`min-w-0 flex-1 ${INPUT_CLASSES}`}
+          />
+          <RemoveRow label={`Remove key ${index + 1}`} onClick={() => onChange(rows.filter((_, at) => at !== index))} />
         </div>
       ))}
-      <AddRow label="Add key" onClick={() => onChange([...names, ""])} />
-      <p className="text-xs text-ink-soft">Only the names: add each key&apos;s value on Credentials as a Capability key.</p>
+      <AddRow label="Add key" onClick={() => onChange([...rows, { name: "", value: "", isSet: false }])} />
+      <p className="text-xs text-ink-soft">Each key is saved with this server, on this Mac only, and never shown again.</p>
       <Errors errors={errors} field="needs" />
     </fieldset>
   );

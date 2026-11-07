@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 
 from harness.secrets import (
     Destination,
@@ -70,6 +70,17 @@ def test_a_key_saved_before_types_existed_reads_as_custom(path: Path) -> None:
     assert found is not None
     assert found.destination == GITHUB
     assert found.value.get_secret_value() == "ghp-old-key-1234"
+
+
+def test_a_keyring_still_holding_an_mcp_key_fails_to_load(path: Path) -> None:
+    record_id = "00cd"
+    details = {"kind": "capability", "server": "places", "variable": "GOOGLE_MAPS_API_KEY"}
+    ciphertext = sealed("AIza-old-key-1234", encryption_key=KEY, record_id=record_id)
+    record = {"id": record_id, "name": "maps", "details": details, "ciphertext": ciphertext}
+    path.write_text(json.dumps({"secrets": [record]}))
+
+    with pytest.raises(ValidationError, match="capability"):
+        SecretService(DiskSecretRepository(path), encryption_key=KEY).saved_credentials()
 
 
 def test_a_saved_custom_key_is_written_with_its_kind(path: Path) -> None:
