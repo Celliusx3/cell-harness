@@ -1,6 +1,6 @@
 # 08 The docs say the PC is the center
 
-**Status.** open
+**Status.** done
 
 **What to build.** CLAUDE.md says the PC is a startup requirement, beside Deno,
 that it runs in a bundled microVM, and that it reaches only public addresses.

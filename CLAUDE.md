@@ -15,7 +15,7 @@ Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts,
 [PHASES.md](./PHASES.md) for the current status, the phase in progress and
 what it must satisfy. Nothing in this file changes when a feature ships.
 
-Four shapes that hold everywhere:
+Five shapes that hold everywhere:
 
 - **Code mode.** The model is offered three tools and reaches every capability
   by writing a TypeScript program that runs in a Deno sandbox, so the request
@@ -33,6 +33,12 @@ Four shapes that hold everywhere:
   ship scripts: they run in the bots' computer through `computer__shell`, where
   the chat's files and the skills shipped with the app sit at their own paths,
   and keep their own tests and 80% gate (`make test-skills`).
+- **Every bot works on one PC.** A Linux desktop with Chrome and a shell, run by
+  the `computer` server in a microVM that ships inside the app (microsandbox;
+  `COMPUTER_ENGINE=docker` is the other engine). The app does not start without
+  it, and every bot is told about it by the server's own instructions. Scripts
+  that call tools still run in Deno; the PC is a tool the bot uses.
+  [docs/specs/pc-center/spec.md](./docs/specs/pc-center/spec.md).
 - **Every channel is a client of one gateway** — browser, Telegram, Discord. A
   new platform is one class and one line in `build_channels`.
   [channels/__init__.py](./backend/harness/channels/__init__.py).
@@ -43,6 +49,7 @@ cp backend/config.local.example.json backend/config.local.json   # add your API 
 # everything else — model, endpoint, sessions root, MCP servers — is in
 # backend/config.json (committed); other secrets stay in config.local.json (gitignored)
 make install && make test          # needs Deno on PATH — https://deno.com
+# the PC needs virtualization: Apple Silicon, KVM on Linux, or the Windows Hypervisor Platform
 make dev                           # backend :4896 + frontend :4897; `sysmon` needs Node (npx)
 make app                           # the Mac app, desktop/dist-app/Cell Harness-<version>-arm64.dmg
 # open http://localhost:4897 — there is no CLI, the API is the only surface
@@ -129,6 +136,8 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 - **`harness/sandbox/` imports nothing from `harness`.** It runs a script; it does
   not know what a tool is.
 - **We reap what we spawn.** No SDK owns the Deno child; a `finally` kills it.
+- **The PC reaches only public addresses.** Its network denies the Mac, private
+  networks, link-local and metadata; only the skills' own Mac programs are let through.
 - **Prompt assembly cannot raise.** The schema printer degrades to `unknown`
   rather than costing the turn every tool.
 - **No skills, no tool.** An enum with no members is never offered.
