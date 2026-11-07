@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { CapabilityList } from "@/components/credentials/CapabilityList";
 import { CredentialDialog } from "@/components/credentials/CredentialDialog";
 import { CredentialRow } from "@/components/credentials/CredentialRow";
 import { addableKinds, isChatPlatform } from "@/components/credentials/credentialForm";
-import { ApiError, listBots } from "@/lib/api";
+import { ApiError, listBots, listServers } from "@/lib/api";
+import { capabilityLabel, isStarting, openCapabilityKeys } from "@/lib/capabilityKeys";
 import {
   canSaveCredentials,
   listCredentials,
@@ -13,14 +15,17 @@ import {
   type Credential,
   type CredentialDetails,
 } from "@/lib/credentials";
-import type { Bot } from "@/lib/types";
+import type { Bot, KeyedServer } from "@/lib/types";
 
 const KIND_HEADINGS: { kind: CredentialDetails["kind"]; heading: string }[] = [
   { kind: "llm", heading: "LLM" },
   { kind: "telegram", heading: "Telegram" },
   { kind: "discord", heading: "Discord" },
   { kind: "custom", heading: "Custom" },
+  { kind: "capability", heading: "Capability keys" },
 ];
+
+const STARTING_POLL_MS = 2000;
 
 /** Whether the dialog is shown, and for a new credential or which one. */
 type DialogState = { isOpen: false } | { isOpen: true; credential: Credential | null };
@@ -31,6 +36,7 @@ const CLOSED: DialogState = { isOpen: false };
 export default function CredentialsPage() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
+  const [keyed, setKeyed] = useState<KeyedServer[]>([]);
   const [directUrl, setDirectUrl] = useState<string | null>(null);
   const [canSave, setCanSave] = useState<boolean | null>(null);
   const [dialog, setDialog] = useState<DialogState>(CLOSED);
@@ -38,10 +44,11 @@ export default function CredentialsPage() {
 
   const loadCredentials = useCallback(async () => {
     try {
-      const [listed, active] = await Promise.all([listCredentials(), listBots()]);
+      const [listed, active, servers] = await Promise.all([listCredentials(), listBots(), listServers()]);
       setCredentials(listed.credentials);
       setDirectUrl(listed.direct_url);
       setBots(active);
+      setKeyed(servers.keyed);
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof ApiError ? err.message : "Could not load credentials.");
@@ -51,6 +58,12 @@ export default function CredentialsPage() {
   useEffect(() => {
     void loadCredentials();
   }, [loadCredentials]);
+
+  useEffect(() => {
+    if (!isStarting(keyed)) return;
+    const timer = window.setTimeout(() => void loadCredentials(), STARTING_POLL_MS);
+    return () => window.clearTimeout(timer);
+  }, [keyed, loadCredentials]);
 
   useEffect(() => {
     if (directUrl === null) return;
@@ -98,9 +111,9 @@ export default function CredentialsPage() {
           <p className="mb-3 max-w-2xl text-xs text-ink-soft">Change credentials on the Mac that runs the harness.</p>
         )}
         {credentials.length === 0 ? (
-          <p className="text-sm text-ink-soft">No credentials yet.</p>
+          <p className="mb-6 text-sm text-ink-soft">No credentials yet.</p>
         ) : (
-          <div className="max-w-2xl space-y-6">
+          <div className="mb-6 max-w-2xl space-y-6">
             {KIND_HEADINGS.map(({ kind, heading }) => (
               <CredentialGroup
                 key={kind}
@@ -112,14 +125,18 @@ export default function CredentialsPage() {
             ))}
           </div>
         )}
+        <div className="max-w-2xl">
+          <CapabilityList keyed={keyed} />
+        </div>
       </div>
 
       {dialog.isOpen && directUrl !== null && (
         <CredentialDialog
           directUrl={directUrl}
           credential={dialog.credential}
-          kinds={addableKinds(credentials)}
+          kinds={addableKinds(credentials, openCapabilityKeys(keyed, credentials, null).length > 0)}
           bots={bots}
+          capabilityKeys={openCapabilityKeys(keyed, credentials, dialog.credential?.name ?? null)}
           onClose={() => setDialog(CLOSED)}
           onSaved={() => {
             setDialog(CLOSED);
@@ -158,7 +175,9 @@ function CredentialGroup({ heading, credentials, onEdit, onRemove }: CredentialG
 }
 
 function removalQuestion(credential: Credential): string {
-  return isChatPlatform(credential.details.kind)
+  const details = credential.details;
+  if (details.kind === "capability") return `Remove ${credential.name}? ${capabilityLabel(details.server)} turns off.`;
+  return isChatPlatform(details.kind)
     ? `Remove ${credential.name}? Its bot stops answering.`
     : `Remove ${credential.name}? The bots it serves lose it.`;
 }

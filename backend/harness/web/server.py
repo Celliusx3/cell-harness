@@ -231,7 +231,9 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_credentials_router(secrets, bots, channels.platforms, shipped_model))
+    app.include_router(
+        build_credentials_router(secrets, bots, channels.platforms, mcp, shipped_model)
+    )
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

@@ -1,3 +1,4 @@
+import { capabilityKeyLabel } from "@/lib/capabilityKeys";
 import type { Credential, CredentialDetails } from "@/lib/credentials";
 
 const ROW_BUTTON =
@@ -45,6 +46,8 @@ function purposeLabel(details: CredentialDetails): string | null {
     case "telegram":
     case "discord":
       return null;
+    case "capability":
+      return capabilityKeyLabel(details);
     default: {
       const _exhaustive: never = details;
       return _exhaustive;

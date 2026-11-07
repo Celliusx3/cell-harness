@@ -89,8 +89,8 @@ class SecretService:
 
     def change_credential(
         self, name: str, details: CredentialDetails, value: SecretStr | None
-    ) -> None:
-        """Replace what `name` is for, and its key unless `value` is `None`; its kind stays."""
+    ) -> CredentialDetails:
+        """Replace what `name` is for, and its key unless `value` is `None`; say what it was for."""
         stored = self._repository.sealed_secrets()
         existing = next((secret for secret in stored if secret.name == name), None)
         if existing is None:
@@ -106,6 +106,7 @@ class SecretService:
         self._repository.replace_all(
             tuple(changed if secret is existing else secret for secret in stored)
         )
+        return existing.details
 
     def add_or_replace_key(self, name: str, details: CredentialDetails, value: SecretStr) -> None:
         """Add `name` for `details`; when one of that kind is saved, replace only its key."""

@@ -60,6 +60,10 @@ class McpService:
             if can_write(tool) and (tool_name := namespaced(connection.id, tool.name)) in offered
         )
 
+    def needs(self, server_id: str) -> tuple[str, ...]:
+        """The env keys `server_id` waits for until they are found. `KeyError` if not configured."""
+        return self._servers[server_id].needs
+
     def published(self, server_id: str) -> tuple[McpTool, ...]:
         """One server's tools as it published them. `KeyError` if not configured."""
         return self._connection(server_id).published

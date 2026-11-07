@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 from harness.bots import Bot, BotNotFound, BotService, served_bots
+from harness.mcp import McpService
 from harness.secrets import (
     SavedCredential,
     SecretName,
@@ -21,11 +22,12 @@ from harness.secrets import (
     SecretValue,
 )
 from harness.secrets.models.details import (
-    ChatPlatform,
+    CapabilityDetails,
     ChatPlatformDetails,
     CredentialDetails,
     ModelDetails,
 )
+from harness.web.credential_effects import CredentialEffects
 from harness.web.errors import STATUS_OF
 from harness.web.platforms import PlatformChannels
 
@@ -38,6 +40,7 @@ PROXY_HEADER_PREFIX = "x-forwarded-"
 ALLOWED_METHODS = "GET, POST, PATCH, DELETE, OPTIONS"
 ALLOWED_HEADERS = "content-type"
 PLATFORM_SERVES_NO_BOTS = "a Telegram or Discord credential serves no bots; tick none"
+CAPABILITY_SERVES_NO_BOTS = "a capability key serves its capability, not bots; tick none"
 
 
 class BotRef(BaseModel):
@@ -76,8 +79,8 @@ class NewCredential(BaseModel):
     bot_ids: tuple[str, ...]
 
     @model_validator(mode="after")
-    def _platform_serves_no_bots(self) -> NewCredential:
-        _refuse_bots_for_a_platform(self.details, self.bot_ids)
+    def _serves_bots_only_if_a_key_for_them(self) -> NewCredential:
+        _refuse_bots_where_none_served(self.details, self.bot_ids)
         return self
 
 
@@ -91,8 +94,8 @@ class CredentialChange(BaseModel):
     bot_ids: tuple[str, ...]
 
     @model_validator(mode="after")
-    def _platform_serves_no_bots(self) -> CredentialChange:
-        _refuse_bots_for_a_platform(self.details, self.bot_ids)
+    def _serves_bots_only_if_a_key_for_them(self) -> CredentialChange:
+        _refuse_bots_where_none_served(self.details, self.bot_ids)
         return self
 
 
@@ -100,10 +103,12 @@ def build_router(
     secrets: SecretService,
     bots: BotService,
     platforms: PlatformChannels,
+    mcp: McpService,
     shipped_model: ModelDetails,
 ) -> APIRouter:
     """List the keyring's credentials with their bots; add, change and remove one from this Mac."""
     router = APIRouter(prefix="/api/credentials", tags=["credentials"])
+    effects = CredentialEffects(bots, platforms, mcp)
 
     @router.get("", response_model=CredentialList)
     async def list_credentials(request: Request, response: Response) -> CredentialList:
@@ -126,14 +131,11 @@ def build_router(
     async def add_credential(request: Request) -> Response:
         headers = _permitted_write_headers(request)
         body = _parsed_body(NewCredential, await request.body(), headers)
+        _refuse_unneeded_capability_key(effects, body.details, headers)
         with _refusals_answered_with(headers):
             _refuse_inactive_bots(bots, body.bot_ids)
             await asyncio.to_thread(secrets.add_credential, body.name, body.details, body.value)
-        platform = _platform_of(body.details)
-        if platform is None:
-            bots.tie_credential(body.name, body.details.kind, body.bot_ids)
-        else:
-            await platforms.restart(platform)
+        await effects.added(body.name, body.details, body.bot_ids)
         logger.info("credential %r added for bots %s", body.name, list(body.bot_ids))
         return Response(status_code=status.HTTP_201_CREATED, headers=headers)
 
@@ -141,14 +143,15 @@ def build_router(
     async def change_credential(name: str, request: Request) -> Response:
         headers = _permitted_write_headers(request)
         body = _parsed_body(CredentialChange, await request.body(), headers)
+        _refuse_unneeded_capability_key(effects, body.details, headers)
         with _refusals_answered_with(headers):
             _refuse_inactive_bots(bots, body.bot_ids)
-            await asyncio.to_thread(secrets.change_credential, name, body.details, body.value)
-        platform = _platform_of(body.details)
-        if platform is None:
-            bots.tie_credential(name, body.details.kind, body.bot_ids)
-        elif body.value is not None:
-            await platforms.restart(platform)
+            replaced = await asyncio.to_thread(
+                secrets.change_credential, name, body.details, body.value
+            )
+        await effects.changed(
+            name, replaced, body.details, bot_ids=body.bot_ids, is_new_key=body.value is not None
+        )
         logger.info("credential %r changed for bots %s", name, list(body.bot_ids))
         return Response(status_code=status.HTTP_200_OK, headers=headers)
 
@@ -157,24 +160,29 @@ def build_router(
         headers = _permitted_write_headers(request)
         with _refusals_answered_with(headers):
             removed = secrets.delete(name)
-        bots.forget_secret(name)
-        platform = _platform_of(removed)
-        if platform is not None:
-            await platforms.restart(platform)
+        await effects.removed(name, removed)
         logger.info("credential %r removed from the keyring and every bot", name)
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
 
     return router
 
 
-def _refuse_bots_for_a_platform(details: CredentialDetails, bot_ids: tuple[str, ...]) -> None:
-    if isinstance(details, ChatPlatformDetails) and bot_ids:
+def _refuse_bots_where_none_served(details: CredentialDetails, bot_ids: tuple[str, ...]) -> None:
+    if not bot_ids:
+        return
+    if isinstance(details, ChatPlatformDetails):
         raise ValueError(PLATFORM_SERVES_NO_BOTS)
+    if isinstance(details, CapabilityDetails):
+        raise ValueError(CAPABILITY_SERVES_NO_BOTS)
 
 
-def _platform_of(details: CredentialDetails) -> ChatPlatform | None:
-    """The chat platform a credential signs in, or `None` for a key that serves bots."""
-    return details.kind if isinstance(details, ChatPlatformDetails) else None
+def _refuse_unneeded_capability_key(
+    effects: CredentialEffects, details: CredentialDetails, headers: dict[str, str]
+) -> None:
+    """A 422 for a capability key its server is not configured to need, before anything is saved."""
+    refusal = effects.capability_refusal(details)
+    if refusal is not None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=refusal, headers=headers)
 
 
 def _credential_entry(credential: SavedCredential, active: tuple[Bot, ...]) -> CredentialEntry:

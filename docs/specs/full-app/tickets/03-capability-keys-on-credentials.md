@@ -1,6 +1,6 @@
 # 03 Capability keys are added on the Credentials page
 
-**Status.** open
+**Status.** done
 
 **What to build.** A credential type "Capability key": you pick a capability
 and one of the keys it needs, and paste the value. It is sealed in the
