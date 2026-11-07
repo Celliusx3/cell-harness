@@ -1,4 +1,4 @@
-"""Rakazo's page script inside the computer: one JSON line in on stdin, one JSON object out."""
+"""The PC's page script: one JSON line in on stdin, one JSON object out."""
 
 from __future__ import annotations
 
@@ -22,8 +22,7 @@ PAGE_TIMEOUT_SECONDS = 25.0
 CHROME_WAIT_SECONDS = 15.0
 RETRY_SECONDS = 0.5
 CHROME_DOWN = "CDP not ready"
-PAGE_SCRIPT = "rakazo-page-browser"
-ARGUMENTS_ON_STDIN = {"RAKAZO_BROWSER_ARGS_STDIN": "1"}
+PAGE_SCRIPT = "pc-page"
 NO_ARGUMENTS = "{}"
 
 PageCommand = Literal["navigate", "snapshot", "act"]
@@ -155,7 +154,7 @@ class Browser:
     async def _ask_once[R: Reply](
         self, command: PageCommand, arguments: str, reply_type: TypeAdapter[R]
     ) -> R:
-        script = Program(argv=(PAGE_SCRIPT, command), env=ARGUMENTS_ON_STDIN)
+        script = Program(argv=(PAGE_SCRIPT, command), env={})
         try:
             completed = await self._engine.run(
                 self._container,
@@ -168,11 +167,11 @@ class Browser:
                 f"The page did not answer within {PAGE_TIMEOUT_SECONDS:g} seconds. "
                 "Call browser_read_page to see where it got to."
             ) from err
-        raw = stdout_of(completed, f"rakazo-page-browser {command}", error=EngineError)
+        raw = stdout_of(completed, f"{PAGE_SCRIPT} {command}", error=EngineError)
         try:
             return reply_type.validate_json(raw)
         except ValidationError as err:
-            logger.error("rakazo-page-browser %s answered %r: %s", command, raw, err)
+            logger.error("%s %s answered %r: %s", PAGE_SCRIPT, command, raw, err)
             raise BrowserError(
                 f"The computer answered {command} with something this server cannot read. "
                 "This is a fault in the computer, not in the call: tell the person."

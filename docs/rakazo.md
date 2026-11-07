@@ -30,6 +30,10 @@ view; phase 19 copies the two about screenshots:
 
 ## 2. The computer image
 
+The PC no longer runs this image. Ours is built from scratch in
+`mcp-servers/computer/image/` (`docs/specs/pc-image/`); this section is kept as the
+teardown of Rakazo's.
+
 `ghcr.io/elie222/rakazo/computer` (Debian, ~2 GB) runs Xvfb, fluxbox, Chromium and
 noVNC, and exposes two ways in:
 

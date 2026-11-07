@@ -10,7 +10,6 @@ from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from importlib import resources
 
-import httpx
 from mcp.server import MCPServer
 from mcp.server.apps import Apps, ResourceCsp
 from microsandbox import Image, Sandbox
@@ -116,11 +115,7 @@ def main() -> None:
         Computer(
             machine=machine,
             browser=Browser(engine=engine, container=config.container_name, clock=SYSTEM),
-            desktop=Desktop(
-                engine=engine,
-                container=config.container_name,
-                client=httpx.AsyncClient(trust_env=False),
-            ),
+            desktop=Desktop(engine=engine, container=config.container_name),
             live_screen=LiveScreen(
                 engine=engine, container=config.container_name, machine=machine, clock=SYSTEM
             ),

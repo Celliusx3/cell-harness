@@ -33,9 +33,6 @@ class Engine(Protocol):
     async def host_port(self, name: str, guest_port: int) -> int:
         """The loopback port on the Mac that `guest_port` is published on."""
 
-    async def environment(self, name: str) -> dict[str, str]:
-        """The variables the PC was made with."""
-
     async def run(
         self, name: str, program: Program, *, stdin: str | None, timeout_seconds: float
     ) -> CommandResult:

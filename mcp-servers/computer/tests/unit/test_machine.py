@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -20,7 +19,7 @@ INSPECT = ["inspect", "--type", "container", "--format", "{{.State.Status}}", NA
 BINDINGS = ["inspect", "--type", "container", "--format", "{{json .HostConfig.PortBindings}}", NAME]
 MOUNTS = ["inspect", "--type", "container", "--format", "{{json .Mounts}}", NAME]
 STOP = ["stop", NAME]
-OPEN_CHROME_CALL = ["exec", "-d", NAME, "rakazo-focus-or-launch", "rakazo-browser"]
+OPEN_CHROME_CALL = ["exec", "-d", NAME, "pc-browser"]
 RUNNING_JOBS = ["exec", NAME, "python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT]
 
 
@@ -37,16 +36,14 @@ async def use(machine: Machine) -> None:
         pass
 
 
-async def test_the_first_call_runs_one_container_with_rakazos_options() -> None:
+async def test_the_first_call_runs_one_container_with_the_pcs_options() -> None:
     docker = FakeDocker(status="missing")
     async with serving(docker, Dial()) as machine:
         await use(machine)
 
     inspect, run, launch = docker.calls
     files, skills = config().files_dir, config().skills_dirs[0]
-    token = next(arg for arg in run if arg.startswith("RAKAZO_COMPUTER_CONTROL_TOKEN="))
     assert inspect == INSPECT
-    assert re.fullmatch(r"RAKAZO_COMPUTER_CONTROL_TOKEN=[0-9a-f]{32}", token)
     assert run == [
         "run", "-d", "--name", NAME,
         "--label", f"cell-harness.computer={NAME}",
@@ -54,12 +51,10 @@ async def test_the_first_call_runs_one_container_with_rakazos_options() -> None:
         "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges:true",
         "-e", "DISPLAY=:1",
-        "-e", "HOME=/home/rakazo",
-        "-e", token,
-        "-v", f"{NAME}-home:/home/rakazo",
+        "-e", "HOME=/home/pc",
+        "-v", f"{NAME}-home:/home/pc",
         "-v", f"{files}:{files}",
         "-v", f"{skills}:{skills}:ro",
-        "-p", "127.0.0.1::7070",
         "-p", "127.0.0.1::6080",
         IMAGE,
     ]  # fmt: skip
@@ -106,7 +101,7 @@ async def test_a_container_made_without_the_gateway_port_is_replaced_keeping_its
     inspect, bindings, remove, run, launch, again = docker.calls
     assert (inspect, bindings, remove) == (INSPECT, BINDINGS, ["rm", "-f", NAME])
     assert run[0] == "run"
-    assert f"{NAME}-home:/home/rakazo" in run
+    assert f"{NAME}-home:/home/pc" in run
     assert "127.0.0.1::6080" in run
     assert (launch, again) == (OPEN_CHROME_CALL, INSPECT)
 

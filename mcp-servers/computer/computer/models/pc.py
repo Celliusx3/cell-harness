@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-HOME = "/home/rakazo"
+HOME = "/home/pc"
 LOOPBACK = "127.0.0.1"
 LABEL = "cell-harness.computer"
 

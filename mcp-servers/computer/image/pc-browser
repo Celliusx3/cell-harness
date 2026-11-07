@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+window=$(xdotool search --onlyvisible --class chromium 2>/dev/null | head -n 1 || true)
+if [ -n "$window" ]; then
+  exec xdotool windowactivate "$window"
+fi
+exec chromium \
+  --user-data-dir="$HOME/.config/chromium" \
+  --remote-debugging-address=127.0.0.1 \
+  --remote-debugging-port=9222 \
+  --no-first-run \
+  --no-default-browser-check \
+  --password-store=basic \
+  --start-maximized \
+  --hide-crash-restore-bubble \
+  "$@"

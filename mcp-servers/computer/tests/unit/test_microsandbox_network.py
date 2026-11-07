@@ -9,11 +9,11 @@ from microsandbox import Action, DestGroup, Destination, Network, Protocol, Rule
 
 from computer.engines.microsandbox import MicrosandboxEngine, pc_network_policy
 from computer.services.machine import Machine, pc_spec
-from tests.conftest import API_TOKEN, Dial, config
+from tests.conftest import Dial, config
 from tests.fake_microsandbox import FakeImages, FakeSandboxes
 
 HOST_SERVICE_PORTS = (41000, 52000)
-SPEC = pc_spec(config(), API_TOKEN, HOST_SERVICE_PORTS)
+SPEC = pc_spec(config(), HOST_SERVICE_PORTS)
 POLICY = pc_network_policy(HOST_SERVICE_PORTS)
 PUBLIC = Destination.group(DestGroup.PUBLIC)
 HOST = Destination.group(DestGroup.HOST)

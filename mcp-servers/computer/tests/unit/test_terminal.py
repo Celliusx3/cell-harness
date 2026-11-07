@@ -16,7 +16,7 @@ RELAY = "io.cell-harness/relay"
 HOLD_SECONDS = 15 * 60
 TERMINAL_CALL = ["exec", "-i", NAME, "bash", "-c"]
 PROGRAM = resources.files("computer").joinpath("vendor/rakazo_terminal.py").read_text("utf-8")
-TERMINAL_STOPPED = "pkill -f '^([^ ]*/)?python[0-9.]* /tmp/rakazo/rakazo-terminal.py"
+TERMINAL_STOPPED = "pkill -f '^([^ ]*/)?python[0-9.]* /tmp/pc/terminal.py"
 
 
 def text_of(result: CallToolResult) -> str:
@@ -62,8 +62,8 @@ async def test_with_control_the_program_goes_on_stdin_and_the_link_is_the_gatewa
     )
     assert stdin == PROGRAM
     assert "pty.fork()" in PROGRAM and "pty.fork()" not in script
-    assert f"printf '%s: unix_socket:%s\\n' {token} /tmp/rakazo/sockets/terminal-1-" in script
-    assert "--token-source=/tmp/rakazo/desktop-targets 0.0.0.0:6080" in script
+    assert f"printf '%s: unix_socket:%s\\n' {token} /tmp/pc/sockets/terminal-1-" in script
+    assert "--token-source=/tmp/pc/desktop-targets 0.0.0.0:6080" in script
 
 
 async def test_every_shell_gets_a_token_of_its_own() -> None:
@@ -85,7 +85,7 @@ async def test_releasing_control_stops_the_shell() -> None:
 
     assert terminal_token(opened)
     assert TERMINAL_STOPPED in docker.scripts()[-1]
-    assert ": >/tmp/rakazo/terminal-target-next-1" in docker.scripts()[-1]
+    assert ": >/tmp/pc/terminal-target-next-1" in docker.scripts()[-1]
 
 
 async def test_a_hold_that_runs_out_stops_the_shell_too() -> None:

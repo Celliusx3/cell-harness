@@ -217,9 +217,6 @@ class MicrosandboxEngine:
     async def host_port(self, name: str, guest_port: int) -> int:
         return loopback_port(await self._config(name), guest_port)
 
-    async def environment(self, name: str) -> dict[str, str]:
-        return {entry.key: entry.value for entry in (await self._config(name)).env}
-
     async def run(
         self, name: str, program: Program, *, stdin: str | None, timeout_seconds: float
     ) -> CommandResult:

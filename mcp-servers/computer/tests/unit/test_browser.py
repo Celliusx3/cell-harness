@@ -1,4 +1,4 @@
-"""Rakazo's page script: what goes over stdin, what comes back, and Chrome not being up."""
+"""The PC's page script: what goes over stdin, what comes back, and Chrome not being up."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def browser(docker: FakeDocker) -> Browser:
 
 
 def page_command(command: str) -> list[str]:
-    return ["exec", "-i", "-e", "RAKAZO_BROWSER_ARGS_STDIN=1", NAME, "rakazo-page-browser", command]
+    return ["exec", "-i", NAME, "pc-page", command]
 
 
 async def test_navigate_sends_the_url_on_stdin_as_one_json_line() -> None:
@@ -131,7 +131,7 @@ async def test_chrome_not_up_is_launched_once_and_the_command_retried_until_it_w
     opened = await browser(docker).navigate("https://example.com")
 
     assert opened.title == "Example Domain"
-    assert docker.launches() == [["exec", "-d", NAME, "rakazo-focus-or-launch", "rakazo-browser"]]
+    assert docker.launches() == [["exec", "-d", NAME, "pc-browser"]]
     assert [call for call in docker.calls if call[:2] == ["exec", "-i"]] == [
         page_command("navigate")
     ] * 4
@@ -165,7 +165,7 @@ async def test_a_page_script_that_exits_non_zero_is_a_docker_error() -> None:
     docker = FakeDocker(status="running")
     docker.refused_verbs.add("exec")
 
-    with pytest.raises(EngineError, match="rakazo-page-browser snapshot failed"):
+    with pytest.raises(EngineError, match="pc-page snapshot failed"):
         await browser(docker).read()
 
 

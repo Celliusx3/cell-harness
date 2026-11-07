@@ -66,7 +66,7 @@ def stored_config(call: CreateCall) -> dict[str, object]:
         "name": call.name,
         "image": {"Oci": {"reference": call.image}},
         "env": [{"key": key, "value": value} for key, value in env.items()],
-        "labels": {IMAGE_LABEL: "https://github.com/elie222/rakazo", **call.labels},
+        "labels": {IMAGE_LABEL: "https://github.com/Celliusx3/cell-harness", **call.labels},
         "network": {
             "enabled": True,
             "ports": [
@@ -98,7 +98,7 @@ class FakeImages:
     """`microsandbox.Image.inspect` over one image whose command is given."""
 
     entrypoint: list[str] | None = None
-    cmd: list[str] | None = field(default_factory=lambda: ["/usr/local/bin/rakazo-computer"])
+    cmd: list[str] | None = field(default_factory=lambda: ["/usr/local/bin/pc-start"])
     inspected: list[str] = field(default_factory=list)
 
     async def inspect(self, reference: str) -> FakeImageDetail:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -20,11 +19,9 @@ logger = logging.getLogger("computer")
 
 JOBS_ROOT = f"{HOME}/.shell"
 DISPLAY = ":1"
-API_PORT = 7070
 GATEWAY_PORT = 6080
-API_TOKEN_VARIABLE = "RAKAZO_COMPUTER_CONTROL_TOKEN"
 SHM_MEGABYTES = 256
-OPEN_CHROME = Program(argv=("rakazo-focus-or-launch", "rakazo-browser"), env={})
+OPEN_CHROME = Program(argv=("pc-browser",), env={})
 
 
 def shared_folders(config: Config) -> tuple[SharedFolder, ...]:
@@ -35,16 +32,16 @@ def shared_folders(config: Config) -> tuple[SharedFolder, ...]:
     )
 
 
-def pc_spec(config: Config, api_token: str, host_service_ports: tuple[int, ...]) -> PcSpec:
-    """The PC as Rakazo creates its computer, with its API and gateway published."""
+def pc_spec(config: Config, host_service_ports: tuple[int, ...]) -> PcSpec:
+    """The PC from our image, with its gateway published."""
     name = config.container_name
     return PcSpec(
         name=name,
         image=config.image,
-        env={"DISPLAY": DISPLAY, "HOME": HOME, API_TOKEN_VARIABLE: api_token},
+        env={"DISPLAY": DISPLAY, "HOME": HOME},
         home=HomeVolume(name=f"{name}-home", guest_path=HOME),
         shared_folders=shared_folders(config),
-        published_ports=(API_PORT, GATEWAY_PORT),
+        published_ports=(GATEWAY_PORT,),
         host_service_ports=host_service_ports,
         shm_megabytes=SHM_MEGABYTES,
     )
@@ -112,7 +109,7 @@ class Machine:
 
     async def _ensure_running(self) -> None:
         async with self._lock:
-            spec = pc_spec(self._config, secrets.token_hex(16), self._host_service_ports)
+            spec = pc_spec(self._config, self._host_service_ports)
             state = await self._engine.state(spec.name)
             if state != "missing" and not self._shape_checked:
                 reason = await self._engine.replacement_reason(spec)

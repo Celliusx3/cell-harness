@@ -49,15 +49,15 @@ def test_an_action_that_does_not_fit_is_refused(action: dict[str, str], because:
 @pytest.mark.parametrize(
     ("given", "relative", "absolute"),
     [
-        ("", "", "/home/rakazo"),
-        ("/", "", "/home/rakazo"),
-        ("notes", "notes", "/home/rakazo/notes"),
-        ("notes/", "notes", "/home/rakazo/notes"),
-        ("/notes//hello.txt", "notes/hello.txt", "/home/rakazo/notes/hello.txt"),
-        ("notes\\hello.txt", "notes/hello.txt", "/home/rakazo/notes/hello.txt"),
-        ("/etc/passwd", "etc/passwd", "/home/rakazo/etc/passwd"),
-        (".bashrc", ".bashrc", "/home/rakazo/.bashrc"),
-        ("a..b/...", "a..b/...", "/home/rakazo/a..b/..."),
+        ("", "", "/home/pc"),
+        ("/", "", "/home/pc"),
+        ("notes", "notes", "/home/pc/notes"),
+        ("notes/", "notes", "/home/pc/notes"),
+        ("/notes//hello.txt", "notes/hello.txt", "/home/pc/notes/hello.txt"),
+        ("notes\\hello.txt", "notes/hello.txt", "/home/pc/notes/hello.txt"),
+        ("/etc/passwd", "etc/passwd", "/home/pc/etc/passwd"),
+        (".bashrc", ".bashrc", "/home/pc/.bashrc"),
+        ("a..b/...", "a..b/...", "/home/pc/a..b/..."),
     ],
 )
 def test_a_path_is_read_as_rakazo_reads_it_under_the_home_folder(
@@ -75,7 +75,7 @@ def test_a_path_is_read_as_rakazo_reads_it_under_the_home_folder(
         ("..", "no . or .. segments"),
         ("../etc/passwd", "no . or .. segments"),
         ("notes/../../etc", "no . or .. segments"),
-        ("/home/rakazo/../../etc", "no . or .. segments"),
+        ("/home/pc/../../etc", "no . or .. segments"),
         ("./notes", "no . or .. segments"),
         ("a/./b", "no . or .. segments"),
         ("..\\etc", "no . or .. segments"),

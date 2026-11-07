@@ -19,11 +19,9 @@ HOST_FROM_THE_PC = "host.docker.internal"
 STATUS_FORMAT = "{{.State.Status}}"
 BINDINGS_FORMAT = "{{json .HostConfig.PortBindings}}"
 MOUNTS_FORMAT = "{{json .Mounts}}"
-ENV_FORMAT = "{{json .Config.Env}}"
 PORT_BINDINGS: TypeAdapter[dict[str, list[dict[str, str]] | None] | None] = TypeAdapter(
     dict[str, list[dict[str, str]] | None] | None
 )
-ENVIRONMENT: TypeAdapter[list[str]] = TypeAdapter(list[str])
 
 
 class Docker(Protocol):
@@ -99,7 +97,7 @@ def volume_arguments(spec: PcSpec) -> list[str]:
 
 
 def run_arguments(spec: PcSpec) -> list[str]:
-    """`docker run` as Rakazo creates its computer."""
+    """`docker run` for the PC."""
     return [
         "run", "-d", "--name", spec.name,
         "--label", f"{LABEL}={spec.name}",
@@ -165,20 +163,6 @@ def loopback_port(published: str, guest_port: int) -> int:
     )
 
 
-def environment_of(inspected: str) -> dict[str, str]:
-    """The variables `docker inspect` prints as the container's environment."""
-    try:
-        entries = ENVIRONMENT.validate_json(inspected)
-    except ValidationError as err:
-        raise EngineError(
-            "docker inspect answered the computer's environment with something this server "
-            "cannot read."
-        ) from err
-    if any("=" not in entry for entry in entries):
-        raise EngineError("docker inspect answered the computer's environment without values.")
-    return dict(entry.split("=", 1) for entry in entries)
-
-
 @dataclass(frozen=True)
 class DockerEngine:
     """The PC as one docker container, run through the docker command line."""
@@ -216,9 +200,6 @@ class DockerEngine:
     async def host_port(self, name: str, guest_port: int) -> int:
         published = await self._output(["port", name, str(guest_port)], "docker port")
         return loopback_port(published, guest_port)
-
-    async def environment(self, name: str) -> dict[str, str]:
-        return environment_of(await self._inspected(name, ENV_FORMAT))
 
     async def run(
         self, name: str, program: Program, *, stdin: str | None, timeout_seconds: float
