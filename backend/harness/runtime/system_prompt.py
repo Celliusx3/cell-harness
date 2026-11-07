@@ -1,4 +1,4 @@
-"""The system message: the speaker's logged instructions, a group's note, the runtime's own."""
+"""The system message: the speaker's instructions, a group's note, the runtime's own, servers'."""
 
 from __future__ import annotations
 
@@ -8,6 +8,12 @@ from harness.session.models import GroupMembersEvent
 
 
 def system_text(session: Session, guidance: str) -> str:
+    """The speaker's prompt, then each server's last logged instructions as a paragraph."""
+    servers = (text for text in session.server_instructions().values() if text)
+    return "\n\n".join(part for part in (_speaker_text(session, guidance), *servers) if part)
+
+
+def _speaker_text(session: Session, guidance: str) -> str:
     """The speaker's last logged instructions, the group note in a group, then `guidance`."""
     logged = session.bot_instructions(session.speaker_id())
     if logged is None:

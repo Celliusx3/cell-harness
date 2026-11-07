@@ -152,6 +152,8 @@ export type SessionEvent =
   | ApprovalGrantEvent
   /** A bot answering from here on, and the instructions its turns are prompted with. */
   | { type: "bot/instructions"; name: string; instructions: string; bot_id?: string | null }
+  /** What a connected MCP server tells the model from here on; empty once it tells nothing. */
+  | { type: "server/instructions"; server: string; instructions: string }
   /** The group this chat belongs to, and its members' names. */
   | { type: "group/members"; name: string; members: string[] }
   | { type: "chat/cleared" };

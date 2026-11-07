@@ -33,6 +33,15 @@ from computer.tools import PREVIEW_URI, Computer, browser, computer_page, shell
 
 logger = logging.getLogger("computer")
 
+COMPUTER_INSTRUCTIONS = (
+    "You have a PC: one Debian Linux computer with Chrome, a shell and this chat's files, "
+    "shared by every bot. Use it the way a person uses their own computer. Open a web page "
+    "with computer__browser_navigate, read it with computer__browser_read_page, and click or "
+    "type on it with computer__browser_act. Run programs, Python and installs with "
+    "computer__shell. Files and website sign-ins on the PC stay there between chats. The "
+    "person can watch the PC and take control of it from the Computer page."
+)
+
 
 def build(computer: Computer, host_services: Sequence[PreparedHostService]) -> MCPServer:
     @asynccontextmanager
@@ -51,6 +60,7 @@ def build(computer: Computer, host_services: Sequence[PreparedHostService]) -> M
     server = MCPServer(
         name="computer",
         version="0.1.0",
+        instructions=COMPUTER_INSTRUCTIONS,
         lifespan=lifespan,
         extensions=[preview],
     )

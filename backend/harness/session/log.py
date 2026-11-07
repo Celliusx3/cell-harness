@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 
 from harness.llm import ToolReference
@@ -11,6 +11,7 @@ from harness.session.models import (
     AssistantMessageEvent,
     BotInstructionsEvent,
     GroupMembersEvent,
+    ServerInstructionsEvent,
     SessionEvent,
     SessionHeader,
     ToolCallEvent,
@@ -102,6 +103,12 @@ class Session:
             if isinstance(event, BotInstructionsEvent) and event.bot_id in (bot_id, None):
                 return event
         return None
+
+    def server_instructions(self) -> Mapping[str, str]:
+        """Each server's instructions as logged last, empty ones included, by first logging."""
+        return {
+            e.server: e.instructions for e in self._events if isinstance(e, ServerInstructionsEvent)
+        }
 
     def group_members(self) -> GroupMembersEvent | None:
         """The group's name and members as logged last; `None` in a bot's own chat."""

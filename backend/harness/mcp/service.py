@@ -34,6 +34,14 @@ class McpService:
         """Every tool on offer right now — **the registry provider**."""
         return [tool for connection in self._connections.values() for tool in connection.tools]
 
+    def instructions(self) -> dict[str, str]:
+        """Each connected server's non-empty instructions, by server id, in config order."""
+        return {
+            server_id: connection.instructions
+            for server_id, connection in self._connections.items()
+            if connection.status == "connected" and connection.instructions
+        }
+
     def writing_tool_names(self) -> frozenset[str]:
         """Every tool on offer right now that may change something, as the model calls it."""
         offered = {tool.name for tool in self.tools()}

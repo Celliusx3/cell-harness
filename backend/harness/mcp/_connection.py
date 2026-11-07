@@ -37,6 +37,7 @@ class Connection:
     error: str = ""
     tools: tuple[Tool[dict], ...] = ()
     published: tuple[McpTool, ...] = ()
+    instructions: str = ""
     commands: asyncio.Queue[Command] = field(default_factory=asyncio.Queue)
     task: asyncio.Task[None] | None = None
 
@@ -101,6 +102,7 @@ class Connection:
             self.error = ""
             self.tools = ()
             self.published = ()
+            self.instructions = ""
 
     async def _serve(self) -> None:
         """Open, publish the tools, service commands, close — all in one task."""
@@ -108,6 +110,7 @@ class Connection:
             async with self.factory(self.server) as client:
                 self.published = tuple(await _list_all(client))
                 self.tools = tuple(build_tools(self.id, self.published, self.call))
+                self.instructions = client.instructions or ""
                 self.status = "connected"
                 logger.info("MCP server %s connected with %d tools", self.id, len(self.tools))
                 while True:
@@ -122,6 +125,7 @@ class Connection:
         finally:
             self.tools = ()
             self.published = ()
+            self.instructions = ""
             self._fail_queued()
 
     async def _run(self, client: McpClient, command: Command) -> None:

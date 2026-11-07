@@ -1,6 +1,6 @@
 # 01 Bots are told about the PC
 
-**Status.** open
+**Status.** done
 
 **What to build.** Keep each MCP server's `instructions` from its connect reply
 in `mcp/_connection.py`, and expose them per server in `mcp/service.py`. Add a

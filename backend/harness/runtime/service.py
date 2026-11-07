@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from contextlib import aclosing
 from dataclasses import dataclass
 
@@ -28,6 +28,7 @@ from harness.session.models import (
     ApprovalGrant,
     BotMessage,
     BotMessageEvent,
+    ServerInstructionsEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
@@ -52,6 +53,8 @@ class Runtime:
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
     context_tokens: int | None = None
     files: ChatFileService | None = None
+    server_instructions: Callable[[], Mapping[str, str]] | None = None
+    """Each connected server's instructions now, by server id; `None` means no servers."""
 
     def request_messages(self, session: Session, context: Sequence[str] = ()) -> list[Message]:
         """The request for `session`, with each of the step hooks' `context` texts in it."""
@@ -73,8 +76,7 @@ class Runtime:
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
-        turn = session.next_turn()
-        session.append(TurnStart(turn=turn, bot_id=bot_id))
+        turn = self._open_turn(session, bot_id)
         images = self.images.of_attachments(files) if self.images is not None else ()
         message = UserMessage(content=user_input, images=images)
         session.append(UserMessageEvent(turn=turn, message=message, files=files))
@@ -87,8 +89,7 @@ class Runtime:
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by another bot's message: its events as they happen, then one terminal."""
         _skip_calls_walked_past(session)
-        turn = session.next_turn()
-        session.append(TurnStart(turn=turn, bot_id=bot_id))
+        turn = self._open_turn(session, bot_id)
         session.append(BotMessageEvent(turn=turn, message=message))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
@@ -96,8 +97,7 @@ class Runtime:
 
     async def speak(self, *, session: Session, bot_id: str) -> AsyncIterator[TurnEvent]:
         """A turn opened for the next bot in line, with no new message from the person."""
-        turn = session.next_turn()
-        session.append(TurnStart(turn=turn, bot_id=bot_id))
+        turn = self._open_turn(session, bot_id)
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
@@ -106,8 +106,7 @@ class Runtime:
         self, call_id: str, answer: Ok | Failure | Approval, *, session: Session, bot_id: str
     ) -> AsyncIterator[TurnEvent]:
         """A turn opened by the person's answer to a client tool, or their approval of a call."""
-        turn = session.next_turn()
-        session.append(TurnStart(turn=turn, bot_id=bot_id))
+        turn = self._open_turn(session, bot_id)
         if self.checkpoint is not None:
             await self.checkpoint(session)
         try:
@@ -134,6 +133,15 @@ class Runtime:
             async for event in events:
                 yield event
 
+    def _open_turn(self, session: Session, bot_id: str) -> int:
+        """Append the next turn's start, then any server instructions that changed since logged."""
+        turn = session.next_turn()
+        session.append(TurnStart(turn=turn, bot_id=bot_id))
+        if self.server_instructions is not None:
+            for event in _changed(session.server_instructions(), self.server_instructions()):
+                session.append(event)
+        return turn
+
     async def compact(self, *, session: Session) -> AsyncIterator[CompactionEvent]:
         """A manual compaction, driven as its own run."""
         try:
@@ -156,6 +164,18 @@ def _with_context(history: list[Message], context: Sequence[str]) -> list[Messag
             reminded = message.model_copy(update={"content": content})
             return [*history[:at], reminded, *history[at + 1 :]]
     return history
+
+
+def _changed(
+    logged: Mapping[str, str], current: Mapping[str, str]
+) -> list[ServerInstructionsEvent]:
+    """An event for each server whose `current` instructions, absent meaning empty, differ."""
+    servers = [*current, *(server for server in logged if server not in current)]
+    return [
+        ServerInstructionsEvent(server=server, instructions=current.get(server, ""))
+        for server in servers
+        if logged.get(server, "") != current.get(server, "")
+    ]
 
 
 def _skip_calls_walked_past(session: Session) -> None:
