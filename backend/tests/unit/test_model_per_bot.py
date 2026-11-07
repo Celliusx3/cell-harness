@@ -1,4 +1,4 @@
-"""Each bot's turn asks its own model: its LLM credential, or the Default model when it has none."""
+"""Each bot's turn asks its own model: its LLM credential, or none, and then it refuses."""
 
 from __future__ import annotations
 
@@ -10,18 +10,20 @@ from pydantic import SecretStr
 
 from harness.bots import BotDraft, BotService
 from harness.config.sections import LLMSettings
-from harness.llm import AssistantMessage, LLMClient, UserMessage
-from harness.runtime.models import ModelChoice
+from harness.llm import AssistantMessage, Failed, LLMClient, UserMessage
+from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
 from harness.runtime.service import Runtime
-from harness.secrets import (
-    DEFAULT_MODEL_CREDENTIAL,
-    DiskSecretRepository,
-    SecretNotFound,
-    SecretService,
-)
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import ModelDetails
+from harness.session.compaction import CompactionEnd
 from harness.session.log import Session
-from harness.session.models import AssistantMessageEvent, TurnEnd, TurnStart, UserMessageEvent
+from harness.session.models import (
+    AssistantChunk,
+    AssistantMessageEvent,
+    TurnEnd,
+    TurnStart,
+    UserMessageEvent,
+)
 from harness.web.bot_models import CredentialModels
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, durable_service, new_session
@@ -30,31 +32,28 @@ KEY = "0123456789abcdef0123456789abcdef"
 TRADER_URL = "https://api.trader.example/v1"
 TRADER_KEY = "sk-trader-key-1234"
 TRADER_MODEL = ModelDetails(base_url=TRADER_URL, model="big")
-DEFAULT_KEY = "sk-default-key-0000"
-DEFAULT = LLMSettings(
+BASE = LLMSettings(
     model="small",
     vision=False,
-    base_url="https://api.default.example/v1",
+    base_url="https://api.base.example/v1",
     temperature=0.3,
 )
-DEFAULT_MODEL = ModelDetails(base_url=DEFAULT.base_url, model=DEFAULT.model)
 
 
 @dataclass
 class ChoicePerBot:
-    """A model choice the test sets per bot, falling back to one default."""
+    """A model choice the test sets per bot; a bot it set none for has no model."""
 
-    default: ModelChoice
     per_bot: dict[str, ModelChoice] = field(default_factory=dict)
 
-    async def model_for(self, bot_id: str | None) -> ModelChoice:
-        return self.default if bot_id is None else self.per_bot.get(bot_id, self.default)
+    async def model_for(self, bot_id: str | None) -> ModelChoice | NoModel:
+        choice = None if bot_id is None else self.per_bot.get(bot_id)
+        return NoModel() if choice is None else choice
 
 
-def _two_clients() -> tuple[ScriptedClient, ScriptedClient, ChoicePerBot]:
-    default, trader = ScriptedClient(completed("default")), ScriptedClient(completed("trader"))
-    models = ChoicePerBot(ModelChoice(default, "small"), {"trader": ModelChoice(trader, "big")})
-    return default, trader, models
+def _trader_client() -> tuple[ScriptedClient, ChoicePerBot]:
+    trader = ScriptedClient(completed("trader"))
+    return trader, ChoicePerBot({"trader": ModelChoice(trader, "big")})
 
 
 async def _reply(runtime: Runtime, bot_id: str, tmp_path: Path) -> None:
@@ -72,25 +71,29 @@ def _spoken_turn(session: Session, turn: int, bot_id: str | None) -> None:
 
 
 async def test_a_bot_with_its_own_model_is_answered_by_it(tmp_path: Path) -> None:
-    default, trader, models = _two_clients()
+    trader, models = _trader_client()
 
     await _reply(Runtime(models=models, images=None), "trader", tmp_path)
 
-    assert (trader.calls, default.calls) == (1, 0)
+    assert trader.calls == 1
 
 
-async def test_a_bot_without_one_is_answered_by_the_default(tmp_path: Path) -> None:
-    default, trader, models = _two_clients()
+async def test_a_bot_with_no_model_asks_nothing_and_ends_with_the_line(tmp_path: Path) -> None:
+    trader, models = _trader_client()
+    sessions = durable_service(tmp_path / "sessions")
+    session = await sessions.create("chef")
 
-    await _reply(Runtime(models=models, images=None), "chef", tmp_path)
+    await drain(Runtime(models=models, images=None).run("hi", session=session, bot_id="chef"))
 
-    assert (trader.calls, default.calls) == (0, 1)
+    chunks = [e.chunk for e in session.events() if isinstance(e, AssistantChunk)]
+    assert trader.calls == 0
+    assert chunks == [Failed(reason=PICK_A_MODEL)]
+    assert session.events()[-1] == TurnEnd(turn=0, reason="failed")
 
 
 async def test_a_changed_choice_applies_to_the_next_turn(tmp_path: Path) -> None:
     first, second = ScriptedClient(completed("one")), ScriptedClient(completed("two"))
-    default = ModelChoice(ScriptedClient(completed("d")), "small")
-    models = ChoicePerBot(default, {"trader": ModelChoice(first, "big")})
+    models = ChoicePerBot({"trader": ModelChoice(first, "big")})
     runtime = Runtime(models=models, images=None)
     await _reply(runtime, "trader", tmp_path)
 
@@ -101,24 +104,26 @@ async def test_a_changed_choice_applies_to_the_next_turn(tmp_path: Path) -> None
 
 
 async def test_a_compaction_asks_the_model_of_the_bot_that_spoke_last() -> None:
-    default, trader, models = _two_clients()
+    trader, models = _trader_client()
     session = new_session()
     _spoken_turn(session, 0, "chef")
     _spoken_turn(session, 1, "trader")
 
     await drain(Runtime(models=models, images=None).compact(session=session))
 
-    assert (trader.calls, default.calls) == (1, 0)
+    assert trader.calls == 1
 
 
-async def test_a_chat_logged_before_bots_is_compacted_by_the_default() -> None:
-    default, trader, models = _two_clients()
+@pytest.mark.parametrize("speaker", [None, "chef"])
+async def test_a_compaction_with_no_model_ends_with_the_line(speaker: str | None) -> None:
+    trader, models = _trader_client()
     session = new_session()
-    _spoken_turn(session, 0, None)
+    _spoken_turn(session, 0, speaker)
 
-    await drain(Runtime(models=models, images=None).compact(session=session))
+    events = await drain(Runtime(models=models, images=None).compact(session=session))
 
-    assert (trader.calls, default.calls) == (0, 1)
+    assert trader.calls == 0
+    assert events[-1] == CompactionEnd(turn=None, error=PICK_A_MODEL)
 
 
 @dataclass
@@ -141,9 +146,7 @@ class ClientsMade:
 
 @pytest.fixture
 def keyring(tmp_path: Path) -> SecretService:
-    sealed = SecretService(DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=KEY)
-    sealed.add_credential(DEFAULT_MODEL_CREDENTIAL, DEFAULT_MODEL, SecretStr(DEFAULT_KEY))
-    return sealed
+    return SecretService(DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=KEY)
 
 
 @pytest.fixture
@@ -163,48 +166,60 @@ async def test_a_tied_bot_gets_its_credentials_endpoint_model_and_key(keyring, b
     trader_id = await _trader_on_its_model(keyring, bots)
     clients = ClientsMade()
 
-    choice = await CredentialModels(keyring, bots, DEFAULT, clients).model_for(trader_id)
+    choice = await CredentialModels(keyring, bots, BASE, clients).model_for(trader_id)
 
+    assert isinstance(choice, ModelChoice)
     made_from = clients.settings_of(choice.client)
     assert choice.model == "big"
     assert (made_from.base_url, made_from.model) == (TRADER_URL, "big")
     assert made_from.api_key == TRADER_KEY
-    assert made_from.temperature == DEFAULT.temperature
+    assert made_from.temperature == BASE.temperature
 
 
-async def test_a_bot_with_no_llm_credential_gets_the_default(keyring, bots) -> None:
+async def test_a_bot_with_no_llm_credential_has_no_model(keyring, bots) -> None:
+    await _trader_on_its_model(keyring, bots)
     chef = await bots.create(BotDraft(name="Chef", instructions="Cook."))
     clients = ClientsMade()
 
-    choice = await CredentialModels(keyring, bots, DEFAULT, clients).model_for(chef.id)
+    choice = await CredentialModels(keyring, bots, BASE, clients).model_for(chef.id)
 
-    assert choice.model == "small"
-    assert clients.settings_of(choice.client).api_key == DEFAULT_KEY
+    assert choice == NoModel()
+    assert clients.made == []
 
 
 @pytest.mark.parametrize("bot_id", [None, "no-such-bot"])
-async def test_no_bot_or_an_unknown_one_gets_the_default(keyring, bots, bot_id) -> None:
-    clients = ClientsMade()
+async def test_no_bot_or_an_unknown_one_has_no_model(keyring, bots, bot_id) -> None:
+    await _trader_on_its_model(keyring, bots)
 
-    choice = await CredentialModels(keyring, bots, DEFAULT, clients).model_for(bot_id)
+    choice = await CredentialModels(keyring, bots, BASE, ClientsMade()).model_for(bot_id)
 
-    assert clients.settings_of(choice.client).api_key == DEFAULT_KEY
+    assert choice == NoModel()
 
 
-async def test_untying_a_bot_hands_its_next_turn_to_the_default(keyring, bots) -> None:
+async def test_untying_a_bot_leaves_its_next_turn_with_no_model(keyring, bots) -> None:
     trader_id = await _trader_on_its_model(keyring, bots)
-    models = CredentialModels(keyring, bots, DEFAULT, ClientsMade())
+    models = CredentialModels(keyring, bots, BASE, ClientsMade())
     await models.model_for(trader_id)
 
     bots.tie_credential("trader_model", "llm", ())
 
-    assert (await models.model_for(trader_id)).model == "small"
+    assert await models.model_for(trader_id) == NoModel()
+
+
+async def test_removing_a_bots_credential_leaves_it_with_no_model(keyring, bots) -> None:
+    trader_id = await _trader_on_its_model(keyring, bots)
+    models = CredentialModels(keyring, bots, BASE, ClientsMade())
+    await models.model_for(trader_id)
+
+    keyring.delete("trader_model")
+
+    assert await models.model_for(trader_id) == NoModel()
 
 
 async def test_the_key_is_unsealed_once_until_the_credential_changes(keyring, bots) -> None:
     trader_id = await _trader_on_its_model(keyring, bots)
     clients = ClientsMade()
-    models = CredentialModels(keyring, bots, DEFAULT, clients)
+    models = CredentialModels(keyring, bots, BASE, clients)
 
     await models.model_for(trader_id)
     await models.model_for(trader_id)
@@ -213,21 +228,5 @@ async def test_the_key_is_unsealed_once_until_the_credential_changes(keyring, bo
     changed = await models.model_for(trader_id)
 
     assert clients.made_for(TRADER_URL) == 2
+    assert isinstance(changed, ModelChoice)
     assert changed.model == "bigger"
-
-
-async def test_an_edit_to_the_default_model_applies_to_the_next_turn(keyring, bots) -> None:
-    models = CredentialModels(keyring, bots, DEFAULT, ClientsMade())
-    await models.model_for(None)
-
-    edited = DEFAULT_MODEL.model_copy(update={"model": "edited"})
-    keyring.change_credential(DEFAULT_MODEL_CREDENTIAL, edited, None)
-
-    assert (await models.model_for(None)).model == "edited"
-
-
-async def test_a_keyring_with_no_default_model_is_refused(tmp_path: Path, bots) -> None:
-    empty = SecretService(DiskSecretRepository(tmp_path / "empty.json"), encryption_key=KEY)
-
-    with pytest.raises(SecretNotFound, match=DEFAULT_MODEL_CREDENTIAL):
-        await CredentialModels(empty, bots, DEFAULT, ClientsMade()).model_for(None)

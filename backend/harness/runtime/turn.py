@@ -26,7 +26,7 @@ from harness.runtime.events import (
     TurnEvent,
 )
 from harness.runtime.hooks import GiveUp, Tell
-from harness.runtime.models import ModelChoice
+from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.runtime.tool_run import run_tool_calls
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
 from harness.session.log import Session
@@ -71,10 +71,9 @@ async def run_turn(
             at = TurnStep(turn=turn, step=step)
             session.append(StepStart(turn=turn, step=step))
             await _shrink_history_when_due(runtime, session, turn=turn)
-            choice = await runtime.models.model_for(bot_id)
 
             reply: Completed | Failed | RetryStep | None = None
-            async with aclosing(_stream_reply(runtime, session, choice, at=at)) as chunks:
+            async with aclosing(_stream_reply(runtime, session, bot_id, at=at)) as chunks:
                 async for event in chunks:
                     if isinstance(event, (TextChunk, ToolCallChunk)):
                         yield event
@@ -142,9 +141,15 @@ async def _outcome_without_tools(
 
 
 async def _stream_reply(
-    runtime: Runtime, session: Session, choice: ModelChoice, *, at: TurnStep
+    runtime: Runtime, session: Session, bot_id: str, *, at: TurnStep
 ) -> AsyncIterator[TextChunk | ToolCallChunk | Completed | Failed | RetryStep]:
-    """One model request: its chunks as they stream, then `Completed`, `Failed` or `RetryStep`."""
+    """One request to `bot_id`'s model: its chunks, then `Completed`, `Failed` or `RetryStep`."""
+    choice = await runtime.models.model_for(bot_id)
+    if isinstance(choice, NoModel):
+        refused = Failed(reason=PICK_A_MODEL)
+        session.append(AssistantChunk(turn=at.turn, step=at.step, chunk=refused))
+        yield refused
+        return
     specs = runtime.tools.specs(session.tools_selected()) if runtime.tools else None
     messages = runtime.request_messages(session, await runtime.hooks.start_of_step())
     if runtime.checkpoint is not None:

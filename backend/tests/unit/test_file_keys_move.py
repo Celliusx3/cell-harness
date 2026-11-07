@@ -5,20 +5,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import httpx
 import pytest
-from fastapi import FastAPI
 
-from harness.bots import BotService
 from harness.config.sections import LLMSettings, SecretSettings
 from harness.config.settings import Settings
-from harness.secrets import DEFAULT_MODEL_CREDENTIAL, DiskSecretRepository, SecretService
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import ModelDetails
-from harness.web.file_keys import move_file_keys
-from harness.web.routes.credentials import build_router
+from harness.web.file_keys import MODEL_CREDENTIAL, move_file_keys
 from harness.web.server import build_keyring
-from tests.unit.helpers import durable_service
-from tests.webapp import SHIPPED_MODEL, no_platforms, web_mcp
 
 KEY = "0123456789abcdef0123456789abcdef"
 MODEL_KEY = "sk-file-model-key-1234"
@@ -58,15 +52,13 @@ def test_every_key_in_the_file_becomes_a_credential(local_json, keyring) -> None
     move_file_keys(local_json, LLM, keyring)
 
     saved = _saved(keyring)
-    default = saved[DEFAULT_MODEL_CREDENTIAL]
-    assert default.details == ModelDetails(base_url=LLM.base_url, model=LLM.model)
+    model = saved[MODEL_CREDENTIAL]
+    assert model.details == ModelDetails(base_url=LLM.base_url, model=LLM.model)
     assert (saved["telegram"].details.kind, saved["discord"].details.kind) == (
         "telegram",
         "discord",
     )
-    assert [
-        saved[name].last_four for name in (DEFAULT_MODEL_CREDENTIAL, "telegram", "discord")
-    ] == [
+    assert [saved[name].last_four for name in (MODEL_CREDENTIAL, "telegram", "discord")] == [
         "1234",
         "5678",
         "9012",
@@ -100,13 +92,13 @@ def test_a_key_put_back_in_the_file_replaces_only_the_saved_key(local_json, keyr
     _write(local_json, ALL_KEYS)
     move_file_keys(local_json, LLM, keyring)
     edited = ModelDetails(base_url="https://other.example/v1", model="edited")
-    keyring.change_credential(DEFAULT_MODEL_CREDENTIAL, edited, None)
+    keyring.change_credential(MODEL_CREDENTIAL, edited, None)
 
     _write(local_json, {"llm": {"api_key": "sk-rotated-key-4321"}})
     move_file_keys(local_json, LLM, keyring)
 
-    default = _saved(keyring)[DEFAULT_MODEL_CREDENTIAL]
-    assert (default.last_four, default.details) == ("4321", edited)
+    model = _saved(keyring)[MODEL_CREDENTIAL]
+    assert (model.last_four, model.details) == ("4321", edited)
 
 
 def test_a_file_with_no_keys_is_left_alone(local_json, keyring) -> None:
@@ -133,37 +125,17 @@ def _start_settings(tmp_path: Path, local_json: Path) -> Settings:
     return Settings.model_construct(llm=LLM, secrets=secrets, local_settings_path=local_json)
 
 
-def test_with_no_default_model_the_harness_still_starts(tmp_path: Path, local_json) -> None:
+def test_with_no_model_key_the_harness_still_starts(tmp_path: Path, local_json) -> None:
     keyring = build_keyring(_start_settings(tmp_path, local_json))
 
-    assert keyring.model_credential_version(DEFAULT_MODEL_CREDENTIAL) is None
+    assert keyring.model_credential_version(MODEL_CREDENTIAL) is None
 
 
-def test_a_model_key_in_the_file_becomes_the_default_model_at_start(
+def test_a_model_key_in_the_file_becomes_an_llm_credential_at_start(
     tmp_path: Path, local_json
 ) -> None:
     _write(local_json, ALL_KEYS)
 
     keyring = build_keyring(_start_settings(tmp_path, local_json))
 
-    assert keyring.model_credential_version(DEFAULT_MODEL_CREDENTIAL) is not None
-
-
-async def test_the_default_model_cannot_be_removed(tmp_path: Path, local_json, keyring) -> None:
-    _write(local_json, ALL_KEYS)
-    move_file_keys(local_json, LLM, keyring)
-    bots = BotService(
-        tmp_path / "bots.json", durable_service(tmp_path / "s"), assistant_instructions=""
-    )
-    app = FastAPI()
-    app.include_router(build_router(keyring, bots, no_platforms(keyring), web_mcp(), SHIPPED_MODEL))
-    transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
-
-    async with httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1:4886") as http:
-        response = await http.delete(
-            f"/api/credentials/{DEFAULT_MODEL_CREDENTIAL}",
-            headers={"origin": "http://127.0.0.1:4887"},
-        )
-
-    assert response.status_code == 409
-    assert DEFAULT_MODEL_CREDENTIAL in _saved(keyring)
+    assert keyring.model_credential_version(MODEL_CREDENTIAL) is not None

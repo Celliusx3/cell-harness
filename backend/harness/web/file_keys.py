@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, JsonValue, SecretStr, TypeAdapter
 
 from harness.config.sections import LLMSettings
 from harness.config.settings import MissingConfigError
-from harness.secrets import DEFAULT_MODEL_CREDENTIAL, SecretRefused, SecretService
+from harness.secrets import SecretRefused, SecretService
 from harness.secrets.models.details import (
     CredentialDetails,
     DiscordDetails,
@@ -22,6 +22,7 @@ from harness.secrets.models.details import (
 )
 
 FILE_MODE = 0o600
+MODEL_CREDENTIAL = "model"
 TELEGRAM_CREDENTIAL = "telegram"
 DISCORD_CREDENTIAL = "discord"
 
@@ -89,7 +90,7 @@ def _key_moves(keys: KeysInFile, llm: LLMSettings) -> tuple[KeyMove, ...]:
     """Each key the file holds, with what it becomes; an empty one moves nothing."""
     model = _move_if_held(
         KeyPlace("llm", "api_key"),
-        DEFAULT_MODEL_CREDENTIAL,
+        MODEL_CREDENTIAL,
         keys.llm.api_key,
         lambda: ModelDetails(base_url=llm.base_url, model=llm.model),
     )

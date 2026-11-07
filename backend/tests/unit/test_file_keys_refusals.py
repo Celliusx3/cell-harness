@@ -11,13 +11,12 @@ from pydantic import SecretStr, ValidationError
 from harness.config.sections import LLMSettings
 from harness.config.settings import MissingConfigError
 from harness.secrets import (
-    DEFAULT_MODEL_CREDENTIAL,
     Destination,
     DiskSecretRepository,
     SecretService,
 )
 from harness.secrets.models.details import TelegramDetails
-from harness.web.file_keys import move_file_keys
+from harness.web.file_keys import MODEL_CREDENTIAL, move_file_keys
 
 KEY = "0123456789abcdef0123456789abcdef"
 MODEL_KEY = "sk-file-model-key-1234"
@@ -52,10 +51,10 @@ def test_a_blank_key_moves_nothing_and_leaves_the_file_alone(local_json, keyring
 
 
 def test_a_name_taken_by_another_kind_refuses_and_the_key_stays(local_json, keyring) -> None:
-    keyring.save(DEFAULT_MODEL_CREDENTIAL, SITE, SecretStr("custom-key-5555"))
+    keyring.save(MODEL_CREDENTIAL, SITE, SecretStr("custom-key-5555"))
     _write(local_json, {"llm": {"api_key": MODEL_KEY}})
 
-    with pytest.raises(MissingConfigError, match=DEFAULT_MODEL_CREDENTIAL) as refused:
+    with pytest.raises(MissingConfigError, match=MODEL_CREDENTIAL) as refused:
         move_file_keys(local_json, LLM, keyring)
 
     assert "stays in the file" in str(refused.value)

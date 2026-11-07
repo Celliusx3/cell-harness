@@ -30,7 +30,7 @@ def test_ticking_a_bot_in_another_model_moves_it_there() -> None:
     assert served_bots((CHEF, moved), "first_model", "llm") == ()
 
 
-def test_unticking_a_bot_leaves_it_on_the_default_model() -> None:
+def test_unticking_a_bot_leaves_it_with_no_model() -> None:
     (untied,) = retied_bots((CHEF, TRADER), "first_model", "llm", ())
 
     assert untied.model_credential is None

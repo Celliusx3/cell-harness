@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from pydantic import SecretStr
 
-from harness.bots import BotService
+from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
 from harness.channels.protocol import Channel
@@ -29,7 +29,7 @@ from harness.mcp import (
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import DEFAULT_MODEL_CREDENTIAL, DiskSecretRepository, SecretService
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -45,7 +45,8 @@ from tests.unit.mcp_fakes import no_keys
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
-DEFAULT_MODEL_KEY = "sk-test-default-0000"
+MODEL_CREDENTIAL = "test_model"
+MODEL_KEY = "sk-test-model-0000"
 SHIPPED_MODEL = ModelDetails(base_url="https://shipped.example/v1", model="shipped-model")
 NO_PLATFORM_STORAGE = Path("/nonexistent/cell-harness-platforms")
 
@@ -73,11 +74,12 @@ def secrets_in(tmp_path: Path) -> SecretService:
     )
 
 
-def secrets_with_default_model(tmp_path: Path) -> SecretService:
-    """`secrets_in`, holding the Default model a turn needs."""
+def assistant_on_a_model(tmp_path: Path, bots: BotService) -> SecretService:
+    """`secrets_in`, holding the LLM credential Assistant's turns ask."""
     secrets = secrets_in(tmp_path)
-    default = ModelDetails(base_url="https://api.example.com/v1", model="m")
-    secrets.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr(DEFAULT_MODEL_KEY))
+    details = ModelDetails(base_url="https://api.example.com/v1", model="m")
+    secrets.add_credential(MODEL_CREDENTIAL, details, SecretStr(MODEL_KEY))
+    bots.tie_credential(MODEL_CREDENTIAL, "llm", (ASSISTANT_ID,))
     return secrets
 
 

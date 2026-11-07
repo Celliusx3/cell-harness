@@ -7,15 +7,16 @@ import json
 import httpx
 from pydantic import SecretStr
 
+from harness.bots import ASSISTANT_ID
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
 from harness.llm.adapters import context_window_tokens
 from harness.llm.adapters.openai import client as adapter_module
-from harness.secrets import DEFAULT_MODEL_CREDENTIAL
 from harness.secrets.models.details import ModelDetails
 from harness.web.server import _resolve_context_tokens
+from tests.unit.helpers import durable_service
 from tests.unit.test_openai_adapter import settings
-from tests.webapp import secrets_in
+from tests.webapp import bots_in, secrets_in
 
 # ilmu serves the field on `/models`, not on `/models/{id}` (404).
 ILMU = {
@@ -98,17 +99,20 @@ async def test_the_window_is_found_from_inside_a_running_loop(tmp_path, monkeypa
     )
 
     keyring = secrets_in(tmp_path)
-    default = ModelDetails(base_url="https://default.example/v1", model="m")
-    keyring.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr("sk-default-window"))
+    bots = bots_in(tmp_path, durable_service(tmp_path / "sessions"))
+    model = ModelDetails(base_url="https://assistant.example/v1", model="m")
+    keyring.add_credential("first_model", model, SecretStr("sk-assistant-window"))
+    bots.tie_credential("first_model", "llm", (ASSISTANT_ID,))
 
-    assert _resolve_context_tokens(unset, keyring) == 1000000
-    assert seen[0].url == "https://default.example/v1/models"
-    assert seen[0].headers["authorization"] == "Bearer sk-default-window"
+    assert _resolve_context_tokens(unset, keyring, bots) == 1000000
+    assert seen[0].url == "https://assistant.example/v1/models"
+    assert seen[0].headers["authorization"] == "Bearer sk-assistant-window"
 
 
-def test_with_no_default_model_and_no_cap_the_window_is_unknown(tmp_path) -> None:
+def test_with_no_model_for_assistant_and_no_cap_the_window_is_unknown(tmp_path) -> None:
     unset = Settings.model_construct(
         llm=settings(), compaction=CompactionSettings(context_tokens=None)
     )
+    bots = bots_in(tmp_path, durable_service(tmp_path / "sessions"))
 
-    assert _resolve_context_tokens(unset, secrets_in(tmp_path)) is None
+    assert _resolve_context_tokens(unset, secrets_in(tmp_path), bots) is None

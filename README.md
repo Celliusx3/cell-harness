@@ -125,7 +125,7 @@ key. **Add credential** opens a dialog: pick a type, and that type's fields appe
 
 - **LLM**: a name, an endpoint, a model, a key, and the bots it serves. A bot
   uses at most one LLM credential, and ticking it in another one moves it there.
-  A bot with none uses the **Default model**.
+  A bot with none answers "Pick a model for this bot in Edit bot."
 - **Custom**: a name, a website, a key, and the bots allowed to use it. This
   replaces the old Keys page. A bot can still ask for a key on a card in the
   chat, from any device.
@@ -133,11 +133,11 @@ key. **Add credential** opens a dialog: pick a type, and that type's fields appe
   each, and it serves no bots. Saving one starts that channel at once, and
   removing it stops it. A new token restarts only that channel.
 
-Changes apply right away, with no restart. Each bot answers with its own model:
-its LLM credential, or the Default model. Temperature, timeout and vision come
-from settings for every model. The compaction window is shared too:
-`compaction.context_tokens`, or else the window the Default model's endpoint
-reports. Compaction uses the model of the bot that spoke last in the chat.
+Changes apply right away, with no restart. Each bot answers with its own model,
+its LLM credential, and a bot with none makes no request. Temperature, timeout
+and vision come from settings for every model. The compaction window is shared
+too: `compaction.context_tokens`, or else the window Assistant's model's
+endpoint reports. Compaction uses the model of the bot that spoke last in the chat.
 
 Only a page on the Mac that runs the harness can add, edit or remove a
 credential. The page saves straight to the harness's own port, which listens on
@@ -148,8 +148,7 @@ Anywhere else, such as on a phone, the page is read-only.
 On start, the harness moves the keys in its per-machine settings file into the
 keyring. For `make dev`, that file is `backend/config.local.json` and the
 keyring is `~/.harness/secrets.json`. `llm.api_key` becomes the LLM credential
-`default_model`, shown as "Default model", with the endpoint and model from
-settings. `telegram.bot_token` and `discord.bot_token` become the Telegram and
+`model`, with the endpoint and model from settings, tied to no bot. `telegram.bot_token` and `discord.bot_token` become the Telegram and
 Discord credentials.
 
 The file then loses those keys and keeps every other value, including
@@ -159,13 +158,13 @@ credential's key. The environment is no longer read for these keys:
 `HARNESS_LLM__API_KEY`, `HARNESS_TELEGRAM__BOT_TOKEN` and
 `HARNESS_DISCORD__BOT_TOKEN` are ignored.
 
-The Default model can be edited but not removed. With no Default model in the
-keyring, the harness still starts, and every chat page shows a setup screen
-until one is saved. The screen asks for the API key, saves it as the Default
-model, and opens the chat with no restart. Only a page on the Mac that runs the
+With no LLM credential in the keyring, the harness still starts, and every chat
+page shows a setup screen until one is saved. The screen asks for the API key,
+saves it as the LLM credential `first_model` for Assistant, and opens the chat
+with no restart. Only a page on the Mac that runs the
 harness shows the form. Another device sees a note to finish setup there.
 Automatic compaction stays off until the next start, because the harness asks
-the Default model's endpoint for its context window only when it starts.
+Assistant's model's endpoint for its context window only when it starts.
 
 If you run `make dev`, the first start after this change moves your keys out of
 `backend/config.local.json` into `~/.harness/secrets.json`. If you want a copy
@@ -200,8 +199,8 @@ version is a new dmg.
 On first start the app writes its settings file with a new encryption key, and
 the chat window opens on the setup screen. It asks for the friend's own API
 key, beside the endpoint and model from `desktop/config.json`, filled in and
-open to change. Start saves the key in the keyring as the
-Default model, and the chat opens in the same window. Everything the app keeps is in
+open to change. Start saves the key in the keyring as
+Assistant's model, and the chat opens in the same window. Everything the app keeps is in
 `~/Library/Application Support/Cell Harness/`: the settings file
 `config.local.json` (readable by its owner only), the keyring `secrets.json`,
 the chats, and `logs/`. A

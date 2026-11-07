@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
-from harness.bots import BotService
+from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
@@ -26,11 +26,7 @@ from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import (
-    DEFAULT_MODEL_CREDENTIAL,
-    DiskSecretRepository,
-    SecretService,
-)
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -138,21 +134,24 @@ def build_channels(
     return Channels(gateway, web, PlatformChannels(gateway, keyring, make_channel), link_codes)
 
 
-def _resolve_context_tokens(settings: Settings, keyring: SecretService) -> int | None:
-    """The compaction window: the configured cap, the Default model endpoint's report, or `None`."""
+def _resolve_context_tokens(
+    settings: Settings, keyring: SecretService, bots: BotService
+) -> int | None:
+    """The compaction window: the configured cap, Assistant's model endpoint's report, or `None`."""
     configured = settings.compaction.context_tokens
     if configured is not None:
         logger.info("compaction: context window %d tokens (from config)", configured)
         return configured
-    default = keyring.model_credential_named(DEFAULT_MODEL_CREDENTIAL)
-    if default is None:
+    name = bots.active_bot(ASSISTANT_ID).model_credential
+    credential = None if name is None else keyring.model_credential_named(name)
+    if credential is None:
         logger.warning(
-            "compaction: context window unknown — no config value and no Default model saved "
+            "compaction: context window unknown — no config value and Assistant has no model "
             "yet; automatic compaction is off until the next start, only a provider overflow "
             "triggers it"
         )
         return None
-    discovered = context_window_tokens(llm_settings_for(default, settings.llm))
+    discovered = context_window_tokens(llm_settings_for(credential, settings.llm))
     if discovered is not None:
         logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
     else:
@@ -180,8 +179,8 @@ def create_web_app() -> FastAPI:
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
-    context_tokens = _resolve_context_tokens(settings, secrets)
     bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
+    context_tokens = _resolve_context_tokens(settings, secrets, bots)
     runtime = build_runtime(
         settings,
         service,

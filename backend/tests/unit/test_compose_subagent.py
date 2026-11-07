@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.bots import ASSISTANT_ID
 from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm import (
@@ -42,13 +43,12 @@ from tests.unit.helpers import (
     client_tools,
     new_session,
     no_approvals,
-    no_bots,
     no_progress,
     no_skills,
     skills_at,
 )
 from tests.unit.mcp_fakes import no_keys
-from tests.webapp import files_in, images_in, secrets_with_default_model
+from tests.webapp import assistant_on_a_model, bots_in, files_in, images_in
 
 
 @pytest.fixture
@@ -63,6 +63,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
         mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys())
+        bots = bots_in(tmp_path, SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
         runtime = build_runtime(
             settings,
             sessions,
@@ -70,9 +71,9 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             skills if skills is not None else no_skills(),
             client_tools(),
             no_approvals(),
-            bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
+            bots=bots,
             subagent_logs=subagent_logs,
-            secrets=secrets_with_default_model(tmp_path),
+            secrets=assistant_on_a_model(tmp_path, bots),
             images=images_in(tmp_path),
             files=files_in(tmp_path),
         )
@@ -113,7 +114,7 @@ async def test_a_subagent_cannot_delegate_ask_or_write_a_skill(compose, tmp_path
     runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id=ASSISTANT_ID)) as events:
         async for _ in events:
             pass
 
@@ -135,7 +136,7 @@ async def test_a_subagent_is_told_it_is_a_helper_ahead_of_code_mode(compose) -> 
     runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id=ASSISTANT_ID)) as events:
         async for _ in events:
             pass
 
@@ -160,7 +161,7 @@ async def test_a_subagent_is_shown_the_skills_it_may_load(compose, tmp_path: Pat
     runtime, sessions = compose(client, skills_at(root))
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id=ASSISTANT_ID)) as events:
         async for _ in events:
             pass
 
@@ -192,7 +193,7 @@ async def test_a_subagent_that_overflows_compacts_like_the_bot_and_answers(
     runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id=ASSISTANT_ID)) as events:
         async for _ in events:
             pass
 
@@ -228,7 +229,7 @@ async def test_a_subagents_log_is_saved_before_its_first_request(compose, tmp_pa
     runtime, sessions = compose(client)
     session = await sessions.create()
 
-    async with aclosing(runtime.run("compare", session=session, bot_id="b")) as events:
+    async with aclosing(runtime.run("compare", session=session, bot_id=ASSISTANT_ID)) as events:
         async for _ in events:
             pass
 

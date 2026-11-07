@@ -5,11 +5,11 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { SetupColumn } from "@/components/setup/SetupColumn";
 import { ApiError } from "@/lib/api";
-import { hasDefaultModel, listCredentials } from "@/lib/credentials";
+import { hasModelCredential, listCredentials } from "@/lib/credentials";
 
 type Gate = { kind: "closed" } | { kind: "open" } | { kind: "failed"; message: string };
 
-/** Shows the chat once the keyring holds the Default model, and sends the page to setup while it holds none. */
+/** Shows the chat once the keyring holds an LLM credential, and sends the page to setup while it holds none. */
 export function SetupGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [gate, setGate] = useState<Gate>({ kind: "closed" });
@@ -19,7 +19,7 @@ export function SetupGate({ children }: { children: ReactNode }) {
     listCredentials()
       .then((list) => {
         if (cancelled) return;
-        if (hasDefaultModel(list.credentials)) setGate({ kind: "open" });
+        if (hasModelCredential(list.credentials)) setGate({ kind: "open" });
         else router.replace("/setup");
       })
       .catch((err: unknown) => {

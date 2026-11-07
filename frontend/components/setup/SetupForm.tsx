@@ -4,15 +4,17 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Field, INPUT_CLASSES } from "@/components/credentials/CredentialFields";
-import { ApiError } from "@/lib/api";
-import { addCredential, DEFAULT_MODEL_CREDENTIAL, type ModelDetails } from "@/lib/credentials";
+import { ApiError, ASSISTANT_ID } from "@/lib/api";
+import { addCredential, type ModelDetails } from "@/lib/credentials";
+
+const SETUP_MODEL_CREDENTIAL = "first_model";
 
 interface SetupFormProps {
   shippedModel: ModelDetails;
   directUrl: string;
 }
 
-/** The API key saved as the Default model, at the endpoint and model shown, which start as the shipped ones. */
+/** The API key saved as Assistant's model, at the endpoint and model shown, which start as the shipped ones. */
 export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
   const router = useRouter();
   const [apiKey, setApiKey] = useState("");
@@ -25,7 +27,7 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
     setIsStarting(true);
     setError(null);
     try {
-      await addCredential(directUrl, { name: DEFAULT_MODEL_CREDENTIAL, details, value: apiKey, bot_ids: [] });
+      await addCredential(directUrl, { name: SETUP_MODEL_CREDENTIAL, details, value: apiKey, bot_ids: [ASSISTANT_ID] });
       router.replace("/");
     } catch (err: unknown) {
       setError(err instanceof ApiError ? err.message : "Could not reach the harness to save.");

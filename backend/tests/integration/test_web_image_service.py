@@ -27,7 +27,6 @@ from tests.webapp import (
     files_in,
     images_in,
     secrets_in,
-    secrets_with_default_model,
     startup_settings,
 )
 
@@ -83,7 +82,6 @@ class Started(NamedTuple):
 def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
     """The runtime and the web channel `create_web_app` builds, over folders in `tmp_path`."""
     settings = startup_settings(tmp_path)
-    secrets_with_default_model(tmp_path)
     runtimes: list[Runtime] = []
     webs: list[WebChannel] = []
     real_runtime, real_channels = server.build_runtime, server.build_channels

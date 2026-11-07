@@ -1,4 +1,4 @@
-"""Each bot's model: its LLM credential from the keyring, or the Default model credential."""
+"""Each bot's model: its LLM credential from the keyring, or `NoModel` when it has none."""
 
 from __future__ import annotations
 
@@ -9,14 +9,8 @@ from dataclasses import dataclass
 from harness.bots import BotNotFound, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import LLMClient
-from harness.runtime.models import ModelChoice
-from harness.secrets import (
-    DEFAULT_MODEL_CREDENTIAL,
-    SecretName,
-    SecretNotFound,
-    SecretService,
-    UnsealedModelCredential,
-)
+from harness.runtime.models import ModelChoice, NoModel
+from harness.secrets import SecretName, SecretService, UnsealedModelCredential
 
 
 @dataclass(frozen=True)
@@ -40,7 +34,7 @@ def llm_settings_for(credential: UnsealedModelCredential, base: LLMSettings) -> 
 
 
 class CredentialModels:
-    """A bot's LLM credential as its model, else the Default model's; made once per version."""
+    """A bot's LLM credential as its model, made once per version; `NoModel` when it has none."""
 
     def __init__(
         self,
@@ -55,16 +49,11 @@ class CredentialModels:
         self._client_for = client_for
         self._by_credential: dict[str, CachedChoice] = {}
 
-    async def model_for(self, bot_id: str | None) -> ModelChoice:
-        """`bot_id`'s LLM credential; the Default for no bot, an unknown one, or one with none."""
+    async def model_for(self, bot_id: str | None) -> ModelChoice | NoModel:
+        """`bot_id`'s LLM credential; `NoModel` for no bot, an unknown one, or one with none."""
         name = self._credential_of(bot_id)
         own = None if name is None else await self._choice_named(name)
-        if own is not None:
-            return own
-        default = await self._choice_named(DEFAULT_MODEL_CREDENTIAL)
-        if default is None:
-            raise SecretNotFound(DEFAULT_MODEL_CREDENTIAL)
-        return default
+        return NoModel() if own is None else own
 
     def _credential_of(self, bot_id: str | None) -> SecretName | None:
         if bot_id is None:

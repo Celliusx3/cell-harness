@@ -20,7 +20,6 @@ from harness.secrets.models.details import (
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.models.secret import (
-    DEFAULT_MODEL_CREDENTIAL,
     SavedCredential,
     SecretSummary,
     UnsealedModelCredential,
@@ -31,7 +30,6 @@ from harness.secrets.sealing import sealed, unsealed
 
 RECORD_ID_BYTES = 12
 MAX_SECRETS = 100
-DEFAULT_MODEL_REMOVAL_REFUSAL = "The Default model cannot be removed; edit it instead."
 
 
 class SecretService:
@@ -162,10 +160,8 @@ class SecretService:
         }
 
     def delete(self, name: str) -> CredentialDetails:
-        """Remove the key called `name` and say what it was for; the Default is refused."""
+        """Remove the key called `name` and say what it was for."""
         stored = self._repository.sealed_secrets()
-        if any(secret.name == name and _is_default_model(secret) for secret in stored):
-            raise SecretRefused(DEFAULT_MODEL_REMOVAL_REFUSAL)
         removed = next((secret for secret in stored if secret.name == name), None)
         if removed is None:
             raise SecretNotFound(name)
@@ -212,15 +208,10 @@ class SecretService:
             name=secret.name,
             details=secret.details,
             last_four=last_four(self._plaintext(secret)),
-            is_default_model=_is_default_model(secret),
         )
 
     def _plaintext(self, secret: SealedSecret) -> str:
         return unsealed(secret.ciphertext, encryption_key=self._encryption_key, record_id=secret.id)
-
-
-def _is_default_model(secret: SealedSecret) -> bool:
-    return secret.name == DEFAULT_MODEL_CREDENTIAL and isinstance(secret.details, ModelDetails)
 
 
 def _platform_credential(

@@ -10,6 +10,7 @@ from harness.llm import ApplicationMessage, Completed, Failed, UserMessage
 from harness.prompts import COMPACTION_INSTRUCTION
 from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
 from harness.runtime.compaction.prompt import summary_message
+from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.session.compaction import (
     CompactionEnd,
     CompactionPrune,
@@ -92,6 +93,8 @@ async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) ->
     completed: Completed | None = None
     try:
         choice = await runtime.models.model_for(session.speaker_id())
+        if isinstance(choice, NoModel):
+            return CompactionEnd(turn=turn, error=PICK_A_MODEL)
         async for event in choice.client.stream_completion(messages, choice.model, tools=None):
             if isinstance(event, Failed):
                 return CompactionEnd(turn=turn, error=f"summary request failed: {event.reason}")

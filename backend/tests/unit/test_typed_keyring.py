@@ -9,7 +9,6 @@ import pytest
 from pydantic import SecretStr
 
 from harness.secrets import (
-    DEFAULT_MODEL_CREDENTIAL,
     Destination,
     DiskSecretRepository,
     SecretService,
@@ -153,18 +152,15 @@ def test_a_model_credential_needs_a_web_endpoint_and_a_model() -> None:
         ModelDetails(base_url="https://api.example.com/v1", model="  ")
 
 
-def test_the_default_model_cannot_be_removed_but_a_custom_key_of_its_name_can(path: Path) -> None:
+def test_an_llm_credential_is_removed_like_any_other(path: Path) -> None:
     keyring = SecretService(DiskSecretRepository(path), encryption_key=KEY)
-    keyring.save(DEFAULT_MODEL_CREDENTIAL, GITHUB, SecretStr("custom-key-5555"))
-    keyring.delete(DEFAULT_MODEL_CREDENTIAL)
-    default = ModelDetails(base_url="https://api.example.com/v1", model="glm")
-    keyring.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr("sk-default-key-1234"))
+    model = ModelDetails(base_url="https://api.example.com/v1", model="glm")
+    keyring.add_credential("first_model", model, SecretStr("sk-model-key-1234"))
 
-    with pytest.raises(SecretRefused, match="cannot be removed"):
-        keyring.delete(DEFAULT_MODEL_CREDENTIAL)
+    removed = keyring.delete("first_model")
 
-    [saved] = keyring.saved_credentials()
-    assert saved.is_default_model
+    assert removed == model
+    assert keyring.saved_credentials() == ()
 
 
 def test_only_a_telegram_or_discord_credential_hands_out_its_token(path: Path) -> None:

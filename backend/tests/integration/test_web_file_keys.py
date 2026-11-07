@@ -71,10 +71,10 @@ async def test_a_file_holding_all_three_keys_starts_with_three_credentials(
     gateway = started.channels.gateway
     await gateway.aclose()
 
-    assert {entry["name"]: entry["is_default_model"] for entry in listed} == {
-        "default_model": True,
-        "discord": False,
-        "telegram": False,
+    assert {entry["name"]: entry["details"]["kind"] for entry in listed} == {
+        "discord": "discord",
+        "model": "llm",
+        "telegram": "telegram",
     }
     assert gateway.channels == ["web", "telegram", "discord"]
     text = local.read_text(encoding="utf-8")
