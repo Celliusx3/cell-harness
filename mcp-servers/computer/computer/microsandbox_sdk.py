@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
-from microsandbox import MountConfig, PortBinding, SandboxStatus
+from microsandbox import MountConfig, Network, PortBinding, SandboxStatus
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from computer.command import EngineError
@@ -73,6 +73,7 @@ class Sandboxes(Protocol):
         labels: Mapping[str, str],
         volumes: Mapping[str, MountConfig],
         ports: Sequence[PortBinding],
+        network: Network,
         detached: bool,
     ) -> RunningSandbox: ...
 

@@ -34,7 +34,7 @@ def shared_folders(config: Config) -> tuple[SharedFolder, ...]:
     )
 
 
-def pc_spec(config: Config, api_token: str) -> PcSpec:
+def pc_spec(config: Config, api_token: str, host_service_ports: tuple[int, ...]) -> PcSpec:
     """The PC as Rakazo creates its computer, with its API and gateway published."""
     name = config.container_name
     return PcSpec(
@@ -44,6 +44,7 @@ def pc_spec(config: Config, api_token: str) -> PcSpec:
         home=HomeVolume(name=f"{name}-home", guest_path=HOME),
         shared_folders=shared_folders(config),
         published_ports=(API_PORT, GATEWAY_PORT),
+        host_service_ports=host_service_ports,
         shm_megabytes=SHM_MEGABYTES,
     )
 
@@ -51,10 +52,18 @@ def pc_spec(config: Config, api_token: str) -> PcSpec:
 class Machine:
     """One container per server process, shared by every bot."""
 
-    def __init__(self, *, engine: Engine, config: Config, clock: Clock) -> None:
+    def __init__(
+        self,
+        *,
+        engine: Engine,
+        config: Config,
+        clock: Clock,
+        host_service_ports: tuple[int, ...],
+    ) -> None:
         self._engine = engine
         self._config = config
         self._clock = clock
+        self._host_service_ports = host_service_ports
         self._lock = asyncio.Lock()
         self._idle: asyncio.Task[None] | None = None
         self._idle_stop_paused = False
@@ -102,7 +111,7 @@ class Machine:
 
     async def _ensure_running(self) -> None:
         async with self._lock:
-            spec = pc_spec(self._config, secrets.token_hex(16))
+            spec = pc_spec(self._config, secrets.token_hex(16), self._host_service_ports)
             state = await self._engine.state(spec.name)
             if state != "missing" and not self._shape_checked:
                 reason = await self._engine.replacement_reason(spec)

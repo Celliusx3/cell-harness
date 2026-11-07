@@ -11,11 +11,18 @@ from contextlib import ExitStack
 from dataclasses import dataclass
 
 from microsandbox import (
+    Action,
+    DestGroup,
+    Destination,
     ExecTimeoutError,
     MicrosandboxError,
     MountConfig,
     NamedVolumeMode,
+    Network,
+    NetworkPolicy,
     PortBinding,
+    Protocol,
+    Rule,
     SandboxNotFoundError,
     SandboxStatus,
     Volume,
@@ -44,9 +51,9 @@ MEMORY_MIB = 2048
 CPUS = 2
 SHM_PATH = "/dev/shm"
 SHAPE_LABEL = "cell-harness.computer.shape"
-REPLACEMENT_REASON = "its published ports or shared folders are not the spec's"
+REPLACEMENT_REASON = "its published ports, shared folders or network rules are not the spec's"
 STOPPED_STATUSES = frozenset({SandboxStatus.STOPPED, SandboxStatus.CRASHED, SandboxStatus.CREATED})
-# Named in the bundled msb runtime's guest setup; not yet checked from a running PC.
+# microsandbox's HOST_ALIAS, written to the guest's /etc/hosts; reaching it is the `host` group.
 HOST_FROM_THE_PC = "host.microsandbox.internal"
 
 
@@ -54,11 +61,29 @@ class SandboxMissing(EngineError):
     """microsandbox knows no VM by that name."""
 
 
+def pc_network_policy(host_service_ports: tuple[int, ...]) -> NetworkPolicy:
+    """Gateway DNS and public addresses, the Mac on each host-service port alone, nothing else."""
+    to_the_mac = Destination.group(DestGroup.HOST)
+    return NetworkPolicy(
+        default_egress=Action.DENY,
+        default_ingress=Action.ALLOW,
+        rules=(
+            *Rule.allow_dns(),
+            Rule.allow(destination=Destination.group(DestGroup.PUBLIC)),
+            *(
+                Rule.allow(destination=to_the_mac, protocol=Protocol.TCP, port=port)
+                for port in host_service_ports
+            ),
+        ),
+    )
+
+
 def shape_fingerprint(spec: PcSpec) -> str:
-    """A digest of the spec's published ports and shared folders, the parts a VM is made with."""
+    """A digest of the spec's published ports, shared folders and network rules."""
     shape = {
         "ports": sorted(spec.published_ports),
         "folders": sorted([str(folder.path), folder.writable] for folder in spec.shared_folders),
+        "network": repr(pc_network_policy(spec.host_service_ports)),
     }
     return hashlib.sha256(json.dumps(shape).encode()).hexdigest()
 
@@ -163,6 +188,7 @@ class MicrosandboxEngine:
             labels=sandbox_labels(spec),
             volumes=sandbox_volumes(spec),
             ports=port_bindings(host_ports),
+            network=Network(policy=pc_network_policy(spec.host_service_ports)),
             detached=True,
         )
         await sdk_answer("create", made, CREATE_TIMEOUT_SECONDS)

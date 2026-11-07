@@ -1,6 +1,6 @@
 # 06 The PC reaches only public addresses
 
-**Status.** open
+**Status.** done
 
 **What to build.** `MicrosandboxEngine` creates the PC with outgoing rules that
 deny loopback, private networks, link-local and cloud metadata addresses. It

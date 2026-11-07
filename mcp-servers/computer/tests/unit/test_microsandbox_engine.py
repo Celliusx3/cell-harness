@@ -22,7 +22,7 @@ from computer.microsandbox_engine import (
 from tests.conftest import API_TOKEN, FILES_DIR, IMAGE, NAME, SKILLS_DIR, config
 from tests.fake_microsandbox import FakeExecOutput, FakeImages, FakeSandboxes
 
-SPEC = pc_spec(config(), API_TOKEN)
+SPEC = pc_spec(config(), API_TOKEN, ())
 PROGRAM = Program(argv=("python3", "-c", "print(1)"), env={"LANG": "C.UTF-8"})
 
 
@@ -248,7 +248,7 @@ async def test_a_pc_made_with_other_ports_or_folders_is_replaced(changed: PcSpec
     _, engine = await made()
 
     assert await engine.replacement_reason(changed) == (
-        "its published ports or shared folders are not the spec's"
+        "its published ports, shared folders or network rules are not the spec's"
     )
 
 

@@ -10,6 +10,7 @@ from computer.command import EngineError
 from computer.engine import DockerEngine
 from computer.machine import Machine
 from tests.conftest import NAME, Dial, FakeDocker, config, mount_of
+from tests.machines import NO_HOST_SERVICES
 
 MOUNTS = ["inspect", "--type", "container", "--format", "{{json .Mounts}}", NAME]
 
@@ -26,6 +27,7 @@ async def use(docker: FakeDocker, files: Path, skills: Path) -> None:
         engine=DockerEngine(docker=docker),
         config=config(files_dir=files, skills_dirs=(skills,)),
         clock=Dial().clock,
+        host_service_ports=NO_HOST_SERVICES,
     )
     async with machine.serving(), machine.in_use():
         pass

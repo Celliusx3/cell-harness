@@ -268,7 +268,7 @@ def server_with(
 
     clock = (dial or Dial()).clock
     engine = DockerEngine(docker=docker)
-    machine = Machine(engine=engine, config=config(), clock=clock)
+    machine = Machine(engine=engine, config=config(), clock=clock, host_service_ports=())
     return build(
         Computer(
             machine=machine,

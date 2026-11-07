@@ -100,10 +100,15 @@ def main() -> None:
         raise SystemExit(2)
 
     engine = engine_named(config.engine)
-    machine = Machine(engine=engine, config=config, clock=SYSTEM)
     host_services = tuple(
         prepared_host_service(service, config.files_dir)
         for service in declared_host_services(config.skills_dirs, os.environ.get("PATH", ""))
+    )
+    machine = Machine(
+        engine=engine,
+        config=config,
+        clock=SYSTEM,
+        host_service_ports=tuple(each.port for each in host_services),
     )
     server = build(
         Computer(

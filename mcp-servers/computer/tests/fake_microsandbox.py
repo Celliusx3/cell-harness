@@ -11,6 +11,7 @@ from microsandbox import (
     ExecTimeoutError,
     MicrosandboxError,
     MountConfig,
+    Network,
     PortBinding,
     SandboxNotFoundError,
     SandboxStatus,
@@ -33,6 +34,7 @@ class CreateCall:
     labels: Mapping[str, str]
     volumes: Mapping[str, MountConfig]
     ports: Sequence[PortBinding]
+    network: Network
     detached: bool
 
 
@@ -177,9 +179,10 @@ class FakeSandboxes:
         labels: Mapping[str, str],
         volumes: Mapping[str, MountConfig],
         ports: Sequence[PortBinding],
+        network: Network,
         detached: bool,
     ) -> FakeRunningSandbox:
-        call = CreateCall(name, image, memory, cpus, env, labels, volumes, ports, detached)
+        call = CreateCall(name, image, memory, cpus, env, labels, volumes, ports, network, detached)
         self.calls.append("create")
         self.created.append(call)
         self.stored[name] = FakeStoredSandbox(self, SandboxStatus.RUNNING, stored_config(call))

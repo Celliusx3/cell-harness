@@ -55,6 +55,7 @@ class PcSpec:
     home: HomeVolume
     shared_folders: tuple[SharedFolder, ...]
     published_ports: tuple[int, ...]
+    host_service_ports: tuple[int, ...]
     shm_megabytes: int
 
 
