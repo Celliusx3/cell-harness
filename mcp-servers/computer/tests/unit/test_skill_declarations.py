@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from computer.host_services import HostService
-from computer.skill_declarations import declared_host_services
+from computer.services.host_services import HostService
+from computer.services.skill_declarations import declared_host_services
 from tests.fake_host_service import PROGRAM_NAME, declaring, fake_host_service, write_skill
 
 WORDS = "--port {port} --token-file {token_file} --files={files}"

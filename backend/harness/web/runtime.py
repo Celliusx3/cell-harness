@@ -160,6 +160,7 @@ def build_runtime(
         context_tokens=context_tokens,
         hooks=default_hooks(skills),
         files=files,
+        server_instructions=mcp.instructions,
     )
     _register_run_subagent(tool_service, runtime, subagent_logs)
     return runtime

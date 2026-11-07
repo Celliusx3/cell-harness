@@ -54,7 +54,9 @@ ACT_DESCRIPTION = (
     "many actions ran. When an action fails, the error says how many completed and whether the "
     "failed one may have taken effect; call browser_read_page before going on, and never repeat "
     "an action that completed. When a page asks for a password, a captcha or a payment, stop: "
-    "the person has to do that step."
+    "the person has to do that step. Before a click that sends, posts, pays or deletes "
+    "something for the person, call ask_user with what the click will do, and click only "
+    "after the person answers yes."
 )
 
 TERMINAL_SESSION_DESCRIPTION = (

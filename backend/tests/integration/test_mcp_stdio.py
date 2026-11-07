@@ -11,7 +11,7 @@ import pytest
 from mcp.server.apps import APP_MIME_TYPE
 
 from harness.config.sections import McpServer
-from harness.mcp import McpService
+from harness.mcp import McpService, RequiredServerError
 from harness.mcp import _connection as connection_module
 from harness.tools import Failure, Ok, ToolService, ToolUi
 from tests.unit.helpers import context_for, no_approvals
@@ -119,3 +119,23 @@ async def test_a_server_that_stops_answering_fails_within_the_timeout(live, monk
     assert isinstance(outcome, Failure)
     assert "did not answer" in outcome.message
     assert store.statuses()[0].status == "connected"
+
+
+async def test_a_required_server_that_exits_before_the_handshake_stops_startup() -> None:
+    refusing = McpServer(command=sys.executable, args=("-c", "raise SystemExit(2)"), required=True)
+    store = McpService({"computer": refusing})
+
+    with pytest.raises(RequiredServerError, match="computer is required and failed to connect"):
+        await asyncio.wait_for(store.start(), TIMEOUT)
+
+
+async def test_a_server_that_explains_itself_on_stderr_and_exits_is_named_with_its_reason() -> None:
+    script = (
+        "import sys; print('starting', file=sys.stderr); "
+        "print('Turn on virtualization.', file=sys.stderr); raise SystemExit(2)"
+    )
+    refusing = McpServer(command=sys.executable, args=("-c", script), required=True)
+    store = McpService({"computer": refusing})
+
+    with pytest.raises(RequiredServerError, match="Turn on virtualization."):
+        await asyncio.wait_for(store.start(), TIMEOUT)

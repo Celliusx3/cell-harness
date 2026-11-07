@@ -64,6 +64,7 @@ def params(files: Path) -> Iterator[StdioServerParameters]:
         args=["-m", "computer.server"],
         env={
             **os.environ,
+            "COMPUTER_ENGINE": "docker",
             "COMPUTER_NAME": NAME,
             "COMPUTER_FILES_DIR": str(files),
             "COMPUTER_SKILLS_DIRS": str(files.parent / "skills"),

@@ -6,9 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from computer.docker import DockerError
-from computer.machine import Machine
+from computer.engines.docker import DockerEngine
+from computer.models.errors import EngineError
+from computer.services.machine import Machine
 from tests.conftest import NAME, Dial, FakeDocker, config, mount_of
+from tests.machines import NO_HOST_SERVICES
 
 MOUNTS = ["inspect", "--type", "container", "--format", "{{json .Mounts}}", NAME]
 
@@ -22,7 +24,10 @@ def folders(tmp_path: Path) -> tuple[Path, Path]:
 
 async def use(docker: FakeDocker, files: Path, skills: Path) -> None:
     machine = Machine(
-        docker=docker, config=config(files_dir=files, skills_dirs=(skills,)), clock=Dial().clock
+        engine=DockerEngine(docker=docker),
+        config=config(files_dir=files, skills_dirs=(skills,)),
+        clock=Dial().clock,
+        host_service_ports=NO_HOST_SERVICES,
     )
     async with machine.serving(), machine.in_use():
         pass
@@ -93,7 +98,7 @@ async def test_mounts_docker_answers_unreadably_are_refused(tmp_path: Path) -> N
     docker = FakeDocker(status="running")
     docker.mounts = [{"Type": "bind", "Source": str(files), "RW": "sometimes"}]
 
-    with pytest.raises(DockerError, match="cannot read"):
+    with pytest.raises(EngineError, match="cannot read"):
         await use(docker, files, skills)
 
     assert "rm" not in docker.verbs()

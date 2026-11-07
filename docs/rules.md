@@ -157,6 +157,19 @@ tool domain with it — `test_layering.py` asserts both. And no SDK owns the Den
 child, so a `finally` kills it; a runaway or cancelled script leaving a process
 behind is proved absent by pid. `docs/mcp-tool-scaling.md`.
 
+**The PC reaches only public addresses.** The PC keeps the person's website
+sign-ins and runs whatever a web page talks a bot into, and the app on the Mac
+has no login. So the microsandbox VM is made with a deny-by-default network: DNS, the
+public internet, and the Mac only on the ports where the skills' host services
+listen. A PC made with other rules is rebuilt; its home volume keeps the files.
+OpenMausBot's gate and Rakazo's restricted mode block the same addresses.
+`docs/specs/pc-center/spec.md`.
+
+**The app does not start without its PC.** A server marked `required` must
+connect before the app serves, so a machine that cannot run the PC fails at
+start with what to turn on, not on a bot's first click. `computer` is the only
+required server; every other one still fails quietly.
+
 **Prompt assembly cannot raise.** The TypeScript printer degrades an unprintable
 schema to `unknown` rather than raising, because one odd server schema would
 otherwise cost the turn *every* tool — the request is built as one string. A

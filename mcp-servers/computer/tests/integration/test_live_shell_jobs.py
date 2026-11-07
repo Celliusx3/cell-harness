@@ -12,8 +12,8 @@ import pytest
 from mcp import Client, StdioServerParameters
 from mcp.types import CallToolResult, TextContent
 
-from computer.jobs import RUNNING_JOBS_SCRIPT
-from computer.machine import JOBS_ROOT
+from computer.services.jobs import RUNNING_JOBS_SCRIPT
+from computer.services.machine import JOBS_ROOT
 
 pytestmark = pytest.mark.skipif(os.environ.get("COMPUTER_LIVE") != "1", reason="COMPUTER_LIVE=1")
 
@@ -45,6 +45,7 @@ def params(tmp_path: Path) -> Iterator[StdioServerParameters]:
         args=["-m", "computer.server"],
         env={
             **os.environ,
+            "COMPUTER_ENGINE": "docker",
             "COMPUTER_NAME": NAME,
             "COMPUTER_FILES_DIR": str(tmp_path / "files"),
             "COMPUTER_SKILLS_DIRS": str(tmp_path / "skills"),

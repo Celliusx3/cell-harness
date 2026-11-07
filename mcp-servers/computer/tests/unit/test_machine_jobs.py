@@ -6,10 +6,12 @@ import logging
 
 import pytest
 
-from computer.jobs import RUNNING_JOBS_SCRIPT
-from computer.machine import HOME, JOBS_ROOT, Machine
-from tests.conftest import IDLE_SECONDS, NAME, Dial, config
+from computer.models.pc import HOME
+from computer.services.jobs import RUNNING_JOBS_SCRIPT
+from computer.services.machine import JOBS_ROOT, Machine
+from tests.conftest import IDLE_SECONDS, NAME, Dial
 from tests.job_docker import FakeJob, JobDocker
+from tests.machines import docker_machine
 
 STOP = ["stop", NAME]
 RUNNING_JOBS = ["exec", NAME, "python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT]
@@ -18,7 +20,7 @@ WRITTEN_NOT_LAUNCHED = FakeJob(command="sleep 3600", stdin="")
 
 
 def machine(docker: JobDocker, dial: Dial) -> Machine:
-    return Machine(docker=docker, config=config(), clock=dial.clock)
+    return docker_machine(docker, dial.clock)
 
 
 async def test_the_idle_stop_waits_while_a_command_runs_and_stops_after_it_ends() -> None:

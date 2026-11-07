@@ -15,8 +15,9 @@ from mcp.server import MCPServer
 
 from computer.clock import Clock
 from computer.config import Config
-from computer.docker import CommandResult, DockerError
-from computer.host_services import PreparedHostService, command_variables
+from computer.models.command import CommandResult
+from computer.models.errors import EngineError
+from computer.services.host_services import PreparedHostService, command_variables
 
 NAME = "cell-harness-computer"
 IMAGE = "ghcr.io/elie222/rakazo/computer:edge"
@@ -76,6 +77,7 @@ def config(
     skills_dirs: tuple[Path, ...] = (SKILLS_DIR,),
 ) -> Config:
     return Config(
+        engine="docker",
         image=IMAGE,
         container_name=NAME,
         idle_minutes=idle_minutes,
@@ -129,7 +131,7 @@ class FakeDocker:
         self.timeouts.append(timeout_seconds)
         await asyncio.sleep(0)
         if self.unreachable:
-            raise DockerError("docker is not on PATH: install Docker and start it")
+            raise EngineError("docker is not on PATH: install Docker and start it")
         if args[0] in self.gates:
             await self.gates[args[0]].wait()
         if args[0] in self.refused_verbs:
@@ -255,33 +257,35 @@ def server_with(
     desktop_api: FakeDesktopApi | None = None,
     host_services: Sequence[PreparedHostService] = (),
 ) -> MCPServer:
-    from computer.browser import Browser
-    from computer.desktop import Desktop
-    from computer.files import Files
-    from computer.live_screen import LiveScreen
-    from computer.machine import Machine
+    from computer.engines.docker import DockerEngine
     from computer.server import build
-    from computer.shell import Shell
+    from computer.services.browser import Browser
+    from computer.services.desktop import Desktop
+    from computer.services.files import Files
+    from computer.services.live_screen import LiveScreen
+    from computer.services.machine import Machine
+    from computer.services.shell import Shell
     from computer.tools import Computer
 
     clock = (dial or Dial()).clock
-    machine = Machine(docker=docker, config=config(), clock=clock)
+    engine = DockerEngine(docker=docker)
+    machine = Machine(engine=engine, config=config(), clock=clock, host_service_ports=())
     return build(
         Computer(
             machine=machine,
-            browser=Browser(docker=docker, container=NAME, clock=TickingClock().clock),
+            browser=Browser(engine=engine, container=NAME, clock=TickingClock().clock),
             desktop=Desktop(
-                docker=docker,
+                engine=engine,
                 container=NAME,
                 client=(desktop_api or FakeDesktopApi()).client(),
             ),
-            live_screen=LiveScreen(docker=docker, container=NAME, machine=machine, clock=clock),
-            files=Files(docker=docker, container=NAME),
+            live_screen=LiveScreen(engine=engine, container=NAME, machine=machine, clock=clock),
+            files=Files(engine=engine, container=NAME),
             shell=Shell(
-                docker=docker,
+                engine=engine,
                 container=NAME,
                 clock=TickingClock().clock,
-                variables=command_variables(host_services),
+                variables=command_variables(host_services, engine.host_address),
             ),
         ),
         host_services,

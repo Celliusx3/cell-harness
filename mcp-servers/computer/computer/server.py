@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import sys
@@ -12,26 +13,48 @@ from importlib import resources
 import httpx
 from mcp.server import MCPServer
 from mcp.server.apps import Apps, ResourceCsp
+from microsandbox import Image, Sandbox
 
-from computer.browser import Browser
 from computer.clock import SYSTEM
-from computer.config import ConfigError, load
-from computer.desktop import Desktop
-from computer.docker import DockerCli
-from computer.files import Files
-from computer.host_services import (
+from computer.config import ConfigError, EngineName, load
+from computer.engine import Engine
+from computer.engines.docker import DockerCli, DockerEngine
+from computer.engines.microsandbox import MicrosandboxEngine
+from computer.services.browser import Browser
+from computer.services.desktop import Desktop
+from computer.services.files import Files
+from computer.services.host_services import (
     PreparedHostService,
     command_variables,
     prepared_host_service,
     serving_host_services_that_start,
 )
-from computer.live_screen import LiveScreen
-from computer.machine import Machine
-from computer.shell import Shell
-from computer.skill_declarations import declared_host_services
+from computer.services.live_screen import LiveScreen
+from computer.services.machine import Machine
+from computer.services.shell import Shell
+from computer.services.skill_declarations import declared_host_services
+from computer.startup import host_probe
 from computer.tools import PREVIEW_URI, Computer, browser, computer_page, shell
 
 logger = logging.getLogger("computer")
+
+COMPUTER_INSTRUCTIONS = (
+    "You have a PC: one Debian Linux computer with Chrome, a shell and this chat's files, "
+    "shared by every bot. Use it the way a person uses their own computer. Open a web page "
+    "with computer__browser_navigate, read it with computer__browser_read_page, and click or "
+    "type on it with computer__browser_act. Run programs, Python and installs with "
+    "computer__shell. Files and website sign-ins on the PC stay there between chats. The "
+    "person can watch the PC and take control of it from the Computer page. Before an "
+    "action on a site that sends, posts, pays or deletes something for the person, call "
+    "ask_user with what the action will do, and act only after the person answers yes."
+)
+
+
+def engine_named(name: EngineName) -> Engine:
+    """The engine COMPUTER_ENGINE names, on the real docker command line or microsandbox SDK."""
+    if name == "docker":
+        return DockerEngine(docker=DockerCli(executable="docker"))
+    return MicrosandboxEngine(sandboxes=Sandbox, images=Image)
 
 
 def build(computer: Computer, host_services: Sequence[PreparedHostService]) -> MCPServer:
@@ -51,6 +74,7 @@ def build(computer: Computer, host_services: Sequence[PreparedHostService]) -> M
     server = MCPServer(
         name="computer",
         version="0.1.0",
+        instructions=COMPUTER_INSTRUCTIONS,
         lifespan=lifespan,
         extensions=[preview],
     )
@@ -68,30 +92,44 @@ def main() -> None:
         logger.error("computer refusing to start: %s", err)
         raise SystemExit(2) from err
 
-    docker = DockerCli(executable="docker")
-    machine = Machine(docker=docker, config=config, clock=SYSTEM)
+    refusal = asyncio.run(
+        host_probe.host_refusal(
+            config.engine, docker=DockerCli(executable="docker"), host=host_probe.probed_host
+        )
+    )
+    if refusal is not None:
+        logger.error("computer refusing to start: %s", refusal)
+        raise SystemExit(2)
+
+    engine = engine_named(config.engine)
     host_services = tuple(
         prepared_host_service(service, config.files_dir)
         for service in declared_host_services(config.skills_dirs, os.environ.get("PATH", ""))
     )
+    machine = Machine(
+        engine=engine,
+        config=config,
+        clock=SYSTEM,
+        host_service_ports=tuple(each.port for each in host_services),
+    )
     server = build(
         Computer(
             machine=machine,
-            browser=Browser(docker=docker, container=config.container_name, clock=SYSTEM),
+            browser=Browser(engine=engine, container=config.container_name, clock=SYSTEM),
             desktop=Desktop(
-                docker=docker,
+                engine=engine,
                 container=config.container_name,
                 client=httpx.AsyncClient(trust_env=False),
             ),
             live_screen=LiveScreen(
-                docker=docker, container=config.container_name, machine=machine, clock=SYSTEM
+                engine=engine, container=config.container_name, machine=machine, clock=SYSTEM
             ),
-            files=Files(docker=docker, container=config.container_name),
+            files=Files(engine=engine, container=config.container_name),
             shell=Shell(
-                docker=docker,
+                engine=engine,
                 container=config.container_name,
                 clock=SYSTEM,
-                variables=command_variables(host_services),
+                variables=command_variables(host_services, engine.host_address),
             ),
         ),
         host_services,

@@ -67,6 +67,7 @@ class FakeClient:
     pages: int = 1
     resources: dict[str, ReadResourceResult | float] = field(default_factory=dict)
     reads: list[str] = field(default_factory=list)
+    instructions: str | None = None
 
     async def list_tools(self, *, cursor: str | None = None) -> ListToolsResult:
         index = int(cursor) if cursor else 0

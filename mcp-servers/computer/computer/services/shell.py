@@ -10,10 +10,12 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from computer.clock import Clock
-from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult, Docker
-from computer.jobs import LOOK_SCRIPT, RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
-from computer.machine import JOBS_ROOT
-from computer.models import CommandRun
+from computer.engine import Engine
+from computer.models.command import COMMAND_TIMEOUT_SECONDS, stdout_of
+from computer.models.pc import Program
+from computer.models.shell import CommandRun
+from computer.services.jobs import LOOK_SCRIPT, RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
+from computer.services.machine import JOBS_ROOT
 
 logger = logging.getLogger("computer")
 
@@ -26,8 +28,6 @@ ENDED_UNREPORTED = (
     "The command ended without reporting an exit code, as it does when the computer stops "
     "while it runs. Call shell again to run it again."
 )
-
-ExecMode = Literal["-i", "-d"]
 
 
 class ShellError(RuntimeError):
@@ -88,26 +88,16 @@ def command_run(seen: RunningJob | FinishedJob) -> CommandRun:
     return CommandRun(status="done", exit_code=seen.exit_code, seconds=seconds, output=output)
 
 
-def stdout_of(completed: CommandResult, action: str) -> str:
-    """`stdout`, or a `ShellError` in the computer's own words."""
-    if completed.returncode != 0:
-        said = completed.stderr.strip() or f"exit {completed.returncode}"
-        raise ShellError(f"{action} failed: {said}")
-    return completed.stdout
-
-
 class Shell:
     """The computer's commands: started once, then waited on for up to WAIT_SECONDS a call."""
 
     def __init__(
-        self, *, docker: Docker, container: str, clock: Clock, variables: Mapping[str, str]
+        self, *, engine: Engine, container: str, clock: Clock, variables: Mapping[str, str]
     ) -> None:
-        self._docker = docker
+        self._engine = engine
         self._container = container
         self._clock = clock
-        self._variables = tuple(
-            arg for name, value in variables.items() for arg in ("-e", f"{name}={value}")
-        )
+        self._variables = dict(variables)
 
     async def run(self, job: Job) -> CommandRun:
         """The job's result, once; or, while it still runs after WAIT_SECONDS, how far it got."""
@@ -122,26 +112,14 @@ class Shell:
             raise ShellError(ENDED_UNREPORTED)
         return command_run(seen)
 
-    def _exec_arguments(self, mode: ExecMode) -> list[str]:
-        """`docker exec` up to the program, with the commands' variables, for every call."""
-        return ["exec", mode, *self._variables, self._container]
-
     async def _start(self, job: Job) -> None:
         written = job.model_dump_json()
         await self._run_python(WRITE_SCRIPT, [job.folder], written, "Starting the command")
-        launch = [
-            *self._exec_arguments("-d"),
-            "sh",
-            "-c",
-            RUNNER_SCRIPT,
-            RUNNER_NAME,
-            job.folder,
-            job.cwd,
-        ]
-        stdout_of(
-            await self._docker.run(launch, stdin="", timeout_seconds=COMMAND_TIMEOUT_SECONDS),
-            "Starting the command",
+        runner = ("sh", "-c", RUNNER_SCRIPT, RUNNER_NAME, job.folder, job.cwd)
+        launched = await self._engine.launch(
+            self._container, Program(argv=runner, env=self._variables)
         )
+        stdout_of(launched, "Starting the command", error=ShellError)
 
     async def _look_after_a_poll(self, job: Job) -> SeenJob:
         await self._clock.sleep(POLL_SECONDS)
@@ -161,9 +139,10 @@ class Shell:
             ) from err
 
     async def _run_python(self, script: str, args: Sequence[str], stdin: str, action: str) -> str:
-        completed = await self._docker.run(
-            [*self._exec_arguments("-i"), "python3", "-c", script, *args],
+        completed = await self._engine.run(
+            self._container,
+            Program(argv=("python3", "-c", script, *args), env=self._variables),
             stdin=stdin,
             timeout_seconds=COMMAND_TIMEOUT_SECONDS,
         )
-        return stdout_of(completed, action)
+        return stdout_of(completed, action, error=ShellError)

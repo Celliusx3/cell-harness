@@ -26,11 +26,23 @@ APP_ONLY_TOOLS = (
 )
 
 
+def answering_docker(folder: Path) -> Path:
+    """A `docker` that answers `docker version`, so the startup check passes without Docker."""
+    folder.mkdir()
+    docker = folder / "docker"
+    docker.write_text("#!/bin/sh\nexit 0\n")
+    docker.chmod(0o755)
+    return folder
+
+
 def environment(tmp_path: Path) -> dict[str, str]:
     (tmp_path / "files").mkdir()
     (tmp_path / "skills").mkdir()
+    docker_folder = answering_docker(tmp_path / "docker-bin")
     return {
         **os.environ,
+        "PATH": f"{docker_folder}{os.pathsep}{os.environ['PATH']}",
+        "COMPUTER_ENGINE": "docker",
         "COMPUTER_NAME": UNUSED_NAME,
         "COMPUTER_FILES_DIR": str(tmp_path / "files"),
         "COMPUTER_SKILLS_DIRS": str(tmp_path / "skills"),
@@ -64,6 +76,26 @@ async def test_it_refuses_to_start_with_an_unusable_idle_time() -> None:
 
     assert process.returncode == 2
     assert b"COMPUTER_IDLE_MINUTES" in stderr
+    assert stdout == b""
+
+
+async def test_it_refuses_to_start_when_docker_does_not_answer(tmp_path: Path) -> None:
+    env = environment(tmp_path)
+    (tmp_path / "docker-bin" / "docker").write_text(
+        "#!/bin/sh\necho 'daemon is down' >&2\nexit 1\n"
+    )
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-m",
+        "computer.server",
+        env=env,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+
+    assert process.returncode == 2
+    assert b"docker version failed: daemon is down. Turn on Docker" in stderr
     assert stdout == b""
 
 

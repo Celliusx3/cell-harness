@@ -35,10 +35,10 @@ a bot for a step only you should do; a terminal and files beside the screen;
 build order 12 and 13, phases 17 and 18), 19 a skill's scripts run in that
 computer (`computer__shell`, with the chat's files and the skills shipped with the
 app at their own paths, PhotoCraft on the Mac reachable from its commands, `view_image` to see
-what they save; the comic translator is the first such skill. Known risk: the
-app has no login, and the computer reaches every port on this Mac through
-`host.docker.internal`, so a bot allowed to run commands can call the app's API
-as the person; a network guard such as Tailscale does not cover it;
+what they save; the comic translator is the first such skill. A known risk, that
+the computer reached every port on this Mac through `host.docker.internal`, was
+closed on 2026-11-07: the PC reaches only public addresses and the skills' own Mac
+programs (`docs/specs/pc-center/`);
 phase 13, built in the computer, spec in `docs/specs/comic-skill/`), 20 a Mac app
 friends install (`make app`: Electron around the same pages, its own Python and
 Deno, signed ad-hoc; chat and skills only; spec in `docs/specs/desktop-app/`), 21 a
@@ -458,9 +458,9 @@ capability is reached here: an MCP server, a skill, and a page in the app.
 `backend/harness/` gained a relay (a tool result's loopback page and its live
 connection, served under `/api/relay` to any device) and one client tool
 (`hand_over`); it gains code again only in 17 (trimming old pages), 19 (an image
-block) and 20 (a scheduler). Docker is a requirement of the
-`computer` server, not of the harness: without it the server fails to connect and
-the rest of the product runs. 20 needs no computer; it is here because Rakazo is
+block) and 20 (a scheduler). Since 2026-11-07 the PC is a requirement of the
+harness, and runs in a microVM that ships with the app; Docker is the other engine
+(`docs/specs/pc-center/`). 20 needs no computer; it is here because Rakazo is
 where it comes from. Rakazo paths below are under `packages/adapters/src/`.
 
 ## Phase 17 — It browses on its own computer *(begun)*
@@ -559,6 +559,6 @@ duplicates one, delivery reaches the chat, and creating a routine asks first. A
 | Phase 12 | Build the optional track at all | **Defer** until the product asks |
 | Phase 15 | Which mutations the model may make without an approval gate | ~~Skills only~~ **None** — skill writes ask first too, the person's call once insertion 11's gate existed |
 | Phase 17 | Reuse Rakazo's computer image or build our own | **Reuse** `ghcr.io/elie222/rakazo/computer` (Apache-2.0, published); fork it only when we need a change it will not take |
-| Phase 17 | Where the computer runs | **This machine, in Docker** (chosen 2026-10-12 over a Boat cloud computer); on a server, the whole harness moves with it |
+| Phase 17 | Where the computer runs | ~~This machine, in Docker~~ **This machine, in a microVM that ships with the app** (microsandbox, chosen 2026-11-07 so that people who download the app install nothing; Docker stays as `COMPUTER_ENGINE=docker`). Docker was chosen 2026-10-12 over a Boat cloud computer; on a server, the whole harness moves with it |
 | Phase 19 | Which vision model | **None** — the phase does not start until `llm` points at a model that accepts images |
 | — | A phone per bot | **No** — 0.8–3.2 GB per phone measured against 0.6 GB for the desktop ([docs/rakazo.md §5](./docs/rakazo.md)); mobile websites go through phase 17's browser |

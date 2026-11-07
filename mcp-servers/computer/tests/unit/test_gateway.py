@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from computer.gateway import (
+from computer.services.gateway import (
     TokenError,
     open_terminal_script,
     release_script,

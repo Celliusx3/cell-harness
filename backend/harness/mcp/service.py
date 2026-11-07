@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 
 from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
@@ -11,10 +12,13 @@ from harness.config.sections import McpServer
 from harness.mcp._connection import Connection
 from harness.mcp.client import McpClientFactory
 from harness.mcp.clients.stdio import open_stdio_client
-from harness.mcp.models.errors import McpNotConnectedError
+from harness.mcp.models.errors import McpNotConnectedError, RequiredServerError
 from harness.mcp.models.status import ServerStatus
+from harness.mcp.required import required_refusal
 from harness.mcp.tool import can_write, namespaced
 from harness.tools import Tool
+
+REQUIRED_CONNECT_TIMEOUT_SECONDS = 120.0
 
 
 class McpService:
@@ -33,6 +37,14 @@ class McpService:
     def tools(self) -> list[Tool[dict]]:
         """Every tool on offer right now — **the registry provider**."""
         return [tool for connection in self._connections.values() for tool in connection.tools]
+
+    def instructions(self) -> dict[str, str]:
+        """Each connected server's non-empty instructions, by server id, in config order."""
+        return {
+            server_id: connection.instructions
+            for server_id, connection in self._connections.items()
+            if connection.status == "connected" and connection.instructions
+        }
 
     def writing_tool_names(self) -> frozenset[str]:
         """Every tool on offer right now that may change something, as the model calls it."""
@@ -65,11 +77,26 @@ class McpService:
         return self._connections[server_id]
 
     async def start(self) -> None:
-        """Connect every configured server, without blocking startup on any."""
+        """Connect every configured server; wait only for the required ones, and refuse without."""
         for server_id, server in self._servers.items():
             connection = Connection(id=server_id, server=server, factory=self._factory)
             self._connections[server_id] = connection
             connection.start()
+        refusal = await self._required_refusal()
+        if refusal is not None:
+            await self.aclose()
+            raise RequiredServerError(refusal)
+
+    async def _required_refusal(self) -> str | None:
+        """Wait for every required server to connect or fail, then say why startup must stop."""
+        required = [c for c in self._connections.values() if c.server.required]
+        with contextlib.suppress(TimeoutError):
+            async with asyncio.timeout(REQUIRED_CONNECT_TIMEOUT_SECONDS):
+                for connection in required:
+                    await connection.settled.wait()
+        return required_refusal(
+            [connection.snapshot() for connection in required], REQUIRED_CONNECT_TIMEOUT_SECONDS
+        )
 
     async def aclose(self) -> None:
         await asyncio.gather(

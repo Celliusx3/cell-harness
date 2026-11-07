@@ -14,6 +14,9 @@ from harness.config.sections import McpServer
 class McpClient(Protocol):
     """One live session to one configured server."""
 
+    @property
+    def instructions(self) -> str | None: ...
+
     async def list_tools(self, *, cursor: str | None = None) -> ListToolsResult: ...
 
     async def call_tool(self, server_tool_name: str, arguments: dict) -> CallToolResult: ...

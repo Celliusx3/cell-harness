@@ -11,7 +11,7 @@ from mcp.server.apps import Apps
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from computer.models import Acted, Action, Opened, Page
+from computer.models.page import Acted, Action, Opened, Page
 from computer.tools import PREVIEW_URI, Computer, computer_for_one_call
 from computer.tools.descriptions import (
     ACT_DESCRIPTION,

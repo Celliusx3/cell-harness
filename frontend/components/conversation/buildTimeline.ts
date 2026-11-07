@@ -136,6 +136,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
 
       case "step/start":
       case "step/end":
+      case "server/instructions":
       case "chat/cleared":
         break;
     }

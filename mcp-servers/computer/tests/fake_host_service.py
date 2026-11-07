@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from computer.host_services import HostService
+from computer.services.host_services import HostService
 
 Behaviour = Literal["listens", "hangs", "exits"]
 EXIT_CODE = 3

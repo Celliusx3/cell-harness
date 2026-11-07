@@ -194,6 +194,16 @@ class BotInstructionsEvent(BaseModel):
     bot_id: str | None = Field(default=None, description="The bot; None in older logs.")
 
 
+class ServerInstructionsEvent(BaseModel):
+    """What the MCP server `server` tells the model from here on; empty once it tells nothing."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["server/instructions"] = "server/instructions"
+    server: str
+    instructions: str
+
+
 class GroupMembersEvent(BaseModel):
     """The group this conversation belongs to, and its members' names, as its bots are told."""
 
@@ -229,6 +239,7 @@ SessionEvent = (
     | CompactionPrune
     | ApprovalGrant
     | BotInstructionsEvent
+    | ServerInstructionsEvent
     | GroupMembersEvent
     | ChatCleared
 )

@@ -7,9 +7,11 @@ from collections.abc import Sequence
 
 import pytest
 
-from computer.browser import Browser, BrowserError
-from computer.docker import CommandResult, DockerError, DockerTimeout
-from computer.models import Action
+from computer.engines.docker import DockerEngine
+from computer.models.command import CommandResult
+from computer.models.errors import EngineError, EngineTimeout
+from computer.models.page import Action
+from computer.services.browser import Browser, BrowserError
 from tests.conftest import (
     ACTED,
     CDP_DOWN,
@@ -23,7 +25,7 @@ from tests.conftest import (
 
 
 def browser(docker: FakeDocker) -> Browser:
-    return Browser(docker=docker, container=NAME, clock=TickingClock().clock)
+    return Browser(engine=DockerEngine(docker=docker), container=NAME, clock=TickingClock().clock)
 
 
 def page_command(command: str) -> list[str]:
@@ -140,7 +142,9 @@ async def test_chrome_that_never_comes_up_fails_after_15_seconds() -> None:
     ticking = TickingClock()
 
     with pytest.raises(BrowserError, match="did not start within 15 seconds"):
-        await Browser(docker=docker, container=NAME, clock=ticking.clock).read()
+        await Browser(
+            engine=DockerEngine(docker=docker), container=NAME, clock=ticking.clock
+        ).read()
 
     assert len(docker.launches()) == 1
     assert 15 <= ticking.now < 16
@@ -151,7 +155,7 @@ async def test_a_page_that_does_not_answer_in_time_says_so() -> None:
         async def run(
             self, args: Sequence[str], *, stdin: str, timeout_seconds: float
         ) -> CommandResult:
-            raise DockerTimeout("docker exec did not finish within 25 seconds")
+            raise EngineTimeout("docker exec did not finish within 25 seconds")
 
     with pytest.raises(BrowserError, match="did not answer within 25 seconds"):
         await browser(Hanging(status="running")).read()
@@ -161,7 +165,7 @@ async def test_a_page_script_that_exits_non_zero_is_a_docker_error() -> None:
     docker = FakeDocker(status="running")
     docker.refused_verbs.add("exec")
 
-    with pytest.raises(DockerError, match="rakazo-page-browser snapshot failed"):
+    with pytest.raises(EngineError, match="rakazo-page-browser snapshot failed"):
         await browser(docker).read()
 
 

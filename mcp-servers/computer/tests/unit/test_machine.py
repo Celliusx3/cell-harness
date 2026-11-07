@@ -10,10 +10,11 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from computer.docker import DockerError
-from computer.jobs import RUNNING_JOBS_SCRIPT
-from computer.machine import JOBS_ROOT, Machine
+from computer.models.errors import EngineError
+from computer.services.jobs import RUNNING_JOBS_SCRIPT
+from computer.services.machine import JOBS_ROOT, Machine
 from tests.conftest import IDLE_SECONDS, IMAGE, NAME, Dial, FakeDocker, config, settle
+from tests.machines import docker_machine
 
 INSPECT = ["inspect", "--type", "container", "--format", "{{.State.Status}}", NAME]
 BINDINGS = ["inspect", "--type", "container", "--format", "{{json .HostConfig.PortBindings}}", NAME]
@@ -25,7 +26,7 @@ RUNNING_JOBS = ["exec", NAME, "python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT]
 
 @asynccontextmanager
 async def serving(docker: FakeDocker, dial: Dial) -> AsyncIterator[Machine]:
-    machine = Machine(docker=docker, config=config(), clock=dial.clock)
+    machine = docker_machine(docker, dial.clock)
     async with machine.serving():
         docker.calls.clear()
         yield machine
@@ -115,7 +116,7 @@ async def test_ports_docker_answers_unreadably_are_refused(answer: str) -> None:
     docker = FakeDocker(status="running")
     docker.raw_bindings = answer
     async with serving(docker, Dial()) as machine:
-        with pytest.raises(DockerError, match="cannot read"):
+        with pytest.raises(EngineError, match="cannot read"):
             await use(machine)
 
     assert "rm" not in docker.verbs()
@@ -148,7 +149,7 @@ async def test_a_refused_docker_command_raises_in_dockers_words() -> None:
     docker = FakeDocker(status="missing")
     docker.refused_verbs.add("run")
     async with serving(docker, Dial()) as machine:
-        with pytest.raises(DockerError, match="docker run failed: Error: run refused"):
+        with pytest.raises(EngineError, match="docker run failed: Error: run refused"):
             await use(machine)
 
 
@@ -207,7 +208,7 @@ async def test_a_failed_idle_stop_is_logged_not_raised(caplog: pytest.LogCapture
 
 async def test_a_running_container_is_adopted_at_startup_and_its_idle_stop_armed() -> None:
     docker, dial = FakeDocker(status="running"), Dial()
-    machine = Machine(docker=docker, config=config(), clock=dial.clock)
+    machine = docker_machine(docker, dial.clock)
     async with machine.serving():
         await dial.turn(IDLE_SECONDS)
 
@@ -217,7 +218,7 @@ async def test_a_running_container_is_adopted_at_startup_and_its_idle_stop_armed
 async def test_a_stopped_or_missing_container_is_left_alone_at_startup() -> None:
     for status in ("exited", "missing"):
         docker, dial = FakeDocker(status=status), Dial()
-        machine = Machine(docker=docker, config=config(), clock=dial.clock)
+        machine = docker_machine(docker, dial.clock)
         async with machine.serving():
             await dial.turn(IDLE_SECONDS)
 
@@ -226,7 +227,7 @@ async def test_a_stopped_or_missing_container_is_left_alone_at_startup() -> None
 
 async def test_shutdown_stops_nothing_and_the_idle_stop_dies_with_the_server() -> None:
     docker, dial = FakeDocker(status="running"), Dial()
-    machine = Machine(docker=docker, config=config(), clock=dial.clock)
+    machine = docker_machine(docker, dial.clock)
     async with machine.serving():
         pass
     await dial.turn(IDLE_SECONDS)
@@ -240,7 +241,7 @@ async def test_docker_unreachable_at_startup_is_logged_and_the_server_still_star
 ) -> None:
     docker = FakeDocker(status="running")
     docker.unreachable = True
-    machine = Machine(docker=docker, config=config(), clock=Dial().clock)
+    machine = docker_machine(docker, Dial().clock)
     with caplog.at_level(logging.WARNING, logger="computer"):
         async with machine.serving():
             pass
@@ -266,7 +267,7 @@ async def test_a_new_computer_opens_chrome() -> None:
 
 async def test_a_running_computer_adopted_at_startup_opens_chrome() -> None:
     docker = FakeDocker(status="running")
-    machine = Machine(docker=docker, config=config(), clock=Dial().clock)
+    machine = docker_machine(docker, Dial().clock)
     async with machine.serving():
         pass
 

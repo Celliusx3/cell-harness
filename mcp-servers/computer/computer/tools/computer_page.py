@@ -10,19 +10,18 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import CallToolResult, ImageContent, TextContent
 
-from computer.desktop import Screenshot
-from computer.live_screen import Link, NotHeld
-from computer.models import (
+from computer.models.files import (
     FileBytes,
     FilePath,
     FileText,
     FolderPath,
     Listing,
-    ScreenMode,
-    ScreenSession,
     UploadContent,
     Uploaded,
 )
+from computer.models.screen import ScreenMode, ScreenSession
+from computer.services.desktop import Screenshot
+from computer.services.live_screen import Link, NotHeld
 from computer.tools import Computer, computer_for_one_call
 from computer.tools.descriptions import (
     FILE_DOWNLOAD_DESCRIPTION,

@@ -15,7 +15,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from computer.host_services import HostService
+from computer.services.host_services import HostService
 
 logger = logging.getLogger("computer")
 

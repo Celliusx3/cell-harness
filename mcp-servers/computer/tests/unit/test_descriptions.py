@@ -6,17 +6,9 @@ import pytest
 from pydantic import BaseModel
 
 import computer.tools.descriptions
-from computer.models import (
-    Acted,
-    FileBytes,
-    FileEntry,
-    FileText,
-    Listing,
-    Opened,
-    Page,
-    ScreenSession,
-    Uploaded,
-)
+from computer.models.files import FileBytes, FileEntry, FileText, Listing, Uploaded
+from computer.models.page import Acted, Opened, Page
+from computer.models.screen import ScreenSession
 from computer.tools.descriptions import (
     ACT_DESCRIPTION,
     COMMAND_DESCRIPTION,
@@ -124,6 +116,12 @@ def test_an_app_only_tool_tells_the_model_not_to_call_it(name: str) -> None:
 
 def test_act_states_the_limit_the_schema_enforces() -> None:
     assert "1 to 24 actions" in ACT_DESCRIPTION
+
+
+def test_act_asks_the_person_before_a_click_it_cannot_undo() -> None:
+    assert "ask_user" in ACT_DESCRIPTION
+    for action in ("sends", "posts", "pays", "deletes"):
+        assert action in ACT_DESCRIPTION
 
 
 def test_a_held_screen_tells_the_bot_to_wait_for_the_person() -> None:

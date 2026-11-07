@@ -10,7 +10,7 @@ import pytest
 from mcp import Client
 from mcp.types import CallToolResult, ImageContent, TextContent
 
-from computer.desktop import DesktopError, api_token, published_port
+from computer.services.desktop import DesktopError, api_token
 from tests.conftest import (
     API_HOST_PORT,
     API_TOKEN,
@@ -149,31 +149,13 @@ async def test_a_docker_failure_on_the_port_reaches_the_preview_as_an_error() ->
     assert "The computer is not available: docker port failed" in text_of(result)
 
 
-def test_the_api_port_is_the_one_published_on_loopback() -> None:
-    assert published_port(f"127.0.0.1:{API_HOST_PORT}\n", 7070) == API_HOST_PORT
-
-
-@pytest.mark.parametrize("published", ["", "0.0.0.0:62477\n[::]:62477\n", "127.0.0.1:\n"])
-def test_a_port_not_published_on_loopback_is_refused(published: str) -> None:
-    with pytest.raises(DesktopError, match="port 6080 is not published on 127.0.0.1"):
-        published_port(published, 6080)
-
-
 def test_the_token_is_read_from_the_containers_environment() -> None:
-    env = ["DISPLAY=:1", f"RAKAZO_COMPUTER_CONTROL_TOKEN={API_TOKEN}", "HOME=/home/rakazo"]
+    env = {"DISPLAY": ":1", "RAKAZO_COMPUTER_CONTROL_TOKEN": API_TOKEN, "HOME": "/home/rakazo"}
 
-    assert api_token(json.dumps(env) + "\n") == API_TOKEN
+    assert api_token(env) == API_TOKEN
 
 
-@pytest.mark.parametrize(
-    ("inspected", "said"),
-    [
-        ('["DISPLAY=:1"]', "no API token"),
-        ('["RAKAZO_COMPUTER_CONTROL_TOKEN="]', "no API token"),
-        ("null", "cannot read"),
-        ("<no value>", "cannot read"),
-    ],
-)
-def test_a_container_without_a_readable_token_is_refused(inspected: str, said: str) -> None:
-    with pytest.raises(DesktopError, match=said):
-        api_token(inspected)
+@pytest.mark.parametrize("env", [{"DISPLAY": ":1"}, {"RAKAZO_COMPUTER_CONTROL_TOKEN": ""}])
+def test_a_container_without_a_token_is_refused(env: dict[str, str]) -> None:
+    with pytest.raises(DesktopError, match="no API token"):
+        api_token(env)

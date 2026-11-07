@@ -6,8 +6,8 @@ from pathlib import Path
 
 from mcp import Client
 
-from computer.host_services import prepared_host_service
-from computer.jobs import LOOK_SCRIPT, RUNNER_SCRIPT, WRITE_SCRIPT
+from computer.services.host_services import prepared_host_service
+from computer.services.jobs import LOOK_SCRIPT, RUNNER_SCRIPT, WRITE_SCRIPT
 from tests.conftest import NAME, server_with
 from tests.fake_host_service import declared, fake_host_service, started
 from tests.job_docker import JobDocker

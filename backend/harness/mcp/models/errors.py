@@ -13,3 +13,7 @@ class McpTimeoutError(RuntimeError):
 
 class McpNotConnectedError(RuntimeError):
     """There is no live session to carry this command."""
+
+
+class RequiredServerError(RuntimeError):
+    """A server the config marks `required` did not connect, so the app must not serve."""

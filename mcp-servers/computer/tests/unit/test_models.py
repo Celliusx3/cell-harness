@@ -7,15 +7,15 @@ import base64
 import pytest
 from pydantic import ValidationError
 
-from computer.models import (
+from computer.models.files import (
     TRANSFER_LIMIT_BYTES,
-    Action,
-    CommandRun,
     HomePath,
     checked_file_path,
     checked_upload,
     home_path,
 )
+from computer.models.page import Action
+from computer.models.shell import CommandRun
 
 
 @pytest.mark.parametrize(
