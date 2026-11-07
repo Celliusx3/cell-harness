@@ -1,6 +1,6 @@
 # 01 The data types move into models/
 
-**Status.** open
+**Status.** done
 
 **What to build.** Create `computer/models/`. Split `models.py` into `page.py`
 (Action, Opened, Page, Acted), `files.py` (HomePath, FileEntry, Listing,

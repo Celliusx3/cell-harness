@@ -1,74 +1,19 @@
-"""What the tools take and return; home_path is adapted from Rakazo (see NOTICE)."""
+"""Home folder paths and files the tools use; home_path is adapted from Rakazo (see NOTICE)."""
 
 from __future__ import annotations
 
 import base64
 import binascii
 from dataclasses import dataclass
-from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from computer.machine import HOME
 
-ActionKind = Literal["click", "fill", "type"]
-ScreenMode = Literal["view", "control"]
 FileKind = Literal["file", "dir"]
-CommandStatus = Literal["done", "running"]
 
 TRANSFER_LIMIT_BYTES = 10 * 1024 * 1024
-
-
-class Action(BaseModel):
-    """One step on the open page; fill replaces a field's value, type adds to it."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: ActionKind
-    ref: str = Field(min_length=1, description="From the newest page content.")
-    text: str | None = Field(default=None, description="Required for fill and type; not click.")
-
-    @model_validator(mode="after")
-    def text_fits_kind(self) -> Self:
-        if self.kind == "click" and self.text is not None:
-            raise ValueError("click takes no text")
-        if self.kind != "click" and self.text is None:
-            raise ValueError(f"{self.kind} needs text")
-        return self
-
-
-class Opened(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    url: str
-    title: str
-
-
-class Page(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    url: str
-    title: str
-    content: str
-
-
-class Acted(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    url: str
-    title: str
-    content: str
-    actions_completed: int
-
-
-class ScreenSession(BaseModel):
-    """The person's screen: watched, or controlled until held_until (UTC)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    mode: ScreenMode
-    held_until: datetime | None
 
 
 @dataclass(frozen=True)
@@ -165,20 +110,3 @@ class Uploaded(BaseModel):
 
     path: str
     size: int
-
-
-class CommandRun(BaseModel):
-    """A bot's command: still running with its output so far, or done with its exit code."""
-
-    model_config = ConfigDict(frozen=True)
-
-    status: CommandStatus
-    exit_code: int | None
-    seconds: float
-    output: str
-
-    @model_validator(mode="after")
-    def exit_code_fits_status(self) -> Self:
-        if (self.status == "running") != (self.exit_code is None):
-            raise ValueError("a running command has no exit code yet, and a done one has one")
-        return self

@@ -1,8 +1,10 @@
-"""What a program run in the PC gives back, and how reaching the PC fails, whatever the engine."""
+"""What a program run in the PC gives back, whatever the engine."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from computer.models.errors import EngineError
 
 COMMAND_TIMEOUT_SECONDS = 30.0
 
@@ -12,14 +14,6 @@ class CommandResult:
     returncode: int
     stdout: str
     stderr: str
-
-
-class EngineError(RuntimeError):
-    """The engine refused, or could not be reached. The message says which, in its own words."""
-
-
-class EngineTimeout(EngineError):
-    """The engine did not answer in time."""
 
 
 def stdout_of(completed: CommandResult, action: str) -> str:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from computer.command import CommandResult
+from computer.models.command import CommandResult
 from computer.readiness import (
     MicrosandboxHost,
     docker_problem,

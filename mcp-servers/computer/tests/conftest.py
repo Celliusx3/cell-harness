@@ -14,9 +14,10 @@ import pytest
 from mcp.server import MCPServer
 
 from computer.clock import Clock
-from computer.command import CommandResult, EngineError
 from computer.config import Config
 from computer.host_services import PreparedHostService, command_variables
+from computer.models.command import CommandResult
+from computer.models.errors import EngineError
 
 NAME = "cell-harness-computer"
 IMAGE = "ghcr.io/elie222/rakazo/computer:edge"

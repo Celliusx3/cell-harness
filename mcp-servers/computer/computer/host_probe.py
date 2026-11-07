@@ -10,9 +10,9 @@ from pathlib import Path
 
 from microsandbox import is_runtime_installed
 
-from computer.command import EngineError
 from computer.config import EngineName
 from computer.docker import Docker
+from computer.models.errors import EngineError
 from computer.readiness import MicrosandboxHost, docker_problem, microsandbox_problem, refusal
 
 DOCKER_CHECK_TIMEOUT_SECONDS = 15.0

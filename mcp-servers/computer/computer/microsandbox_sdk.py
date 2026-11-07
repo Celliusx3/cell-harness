@@ -8,7 +8,7 @@ from typing import Protocol
 from microsandbox import MountConfig, Network, PortBinding, SandboxStatus
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from computer.command import EngineError
+from computer.models.errors import EngineError
 
 
 class ExecResult(Protocol):

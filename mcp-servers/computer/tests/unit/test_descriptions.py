@@ -6,17 +6,9 @@ import pytest
 from pydantic import BaseModel
 
 import computer.tools.descriptions
-from computer.models import (
-    Acted,
-    FileBytes,
-    FileEntry,
-    FileText,
-    Listing,
-    Opened,
-    Page,
-    ScreenSession,
-    Uploaded,
-)
+from computer.models.files import FileBytes, FileEntry, FileText, Listing, Uploaded
+from computer.models.page import Acted, Opened, Page
+from computer.models.screen import ScreenSession
 from computer.tools.descriptions import (
     ACT_DESCRIPTION,
     COMMAND_DESCRIPTION,

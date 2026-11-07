@@ -28,14 +28,7 @@ from microsandbox import (
     Volume,
 )
 
-from computer.command import (
-    COMMAND_TIMEOUT_SECONDS,
-    CommandResult,
-    EngineError,
-    EngineTimeout,
-    stdout_of,
-)
-from computer.engine import LABEL, LOOPBACK, PcSpec, PcState, Program
+from computer.engine import LABEL, LOOPBACK
 from computer.microsandbox_sdk import (
     ImageConfig,
     Images,
@@ -45,6 +38,9 @@ from computer.microsandbox_sdk import (
     StoredSandbox,
     sandbox_config,
 )
+from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult, stdout_of
+from computer.models.errors import EngineError, EngineTimeout
+from computer.models.pc import PcSpec, PcState, Program
 
 CREATE_TIMEOUT_SECONDS = 300.0
 MEMORY_MIB = 2048

@@ -9,10 +9,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from computer.clock import Clock
-from computer.command import COMMAND_TIMEOUT_SECONDS, EngineError, stdout_of
 from computer.config import Config
-from computer.engine import Engine, HomeVolume, PcSpec, Program, SharedFolder
+from computer.engine import Engine
 from computer.jobs import RUNNING_JOBS_SCRIPT
+from computer.models.command import COMMAND_TIMEOUT_SECONDS, stdout_of
+from computer.models.errors import EngineError
+from computer.models.pc import HomeVolume, PcSpec, Program, SharedFolder
 
 logger = logging.getLogger("computer")
 

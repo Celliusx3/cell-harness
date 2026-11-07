@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
-from computer.command import COMMAND_TIMEOUT_SECONDS, CommandResult, EngineError, stdout_of
 from computer.docker import Docker
-
-PcState = Literal["running", "stopped", "missing"]
+from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult, stdout_of
+from computer.models.errors import EngineError
+from computer.models.pc import PcSpec, PcState, Program, SharedFolder
 
 LOOPBACK = "127.0.0.1"
 LOOPBACK_BINDING_PATTERN = re.compile(r"127\.0\.0\.1:(\d+)")
@@ -27,44 +25,6 @@ PORT_BINDINGS: TypeAdapter[dict[str, list[dict[str, str]] | None] | None] = Type
     dict[str, list[dict[str, str]] | None] | None
 )
 ENVIRONMENT: TypeAdapter[list[str]] = TypeAdapter(list[str])
-
-
-@dataclass(frozen=True)
-class SharedFolder:
-    """A folder on the Mac the PC sees at the same path, writable or read-only."""
-
-    path: Path
-    writable: bool
-
-
-@dataclass(frozen=True)
-class HomeVolume:
-    """The engine's own named volume that holds the PC's home folder across new PCs."""
-
-    name: str
-    guest_path: str
-
-
-@dataclass(frozen=True)
-class PcSpec:
-    """Everything the PC is made with; each published guest port is reached on loopback only."""
-
-    name: str
-    image: str
-    env: Mapping[str, str]
-    home: HomeVolume
-    shared_folders: tuple[SharedFolder, ...]
-    published_ports: tuple[int, ...]
-    host_service_ports: tuple[int, ...]
-    shm_megabytes: int
-
-
-@dataclass(frozen=True)
-class Program:
-    """A program to run in the PC: its words, and the variables it runs with."""
-
-    argv: tuple[str, ...]
-    env: Mapping[str, str]
 
 
 class Engine(Protocol):

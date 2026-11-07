@@ -13,10 +13,12 @@ from importlib import resources
 
 from computer import gateway
 from computer.clock import Clock
-from computer.command import COMMAND_TIMEOUT_SECONDS, EngineError, stdout_of
-from computer.engine import Engine, Program
+from computer.engine import Engine
 from computer.machine import GATEWAY_PORT, Machine
-from computer.models import ScreenSession
+from computer.models.command import COMMAND_TIMEOUT_SECONDS, stdout_of
+from computer.models.errors import EngineError
+from computer.models.pc import Program
+from computer.models.screen import ScreenSession
 
 logger = logging.getLogger("computer")
 

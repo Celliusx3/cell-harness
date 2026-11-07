@@ -7,7 +7,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from computer.command import CommandResult, EngineError, EngineTimeout
+from computer.models.command import CommandResult
+from computer.models.errors import EngineError, EngineTimeout
 
 
 class Docker(Protocol):

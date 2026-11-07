@@ -9,11 +9,11 @@ from dataclasses import dataclass
 from mcp.server.mcpserver.exceptions import ToolError
 
 from computer.browser import Browser, BrowserError
-from computer.command import EngineError
 from computer.desktop import Desktop, DesktopError
 from computer.files import Files, FilesError
 from computer.live_screen import LiveScreen
 from computer.machine import Machine
+from computer.models.errors import EngineError
 from computer.shell import Shell, ShellError
 
 PREVIEW_URI = "ui://computer/screen"

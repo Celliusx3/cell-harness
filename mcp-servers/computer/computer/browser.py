@@ -9,10 +9,12 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from computer.clock import Clock
-from computer.command import EngineTimeout, stdout_of
-from computer.engine import Engine, Program
+from computer.engine import Engine
 from computer.machine import OPEN_CHROME
-from computer.models import Acted, Action, Opened, Page
+from computer.models.command import stdout_of
+from computer.models.errors import EngineTimeout
+from computer.models.page import Acted, Action, Opened, Page
+from computer.models.pc import Program
 
 logger = logging.getLogger("computer")
 

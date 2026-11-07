@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from computer.command import CommandResult
 from computer.config import EngineName
+from computer.models.command import CommandResult
 
 WHAT_TO_TURN_ON: dict[EngineName, str] = {
     "microsandbox": (

@@ -8,9 +8,10 @@ from collections.abc import Sequence
 import pytest
 
 from computer.browser import Browser, BrowserError
-from computer.command import CommandResult, EngineError, EngineTimeout
 from computer.engine import DockerEngine
-from computer.models import Action
+from computer.models.command import CommandResult
+from computer.models.errors import EngineError, EngineTimeout
+from computer.models.page import Action
 from tests.conftest import (
     ACTED,
     CDP_DOWN,

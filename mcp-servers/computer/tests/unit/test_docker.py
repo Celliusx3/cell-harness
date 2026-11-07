@@ -9,8 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from computer.command import CommandResult, EngineError, EngineTimeout, stdout_of
 from computer.docker import DockerCli
+from computer.models.command import CommandResult, stdout_of
+from computer.models.errors import EngineError, EngineTimeout
 
 STAND_IN = """#!/bin/sh
 case "$1" in

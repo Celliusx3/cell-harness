@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 from computer import host_probe, server
-from computer.command import CommandResult, EngineError
+from computer.models.command import CommandResult
+from computer.models.errors import EngineError
 from computer.readiness import MicrosandboxHost
 
 
