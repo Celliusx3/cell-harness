@@ -28,7 +28,7 @@ class Engine(Protocol):
     async def state(self, name: str) -> PcState: ...
 
     async def replacement_reason(self, spec: PcSpec) -> str | None:
-        """Why the PC lacks the spec's published ports or shared folders, or None."""
+        """Why the PC lacks the spec's ports, folders or (microsandbox) network rules, or None."""
 
     async def host_port(self, name: str, guest_port: int) -> int:
         """The loopback port on the Mac that `guest_port` is published on."""
