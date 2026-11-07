@@ -14,6 +14,15 @@ from harness.secrets import SecretName, SecretService, UnsealedModelCredential
 
 
 @dataclass(frozen=True)
+class ModelEndpoint:
+    """What a credential's settings are made into: a client for its requests, and its window."""
+
+    client_for: Callable[[LLMSettings], LLMClient]
+    window_for: Callable[[LLMSettings], int | None]
+    """Blocking: it may ask the endpoint, so it is run off the event loop."""
+
+
+@dataclass(frozen=True)
 class CachedChoice:
     """A credential's model choice, and the record id of the saved version it was made from."""
 
@@ -34,19 +43,19 @@ def llm_settings_for(credential: UnsealedModelCredential, base: LLMSettings) -> 
 
 
 class CredentialModels:
-    """A bot's LLM credential as its model, made once per version; `NoModel` when it has none."""
+    """A bot's LLM credential as its model and window, made once per version; else `NoModel`."""
 
     def __init__(
         self,
         secrets: SecretService,
         bots: BotService,
         base: LLMSettings,
-        client_for: Callable[[LLMSettings], LLMClient],
+        endpoint: ModelEndpoint,
     ) -> None:
         self._secrets = secrets
         self._bots = bots
         self._base = base
-        self._client_for = client_for
+        self._endpoint = endpoint
         self._by_credential: dict[str, CachedChoice] = {}
 
     async def model_for(self, bot_id: str | None) -> ModelChoice | NoModel:
@@ -64,7 +73,7 @@ class CredentialModels:
             return None
 
     async def _choice_named(self, name: str) -> ModelChoice | None:
-        """The LLM credential `name` as a model, unsealed only for a new version; or `None`."""
+        """The LLM credential `name` as a model, unsealed and asked its window per version."""
         version = self._secrets.model_credential_version(name)
         if version is None:
             return None
@@ -74,7 +83,11 @@ class CredentialModels:
         credential = await asyncio.to_thread(self._secrets.model_credential_named, name)
         if credential is None:
             return None
-        client = self._client_for(llm_settings_for(credential, self._base))
-        choice = ModelChoice(client, credential.details.model, credential.details.vision)
+        settings = llm_settings_for(credential, self._base)
+        window = await asyncio.to_thread(self._endpoint.window_for, settings)
+        details = credential.details
+        choice = ModelChoice(
+            self._endpoint.client_for(settings), details.model, details.vision, window
+        )
         self._by_credential[name] = CachedChoice(version=version, choice=choice)
         return choice

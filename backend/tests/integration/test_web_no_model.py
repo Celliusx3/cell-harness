@@ -19,7 +19,7 @@ from harness.runtime.service import Runtime
 from harness.secrets import SecretService
 from harness.tools import Failure, Ok
 from harness.tools.native.bots import bot_create_tool
-from harness.web.bot_models import CredentialModels
+from harness.web.bot_models import CredentialModels, ModelEndpoint
 from tests.integration.web_helpers import settle
 from tests.unit.helpers import context_for, durable_service, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
@@ -68,6 +68,10 @@ def no_image(image: Image) -> bytes | None:
     return None
 
 
+def no_window(settings: LLMSettings) -> int | None:
+    return None
+
+
 @dataclass(frozen=True)
 class App:
     client: httpx.AsyncClient
@@ -83,7 +87,10 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     bots = bots_in(tmp_path, service)
     secrets = secrets_in(tmp_path)
     base = LLMSettings(_env_file=None, model="unused", base_url=PROVIDER)
-    models = CredentialModels(secrets, bots, base, lambda s: OpenAIClient(s, read_image=no_image))
+    endpoint = ModelEndpoint(
+        client_for=lambda s: OpenAIClient(s, read_image=no_image), window_for=no_window
+    )
+    models = CredentialModels(secrets, bots, base, endpoint)
     runtime = Runtime(models=models, images=no_images(), checkpoint=service.flush)
     runs = RunService(service, runtime, bots)
     asgi = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)

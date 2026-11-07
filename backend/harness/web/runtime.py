@@ -9,12 +9,12 @@ import logging
 import httpx
 
 from harness.bots import BotService
-from harness.config.sections import LLMSettings
+from harness.config.sections import CompactionSettings, LLMSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService
 from harness.images import ImageService
 from harness.llm import LLMClient
-from harness.llm.adapters import OpenAIClient
+from harness.llm.adapters import OpenAIClient, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
 from harness.runs.bot_messages import BotMessages
@@ -69,7 +69,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
-from harness.web.bot_models import CredentialModels
+from harness.web.bot_models import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")
 
@@ -119,7 +119,6 @@ def build_runtime(
     skills: SkillService,
     client_tools: ClientToolService,
     approvals: ApprovalService,
-    context_tokens: int | None = None,
     *,
     bots: BotService,
     subagent_logs: SessionService,
@@ -152,13 +151,18 @@ def build_runtime(
 
     runtime = Runtime(
         models=CredentialModels(
-            secrets, bots, settings.llm, functools.partial(_openai_client, images)
+            secrets,
+            bots,
+            settings.llm,
+            ModelEndpoint(
+                client_for=functools.partial(_openai_client, images),
+                window_for=functools.partial(context_window, settings.compaction),
+            ),
         ),
         images=images,
         tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
         guidance=GUIDANCE,
         checkpoint=store.flush,
-        context_tokens=context_tokens,
         hooks=default_hooks(skills),
         files=files,
         server_instructions=mcp.instructions,
@@ -169,6 +173,27 @@ def build_runtime(
 
 def _openai_client(images: ImageService, settings: LLMSettings) -> LLMClient:
     return OpenAIClient(settings, read_image=images.read)
+
+
+def context_window(compaction: CompactionSettings, llm: LLMSettings) -> int | None:
+    """The window `llm`'s model compacts at: the configured one, else its endpoint's report."""
+    configured = compaction.context_tokens
+    if configured is not None:
+        logger.info("compaction: %s has a %d-token window (from config)", llm.model, configured)
+        return configured
+    discovered = context_window_tokens(llm)
+    if discovered is None:
+        logger.warning(
+            "compaction: %s at %s reports no window and none is configured; automatic "
+            "compaction is off for it, only a provider overflow triggers it",
+            llm.model,
+            llm.base_url,
+        )
+    else:
+        logger.info(
+            "compaction: %s has a %d-token window (reported by endpoint)", llm.model, discovered
+        )
+    return discovered
 
 
 def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:

@@ -10,7 +10,7 @@ from harness.llm import ApplicationMessage, Completed, Failed, UserMessage
 from harness.prompts import COMPACTION_INSTRUCTION
 from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
 from harness.runtime.compaction.prompt import summary_message
-from harness.runtime.models import PICK_A_MODEL, NoModel
+from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
 from harness.session.compaction import (
     CompactionEnd,
     CompactionPrune,
@@ -51,12 +51,12 @@ def check_can_compact(session: Session) -> None:
         raise CompactionRefused(NOTHING)
 
 
-def should_compact(runtime: Runtime, session: Session) -> bool:
-    """Is the context past the line?"""
-    if runtime.context_tokens is None:
+def should_compact(choice: ModelChoice | NoModel, session: Session) -> bool:
+    """Is the context past the line of `choice`'s window? Never when the window is unknown."""
+    if isinstance(choice, NoModel) or choice.context_tokens is None:
         return False
     used = session.context_size()
-    return used is not None and used >= int(runtime.context_tokens * COMPACT_AT)
+    return used is not None and used >= int(choice.context_tokens * COMPACT_AT)
 
 
 async def run_compaction(

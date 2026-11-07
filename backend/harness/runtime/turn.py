@@ -70,7 +70,7 @@ async def run_turn(
         for step in itertools.count():
             at = TurnStep(turn=turn, step=step)
             session.append(StepStart(turn=turn, step=step))
-            await _shrink_history_when_due(runtime, session, turn=turn)
+            await _shrink_history_when_due(runtime, session, turn=turn, bot_id=bot_id)
 
             reply: Completed | Failed | RetryStep | None = None
             async with aclosing(_stream_reply(runtime, session, bot_id, at=at)) as chunks:
@@ -114,9 +114,11 @@ async def run_turn(
     yield outcome
 
 
-async def _shrink_history_when_due(runtime: Runtime, session: Session, *, turn: int) -> None:
-    """Compact before the step's request when the history has grown past its line."""
-    if should_compact(runtime, session):
+async def _shrink_history_when_due(
+    runtime: Runtime, session: Session, *, turn: int, bot_id: str
+) -> None:
+    """Compact before the step's request when the history has grown past `bot_id`'s line."""
+    if should_compact(await runtime.models.model_for(bot_id), session):
         await _shrink_history(runtime, session, turn=turn, trigger="auto")
 
 

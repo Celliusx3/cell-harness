@@ -51,7 +51,6 @@ class Runtime:
     guidance: str = ""
     hooks: HookChain = HookChain()
     checkpoint: Callable[[Session], Awaitable[None]] | None = None
-    context_tokens: int | None = None
     files: ChatFileService | None = None
     server_instructions: Callable[[], Mapping[str, str]] | None = None
     """Each connected server's instructions now, by server id; `None` means no servers."""

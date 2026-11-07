@@ -21,7 +21,7 @@ Today a bot with no model of its own falls back to the Default model. One config
 - **A bot with no model refuses, with one line.** There is no Default model. Dify falls back to a workspace default; the grill chose no fallback here.
 - **Setup picks its model for Assistant.** So the chat works right after setup. Other bots stay unset.
 - **Each LLM credential says whether it can see images.** OpenClaw marks each model `input: ["text", "image"]`, and only image models get images.
-- **The context window is asked of each credential once.** It is asked on first use and kept until that credential changes. The config cap still wins.
+- **The context window is asked of each credential once.** It is asked on first use and kept until that credential changes. A value set in config is used instead.
 - **A bot's model is picked in Edit bot.** Ticking bots on the credential dialog goes, so there is one place to set it.
 - **MCP keys are saved with their server.** They go in the servers file, plain text, owner-only (0600). An MCP server is its own process, and its settings are its own.
 - **There are no built-in MCP servers.** Every server is added on the MCP servers screen.

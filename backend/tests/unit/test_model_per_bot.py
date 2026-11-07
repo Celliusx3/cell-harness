@@ -24,7 +24,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.web.bot_models import CredentialModels
+from harness.web.bot_models import CredentialModels, ModelEndpoint
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, durable_service, new_session, no_images
 from tests.webapp import put_on_model
@@ -32,6 +32,7 @@ from tests.webapp import put_on_model
 KEY = "0123456789abcdef0123456789abcdef"
 TRADER_URL = "https://api.trader.example/v1"
 TRADER_KEY = "sk-trader-key-1234"
+WINDOW = 8000
 TRADER_MODEL = ModelDetails(base_url=TRADER_URL, model="big", vision=False)
 BASE = LLMSettings(
     model="small",
@@ -53,7 +54,7 @@ class ChoicePerBot:
 
 def _trader_client() -> tuple[ScriptedClient, ChoicePerBot]:
     trader = ScriptedClient(completed("trader"))
-    return trader, ChoicePerBot({"trader": ModelChoice(trader, "big", False)})
+    return trader, ChoicePerBot({"trader": ModelChoice(trader, "big", False, None)})
 
 
 async def _reply(runtime: Runtime, bot_id: str, tmp_path: Path) -> None:
@@ -95,11 +96,11 @@ async def test_a_bot_with_no_model_asks_nothing_and_ends_with_the_line(tmp_path:
 
 async def test_a_changed_choice_applies_to_the_next_turn(tmp_path: Path) -> None:
     first, second = ScriptedClient(completed("one")), ScriptedClient(completed("two"))
-    models = ChoicePerBot({"trader": ModelChoice(first, "big", False)})
+    models = ChoicePerBot({"trader": ModelChoice(first, "big", False, None)})
     runtime = Runtime(models=models, images=no_images())
     await _reply(runtime, "trader", tmp_path)
 
-    models.per_bot["trader"] = ModelChoice(second, "bigger", False)
+    models.per_bot["trader"] = ModelChoice(second, "bigger", False, None)
     await _reply(runtime, "trader", tmp_path / "again")
 
     assert (first.calls, second.calls) == (1, 1)
@@ -133,11 +134,19 @@ class ClientsMade:
     """A client factory that records the settings each client was made from."""
 
     made: list[tuple[LLMSettings, LLMClient]] = field(default_factory=list)
+    windows_asked: list[LLMSettings] = field(default_factory=list)
 
     def __call__(self, settings: LLMSettings) -> LLMClient:
         client = ScriptedClient(completed("ok"))
         self.made.append((settings, client))
         return client
+
+    def window_for(self, settings: LLMSettings) -> int:
+        self.windows_asked.append(settings)
+        return WINDOW
+
+    def endpoint(self) -> ModelEndpoint:
+        return ModelEndpoint(client_for=self, window_for=self.window_for)
 
     def settings_of(self, client: LLMClient) -> LLMSettings:
         return next(settings for settings, made in self.made if made is client)
@@ -167,7 +176,7 @@ async def test_a_bot_on_a_credential_gets_its_endpoint_model_and_key(keyring, bo
     trader_id = await _trader_on_its_model(keyring, bots)
     clients = ClientsMade()
 
-    choice = await CredentialModels(keyring, bots, BASE, clients).model_for(trader_id)
+    choice = await CredentialModels(keyring, bots, BASE, clients.endpoint()).model_for(trader_id)
 
     assert isinstance(choice, ModelChoice)
     made_from = clients.settings_of(choice.client)
@@ -183,7 +192,7 @@ async def test_a_bot_with_no_llm_credential_has_no_model(keyring, bots) -> None:
     put_on_model(bots, chef.id, None)
     clients = ClientsMade()
 
-    choice = await CredentialModels(keyring, bots, BASE, clients).model_for(chef.id)
+    choice = await CredentialModels(keyring, bots, BASE, clients.endpoint()).model_for(chef.id)
 
     assert choice == NoModel()
     assert clients.made == []
@@ -193,14 +202,14 @@ async def test_a_bot_with_no_llm_credential_has_no_model(keyring, bots) -> None:
 async def test_no_bot_or_an_unknown_one_has_no_model(keyring, bots, bot_id) -> None:
     await _trader_on_its_model(keyring, bots)
 
-    choice = await CredentialModels(keyring, bots, BASE, ClientsMade()).model_for(bot_id)
+    choice = await CredentialModels(keyring, bots, BASE, ClientsMade().endpoint()).model_for(bot_id)
 
     assert choice == NoModel()
 
 
 async def test_clearing_a_bots_model_leaves_its_next_turn_with_no_model(keyring, bots) -> None:
     trader_id = await _trader_on_its_model(keyring, bots)
-    models = CredentialModels(keyring, bots, BASE, ClientsMade())
+    models = CredentialModels(keyring, bots, BASE, ClientsMade().endpoint())
     await models.model_for(trader_id)
 
     put_on_model(bots, trader_id, None)
@@ -210,7 +219,7 @@ async def test_clearing_a_bots_model_leaves_its_next_turn_with_no_model(keyring,
 
 async def test_removing_a_bots_credential_leaves_it_with_no_model(keyring, bots) -> None:
     trader_id = await _trader_on_its_model(keyring, bots)
-    models = CredentialModels(keyring, bots, BASE, ClientsMade())
+    models = CredentialModels(keyring, bots, BASE, ClientsMade().endpoint())
     await models.model_for(trader_id)
 
     keyring.delete("trader_model")
@@ -221,7 +230,7 @@ async def test_removing_a_bots_credential_leaves_it_with_no_model(keyring, bots)
 async def test_the_key_is_unsealed_once_until_the_credential_changes(keyring, bots) -> None:
     trader_id = await _trader_on_its_model(keyring, bots)
     clients = ClientsMade()
-    models = CredentialModels(keyring, bots, BASE, clients)
+    models = CredentialModels(keyring, bots, BASE, clients.endpoint())
 
     await models.model_for(trader_id)
     await models.model_for(trader_id)
@@ -230,5 +239,7 @@ async def test_the_key_is_unsealed_once_until_the_credential_changes(keyring, bo
     changed = await models.model_for(trader_id)
 
     assert clients.made_for(TRADER_URL) == 2
+    assert [asked.model for asked in clients.windows_asked] == ["big", "bigger"]
     assert isinstance(changed, ModelChoice)
     assert changed.model == "bigger"
+    assert changed.context_tokens == WINDOW

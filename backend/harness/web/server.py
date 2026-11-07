@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import functools
-import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -11,7 +10,7 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import BotService
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
@@ -20,7 +19,6 @@ from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.llm.adapters import context_window_tokens
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
@@ -33,7 +31,6 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
-from harness.web.bot_models import llm_settings_for
 from harness.web.errors import exception_handlers
 from harness.web.file_keys import move_file_keys
 from harness.web.logs import configure_logging
@@ -52,8 +49,6 @@ from harness.web.routes.secret_card import build_router as build_secret_card_rou
 from harness.web.routes.secrets import build_router as build_secrets_router
 from harness.web.routes.skills import build_router as build_skills_router
 from harness.web.runtime import CLIENT_TOOLS, attach_bot_messages, build_runtime
-
-logger = logging.getLogger("harness.web")
 
 
 def build_store(settings: Settings) -> SessionService:
@@ -134,34 +129,6 @@ def build_channels(
     return Channels(gateway, web, PlatformChannels(gateway, keyring, make_channel), link_codes)
 
 
-def _resolve_context_tokens(
-    settings: Settings, keyring: SecretService, bots: BotService
-) -> int | None:
-    """The compaction window: the configured cap, Assistant's model endpoint's report, or `None`."""
-    configured = settings.compaction.context_tokens
-    if configured is not None:
-        logger.info("compaction: context window %d tokens (from config)", configured)
-        return configured
-    name = bots.active_bot(ASSISTANT_ID).model_credential
-    credential = None if name is None else keyring.model_credential_named(name)
-    if credential is None:
-        logger.warning(
-            "compaction: context window unknown — no config value and Assistant has no model "
-            "yet; automatic compaction is off until the next start, only a provider overflow "
-            "triggers it"
-        )
-        return None
-    discovered = context_window_tokens(llm_settings_for(credential, settings.llm))
-    if discovered is not None:
-        logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
-    else:
-        logger.warning(
-            "compaction: context window unknown — no config value and the endpoint did not "
-            "report one; automatic compaction is off, only a provider overflow triggers it"
-        )
-    return discovered
-
-
 def create_web_app() -> FastAPI:
     """The application uvicorn starts."""
     configure_logging()
@@ -180,7 +147,6 @@ def create_web_app() -> FastAPI:
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
-    context_tokens = _resolve_context_tokens(settings, secrets, bots)
     runtime = build_runtime(
         settings,
         service,
@@ -188,7 +154,6 @@ def create_web_app() -> FastAPI:
         skills,
         client_tools,
         approvals,
-        context_tokens,
         bots=bots,
         subagent_logs=build_subagent_logs(settings),
         secrets=secrets,

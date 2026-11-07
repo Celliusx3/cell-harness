@@ -5,18 +5,12 @@ from __future__ import annotations
 import json
 
 import httpx
-from pydantic import SecretStr
 
-from harness.bots import ASSISTANT_ID
 from harness.config.sections import CompactionSettings
-from harness.config.settings import Settings
 from harness.llm.adapters import context_window_tokens
 from harness.llm.adapters.openai import client as adapter_module
-from harness.secrets.models.details import ModelDetails
-from harness.web.server import _resolve_context_tokens
-from tests.unit.helpers import durable_service
+from harness.web.runtime import context_window
 from tests.unit.test_openai_adapter import settings
-from tests.webapp import bots_in, put_on_model, secrets_in
 
 # ilmu serves the field on `/models`, not on `/models/{id}` (404).
 ILMU = {
@@ -83,36 +77,17 @@ def test_a_missing_model_a_bad_body_and_a_dead_endpoint_yield_none(monkeypatch) 
     assert context_window_tokens(settings()) is None
 
 
-async def test_the_window_is_found_from_inside_a_running_loop(tmp_path, monkeypatch) -> None:
+def test_a_configured_window_wins_and_the_endpoint_is_not_asked(monkeypatch) -> None:
     seen: list[httpx.Request] = []
+    patched(monkeypatch, lambda r: seen.append(r) or httpx.Response(200, json=ILMU))
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(request)
-        return httpx.Response(200, content=json.dumps(ILMU).encode())
-
-    def client(**kwargs):
-        return _REAL(transport=httpx.MockTransport(handler), **kwargs)
-
-    monkeypatch.setattr(adapter_module.httpx, "Client", client)
-    unset = Settings.model_construct(
-        llm=settings(), compaction=CompactionSettings(context_tokens=None)
-    )
-
-    keyring = secrets_in(tmp_path)
-    bots = bots_in(tmp_path, durable_service(tmp_path / "sessions"))
-    model = ModelDetails(base_url="https://assistant.example/v1", model="m", vision=False)
-    keyring.add_credential("first_model", model, SecretStr("sk-assistant-window"))
-    put_on_model(bots, ASSISTANT_ID, "first_model")
-
-    assert _resolve_context_tokens(unset, keyring, bots) == 1000000
-    assert seen[0].url == "https://assistant.example/v1/models"
-    assert seen[0].headers["authorization"] == "Bearer sk-assistant-window"
+    assert context_window(CompactionSettings(context_tokens=4096), settings()) == 4096
+    assert seen == []
 
 
-def test_with_no_model_for_assistant_and_no_cap_the_window_is_unknown(tmp_path) -> None:
-    unset = Settings.model_construct(
-        llm=settings(), compaction=CompactionSettings(context_tokens=None)
-    )
-    bots = bots_in(tmp_path, durable_service(tmp_path / "sessions"))
+def test_with_no_configured_window_the_endpoint_says_it(monkeypatch) -> None:
+    patched(monkeypatch, lambda r: httpx.Response(200, json=ILMU))
+    assert context_window(CompactionSettings(context_tokens=None), settings()) == 1000000
 
-    assert _resolve_context_tokens(unset, secrets_in(tmp_path), bots) is None
+    patched(monkeypatch, lambda r: httpx.Response(200, json=LM_STUDIO))
+    assert context_window(CompactionSettings(context_tokens=None), settings()) is None

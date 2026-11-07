@@ -104,13 +104,12 @@ def runtime_over(
 ) -> Runtime:
     """A runtime over `tools`, with no toolset at all when there are none; no `images`, no sight."""
     return Runtime(
-        models=OneModel(client, vision=images is not None),
+        models=OneModel(client, vision=images is not None, context_tokens=context_tokens),
         images=images or no_images(),
         tools=toolset_for(*tools, approvals=approvals) if tools else None,
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
-        context_tokens=context_tokens,
     )
 
 

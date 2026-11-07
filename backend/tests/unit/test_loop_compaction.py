@@ -61,10 +61,9 @@ class SizedClient(LLMClient):
 
 def runtime_with(client: LLMClient, context: int | None) -> Runtime:
     return Runtime(
-        models=OneModel(client),
+        models=OneModel(client, context_tokens=context),
         images=no_images(),
         guidance="SYS",
-        context_tokens=context,
     )
 
 
