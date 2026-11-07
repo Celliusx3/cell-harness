@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from computer.engines.docker import DockerEngine
-from computer.machine import HOME
-from computer.shell import POLL_SECONDS, WAIT_SECONDS, Job, Shell
+from computer.services.machine import HOME
+from computer.services.shell import POLL_SECONDS, WAIT_SECONDS, Job, Shell
 from tests.conftest import NAME, TickingClock
 from tests.job_docker import JobDocker
 

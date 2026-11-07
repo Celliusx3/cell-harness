@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from computer.clock import Clock
 from computer.engines.docker import Docker, DockerEngine
-from computer.machine import Machine
+from computer.services.machine import Machine
 from tests.conftest import config
 
 NO_HOST_SERVICES: tuple[int, ...] = ()

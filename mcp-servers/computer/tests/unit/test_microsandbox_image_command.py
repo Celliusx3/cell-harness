@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from computer.engines.microsandbox import MicrosandboxEngine
-from computer.machine import pc_spec
 from computer.models.errors import EngineError
+from computer.services.machine import pc_spec
 from tests.conftest import API_TOKEN, IMAGE, NAME, config
 from tests.fake_microsandbox import ExecCall, FakeImages, FakeSandboxes
 

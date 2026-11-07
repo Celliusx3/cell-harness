@@ -14,7 +14,8 @@ import pytest
 from mcp import Client
 
 from computer.clock import SYSTEM, Clock
-from computer.host_services import (
+from computer.models.command import CommandResult
+from computer.services.host_services import (
     LOOPBACK,
     STARTUP_SECONDS,
     PreparedHostService,
@@ -22,7 +23,6 @@ from computer.host_services import (
     prepared_host_service,
     serving_host_services_that_start,
 )
-from computer.models.command import CommandResult
 from tests.conftest import Dial, FakeDocker, server_with
 from tests.fake_host_service import (
     EXIT_CODE,

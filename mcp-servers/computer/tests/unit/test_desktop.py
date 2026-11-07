@@ -10,7 +10,7 @@ import pytest
 from mcp import Client
 from mcp.types import CallToolResult, ImageContent, TextContent
 
-from computer.desktop import DesktopError, api_token
+from computer.services.desktop import DesktopError, api_token
 from tests.conftest import (
     API_HOST_PORT,
     API_TOKEN,

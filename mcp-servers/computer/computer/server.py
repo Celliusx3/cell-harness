@@ -16,24 +16,24 @@ from mcp.server.apps import Apps, ResourceCsp
 from microsandbox import Image, Sandbox
 
 from computer import host_probe
-from computer.browser import Browser
 from computer.clock import SYSTEM
 from computer.config import ConfigError, EngineName, load
-from computer.desktop import Desktop
 from computer.engine import Engine
 from computer.engines.docker import DockerCli, DockerEngine
 from computer.engines.microsandbox import MicrosandboxEngine
-from computer.files import Files
-from computer.host_services import (
+from computer.services.browser import Browser
+from computer.services.desktop import Desktop
+from computer.services.files import Files
+from computer.services.host_services import (
     PreparedHostService,
     command_variables,
     prepared_host_service,
     serving_host_services_that_start,
 )
-from computer.live_screen import LiveScreen
-from computer.machine import Machine
-from computer.shell import Shell
-from computer.skill_declarations import declared_host_services
+from computer.services.live_screen import LiveScreen
+from computer.services.machine import Machine
+from computer.services.shell import Shell
+from computer.services.skill_declarations import declared_host_services
 from computer.tools import PREVIEW_URI, Computer, browser, computer_page, shell
 
 logger = logging.getLogger("computer")

@@ -9,9 +9,9 @@ import pytest
 from mcp import Client
 from mcp.types import CallToolResult, TextContent
 
-from computer.jobs import RUNNER_SCRIPT, WRITE_SCRIPT
-from computer.machine import HOME, JOBS_ROOT
-from computer.shell import ENDED_UNREPORTED
+from computer.services.jobs import RUNNER_SCRIPT, WRITE_SCRIPT
+from computer.services.machine import HOME, JOBS_ROOT
+from computer.services.shell import ENDED_UNREPORTED
 from computer.tools.descriptions import COMMAND_DESCRIPTION, CWD_DESCRIPTION, STDIN_DESCRIPTION
 from tests.conftest import NAME, server_with
 from tests.job_docker import JobDocker

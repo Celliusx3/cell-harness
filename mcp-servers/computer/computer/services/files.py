@@ -10,7 +10,6 @@ from collections.abc import Sequence
 from pydantic import TypeAdapter, ValidationError
 
 from computer.engine import Engine
-from computer.machine import HOME
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from computer.models.files import (
     TRANSFER_LIMIT_BYTES,
@@ -22,6 +21,7 @@ from computer.models.files import (
     Uploaded,
 )
 from computer.models.pc import Program
+from computer.services.machine import HOME
 
 logger = logging.getLogger("computer")
 

@@ -11,14 +11,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from importlib import resources
 
-from computer import gateway
 from computer.clock import Clock
 from computer.engine import Engine
-from computer.machine import GATEWAY_PORT, Machine
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, stdout_of
 from computer.models.errors import EngineError
 from computer.models.pc import Program
 from computer.models.screen import ScreenSession
+from computer.services import gateway
+from computer.services.machine import GATEWAY_PORT, Machine
 
 logger = logging.getLogger("computer")
 

@@ -1,6 +1,6 @@
 # 03 The logic moves into services/
 
-**Status.** open
+**Status.** done
 
 **What to build.** Move `machine.py`, `shell.py`, `jobs.py`, `browser.py`,
 `files.py`, `desktop.py`, `live_screen.py`, `gateway.py`, `host_services.py`

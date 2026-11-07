@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from computer.files import LIST_SCRIPT, READ_SCRIPT, TOO_LARGE_EXIT_CODE, WRITE_SCRIPT
+from computer.services.files import LIST_SCRIPT, READ_SCRIPT, TOO_LARGE_EXIT_CODE, WRITE_SCRIPT
 
 
 def run(script: str, *args: str, stdin: bytes = b"") -> subprocess.CompletedProcess[bytes]:

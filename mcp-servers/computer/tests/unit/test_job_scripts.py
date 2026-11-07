@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from computer.jobs import RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
+from computer.services.jobs import RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
 
 QUOTED = 'it\'s "here" $HOME\n'
 

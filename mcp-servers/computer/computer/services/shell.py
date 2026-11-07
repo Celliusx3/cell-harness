@@ -11,11 +11,11 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from computer.clock import Clock
 from computer.engine import Engine
-from computer.jobs import LOOK_SCRIPT, RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
-from computer.machine import JOBS_ROOT
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from computer.models.pc import Program
 from computer.models.shell import CommandRun
+from computer.services.jobs import LOOK_SCRIPT, RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
+from computer.services.machine import JOBS_ROOT
 
 logger = logging.getLogger("computer")
 

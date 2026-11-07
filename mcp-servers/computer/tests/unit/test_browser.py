@@ -7,11 +7,11 @@ from collections.abc import Sequence
 
 import pytest
 
-from computer.browser import Browser, BrowserError
 from computer.engines.docker import DockerEngine
 from computer.models.command import CommandResult
 from computer.models.errors import EngineError, EngineTimeout
 from computer.models.page import Action
+from computer.services.browser import Browser, BrowserError
 from tests.conftest import (
     ACTED,
     CDP_DOWN,

@@ -10,9 +10,9 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from computer.jobs import RUNNING_JOBS_SCRIPT
-from computer.machine import JOBS_ROOT, Machine
 from computer.models.errors import EngineError
+from computer.services.jobs import RUNNING_JOBS_SCRIPT
+from computer.services.machine import JOBS_ROOT, Machine
 from tests.conftest import IDLE_SECONDS, IMAGE, NAME, Dial, FakeDocker, config, settle
 from tests.machines import docker_machine
 

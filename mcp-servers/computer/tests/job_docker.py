@@ -6,8 +6,8 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from computer.jobs import LOOK_SCRIPT, RUNNER_SCRIPT, RUNNING_JOBS_SCRIPT, WRITE_SCRIPT
 from computer.models.command import CommandResult
+from computer.services.jobs import LOOK_SCRIPT, RUNNER_SCRIPT, RUNNING_JOBS_SCRIPT, WRITE_SCRIPT
 from tests.conftest import FakeDocker
 
 SECONDS_PER_LOOK = 0.5

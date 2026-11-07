@@ -15,9 +15,9 @@ from mcp.server import MCPServer
 
 from computer.clock import Clock
 from computer.config import Config
-from computer.host_services import PreparedHostService, command_variables
 from computer.models.command import CommandResult
 from computer.models.errors import EngineError
+from computer.services.host_services import PreparedHostService, command_variables
 
 NAME = "cell-harness-computer"
 IMAGE = "ghcr.io/elie222/rakazo/computer:edge"
@@ -257,14 +257,14 @@ def server_with(
     desktop_api: FakeDesktopApi | None = None,
     host_services: Sequence[PreparedHostService] = (),
 ) -> MCPServer:
-    from computer.browser import Browser
-    from computer.desktop import Desktop
     from computer.engines.docker import DockerEngine
-    from computer.files import Files
-    from computer.live_screen import LiveScreen
-    from computer.machine import Machine
     from computer.server import build
-    from computer.shell import Shell
+    from computer.services.browser import Browser
+    from computer.services.desktop import Desktop
+    from computer.services.files import Files
+    from computer.services.live_screen import LiveScreen
+    from computer.services.machine import Machine
+    from computer.services.shell import Shell
     from computer.tools import Computer
 
     clock = (dial or Dial()).clock

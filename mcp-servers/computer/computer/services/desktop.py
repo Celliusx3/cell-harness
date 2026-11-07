@@ -12,7 +12,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from computer.engine import LOOPBACK, Engine
-from computer.machine import API_PORT, API_TOKEN_VARIABLE, DISPLAY
+from computer.services.machine import API_PORT, API_TOKEN_VARIABLE, DISPLAY
 
 logger = logging.getLogger("computer")
 

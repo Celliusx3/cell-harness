@@ -6,8 +6,8 @@ import logging
 
 import pytest
 
-from computer.jobs import RUNNING_JOBS_SCRIPT
-from computer.machine import HOME, JOBS_ROOT, Machine
+from computer.services.jobs import RUNNING_JOBS_SCRIPT
+from computer.services.machine import HOME, JOBS_ROOT, Machine
 from tests.conftest import IDLE_SECONDS, NAME, Dial
 from tests.job_docker import FakeJob, JobDocker
 from tests.machines import docker_machine

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from computer.host_services import LOOPBACK, prepared_host_service, steady_port
+from computer.services.host_services import LOOPBACK, prepared_host_service, steady_port
 from tests.fake_host_service import declared
 
 

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
-from computer.machine import HOME
+from computer.services.machine import HOME
 
 FileKind = Literal["file", "dir"]
 

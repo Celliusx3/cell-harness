@@ -8,7 +8,7 @@ import pytest
 from microsandbox import Action, DestGroup, Destination, Network, Protocol, Rule
 
 from computer.engines.microsandbox import MicrosandboxEngine, pc_network_policy
-from computer.machine import Machine, pc_spec
+from computer.services.machine import Machine, pc_spec
 from tests.conftest import API_TOKEN, Dial, config
 from tests.fake_microsandbox import FakeImages, FakeSandboxes
 
