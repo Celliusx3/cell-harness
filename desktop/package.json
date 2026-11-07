@@ -58,7 +58,11 @@
       ]
     },
     "dmg": {
-      "artifactName": "Cell Harness-${version}-arm64.${ext}"
-    }
+      "artifactName": "Cell Harness-${version}-arm64.${ext}",
+      "format": "ULFO"
+    },
+    "electronLanguages": [
+      "en"
+    ]
   }
 }

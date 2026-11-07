@@ -55,8 +55,14 @@ if [ ! -f build/pages/server.js ]; then
 fi
 cp -R build/pages "$BUNDLE/pages"
 
+PYTHON_LIB="$BUNDLE/python/lib/python${PYTHON_VERSION%.*}"
+rm -rf "$PYTHON_LIB/test" "$PYTHON_LIB/idlelib" "$PYTHON_LIB/tkinter" "$PYTHON_LIB/turtledemo" "$PYTHON_LIB/ensurepip"
+rm -rf "$BUNDLE"/python/lib/tcl* "$BUNDLE"/python/lib/tk* "$BUNDLE"/python/lib/libtcl* "$BUNDLE"/python/lib/libtk* \
+    "$BUNDLE"/python/lib/itcl* "$BUNDLE"/python/lib/thread2* "$PYTHON_LIB"/lib-dynload/_tkinter*
+find "$BUNDLE/site-packages" "$BUNDLE/servers" -type d \( -name tests -o -name test \) -prune -exec rm -rf {} +
+
 "$BUNDLE/python/bin/python3" -m compileall --invalidation-mode unchecked-hash -q \
-    "$BUNDLE/python/lib" "$BUNDLE/site-packages" "$BUNDLE/app/backend" "$BUNDLE/servers"
+    "$BUNDLE/python/lib" "$BUNDLE/site-packages" "$BUNDLE/app/backend"
 
 rm -f build/icon.svg.png
 qlmanage -t -s 1024 -o build ../frontend/app/icon.svg

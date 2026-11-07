@@ -1,6 +1,6 @@
 # 05 The Mac app is slimmer
 
-**Status.** open
+**Status.** done
 
 **What to build.** The bundle drops test folders inside Python libraries,
 Python's Tk, IDLE and ensurepip, and precompiled files for the computer
