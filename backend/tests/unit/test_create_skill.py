@@ -7,10 +7,9 @@ import re
 import textwrap
 from pathlib import Path
 
-from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm import ToolCall
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import parse

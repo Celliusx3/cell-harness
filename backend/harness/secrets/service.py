@@ -124,6 +124,11 @@ class SecretService:
             destination=sealed_secret.details.destination, value=SecretStr(plaintext)
         )
 
+    def details_of(self, name: str) -> CredentialDetails | None:
+        """What the credential `name` is for, of any kind, or `None`; its key stays sealed."""
+        sealed_secret = self._sealed_named(name)
+        return None if sealed_secret is None else sealed_secret.details
+
     def model_credential_version(self, name: str) -> str | None:
         """The record id the LLM credential `name` is sealed under, new on every save, or `None`."""
         sealed_secret = self._sealed_named(name)

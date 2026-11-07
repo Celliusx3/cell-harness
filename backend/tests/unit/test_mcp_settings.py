@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from harness.config.sections import McpServer, usable_server_id
+from harness.mcp import McpServer
+from harness.mcp.models.server import usable_server_id
 
 
 def test_a_plain_server_is_accepted() -> None:

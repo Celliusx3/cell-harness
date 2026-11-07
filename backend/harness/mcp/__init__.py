@@ -10,6 +10,7 @@ from harness.mcp.models.errors import (
     McpTimeoutError,
 )
 from harness.mcp.models.saved import NewServer, SavedServer, ServerDraft
+from harness.mcp.models.server import McpServer
 from harness.mcp.repositories.disk import DiskSavedServerRepository
 from harness.mcp.saved import SavedServerService
 from harness.mcp.service import McpService
@@ -20,6 +21,7 @@ __all__ = [
     "McpClientFactory",
     "McpConnectionError",
     "McpNotConnectedError",
+    "McpServer",
     "McpServerNotFound",
     "McpServerTaken",
     "McpService",

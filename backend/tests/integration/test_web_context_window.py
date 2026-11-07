@@ -129,7 +129,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     base = LLMSettings()
     endpoint = ModelEndpoint(
         client_for=lambda s: OpenAIClient(s, read_image=no_image),
-        window_for=lambda s: context_window(CompactionSettings(context_tokens=None), s),
+        blocking_window_for=lambda s: context_window(CompactionSettings(context_tokens=None), s),
     )
     runs = RunService(
         service,

@@ -143,7 +143,7 @@ class ClientsMade:
         return WINDOW
 
     def endpoint(self) -> ModelEndpoint:
-        return ModelEndpoint(client_for=self, window_for=self.window_for)
+        return ModelEndpoint(client_for=self, blocking_window_for=self.window_for)
 
     def settings_of(self, client: LLMClient) -> OpenAISettings:
         return next(settings for settings, made in self.made if made is client)

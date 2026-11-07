@@ -156,7 +156,7 @@ def build_runtime(
             settings.llm,
             ModelEndpoint(
                 client_for=functools.partial(_openai_client, images),
-                window_for=functools.partial(context_window, settings.compaction),
+                blocking_window_for=functools.partial(context_window, settings.compaction),
             ),
         ),
         images=images,

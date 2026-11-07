@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.config.sections import McpServer
+from harness.mcp.models.server import McpServer
 
 
 def missing_keys(server: McpServer) -> tuple[str, ...]:

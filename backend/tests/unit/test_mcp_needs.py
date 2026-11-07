@@ -7,8 +7,7 @@ import asyncio
 import pytest
 from pydantic import ValidationError
 
-from harness.config.sections import McpServer
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from tests.unit.mcp_fakes import FakeFactory
 
 MAPS = "GOOGLE_MAPS_API_KEY"

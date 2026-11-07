@@ -8,7 +8,7 @@ from typing import Protocol
 
 from mcp.types import CallToolResult, ListToolsResult, ReadResourceResult
 
-from harness.config.sections import McpServer
+from harness.mcp.models.server import McpServer
 
 
 class McpClient(Protocol):

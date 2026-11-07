@@ -6,10 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm import ToolCall
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook

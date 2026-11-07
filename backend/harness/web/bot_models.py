@@ -19,8 +19,7 @@ class ModelEndpoint:
     """What a credential's settings are made into: a client for its requests, and its window."""
 
     client_for: Callable[[OpenAISettings], LLMClient]
-    window_for: Callable[[OpenAISettings], int | None]
-    """Blocking: it may ask the endpoint, so it is run off the event loop."""
+    blocking_window_for: Callable[[OpenAISettings], int | None]
 
 
 @dataclass(frozen=True)
@@ -85,7 +84,7 @@ class CredentialModels:
         if credential is None:
             return None
         settings = client_settings_for(credential, self._base)
-        window = await asyncio.to_thread(self._endpoint.window_for, settings)
+        window = await asyncio.to_thread(self._endpoint.blocking_window_for, settings)
         details = credential.details
         choice = ModelChoice(
             self._endpoint.client_for(settings), details.model, details.vision, window

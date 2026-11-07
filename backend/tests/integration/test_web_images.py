@@ -11,9 +11,8 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.config.sections import McpServer
 from harness.llm import Image, ToolMessage, UserMessage
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.tools import ToolService
 from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG

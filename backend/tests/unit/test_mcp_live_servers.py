@@ -6,8 +6,7 @@ import asyncio
 
 import pytest
 
-from harness.config.sections import McpServer
-from harness.mcp import McpServerNotFound, McpServerTaken, McpService
+from harness.mcp import McpServer, McpServerNotFound, McpServerTaken, McpService
 from tests.unit.mcp_fakes import FakeFactory, servers, tool
 
 EXA = McpServer(command="npx", args=("-y", "exa-mcp-server"))

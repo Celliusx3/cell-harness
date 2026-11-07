@@ -12,10 +12,10 @@ from mcp.client.extension import advertise
 from mcp.client.stdio import stdio_client
 from mcp.server.apps import APP_MIME_TYPE, EXTENSION_ID
 
-from harness.config.sections import McpServer
 from harness.mcp.client import McpClient
 from harness.mcp.clients.stderr_tail import StderrTail, tee_stderr
 from harness.mcp.models.errors import McpConnectionError
+from harness.mcp.models.server import McpServer
 
 
 @asynccontextmanager

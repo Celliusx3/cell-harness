@@ -1,12 +1,12 @@
 # Saved keys
 
-A bot that needs an API key calls `ask_for_secret`: a card under the call names the site and takes the key in a hidden box. Save seals it in the one keyring and lets that bot use it; the model reads back only the name. The bot then calls `fetch_with_secret`, which asks first like any write, and the server adds the key to the request.
+A bot that needs a key calls `ask_for_secret` with a kind: `custom` (a website's API key), `llm` (a model provider's key), `telegram` or `discord` (the app's bot token). A card under the call names what it is for and takes the key in a hidden box. Save seals it in the one keyring as that kind of credential; the model reads back only the name. A custom key is one that bot may use: it then calls `fetch_with_secret`, which asks first like any write, and the server adds the key to the request.
 
 ## Sub-features
 
-- The card: label, "Sent only to <host>. The assistant never sees it.", a password box and Save; no decline button. Answered, it reads "Saved as <name>."; typing a message instead reads "Skipped. You continued without saving."
+- The card: label, "Sent only to <host>. The assistant never sees it." (an `llm` card says to pick it for a bot in Edit bot, and shows Endpoint, Model and "Can see images" filled in and editable), a password box and Save; no decline button. Answered, it reads "Saved as <name>."; typing a message instead reads "Skipped. You continued without saving."
 - A key that breaks the rule (8 to 16,384 printable characters) is refused on the card with the rule.
-- A saved key is a Custom row on the Credentials page ("Settings", then "Credentials"), with its site and its bots. See [credentials.md](credentials.md).
+- A saved key is a row of its kind on the Credentials page ("Settings", then "Credentials"), with its site and its bots. See [credentials.md](credentials.md).
 - A bot not allowed a key gets `NOT_ALLOWED`; ticking the key under "Keys this bot can use" on its Edit bot page allows it, saved at once.
 - Telegram and Discord get a link to the card's page, saying not to paste the key into the chat.
 

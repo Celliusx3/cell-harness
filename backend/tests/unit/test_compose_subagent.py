@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm import (
     CONTEXT_WINDOW_EXCEEDED,
@@ -19,7 +18,7 @@ from harness.llm import (
     ToolMessage,
     UserMessage,
 )
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd

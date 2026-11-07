@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and twenty-four insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and twenty-five insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -42,26 +42,28 @@ closed on 2026-11-07: the PC reaches only public addresses and the skills' own M
 programs (`docs/specs/pc-center/`);
 phase 13, built in the computer, spec in `docs/specs/comic-skill/`), 20 a Mac app
 you and friends install (`make app`: Electron around the same pages, its own
-Python and Deno, signed ad-hoc; since 7 November its own PC, and every other MCP
-server added on an MCP servers screen with its keys on Credentials; specs in
+Python and Deno, signed ad-hoc; every MCP server, its PC too, added on an MCP
+servers screen with its keys; specs in
 `docs/specs/desktop-app/`, `docs/specs/full-app/` and `docs/specs/mcp-screen/`), 21 a
 Credentials page (the harness's own keys, masked to their last four characters,
 saved only from this Mac straight to the harness, which then restarts; spec in
 `docs/specs/credentials-page/`), 22 typed credentials (that page holds every
-key, the Keys page's too, and nothing restarts; an LLM credential gives the bots
-ticked their own model, and the rest use the Default model; a saved Telegram or
-Discord token starts its channel; the settings file's keys move into the keyring
-on start; a link code from a bot's page ties a Telegram or Discord direct chat
+key, the Keys page's too, and nothing restarts; a saved Telegram or
+Discord token starts its channel; a link code from a bot's page ties a Telegram or Discord direct chat
 to that bot, and an unlinked one gets silence; spec in
 `docs/specs/credentials-page/`), 23 setup on the chat's own screen (the harness
-starts with no Default model; every chat page shows a setup screen in the app's
-look until one is saved through the Credentials save; another device sees a
+starts with no model; every chat page shows a setup screen in the app's
+look until an LLM credential is saved through the Credentials save, and Assistant
+answers on it; another device sees a
 note; the Mac app has no setup window of its own; spec in
 `docs/specs/setup-screen/`), 24 the UI in layers (Settings is its own screen,
 with Credentials, Approvals and Skills and a way back to the chat page you
 left; a Bots page lists every bot, group and archived bot; the sidebar has one
 New button, and Bots, Computer and Settings at its foot; spec in
-`docs/specs/ui-layers/`). Their plans
+`docs/specs/ui-layers/`), 25 app credentials (a model per bot, picked in Edit bot,
+with no Default model; "Can see images" and the context window per LLM
+credential; no model or key in the settings files; MCP server keys saved with
+their server; no built-in MCP servers; spec in `docs/specs/app-credentials/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
@@ -504,7 +506,7 @@ The bot takes a screenshot, says what it sees, and clicks by coordinates.
   has not changed returns "unchanged" and no image
 
 **Key contracts.**
-- `llm.vision: false` withholds the screenshot tools: an image nobody can see is
+- A bot's LLM credential without "Can see images" withholds the screenshot tools: an image nobody can see is
   not offered.
 - Pruning is a function of the log, so the same log builds the same request and
   the cached prefix holds.

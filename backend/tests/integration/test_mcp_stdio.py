@@ -10,8 +10,7 @@ from pathlib import Path
 import pytest
 from mcp.server.apps import APP_MIME_TYPE
 
-from harness.config.sections import McpServer
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.mcp import _connection as connection_module
 from harness.tools import Failure, Ok, ToolService, ToolUi
 from tests.unit.helpers import context_for, no_approvals

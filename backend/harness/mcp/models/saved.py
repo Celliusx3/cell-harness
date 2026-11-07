@@ -6,7 +6,7 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict, SecretStr, field_validator, model_validator
 
-from harness.config.sections import McpServer, named_keys, spawnable_command, usable_server_id
+from harness.mcp.models.server import McpServer, named_keys, spawnable_command, usable_server_id
 
 
 class ServerCommand(BaseModel):

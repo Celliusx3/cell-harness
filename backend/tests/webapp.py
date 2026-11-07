@@ -15,13 +15,14 @@ from harness.channels.links import LinkCodes
 from harness.channels.protocol import Channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
-from harness.config.sections import FileSettings, McpServer
+from harness.config.sections import FileSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import (
     DiskSavedServerRepository,
     McpClientFactory,
+    McpServer,
     McpService,
     SavedServerService,
     open_stdio_client,

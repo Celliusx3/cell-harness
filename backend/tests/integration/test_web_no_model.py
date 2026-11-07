@@ -88,7 +88,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     secrets = secrets_in(tmp_path)
     base = LLMSettings()
     endpoint = ModelEndpoint(
-        client_for=lambda s: OpenAIClient(s, read_image=no_image), window_for=no_window
+        client_for=lambda s: OpenAIClient(s, read_image=no_image), blocking_window_for=no_window
     )
     models = CredentialModels(secrets, bots, base, endpoint)
     runtime = Runtime(models=models, images=no_images(), checkpoint=service.flush)

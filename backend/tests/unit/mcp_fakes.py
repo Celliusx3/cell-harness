@@ -17,7 +17,7 @@ from mcp.types import (
     ToolAnnotations,
 )
 
-from harness.config.sections import McpServer
+from harness.mcp import McpServer
 
 
 def tool(
