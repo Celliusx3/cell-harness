@@ -173,10 +173,19 @@ of the file as it was, make one before that start.
 
 ## Desktop app
 
-A Mac app for friends who do not have the repo: one icon that starts the
-harness and opens the chat in its own window. It carries its own Python and
-Deno, so they install nothing else. It has chat, bots and skills, and no
-capability yet; only the `create-skill` skill ships. Apple Silicon only.
+A Mac app for you and for friends who do not have the repo: one icon that
+starts the harness and opens the chat in its own window. It has everything
+`make dev` has: chat, bots, skills, every capability and the PC. It carries its
+own Python, Deno, Node and uv, so nobody installs anything else; the dmg is
+about 440 MB. On first start it fetches Exa, the system monitor and memory at
+pinned versions, and the first time the PC starts it downloads the PC image
+(about 400 MB). Only the `create-skill` skill ships. Apple Silicon only.
+
+A capability that calls a paid API (Places, Markets, Instagram) stays off until
+its key is saved on the Credentials page as a **Capability key**; it turns on
+seconds later, with no restart. The app's PC is its own, beside `make dev`'s:
+its runtime lives in `~/.cell-harness/msb`, a short path because microsandbox's
+sockets must stay under 104 bytes.
 
 ```sh
 make app      # desktop/dist-app/Cell Harness-0.1.0-arm64.dmg; needs uv, npm and the network to build

@@ -14,6 +14,6 @@ One file per thing a person can see in the browser chat. Add a file when a featu
 - [bot-messages.md](bot-messages.md): a bot messages another with `message_bot`, and the answer wakes it in its own chat
 - [secrets.md](secrets.md): a card that saves an API key the model never sees, each bot's keys, and the fetch that uses one
 - [setup.md](setup.md): the setup screen every chat page shows until a Default model is saved, and the note on another device
-- [credentials.md](credentials.md): the Credentials page: every key, typed and masked, changed only from this Mac with no restart, and a bot's link codes
+- [credentials.md](credentials.md): the Credentials page: every key, typed and masked, changed only from this Mac with no restart, a capability's key that turns it on, and a bot's link codes
 - [computer.md](computer.md): the Computer page: the shared computer's live screen, control on open, a terminal and files
 - [hand-over.md](hand-over.md): a "Needs you" card when a bot needs a step only you should do on the computer

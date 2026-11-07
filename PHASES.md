@@ -41,8 +41,10 @@ the computer reached every port on this Mac through `host.docker.internal`, was
 closed on 2026-11-07: the PC reaches only public addresses and the skills' own Mac
 programs (`docs/specs/pc-center/`);
 phase 13, built in the computer, spec in `docs/specs/comic-skill/`), 20 a Mac app
-friends install (`make app`: Electron around the same pages, its own Python and
-Deno, signed ad-hoc; chat and skills only; spec in `docs/specs/desktop-app/`), 21 a
+you and friends install (`make app`: Electron around the same pages, its own
+Python, Deno, Node and uv, signed ad-hoc; since 7 November every capability and
+its own PC, a capability's key saved on Credentials; specs in
+`docs/specs/desktop-app/` and `docs/specs/full-app/`), 21 a
 Credentials page (the harness's own keys, masked to their last four characters,
 saved only from this Mac straight to the harness, which then restarts; spec in
 `docs/specs/credentials-page/`), 22 typed credentials (that page holds every

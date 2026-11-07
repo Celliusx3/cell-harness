@@ -1,6 +1,6 @@
 # 05 The docs describe one full app
 
-**Status.** open
+**Status.** done
 
 **What to build.** `docs/specs/desktop-app/spec.md` says this spec replaces
 its scope limits. The Makefile help, the desktop README and PHASES.md

@@ -13,6 +13,7 @@ Every key the harness holds, on one page: model keys (LLM), the Telegram and Dis
 - A bot uses one LLM credential: ticking it in another moves it there. Edit fixes the type and name, and an empty key keeps the saved one.
 - Remove asks first: "Remove <name>? The bots it serves lose it.", or for a platform "Remove <name>? Its bot stops answering."
 - Saving a Telegram or Discord token starts that channel, and removing it stops it. A new token restarts only that channel.
+- A capability that calls a paid API (Places, Markets, Instagram) is listed under "Capabilities that need a key" with its key and whether it is on. The type "Capability key" asks for Name, Capability (such as "Places: GOOGLE_MAPS_API_KEY") and Key, and serves no bots. Saving it turns that capability on within seconds; removing it turns it off.
 - A bot's page has "Link Telegram" and "Link Discord" under "Chats on other apps". Each shows a six-digit code, who it links to, and "Expires in m:ss".
 - With no token saved, a link button shows "Telegram has no token yet. Add the Telegram token on the Credentials page first."
 
