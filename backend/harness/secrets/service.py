@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 
 from pydantic import SecretStr
 
 from harness.secrets.masking import last_four
 from harness.secrets.models.destination import Destination
 from harness.secrets.models.details import (
+    CapabilityDetails,
     ChatPlatform,
     ChatPlatformDetails,
     CredentialDetails,
@@ -78,6 +80,8 @@ class SecretService:
             raise SecretRefused(f"a credential is already named {name!r}; pick another name")
         if isinstance(details, ChatPlatformDetails):
             _refuse_a_second(stored, details.kind)
+        if isinstance(details, CapabilityDetails):
+            _refuse_a_second_capability_key(stored, details, name)
         if len(stored) >= MAX_SECRETS:
             raise SecretRefused(f"{MAX_SECRETS} keys are already saved; remove one first")
         added = self._sealed_secret(name, details, value.get_secret_value())
@@ -95,6 +99,8 @@ class SecretService:
             raise SecretRefused(
                 f"{name!r} is a {existing.details.kind} credential; its type cannot change"
             )
+        if isinstance(details, CapabilityDetails):
+            _refuse_a_second_capability_key(stored, details, name)
         plaintext = self._plaintext(existing) if value is None else value.get_secret_value()
         changed = self._sealed_secret(name, details, plaintext)
         self._repository.replace_all(
@@ -145,6 +151,14 @@ class SecretService:
         """The Telegram or Discord credential's token, unsealed, or `None`; no other kind."""
         sealed_secret = _platform_credential(self._repository.sealed_secrets(), platform)
         return None if sealed_secret is None else SecretStr(self._plaintext(sealed_secret))
+
+    def capability_keys(self, server_id: str) -> Mapping[str, SecretStr]:
+        """The capability keys saved for the MCP server `server_id`, unsealed, by env variable."""
+        return {
+            secret.details.variable: SecretStr(self._plaintext(secret))
+            for secret in self._repository.sealed_secrets()
+            if isinstance(secret.details, CapabilityDetails) and secret.details.server == server_id
+        }
 
     def delete(self, name: str) -> CredentialDetails:
         """Remove the key called `name` and say what it was for; the Default is refused."""
@@ -229,4 +243,26 @@ def _refuse_a_second(stored: tuple[SealedSecret, ...], platform: ChatPlatform) -
         raise SecretRefused(
             f"the {platform} credential is already saved as {saved.name!r}; "
             "there is one per platform, so edit or remove it"
+        )
+
+
+def _refuse_a_second_capability_key(
+    stored: tuple[SealedSecret, ...], details: CapabilityDetails, name: str
+) -> None:
+    """`SecretRefused` when another credential than `name` already holds this server's variable."""
+    saved = next(
+        (
+            secret
+            for secret in stored
+            if secret.name != name
+            and isinstance(secret.details, CapabilityDetails)
+            and (secret.details.server, secret.details.variable)
+            == (details.server, details.variable)
+        ),
+        None,
+    )
+    if saved is not None:
+        raise SecretRefused(
+            f"{details.server}'s {details.variable} is already saved as {saved.name!r}; "
+            "edit or remove it"
         )

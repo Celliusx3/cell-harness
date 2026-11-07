@@ -21,6 +21,7 @@ from harness.web.server import build_channels
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
+from tests.unit.mcp_fakes import no_keys
 from tests.webapp import (
     channel_services,
     files_in,
@@ -39,7 +40,7 @@ def runtime_over(tmp_path: Path, images: ImageService, *, vision: bool) -> Runti
             llm={"model": "m", "api_key": "k", "vision": vision},
         ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}),
+        McpService({}, keys=no_keys()),
         no_skills(),
         client_tools(),
         no_approvals(),

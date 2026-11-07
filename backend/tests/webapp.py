@@ -35,6 +35,7 @@ from harness.web.server import Channels, ChannelServices, create_app
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import no_approvals, no_bots, no_skills, run_service
+from tests.unit.mcp_fakes import no_keys
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
@@ -161,7 +162,7 @@ def web_mcp(
     client_factory: McpClientFactory = open_stdio_client,
 ) -> McpService:
     """A service over whatever servers a test declares — none, by default."""
-    return McpService(servers or {}, client_factory=client_factory)
+    return McpService(servers or {}, client_factory=client_factory, keys=no_keys())
 
 
 def web_app(

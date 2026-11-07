@@ -47,6 +47,7 @@ from tests.unit.helpers import (
     no_skills,
     skills_at,
 )
+from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_with_default_model
 
 
@@ -61,7 +62,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
-        mcp = McpService({"stub": McpServer(command="does-not-run")})
+        mcp = McpService({"stub": McpServer(command="does-not-run")}, keys=no_keys())
         runtime = build_runtime(
             settings,
             sessions,

@@ -1,4 +1,4 @@
-"""The configured MCP servers, connected at startup, and the tools they contribute."""
+"""The configured MCP servers, started once their keys are found, and the tools they offer."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from harness.config.sections import McpServer
 from harness.mcp._connection import Connection
 from harness.mcp.client import McpClientFactory
 from harness.mcp.clients.stdio import open_stdio_client
+from harness.mcp.keys import CapabilityKeys, missing_keys, with_saved_keys
 from harness.mcp.models.errors import McpNotConnectedError, RequiredServerError
 from harness.mcp.models.status import ServerStatus
 from harness.mcp.required import required_refusal
@@ -22,17 +23,20 @@ REQUIRED_CONNECT_TIMEOUT_SECONDS = 120.0
 
 
 class McpService:
-    """The live connections to the configured servers, and their tools."""
+    """The live connections to the configured servers, those waiting for a key, and their tools."""
 
     def __init__(
         self,
         servers: dict[str, McpServer],
         *,
+        keys: CapabilityKeys,
         client_factory: McpClientFactory = open_stdio_client,
     ) -> None:
         self._servers = servers
+        self._keys = keys
         self._factory = client_factory
         self._connections: dict[str, Connection] = {}
+        self._changing = asyncio.Lock()
 
     def tools(self) -> list[Tool[dict]]:
         """Every tool on offer right now — **the registry provider**."""
@@ -77,15 +81,36 @@ class McpService:
         return self._connections[server_id]
 
     async def start(self) -> None:
-        """Connect every configured server; wait only for the required ones, and refuse without."""
-        for server_id, server in self._servers.items():
-            connection = Connection(id=server_id, server=server, factory=self._factory)
-            self._connections[server_id] = connection
-            connection.start()
+        """Connect every server whose keys are found; wait only for the required, refuse without."""
+        async with self._changing:
+            for server_id in self._servers:
+                await self._open(server_id)
         refusal = await self._required_refusal()
         if refusal is not None:
             await self.aclose()
             raise RequiredServerError(refusal)
+
+    async def restart(self, server_id: str) -> None:
+        """Close `server_id`, then open it again with the keys found now. `KeyError` if unknown."""
+        if server_id not in self._servers:
+            raise KeyError(server_id)
+        async with self._changing:
+            running = self._connections.get(server_id)
+            if running is not None:
+                await running.aclose()
+            await self._open(server_id)
+
+    async def _open(self, server_id: str) -> None:
+        """Start `server_id` with its config env and saved keys, or leave it waiting for a key."""
+        saved = await asyncio.to_thread(self._keys.capability_keys, server_id)
+        server = with_saved_keys(self._servers[server_id], saved)
+        connection = Connection(id=server_id, server=server, factory=self._factory)
+        self._connections[server_id] = connection
+        missing = missing_keys(server)
+        if missing:
+            connection.wait_for(missing)
+        else:
+            connection.start()
 
     async def _required_refusal(self) -> str | None:
         """Wait for every required server to connect or fail, then say why startup must stop."""
@@ -99,14 +124,15 @@ class McpService:
         )
 
     async def aclose(self) -> None:
-        await asyncio.gather(
-            *(connection.aclose() for connection in self._connections.values()),
-            return_exceptions=True,
-        )
-        self._connections.clear()
+        async with self._changing:
+            await asyncio.gather(
+                *(connection.aclose() for connection in self._connections.values()),
+                return_exceptions=True,
+            )
+            self._connections.clear()
 
     def statuses(self) -> list[ServerStatus]:
-        """Every configured server and whether it came up. For logs and tests."""
+        """Every configured server: whether it came up, or the keys it waits for."""
         return [
             self._connections[server_id].snapshot()
             if server_id in self._connections

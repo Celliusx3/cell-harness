@@ -69,9 +69,9 @@ def build_subagent_logs(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
-def build_mcp(settings: Settings) -> McpService:
-    """Connections to whatever `config.json` declares under `mcp.servers`."""
-    return McpService(settings.mcp.servers)
+def build_mcp(settings: Settings, keyring: SecretService) -> McpService:
+    """Connections to whatever `config.json` declares under `mcp.servers`, with its saved keys."""
+    return McpService(settings.mcp.servers, keys=keyring)
 
 
 def build_keyring(settings: Settings) -> SecretService:
@@ -161,7 +161,7 @@ def create_web_app() -> FastAPI:
     disk.create_root()
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
-    mcp = build_mcp(settings)
+    mcp = build_mcp(settings, secrets)
     skills = SkillService(settings.skills)
     approvals = ApprovalService(
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path

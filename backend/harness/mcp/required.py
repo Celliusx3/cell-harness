@@ -17,6 +17,8 @@ def required_refusal(statuses: Sequence[ServerStatus], waited_seconds: float) ->
 def _reason(status: ServerStatus, waited_seconds: float) -> str | None:
     if status.status == "connected":
         return None
+    if status.status == "waiting":
+        return f"{status.id} is required and {status.error}"
     if status.status == "connecting":
         return f"{status.id} is required and did not connect within {waited_seconds:g}s"
     return f"{status.id} is required and failed to connect: {status.error}"

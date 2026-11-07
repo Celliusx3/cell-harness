@@ -136,3 +136,14 @@ def test_the_computer_mounts_exactly_the_skills_bots_cannot_change() -> None:
     mounted = committed["mcp"]["servers"]["computer"]["env"]["COMPUTER_SKILLS_DIRS"]
 
     assert {(backend / folder).resolve() for folder in mounted.split(os.pathsep)} == shipped
+
+
+def test_the_capabilities_that_call_a_paid_api_wait_for_its_key() -> None:
+    backend = Path(__file__).parents[2]
+    committed = McpSettings.model_validate(json.loads((backend / "config.json").read_text())["mcp"])
+    needs = {server_id: server.needs for server_id, server in committed.servers.items()}
+
+    assert needs["places"] == ("GOOGLE_MAPS_API_KEY",)
+    assert needs["markets"] == ("COINGECKO_API_KEY",)
+    assert needs["instagram"] == ("AI_PROVIDER_API_KEY",)
+    assert needs["computer"] == ()

@@ -1,6 +1,6 @@
 # 02 A capability with missing keys stays off, and starts when they appear
 
-**Status.** open
+**Status.** done
 
 **What to build.** A server in the config may list the keys it `needs`. The
 MCP service does not start a server while a needed key is missing, and its

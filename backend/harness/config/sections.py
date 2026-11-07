@@ -115,6 +115,7 @@ class McpServer(BaseModel):
     command: str
     args: tuple[str, ...] = ()
     env: dict[str, str] = Field(default_factory=dict)
+    needs: tuple[str, ...] = ()
     required: bool = False
 
     @field_validator("command")
@@ -123,6 +124,14 @@ class McpServer(BaseModel):
         """A config that cannot work is a startup failure, not a silent no-op."""
         if not value.strip():
             raise ValueError("command must not be blank")
+        return value
+
+    @field_validator("needs")
+    @classmethod
+    def _named(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        """Each key the server waits for is named by the env variable it is passed in."""
+        if any(not name.strip() for name in value):
+            raise ValueError("needs must name env variables, none blank")
         return value
 
 

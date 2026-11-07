@@ -35,6 +35,7 @@ from tests.unit.helpers import (
     no_progress,
     no_skills,
 )
+from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT)]
@@ -49,7 +50,7 @@ def compose(tmp_path: Path):
             local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
         )
         sessions = SessionService(JsonlSessionRepository(tmp_path))
-        mcp = McpService({"stub": McpServer(command="does-not-run")})
+        mcp = McpService({"stub": McpServer(command="does-not-run")}, keys=no_keys())
         return build_runtime(
             settings,
             sessions,

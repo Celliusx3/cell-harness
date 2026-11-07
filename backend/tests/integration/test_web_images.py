@@ -19,6 +19,7 @@ from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import no_approvals
+from tests.unit.mcp_fakes import no_keys
 
 STUB = Path(__file__).resolve().parent.parent / "mcp_stub.py"
 MESSAGES = f"/api/conversations/{ASSISTANT_ID}/messages"
@@ -29,7 +30,9 @@ DOT_SHA256 = hashlib.sha256(DOT).hexdigest()
 
 @pytest.fixture
 async def snapshot_tool():
-    store = McpService({"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})})
+    store = McpService(
+        {"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})}, keys=no_keys()
+    )
     tool_service = ToolService((), approvals=no_approvals())
     tool_service.add_provider(store.tools)
     await store.start()

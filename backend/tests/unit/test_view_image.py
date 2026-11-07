@@ -38,6 +38,7 @@ from tests.unit.helpers import (
     no_skills,
     runtime_over,
 )
+from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 MOST_BYTES = 5 * 1024 * 1024
@@ -68,7 +69,7 @@ def runtime_seeing(tmp_path: Path, *, vision: bool) -> Runtime:
             llm={"model": "m", "api_key": "k", "vision": vision},
         ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}),
+        McpService({}, keys=no_keys()),
         no_skills(),
         client_tools(),
         no_approvals(),

@@ -60,7 +60,10 @@
           "INSTAGRAM_MAX_FRAMES": "8",
           "INSTAGRAM_MAX_SPEECH_SECONDS": "180",
           "INSTAGRAM_CALL_BUDGET_SECONDS": "45"
-        }
+        },
+        "needs": [
+          "AI_PROVIDER_API_KEY"
+        ]
       },
       "places": {
         "command": "uv",
@@ -73,7 +76,10 @@
         ],
         "env": {
           "PLACES_MAX_RESULTS": "3"
-        }
+        },
+        "needs": [
+          "GOOGLE_MAPS_API_KEY"
+        ]
       },
       "markets": {
         "command": "uv",
@@ -87,7 +93,10 @@
         "env": {
           "SEC_USER_AGENT": "cell-harness contact@example.com",
           "MARKETS_MAX_ROWS": "70"
-        }
+        },
+        "needs": [
+          "COINGECKO_API_KEY"
+        ]
       },
       "computer": {
         "command": "uv",
