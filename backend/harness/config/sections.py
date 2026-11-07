@@ -126,6 +126,15 @@ class McpServer(BaseModel):
             raise ValueError("command must not be blank")
         return value
 
+    @field_validator("env")
+    @classmethod
+    def _home_expanded(cls, value: dict[str, str]) -> dict[str, str]:
+        """A setting that starts with `~/` names a path in the home folder of whoever runs it."""
+        return {
+            name: str(Path(setting).expanduser()) if setting.startswith("~/") else setting
+            for name, setting in value.items()
+        }
+
     @field_validator("needs")
     @classmethod
     def _named(cls, value: tuple[str, ...]) -> tuple[str, ...]:

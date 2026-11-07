@@ -147,3 +147,11 @@ def test_the_capabilities_that_call_a_paid_api_wait_for_its_key() -> None:
     assert needs["markets"] == ("COINGECKO_API_KEY",)
     assert needs["instagram"] == ("AI_PROVIDER_API_KEY",)
     assert needs["computer"] == ()
+
+
+def test_a_server_setting_under_the_home_folder_is_read_from_it(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    server = McpServer(command="uvx", env={"NOTES": "~/notes", "AGENT": "x ~/y", "BARE": "~"})
+
+    assert server.env == {"NOTES": f"{tmp_path}/notes", "AGENT": "x ~/y", "BARE": "~"}

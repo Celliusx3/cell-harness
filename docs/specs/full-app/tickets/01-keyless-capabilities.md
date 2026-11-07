@@ -1,6 +1,6 @@
 # 01 The app runs every capability that needs no key
 
-**Status.** open
+**Status.** done
 
 **What to build.** `desktop/scripts/bundle.sh` adds uv and Node to the
 bundle's `bin`, each checked against its published SHA-256, as Deno is. It

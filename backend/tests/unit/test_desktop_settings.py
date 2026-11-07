@@ -65,10 +65,34 @@ def test_the_app_reads_its_local_file_from_the_path_it_names(tmp_path) -> None:
     assert loaded.api_key == "sk-from-the-app"
 
 
-def test_the_app_connects_no_capability(tmp_path) -> None:
+def test_the_app_has_every_capability_make_dev_has_but_the_computer(tmp_path) -> None:
     loaded = _load_as_the_app(tmp_path / "home", tmp_path / "missing.json")
 
-    assert loaded.servers == []
+    dev_servers = json.loads((BACKEND / "config.json").read_text())["mcp"]["servers"]
+    assert sorted(loaded.servers) == sorted(set(dev_servers) - {"computer"})
+
+
+def test_each_capability_waits_for_the_keys_it_waits_for_in_make_dev() -> None:
+    app = json.loads(DESKTOP_CONFIG.read_text())["mcp"]["servers"]
+    dev = json.loads((BACKEND / "config.json").read_text())["mcp"]["servers"]
+
+    assert {name: server.get("needs", []) for name, server in app.items()} == {
+        name: dev[name].get("needs", []) for name in app
+    }
+
+
+def test_every_capability_keeps_its_data_in_the_app_folder() -> None:
+    servers = json.loads(DESKTOP_CONFIG.read_text())["mcp"]["servers"]
+
+    folders = [
+        setting
+        for server in servers.values()
+        for name, setting in server.get("env", {}).items()
+        if name.endswith(("_HOME", "_DIR"))
+    ]
+
+    assert folders
+    assert all(folder.startswith(f"~/{APP_FOLDER}/") for folder in folders), folders
 
 
 def test_every_data_path_is_in_the_app_folder(tmp_path) -> None:
