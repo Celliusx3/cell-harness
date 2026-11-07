@@ -8,7 +8,7 @@ import pytest
 
 from computer.engines.docker import DockerEngine, environment_of, loopback_port
 from computer.models.errors import EngineError, EngineTimeout
-from tests.conftest import API_HOST_PORT, API_TOKEN, NAME, FakeDocker
+from tests.conftest import API_HOST_PORT, NAME, FakeDocker
 
 
 def test_the_host_port_is_the_one_published_on_loopback() -> None:
@@ -22,11 +22,11 @@ def test_a_port_not_published_on_loopback_is_refused(published: str) -> None:
 
 
 def test_the_environment_is_read_as_docker_prints_it() -> None:
-    env = ["DISPLAY=:1", f"RAKAZO_COMPUTER_CONTROL_TOKEN={API_TOKEN}", "EMPTY=", "SUM=a=b"]
+    env = ["DISPLAY=:1", "HOME=/home/pc", "EMPTY=", "SUM=a=b"]
 
     assert environment_of(json.dumps(env) + "\n") == {
         "DISPLAY": ":1",
-        "RAKAZO_COMPUTER_CONTROL_TOKEN": API_TOKEN,
+        "HOME": "/home/pc",
         "EMPTY": "",
         "SUM": "a=b",
     }
@@ -49,7 +49,7 @@ async def test_the_host_port_and_environment_are_asked_of_docker_by_name() -> No
     env = await engine.environment(NAME)
 
     assert port == API_HOST_PORT
-    assert env["RAKAZO_COMPUTER_CONTROL_TOKEN"] == API_TOKEN
+    assert env["HOME"] == "/home/pc"
     assert docker.calls == [
         ["port", NAME, "7070"],
         ["inspect", "--type", "container", "--format", "{{json .Config.Env}}", NAME],

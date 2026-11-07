@@ -1,24 +1,26 @@
-"""The computer's whole screen, read through the image's API endpoint."""
+"""The computer's whole screen, read by one command in the PC."""
 
 from __future__ import annotations
 
 import base64
 import binascii
 import logging
-from collections.abc import Mapping
 from typing import Literal
 
-import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from computer.engine import Engine
-from computer.models.pc import LOOPBACK
-from computer.services.machine import API_PORT, API_TOKEN_VARIABLE, DISPLAY
+from computer.models.command import stdout_of
+from computer.models.pc import Program
+from computer.services.machine import DISPLAY
 
 logger = logging.getLogger("computer")
 
 DESKTOP_TIMEOUT_SECONDS = 10.0
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+SCREENSHOT = Program(
+    argv=("bash", "-o", "pipefail", "-c", "scrot - | base64 -w 0"), env={"DISPLAY": DISPLAY}
+)
 
 
 class DesktopError(RuntimeError):
@@ -43,63 +45,20 @@ class Screenshot(BaseModel):
         return image
 
 
-class DesktopReply(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    observation: Screenshot
-
-
-def api_token(env: Mapping[str, str]) -> str:
-    """The API's bearer token, from the variables the computer was made with."""
-    token = env.get(API_TOKEN_VARIABLE, "")
-    if not token:
-        raise DesktopError(f"The computer has no API token: {API_TOKEN_VARIABLE} is not set.")
-    return token
-
-
-class DesktopRequest(BaseModel):
-    """The API endpoint's body: run no steps, then look at the screen."""
-
-    model_config = ConfigDict(frozen=True)
-
-    display: str
-    steps: tuple[()]
-    observe: Literal[True]
-
-
 class Desktop:
-    """The computer's display, one request at a time; port and token are read on every call."""
+    """The computer's display, one command at a time."""
 
-    def __init__(self, *, engine: Engine, container: str, client: httpx.AsyncClient) -> None:
+    def __init__(self, *, engine: Engine, container: str) -> None:
         self._engine = engine
         self._container = container
-        self._client = client
 
     async def screenshot(self) -> Screenshot:
-        asked = DesktopRequest(display=DISPLAY, steps=(), observe=True)
-        what = "the screenshot"
-        port = await self._engine.host_port(self._container, API_PORT)
-        token = api_token(await self._engine.environment(self._container))
+        completed = await self._engine.run(
+            self._container, SCREENSHOT, stdin=None, timeout_seconds=DESKTOP_TIMEOUT_SECONDS
+        )
+        image = stdout_of(completed, "the screenshot", error=DesktopError).strip()
         try:
-            response = await self._client.post(
-                f"http://{LOOPBACK}:{port}/v1/desktop",
-                headers={"Authorization": f"Bearer {token}"},
-                json=asked.model_dump(mode="json"),
-                timeout=DESKTOP_TIMEOUT_SECONDS,
-            )
-        except httpx.HTTPError as err:
-            raise DesktopError(
-                f"The computer's screen did not answer: {type(err).__name__}: {err}"
-            ) from err
-        if response.status_code != httpx.codes.OK:
-            logger.error("the computer's API endpoint refused %s: %s", what, response.text)
-            raise DesktopError(
-                f"The computer refused {what}: {response.status_code} {response.reason_phrase}."
-            )
-        try:
-            return DesktopReply.model_validate_json(response.content).observation
+            return Screenshot.model_validate({"image": image, "mimeType": "image/png"})
         except ValidationError as err:
-            logger.error("the computer's API endpoint answered %s with: %s", what, err)
-            raise DesktopError(
-                f"The computer answered {what} with something this server cannot read."
-            ) from err
+            logger.error("the computer's screenshot was not a PNG: %s", err)
+            raise DesktopError("The computer's screenshot is not a PNG.") from err

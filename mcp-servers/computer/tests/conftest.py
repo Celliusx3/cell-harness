@@ -9,7 +9,6 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import httpx
 import pytest
 from mcp.server import MCPServer
 
@@ -25,20 +24,10 @@ IDLE_SECONDS = 600
 API_HOST_PORT = 62477
 GATEWAY_HOST_PORT = 62480
 EPOCH = datetime(2026, 10, 13, 9, 0, tzinfo=UTC)
-API_TOKEN = "6551e986a39875307053cbe4326f34f4"
 FILES_DIR = Path("/tmp/cell-harness-files")
 SKILLS_DIR = Path("/tmp/cell-harness-skills")
 PNG = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
-SCREENSHOT_REPLY = {
-    "completed": 0,
-    "observation": {
-        "image": base64.b64encode(PNG).decode(),
-        "mimeType": "image/png",
-        "width": 1280,
-        "height": 800,
-        "cursor": {"x": 640, "y": 400},
-    },
-}
+SCREENSHOT = CommandResult(0, base64.b64encode(PNG).decode(), "")
 
 NAVIGATED = json.dumps({"ok": True, "url": "https://example.com/", "title": "Example Domain"})
 SNAPSHOT = json.dumps(
@@ -114,14 +103,14 @@ class FakeDocker:
         self.unreachable = False
         self.api_host_port = API_HOST_PORT
         self.gateway_host_port = GATEWAY_HOST_PORT
-        self.env = ["DISPLAY=:1", f"RAKAZO_COMPUTER_CONTROL_TOKEN={API_TOKEN}"]
+        self.env = ["DISPLAY=:1", "HOME=/home/pc"]
         self.bindings: dict[str, object] | None = {
             "6080/tcp": [{"HostIp": "127.0.0.1", "HostPort": ""}],
-            "7070/tcp": [{"HostIp": "127.0.0.1", "HostPort": ""}],
         }
         self.raw_bindings: str | None = None
         self.mounts: list[dict[str, object]] = list(MOUNTED)
         self.python_result = CommandResult(0, "", "")
+        self.screenshot = SCREENSHOT
 
     async def run(
         self, args: Sequence[str], *, stdin: str, timeout_seconds: float
@@ -168,6 +157,8 @@ class FakeDocker:
             self.status = "running"
         if verb == "stop":
             self.status = "exited"
+        if verb == "exec" and any("scrot" in arg for arg in args):
+            return self.screenshot
         if verb == "exec" and "bash" in args:
             return CommandResult(0, "", "")
         if verb == "exec" and "python3" in args:
@@ -187,24 +178,6 @@ class FakeDocker:
 
     def scripts(self) -> list[str]:
         return [call[-1] for call in self.calls if call[:4] == ["exec", NAME, "bash", "-c"]]
-
-
-class FakeDesktopApi:
-    """The API endpoint inside the computer: records each request, answers from a script."""
-
-    def __init__(self, *replies: httpx.Response | httpx.HTTPError) -> None:
-        self.replies = list(replies) or [httpx.Response(200, json=SCREENSHOT_REPLY)]
-        self.seen: list[httpx.Request] = []
-
-    def answer(self, request: httpx.Request) -> httpx.Response:
-        self.seen.append(request)
-        reply = self.replies[0] if len(self.replies) == 1 else self.replies.pop(0)
-        if isinstance(reply, httpx.HTTPError):
-            raise reply
-        return reply
-
-    def client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(transport=httpx.MockTransport(self.answer))
 
 
 class Dial:
@@ -254,7 +227,6 @@ async def settle() -> None:
 def server_with(
     docker: FakeDocker,
     dial: Dial | None = None,
-    desktop_api: FakeDesktopApi | None = None,
     host_services: Sequence[PreparedHostService] = (),
 ) -> MCPServer:
     from computer.engines.docker import DockerEngine
@@ -274,11 +246,7 @@ def server_with(
         Computer(
             machine=machine,
             browser=Browser(engine=engine, container=NAME, clock=TickingClock().clock),
-            desktop=Desktop(
-                engine=engine,
-                container=NAME,
-                client=(desktop_api or FakeDesktopApi()).client(),
-            ),
+            desktop=Desktop(engine=engine, container=NAME),
             live_screen=LiveScreen(engine=engine, container=NAME, machine=machine, clock=clock),
             files=Files(engine=engine, container=NAME),
             shell=Shell(

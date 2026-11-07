@@ -19,11 +19,11 @@ from computer.engines.microsandbox import (
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from computer.models.errors import EngineError, EngineTimeout
 from computer.models.pc import HOME, PcSpec, Program, SharedFolder
-from computer.services.machine import API_PORT, GATEWAY_PORT, SHM_MEGABYTES, pc_spec
-from tests.conftest import API_TOKEN, FILES_DIR, IMAGE, NAME, SKILLS_DIR, config
+from computer.services.machine import GATEWAY_PORT, SHM_MEGABYTES, pc_spec
+from tests.conftest import FILES_DIR, IMAGE, NAME, SKILLS_DIR, config
 from tests.fake_microsandbox import FakeExecOutput, FakeImages, FakeSandboxes
 
-SPEC = pc_spec(config(), API_TOKEN, ())
+SPEC = pc_spec(config(), ())
 PROGRAM = Program(argv=("python3", "-c", "print(1)"), env={"LANG": "C.UTF-8"})
 
 
@@ -49,17 +49,15 @@ async def test_the_pc_is_made_as_a_detached_vm_of_the_spec() -> None:
         CPUS,
         True,
     )
-    assert call.env == {"DISPLAY": ":1", "HOME": HOME, "RAKAZO_COMPUTER_CONTROL_TOKEN": API_TOKEN}
+    assert call.env == {"DISPLAY": ":1", "HOME": HOME}
 
 
-async def test_each_guest_port_is_published_on_its_own_free_loopback_port() -> None:
+async def test_only_the_gateway_is_published_on_a_free_loopback_port() -> None:
     vms, _ = await made()
 
-    ports = vms.created[0].ports
-    assert sorted(port.guest_port for port in ports) == sorted((API_PORT, GATEWAY_PORT))
-    assert {port.bind for port in ports} == {"127.0.0.1"}
-    assert len({port.host_port for port in ports}) == 2
-    assert all(port.host_port > 0 for port in ports)
+    (port,) = vms.created[0].ports
+    assert (port.guest_port, port.bind) == (GATEWAY_PORT, "127.0.0.1")
+    assert port.host_port > 0
 
 
 async def test_the_home_is_a_named_volume_and_the_shared_folders_are_bind_mounts() -> None:
@@ -90,7 +88,6 @@ async def test_the_host_port_is_read_back_from_the_vm_after_this_server_restarts
 
     reloaded = MicrosandboxEngine(sandboxes=vms, images=FakeImages())
 
-    assert await reloaded.host_port(NAME, API_PORT) == published[API_PORT]
     assert await reloaded.host_port(NAME, GATEWAY_PORT) == published[GATEWAY_PORT]
 
 
@@ -99,8 +96,8 @@ async def test_a_port_not_published_on_loopback_is_refused() -> None:
     stored = vms.stored[NAME].config
     vms.raw_config = json.dumps(stored).replace("127.0.0.1", "0.0.0.0")
 
-    with pytest.raises(EngineError, match="port 7070 is not published on 127.0.0.1"):
-        await engine.host_port(NAME, API_PORT)
+    with pytest.raises(EngineError, match="port 6080 is not published on 127.0.0.1"):
+        await engine.host_port(NAME, GATEWAY_PORT)
     with pytest.raises(EngineError, match="port 5900 is not published on 127.0.0.1"):
         await engine.host_port(NAME, 5900)
 
@@ -118,8 +115,7 @@ async def test_the_environment_is_the_one_the_vm_was_made_with() -> None:
 
     env = await engine.environment(NAME)
 
-    assert env["RAKAZO_COMPUTER_CONTROL_TOKEN"] == API_TOKEN
-    assert env["DISPLAY"] == ":1"
+    assert (env["DISPLAY"], env["HOME"]) == (":1", HOME)
 
 
 @pytest.mark.parametrize(
@@ -240,7 +236,7 @@ async def test_the_pc_made_from_the_spec_needs_no_replacing() -> None:
 @pytest.mark.parametrize(
     "changed",
     [
-        dataclasses.replace(SPEC, published_ports=(API_PORT, GATEWAY_PORT, 5900)),
+        dataclasses.replace(SPEC, published_ports=(GATEWAY_PORT, 5900)),
         dataclasses.replace(SPEC, shared_folders=(SharedFolder(Path("/tmp/other"), True),)),
         dataclasses.replace(SPEC, shared_folders=(SharedFolder(FILES_DIR, False),)),
     ],

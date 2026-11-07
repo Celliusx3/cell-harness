@@ -1,6 +1,6 @@
 # 03 The preview's screenshot is one command in the PC
 
-**Status.** open
+**Status.** done
 
 **What to build.** The image adds one Debian program that writes the whole
 screen as a PNG to stdout; pick the smallest that does. `services/desktop.py`

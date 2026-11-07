@@ -7,10 +7,10 @@ import pytest
 from computer.engines.microsandbox import MicrosandboxEngine
 from computer.models.errors import EngineError
 from computer.services.machine import pc_spec
-from tests.conftest import API_TOKEN, IMAGE, NAME, config
+from tests.conftest import IMAGE, NAME, config
 from tests.fake_microsandbox import ExecCall, FakeImages, FakeSandboxes
 
-SPEC = pc_spec(config(), API_TOKEN, ())
+SPEC = pc_spec(config(), ())
 COMMAND = ExecCall(
     "/usr/bin/env", ["-u", "LD_PRELOAD", "/usr/local/bin/rakazo-computer"], {}, None, None
 )

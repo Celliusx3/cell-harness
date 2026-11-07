@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -44,9 +43,7 @@ async def test_the_first_call_runs_one_container_with_rakazos_options() -> None:
 
     inspect, run, launch = docker.calls
     files, skills = config().files_dir, config().skills_dirs[0]
-    token = next(arg for arg in run if arg.startswith("RAKAZO_COMPUTER_CONTROL_TOKEN="))
     assert inspect == INSPECT
-    assert re.fullmatch(r"RAKAZO_COMPUTER_CONTROL_TOKEN=[0-9a-f]{32}", token)
     assert run == [
         "run", "-d", "--name", NAME,
         "--label", f"cell-harness.computer={NAME}",
@@ -55,11 +52,9 @@ async def test_the_first_call_runs_one_container_with_rakazos_options() -> None:
         "--security-opt", "no-new-privileges:true",
         "-e", "DISPLAY=:1",
         "-e", "HOME=/home/pc",
-        "-e", token,
         "-v", f"{NAME}-home:/home/pc",
         "-v", f"{files}:{files}",
         "-v", f"{skills}:{skills}:ro",
-        "-p", "127.0.0.1::7070",
         "-p", "127.0.0.1::6080",
         IMAGE,
     ]  # fmt: skip

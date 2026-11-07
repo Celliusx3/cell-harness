@@ -1,47 +1,35 @@
-"""The screenshot tool: one PNG of the whole desktop, from the API endpoint, through the machine."""
+"""The screenshot tool: one PNG of the whole desktop, from one command in the PC."""
 
 from __future__ import annotations
 
 import base64
-import json
 
-import httpx
 import pytest
 from mcp import Client
 from mcp.types import CallToolResult, ImageContent, TextContent
 
-from computer.services.desktop import DesktopError, api_token
-from tests.conftest import (
-    API_HOST_PORT,
-    API_TOKEN,
-    IDLE_SECONDS,
-    NAME,
-    PNG,
-    SCREENSHOT_REPLY,
-    Dial,
-    FakeDesktopApi,
-    FakeDocker,
-    server_with,
-)
+from computer.engines.docker import DockerEngine
+from computer.models.command import CommandResult
+from computer.services.desktop import Desktop, DesktopError
+from tests.conftest import IDLE_SECONDS, NAME, PNG, Dial, FakeDocker, server_with
 
 STOP = ["stop", NAME]
+SCREENSHOT_CALL = [
+    "exec", "-e", "DISPLAY=:1", NAME, "bash", "-o", "pipefail", "-c", "scrot - | base64 -w 0"
+]  # fmt: skip
 
 
 def text_of(result: CallToolResult) -> str:
     return "".join(block.text for block in result.content if isinstance(block, TextContent))
 
 
-def desktop_reply(**observation: object) -> httpx.Response:
-    return httpx.Response(200, json={**SCREENSHOT_REPLY, "observation": observation})
-
-
-async def screenshot_result(docker: FakeDocker, desktop_api: FakeDesktopApi) -> CallToolResult:
-    async with Client(server_with(docker, desktop_api=desktop_api)) as client:
+async def screenshot_result(docker: FakeDocker) -> CallToolResult:
+    async with Client(server_with(docker)) as client:
         return await client.call_tool("screenshot", {})
 
 
-async def test_screenshot_returns_one_png_image_of_the_endpoints_bytes_and_nothing_else() -> None:
-    result = await screenshot_result(FakeDocker(status="running"), FakeDesktopApi())
+async def test_screenshot_returns_one_png_image_of_the_commands_stdout_and_nothing_else() -> None:
+    result = await screenshot_result(FakeDocker(status="running"))
 
     assert not result.is_error, text_of(result)
     (block,) = result.content
@@ -51,38 +39,60 @@ async def test_screenshot_returns_one_png_image_of_the_endpoints_bytes_and_nothi
     assert result.structured_content is None
 
 
-async def test_screenshot_asks_the_published_port_with_the_containers_token() -> None:
-    docker, desktop_api = FakeDocker(status="running"), FakeDesktopApi()
+async def test_the_screenshot_is_scrot_piped_to_base64_on_the_pcs_display() -> None:
+    docker = FakeDocker(status="running")
 
-    await screenshot_result(docker, desktop_api)
+    await screenshot_result(docker)
 
-    (request,) = desktop_api.seen
-    assert (request.method, str(request.url)) == (
-        "POST",
-        f"http://127.0.0.1:{API_HOST_PORT}/v1/desktop",
+    assert SCREENSHOT_CALL in docker.calls
+
+
+async def test_the_desktop_reads_the_screen_as_the_commands_stdout() -> None:
+    desktop = Desktop(engine=DockerEngine(docker=FakeDocker(status="running")), container=NAME)
+
+    shot = await desktop.screenshot()
+
+    assert base64.b64decode(shot.image) == PNG
+    assert shot.mime_type == "image/png"
+
+
+@pytest.mark.parametrize(
+    ("stdout", "said"),
+    [
+        (base64.b64encode(b"GIF89a").decode(), "not a PNG"),
+        ("not base64!", "not a PNG"),
+        ("", "not a PNG"),
+    ],
+)
+async def test_output_that_is_not_a_png_is_an_error_never_a_picture(stdout: str, said: str) -> None:
+    docker = FakeDocker(status="running")
+    docker.screenshot = CommandResult(0, stdout, "")
+    desktop = Desktop(engine=DockerEngine(docker=docker), container=NAME)
+
+    with pytest.raises(DesktopError, match=said):
+        await desktop.screenshot()
+
+
+async def test_a_failing_command_is_an_error_saying_what_failed() -> None:
+    docker = FakeDocker(status="running")
+    docker.screenshot = CommandResult(
+        1, "", "scrot: Can't open X display. It *is* running, yeah? [:1]"
     )
-    assert request.headers["Authorization"] == f"Bearer {API_TOKEN}"
-    assert json.loads(request.content) == {"display": ":1", "steps": [], "observe": True}
-    assert ["port", NAME, "7070"] in docker.calls
 
+    result = await screenshot_result(docker)
 
-async def test_a_computer_this_server_made_is_asked_with_the_token_it_was_made_with() -> None:
-    docker, desktop_api = FakeDocker(status="missing"), FakeDesktopApi()
-
-    await screenshot_result(docker, desktop_api)
-
-    run = next(call for call in docker.calls if call[0] == "run")
-    made = next(arg for arg in run if arg.startswith("RAKAZO_COMPUTER_CONTROL_TOKEN="))
-    assert desktop_api.seen[0].headers["Authorization"] == f"Bearer {made.split('=', 1)[1]}"
+    assert result.is_error
+    assert "the screenshot failed: scrot: Can't open X display" in text_of(result)
+    assert not any(isinstance(block, ImageContent) for block in result.content)
 
 
 async def test_screenshot_starts_a_stopped_computer_first() -> None:
     docker = FakeDocker(status="exited")
 
-    result = await screenshot_result(docker, FakeDesktopApi())
+    result = await screenshot_result(docker)
 
     assert not result.is_error, text_of(result)
-    assert docker.verbs().index("start") < docker.verbs().index("port")
+    assert docker.verbs().index("start") < docker.calls.index(SCREENSHOT_CALL)
 
 
 async def test_a_screenshot_call_postpones_the_idle_stop() -> None:
@@ -99,63 +109,11 @@ async def test_a_screenshot_call_postpones_the_idle_stop() -> None:
         assert docker.calls[-1] == STOP
 
 
-async def test_the_port_is_read_again_after_the_computer_starts_again() -> None:
-    docker, dial, desktop_api = FakeDocker(status="running"), Dial(), FakeDesktopApi()
-    async with Client(server_with(docker, dial, desktop_api)) as client:
-        await client.call_tool("screenshot", {})
-        await dial.turn(IDLE_SECONDS)
-        await client.call_tool("screenshot", {})
-
-    assert [request.url.port for request in desktop_api.seen] == [API_HOST_PORT, API_HOST_PORT + 1]
-
-
-@pytest.mark.parametrize(
-    ("reply", "said"),
-    [
-        (httpx.Response(401, text="<h1>Unauthorized</h1>"), "refused the screenshot: 401"),
-        (httpx.Response(500, text="boom"), "refused the screenshot: 500"),
-        (httpx.ConnectError("Connection refused"), "did not answer: ConnectError"),
-        (httpx.ReadTimeout("timed out"), "did not answer: ReadTimeout"),
-        (httpx.Response(200, text="not json"), "cannot read"),
-        (httpx.Response(200, json={"completed": 0}), "cannot read"),
-        (
-            desktop_reply(image=SCREENSHOT_REPLY["observation"]["image"], mimeType="image/jpeg"),
-            "cannot read",
-        ),
-        (desktop_reply(image="not base64!", mimeType="image/png"), "cannot read"),
-        (
-            desktop_reply(image=base64.b64encode(b"GIF89a").decode(), mimeType="image/png"),
-            "cannot read",
-        ),
-    ],
-)
-async def test_a_refused_or_unreadable_reply_is_an_error_never_a_picture(
-    reply: httpx.Response | httpx.HTTPError, said: str
-) -> None:
-    result = await screenshot_result(FakeDocker(status="running"), FakeDesktopApi(reply))
-
-    assert result.is_error
-    assert said in text_of(result)
-    assert not any(isinstance(block, ImageContent) for block in result.content)
-
-
-async def test_a_docker_failure_on_the_port_reaches_the_preview_as_an_error() -> None:
+async def test_a_docker_failure_reaches_the_preview_as_an_error() -> None:
     docker = FakeDocker(status="running")
-    docker.refused_verbs.add("port")
+    docker.unreachable = True
 
-    result = await screenshot_result(docker, FakeDesktopApi())
+    result = await screenshot_result(docker)
 
     assert result.is_error
-    assert "The computer is not available: docker port failed" in text_of(result)
-
-
-def test_the_token_is_read_from_the_containers_environment() -> None:
-    env = {"DISPLAY": ":1", "RAKAZO_COMPUTER_CONTROL_TOKEN": API_TOKEN, "HOME": "/home/pc"}
-
-    assert api_token(env) == API_TOKEN
-
-
-@pytest.mark.parametrize("env", [{"DISPLAY": ":1"}, {"RAKAZO_COMPUTER_CONTROL_TOKEN": ""}])
-def test_a_container_without_a_token_is_refused(env: dict[str, str]) -> None:
-    with pytest.raises(DesktopError, match="no API token"):
-        api_token(env)
+    assert "docker is not on PATH" in text_of(result)

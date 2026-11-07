@@ -13,6 +13,7 @@ RUN apt-get update \
     novnc \
     procps \
     python3 \
+    scrot \
     util-linux \
     websockify \
     x11-utils \
