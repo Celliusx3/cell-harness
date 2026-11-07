@@ -7,7 +7,7 @@ import json
 import pytest
 
 from computer.engines.docker import DockerEngine, environment_of, loopback_port
-from computer.models.errors import EngineError
+from computer.models.errors import EngineError, EngineTimeout
 from tests.conftest import API_HOST_PORT, API_TOKEN, NAME, FakeDocker
 
 
@@ -54,3 +54,8 @@ async def test_the_host_port_and_environment_are_asked_of_docker_by_name() -> No
         ["port", NAME, "7070"],
         ["inspect", "--type", "container", "--format", "{{json .Config.Env}}", NAME],
     ]
+
+
+def test_a_timeout_is_caught_by_every_caller_that_catches_an_engine_error() -> None:
+    with pytest.raises(EngineError, match="did not answer"):
+        raise EngineTimeout("docker did not answer")
