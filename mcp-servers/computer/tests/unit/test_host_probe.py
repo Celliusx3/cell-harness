@@ -8,10 +8,11 @@ from pathlib import Path
 
 import pytest
 
-from computer import host_probe, server
+from computer import server
 from computer.models.command import CommandResult
 from computer.models.errors import EngineError
-from computer.readiness import MicrosandboxHost
+from computer.startup import host_probe
+from computer.startup.readiness import MicrosandboxHost
 
 
 class AnsweringDocker:

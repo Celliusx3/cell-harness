@@ -15,7 +15,6 @@ from mcp.server import MCPServer
 from mcp.server.apps import Apps, ResourceCsp
 from microsandbox import Image, Sandbox
 
-from computer import host_probe
 from computer.clock import SYSTEM
 from computer.config import ConfigError, EngineName, load
 from computer.engine import Engine
@@ -34,6 +33,7 @@ from computer.services.live_screen import LiveScreen
 from computer.services.machine import Machine
 from computer.services.shell import Shell
 from computer.services.skill_declarations import declared_host_services
+from computer.startup import host_probe
 from computer.tools import PREVIEW_URI, Computer, browser, computer_page, shell
 
 logger = logging.getLogger("computer")

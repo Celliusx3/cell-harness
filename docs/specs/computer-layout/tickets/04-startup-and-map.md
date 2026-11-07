@@ -1,6 +1,6 @@
 # 04 The startup check moves, and the folder has a map
 
-**Status.** open
+**Status.** done
 
 **What to build.** Move `readiness.py` and `host_probe.py` into
 `computer/startup/`. Add the folder map from the spec to the `computer` row's
