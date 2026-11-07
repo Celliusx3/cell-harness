@@ -79,8 +79,7 @@ def main() -> None:
         logger.error("computer refusing to start: %s", err)
         raise SystemExit(2) from err
 
-    docker = DockerCli(executable="docker")
-    engine = DockerEngine(docker=docker)
+    engine = DockerEngine(docker=DockerCli(executable="docker"))
     machine = Machine(engine=engine, config=config, clock=SYSTEM)
     host_services = tuple(
         prepared_host_service(service, config.files_dir)
@@ -89,21 +88,21 @@ def main() -> None:
     server = build(
         Computer(
             machine=machine,
-            browser=Browser(docker=docker, container=config.container_name, clock=SYSTEM),
+            browser=Browser(engine=engine, container=config.container_name, clock=SYSTEM),
             desktop=Desktop(
                 engine=engine,
                 container=config.container_name,
                 client=httpx.AsyncClient(trust_env=False),
             ),
             live_screen=LiveScreen(
-                docker=docker, container=config.container_name, machine=machine, clock=SYSTEM
+                engine=engine, container=config.container_name, machine=machine, clock=SYSTEM
             ),
-            files=Files(docker=docker, container=config.container_name),
+            files=Files(engine=engine, container=config.container_name),
             shell=Shell(
-                docker=docker,
+                engine=engine,
                 container=config.container_name,
                 clock=SYSTEM,
-                variables=command_variables(host_services),
+                variables=command_variables(host_services, engine.host_address),
             ),
         ),
         host_services,

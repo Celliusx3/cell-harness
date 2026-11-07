@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -13,8 +13,8 @@ from importlib import resources
 
 from computer import gateway
 from computer.clock import Clock
-from computer.docker import COMMAND_TIMEOUT_SECONDS, Docker, DockerError, stdout_of
-from computer.engine import loopback_port
+from computer.docker import COMMAND_TIMEOUT_SECONDS, DockerError, stdout_of
+from computer.engine import Engine, Program
 from computer.machine import GATEWAY_PORT, Machine
 from computer.models import ScreenSession
 
@@ -46,8 +46,8 @@ class Link:
 class LiveScreen:
     """The screen as the person sees it: watched by anyone, controlled by one person at a time."""
 
-    def __init__(self, *, docker: Docker, container: str, machine: Machine, clock: Clock) -> None:
-        self._docker = docker
+    def __init__(self, *, engine: Engine, container: str, machine: Machine, clock: Clock) -> None:
+        self._engine = engine
         self._container = container
         self._machine = machine
         self._clock = clock
@@ -105,8 +105,9 @@ class LiveScreen:
             if self._hold is None:
                 raise NotHeld
             script = gateway.open_terminal_script(self._hold.token, token)
-            completed = await self._docker.run(
-                ["exec", "-i", self._container, "bash", "-c", script],
+            completed = await self._engine.run(
+                self._container,
+                Program(argv=("bash", "-c", script), env={}),
                 stdin=program,
                 timeout_seconds=COMMAND_TIMEOUT_SECONDS,
             )
@@ -142,12 +143,13 @@ class LiveScreen:
         return gateway.screen_url(await self._gateway_host_port(), token, view_only=view_only)
 
     async def _gateway_host_port(self) -> int:
-        published = await self._output(["port", self._container, str(GATEWAY_PORT)], "docker port")
-        return loopback_port(published, GATEWAY_PORT)
+        return await self._engine.host_port(self._container, GATEWAY_PORT)
 
     async def _run_script(self, script: str, action: str) -> None:
-        await self._output(["exec", self._container, "bash", "-c", script], action)
-
-    async def _output(self, args: Sequence[str], action: str) -> str:
-        completed = await self._docker.run(args, stdin="", timeout_seconds=COMMAND_TIMEOUT_SECONDS)
-        return stdout_of(completed, action)
+        completed = await self._engine.run(
+            self._container,
+            Program(argv=("bash", "-c", script), env={}),
+            stdin=None,
+            timeout_seconds=COMMAND_TIMEOUT_SECONDS,
+        )
+        stdout_of(completed, action)

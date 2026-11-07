@@ -23,8 +23,7 @@ API_PORT = 7070
 GATEWAY_PORT = 6080
 API_TOKEN_VARIABLE = "RAKAZO_COMPUTER_CONTROL_TOKEN"
 SHM_MEGABYTES = 256
-OPEN_CHROME_COMMAND = ["rakazo-focus-or-launch", "rakazo-browser"]
-OPEN_CHROME = Program(argv=tuple(OPEN_CHROME_COMMAND), env={})
+OPEN_CHROME = Program(argv=("rakazo-focus-or-launch", "rakazo-browser"), env={})
 
 
 def shared_folders(config: Config) -> tuple[SharedFolder, ...]:

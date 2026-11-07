@@ -9,6 +9,7 @@ import pytest
 
 from computer.browser import Browser, BrowserError
 from computer.docker import CommandResult, DockerError, DockerTimeout
+from computer.engine import DockerEngine
 from computer.models import Action
 from tests.conftest import (
     ACTED,
@@ -23,7 +24,7 @@ from tests.conftest import (
 
 
 def browser(docker: FakeDocker) -> Browser:
-    return Browser(docker=docker, container=NAME, clock=TickingClock().clock)
+    return Browser(engine=DockerEngine(docker=docker), container=NAME, clock=TickingClock().clock)
 
 
 def page_command(command: str) -> list[str]:
@@ -140,7 +141,9 @@ async def test_chrome_that_never_comes_up_fails_after_15_seconds() -> None:
     ticking = TickingClock()
 
     with pytest.raises(BrowserError, match="did not start within 15 seconds"):
-        await Browser(docker=docker, container=NAME, clock=ticking.clock).read()
+        await Browser(
+            engine=DockerEngine(docker=docker), container=NAME, clock=ticking.clock
+        ).read()
 
     assert len(docker.launches()) == 1
     assert 15 <= ticking.now < 16

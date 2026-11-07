@@ -271,19 +271,19 @@ def server_with(
     return build(
         Computer(
             machine=machine,
-            browser=Browser(docker=docker, container=NAME, clock=TickingClock().clock),
+            browser=Browser(engine=engine, container=NAME, clock=TickingClock().clock),
             desktop=Desktop(
                 engine=engine,
                 container=NAME,
                 client=(desktop_api or FakeDesktopApi()).client(),
             ),
-            live_screen=LiveScreen(docker=docker, container=NAME, machine=machine, clock=clock),
-            files=Files(docker=docker, container=NAME),
+            live_screen=LiveScreen(engine=engine, container=NAME, machine=machine, clock=clock),
+            files=Files(engine=engine, container=NAME),
             shell=Shell(
-                docker=docker,
+                engine=engine,
                 container=NAME,
                 clock=TickingClock().clock,
-                variables=command_variables(host_services),
+                variables=command_variables(host_services, engine.host_address),
             ),
         ),
         host_services,

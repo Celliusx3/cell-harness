@@ -9,8 +9,9 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from computer.clock import Clock
-from computer.docker import COMMAND_TIMEOUT_SECONDS, Docker, DockerTimeout, stdout_of
-from computer.machine import OPEN_CHROME_COMMAND
+from computer.docker import DockerTimeout, stdout_of
+from computer.engine import Engine, Program
+from computer.machine import OPEN_CHROME
 from computer.models import Acted, Action, Opened, Page
 
 logger = logging.getLogger("computer")
@@ -19,8 +20,8 @@ PAGE_TIMEOUT_SECONDS = 25.0
 CHROME_WAIT_SECONDS = 15.0
 RETRY_SECONDS = 0.5
 CHROME_DOWN = "CDP not ready"
-PAGE_SCRIPT = ["rakazo-page-browser"]
-ARGUMENTS_ON_STDIN = "RAKAZO_BROWSER_ARGS_STDIN=1"
+PAGE_SCRIPT = "rakazo-page-browser"
+ARGUMENTS_ON_STDIN = {"RAKAZO_BROWSER_ARGS_STDIN": "1"}
 NO_ARGUMENTS = "{}"
 
 PageCommand = Literal["navigate", "snapshot", "act"]
@@ -101,8 +102,8 @@ def act_failure_message(refusal: Refusal, total: int) -> str:
 class Browser:
     """The computer's Chrome, driven one page command at a time."""
 
-    def __init__(self, *, docker: Docker, container: str, clock: Clock) -> None:
-        self._docker = docker
+    def __init__(self, *, engine: Engine, container: str, clock: Clock) -> None:
+        self._engine = engine
         self._container = container
         self._clock = clock
 
@@ -152,10 +153,13 @@ class Browser:
     async def _ask_once[R: Reply](
         self, command: PageCommand, arguments: str, reply_type: TypeAdapter[R]
     ) -> R:
-        script = ["exec", "-i", "-e", ARGUMENTS_ON_STDIN, self._container, *PAGE_SCRIPT, command]
+        script = Program(argv=(PAGE_SCRIPT, command), env=ARGUMENTS_ON_STDIN)
         try:
-            completed = await self._docker.run(
-                script, stdin=arguments + "\n", timeout_seconds=PAGE_TIMEOUT_SECONDS
+            completed = await self._engine.run(
+                self._container,
+                script,
+                stdin=arguments + "\n",
+                timeout_seconds=PAGE_TIMEOUT_SECONDS,
             )
         except DockerTimeout as err:
             raise BrowserError(
@@ -174,8 +178,4 @@ class Browser:
 
     async def _open_chrome(self) -> None:
         logger.info("Chrome is not up on the computer %s; launching it", self._container)
-        launch = ["exec", "-d", self._container, *OPEN_CHROME_COMMAND]
-        stdout_of(
-            await self._docker.run(launch, stdin="", timeout_seconds=COMMAND_TIMEOUT_SECONDS),
-            "launching Chrome",
-        )
+        stdout_of(await self._engine.launch(self._container, OPEN_CHROME), "launching Chrome")

@@ -9,7 +9,8 @@ from collections.abc import Sequence
 
 from pydantic import TypeAdapter, ValidationError
 
-from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult, Docker
+from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult
+from computer.engine import Engine, Program
 from computer.machine import HOME
 from computer.models import (
     TRANSFER_LIMIT_BYTES,
@@ -100,10 +101,10 @@ def stdout_of(completed: CommandResult, action: str) -> str:
 
 
 class Files:
-    """The computer's home folder, one `docker exec` per call, as the image's own user."""
+    """The computer's home folder, one program run in it per call, as the image's own user."""
 
-    def __init__(self, *, docker: Docker, container: str) -> None:
-        self._docker = docker
+    def __init__(self, *, engine: Engine, container: str) -> None:
+        self._engine = engine
         self._container = container
 
     async def listing(self, path: HomePath) -> Listing:
@@ -156,8 +157,9 @@ class Files:
             ) from err
 
     async def _run_python(self, script: str, args: Sequence[str], *, stdin: str) -> CommandResult:
-        return await self._docker.run(
-            ["exec", "-i", self._container, "python3", "-c", script, *args],
+        return await self._engine.run(
+            self._container,
+            Program(argv=("python3", "-c", script, *args), env={}),
             stdin=stdin,
             timeout_seconds=COMMAND_TIMEOUT_SECONDS,
         )

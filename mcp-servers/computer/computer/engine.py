@@ -17,6 +17,7 @@ PcState = Literal["running", "stopped", "missing"]
 LOOPBACK = "127.0.0.1"
 LOOPBACK_BINDING_PATTERN = re.compile(r"127\.0\.0\.1:(\d+)")
 LABEL = "cell-harness.computer"
+HOST_FROM_THE_PC = "host.docker.internal"
 STATUS_FORMAT = "{{.State.Status}}"
 BINDINGS_FORMAT = "{{json .HostConfig.PortBindings}}"
 MOUNTS_FORMAT = "{{json .Mounts}}"
@@ -66,6 +67,10 @@ class Program:
 
 class Engine(Protocol):
     """The PC's lifecycle and the programs run in it; a failure to reach the PC is a DockerError."""
+
+    @property
+    def host_address(self) -> str:
+        """The Mac's address as a program in the PC reaches it."""
 
     async def create(self, spec: PcSpec) -> None:
         """Make the PC and start it."""
@@ -213,6 +218,10 @@ class DockerEngine:
     """The PC as one docker container, run through the docker command line."""
 
     docker: Docker
+
+    @property
+    def host_address(self) -> str:
+        return HOST_FROM_THE_PC
 
     async def create(self, spec: PcSpec) -> None:
         await self._output(run_arguments(spec), "docker run")

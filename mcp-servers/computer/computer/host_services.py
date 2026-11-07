@@ -18,7 +18,6 @@ from computer.clock import Clock
 logger = logging.getLogger("computer")
 
 LOOPBACK = "127.0.0.1"
-HOST_FROM_THE_COMPUTER = "host.docker.internal"
 TOKEN_BYTES = 32
 TOKEN_FOLDER_PREFIX = "cell-harness-host-service-"
 TOKEN_FILE_NAME = "token"
@@ -67,13 +66,13 @@ def prepared_host_service(service: HostService, files: Path) -> PreparedHostServ
     )
 
 
-def command_variables(prepared: Sequence[PreparedHostService]) -> dict[str, str]:
+def command_variables(prepared: Sequence[PreparedHostService], host_address: str) -> dict[str, str]:
     """What a command in the computer reads to reach each service: `<PREFIX>_ADDR`, `_TOKEN`."""
     return {
         name: value
         for each in prepared
         for name, value in (
-            (f"{each.service.env_prefix}_ADDR", f"{HOST_FROM_THE_COMPUTER}:{each.port}"),
+            (f"{each.service.env_prefix}_ADDR", f"{host_address}:{each.port}"),
             (f"{each.service.env_prefix}_TOKEN", each.token),
         )
     }

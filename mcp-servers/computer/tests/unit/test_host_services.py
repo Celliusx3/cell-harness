@@ -222,10 +222,10 @@ def test_a_command_is_handed_each_services_address_and_token_under_its_prefix(
 ) -> None:
     one, two = (prepared(tmp_path / "program", tmp_path, prefix) for prefix in ("ONE", "TWO"))
 
-    assert command_variables([one, two]) == {
+    assert command_variables([one, two], "host.docker.internal") == {
         "ONE_ADDR": f"host.docker.internal:{one.port}",
         "ONE_TOKEN": one.token,
         "TWO_ADDR": f"host.docker.internal:{two.port}",
         "TWO_TOKEN": two.token,
     }
-    assert command_variables([]) == {}
+    assert command_variables([], "host.docker.internal") == {}

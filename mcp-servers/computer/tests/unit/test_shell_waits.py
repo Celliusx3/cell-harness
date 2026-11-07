@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from computer.engine import DockerEngine
 from computer.machine import HOME
 from computer.shell import POLL_SECONDS, WAIT_SECONDS, Job, Shell
 from tests.conftest import NAME, TickingClock
@@ -11,7 +12,9 @@ SLEEPING = Job(command="sleep 60", stdin="", cwd=HOME)
 
 
 def shell(docker: JobDocker, ticking: TickingClock) -> Shell:
-    return Shell(docker=docker, container=NAME, clock=ticking.clock, variables={})
+    return Shell(
+        engine=DockerEngine(docker=docker), container=NAME, clock=ticking.clock, variables={}
+    )
 
 
 async def test_a_call_on_a_slow_command_waits_fifteen_seconds_looking_every_half_second() -> None:

@@ -1,6 +1,6 @@
 # 03 Every PC call goes through the engine
 
-**Status.** open
+**Status.** done
 
 **What to build.** Reshaping, with no change in behaviour. Move `shell.py`,
 `browser.py`, `files.py`, `live_screen.py` and `host_services.py` to the

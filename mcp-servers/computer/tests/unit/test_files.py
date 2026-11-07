@@ -10,6 +10,7 @@ from mcp import Client
 from mcp.types import CallToolResult, TextContent
 
 from computer.docker import CommandResult
+from computer.engine import DockerEngine
 from computer.files import LIST_SCRIPT, READ_SCRIPT, WRITE_SCRIPT, Files
 from computer.machine import HOME
 from computer.tools.computer_page import UPLOAD_NEEDS_CONTROL
@@ -186,7 +187,7 @@ async def test_a_path_that_skipped_the_parser_is_refused_before_any_docker_call(
     docker.python_result = CommandResult(0, "[]\n", "")
 
     with pytest.raises(AttributeError, match="absolute"):
-        await Files(docker=docker, container=NAME).listing("notes")
+        await Files(engine=DockerEngine(docker=docker), container=NAME).listing("notes")
 
     assert docker.calls == []
 
