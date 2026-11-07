@@ -26,7 +26,7 @@ print(json.dumps({
     "servers": list(s.mcp.servers),
     "data_paths": [str(p) for p in (
         s.sessions.root, s.skills.editable, s.approval.grants_path,
-        s.bots.path, s.secrets.path, s.files.root,
+        s.bots.path, s.secrets.path, s.files.root, s.mcp.path,
     )],
 }))
 """
@@ -67,14 +67,14 @@ def test_the_app_reads_its_local_file_from_the_path_it_names(tmp_path) -> None:
     assert loaded.api_key == "sk-from-the-app"
 
 
-def test_the_app_has_every_capability_make_dev_has(tmp_path) -> None:
+def test_the_app_has_exactly_the_built_in_servers_make_dev_has(tmp_path) -> None:
     loaded = _load_as_the_app(tmp_path / "home", tmp_path / "missing.json")
 
     dev_servers = json.loads((BACKEND / "config.json").read_text())["mcp"]["servers"]
-    assert sorted(loaded.servers) == sorted(dev_servers)
+    assert loaded.servers == list(dev_servers) == ["computer"]
 
 
-def test_each_capability_waits_for_the_keys_it_waits_for_in_make_dev() -> None:
+def test_each_built_in_server_waits_for_the_keys_it_waits_for_in_make_dev() -> None:
     app = json.loads(DESKTOP_CONFIG.read_text())["mcp"]["servers"]
     dev = json.loads((BACKEND / "config.json").read_text())["mcp"]["servers"]
 
@@ -83,7 +83,7 @@ def test_each_capability_waits_for_the_keys_it_waits_for_in_make_dev() -> None:
     }
 
 
-def test_every_capability_keeps_its_data_in_the_app_folder_but_the_pcs_runtime() -> None:
+def test_the_pc_keeps_its_data_in_the_app_folder_but_its_runtime() -> None:
     servers = json.loads(DESKTOP_CONFIG.read_text())["mcp"]["servers"]
 
     folders = [

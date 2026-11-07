@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from harness.config import settings as settings_module
 from harness.config.sections import McpServer, McpSettings
-from harness.config.settings import Settings, SkillSettings
+from harness.config.settings import MissingConfigError, Settings, SkillSettings
 
 
 def test_a_plain_server_is_accepted() -> None:
@@ -112,6 +112,49 @@ def test_the_two_config_files_merge_per_server(tmp_path, config_file) -> None:
     assert loaded.mcp.servers["gh"].env == {"TOKEN": "s3cret"}
 
 
+def test_a_server_set_up_only_in_the_local_file_stops_the_start(tmp_path, config_file) -> None:
+    write_committed, write_local = config_file
+    write_committed({"mcp": {"servers": {"computer": {"command": "uv"}}}})
+    write_local({"mcp": {"servers": {"jobs": {"command": "uvx", "args": ["jobs"]}}}})
+
+    with pytest.raises(MissingConfigError) as refused:
+        settings_in(tmp_path)
+
+    assert str(refused.value) == (
+        f"jobs is set up in {tmp_path / 'config.local.json'}, but MCP servers are added on the "
+        "MCP servers screen now; remove it from that file and add it there"
+    )
+
+
+def test_a_server_set_up_only_in_the_environment_stops_the_start(
+    tmp_path, config_file, monkeypatch
+) -> None:
+    write_committed, _ = config_file
+    write_committed({"mcp": {"servers": {"computer": {"command": "uv"}}}})
+    monkeypatch.setenv("HARNESS_MCP__SERVERS__JOBS__COMMAND", "uvx")
+
+    with pytest.raises(MissingConfigError, match="jobs is set up in the environment"):
+        settings_in(tmp_path)
+
+
+def test_a_local_setting_for_the_computer_still_merges(tmp_path, config_file) -> None:
+    write_committed, write_local = config_file
+    write_committed({"mcp": {"servers": {"computer": {"command": "uv", "env": {"A": "1"}}}}})
+    write_local({"mcp": {"servers": {"computer": {"env": {"MSB_HOME": "/tmp/msb"}}}}})
+
+    loaded = settings_in(tmp_path)
+
+    assert loaded.mcp.servers["computer"].command == "uv"
+    assert loaded.mcp.servers["computer"].env == {"A": "1", "MSB_HOME": "/tmp/msb"}
+
+
+def test_no_local_file_starts_with_the_committed_servers(tmp_path, config_file) -> None:
+    write_committed, _ = config_file
+    write_committed({"mcp": {"servers": {"computer": {"command": "uv"}}}})
+
+    assert list(settings_in(tmp_path).mcp.servers) == ["computer"]
+
+
 def test_a_bad_server_in_config_fails_the_load(tmp_path, config_file) -> None:
     write_committed, _ = config_file
     write_committed({"mcp": {"servers": {"fs": {"command": ""}}}})
@@ -136,17 +179,6 @@ def test_the_computer_mounts_exactly_the_skills_bots_cannot_change() -> None:
     mounted = committed["mcp"]["servers"]["computer"]["env"]["COMPUTER_SKILLS_DIRS"]
 
     assert {(backend / folder).resolve() for folder in mounted.split(os.pathsep)} == shipped
-
-
-def test_the_capabilities_that_call_a_paid_api_wait_for_its_key() -> None:
-    backend = Path(__file__).parents[2]
-    committed = McpSettings.model_validate(json.loads((backend / "config.json").read_text())["mcp"])
-    needs = {server_id: server.needs for server_id, server in committed.servers.items()}
-
-    assert needs["places"] == ("GOOGLE_MAPS_API_KEY",)
-    assert needs["markets"] == ("COINGECKO_API_KEY",)
-    assert needs["instagram"] == ("AI_PROVIDER_API_KEY",)
-    assert needs["computer"] == ()
 
 
 def test_a_server_setting_under_the_home_folder_is_read_from_it(monkeypatch, tmp_path) -> None:

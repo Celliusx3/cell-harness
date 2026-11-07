@@ -28,8 +28,6 @@
   },
   "approval": {
     "tools": [
-      "memory__write_note",
-      "memory__delete_note",
       "skill_save",
       "skill_delete",
       "skill_write_file",
@@ -50,87 +48,6 @@
   },
   "mcp": {
     "servers": {
-      "instagram": {
-        "command": "python3",
-        "args": [
-          "-c",
-          "from instagram.server import main; main()"
-        ],
-        "env": {
-          "PYTHONPATH": "../../servers/instagram",
-          "AI_PROVIDER_BASE_URL": "https://api.ilmu.ai/v1",
-          "INSTAGRAM_MEDIA_BACKEND": "instaloader",
-          "AI_VISION_MODEL": "glm-5.3-flash",
-          "AI_ASR_MODEL": "ilmu-asr-v4.2",
-          "INSTAGRAM_WORK_DIR": "~/Library/Application Support/Cell Harness/instagram",
-          "INSTAGRAM_MAX_FRAMES": "8",
-          "INSTAGRAM_MAX_SPEECH_SECONDS": "180",
-          "INSTAGRAM_CALL_BUDGET_SECONDS": "45"
-        },
-        "needs": [
-          "AI_PROVIDER_API_KEY"
-        ]
-      },
-      "places": {
-        "command": "python3",
-        "args": [
-          "-c",
-          "from places.server import main; main()"
-        ],
-        "env": {
-          "PYTHONPATH": "../../servers/places",
-          "PLACES_MAX_RESULTS": "3"
-        },
-        "needs": [
-          "GOOGLE_MAPS_API_KEY"
-        ]
-      },
-      "markets": {
-        "command": "python3",
-        "args": [
-          "-c",
-          "from markets.server import main; main()"
-        ],
-        "env": {
-          "PYTHONPATH": "../../servers/markets",
-          "SEC_USER_AGENT": "cell-harness contact@example.com",
-          "MARKETS_MAX_ROWS": "70"
-        },
-        "needs": [
-          "COINGECKO_API_KEY"
-        ]
-      },
-      "sysmon": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "--silent",
-          "@modelcontextprotocol/server-system-monitor@2.0.3",
-          "--stdio"
-        ]
-      },
-      "memory": {
-        "command": "uvx",
-        "args": [
-          "basic-memory==0.24.1",
-          "mcp"
-        ],
-        "env": {
-          "BASIC_MEMORY_NO_PROMOS": "1",
-          "UV_PYTHON": "../../python/bin/python3",
-          "UV_PYTHON_DOWNLOADS": "never",
-          "BASIC_MEMORY_HOME": "~/Library/Application Support/Cell Harness/memory",
-          "BASIC_MEMORY_CONFIG_DIR": "~/Library/Application Support/Cell Harness/memory-settings"
-        }
-      },
-      "exa": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "--silent",
-          "exa-mcp-server@3.4.2"
-        ]
-      },
       "computer": {
         "command": "python3",
         "args": [
@@ -148,6 +65,7 @@
         },
         "required": true
       }
-    }
+    },
+    "path": "~/Library/Application Support/Cell Harness/mcp.json"
   }
 }

@@ -8,13 +8,7 @@ DENO_VERSION=2.8.3
 DENO_ZIP=deno-aarch64-apple-darwin.zip
 DENO_SHA256=88b350be928fdba0e5d8142ff7c101a17133426371e3cf5ed0e0f74e62476f6c
 DENO_RELEASE="https://github.com/denoland/deno/releases/download/v$DENO_VERSION"
-NODE_VERSION=24.22.1
-NODE_TARBALL="node-v$NODE_VERSION-darwin-arm64.tar.gz"
-NODE_SHA256=89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7
-UV_VERSION=0.13.5
-UV_TARBALL=uv-aarch64-apple-darwin.tar.gz
-UV_SHA256=743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73
-SERVERS="instagram places markets computer"
+SERVERS="computer"
 BUILD="$(pwd)/build"
 BUNDLE="$(pwd)/build/bundle"
 UV_PYTHON="$BUILD/uv-python"
@@ -39,22 +33,11 @@ grep -q "^$DENO_SHA256 " "$BUILD/$DENO_ZIP.sha256sum"
 mkdir -p "$BUNDLE/bin"
 unzip -q "$BUILD/$DENO_ZIP" deno -d "$BUNDLE/bin"
 
-curl -fsSL -o "$BUILD/$NODE_TARBALL" "https://nodejs.org/dist/v$NODE_VERSION/$NODE_TARBALL"
-echo "$NODE_SHA256  $BUILD/$NODE_TARBALL" | shasum -a 256 -c -
-mkdir -p "$BUNDLE/node"
-tar -xzf "$BUILD/$NODE_TARBALL" -C "$BUNDLE/node" --strip-components 1
-
-curl -fsSL -o "$BUILD/$UV_TARBALL" "https://github.com/astral-sh/uv/releases/download/$UV_VERSION/$UV_TARBALL"
-echo "$UV_SHA256  $BUILD/$UV_TARBALL" | shasum -a 256 -c -
-tar -xzf "$BUILD/$UV_TARBALL" -C "$BUNDLE/bin" --strip-components 1
-
 write_launcher() {
     printf '#!/bin/sh\nexec "$(dirname "$0")/%s" "$@"\n' "$2" > "$BUNDLE/bin/$1"
     chmod 755 "$BUNDLE/bin/$1"
 }
 write_launcher python3 ../python/bin/python3
-write_launcher node ../node/bin/node
-write_launcher npx ../node/bin/npx
 
 for server in $SERVERS; do
     (cd "../mcp-servers/$server" && uv export --frozen --no-dev --no-emit-project --no-hashes) > "$BUILD/$server.txt"
@@ -86,6 +69,4 @@ for server in $SERVERS; do
     env -i PATH="$BUNDLE/bin:/usr/bin:/bin" PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$BUNDLE/servers/$server" \
         "$BUNDLE/bin/python3" -c "import $server.server"
 done
-env -i PATH="$BUNDLE/bin:/usr/bin:/bin" "$BUNDLE/bin/npx" --version
-env -i PATH="$BUNDLE/bin:/usr/bin:/bin" "$BUNDLE/bin/uvx" --version
 echo "bundle filled: $BUNDLE"

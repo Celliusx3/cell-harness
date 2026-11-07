@@ -1,6 +1,6 @@
 # 03 Only the PC is built in
 
-**Status.** open
+**Status.** done
 
 **What to build.** `backend/config.json` and `desktop/config.json` list only
 the `computer` server. A server named only in a config file stops the
