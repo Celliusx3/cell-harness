@@ -47,8 +47,8 @@ async def test_a_command_that_outlives_its_timeout_is_killed(
 ) -> None:
     pid_file = tmp_path / "pid"
 
-    with pytest.raises(EngineTimeout, match="within 0.2 seconds"):
-        await docker.run(["hang", str(pid_file)], stdin="", timeout_seconds=0.2)
+    with pytest.raises(EngineTimeout, match="within 1 seconds"):
+        await docker.run(["hang", str(pid_file)], stdin="", timeout_seconds=1.0)
 
     with pytest.raises(ProcessLookupError):
         os.kill(int(pid_file.read_text()), 0)
