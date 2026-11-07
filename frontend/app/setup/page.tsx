@@ -48,7 +48,7 @@ export default function SetupPage() {
         </h1>
       )}
       {state.kind === "canSave" && (
-        <SetupForm shippedModel={state.list.shipped_model} directUrl={state.list.direct_url} />
+        <SetupForm directUrl={state.list.direct_url} />
       )}
     </SetupColumn>
   );

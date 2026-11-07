@@ -17,12 +17,10 @@ MSB_SOCKET_SUFFIX = 50
 
 _PRINT_LOADED = """
 import json
-import sys
-from pathlib import Path
 from harness.config.settings import Settings
-s = Settings(local_settings_path=Path(sys.argv[1]))
+s = Settings()
 print(json.dumps({
-    "api_key": s.llm.api_key,
+    "encryption_key": s.secrets.encryption_key,
     "servers": list(s.mcp.servers),
     "data_paths": [str(p) for p in (
         s.sessions.root, s.skills.editable, s.approval.grants_path,
@@ -34,7 +32,7 @@ print(json.dumps({
 
 @dataclass(frozen=True)
 class Loaded:
-    api_key: str
+    encryption_key: str
     servers: list[str]
     data_paths: list[str]
 
@@ -47,7 +45,7 @@ def _load_as_the_app(home: Path, local: Path) -> Loaded:
         "HARNESS_CONFIG_LOCAL": str(local),
     }
     result = subprocess.run(
-        [sys.executable, "-c", _PRINT_LOADED, str(local)],
+        [sys.executable, "-c", _PRINT_LOADED],
         cwd=BACKEND,
         env=env,
         capture_output=True,
@@ -60,11 +58,11 @@ def _load_as_the_app(home: Path, local: Path) -> Loaded:
 def test_the_app_reads_its_local_file_from_the_path_it_names(tmp_path) -> None:
     local = tmp_path / "elsewhere" / "config.local.json"
     local.parent.mkdir()
-    local.write_text(json.dumps({"llm": {"api_key": "sk-from-the-app"}}))
+    local.write_text(json.dumps({"secrets": {"encryption_key": "key-from-the-app"}}))
 
     loaded = _load_as_the_app(tmp_path / "home", local)
 
-    assert loaded.api_key == "sk-from-the-app"
+    assert loaded.encryption_key == "key-from-the-app"
 
 
 def test_the_app_has_exactly_the_built_in_servers_make_dev_has(tmp_path) -> None:

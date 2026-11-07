@@ -47,17 +47,12 @@ from tests.unit.telegram_fakes import FakeBot, telegram_channel
 TEST_ENCRYPTION_KEY = "test-encryption-key"
 MODEL_CREDENTIAL = "test_model"
 MODEL_KEY = "sk-test-model-0000"
-SHIPPED_MODEL = ModelDetails(
-    base_url="https://shipped.example/v1", model="shipped-model", vision=False
-)
 NO_PLATFORM_STORAGE = Path("/nonexistent/cell-harness-platforms")
 
 
 def startup_settings(tmp_path: Path) -> Settings:
     """Settings that keep all `create_web_app` makes under `tmp_path`, keys as `secrets_in`."""
     return Settings(
-        local_settings_path=tmp_path / "config.local.json",
-        llm={"model": "m"},
         sessions={"root": tmp_path / "sessions"},
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
@@ -224,7 +219,6 @@ def web_app(
         bots,
         secrets,
         BotMessages(service, bots, runs),
-        SHIPPED_MODEL,
     )
 
 
@@ -255,7 +249,6 @@ def web_app_with_telegram(
         bots,
         secrets,
         BotMessages(service, bots, runs),
-        SHIPPED_MODEL,
     )
     return app, gateway, bot
 

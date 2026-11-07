@@ -84,10 +84,10 @@ class Settings(BaseSettings):
         env_prefix="HARNESS_",
         env_nested_delimiter="__",
         case_sensitive=False,
-        extra="ignore",
+        extra="forbid",
+        hide_input_in_errors=True,
     )
 
-    local_settings_path: Path = Field(exclude=True)
     llm: LLMSettings = Field(default_factory=LLMSettings)
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     web: WebSettings = Field(default_factory=WebSettings)
@@ -142,16 +142,14 @@ def _refuse_servers_beyond(
 
 
 def load() -> Settings:
-    """Settings for a real run, with the two unguessable values checked."""
-    settings = Settings(local_settings_path=_LOCAL_JSON)
+    """Settings for a real run, with Deno and the encryption key checked."""
+    settings = Settings()
     if shutil.which(settings.code.deno_path) is None:
         raise MissingConfigError(
             f"{settings.code.deno_path!r} is not on PATH, and the harness runs "
             "every tool call through a Deno sandbox. Install Deno "
             f"(https://deno.com) or set code.deno_path in {_CONFIG_JSON}."
         )
-    if not settings.llm.model.strip():
-        raise MissingConfigError(f"llm.model is not set. It belongs in {_CONFIG_JSON}.")
     if not settings.secrets.encryption_key.strip():
         raise MissingConfigError(
             f"secrets.encryption_key is not set. It belongs in {_LOCAL_JSON} (gitignored) as "

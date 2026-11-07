@@ -29,7 +29,7 @@ def _services(tmp_path: Path) -> tuple[SessionService, RunService]:
 async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
     """The gateway once the saved tokens are registered on it, with nothing started."""
     sessions, runs = _services(tmp_path)
-    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    settings = Settings()
     channels = build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)
     await channels.platforms.start_saved()
     return channels.gateway

@@ -164,7 +164,7 @@ async def test_a_message_queued_behind_a_turn_keeps_its_files(tmp_path) -> None:
 def test_the_web_channel_keeps_files_in_the_service_it_is_built_with(tmp_path) -> None:
     sessions, runs = build(tmp_path, ScriptedClient([]))
     files = files_in(tmp_path)
-    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    settings = Settings()
     services = replace(channel_services(tmp_path, sessions, runs), files=files)
 
     web = build_channels(settings, services, secrets_in(tmp_path)).web

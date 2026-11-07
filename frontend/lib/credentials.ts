@@ -29,11 +29,10 @@ export interface Credential {
   bots: { id: string; name: string }[];
 }
 
-/** `GET /api/credentials`, with the harness's own address, where every save goes, and the model the app ships with. */
+/** `GET /api/credentials`, with the harness's own address, where every save goes. */
 export interface CredentialList {
   credentials: Credential[];
   direct_url: string;
-  shipped_model: ModelDetails;
 }
 
 /** `POST /api/credentials`: a new credential, its key, and the bots it serves. */

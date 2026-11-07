@@ -46,9 +46,7 @@ def compose(tmp_path: Path):
     """The real object graph, with a service that is never started."""
 
     def build() -> Runtime:
-        settings = Settings(
-            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
-        )
+        settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path))
         mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys())
         return build_runtime(
@@ -105,8 +103,6 @@ def test_the_code_prompt_names_each_code_mode_tool() -> None:
 
 
 def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:
-    monkeypatch.setenv("HARNESS_LLM__MODEL", "m")
-    monkeypatch.setenv("HARNESS_LLM__API_KEY", "k")
     monkeypatch.setenv("HARNESS_CODE__DENO_PATH", "definitely-not-a-real-binary")
 
     with pytest.raises(MissingConfigError, match="definitely-not-a-real-binary"):

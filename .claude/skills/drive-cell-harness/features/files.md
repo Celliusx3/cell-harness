@@ -1,6 +1,6 @@
 # Files
 
-You attach files to a message with the paperclip or by dropping them on the composer; each shows as a chip while it uploads, and above your message once sent: an image as a thumbnail, anything else as a download. The bot is told where each one is saved. A model that can see (`llm.vision: true`) is also shown the attached images.
+You attach files to a message with the paperclip or by dropping them on the composer; each shows as a chip while it uploads, and above your message once sent: an image as a thumbnail, anything else as a download. The bot is told where each one is saved. A model whose LLM credential "Can see images" is also shown the attached images.
 
 ## Sub-features
 
@@ -19,4 +19,4 @@ Attach a picture and ask about it, for example a PNG of a number and "What numbe
 
 ## Gotchas
 
-A model that cannot see but runs with `vision: true` fails the whole turn with the provider's "does not support image inputs"; check `config.local.json` before blaming the code. Uploads land under `HARNESS_FILES__ROOT`, which the launch points into `$RUN`.
+A model that cannot see but runs with `vision: true` fails the whole turn with the provider's "does not support image inputs"; check the credential's "Can see images" on the Credentials page before blaming the code. Uploads land under `HARNESS_FILES__ROOT`, which the launch points into `$RUN`.

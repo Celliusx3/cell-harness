@@ -57,9 +57,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     def build(client, skills: SkillService | None = None) -> tuple[Runtime, SessionService]:
         monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: client)
-        settings = Settings(
-            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
-        )
+        settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
         mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys())
@@ -241,8 +239,6 @@ async def test_subagent_logs_sit_beside_the_conversations_and_are_not_among_them
     tmp_path: Path,
 ) -> None:
     settings = Settings(
-        local_settings_path=tmp_path / "config.local.json",
-        llm={"model": "m", "api_key": "k"},
         sessions={"root": tmp_path / "sessions"},
     )
     logs = build_subagent_logs(settings)

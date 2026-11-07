@@ -7,14 +7,15 @@ import json
 import httpx
 import pytest
 
-from harness.config.sections import LLMSettings
 from harness.llm import Completed, Failed, Image, TextChunk, UserMessage
-from harness.llm.adapters import ImageReader, OpenAIClient
+from harness.llm.adapters import ImageReader, OpenAIClient, OpenAISettings
 from harness.llm.adapters.openai import client as adapter_module
 
 
-def settings() -> LLMSettings:
-    return LLMSettings(_env_file=None, api_key="k", model="m", base_url="https://x/v1")
+def settings() -> OpenAISettings:
+    return OpenAISettings(
+        base_url="https://x/v1", model="m", api_key="k", temperature=1.0, timeout_seconds=600
+    )
 
 
 def sse(*frames: str) -> bytes:

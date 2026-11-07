@@ -50,10 +50,7 @@ async def result_in_chat_s(
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     bots = bots_in(tmp_path, SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
     runtime = build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json",
-            llm={"model": "m", "api_key": "k"},
-        ),
+        Settings(),
         sessions,
         McpService({}, saved={}, keys=no_keys()),
         no_skills(),

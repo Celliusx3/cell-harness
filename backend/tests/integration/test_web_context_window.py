@@ -126,7 +126,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     secrets = secrets_in(tmp_path)
-    base = LLMSettings(_env_file=None, model="unused", base_url="https://unused.example/v1")
+    base = LLMSettings()
     endpoint = ModelEndpoint(
         client_for=lambda s: OpenAIClient(s, read_image=no_image),
         window_for=lambda s: context_window(CompactionSettings(context_tokens=None), s),

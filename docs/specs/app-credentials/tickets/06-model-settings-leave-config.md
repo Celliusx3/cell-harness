@@ -1,6 +1,6 @@
 # 06 The app starts with no model settings in config
 
-**Status.** open
+**Status.** done
 
 **What to build.** `llm.base_url` and `llm.model` leave `LLMSettings` and `config.json`; `temperature` and `timeout_seconds` stay. `load()` stops checking a model. `shipped_model` goes, so the setup screen and credential form start blank. Docs and `config.local.example.json` follow. Files: `config/sections.py`, `config/settings.py`, `web/server.py`, `web/routes/credentials.py`, `backend/config.json`.
 

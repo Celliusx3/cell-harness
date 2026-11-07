@@ -11,6 +11,7 @@ from pydantic import SecretStr
 from harness.bots import BotDraft, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import AssistantMessage, Failed, LLMClient, UserMessage
+from harness.llm.adapters import OpenAISettings
 from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
 from harness.runtime.service import Runtime
 from harness.secrets import DiskSecretRepository, SecretService
@@ -34,11 +35,7 @@ TRADER_URL = "https://api.trader.example/v1"
 TRADER_KEY = "sk-trader-key-1234"
 WINDOW = 8000
 TRADER_MODEL = ModelDetails(base_url=TRADER_URL, model="big", vision=False)
-BASE = LLMSettings(
-    model="small",
-    base_url="https://api.base.example/v1",
-    temperature=0.3,
-)
+BASE = LLMSettings(temperature=0.3, timeout_seconds=30)
 
 
 @dataclass
@@ -133,22 +130,22 @@ async def test_a_compaction_with_no_model_ends_with_the_line(speaker: str | None
 class ClientsMade:
     """A client factory that records the settings each client was made from."""
 
-    made: list[tuple[LLMSettings, LLMClient]] = field(default_factory=list)
-    windows_asked: list[LLMSettings] = field(default_factory=list)
+    made: list[tuple[OpenAISettings, LLMClient]] = field(default_factory=list)
+    windows_asked: list[OpenAISettings] = field(default_factory=list)
 
-    def __call__(self, settings: LLMSettings) -> LLMClient:
+    def __call__(self, settings: OpenAISettings) -> LLMClient:
         client = ScriptedClient(completed("ok"))
         self.made.append((settings, client))
         return client
 
-    def window_for(self, settings: LLMSettings) -> int:
+    def window_for(self, settings: OpenAISettings) -> int:
         self.windows_asked.append(settings)
         return WINDOW
 
     def endpoint(self) -> ModelEndpoint:
         return ModelEndpoint(client_for=self, window_for=self.window_for)
 
-    def settings_of(self, client: LLMClient) -> LLMSettings:
+    def settings_of(self, client: LLMClient) -> OpenAISettings:
         return next(settings for settings, made in self.made if made is client)
 
     def made_for(self, base_url: str) -> int:
@@ -184,6 +181,7 @@ async def test_a_bot_on_a_credential_gets_its_endpoint_model_and_key(keyring, bo
     assert (made_from.base_url, made_from.model) == (TRADER_URL, "big")
     assert made_from.api_key == TRADER_KEY
     assert made_from.temperature == BASE.temperature
+    assert made_from.timeout_seconds == BASE.timeout_seconds
 
 
 async def test_a_bot_with_no_llm_credential_has_no_model(keyring, bots) -> None:

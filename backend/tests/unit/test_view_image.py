@@ -64,10 +64,7 @@ def viewing(path: Path) -> str:
 
 def composed(tmp_path: Path) -> Runtime:
     return build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json",
-            llm={"model": "m", "api_key": "k"},
-        ),
+        Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}, saved={}, keys=no_keys()),
         no_skills(),

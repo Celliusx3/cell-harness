@@ -16,7 +16,7 @@ from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.sealing import sealed
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
-from tests.webapp import MODEL_CREDENTIAL, SHIPPED_MODEL, no_platforms, web_mcp
+from tests.webapp import MODEL_CREDENTIAL, no_platforms, web_mcp
 
 KEY = "0123456789abcdef0123456789abcdef"
 GITHUB = Destination(origin="https://api.github.com", auth="bearer")
@@ -53,7 +53,7 @@ def _add_sealed(tmp_path: Path, name: str, details, value: str) -> None:
 
 async def _listed(secrets: SecretService, bots: BotService) -> httpx.Response:
     app = FastAPI()
-    app.include_router(build_router(secrets, bots, no_platforms(secrets), web_mcp(), SHIPPED_MODEL))
+    app.include_router(build_router(secrets, bots, no_platforms(secrets), web_mcp()))
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as http:
         return await http.get("/api/credentials")
@@ -105,14 +105,9 @@ async def test_a_custom_key_lists_the_bots_allowed_to_use_it(
     assert listed[0]["bots"] == [{"id": chef.id, "name": "Chef"}]
 
 
-async def test_the_list_carries_the_endpoint_and_model_the_app_ships_with(
+async def test_the_list_offers_no_model_to_start_from(
     secrets: SecretService, bots: BotService
 ) -> None:
     listed = (await _listed(secrets, bots)).json()
 
-    assert listed["shipped_model"] == {
-        "kind": "llm",
-        "base_url": SHIPPED_MODEL.base_url,
-        "model": SHIPPED_MODEL.model,
-        "vision": False,
-    }
+    assert set(listed) == {"credentials", "direct_url"}

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from harness.bots import BotNotFound, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import LLMClient
+from harness.llm.adapters import OpenAISettings
 from harness.runtime.models import ModelChoice, NoModel
 from harness.secrets import SecretName, SecretService, UnsealedModelCredential
 
@@ -17,8 +18,8 @@ from harness.secrets import SecretName, SecretService, UnsealedModelCredential
 class ModelEndpoint:
     """What a credential's settings are made into: a client for its requests, and its window."""
 
-    client_for: Callable[[LLMSettings], LLMClient]
-    window_for: Callable[[LLMSettings], int | None]
+    client_for: Callable[[OpenAISettings], LLMClient]
+    window_for: Callable[[OpenAISettings], int | None]
     """Blocking: it may ask the endpoint, so it is run off the event loop."""
 
 
@@ -30,15 +31,15 @@ class CachedChoice:
     choice: ModelChoice
 
 
-def llm_settings_for(credential: UnsealedModelCredential, base: LLMSettings) -> LLMSettings:
-    """`base` pointed at `credential`'s endpoint, model and key; its other values stay."""
+def client_settings_for(credential: UnsealedModelCredential, base: LLMSettings) -> OpenAISettings:
+    """`credential`'s endpoint, model and key, asked as `base` says every model is asked."""
     details = credential.details
-    return base.model_copy(
-        update={
-            "base_url": details.base_url,
-            "model": details.model,
-            "api_key": credential.key.get_secret_value(),
-        }
+    return OpenAISettings(
+        base_url=details.base_url,
+        model=details.model,
+        api_key=credential.key.get_secret_value(),
+        temperature=base.temperature,
+        timeout_seconds=base.timeout_seconds,
     )
 
 
@@ -83,7 +84,7 @@ class CredentialModels:
         credential = await asyncio.to_thread(self._secrets.model_credential_named, name)
         if credential is None:
             return None
-        settings = llm_settings_for(credential, self._base)
+        settings = client_settings_for(credential, self._base)
         window = await asyncio.to_thread(self._endpoint.window_for, settings)
         details = credential.details
         choice = ModelChoice(

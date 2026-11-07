@@ -1,8 +1,5 @@
 {
   "llm": {
-    "base_url": "https://api.ilmu.ai/v1",
-    "model": "glm-5.3-flashx",
-    "vision": true,
     "temperature": 1.0,
     "timeout_seconds": 600
   },

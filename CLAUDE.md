@@ -46,9 +46,9 @@ Five shapes that hold everywhere:
   [channels/__init__.py](./backend/harness/channels/__init__.py).
 
 ```sh
-cp backend/config.local.example.json backend/config.local.json   # add your API key
-# on start the API key and bot tokens move into the keyring (the Credentials page);
-# everything else — model, endpoint, sessions root, MCP servers — is in
+cp backend/config.local.example.json backend/config.local.json   # set secrets.encryption_key
+# every key and model is saved in the app — the setup screen, then Credentials;
+# everything else — sessions root, MCP servers — is in
 # backend/config.json (committed); other secrets stay in config.local.json (gitignored)
 make install && make test          # needs Deno on PATH — https://deno.com
 # the PC needs virtualization: Apple Silicon, KVM on Linux, or the Windows Hypervisor Platform

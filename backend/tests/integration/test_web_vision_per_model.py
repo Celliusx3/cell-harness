@@ -49,7 +49,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     bots = bots_in(tmp_path, service)
     secrets = secrets_in(tmp_path)
     runtime = build_runtime(
-        Settings(local_settings_path=tmp_path / "config.local.json", llm={"model": "unused"}),
+        Settings(),
         service,
         McpService({}, saved={}, keys=no_keys()),
         no_skills(),

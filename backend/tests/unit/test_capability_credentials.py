@@ -18,7 +18,7 @@ from harness.secrets.models.details import CapabilityDetails
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
 from tests.unit.mcp_fakes import FakeFactory
-from tests.webapp import SHIPPED_MODEL, no_platforms
+from tests.webapp import no_platforms
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
@@ -49,9 +49,7 @@ class World:
         self.mcp = McpService(configured, saved={}, keys=self.secrets, client_factory=self.factory)
         app = FastAPI()
         app.include_router(
-            build_router(
-                self.secrets, self.bots, no_platforms(self.secrets), self.mcp, SHIPPED_MODEL
-            )
+            build_router(self.secrets, self.bots, no_platforms(self.secrets), self.mcp)
         )
         self.app = app
 

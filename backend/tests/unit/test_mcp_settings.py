@@ -78,7 +78,6 @@ def config_file(tmp_path, monkeypatch):
     local = tmp_path / "config.local.json"
     monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
     monkeypatch.setattr(settings_module, "_LOCAL_JSON", local)
-    monkeypatch.setenv("HARNESS_LLM__VISION", "false")
     return (
         lambda data: committed.write_text(json.dumps(data)),
         lambda data: local.write_text(json.dumps(data)),
@@ -87,7 +86,7 @@ def config_file(tmp_path, monkeypatch):
 
 def settings_in(tmp_path: Path) -> Settings:
     """Settings as the throwaway files and the environment give them."""
-    return Settings(local_settings_path=tmp_path / "config.local.json")
+    return Settings()
 
 
 def test_the_two_config_files_merge_per_server(tmp_path, config_file) -> None:
@@ -165,7 +164,6 @@ def test_a_bad_server_in_config_fails_the_load(tmp_path, config_file) -> None:
 
 def test_servers_can_come_from_the_environment(tmp_path) -> None:
     configured = Settings(
-        local_settings_path=tmp_path / "config.local.json",
         mcp={"servers": {"fs": {"command": "npx"}}},
     )
     assert configured.mcp.servers["fs"].command == "npx"

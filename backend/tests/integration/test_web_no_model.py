@@ -12,7 +12,7 @@ import pytest
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import Image
-from harness.llm.adapters import OpenAIClient
+from harness.llm.adapters import OpenAIClient, OpenAISettings
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
@@ -68,7 +68,7 @@ def no_image(image: Image) -> bytes | None:
     return None
 
 
-def no_window(settings: LLMSettings) -> int | None:
+def no_window(settings: OpenAISettings) -> int | None:
     return None
 
 
@@ -86,7 +86,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     secrets = secrets_in(tmp_path)
-    base = LLMSettings(_env_file=None, model="unused", base_url=PROVIDER)
+    base = LLMSettings()
     endpoint = ModelEndpoint(
         client_for=lambda s: OpenAIClient(s, read_image=no_image), window_for=no_window
     )

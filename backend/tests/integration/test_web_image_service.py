@@ -34,10 +34,7 @@ from tests.webapp import (
 def runtime_over(tmp_path: Path, images: ImageService) -> Runtime:
     """The runtime `build_runtime` composes over `images`."""
     return build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json",
-            llm={"model": "m", "api_key": "k"},
-        ),
+        Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}, saved={}, keys=no_keys()),
         no_skills(),
@@ -54,7 +51,7 @@ def runtime_over(tmp_path: Path, images: ImageService) -> Runtime:
 def test_the_web_channel_keeps_images_in_the_service_it_is_built_with(tmp_path) -> None:
     sessions, runs = build(tmp_path, ScriptedClient([]))
     images = images_in(tmp_path)
-    settings = Settings(local_settings_path=tmp_path / "config.local.json")
+    settings = Settings()
     services = replace(channel_services(tmp_path, sessions, runs), images=images)
 
     web = build_channels(settings, services, secrets_in(tmp_path)).web

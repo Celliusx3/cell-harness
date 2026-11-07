@@ -21,7 +21,7 @@ from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.mcp_servers import build_router
 from tests.unit.helpers import durable_service
 from tests.unit.mcp_fakes import FakeFactory, tool
-from tests.webapp import SHIPPED_MODEL, no_platforms
+from tests.webapp import no_platforms
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
@@ -75,9 +75,7 @@ class ServerWorld:
         app.include_router(build_router(self.mcp, self.saved))
         app.include_router(build_mcp_router(self.mcp, RelayService(now=time.monotonic)))
         app.include_router(
-            build_credentials_router(
-                self.secrets, bots, no_platforms(self.secrets), self.mcp, SHIPPED_MODEL
-            )
+            build_credentials_router(self.secrets, bots, no_platforms(self.secrets), self.mcp)
         )
         self.app = app
 

@@ -8,17 +8,17 @@ import { ApiError, ASSISTANT_ID, listBots, updateBot } from "@/lib/api";
 import { addCredential, type ModelDetails } from "@/lib/credentials";
 
 const SETUP_MODEL_CREDENTIAL = "first_model";
+const NO_MODEL_YET: ModelDetails = { kind: "llm", base_url: "", model: "", vision: false };
 
 interface SetupFormProps {
-  shippedModel: ModelDetails;
   directUrl: string;
 }
 
-/** The API key saved as Assistant's model, at the endpoint and model shown, which start as the shipped ones. */
-export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
+/** The API key saved as Assistant's model, at the endpoint and model the person types. */
+export function SetupForm({ directUrl }: SetupFormProps) {
   const router = useRouter();
   const [apiKey, setApiKey] = useState("");
-  const [details, setDetails] = useState<ModelDetails>(shippedModel);
+  const [details, setDetails] = useState<ModelDetails>(NO_MODEL_YET);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,6 +95,7 @@ function ProviderFields({ details, onChange }: ProviderFieldsProps) {
           id="setup-endpoint"
           value={details.base_url}
           onChange={(event) => onChange({ ...details, base_url: event.target.value })}
+          placeholder="https://api.example.com/v1"
           inputMode="url"
           autoComplete="off"
           spellCheck={false}

@@ -25,14 +25,12 @@ from harness.relay import RelayService
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.models.details import ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.errors import exception_handlers
-from harness.web.file_keys import move_file_keys
 from harness.web.logs import configure_logging
 from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.web.routes.approvals import build_router as build_approvals_router
@@ -78,13 +76,11 @@ def build_mcp(settings: Settings, keyring: SecretService, saved: SavedServerServ
 
 
 def build_keyring(settings: Settings) -> SecretService:
-    """The keyring, once the settings file's keys are moved in."""
-    keyring = SecretService(
+    """The keyring, where every key the app holds is saved from Credentials."""
+    return SecretService(
         DiskSecretRepository(settings.secrets.path),
         encryption_key=settings.secrets.encryption_key,
     )
-    move_file_keys(settings.local_settings_path, settings.llm, keyring)
-    return keyring
 
 
 @dataclass(frozen=True)
@@ -166,9 +162,6 @@ def create_web_app() -> FastAPI:
     channels = build_channels(
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
-    shipped_model = ModelDetails(
-        base_url=settings.llm.base_url, model=settings.llm.model, vision=False
-    )
     return create_app(
         runs,
         channels,
@@ -180,7 +173,6 @@ def create_web_app() -> FastAPI:
         bots,
         secrets,
         messages,
-        shipped_model,
     )
 
 
@@ -195,7 +187,6 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
-    shipped_model: ModelDetails,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -222,9 +213,7 @@ def create_app(
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(
-        build_credentials_router(secrets, bots, channels.platforms, mcp, shipped_model)
-    )
+    app.include_router(build_credentials_router(secrets, bots, channels.platforms, mcp))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

@@ -9,12 +9,12 @@ import logging
 import httpx
 
 from harness.bots import BotService
-from harness.config.sections import CompactionSettings, LLMSettings
+from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService
 from harness.images import ImageService
 from harness.llm import LLMClient
-from harness.llm.adapters import OpenAIClient, context_window_tokens
+from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
 from harness.runs.bot_messages import BotMessages
@@ -171,11 +171,11 @@ def build_runtime(
     return runtime
 
 
-def _openai_client(images: ImageService, settings: LLMSettings) -> LLMClient:
+def _openai_client(images: ImageService, settings: OpenAISettings) -> LLMClient:
     return OpenAIClient(settings, read_image=images.read)
 
 
-def context_window(compaction: CompactionSettings, llm: LLMSettings) -> int | None:
+def context_window(compaction: CompactionSettings, llm: OpenAISettings) -> int | None:
     """The window `llm`'s model compacts at: the configured one, else its endpoint's report."""
     configured = compaction.context_tokens
     if configured is not None:
