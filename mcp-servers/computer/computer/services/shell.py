@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from computer.clock import Clock
 from computer.engine import Engine
-from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
+from computer.models.command import COMMAND_TIMEOUT_SECONDS, stdout_of
 from computer.models.pc import Program
 from computer.models.shell import CommandRun
 from computer.services.jobs import LOOK_SCRIPT, RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
@@ -88,14 +88,6 @@ def command_run(seen: RunningJob | FinishedJob) -> CommandRun:
     return CommandRun(status="done", exit_code=seen.exit_code, seconds=seconds, output=output)
 
 
-def stdout_of(completed: CommandResult, action: str) -> str:
-    """`stdout`, or a `ShellError` in the computer's own words."""
-    if completed.returncode != 0:
-        said = completed.stderr.strip() or f"exit {completed.returncode}"
-        raise ShellError(f"{action} failed: {said}")
-    return completed.stdout
-
-
 class Shell:
     """The computer's commands: started once, then waited on for up to WAIT_SECONDS a call."""
 
@@ -127,7 +119,7 @@ class Shell:
         launched = await self._engine.launch(
             self._container, Program(argv=runner, env=self._variables)
         )
-        stdout_of(launched, "Starting the command")
+        stdout_of(launched, "Starting the command", error=ShellError)
 
     async def _look_after_a_poll(self, job: Job) -> SeenJob:
         await self._clock.sleep(POLL_SECONDS)
@@ -153,4 +145,4 @@ class Shell:
             stdin=stdin,
             timeout_seconds=COMMAND_TIMEOUT_SECONDS,
         )
-        return stdout_of(completed, action)
+        return stdout_of(completed, action, error=ShellError)

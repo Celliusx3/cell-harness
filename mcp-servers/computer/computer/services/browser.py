@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 from computer.clock import Clock
 from computer.engine import Engine
 from computer.models.command import stdout_of
-from computer.models.errors import EngineTimeout
+from computer.models.errors import EngineError, EngineTimeout
 from computer.models.page import Acted, Action, Opened, Page
 from computer.models.pc import Program
 from computer.services.machine import OPEN_CHROME
@@ -168,7 +168,7 @@ class Browser:
                 f"The page did not answer within {PAGE_TIMEOUT_SECONDS:g} seconds. "
                 "Call browser_read_page to see where it got to."
             ) from err
-        raw = stdout_of(completed, f"rakazo-page-browser {command}")
+        raw = stdout_of(completed, f"rakazo-page-browser {command}", error=EngineError)
         try:
             return reply_type.validate_json(raw)
         except ValidationError as err:
@@ -180,4 +180,8 @@ class Browser:
 
     async def _open_chrome(self) -> None:
         logger.info("Chrome is not up on the computer %s; launching it", self._container)
-        stdout_of(await self._engine.launch(self._container, OPEN_CHROME), "launching Chrome")
+        stdout_of(
+            await self._engine.launch(self._container, OPEN_CHROME),
+            "launching Chrome",
+            error=EngineError,
+        )

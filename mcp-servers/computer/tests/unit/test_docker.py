@@ -78,7 +78,10 @@ async def test_no_docker_on_path_says_so() -> None:
 
 def test_a_successful_command_hands_back_its_stdout() -> None:
     assert (
-        stdout_of(CommandResult(returncode=0, stdout="ok\n", stderr=""), "docker start") == "ok\n"
+        stdout_of(
+            CommandResult(returncode=0, stdout="ok\n", stderr=""), "docker start", error=EngineError
+        )
+        == "ok\n"
     )
 
 
@@ -86,9 +89,11 @@ def test_a_failed_command_raises_in_dockers_own_words() -> None:
     refused = CommandResult(returncode=125, stdout="", stderr="Conflict. The name is in use.\n")
 
     with pytest.raises(EngineError, match="docker run failed: Conflict. The name is in use."):
-        stdout_of(refused, "docker run")
+        stdout_of(refused, "docker run", error=EngineError)
 
 
 def test_a_silent_failure_names_its_exit_code() -> None:
     with pytest.raises(EngineError, match="exit 3"):
-        stdout_of(CommandResult(returncode=3, stdout="", stderr=""), "docker stop")
+        stdout_of(
+            CommandResult(returncode=3, stdout="", stderr=""), "docker stop", error=EngineError
+        )

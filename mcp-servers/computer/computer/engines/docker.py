@@ -126,7 +126,7 @@ def inspect_arguments(name: str, template: str) -> list[str]:
 def state_of(inspected: CommandResult) -> PcState:
     if inspected.returncode != 0 and "No such container" in inspected.stderr:
         return "missing"
-    status = stdout_of(inspected, "docker inspect").strip()
+    status = stdout_of(inspected, "docker inspect", error=EngineError).strip()
     return "running" if status == "running" else "stopped"
 
 
@@ -235,7 +235,7 @@ class DockerEngine:
         return await self._output(inspect_arguments(name, template), "docker inspect")
 
     async def _output(self, args: list[str], action: str) -> str:
-        return stdout_of(await self._cli(args), action)
+        return stdout_of(await self._cli(args), action, error=EngineError)
 
     async def _cli(self, args: list[str]) -> CommandResult:
         return await self.docker.run(args, stdin="", timeout_seconds=COMMAND_TIMEOUT_SECONDS)

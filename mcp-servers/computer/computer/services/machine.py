@@ -132,7 +132,9 @@ class Machine:
     async def _open_chrome(self) -> None:
         name = self._config.container_name
         try:
-            stdout_of(await self._engine.launch(name, OPEN_CHROME), "opening Chrome")
+            stdout_of(
+                await self._engine.launch(name, OPEN_CHROME), "opening Chrome", error=EngineError
+            )
         except EngineError as err:
             logger.warning("Chrome did not open on the computer %s: %s", name, err)
 
@@ -169,7 +171,9 @@ class Machine:
             completed = await self._engine.run(
                 name, look, stdin=None, timeout_seconds=COMMAND_TIMEOUT_SECONDS
             )
-            return bool(stdout_of(completed, "looking for running commands").split())
+            return bool(
+                stdout_of(completed, "looking for running commands", error=EngineError).split()
+            )
         except EngineError as err:
             logger.warning("the computer %s stays on: %s", name, err)
             return True

@@ -113,7 +113,7 @@ class LiveScreen:
                 stdin=program,
                 timeout_seconds=COMMAND_TIMEOUT_SECONDS,
             )
-            stdout_of(completed, "opening the shell")
+            stdout_of(completed, "opening the shell", error=EngineError)
         return gateway.terminal_url(await self._gateway_host_port(), token)
 
     async def _expire(self, hold: Hold) -> None:
@@ -154,4 +154,4 @@ class LiveScreen:
             stdin=None,
             timeout_seconds=COMMAND_TIMEOUT_SECONDS,
         )
-        stdout_of(completed, action)
+        stdout_of(completed, action, error=EngineError)

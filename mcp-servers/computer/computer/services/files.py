@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from pydantic import TypeAdapter, ValidationError
 
 from computer.engine import Engine
-from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
+from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult, stdout_of
 from computer.models.files import (
     TRANSFER_LIMIT_BYTES,
     FileBytes,
@@ -92,14 +92,6 @@ class FilesError(RuntimeError):
     """A file could not be listed, read or written. The message says why, for the person."""
 
 
-def stdout_of(completed: CommandResult, action: str) -> str:
-    """`stdout`, or a `FilesError` in the computer's own words."""
-    if completed.returncode != 0:
-        said = completed.stderr.strip() or f"exit {completed.returncode}"
-        raise FilesError(f"{action} failed: {said}")
-    return completed.stdout
-
-
 class Files:
     """The computer's home folder, one program run in it per call, as the image's own user."""
 
@@ -111,7 +103,7 @@ class Files:
         completed = await self._run_python(
             LIST_SCRIPT, [HOME, path.absolute, path.relative], stdin=""
         )
-        answer = stdout_of(completed, f"Listing ~/{path.relative}")
+        answer = stdout_of(completed, f"Listing ~/{path.relative}", error=FilesError)
         try:
             entries = ENTRIES.validate_json(answer)
         except ValidationError as err:
@@ -140,14 +132,14 @@ class Files:
         completed = await self._run_python(
             WRITE_SCRIPT, [HOME, path.absolute], stdin=content_base64
         )
-        stdout_of(completed, f"Uploading ~/{path.relative}")
+        stdout_of(completed, f"Uploading ~/{path.relative}", error=FilesError)
         return Uploaded(path=path.relative, size=len(base64.b64decode(content_base64)))
 
     async def _content(self, path: HomePath, limit: int, action: str) -> bytes:
         completed = await self._run_python(READ_SCRIPT, [HOME, path.absolute, str(limit)], stdin="")
         if completed.returncode == TOO_LARGE_EXIT_CODE:
             raise FilesError(f"~/{path.relative} is larger than {limit // MIB} MiB.")
-        answer = stdout_of(completed, f"{action} ~/{path.relative}").strip()
+        answer = stdout_of(completed, f"{action} ~/{path.relative}", error=FilesError).strip()
         try:
             return base64.b64decode(answer, validate=True)
         except binascii.Error as err:

@@ -251,7 +251,7 @@ class MicrosandboxEngine:
             "inspect", self.images.inspect(reference), COMMAND_TIMEOUT_SECONDS
         )
         launched = await self.launch(name, image_command(detail.config))
-        stdout_of(launched, "starting the computer's desktop")
+        stdout_of(launched, "starting the computer's desktop", error=EngineError)
 
     async def _stored(self, action: str, name: str) -> StoredSandbox:
         return await sdk_answer(action, self.sandboxes.get(name), COMMAND_TIMEOUT_SECONDS)
