@@ -97,7 +97,7 @@ def volume_arguments(spec: PcSpec) -> list[str]:
 
 
 def run_arguments(spec: PcSpec) -> list[str]:
-    """`docker run` as Rakazo creates its computer."""
+    """`docker run` for the PC."""
     return [
         "run", "-d", "--name", spec.name,
         "--label", f"{LABEL}={spec.name}",

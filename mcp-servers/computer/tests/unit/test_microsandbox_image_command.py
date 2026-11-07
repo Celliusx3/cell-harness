@@ -11,9 +11,7 @@ from tests.conftest import IMAGE, NAME, config
 from tests.fake_microsandbox import ExecCall, FakeImages, FakeSandboxes
 
 SPEC = pc_spec(config(), ())
-COMMAND = ExecCall(
-    "/usr/bin/env", ["-u", "LD_PRELOAD", "/usr/local/bin/rakazo-computer"], {}, None, None
-)
+COMMAND = ExecCall("/usr/bin/env", ["/usr/local/bin/pc-start"], {}, None, None)
 
 
 def engine_of(images: FakeImages) -> tuple[FakeSandboxes, MicrosandboxEngine]:
@@ -22,9 +20,7 @@ def engine_of(images: FakeImages) -> tuple[FakeSandboxes, MicrosandboxEngine]:
 
 
 async def test_a_new_pc_runs_its_images_entrypoint_and_command_in_the_background() -> None:
-    images = FakeImages(
-        entrypoint=["/usr/bin/env", "-u", "LD_PRELOAD"], cmd=["/usr/local/bin/rakazo-computer"]
-    )
+    images = FakeImages(entrypoint=["/usr/bin/env"], cmd=["/usr/local/bin/pc-start"])
     vms, engine = engine_of(images)
 
     await engine.create(SPEC)
@@ -34,9 +30,7 @@ async def test_a_new_pc_runs_its_images_entrypoint_and_command_in_the_background
 
 
 async def test_a_started_pc_runs_its_images_command_again() -> None:
-    images = FakeImages(
-        entrypoint=["/usr/bin/env", "-u", "LD_PRELOAD"], cmd=["/usr/local/bin/rakazo-computer"]
-    )
+    images = FakeImages(entrypoint=["/usr/bin/env"], cmd=["/usr/local/bin/pc-start"])
     vms, engine = engine_of(images)
     await engine.create(SPEC)
     await engine.stop(NAME)

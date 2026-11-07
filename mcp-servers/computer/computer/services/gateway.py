@@ -223,7 +223,6 @@ def release_script(token: str) -> str:
             "set -eu",
             f'if [ -f {HOLD_TOKEN_FILE} ] && [ "$(cat {HOLD_TOKEN_FILE})" = {token} ]; then',
             stop_control_script(),
-            "printf 'RAKAZO_CONTROL_RELEASED\\n'",
             "fi",
         ]
     )

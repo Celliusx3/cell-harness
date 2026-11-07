@@ -28,7 +28,8 @@ order 6), 17 API keys it never sees (`ask_for_secret` saves a key into one
 keyring, sealed as Rakazo seals it, and lets the asking bot use it; the Keys
 page lists every key and each bot's page the keys it may use;
 `fetch_with_secret` sends a key only to its site, build order 7), 18 a computer
-the bots share (Rakazo's image in Docker on this machine; the bots read and click
+the bots share (since 7 November our own image, `docs/specs/pc-image/`, in a
+microVM on this machine; the bots read and click
 pages as text; the Computer page streams its screen over VNC through the app's
 relay, so any device can watch it, and takes control on open; `hand_over` pauses
 a bot for a step only you should do; a terminal and files beside the screen;
@@ -558,7 +559,7 @@ duplicates one, delivery reaches the chat, and creating a routine asks first. A
 |---|---|---|
 | Phase 12 | Build the optional track at all | **Defer** until the product asks |
 | Phase 15 | Which mutations the model may make without an approval gate | ~~Skills only~~ **None** — skill writes ask first too, the person's call once insertion 11's gate existed |
-| Phase 17 | Reuse Rakazo's computer image or build our own | **Reuse** `ghcr.io/elie222/rakazo/computer` (Apache-2.0, published); fork it only when we need a change it will not take |
+| Phase 17 | Reuse Rakazo's computer image or build our own | ~~**Reuse** `ghcr.io/elie222/rakazo/computer`~~ **Our own**, built from scratch in `mcp-servers/computer/image/` and published by GitHub (chosen 2026-11-07: Rakazo's tag could move under every user, and we could not add to it or shrink it; `docs/specs/pc-image/`) |
 | Phase 17 | Where the computer runs | ~~This machine, in Docker~~ **This machine, in a microVM that ships with the app** (microsandbox, chosen 2026-11-07 so that people who download the app install nothing; Docker stays as `COMPUTER_ENGINE=docker`). Docker was chosen 2026-10-12 over a Boat cloud computer; on a server, the whole harness moves with it |
 | Phase 19 | Which vision model | **None** — the phase does not start until `llm` points at a model that accepts images |
 | — | A phone per bot | **No** — 0.8–3.2 GB per phone measured against 0.6 GB for the desktop ([docs/rakazo.md §5](./docs/rakazo.md)); mobile websites go through phase 17's browser |

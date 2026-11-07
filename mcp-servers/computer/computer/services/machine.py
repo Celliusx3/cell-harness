@@ -33,7 +33,7 @@ def shared_folders(config: Config) -> tuple[SharedFolder, ...]:
 
 
 def pc_spec(config: Config, host_service_ports: tuple[int, ...]) -> PcSpec:
-    """The PC as Rakazo creates its computer, with its gateway published."""
+    """The PC from our image, with its gateway published."""
     name = config.container_name
     return PcSpec(
         name=name,

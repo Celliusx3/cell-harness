@@ -1,4 +1,4 @@
-"""The real computer: this server over stdio, driving Rakazo's image in Docker."""
+"""The real computer: this server over stdio, driving the PC image."""
 
 from __future__ import annotations
 

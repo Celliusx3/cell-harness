@@ -1,4 +1,4 @@
-"""Rakazo's page script: what goes over stdin, what comes back, and Chrome not being up."""
+"""The PC's page script: what goes over stdin, what comes back, and Chrome not being up."""
 
 from __future__ import annotations
 

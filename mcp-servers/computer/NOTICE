@@ -5,23 +5,23 @@ This server includes work derived from Rakazo
 licensed under the Apache License, Version 2.0. You may obtain a copy of the
 License at http://www.apache.org/licenses/LICENSE-2.0
 
-computer/gateway.py is adapted from packages/core/src/node/desktop-runtime.ts
+computer/services/gateway.py is adapted from packages/core/src/node/desktop-runtime.ts
 (revokeTargetCommand, stopVncCommand, gatewayCommand, proxyEnvironmentCommand,
 the view setup of renderEnsureScreenCommand, and interactiveScreenCommand).
 Changes: ported from TypeScript to Python; fixed to one display (:1) and one
 gateway port (6080); the browser and window manager steps dropped.
-The terminal scripts in computer/gateway.py are adapted from the same file
+The terminal scripts in computer/services/gateway.py are adapted from the same file
 (stopTerminalCommand and startTerminalCommand). Changes: ported to Python; the
 program arrives on stdin instead of in the script.
 
 computer/vendor/rakazo_terminal.py is TERMINAL_SERVER_PROGRAM from
 packages/core/src/node/terminal-server.ts, copied unchanged.
 
-computer/files.py is adapted from infra/sandboxes/supervisor/src/index.ts (the
+computer/services/files.py is adapted from infra/sandboxes/supervisor/src/index.ts (the
 files list and read scripts, and writeContainerFile). Changes: ported to Python;
 the list leaves out the executable flag; the write takes base64 on stdin.
 
-home_path in computer/models.py is adapted from normalizeWorkspaceRelative in
+home_path in computer/models/files.py is adapted from normalizeWorkspaceRelative in
 infra/sandboxes/supervisor/src/supervisor-logic.ts. Changes: ported to Python;
 it also refuses a NUL character.
 

@@ -36,7 +36,7 @@ async def use(machine: Machine) -> None:
         pass
 
 
-async def test_the_first_call_runs_one_container_with_rakazos_options() -> None:
+async def test_the_first_call_runs_one_container_with_the_pcs_options() -> None:
     docker = FakeDocker(status="missing")
     async with serving(docker, Dial()) as machine:
         await use(machine)

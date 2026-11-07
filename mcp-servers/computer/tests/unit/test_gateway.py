@@ -145,7 +145,7 @@ def test_release_revokes_the_control_target_stops_its_vnc_and_forgets_the_token(
     assert "view-1" not in script
 
 
-def test_the_screen_url_is_rakazos_embed_page_on_the_published_port() -> None:
+def test_the_screen_url_is_our_embed_page_on_the_published_port() -> None:
     url = urlsplit(screen_url(62480, HOLD_TOKEN, view_only=True))
     query = parse_qs(url.query)
 
