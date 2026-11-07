@@ -6,7 +6,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from computer.docker import CommandResult
+from computer.command import CommandResult
 from computer.jobs import LOOK_SCRIPT, RUNNER_SCRIPT, RUNNING_JOBS_SCRIPT, WRITE_SCRIPT
 from tests.conftest import FakeDocker
 

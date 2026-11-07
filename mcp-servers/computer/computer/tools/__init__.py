@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from mcp.server.mcpserver.exceptions import ToolError
 
 from computer.browser import Browser, BrowserError
+from computer.command import EngineError
 from computer.desktop import Desktop, DesktopError
-from computer.docker import DockerError
 from computer.files import Files, FilesError
 from computer.live_screen import LiveScreen
 from computer.machine import Machine
@@ -37,7 +37,7 @@ async def computer_for_one_call(machine: Machine) -> AsyncIterator[None]:
     try:
         async with machine.in_use():
             yield
-    except DockerError as err:
+    except EngineError as err:
         raise ToolError(f"The computer is not available: {err}") from err
     except (BrowserError, DesktopError, FilesError, ShellError) as err:
         raise ToolError(str(err)) from err

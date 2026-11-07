@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from computer.docker import DockerError
+from computer.command import EngineError
 from computer.engine import DockerEngine, environment_of, loopback_port
 from tests.conftest import API_HOST_PORT, API_TOKEN, NAME, FakeDocker
 
@@ -17,7 +17,7 @@ def test_the_host_port_is_the_one_published_on_loopback() -> None:
 
 @pytest.mark.parametrize("published", ["", "0.0.0.0:62477\n[::]:62477\n", "127.0.0.1:\n"])
 def test_a_port_not_published_on_loopback_is_refused(published: str) -> None:
-    with pytest.raises(DockerError, match="port 6080 is not published on 127.0.0.1"):
+    with pytest.raises(EngineError, match="port 6080 is not published on 127.0.0.1"):
         loopback_port(published, 6080)
 
 
@@ -37,7 +37,7 @@ def test_the_environment_is_read_as_docker_prints_it() -> None:
     [("null", "cannot read"), ("<no value>", "cannot read"), ('["DISPLAY"]', "without values")],
 )
 def test_an_environment_docker_answers_unreadably_is_refused(inspected: str, said: str) -> None:
-    with pytest.raises(DockerError, match=said):
+    with pytest.raises(EngineError, match=said):
         environment_of(inspected)
 
 

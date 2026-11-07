@@ -8,7 +8,7 @@ from collections.abc import Sequence
 import pytest
 
 from computer.browser import Browser, BrowserError
-from computer.docker import CommandResult, DockerError, DockerTimeout
+from computer.command import CommandResult, EngineError, EngineTimeout
 from computer.engine import DockerEngine
 from computer.models import Action
 from tests.conftest import (
@@ -154,7 +154,7 @@ async def test_a_page_that_does_not_answer_in_time_says_so() -> None:
         async def run(
             self, args: Sequence[str], *, stdin: str, timeout_seconds: float
         ) -> CommandResult:
-            raise DockerTimeout("docker exec did not finish within 25 seconds")
+            raise EngineTimeout("docker exec did not finish within 25 seconds")
 
     with pytest.raises(BrowserError, match="did not answer within 25 seconds"):
         await browser(Hanging(status="running")).read()
@@ -164,7 +164,7 @@ async def test_a_page_script_that_exits_non_zero_is_a_docker_error() -> None:
     docker = FakeDocker(status="running")
     docker.refused_verbs.add("exec")
 
-    with pytest.raises(DockerError, match="rakazo-page-browser snapshot failed"):
+    with pytest.raises(EngineError, match="rakazo-page-browser snapshot failed"):
         await browser(docker).read()
 
 

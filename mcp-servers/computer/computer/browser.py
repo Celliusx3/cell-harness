@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from computer.clock import Clock
-from computer.docker import DockerTimeout, stdout_of
+from computer.command import EngineTimeout, stdout_of
 from computer.engine import Engine, Program
 from computer.machine import OPEN_CHROME
 from computer.models import Acted, Action, Opened, Page
@@ -161,7 +161,7 @@ class Browser:
                 stdin=arguments + "\n",
                 timeout_seconds=PAGE_TIMEOUT_SECONDS,
             )
-        except DockerTimeout as err:
+        except EngineTimeout as err:
             raise BrowserError(
                 f"The page did not answer within {PAGE_TIMEOUT_SECONDS:g} seconds. "
                 "Call browser_read_page to see where it got to."

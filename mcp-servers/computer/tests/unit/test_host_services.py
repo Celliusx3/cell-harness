@@ -14,7 +14,7 @@ import pytest
 from mcp import Client
 
 from computer.clock import SYSTEM, Clock
-from computer.docker import CommandResult
+from computer.command import CommandResult
 from computer.host_services import (
     LOOPBACK,
     STARTUP_SECONDS,

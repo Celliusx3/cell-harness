@@ -14,6 +14,7 @@ def folders(tmp_path: Path) -> dict[str, str]:
     for name in ("files", "skills", "more-skills"):
         (tmp_path / name).mkdir()
     return {
+        "COMPUTER_ENGINE": "microsandbox",
         "COMPUTER_FILES_DIR": str(tmp_path / "files"),
         "COMPUTER_SKILLS_DIRS": f"{tmp_path / 'skills'}{os.pathsep}{tmp_path / 'more-skills'}",
     }
@@ -107,3 +108,23 @@ def test_every_entry_in_the_skills_folders_is_checked(tmp_path: Path) -> None:
         load({**env, "COMPUTER_SKILLS_DIRS": f"{skills}{os.pathsep}"})
     with pytest.raises(ConfigError, match="COMPUTER_SKILLS_DIRS=.* is not a folder that exists"):
         load({**env, "COMPUTER_SKILLS_DIRS": f"{skills}{os.pathsep}{tmp_path / 'missing'}"})
+
+
+@pytest.mark.parametrize("engine", ["microsandbox", "docker"])
+def test_the_engine_is_the_one_named(tmp_path: Path, engine: str) -> None:
+    assert load({**folders(tmp_path), "COMPUTER_ENGINE": f" {engine} "}).engine == engine
+
+
+@pytest.mark.parametrize("engine", ["", "  ", "podman", "Docker"])
+def test_an_engine_not_named_or_unknown_is_refused_naming_the_choices(
+    tmp_path: Path, engine: str
+) -> None:
+    with pytest.raises(ConfigError, match="COMPUTER_ENGINE=.* is not 'microsandbox' or 'docker'"):
+        load({**folders(tmp_path), "COMPUTER_ENGINE": engine})
+
+
+def test_an_engine_left_out_is_refused(tmp_path: Path) -> None:
+    env = {key: value for key, value in folders(tmp_path).items() if key != "COMPUTER_ENGINE"}
+
+    with pytest.raises(ConfigError, match="COMPUTER_ENGINE"):
+        load(env)

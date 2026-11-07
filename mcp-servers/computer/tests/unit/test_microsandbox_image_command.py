@@ -1,0 +1,53 @@
+"""A microVM runs no image command by itself, so the engine starts the image's own after boot."""
+
+from __future__ import annotations
+
+import pytest
+
+from computer.command import EngineError
+from computer.machine import pc_spec
+from computer.microsandbox_engine import MicrosandboxEngine
+from tests.conftest import API_TOKEN, IMAGE, NAME, config
+from tests.fake_microsandbox import ExecCall, FakeImages, FakeSandboxes
+
+SPEC = pc_spec(config(), API_TOKEN)
+COMMAND = ExecCall(
+    "/usr/bin/env", ["-u", "LD_PRELOAD", "/usr/local/bin/rakazo-computer"], {}, None, None
+)
+
+
+def engine_of(images: FakeImages) -> tuple[FakeSandboxes, MicrosandboxEngine]:
+    vms = FakeSandboxes()
+    return vms, MicrosandboxEngine(sandboxes=vms, images=images)
+
+
+async def test_a_new_pc_runs_its_images_entrypoint_and_command_in_the_background() -> None:
+    images = FakeImages(
+        entrypoint=["/usr/bin/env", "-u", "LD_PRELOAD"], cmd=["/usr/local/bin/rakazo-computer"]
+    )
+    vms, engine = engine_of(images)
+
+    await engine.create(SPEC)
+
+    assert images.inspected == [IMAGE]
+    assert vms.launches == [COMMAND]
+
+
+async def test_a_started_pc_runs_its_images_command_again() -> None:
+    images = FakeImages(
+        entrypoint=["/usr/bin/env", "-u", "LD_PRELOAD"], cmd=["/usr/local/bin/rakazo-computer"]
+    )
+    vms, engine = engine_of(images)
+    await engine.create(SPEC)
+    await engine.stop(NAME)
+
+    await engine.start(NAME)
+
+    assert vms.launches == [COMMAND, COMMAND]
+
+
+async def test_an_image_with_no_command_is_refused() -> None:
+    _, engine = engine_of(FakeImages(entrypoint=None, cmd=None))
+
+    with pytest.raises(EngineError, match="no command"):
+        await engine.create(SPEC)

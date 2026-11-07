@@ -10,7 +10,8 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
-from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult, Docker, DockerError, stdout_of
+from computer.command import COMMAND_TIMEOUT_SECONDS, CommandResult, EngineError, stdout_of
+from computer.docker import Docker
 
 PcState = Literal["running", "stopped", "missing"]
 
@@ -66,7 +67,7 @@ class Program:
 
 
 class Engine(Protocol):
-    """The PC's lifecycle and the programs run in it; a failure to reach the PC is a DockerError."""
+    """The PC's lifecycle and the programs run in it; failing to reach it is an EngineError."""
 
     @property
     def host_address(self) -> str:
@@ -169,7 +170,7 @@ def unpublished_ports(inspected: str, ports: tuple[int, ...]) -> list[int]:
     try:
         bindings = PORT_BINDINGS.validate_json(inspected)
     except ValidationError as err:
-        raise DockerError(
+        raise EngineError(
             "docker inspect answered the computer's ports with something this server cannot read"
         ) from err
     return [port for port in ports if f"{port}/tcp" not in (bindings or {})]
@@ -180,7 +181,7 @@ def is_mounted_as(inspected: str, folders: tuple[SharedFolder, ...]) -> bool:
     try:
         mounts = MOUNTS.validate_json(inspected)
     except ValidationError as err:
-        raise DockerError(
+        raise EngineError(
             "docker inspect answered the computer's mounts with something this server cannot read"
         ) from err
     binds = frozenset(mount for mount in mounts if mount.type == "bind")
@@ -193,7 +194,7 @@ def loopback_port(published: str, guest_port: int) -> int:
         match = LOOPBACK_BINDING_PATTERN.fullmatch(line.strip())
         if match is not None:
             return int(match.group(1))
-    raise DockerError(
+    raise EngineError(
         f"The computer's port {guest_port} is not published on {LOOPBACK}: "
         f"docker port said {published.strip()!r}."
     )
@@ -204,12 +205,12 @@ def environment_of(inspected: str) -> dict[str, str]:
     try:
         entries = ENVIRONMENT.validate_json(inspected)
     except ValidationError as err:
-        raise DockerError(
+        raise EngineError(
             "docker inspect answered the computer's environment with something this server "
             "cannot read."
         ) from err
     if any("=" not in entry for entry in entries):
-        raise DockerError("docker inspect answered the computer's environment without values.")
+        raise EngineError("docker inspect answered the computer's environment without values.")
     return dict(entry.split("=", 1) for entry in entries)
 
 

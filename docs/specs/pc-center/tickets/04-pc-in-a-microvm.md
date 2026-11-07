@@ -1,6 +1,6 @@
 # 04 The PC runs in a microVM inside the app
 
-**Status.** open
+**Status.** done
 
 **What to build.** Add the `microsandbox` Python package to
 `mcp-servers/computer`, and a `MicrosandboxEngine` beside `DockerEngine`. The

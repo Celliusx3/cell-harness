@@ -14,8 +14,8 @@ import pytest
 from mcp.server import MCPServer
 
 from computer.clock import Clock
+from computer.command import CommandResult, EngineError
 from computer.config import Config
-from computer.docker import CommandResult, DockerError
 from computer.host_services import PreparedHostService, command_variables
 
 NAME = "cell-harness-computer"
@@ -76,6 +76,7 @@ def config(
     skills_dirs: tuple[Path, ...] = (SKILLS_DIR,),
 ) -> Config:
     return Config(
+        engine="docker",
         image=IMAGE,
         container_name=NAME,
         idle_minutes=idle_minutes,
@@ -129,7 +130,7 @@ class FakeDocker:
         self.timeouts.append(timeout_seconds)
         await asyncio.sleep(0)
         if self.unreachable:
-            raise DockerError("docker is not on PATH: install Docker and start it")
+            raise EngineError("docker is not on PATH: install Docker and start it")
         if args[0] in self.gates:
             await self.gates[args[0]].wait()
         if args[0] in self.refused_verbs:

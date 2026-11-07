@@ -9,7 +9,7 @@ from collections.abc import Sequence
 
 from pydantic import TypeAdapter, ValidationError
 
-from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult
+from computer.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from computer.engine import Engine, Program
 from computer.machine import HOME
 from computer.models import (

@@ -13,7 +13,7 @@ from importlib import resources
 
 from computer import gateway
 from computer.clock import Clock
-from computer.docker import COMMAND_TIMEOUT_SECONDS, DockerError, stdout_of
+from computer.command import COMMAND_TIMEOUT_SECONDS, EngineError, stdout_of
 from computer.engine import Engine, Program
 from computer.machine import GATEWAY_PORT, Machine
 from computer.models import ScreenSession
@@ -125,7 +125,7 @@ class LiveScreen:
                 await self._run_script(
                     gateway.release_script(hold.token), "handing the screen back"
                 )
-            except DockerError as err:
+            except EngineError as err:
                 logger.error("the control screen of %s may still be open: %s", self._container, err)
             self._end_hold()
 

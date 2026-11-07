@@ -9,7 +9,7 @@ import pytest
 from mcp import Client
 from mcp.types import CallToolResult, TextContent
 
-from computer.docker import CommandResult
+from computer.command import CommandResult
 from computer.engine import DockerEngine
 from computer.files import LIST_SCRIPT, READ_SCRIPT, WRITE_SCRIPT, Files
 from computer.machine import HOME

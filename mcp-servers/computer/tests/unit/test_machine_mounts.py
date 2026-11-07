@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from computer.docker import DockerError
+from computer.command import EngineError
 from computer.engine import DockerEngine
 from computer.machine import Machine
 from tests.conftest import NAME, Dial, FakeDocker, config, mount_of
@@ -96,7 +96,7 @@ async def test_mounts_docker_answers_unreadably_are_refused(tmp_path: Path) -> N
     docker = FakeDocker(status="running")
     docker.mounts = [{"Type": "bind", "Source": str(files), "RW": "sometimes"}]
 
-    with pytest.raises(DockerError, match="cannot read"):
+    with pytest.raises(EngineError, match="cannot read"):
         await use(docker, files, skills)
 
     assert "rm" not in docker.verbs()

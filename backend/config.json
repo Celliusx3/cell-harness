@@ -99,6 +99,7 @@
           "computer"
         ],
         "env": {
+          "COMPUTER_ENGINE": "microsandbox",
           "COMPUTER_IDLE_MINUTES": "10",
           "COMPUTER_FILES_DIR": "~/.harness/files",
           "COMPUTER_SKILLS_DIRS": "../.agents/skills"

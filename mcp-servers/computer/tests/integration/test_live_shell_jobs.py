@@ -45,6 +45,7 @@ def params(tmp_path: Path) -> Iterator[StdioServerParameters]:
         args=["-m", "computer.server"],
         env={
             **os.environ,
+            "COMPUTER_ENGINE": "docker",
             "COMPUTER_NAME": NAME,
             "COMPUTER_FILES_DIR": str(tmp_path / "files"),
             "COMPUTER_SKILLS_DIRS": str(tmp_path / "skills"),

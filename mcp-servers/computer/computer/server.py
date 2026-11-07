@@ -12,13 +12,14 @@ from importlib import resources
 import httpx
 from mcp.server import MCPServer
 from mcp.server.apps import Apps, ResourceCsp
+from microsandbox import Image, Sandbox
 
 from computer.browser import Browser
 from computer.clock import SYSTEM
-from computer.config import ConfigError, load
+from computer.config import ConfigError, EngineName, load
 from computer.desktop import Desktop
 from computer.docker import DockerCli
-from computer.engine import DockerEngine
+from computer.engine import DockerEngine, Engine
 from computer.files import Files
 from computer.host_services import (
     PreparedHostService,
@@ -28,6 +29,7 @@ from computer.host_services import (
 )
 from computer.live_screen import LiveScreen
 from computer.machine import Machine
+from computer.microsandbox_engine import MicrosandboxEngine
 from computer.shell import Shell
 from computer.skill_declarations import declared_host_services
 from computer.tools import PREVIEW_URI, Computer, browser, computer_page, shell
@@ -42,6 +44,13 @@ COMPUTER_INSTRUCTIONS = (
     "computer__shell. Files and website sign-ins on the PC stay there between chats. The "
     "person can watch the PC and take control of it from the Computer page."
 )
+
+
+def engine_named(name: EngineName) -> Engine:
+    """The engine COMPUTER_ENGINE names, on the real docker command line or microsandbox SDK."""
+    if name == "docker":
+        return DockerEngine(docker=DockerCli(executable="docker"))
+    return MicrosandboxEngine(sandboxes=Sandbox, images=Image)
 
 
 def build(computer: Computer, host_services: Sequence[PreparedHostService]) -> MCPServer:
@@ -79,7 +88,7 @@ def main() -> None:
         logger.error("computer refusing to start: %s", err)
         raise SystemExit(2) from err
 
-    engine = DockerEngine(docker=DockerCli(executable="docker"))
+    engine = engine_named(config.engine)
     machine = Machine(engine=engine, config=config, clock=SYSTEM)
     host_services = tuple(
         prepared_host_service(service, config.files_dir)

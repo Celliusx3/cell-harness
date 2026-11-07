@@ -31,6 +31,7 @@ def environment(tmp_path: Path) -> dict[str, str]:
     (tmp_path / "skills").mkdir()
     return {
         **os.environ,
+        "COMPUTER_ENGINE": "docker",
         "COMPUTER_NAME": UNUSED_NAME,
         "COMPUTER_FILES_DIR": str(tmp_path / "files"),
         "COMPUTER_SKILLS_DIRS": str(tmp_path / "skills"),

@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from computer.docker import CommandResult, DockerCli, DockerError, DockerTimeout, stdout_of
+from computer.command import CommandResult, EngineError, EngineTimeout, stdout_of
+from computer.docker import DockerCli
 
 STAND_IN = """#!/bin/sh
 case "$1" in
@@ -46,7 +47,7 @@ async def test_a_command_that_outlives_its_timeout_is_killed(
 ) -> None:
     pid_file = tmp_path / "pid"
 
-    with pytest.raises(DockerTimeout, match="within 0.2 seconds"):
+    with pytest.raises(EngineTimeout, match="within 0.2 seconds"):
         await docker.run(["hang", str(pid_file)], stdin="", timeout_seconds=0.2)
 
     with pytest.raises(ProcessLookupError):
@@ -70,7 +71,7 @@ async def test_a_cancelled_command_leaves_no_process_behind(
 
 
 async def test_no_docker_on_path_says_so() -> None:
-    with pytest.raises(DockerError, match="not on PATH"):
+    with pytest.raises(EngineError, match="not on PATH"):
         await DockerCli(executable="/nonexistent/docker").run(["ps"], stdin="", timeout_seconds=5)
 
 
@@ -83,10 +84,10 @@ def test_a_successful_command_hands_back_its_stdout() -> None:
 def test_a_failed_command_raises_in_dockers_own_words() -> None:
     refused = CommandResult(returncode=125, stdout="", stderr="Conflict. The name is in use.\n")
 
-    with pytest.raises(DockerError, match="docker run failed: Conflict. The name is in use."):
+    with pytest.raises(EngineError, match="docker run failed: Conflict. The name is in use."):
         stdout_of(refused, "docker run")
 
 
 def test_a_silent_failure_names_its_exit_code() -> None:
-    with pytest.raises(DockerError, match="exit 3"):
+    with pytest.raises(EngineError, match="exit 3"):
         stdout_of(CommandResult(returncode=3, stdout="", stderr=""), "docker stop")

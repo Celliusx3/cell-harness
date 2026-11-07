@@ -7,10 +7,14 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal, get_args
 
 IMAGE = "ghcr.io/elie222/rakazo/computer:edge"
 NAME = "cell-harness-computer"
 IDLE_MINUTES = 10
+
+EngineName = Literal["microsandbox", "docker"]
+ENGINE_NAMES: tuple[EngineName, ...] = get_args(EngineName)
 
 DOCKER_NAME_PATTERN = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_.-]+")
 
@@ -21,6 +25,7 @@ class ConfigError(RuntimeError):
 
 @dataclass(frozen=True)
 class Config:
+    engine: EngineName
     image: str
     container_name: str
     idle_minutes: int
@@ -34,6 +39,15 @@ def required_value(src: Mapping[str, str], variable: str, what: str) -> str:
     if not raw:
         raise ConfigError(f"{variable} is not set: name {what}")
     return raw
+
+
+def engine_name(raw: str) -> EngineName:
+    """`raw` as one of the engines, or a refusal naming them all."""
+    for name in ENGINE_NAMES:
+        if raw == name:
+            return name
+    choices = " or ".join(repr(name) for name in ENGINE_NAMES)
+    raise ConfigError(f"COMPUTER_ENGINE={raw!r} is not {choices}")
 
 
 def existing_folder(variable: str, raw: str) -> Path:
@@ -71,7 +85,10 @@ def load(env: Mapping[str, str] | None = None) -> Config:
         src, "COMPUTER_SKILLS_DIRS", f"the skill folders, separated by {os.pathsep!r}"
     )
 
+    engine = engine_name(src.get("COMPUTER_ENGINE", "").strip())
+
     return Config(
+        engine=engine,
         image=image,
         container_name=name,
         idle_minutes=idle_minutes,

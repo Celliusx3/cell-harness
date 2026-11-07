@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from computer.clock import Clock
-from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult
+from computer.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from computer.engine import Engine, Program
 from computer.jobs import LOOK_SCRIPT, RUNNER_NAME, RUNNER_SCRIPT, WRITE_SCRIPT
 from computer.machine import JOBS_ROOT

@@ -9,8 +9,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from computer.clock import Clock
+from computer.command import COMMAND_TIMEOUT_SECONDS, EngineError, stdout_of
 from computer.config import Config
-from computer.docker import COMMAND_TIMEOUT_SECONDS, DockerError, stdout_of
 from computer.engine import Engine, HomeVolume, PcSpec, Program, SharedFolder
 from computer.jobs import RUNNING_JOBS_SCRIPT
 
@@ -92,7 +92,7 @@ class Machine:
         name = self._config.container_name
         try:
             state = await self._engine.state(name)
-        except DockerError as err:
+        except EngineError as err:
             logger.warning("cannot see the computer %s at startup: %s", name, err)
             return
         if state == "running":
@@ -123,7 +123,7 @@ class Machine:
         name = self._config.container_name
         try:
             stdout_of(await self._engine.launch(name, OPEN_CHROME), "opening Chrome")
-        except DockerError as err:
+        except EngineError as err:
             logger.warning("Chrome did not open on the computer %s: %s", name, err)
 
     def _restart_idle_stop(self) -> None:
@@ -148,7 +148,7 @@ class Machine:
             logger.info("stopping the computer %s after %d idle minutes", name, minutes)
             try:
                 await self._engine.stop(name)
-            except DockerError as err:
+            except EngineError as err:
                 logger.warning("idle stop of the computer %s did not happen: %s", name, err)
 
     async def _is_running_a_command(self) -> bool:
@@ -160,6 +160,6 @@ class Machine:
                 name, look, stdin=None, timeout_seconds=COMMAND_TIMEOUT_SECONDS
             )
             return bool(stdout_of(completed, "looking for running commands").split())
-        except DockerError as err:
+        except EngineError as err:
             logger.warning("the computer %s stays on: %s", name, err)
             return True

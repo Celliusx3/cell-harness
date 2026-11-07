@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 import pytest
 
-from computer.docker import DockerError
+from computer.command import EngineError
 from computer.engine import DockerEngine
 from computer.jobs import RUNNING_JOBS_SCRIPT
 from computer.machine import JOBS_ROOT, Machine
@@ -116,7 +116,7 @@ async def test_ports_docker_answers_unreadably_are_refused(answer: str) -> None:
     docker = FakeDocker(status="running")
     docker.raw_bindings = answer
     async with serving(docker, Dial()) as machine:
-        with pytest.raises(DockerError, match="cannot read"):
+        with pytest.raises(EngineError, match="cannot read"):
             await use(machine)
 
     assert "rm" not in docker.verbs()
@@ -149,7 +149,7 @@ async def test_a_refused_docker_command_raises_in_dockers_words() -> None:
     docker = FakeDocker(status="missing")
     docker.refused_verbs.add("run")
     async with serving(docker, Dial()) as machine:
-        with pytest.raises(DockerError, match="docker run failed: Error: run refused"):
+        with pytest.raises(EngineError, match="docker run failed: Error: run refused"):
             await use(machine)
 
 
