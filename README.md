@@ -123,9 +123,9 @@ bot is silent, never the Assistant, and answers again when the bot is restored.
 (`/settings/credentials`), which holds every key. Each key shows only its last four characters, never the whole
 key. **Add credential** opens a dialog: pick a type, and that type's fields appear.
 
-- **LLM**: a name, an endpoint, a model, a key, and the bots it serves. A bot
-  uses at most one LLM credential, and ticking it in another one moves it there.
-  A bot with none answers "Pick a model for this bot in Edit bot."
+- **LLM**: a name, an endpoint, a model and a key. A bot's model is picked
+  from the LLM credentials in **Edit bot**'s **Model** dropdown. A bot with
+  none answers "Pick a model for this bot in Edit bot."
 - **Custom**: a name, a website, a key, and the bots allowed to use it. This
   replaces the old Keys page. A bot can still ask for a key on a card in the
   chat, from any device.

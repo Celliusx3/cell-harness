@@ -1,6 +1,6 @@
 # 02 A bot's model is picked in Edit bot
 
-**Status.** open
+**Status.** done
 
 **What to build.** The bot routes accept `model_credential` (an LLM credential's name, or `null`), and refuse a name that is not an LLM credential. **Edit bot** gets a **Model** dropdown of the LLM credentials. The credential dialog stops offering bot ticks for an LLM credential. Files: `bots/ties.py`, `bots/service.py`, `web/routes/bots.py`, `frontend/components/bots/BotForm.tsx`, `frontend/components/credentials/CredentialDialog.tsx`.
 

@@ -22,8 +22,8 @@ from harness.bots.models import (
     GroupDraft,
     GroupEmpty,
 )
-from harness.bots.ties import TiedKind
 from harness.prompts import BUILDER_INSTRUCTIONS
+from harness.secrets import SecretName
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, GroupMembersEvent
 from harness.session.repository import SessionNotFoundError
@@ -164,10 +164,16 @@ class BotService:
             stored, bot.model_copy(update={"secret_names": _without_repeats(secret_names)})
         )
 
-    def tie_credential(self, name: str, kind: TiedKind, bot_ids: tuple[str, ...]) -> None:
-        """Make the credential `name` serve exactly the active bots `bot_ids`, and save them."""
+    def tie_key(self, name: str, bot_ids: tuple[str, ...]) -> None:
+        """Make the saved key `name` one of the keys of exactly the active bots `bot_ids`."""
         stored = self._read_file()
-        self._save_bots(stored, ties.retied_bots(self._active_bots_in(stored), name, kind, bot_ids))
+        self._save_bots(stored, ties.retied_bots(self._active_bots_in(stored), name, bot_ids))
+
+    def set_model_credential(self, bot_id: str, name: SecretName | None) -> Bot:
+        """Make the LLM credential `name` an active bot's model; `None` leaves it with none."""
+        stored = self._read_file()
+        bot = self._active_bot_in(stored, bot_id)
+        return self._save_bot(stored, bot.model_copy(update={"model_credential": name}))
 
     def forget_secret(self, secret_name: str) -> None:
         """Take `secret_name` off every stored bot, archived ones too, as a key and as a model."""

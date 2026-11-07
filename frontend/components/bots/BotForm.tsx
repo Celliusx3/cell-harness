@@ -3,18 +3,23 @@
 import { useState, type FormEvent } from "react";
 
 import { ApiError } from "@/lib/api";
-import type { BotDraft } from "@/lib/types";
+import type { ModelOption } from "@/lib/credentials";
+import type { BotEdit } from "@/lib/types";
+
+const NO_MODEL = "";
 
 interface BotFormProps {
-  initial: BotDraft;
-  onSave: (draft: BotDraft) => Promise<void>;
+  initial: BotEdit;
+  models: ModelOption[];
+  onSave: (edit: BotEdit) => Promise<void>;
   onArchive: (() => Promise<void>) | null;
 }
 
-/** A bot's name and instructions, saved whole. */
-export function BotForm({ initial, onSave, onArchive }: BotFormProps) {
+/** A bot's name, instructions and model, saved whole. */
+export function BotForm({ initial, models, onSave, onArchive }: BotFormProps) {
   const [name, setName] = useState(initial.name);
   const [instructions, setInstructions] = useState(initial.instructions);
+  const [model, setModel] = useState(initial.model_credential ?? NO_MODEL);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +36,8 @@ export function BotForm({ initial, onSave, onArchive }: BotFormProps) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void run(() => onSave({ name, instructions }), "Could not save the bot.");
+    const modelCredential = model === NO_MODEL ? null : model;
+    void run(() => onSave({ name, instructions, model_credential: modelCredential }), "Could not save the bot.");
   }
 
   return (
@@ -47,6 +53,8 @@ export function BotForm({ initial, onSave, onArchive }: BotFormProps) {
           className="rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent"
         />
       </div>
+
+      <ModelSelect models={models} value={model} onChange={setModel} />
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs text-ink-soft" htmlFor="bot-instructions">
@@ -87,5 +95,34 @@ export function BotForm({ initial, onSave, onArchive }: BotFormProps) {
         </button>
       </div>
     </form>
+  );
+}
+
+interface ModelSelectProps {
+  models: ModelOption[];
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function ModelSelect({ models, value, onChange }: ModelSelectProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs text-ink-soft" htmlFor="bot-model">
+        Model
+      </label>
+      <select
+        id="bot-model"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+      >
+        <option value={NO_MODEL}>No model</option>
+        {models.map((option) => (
+          <option key={option.name} value={option.name}>
+            {`${option.name} — ${option.model} at ${option.host}`}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

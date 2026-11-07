@@ -1,4 +1,4 @@
-"""The bots: list, make, edit, archive, restore or delete one, and choose the keys it may use."""
+"""The bots: list, make, edit, archive, restore or delete one, and choose its keys and model."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from harness.bots import Bot, BotDraft, BotService
 from harness.runs.service import RunService
-from harness.secrets import SecretNotFound, SecretService
+from harness.secrets import SecretName, SecretNotFound, SecretService
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,22 @@ class AllowedSecrets(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     names: tuple[str, ...]
+
+
+class ModelPick(BaseModel):
+    """The LLM credential a bot answers on, by name, or `None` to leave it with no model."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model_credential: SecretName | None
+
+
+def not_a_model_reason(secrets: SecretService, pick: ModelPick) -> str | None:
+    """Why `pick` cannot be a bot's model: it names no saved LLM credential; `None` when it can."""
+    name = pick.model_credential
+    if name is None or secrets.model_credential_version(name) is not None:
+        return None
+    return f"{name!r} is not a saved LLM credential"
 
 
 def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) -> None:
@@ -51,6 +67,15 @@ def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) ->
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(SecretNotFound(unsaved)))
         bot = bots.set_allowed_secrets(bot_id, body.names)
         logger.info("bot %s may use %s", bot_id, list(bot.secret_names))
+        return bot
+
+    @router.put("/{bot_id}/model", response_model=Bot)
+    async def set_bot_model(bot_id: str, body: ModelPick) -> Bot:
+        reason = not_a_model_reason(secrets, body)
+        if reason is not None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=reason)
+        bot = bots.set_model_credential(bot_id, body.model_credential)
+        logger.info("bot %s answers on %s", bot_id, bot.model_credential)
         return bot
 
 

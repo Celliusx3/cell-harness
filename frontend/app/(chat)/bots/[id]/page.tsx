@@ -9,11 +9,12 @@ import { BotForm } from "@/components/bots/BotForm";
 import { BotKeys } from "@/components/bots/BotKeys";
 import { BotLinks } from "@/components/bots/BotLinks";
 import { refreshSidebar } from "@/components/chat/Sidebar";
+import { useModelOptions } from "@/components/bots/useModelOptions";
 import { useFound } from "@/components/chat/useFound";
-import { ASSISTANT_ID, archiveBot, listBots, updateBot } from "@/lib/api";
-import type { BotDraft } from "@/lib/types";
+import { ASSISTANT_ID, archiveBot, listBots, setBotModel, updateBot } from "@/lib/api";
+import type { BotEdit } from "@/lib/types";
 
-/** One bot's name, instructions and keys; saving opens its chat, and archiving opens the Bots page. */
+/** One bot's name, instructions, model and keys; saving opens its chat, and archiving opens the Bots page. */
 export default function EditBotPage({
   params,
 }: {
@@ -22,9 +23,11 @@ export default function EditBotPage({
   const { id } = use(params);
   const router = useRouter();
   const lookup = useFound(listBots, id, "Could not load bots.");
+  const models = useModelOptions();
 
-  async function save(draft: BotDraft) {
-    await updateBot(id, draft);
+  async function save(edit: BotEdit) {
+    await updateBot(id, { name: edit.name, instructions: edit.instructions });
+    await setBotModel(id, edit.model_credential);
     router.push(`/c/${id}`);
   }
 
@@ -59,10 +62,14 @@ export default function EditBotPage({
         {lookup.kind === "failed" && (
           <p className="px-6 py-6 text-sm text-danger">{lookup.message}</p>
         )}
-        {lookup.kind === "found" && (
+        {lookup.kind === "found" && models.kind === "failed" && (
+          <p className="px-6 py-6 text-sm text-danger">{models.message}</p>
+        )}
+        {lookup.kind === "found" && models.kind === "loaded" && (
           <>
             <BotForm
               initial={lookup.item}
+              models={models.options}
               onSave={save}
               onArchive={id === ASSISTANT_ID ? null : archive}
             />

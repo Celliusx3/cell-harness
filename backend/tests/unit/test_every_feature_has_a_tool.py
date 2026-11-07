@@ -94,6 +94,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
     ),
+    "PUT /api/bots/{bot_id}/model": NotATool(
+        "a bot's model is picked in Edit bot; a bot does not switch its own model in a chat"
+    ),
     "POST /api/bots/{bot_id}/link-codes": NotATool(
         "a code lets someone's chat talk to a bot; only the person hands one out, from its page"
     ),

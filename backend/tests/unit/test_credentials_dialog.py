@@ -79,9 +79,8 @@ async def test_a_custom_key_is_added_for_the_bots_ticked(secrets, bots) -> None:
     assert (await _listed(secrets, bots))["github"]["bots"] == [{"id": chef.id, "name": "Chef"}]
 
 
-async def test_an_llm_credential_serves_the_bots_ticked(secrets, bots) -> None:
+async def test_an_llm_credential_lists_the_bots_that_answer_on_it(secrets, bots) -> None:
     trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
-
     await _send(
         secrets,
         bots,
@@ -91,37 +90,15 @@ async def test_an_llm_credential_serves_the_bots_ticked(secrets, bots) -> None:
             "name": "trader_model",
             "details": MODEL_DETAILS,
             "value": "sk-model-key-5678",
-            "bot_ids": [trader.id],
+            "bot_ids": [],
         },
     )
 
-    assert bots.active_bot(trader.id).model_credential == "trader_model"
+    bots.set_model_credential(trader.id, "trader_model")
+
     assert (await _listed(secrets, bots))["trader_model"]["bots"] == [
         {"id": trader.id, "name": "Trader"}
     ]
-
-
-async def test_ticking_a_bot_in_another_llm_credential_moves_it(secrets, bots) -> None:
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
-    for name in ("first_model", "second_model"):
-        await _send(
-            secrets,
-            bots,
-            "POST",
-            "/api/credentials",
-            {
-                "name": name,
-                "details": MODEL_DETAILS,
-                "value": "sk-model-key-5678",
-                "bot_ids": [trader.id],
-            },
-        )
-
-    listed = await _listed(secrets, bots)
-
-    assert bots.active_bot(trader.id).model_credential == "second_model"
-    assert listed["first_model"]["bots"] == []
-    assert listed["second_model"]["bots"] == [{"id": trader.id, "name": "Trader"}]
 
 
 async def test_an_edit_with_no_key_keeps_the_saved_key(secrets, bots) -> None:
@@ -167,9 +144,10 @@ async def test_removing_a_credential_unties_it_from_its_bots(secrets, bots) -> N
             "name": "trader_model",
             "details": MODEL_DETAILS,
             "value": "sk-model-key-5678",
-            "bot_ids": [trader.id],
+            "bot_ids": [],
         },
     )
+    bots.set_model_credential(trader.id, "trader_model")
     await _send(
         secrets,
         bots,

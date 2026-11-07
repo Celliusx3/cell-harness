@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 REFUSED = (BotNotFound, SecretNotFound, SecretRefused)
 PLATFORM_SERVES_NO_BOTS = "a Telegram or Discord credential serves no bots; tick none"
 CAPABILITY_SERVES_NO_BOTS = "a capability key serves its capability, not bots; tick none"
+MODEL_PICKED_IN_EDIT_BOT = "a bot's model is picked in Edit bot; tick none"
 
 
 class BotRef(BaseModel):
@@ -171,6 +172,8 @@ def _refuse_bots_where_none_served(details: CredentialDetails, bot_ids: tuple[st
         raise ValueError(PLATFORM_SERVES_NO_BOTS)
     if isinstance(details, CapabilityDetails):
         raise ValueError(CAPABILITY_SERVES_NO_BOTS)
+    if isinstance(details, ModelDetails):
+        raise ValueError(MODEL_PICKED_IN_EDIT_BOT)
 
 
 def _refuse_unneeded_capability_key(

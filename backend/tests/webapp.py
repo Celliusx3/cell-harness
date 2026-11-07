@@ -79,7 +79,7 @@ def assistant_on_a_model(tmp_path: Path, bots: BotService) -> SecretService:
     secrets = secrets_in(tmp_path)
     details = ModelDetails(base_url="https://api.example.com/v1", model="m")
     secrets.add_credential(MODEL_CREDENTIAL, details, SecretStr(MODEL_KEY))
-    bots.tie_credential(MODEL_CREDENTIAL, "llm", (ASSISTANT_ID,))
+    bots.set_model_credential(ASSISTANT_ID, MODEL_CREDENTIAL)
     return secrets
 
 

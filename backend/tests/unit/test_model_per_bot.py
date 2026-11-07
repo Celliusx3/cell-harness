@@ -158,11 +158,11 @@ def bots(tmp_path: Path) -> BotService:
 async def _trader_on_its_model(keyring: SecretService, bots: BotService) -> str:
     trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
     keyring.add_credential("trader_model", TRADER_MODEL, SecretStr(TRADER_KEY))
-    bots.tie_credential("trader_model", "llm", (trader.id,))
+    bots.set_model_credential(trader.id, "trader_model")
     return trader.id
 
 
-async def test_a_tied_bot_gets_its_credentials_endpoint_model_and_key(keyring, bots) -> None:
+async def test_a_bot_on_a_credential_gets_its_endpoint_model_and_key(keyring, bots) -> None:
     trader_id = await _trader_on_its_model(keyring, bots)
     clients = ClientsMade()
 
@@ -196,12 +196,12 @@ async def test_no_bot_or_an_unknown_one_has_no_model(keyring, bots, bot_id) -> N
     assert choice == NoModel()
 
 
-async def test_untying_a_bot_leaves_its_next_turn_with_no_model(keyring, bots) -> None:
+async def test_clearing_a_bots_model_leaves_its_next_turn_with_no_model(keyring, bots) -> None:
     trader_id = await _trader_on_its_model(keyring, bots)
     models = CredentialModels(keyring, bots, BASE, ClientsMade())
     await models.model_for(trader_id)
 
-    bots.tie_credential("trader_model", "llm", ())
+    bots.set_model_credential(trader_id, None)
 
     assert await models.model_for(trader_id) == NoModel()
 

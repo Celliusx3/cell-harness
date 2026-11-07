@@ -42,9 +42,9 @@ export function isChatPlatform(kind: CredentialKind): kind is ChatPlatform {
   return kind === "telegram" || kind === "discord";
 }
 
-/** Whether a credential of `kind` serves something other than bots: a chat platform or a capability. */
+/** Whether a credential of `kind` is ticked for no bots: a chat platform, a capability, or a model, which is picked in Edit bot. */
 export function servesNoBots(kind: CredentialKind): boolean {
-  return isChatPlatform(kind) || kind === "capability";
+  return isChatPlatform(kind) || kind === "capability" || kind === "llm";
 }
 
 /** The types a new credential may take: every one, but a chat platform already saved, or a capability key with none open. */
@@ -58,7 +58,8 @@ export function addableKinds(credentials: Credential[], hasOpenCapabilityKey: bo
 /** The fields for a new credential, or `credential`'s with its key left empty. */
 export function initialForm(credential: Credential | null): CredentialForm {
   if (credential === null) return EMPTY_FORM;
-  const shared = { ...EMPTY_FORM, name: credential.name, botIds: credential.bots.map((bot) => bot.id) };
+  const botIds = servesNoBots(credential.details.kind) ? [] : credential.bots.map((bot) => bot.id);
+  const shared = { ...EMPTY_FORM, name: credential.name, botIds };
   const details = credential.details;
   switch (details.kind) {
     case "llm":

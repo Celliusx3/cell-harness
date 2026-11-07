@@ -1,4 +1,4 @@
-"""What a saved credential sets going: its bots tied, its platform or its capability restarted."""
+"""What a saved credential sets going: a key's bots tied, its platform or capability restarted."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from harness.secrets.models.details import (
     CapabilityDetails,
     ChatPlatformDetails,
     CredentialDetails,
+    CustomDetails,
 )
 from harness.web.platforms import PlatformChannels
 
@@ -37,13 +38,13 @@ class CredentialEffects:
         return f"{details.server} needs {', '.join(needs)}, not {details.variable}"
 
     async def added(self, name: str, details: CredentialDetails, bot_ids: tuple[str, ...]) -> None:
-        """Start what the new credential `name` is for, or tie it to `bot_ids`."""
+        """Start what the new credential `name` is for, or tie a website key to `bot_ids`."""
         if isinstance(details, CapabilityDetails):
             await self.restart_capabilities(details)
         elif isinstance(details, ChatPlatformDetails):
             await self.platforms.restart(details.kind)
-        else:
-            self.bots.tie_credential(name, details.kind, bot_ids)
+        elif isinstance(details, CustomDetails):
+            self.bots.tie_key(name, bot_ids)
 
     async def changed(
         self,
@@ -54,12 +55,12 @@ class CredentialEffects:
         bot_ids: tuple[str, ...],
         is_new_key: bool,
     ) -> None:
-        """Restart what `name` was and is now for, or tie it to `bot_ids`."""
+        """Restart what `name` was and is now for, or tie a website key to `bot_ids`."""
         if isinstance(details, CapabilityDetails):
             await self.restart_capabilities(replaced, details)
-        elif not isinstance(details, ChatPlatformDetails):
-            self.bots.tie_credential(name, details.kind, bot_ids)
-        elif is_new_key:
+        elif isinstance(details, CustomDetails):
+            self.bots.tie_key(name, bot_ids)
+        elif isinstance(details, ChatPlatformDetails) and is_new_key:
             await self.platforms.restart(details.kind)
 
     async def removed(self, name: str, details: CredentialDetails) -> None:

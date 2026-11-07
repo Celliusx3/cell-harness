@@ -1,4 +1,4 @@
-"""A bot answers on the model it is tied to, and one with no model refuses with one line."""
+"""A bot answers on the model picked for it in Edit bot, and one with no model refuses."""
 
 from __future__ import annotations
 
@@ -28,7 +28,23 @@ SETUP_CREDENTIAL = {
     "name": "first_model",
     "details": {"kind": "llm", "base_url": PROVIDER, "model": "provider-model"},
     "value": "sk-provider-key-1234",
-    "bot_ids": [ASSISTANT_ID],
+    "bot_ids": [],
+}
+OTHER_PROVIDER = "https://api.other.example/v1"
+OTHER_CREDENTIAL = {
+    "name": "other_model",
+    "details": {"kind": "llm", "base_url": OTHER_PROVIDER, "model": "other-model"},
+    "value": "sk-other-key-5678",
+    "bot_ids": [],
+}
+GITHUB_CREDENTIAL = {
+    "name": "github",
+    "details": {
+        "kind": "custom",
+        "destination": {"origin": "https://api.github.com", "auth": "bearer", "header_name": None},
+    },
+    "value": "ghp-github-key-1234",
+    "bot_ids": [],
 }
 RESEARCHER = {"name": "Researcher", "instructions": "Find sources."}
 
@@ -90,13 +106,19 @@ async def _say(app: App, conversation_id: str) -> list[dict]:
     return (await app.client.get(f"/api/conversations/{conversation_id}")).json()["events"]
 
 
+async def _pick_model(app: App, bot_id: str, name: str | None) -> httpx.Response:
+    return await app.client.put(f"/api/bots/{bot_id}/model", json={"model_credential": name})
+
+
 def _last_chunk(events: list[dict]) -> dict:
     return [event for event in events if event["type"] == "assistant/chunk"][-1]["chunk"]
 
 
-async def test_setup_ties_assistant_and_a_bot_with_no_model_refuses(app: App) -> None:
+async def test_setup_picks_assistant_a_model_and_a_bot_with_no_model_refuses(app: App) -> None:
     saved = await app.client.post("/api/credentials", json=SETUP_CREDENTIAL)
     assert saved.status_code == 201, saved.text
+    picked = await _pick_model(app, ASSISTANT_ID, "first_model")
+    assert picked.status_code == 200, picked.text
 
     await _say(app, ASSISTANT_ID)
     assert len(app.provider.requests) == 1
@@ -112,3 +134,47 @@ async def test_setup_ties_assistant_and_a_bot_with_no_model_refuses(app: App) ->
     events = await _say(app, ASSISTANT_ID)
     assert len(app.provider.requests) == 1
     assert _last_chunk(events)["reason"] == PICK_A_MODEL
+
+
+async def test_a_model_picked_in_edit_bot_answers_the_next_turn(app: App) -> None:
+    for credential in (SETUP_CREDENTIAL, OTHER_CREDENTIAL):
+        assert (await app.client.post("/api/credentials", json=credential)).status_code == 201
+    researcher = (await app.client.post("/api/bots", json=RESEARCHER)).json()["id"]
+
+    picked = await _pick_model(app, researcher, "other_model")
+    assert picked.status_code == 200, picked.text
+    assert picked.json()["model_credential"] == "other_model"
+    await _say(app, researcher)
+
+    (asked,) = app.provider.requests
+    assert asked.url.host == "api.other.example"
+    assert asked.headers["authorization"] == "Bearer sk-other-key-5678"
+
+    assert (await _pick_model(app, researcher, None)).status_code == 200
+    events = await _say(app, researcher)
+    assert len(app.provider.requests) == 1
+    assert _last_chunk(events)["reason"] == PICK_A_MODEL
+
+
+@pytest.mark.parametrize("name", ["github", "no_such_model"])
+async def test_a_name_that_is_not_an_llm_credential_is_refused(app: App, name: str) -> None:
+    assert (await app.client.post("/api/credentials", json=GITHUB_CREDENTIAL)).status_code == 201
+
+    refused = await _pick_model(app, ASSISTANT_ID, name)
+
+    assert refused.status_code == 422, refused.text
+    assistant = (await app.client.get("/api/bots")).json()[0]
+    assert assistant["model_credential"] is None
+
+
+async def test_an_llm_credential_refuses_ticked_bots(app: App) -> None:
+    ticked = {**SETUP_CREDENTIAL, "bot_ids": [ASSISTANT_ID]}
+    assert (await app.client.post("/api/credentials", json=ticked)).status_code == 422
+    assert (await app.client.post("/api/credentials", json=SETUP_CREDENTIAL)).status_code == 201
+
+    change = {"details": SETUP_CREDENTIAL["details"], "value": None, "bot_ids": [ASSISTANT_ID]}
+    refused = await app.client.patch("/api/credentials/first_model", json=change)
+
+    assert refused.status_code == 422, refused.text
+    assistant = (await app.client.get("/api/bots")).json()[0]
+    assert assistant["model_credential"] is None

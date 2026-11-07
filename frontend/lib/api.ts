@@ -154,6 +154,13 @@ export const setBotSecrets = (botId: string, names: string[]) =>
     body: JSON.stringify({ names }),
   });
 
+/** Make the LLM credential `name` the bot's model, or leave it with none for null. */
+export const setBotModel = (botId: string, name: string | null) =>
+  request<Bot>(`/bots/${encodeURIComponent(botId)}/model`, {
+    method: "PUT",
+    body: JSON.stringify({ model_credential: name }),
+  });
+
 export const listGroups = () => request<Group[]>("/groups");
 
 /** Make a group of two to six bots; its chat's id is the group's id. */

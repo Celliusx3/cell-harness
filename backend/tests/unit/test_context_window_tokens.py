@@ -102,7 +102,7 @@ async def test_the_window_is_found_from_inside_a_running_loop(tmp_path, monkeypa
     bots = bots_in(tmp_path, durable_service(tmp_path / "sessions"))
     model = ModelDetails(base_url="https://assistant.example/v1", model="m")
     keyring.add_credential("first_model", model, SecretStr("sk-assistant-window"))
-    bots.tie_credential("first_model", "llm", (ASSISTANT_ID,))
+    bots.set_model_credential(ASSISTANT_ID, "first_model")
 
     assert _resolve_context_tokens(unset, keyring, bots) == 1000000
     assert seen[0].url == "https://assistant.example/v1/models"

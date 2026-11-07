@@ -182,9 +182,13 @@ export interface Bot {
   name: string;
   instructions: string;
   secret_names: string[];
+  model_credential: string | null;
 }
 
 export type BotDraft = Pick<Bot, "name" | "instructions">;
+
+/** What Edit bot saves: the draft, and the LLM credential the bot answers on, or null for none. */
+export type BotEdit = Pick<Bot, "name" | "instructions" | "model_credential">;
 
 /** Two to six bots sharing one chat, whose id is the group's; they take turns in member order. */
 export interface Group {

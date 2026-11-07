@@ -86,3 +86,23 @@ async function sendToHarness(directUrl: string, path: string, init: { method: st
   });
   if (!response.ok) throw new ApiError(response.status, await detailOf(response));
 }
+
+/** An LLM credential a bot can answer on, by name, with the model it asks and that endpoint's host. */
+export interface ModelOption {
+  name: string;
+  model: string;
+  host: string;
+}
+
+/** The LLM credentials in `credentials`, in the order the keyring lists them. */
+export function modelOptions(credentials: Credential[]): ModelOption[] {
+  return credentials.flatMap((credential) =>
+    credential.details.kind === "llm"
+      ? [{ name: credential.name, model: credential.details.model, host: hostOf(credential.details.base_url) }]
+      : [],
+  );
+}
+
+function hostOf(baseUrl: string): string {
+  return baseUrl.replace(/^[a-z]+:\/\//i, "").replace(/\/.*$/, "");
+}
