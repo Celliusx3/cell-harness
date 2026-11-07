@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from computer.engine import DockerEngine
+from computer.engines.docker import DockerEngine
 from computer.machine import HOME
 from computer.shell import POLL_SECONDS, WAIT_SECONDS, Job, Shell
 from tests.conftest import NAME, TickingClock

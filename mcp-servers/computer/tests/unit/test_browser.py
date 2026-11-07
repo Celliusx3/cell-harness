@@ -8,7 +8,7 @@ from collections.abc import Sequence
 import pytest
 
 from computer.browser import Browser, BrowserError
-from computer.engine import DockerEngine
+from computer.engines.docker import DockerEngine
 from computer.models.command import CommandResult
 from computer.models.errors import EngineError, EngineTimeout
 from computer.models.page import Action

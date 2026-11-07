@@ -20,8 +20,9 @@ from computer.browser import Browser
 from computer.clock import SYSTEM
 from computer.config import ConfigError, EngineName, load
 from computer.desktop import Desktop
-from computer.docker import DockerCli
-from computer.engine import DockerEngine, Engine
+from computer.engine import Engine
+from computer.engines.docker import DockerCli, DockerEngine
+from computer.engines.microsandbox import MicrosandboxEngine
 from computer.files import Files
 from computer.host_services import (
     PreparedHostService,
@@ -31,7 +32,6 @@ from computer.host_services import (
 )
 from computer.live_screen import LiveScreen
 from computer.machine import Machine
-from computer.microsandbox_engine import MicrosandboxEngine
 from computer.shell import Shell
 from computer.skill_declarations import declared_host_services
 from computer.tools import PREVIEW_URI, Computer, browser, computer_page, shell

@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from computer.engine import DockerEngine, environment_of, loopback_port
+from computer.engines.docker import DockerEngine, environment_of, loopback_port
 from computer.models.errors import EngineError
 from tests.conftest import API_HOST_PORT, API_TOKEN, NAME, FakeDocker
 

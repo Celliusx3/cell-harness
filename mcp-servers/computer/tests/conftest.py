@@ -259,7 +259,7 @@ def server_with(
 ) -> MCPServer:
     from computer.browser import Browser
     from computer.desktop import Desktop
-    from computer.engine import DockerEngine
+    from computer.engines.docker import DockerEngine
     from computer.files import Files
     from computer.live_screen import LiveScreen
     from computer.machine import Machine

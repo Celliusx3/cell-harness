@@ -29,7 +29,7 @@ from microsandbox import (
 )
 
 from computer.engine import LABEL, LOOPBACK
-from computer.microsandbox_sdk import (
+from computer.engines.microsandbox_sdk import (
     ImageConfig,
     Images,
     RunningSandbox,

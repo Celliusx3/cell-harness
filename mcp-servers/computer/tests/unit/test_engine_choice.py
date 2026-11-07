@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from microsandbox import Image, Sandbox
 
-from computer.docker import DockerCli
-from computer.engine import DockerEngine
-from computer.microsandbox_engine import MicrosandboxEngine
+from computer.engines.docker import DockerCli, DockerEngine
+from computer.engines.microsandbox import MicrosandboxEngine
 from computer.server import engine_named
 
 

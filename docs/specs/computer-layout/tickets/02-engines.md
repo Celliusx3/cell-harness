@@ -1,6 +1,6 @@
 # 02 Each engine moves into engines/
 
-**Status.** open
+**Status.** done
 
 **What to build.** `engine.py` keeps only the `Engine` protocol. `DockerEngine`
 and `DockerCli` move to `engines/docker.py`, and `docker.py` is deleted.

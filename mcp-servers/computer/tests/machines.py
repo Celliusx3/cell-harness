@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from computer.clock import Clock
-from computer.docker import Docker
-from computer.engine import DockerEngine
+from computer.engines.docker import Docker, DockerEngine
 from computer.machine import Machine
 from tests.conftest import config
 

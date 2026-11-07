@@ -9,14 +9,14 @@ from pathlib import Path
 import pytest
 from microsandbox import ExecFailedError, MountKind, NamedVolumeMode, SandboxStatus
 
-from computer.machine import API_PORT, GATEWAY_PORT, HOME, SHM_MEGABYTES, pc_spec
-from computer.microsandbox_engine import (
+from computer.engines.microsandbox import (
     CPUS,
     CREATE_TIMEOUT_SECONDS,
     MEMORY_MIB,
     MicrosandboxEngine,
     state_of,
 )
+from computer.machine import API_PORT, GATEWAY_PORT, HOME, SHM_MEGABYTES, pc_spec
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from computer.models.errors import EngineError, EngineTimeout
 from computer.models.pc import PcSpec, Program, SharedFolder

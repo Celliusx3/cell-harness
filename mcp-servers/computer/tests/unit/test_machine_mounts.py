@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from computer.engine import DockerEngine
+from computer.engines.docker import DockerEngine
 from computer.machine import Machine
 from computer.models.errors import EngineError
 from tests.conftest import NAME, Dial, FakeDocker, config, mount_of

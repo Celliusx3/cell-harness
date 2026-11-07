@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from computer.docker import DockerCli
+from computer.engines.docker import DockerCli
 from computer.models.command import CommandResult, stdout_of
 from computer.models.errors import EngineError, EngineTimeout
 
