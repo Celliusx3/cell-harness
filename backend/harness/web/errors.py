@@ -10,7 +10,14 @@ from fastapi.responses import JSONResponse
 
 from harness.bots import BotNotFound, BotPermanent, GroupEmpty
 from harness.files import FileTooLarge, UnsafeFileName
-from harness.mcp import McpConnectionError, McpNotConnectedError, McpTimeoutError
+from harness.mcp import (
+    McpConnectionError,
+    McpNotConnectedError,
+    McpServerBuiltIn,
+    McpServerNotFound,
+    McpServerTaken,
+    McpTimeoutError,
+)
 from harness.secrets import SecretNotFound, SecretRefused
 from harness.session.repository import (
     SessionCorruptionError,
@@ -31,6 +38,9 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
         InvalidSkill: status.HTTP_422_UNPROCESSABLE_CONTENT,
         McpConnectionError: status.HTTP_502_BAD_GATEWAY,
         McpNotConnectedError: status.HTTP_503_SERVICE_UNAVAILABLE,
+        McpServerBuiltIn: status.HTTP_409_CONFLICT,
+        McpServerNotFound: status.HTTP_404_NOT_FOUND,
+        McpServerTaken: status.HTTP_409_CONFLICT,
         McpTimeoutError: status.HTTP_502_BAD_GATEWAY,
         NotApproved: status.HTTP_404_NOT_FOUND,
         SecretNotFound: status.HTTP_404_NOT_FOUND,

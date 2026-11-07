@@ -1,5 +1,8 @@
 # Cell Harness as a Mac app
 
+`docs/specs/full-app/` replaces this spec's limits: the app now has every
+capability and its own PC.
+
 ## Problem
 
 A friend cannot use cell-harness without the repo. Today they must clone it, install uv, Node and Deno, write a settings file with two keys, and keep `make dev` running in a terminal. The chat is a browser tab, and it stops when the terminal closes.

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/api";
 import { addCredential, changeCredential, type Credential } from "@/lib/credentials";
+import type { CapabilityKey } from "@/lib/capabilityKeys";
 import type { Bot } from "@/lib/types";
 
 interface CredentialDialogProps {
@@ -28,12 +29,21 @@ interface CredentialDialogProps {
   credential: Credential | null;
   kinds: CredentialKind[];
   bots: Bot[];
+  capabilityKeys: CapabilityKey[];
   onClose: () => void;
   onSaved: () => void;
 }
 
 /** Adds a credential, or edits one with its type and name fixed; an empty key keeps the saved one. */
-export function CredentialDialog({ directUrl, credential, kinds, bots, onClose, onSaved }: CredentialDialogProps) {
+export function CredentialDialog({
+  directUrl,
+  credential,
+  kinds,
+  bots,
+  capabilityKeys,
+  onClose,
+  onSaved,
+}: CredentialDialogProps) {
   const [form, setForm] = useState<CredentialForm>(() => initialForm(credential));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +73,14 @@ export function CredentialDialog({ directUrl, credential, kinds, bots, onClose, 
                 : `Leave the ${isChatPlatform(form.kind) ? "token" : "key"} empty to keep the one saved.`}
             </DialogDescription>
           </DialogHeader>
-          <CredentialFields form={form} kinds={kinds} isEditing={credential !== null} bots={bots} onChange={setForm} />
+          <CredentialFields
+            form={form}
+            kinds={kinds}
+            isEditing={credential !== null}
+            bots={bots}
+            capabilityKeys={capabilityKeys}
+            onChange={setForm}
+          />
           {error && (
             <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm break-words text-danger">
               {error}

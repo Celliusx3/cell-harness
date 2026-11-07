@@ -21,7 +21,7 @@ from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.llm.adapters import context_window_tokens
-from harness.mcp import McpService
+from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.runs.bot_messages import BotMessages
@@ -50,6 +50,7 @@ from harness.web.routes.credentials import build_router as build_credentials_rou
 from harness.web.routes.groups import build_router as build_groups_router
 from harness.web.routes.link_codes import build_router as build_link_codes_router
 from harness.web.routes.mcp import build_router as build_mcp_router
+from harness.web.routes.mcp_servers import build_router as build_mcp_servers_router
 from harness.web.routes.relay import build_router as build_relay_router
 from harness.web.routes.secret_card import build_router as build_secret_card_router
 from harness.web.routes.secrets import build_router as build_secrets_router
@@ -69,9 +70,20 @@ def build_subagent_logs(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
-def build_mcp(settings: Settings) -> McpService:
-    """Connections to whatever `config.json` declares under `mcp.servers`."""
-    return McpService(settings.mcp.servers)
+def build_saved_servers(settings: Settings) -> SavedServerService:
+    """The person's own servers, kept in `mcp.path`, none under a built-in server's id."""
+    return SavedServerService(
+        DiskSavedServerRepository(settings.mcp.path), built_in_ids=frozenset(settings.mcp.servers)
+    )
+
+
+def build_mcp(settings: Settings, keyring: SecretService, saved: SavedServerService) -> McpService:
+    """Connections to `config.json`'s `mcp.servers` and the person's saved ones, with their keys."""
+    return McpService(
+        settings.mcp.servers,
+        saved={server.id: server.server() for server in saved.servers()},
+        keys=keyring,
+    )
 
 
 def build_keyring(settings: Settings) -> SecretService:
@@ -161,7 +173,8 @@ def create_web_app() -> FastAPI:
     disk.create_root()
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
-    mcp = build_mcp(settings)
+    saved_servers = build_saved_servers(settings)
+    mcp = build_mcp(settings, secrets, saved_servers)
     skills = SkillService(settings.skills)
     approvals = ApprovalService(
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
@@ -191,7 +204,17 @@ def create_web_app() -> FastAPI:
     )
     shipped_model = ModelDetails(base_url=settings.llm.base_url, model=settings.llm.model)
     return create_app(
-        runs, channels, mcp, skills, client_tools, approvals, bots, secrets, messages, shipped_model
+        runs,
+        channels,
+        mcp,
+        saved_servers,
+        skills,
+        client_tools,
+        approvals,
+        bots,
+        secrets,
+        messages,
+        shipped_model,
     )
 
 
@@ -199,6 +222,7 @@ def create_app(
     runs: RunService,
     channels: Channels,
     mcp: McpService,
+    saved_servers: SavedServerService,
     skills: SkillService,
     client_tools: ClientToolService,
     approvals: ApprovalService,
@@ -226,12 +250,15 @@ def create_app(
     app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
     app.include_router(build_skills_router(skills))
+    app.include_router(build_mcp_servers_router(mcp, saved_servers))
     app.include_router(build_mcp_router(mcp, relays))
     app.include_router(build_relay_router(relays))
     app.include_router(build_client_router(web, client_tools))
     app.include_router(build_secret_card_router(web, client_tools, secrets))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_credentials_router(secrets, bots, channels.platforms, shipped_model))
+    app.include_router(
+        build_credentials_router(secrets, bots, channels.platforms, mcp, shipped_model)
+    )
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

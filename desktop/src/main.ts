@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -6,6 +6,7 @@ import { app, BrowserWindow, dialog, session, shell, type Session, type Tray, ty
 
 import { startHarness, startPages, stopStrayHarness, type Child } from "./children";
 import { messageOf } from "./errors";
+import { harnessBasePath, runShell } from "./loginPath";
 import { newEncryptionKey, readLocalSettings, withEncryptionKey, writeLocalSettings } from "./localSettings";
 import { APP_URL, isAppOrigin, isBrowserLink, isPermissionGranted } from "./origin";
 import {
@@ -51,7 +52,8 @@ async function startApp(): Promise<void> {
   await stopStrayHarness(files.pidFile);
   const portInUse = await firstPortInUse(HOST, [HARNESS_PORT, PAGES_PORT]);
   if (portInUse !== null) return failStart(portInUseReason(portInUse));
-  const harness = startHarness(harnessSpec(layout, files, process.env), files.harnessLog, files.pidFile);
+  const harnessEnv = { ...process.env, PATH: await loginShellPath() };
+  const harness = startHarness(harnessSpec(layout, files, harnessEnv), files.harnessLog, files.pidFile);
   const pages = startPages(pagesSpec(layout, process.env), files.pagesLog);
   children = [harness, pages];
   try {
@@ -63,6 +65,15 @@ async function startApp(): Promise<void> {
     return failStart(`${messageOf(error)}\n\n${logTail(files.harnessLog)}`);
   }
   openChat();
+}
+
+/** The login shell's PATH, so commands found in Terminal are found here; on failure the inherited PATH, with why in the harness log. */
+async function loginShellPath(): Promise<string | undefined> {
+  const base = await harnessBasePath(process.env, runShell);
+  if (base.source === "inherited") {
+    appendFileSync(files.harnessLog, `Kept the inherited PATH: could not read the login shell's PATH (${base.reason})\n`);
+  }
+  return base.path;
 }
 
 /** Opens the chat window and the menu-bar icon; from now on a Dock click or a second launch shows the window. */

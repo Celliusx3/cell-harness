@@ -23,6 +23,7 @@ from computer.startup.readiness import (
 DOCKER_CHECK_TIMEOUT_SECONDS = 15.0
 SYSCTL_TIMEOUT_SECONDS = 5.0
 KVM_DEVICE = Path("/dev/kvm")
+SYSCTL = "/usr/sbin/sysctl"
 
 
 def probed_host() -> MicrosandboxHost:
@@ -50,7 +51,7 @@ def _has_hypervisor(system: str) -> bool:
 def _mac_has_hypervisor() -> bool:
     try:
         completed = subprocess.run(
-            ["sysctl", "-n", "kern.hv_support"],
+            [SYSCTL, "-n", "kern.hv_support"],
             capture_output=True,
             text=True,
             timeout=SYSCTL_TIMEOUT_SECONDS,

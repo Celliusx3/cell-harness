@@ -27,7 +27,7 @@
     "context_tokens": null
   },
   "approval": {
-    "tools": ["memory__write_note", "memory__delete_note", "skill_save", "skill_delete", "skill_write_file", "bot_create", "fetch_with_secret"],
+    "tools": ["skill_save", "skill_delete", "skill_write_file", "bot_create", "fetch_with_secret"],
     "grants_path": "~/.harness/approvals.json"
   },
   "bots": {
@@ -42,53 +42,6 @@
   },
   "mcp": {
     "servers": {
-      "instagram": {
-        "command": "uv",
-        "args": [
-          "run",
-          "--quiet",
-          "--project",
-          "../mcp-servers/instagram",
-          "instagram"
-        ],
-        "env": {
-          "AI_PROVIDER_BASE_URL": "https://api.ilmu.ai/v1",
-          "INSTAGRAM_MEDIA_BACKEND": "instaloader",
-          "AI_VISION_MODEL": "glm-5.3-flash",
-          "AI_ASR_MODEL": "ilmu-asr-v4.2",
-          "INSTAGRAM_WORK_DIR": "~/.harness/instagram",
-          "INSTAGRAM_MAX_FRAMES": "8",
-          "INSTAGRAM_MAX_SPEECH_SECONDS": "180",
-          "INSTAGRAM_CALL_BUDGET_SECONDS": "45"
-        }
-      },
-      "places": {
-        "command": "uv",
-        "args": [
-          "run",
-          "--quiet",
-          "--project",
-          "../mcp-servers/places",
-          "places"
-        ],
-        "env": {
-          "PLACES_MAX_RESULTS": "3"
-        }
-      },
-      "markets": {
-        "command": "uv",
-        "args": [
-          "run",
-          "--quiet",
-          "--project",
-          "../mcp-servers/markets",
-          "markets"
-        ],
-        "env": {
-          "SEC_USER_AGENT": "cell-harness contact@example.com",
-          "MARKETS_MAX_ROWS": "70"
-        }
-      },
       "computer": {
         "command": "uv",
         "args": [
@@ -105,34 +58,6 @@
           "COMPUTER_FILES_DIR": "~/.harness/files",
           "COMPUTER_SKILLS_DIRS": "../.agents/skills"
         }
-      },
-      "sysmon": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "--silent",
-          "@modelcontextprotocol/server-system-monitor",
-          "--stdio"
-        ]
-      },
-      "memory": {
-        "command": "uvx",
-        "args": [
-          "--prerelease=allow",
-          "basic-memory",
-          "mcp"
-        ],
-        "env": {
-          "BASIC_MEMORY_NO_PROMOS": "1"
-        }
-      },
-      "exa": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "--silent",
-          "exa-mcp-server"
-        ]
       }
     }
   }

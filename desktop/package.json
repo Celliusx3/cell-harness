@@ -52,10 +52,17 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "icon": "build/icon.svg.png",
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "signIgnore": [
+        "/servers/computer/microsandbox/_bundled/bin/msb$"
+      ]
     },
     "dmg": {
-      "artifactName": "Cell Harness-${version}-arm64.${ext}"
-    }
+      "artifactName": "Cell Harness-${version}-arm64.${ext}",
+      "format": "ULFO"
+    },
+    "electronLanguages": [
+      "en"
+    ]
   }
 }

@@ -27,7 +27,13 @@
     "context_tokens": null
   },
   "approval": {
-    "tools": ["skill_save", "skill_delete", "skill_write_file", "bot_create", "fetch_with_secret"],
+    "tools": [
+      "skill_save",
+      "skill_delete",
+      "skill_write_file",
+      "bot_create",
+      "fetch_with_secret"
+    ],
     "grants_path": "~/Library/Application Support/Cell Harness/approvals.json"
   },
   "bots": {
@@ -41,6 +47,25 @@
     "max_bytes": 209715200
   },
   "mcp": {
-    "servers": {}
+    "servers": {
+      "computer": {
+        "command": "python3",
+        "args": [
+          "-c",
+          "from computer.server import main; main()"
+        ],
+        "env": {
+          "PYTHONPATH": "../../servers/computer",
+          "COMPUTER_ENGINE": "microsandbox",
+          "COMPUTER_IDLE_MINUTES": "10",
+          "COMPUTER_FILES_DIR": "~/Library/Application Support/Cell Harness/files",
+          "COMPUTER_SKILLS_DIRS": "../.agents/skills",
+          "COMPUTER_NAME": "cell-harness-app-computer",
+          "MSB_HOME": "~/.cell-harness/msb"
+        },
+        "required": true
+      }
+    },
+    "path": "~/Library/Application Support/Cell Harness/mcp.json"
   }
 }

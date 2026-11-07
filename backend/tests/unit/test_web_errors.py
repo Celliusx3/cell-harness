@@ -10,7 +10,14 @@ from fastapi import FastAPI, HTTPException
 
 from harness.bots import ASSISTANT_ID, BotNotFound, BotPermanent, GroupEmpty
 from harness.files import FileTooLarge, UnsafeFileName
-from harness.mcp import McpConnectionError, McpNotConnectedError, McpTimeoutError
+from harness.mcp import (
+    McpConnectionError,
+    McpNotConnectedError,
+    McpServerBuiltIn,
+    McpServerNotFound,
+    McpServerTaken,
+    McpTimeoutError,
+)
 from harness.secrets import SecretNotFound, SecretRefused
 from harness.session.repository import (
     SessionCorruptionError,
@@ -33,6 +40,9 @@ PINNED = [
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),
     pytest.param(McpNotConnectedError("stub is not connected"), 503, id="McpNotConnectedError"),
+    pytest.param(McpServerBuiltIn("computer is built in"), 409, id="McpServerBuiltIn"),
+    pytest.param(McpServerNotFound("no MCP server 'exa'"), 404, id="McpServerNotFound"),
+    pytest.param(McpServerTaken("a server is already named 'exa'"), 409, id="McpServerTaken"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),
     pytest.param(NotApproved("'memory__write_note' is not approved"), 404, id="NotApproved"),
     pytest.param(SecretNotFound("GITHUB_TOKEN"), 404, id="SecretNotFound"),

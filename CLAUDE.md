@@ -21,10 +21,12 @@ Five shapes that hold everywhere:
   by writing a TypeScript program that runs in a Deno sandbox, so the request
   carries three schemas however many servers are connected. **Deno is a startup
   requirement.** [docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md).
-- **A capability is an MCP server** under [mcp-servers/](./mcp-servers/) — a
-  separate process with its own dependencies and its own 80% gate, declared in
-  `mcp.servers` and connected at startup. The key is the tool namespace: `fs`
-  gives the model `fs__read_file`. `backend/harness/` imports nothing from it.
+- **A capability is an MCP server** — a separate process with its own
+  dependencies. Only the PC is built in (`computer` in `config.json`); every
+  other server is added on the MCP servers screen in Settings, saved in
+  `mcp.json` and started live. Ours live under [mcp-servers/](./mcp-servers/),
+  each with its own 80% gate. The key is the tool namespace: `fs` gives the
+  model `fs__read_file`. `backend/harness/` imports nothing from it.
   [mcp-servers/README.md](./mcp-servers/README.md).
 - **A skill is a directory with a `SKILL.md`** — the
   [Agent Skills](https://agentskills.io) format — read from ranked roots on

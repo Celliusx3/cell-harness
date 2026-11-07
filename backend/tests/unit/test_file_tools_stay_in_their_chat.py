@@ -22,6 +22,7 @@ from harness.web.runtime import build_runtime
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, drain, no_approvals, no_bots, no_skills
+from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_with_default_model
 
 DOT = base64.b64decode(DOT_PNG)
@@ -52,7 +53,7 @@ async def result_in_chat_s(
             llm={"model": "m", "api_key": "k", "vision": True},
         ),
         sessions,
-        McpService({}),
+        McpService({}, saved={}, keys=no_keys()),
         no_skills(),
         client_tools(),
         no_approvals(),

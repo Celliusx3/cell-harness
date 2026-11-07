@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-Status = Literal["connecting", "connected", "failed", "disconnected"]
+Status = Literal["waiting", "connecting", "connected", "failed", "disconnected"]
 
 
 @dataclass(frozen=True)

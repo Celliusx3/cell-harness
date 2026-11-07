@@ -50,6 +50,12 @@ class Connection:
             tool_names=tuple(tool.name for tool in self.tools),
         )
 
+    def wait_for(self, missing: tuple[str, ...]) -> None:
+        """Stay unstarted, naming the keys it waits for; settled, so startup does not wait."""
+        self.status = "waiting"
+        self.error = "needs " + ", ".join(missing)
+        self.settled.set()
+
     def start(self) -> None:
         self.task = asyncio.create_task(self._serve(), name=f"mcp:{self.id}")
         self.task.add_done_callback(self._report_exit)

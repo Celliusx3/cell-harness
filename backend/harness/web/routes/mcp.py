@@ -12,6 +12,7 @@ from mcp.types import TextResourceContents
 from pydantic import BaseModel, ConfigDict
 
 from harness.mcp import McpService, is_app_visible, ui_resource_uri
+from harness.mcp.models.status import Status
 from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")
@@ -43,12 +44,24 @@ class AppResource(BaseModel):
     csp: str
 
 
+class KeyedServer(BaseModel):
+    """A server that needs keys: its namespace, the env keys it needs, and whether it is on."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    needs: tuple[str, ...]
+    status: Status
+    error: str
+
+
 class ServerList(BaseModel):
-    """The servers this harness is set up with, each by its tool namespace."""
+    """The servers this harness is set up with by namespace, and those of them that need keys."""
 
     model_config = ConfigDict(frozen=True)
 
     servers: tuple[str, ...]
+    keyed: tuple[KeyedServer, ...]
 
 
 class AppToolCall(BaseModel):
@@ -92,8 +105,16 @@ def _origins(values: object) -> list[str]:
 def _server_list_route(router: APIRouter, mcp: McpService) -> None:
     @router.get("", response_model=ServerList)
     async def list_servers() -> ServerList:
-        """Every configured server, connected or not."""
-        return ServerList(servers=tuple(s.id for s in mcp.statuses()))
+        """Every configured server, connected or not, and each one's keys if it needs any."""
+        statuses = mcp.statuses()
+        return ServerList(
+            servers=tuple(s.id for s in statuses),
+            keyed=tuple(
+                KeyedServer(id=s.id, needs=mcp.needs(s.id), status=s.status, error=s.error)
+                for s in statuses
+                if mcp.needs(s.id)
+            ),
+        )
 
 
 def build_router(mcp: McpService, relays: RelayService) -> APIRouter:

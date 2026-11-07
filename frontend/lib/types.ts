@@ -77,9 +77,21 @@ export interface ToolUi {
   data: unknown;
 }
 
-/** `GET /api/mcp`: every server the harness is set up with, by its tool namespace. */
+/** Whether a server is on: waiting for a key, starting, on, failed, or closed. */
+export type ServerStatus = "waiting" | "connecting" | "connected" | "failed" | "disconnected";
+
+/** A server that needs keys: its namespace, the env keys it needs, and whether it is on. */
+export interface KeyedServer {
+  id: string;
+  needs: string[];
+  status: ServerStatus;
+  error: string;
+}
+
+/** `GET /api/mcp`: every server the harness is set up with by its tool namespace, and those that need keys. */
 export interface ServerList {
   servers: string[];
+  keyed: KeyedServer[];
 }
 
 /** `GET /api/mcp/{server}/resources` */

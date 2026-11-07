@@ -11,14 +11,14 @@ from harness.session.log import Session
 from harness.session.models import ServerInstructionsEvent
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, new_session, runtime_over
-from tests.unit.mcp_fakes import FakeFactory, servers
+from tests.unit.mcp_fakes import FakeFactory, no_keys, servers
 
 PC = "You have a PC."
 
 
 async def connected(factory: FakeFactory, *ids: str) -> McpService:
     """A started service, waited until its connections have settled."""
-    store = McpService(servers(*ids), client_factory=factory)
+    store = McpService(servers(*ids), client_factory=factory, saved={}, keys=no_keys())
     await store.start()
     for _ in range(200):
         if all(s.status != "connecting" for s in store.statuses()):

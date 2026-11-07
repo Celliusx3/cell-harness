@@ -12,6 +12,8 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[2]
 DESKTOP_CONFIG = BACKEND.parent / "desktop" / "config.json"
 APP_FOLDER = Path("Library") / "Application Support" / "Cell Harness"
+UNIX_SOCKET_PATH_LIMIT = 104
+MSB_SOCKET_SUFFIX = 50
 
 _PRINT_LOADED = """
 import json
@@ -24,7 +26,7 @@ print(json.dumps({
     "servers": list(s.mcp.servers),
     "data_paths": [str(p) for p in (
         s.sessions.root, s.skills.editable, s.approval.grants_path,
-        s.bots.path, s.secrets.path, s.files.root,
+        s.bots.path, s.secrets.path, s.files.root, s.mcp.path,
     )],
 }))
 """
@@ -65,10 +67,34 @@ def test_the_app_reads_its_local_file_from_the_path_it_names(tmp_path) -> None:
     assert loaded.api_key == "sk-from-the-app"
 
 
-def test_the_app_connects_no_capability(tmp_path) -> None:
+def test_the_app_has_exactly_the_built_in_servers_make_dev_has(tmp_path) -> None:
     loaded = _load_as_the_app(tmp_path / "home", tmp_path / "missing.json")
 
-    assert loaded.servers == []
+    dev_servers = json.loads((BACKEND / "config.json").read_text())["mcp"]["servers"]
+    assert loaded.servers == list(dev_servers) == ["computer"]
+
+
+def test_each_built_in_server_waits_for_the_keys_it_waits_for_in_make_dev() -> None:
+    app = json.loads(DESKTOP_CONFIG.read_text())["mcp"]["servers"]
+    dev = json.loads((BACKEND / "config.json").read_text())["mcp"]["servers"]
+
+    assert {name: server.get("needs", []) for name, server in app.items()} == {
+        name: dev[name].get("needs", []) for name in app
+    }
+
+
+def test_the_pc_keeps_its_data_in_the_app_folder_but_its_runtime() -> None:
+    servers = json.loads(DESKTOP_CONFIG.read_text())["mcp"]["servers"]
+
+    folders = [
+        setting
+        for server in servers.values()
+        for name, setting in server.get("env", {}).items()
+        if name.endswith(("_HOME", "_DIR")) and name != "MSB_HOME"
+    ]
+
+    assert folders
+    assert all(folder.startswith(f"~/{APP_FOLDER}/") for folder in folders), folders
 
 
 def test_every_data_path_is_in_the_app_folder(tmp_path) -> None:
@@ -78,3 +104,13 @@ def test_every_data_path_is_in_the_app_folder(tmp_path) -> None:
 
     folder = home / APP_FOLDER
     assert all(Path(path).is_relative_to(folder) for path in loaded.data_paths), loaded.data_paths
+
+
+def test_the_pcs_runtime_folder_is_short_enough_for_its_sockets() -> None:
+    computer = json.loads(DESKTOP_CONFIG.read_text())["mcp"]["servers"]["computer"]["env"]
+    longest_home = "/Users/" + "u" * 20
+
+    runtime = computer["MSB_HOME"].replace("~", longest_home, 1)
+
+    assert runtime != computer["MSB_HOME"]
+    assert len(runtime) + MSB_SOCKET_SUFFIX < UNIX_SOCKET_PATH_LIMIT

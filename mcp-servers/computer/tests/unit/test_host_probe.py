@@ -87,3 +87,9 @@ def test_the_server_exits_non_zero_with_the_refusal_before_it_serves(
 
     assert exit.value.code == 2
     assert "Turn on virtualization" in caplog.text
+
+
+def test_a_mac_is_asked_for_its_hypervisor_whatever_the_path(monkeypatch) -> None:
+    monkeypatch.setenv("PATH", "/nowhere")
+
+    assert host_probe._mac_has_hypervisor() is (host_probe.platform.system() == "Darwin")

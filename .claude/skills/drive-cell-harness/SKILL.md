@@ -76,7 +76,7 @@ Load the browser tools with ToolSearch (`select:mcp__plugin_everything-claude-co
 6. Click "Used N tools" to unfold a finished turn's cards, then click a tool card's name (for example "run subagent") to open it: its arguments and its result appear under it.
 7. An approval card offers "Allow once", "Allow for this conversation", "Always allow" and "Deny".
 
-Handles: placeholder "Send a message" ("Reply, and it is answered after this turn" during a turn), labels "Send", "Stop", "More" (a menu of "Compact" and "Clear chat"), "New" (a menu of "Bot" and "Group"), "Edit bot", "Archive", "Restore", "Delete". The sidebar's foot has "Bots", "Computer" and "Settings". The Settings menu has "Back to chats", "Credentials", "Approvals" and "Skills". The Credentials page has "Add credential", "Edit" and "Remove", and a bot's page "Link Telegram" and "Link Discord". Never click by coordinates.
+Handles: placeholder "Send a message" ("Reply, and it is answered after this turn" during a turn), labels "Send", "Stop", "More" (a menu of "Compact" and "Clear chat"), "New" (a menu of "Bot" and "Group"), "Edit bot", "Archive", "Restore", "Delete". The sidebar's foot has "Bots", "Computer" and "Settings". The Settings menu has "Back to chats", "Credentials", "MCP servers", "Approvals" and "Skills". The Credentials page has "Add credential", "Edit" and "Remove", and a bot's page "Link Telegram" and "Link Discord". Never click by coordinates.
 
 ## Evidence
 
