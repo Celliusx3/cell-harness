@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from computer.docker import DockerError
+from computer.engine import DockerEngine
 from computer.machine import Machine
 from tests.conftest import NAME, Dial, FakeDocker, config, mount_of
 
@@ -22,7 +23,9 @@ def folders(tmp_path: Path) -> tuple[Path, Path]:
 
 async def use(docker: FakeDocker, files: Path, skills: Path) -> None:
     machine = Machine(
-        docker=docker, config=config(files_dir=files, skills_dirs=(skills,)), clock=Dial().clock
+        engine=DockerEngine(docker=docker),
+        config=config(files_dir=files, skills_dirs=(skills,)),
+        clock=Dial().clock,
     )
     async with machine.serving(), machine.in_use():
         pass

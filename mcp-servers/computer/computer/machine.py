@@ -5,17 +5,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Literal
-
-from pydantic import TypeAdapter, ValidationError
 
 from computer.clock import Clock
 from computer.config import Config
-from computer.docker import COMMAND_TIMEOUT_SECONDS, CommandResult, Docker, DockerError, stdout_of
+from computer.docker import COMMAND_TIMEOUT_SECONDS, DockerError, stdout_of
+from computer.engine import Engine, HomeVolume, PcSpec, Program, SharedFolder
 from computer.jobs import RUNNING_JOBS_SCRIPT
-from computer.mounts import MOUNTS_FORMAT, is_mounted_as_configured, volume_arguments
 
 logger = logging.getLogger("computer")
 
@@ -25,60 +22,38 @@ DISPLAY = ":1"
 API_PORT = 7070
 GATEWAY_PORT = 6080
 API_TOKEN_VARIABLE = "RAKAZO_COMPUTER_CONTROL_TOKEN"
-LABEL = "cell-harness.computer"
-SHM_SIZE = "256m"
+SHM_MEGABYTES = 256
 OPEN_CHROME_COMMAND = ["rakazo-focus-or-launch", "rakazo-browser"]
-BINDINGS_FORMAT = "{{json .HostConfig.PortBindings}}"
-PORT_BINDINGS: TypeAdapter[dict[str, list[dict[str, str]] | None] | None] = TypeAdapter(
-    dict[str, list[dict[str, str]] | None] | None
-)
-
-ContainerState = Literal["running", "stopped", "missing"]
+OPEN_CHROME = Program(argv=tuple(OPEN_CHROME_COMMAND), env={})
 
 
-def run_arguments(config: Config, api_token: str) -> list[str]:
-    """`docker run` as Rakazo creates its computer, with its API and gateway on loopback only."""
+def shared_folders(config: Config) -> tuple[SharedFolder, ...]:
+    """The chat files read-write and every skill folder read-only, each at its own path."""
+    return (
+        SharedFolder(path=config.files_dir, writable=True),
+        *(SharedFolder(path=folder, writable=False) for folder in config.skills_dirs),
+    )
+
+
+def pc_spec(config: Config, api_token: str) -> PcSpec:
+    """The PC as Rakazo creates its computer, with its API and gateway published."""
     name = config.container_name
-    return [
-        "run", "-d", "--name", name,
-        "--label", f"{LABEL}={name}",
-        "--shm-size", SHM_SIZE,
-        "--cap-drop", "ALL",
-        "--security-opt", "no-new-privileges:true",
-        "-e", f"DISPLAY={DISPLAY}",
-        "-e", f"HOME={HOME}",
-        "-e", f"{API_TOKEN_VARIABLE}={api_token}",
-        "-v", f"{name}-home:{HOME}",
-        *volume_arguments(config),
-        "-p", f"127.0.0.1::{API_PORT}",
-        "-p", f"127.0.0.1::{GATEWAY_PORT}",
-        config.image,
-    ]  # fmt: skip
-
-
-def state_of(inspected: CommandResult) -> ContainerState:
-    if inspected.returncode != 0 and "No such container" in inspected.stderr:
-        return "missing"
-    status = stdout_of(inspected, "docker inspect").strip()
-    return "running" if status == "running" else "stopped"
-
-
-def publishes_gateway(inspected: str) -> bool:
-    """Whether the container's port bindings, as `docker inspect` prints them, name the gateway."""
-    try:
-        bindings = PORT_BINDINGS.validate_json(inspected)
-    except ValidationError as err:
-        raise DockerError(
-            "docker inspect answered the computer's ports with something this server cannot read"
-        ) from err
-    return f"{GATEWAY_PORT}/tcp" in (bindings or {})
+    return PcSpec(
+        name=name,
+        image=config.image,
+        env={"DISPLAY": DISPLAY, "HOME": HOME, API_TOKEN_VARIABLE: api_token},
+        home=HomeVolume(name=f"{name}-home", guest_path=HOME),
+        shared_folders=shared_folders(config),
+        published_ports=(API_PORT, GATEWAY_PORT),
+        shm_megabytes=SHM_MEGABYTES,
+    )
 
 
 class Machine:
     """One container per server process, shared by every bot."""
 
-    def __init__(self, *, docker: Docker, config: Config, clock: Clock) -> None:
-        self._docker = docker
+    def __init__(self, *, engine: Engine, config: Config, clock: Clock) -> None:
+        self._engine = engine
         self._config = config
         self._clock = clock
         self._lock = asyncio.Lock()
@@ -115,76 +90,42 @@ class Machine:
         self._restart_idle_stop()
 
     async def _adopt(self) -> None:
+        name = self._config.container_name
         try:
-            state = await self._state()
+            state = await self._engine.state(name)
         except DockerError as err:
-            logger.warning(
-                "cannot see the computer %s at startup: %s", self._config.container_name, err
-            )
+            logger.warning("cannot see the computer %s at startup: %s", name, err)
             return
         if state == "running":
-            logger.info("adopting the running computer %s", self._config.container_name)
+            logger.info("adopting the running computer %s", name)
             await self._open_chrome()
             self._restart_idle_stop()
 
     async def _ensure_running(self) -> None:
         async with self._lock:
-            state = await self._state()
+            spec = pc_spec(self._config, secrets.token_hex(16))
+            state = await self._engine.state(spec.name)
             if state != "missing" and not self._shape_checked:
-                reason = await self._replacement_reason()
+                reason = await self._engine.replacement_reason(spec)
                 if reason is not None:
-                    logger.info(
-                        "replacing the computer %s: %s", self._config.container_name, reason
-                    )
-                    await self._output(["rm", "-f", self._config.container_name], "docker rm")
+                    logger.info("replacing the computer %s: %s", spec.name, reason)
+                    await self._engine.remove(spec.name)
                     state = "missing"
             self._shape_checked = True
             if state == "running":
                 return
             if state == "stopped":
-                await self._output(["start", self._config.container_name], "docker start")
+                await self._engine.start(spec.name)
             else:
-                arguments = run_arguments(self._config, secrets.token_hex(16))
-                await self._output(arguments, "docker run")
+                await self._engine.create(spec)
             await self._open_chrome()
 
     async def _open_chrome(self) -> None:
+        name = self._config.container_name
         try:
-            await self._output(
-                ["exec", "-d", self._config.container_name, *OPEN_CHROME_COMMAND], "opening Chrome"
-            )
+            stdout_of(await self._engine.launch(name, OPEN_CHROME), "opening Chrome")
         except DockerError as err:
-            logger.warning(
-                "Chrome did not open on the computer %s: %s", self._config.container_name, err
-            )
-
-    async def _state(self) -> ContainerState:
-        inspect = ["inspect", "--type", "container", "--format", "{{.State.Status}}"]
-        return state_of(
-            await self._docker.run(
-                [*inspect, self._config.container_name],
-                stdin="",
-                timeout_seconds=COMMAND_TIMEOUT_SECONDS,
-            )
-        )
-
-    async def _replacement_reason(self) -> str | None:
-        """Why the existing container lacks the gateway port or the shared mounts, or None."""
-        if not publishes_gateway(await self._inspect_output(BINDINGS_FORMAT)):
-            return "it has no gateway port"
-        if not is_mounted_as_configured(await self._inspect_output(MOUNTS_FORMAT), self._config):
-            return "its mounts are not the shared folders"
-        return None
-
-    async def _inspect_output(self, template: str) -> str:
-        inspect = ["inspect", "--type", "container", "--format", template]
-        return await self._output([*inspect, self._config.container_name], "docker inspect")
-
-    async def _output(self, args: Sequence[str], action: str) -> str:
-        return stdout_of(
-            await self._docker.run(args, stdin="", timeout_seconds=COMMAND_TIMEOUT_SECONDS),
-            action,
-        )
+            logger.warning("Chrome did not open on the computer %s: %s", name, err)
 
     def _restart_idle_stop(self) -> None:
         self._cancel_idle_stop()
@@ -207,16 +148,19 @@ class Machine:
                 return
             logger.info("stopping the computer %s after %d idle minutes", name, minutes)
             try:
-                await self._output(["stop", name], "docker stop")
+                await self._engine.stop(name)
             except DockerError as err:
                 logger.warning("idle stop of the computer %s did not happen: %s", name, err)
 
     async def _is_running_a_command(self) -> bool:
         """Whether a bot's command still runs in the computer; True when that cannot be told."""
         name = self._config.container_name
-        look = ["exec", name, "python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT]
+        look = Program(argv=("python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT), env={})
         try:
-            return bool((await self._output(look, "looking for running commands")).split())
+            completed = await self._engine.run(
+                name, look, stdin=None, timeout_seconds=COMMAND_TIMEOUT_SECONDS
+            )
+            return bool(stdout_of(completed, "looking for running commands").split())
         except DockerError as err:
             logger.warning("the computer %s stays on: %s", name, err)
             return True

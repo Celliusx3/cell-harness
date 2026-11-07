@@ -1,6 +1,6 @@
 # 02 One engine interface for the PC
 
-**Status.** open
+**Status.** done
 
 **What to build.** Reshaping, with no change in behaviour. In
 `mcp-servers/computer`, replace the raw `docker` argument lists behind

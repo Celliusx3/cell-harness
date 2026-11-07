@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 import pytest
 
 from computer.docker import DockerError
+from computer.engine import DockerEngine
 from computer.jobs import RUNNING_JOBS_SCRIPT
 from computer.machine import JOBS_ROOT, Machine
 from tests.conftest import IDLE_SECONDS, IMAGE, NAME, Dial, FakeDocker, config, settle
@@ -25,7 +26,7 @@ RUNNING_JOBS = ["exec", NAME, "python3", "-c", RUNNING_JOBS_SCRIPT, JOBS_ROOT]
 
 @asynccontextmanager
 async def serving(docker: FakeDocker, dial: Dial) -> AsyncIterator[Machine]:
-    machine = Machine(docker=docker, config=config(), clock=dial.clock)
+    machine = Machine(engine=DockerEngine(docker=docker), config=config(), clock=dial.clock)
     async with machine.serving():
         docker.calls.clear()
         yield machine
@@ -207,7 +208,7 @@ async def test_a_failed_idle_stop_is_logged_not_raised(caplog: pytest.LogCapture
 
 async def test_a_running_container_is_adopted_at_startup_and_its_idle_stop_armed() -> None:
     docker, dial = FakeDocker(status="running"), Dial()
-    machine = Machine(docker=docker, config=config(), clock=dial.clock)
+    machine = Machine(engine=DockerEngine(docker=docker), config=config(), clock=dial.clock)
     async with machine.serving():
         await dial.turn(IDLE_SECONDS)
 
@@ -217,7 +218,7 @@ async def test_a_running_container_is_adopted_at_startup_and_its_idle_stop_armed
 async def test_a_stopped_or_missing_container_is_left_alone_at_startup() -> None:
     for status in ("exited", "missing"):
         docker, dial = FakeDocker(status=status), Dial()
-        machine = Machine(docker=docker, config=config(), clock=dial.clock)
+        machine = Machine(engine=DockerEngine(docker=docker), config=config(), clock=dial.clock)
         async with machine.serving():
             await dial.turn(IDLE_SECONDS)
 
@@ -226,7 +227,7 @@ async def test_a_stopped_or_missing_container_is_left_alone_at_startup() -> None
 
 async def test_shutdown_stops_nothing_and_the_idle_stop_dies_with_the_server() -> None:
     docker, dial = FakeDocker(status="running"), Dial()
-    machine = Machine(docker=docker, config=config(), clock=dial.clock)
+    machine = Machine(engine=DockerEngine(docker=docker), config=config(), clock=dial.clock)
     async with machine.serving():
         pass
     await dial.turn(IDLE_SECONDS)
@@ -240,7 +241,7 @@ async def test_docker_unreachable_at_startup_is_logged_and_the_server_still_star
 ) -> None:
     docker = FakeDocker(status="running")
     docker.unreachable = True
-    machine = Machine(docker=docker, config=config(), clock=Dial().clock)
+    machine = Machine(engine=DockerEngine(docker=docker), config=config(), clock=Dial().clock)
     with caplog.at_level(logging.WARNING, logger="computer"):
         async with machine.serving():
             pass
@@ -266,7 +267,7 @@ async def test_a_new_computer_opens_chrome() -> None:
 
 async def test_a_running_computer_adopted_at_startup_opens_chrome() -> None:
     docker = FakeDocker(status="running")
-    machine = Machine(docker=docker, config=config(), clock=Dial().clock)
+    machine = Machine(engine=DockerEngine(docker=docker), config=config(), clock=Dial().clock)
     async with machine.serving():
         pass
 

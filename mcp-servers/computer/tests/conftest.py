@@ -257,6 +257,7 @@ def server_with(
 ) -> MCPServer:
     from computer.browser import Browser
     from computer.desktop import Desktop
+    from computer.engine import DockerEngine
     from computer.files import Files
     from computer.live_screen import LiveScreen
     from computer.machine import Machine
@@ -265,13 +266,14 @@ def server_with(
     from computer.tools import Computer
 
     clock = (dial or Dial()).clock
-    machine = Machine(docker=docker, config=config(), clock=clock)
+    engine = DockerEngine(docker=docker)
+    machine = Machine(engine=engine, config=config(), clock=clock)
     return build(
         Computer(
             machine=machine,
             browser=Browser(docker=docker, container=NAME, clock=TickingClock().clock),
             desktop=Desktop(
-                docker=docker,
+                engine=engine,
                 container=NAME,
                 client=(desktop_api or FakeDesktopApi()).client(),
             ),

@@ -18,6 +18,7 @@ from computer.clock import SYSTEM
 from computer.config import ConfigError, load
 from computer.desktop import Desktop
 from computer.docker import DockerCli
+from computer.engine import DockerEngine
 from computer.files import Files
 from computer.host_services import (
     PreparedHostService,
@@ -79,7 +80,8 @@ def main() -> None:
         raise SystemExit(2) from err
 
     docker = DockerCli(executable="docker")
-    machine = Machine(docker=docker, config=config, clock=SYSTEM)
+    engine = DockerEngine(docker=docker)
+    machine = Machine(engine=engine, config=config, clock=SYSTEM)
     host_services = tuple(
         prepared_host_service(service, config.files_dir)
         for service in declared_host_services(config.skills_dirs, os.environ.get("PATH", ""))
@@ -89,7 +91,7 @@ def main() -> None:
             machine=machine,
             browser=Browser(docker=docker, container=config.container_name, clock=SYSTEM),
             desktop=Desktop(
-                docker=docker,
+                engine=engine,
                 container=config.container_name,
                 client=httpx.AsyncClient(trust_env=False),
             ),

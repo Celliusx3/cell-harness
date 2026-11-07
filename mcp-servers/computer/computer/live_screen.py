@@ -13,8 +13,8 @@ from importlib import resources
 
 from computer import gateway
 from computer.clock import Clock
-from computer.desktop import published_port
 from computer.docker import COMMAND_TIMEOUT_SECONDS, Docker, DockerError, stdout_of
+from computer.engine import loopback_port
 from computer.machine import GATEWAY_PORT, Machine
 from computer.models import ScreenSession
 
@@ -143,7 +143,7 @@ class LiveScreen:
 
     async def _gateway_host_port(self) -> int:
         published = await self._output(["port", self._container, str(GATEWAY_PORT)], "docker port")
-        return published_port(published, GATEWAY_PORT)
+        return loopback_port(published, GATEWAY_PORT)
 
     async def _run_script(self, script: str, action: str) -> None:
         await self._output(["exec", self._container, "bash", "-c", script], action)
