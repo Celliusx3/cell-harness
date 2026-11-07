@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BookOpen, LockKeyhole, ShieldCheck, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BookOpen, LockKeyhole, Server, ShieldCheck, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -15,6 +15,7 @@ interface SettingsLink {
 
 const PAGES: SettingsLink[] = [
   { href: "/settings/credentials", label: "Credentials", icon: LockKeyhole },
+  { href: "/settings/mcp", label: "MCP servers", icon: Server },
   { href: "/settings/approvals", label: "Approvals", icon: ShieldCheck },
   { href: "/settings/skills", label: "Skills", icon: BookOpen },
 ];

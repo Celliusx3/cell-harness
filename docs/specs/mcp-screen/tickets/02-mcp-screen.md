@@ -1,6 +1,6 @@
 # 02 The MCP servers screen
 
-**Status.** open
+**Status.** done
 
 **What to build.** A Settings page "MCP servers" beside Credentials. It lists
 the built-in PC and the person's servers, each with its state and error,
