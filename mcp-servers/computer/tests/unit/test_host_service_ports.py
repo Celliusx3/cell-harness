@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from computer.models.pc import LOOPBACK
 from computer.services.host_services import (
-    LOOPBACK,
     STEADY_PORT_FLOOR,
     STEADY_PORT_SPAN,
     prepared_host_service,

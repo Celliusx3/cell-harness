@@ -15,10 +15,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from computer.clock import Clock
+from computer.models.pc import LOOPBACK
 
 logger = logging.getLogger("computer")
 
-LOOPBACK = "127.0.0.1"
 TOKEN_BYTES = 32
 TOKEN_FOLDER_PREFIX = "cell-harness-host-service-"
 TOKEN_FILE_NAME = "token"

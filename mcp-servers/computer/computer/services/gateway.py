@@ -8,8 +8,9 @@ import shlex
 from typing import Literal
 from urllib.parse import urlencode
 
+from computer.models.pc import HOME
 from computer.models.screen import ScreenMode
-from computer.services.machine import DISPLAY, GATEWAY_PORT, HOME
+from computer.services.machine import DISPLAY, GATEWAY_PORT
 
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,64}")
 DISPLAY_NUMBER = DISPLAY.removeprefix(":")

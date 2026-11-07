@@ -13,12 +13,11 @@ from computer.config import Config
 from computer.engine import Engine
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, stdout_of
 from computer.models.errors import EngineError
-from computer.models.pc import HomeVolume, PcSpec, Program, SharedFolder
+from computer.models.pc import HOME, HomeVolume, PcSpec, Program, SharedFolder
 from computer.services.jobs import RUNNING_JOBS_SCRIPT
 
 logger = logging.getLogger("computer")
 
-HOME = "/home/rakazo"
 JOBS_ROOT = f"{HOME}/.shell"
 DISPLAY = ":1"
 API_PORT = 7070

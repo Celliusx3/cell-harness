@@ -11,8 +11,8 @@ from mcp.types import CallToolResult, TextContent
 
 from computer.engines.docker import DockerEngine
 from computer.models.command import CommandResult
+from computer.models.pc import HOME
 from computer.services.files import LIST_SCRIPT, READ_SCRIPT, WRITE_SCRIPT, Files
-from computer.services.machine import HOME
 from computer.tools.computer_page import UPLOAD_NEEDS_CONTROL
 from tests.conftest import NAME, FakeDocker, server_with
 

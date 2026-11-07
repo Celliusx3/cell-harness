@@ -15,8 +15,8 @@ from mcp import Client
 
 from computer.clock import SYSTEM, Clock
 from computer.models.command import CommandResult
+from computer.models.pc import LOOPBACK
 from computer.services.host_services import (
-    LOOPBACK,
     STARTUP_SECONDS,
     PreparedHostService,
     command_variables,

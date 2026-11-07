@@ -1,4 +1,4 @@
-"""What runs the PC: the Engine interface every engine implements, and what they share."""
+"""What runs the PC: the Engine interface every engine implements."""
 
 from __future__ import annotations
 
@@ -6,9 +6,6 @@ from typing import Protocol
 
 from computer.models.command import CommandResult
 from computer.models.pc import PcSpec, PcState, Program
-
-LOOPBACK = "127.0.0.1"
-LABEL = "cell-harness.computer"
 
 
 class Engine(Protocol):

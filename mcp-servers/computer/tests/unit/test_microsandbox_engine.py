@@ -18,8 +18,8 @@ from computer.engines.microsandbox import (
 )
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from computer.models.errors import EngineError, EngineTimeout
-from computer.models.pc import PcSpec, Program, SharedFolder
-from computer.services.machine import API_PORT, GATEWAY_PORT, HOME, SHM_MEGABYTES, pc_spec
+from computer.models.pc import HOME, PcSpec, Program, SharedFolder
+from computer.services.machine import API_PORT, GATEWAY_PORT, SHM_MEGABYTES, pc_spec
 from tests.conftest import API_TOKEN, FILES_DIR, IMAGE, NAME, SKILLS_DIR, config
 from tests.fake_microsandbox import FakeExecOutput, FakeImages, FakeSandboxes
 

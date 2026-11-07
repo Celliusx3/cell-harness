@@ -20,8 +20,7 @@ from computer.models.files import (
     Listing,
     Uploaded,
 )
-from computer.models.pc import Program
-from computer.services.machine import HOME
+from computer.models.pc import HOME, Program
 
 logger = logging.getLogger("computer")
 

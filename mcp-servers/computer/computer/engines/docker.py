@@ -10,10 +10,9 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
-from computer.engine import LABEL, LOOPBACK
 from computer.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult, stdout_of
 from computer.models.errors import EngineError, EngineTimeout
-from computer.models.pc import PcSpec, PcState, Program, SharedFolder
+from computer.models.pc import LABEL, LOOPBACK, PcSpec, PcState, Program, SharedFolder
 
 LOOPBACK_BINDING_PATTERN = re.compile(r"127\.0\.0\.1:(\d+)")
 HOST_FROM_THE_PC = "host.docker.internal"

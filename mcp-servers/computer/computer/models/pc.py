@@ -1,4 +1,4 @@
-"""The PC in its own terms: what it is made with, the programs run in it, and its state."""
+"""The PC in its own terms: its fixed facts, what it is made with, its programs and state."""
 
 from __future__ import annotations
 
@@ -6,6 +6,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
+
+HOME = "/home/rakazo"
+LOOPBACK = "127.0.0.1"
+LABEL = "cell-harness.computer"
 
 PcState = Literal["running", "stopped", "missing"]
 

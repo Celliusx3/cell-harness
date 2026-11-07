@@ -7,8 +7,8 @@ from typing import Annotated
 from mcp.server import MCPServer
 from pydantic import Field
 
+from computer.models.pc import HOME
 from computer.models.shell import CommandRun
-from computer.services.machine import HOME
 from computer.services.shell import Job
 from computer.tools import Computer, computer_for_one_call
 from computer.tools.descriptions import (
