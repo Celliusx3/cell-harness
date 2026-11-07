@@ -107,15 +107,7 @@ async def test_a_config_the_engine_cannot_read_is_refused() -> None:
     vms.raw_config = '{"env": "nope"}'
 
     with pytest.raises(EngineError, match="cannot read"):
-        await engine.environment(NAME)
-
-
-async def test_the_environment_is_the_one_the_vm_was_made_with() -> None:
-    _, engine = await made()
-
-    env = await engine.environment(NAME)
-
-    assert (env["DISPLAY"], env["HOME"]) == (":1", HOME)
+        await engine.host_port(NAME, GATEWAY_PORT)
 
 
 @pytest.mark.parametrize(

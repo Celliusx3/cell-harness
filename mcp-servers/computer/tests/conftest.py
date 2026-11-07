@@ -103,7 +103,6 @@ class FakeDocker:
         self.unreachable = False
         self.api_host_port = API_HOST_PORT
         self.gateway_host_port = GATEWAY_HOST_PORT
-        self.env = ["DISPLAY=:1", "HOME=/home/pc"]
         self.bindings: dict[str, object] | None = {
             "6080/tcp": [{"HostIp": "127.0.0.1", "HostPort": ""}],
         }
@@ -131,8 +130,6 @@ class FakeDocker:
         verb = args[0]
         if verb == "inspect" and self.status == "missing":
             return CommandResult(1, "", f"Error response from daemon: No such container: {NAME}\n")
-        if verb == "inspect" and "{{json .Config.Env}}" in args:
-            return CommandResult(0, json.dumps(self.env) + "\n", "")
         if verb == "inspect" and "{{json .HostConfig.PortBindings}}" in args:
             return CommandResult(0, (self.raw_bindings or json.dumps(self.bindings)) + "\n", "")
         if verb == "inspect" and "{{json .Mounts}}" in args:
@@ -145,7 +142,6 @@ class FakeDocker:
         if verb == "rm":
             self.status = "missing"
         if verb == "run":
-            self.env = [args[at + 1] for at, arg in enumerate(args) if arg == "-e"]
             published = [
                 args[at + 1].rsplit(":", 1)[1] for at, arg in enumerate(args) if arg == "-p"
             ]
