@@ -8,6 +8,7 @@ import secrets
 import shutil
 import socket
 import tempfile
+import zlib
 from collections.abc import AsyncIterator, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
@@ -23,6 +24,8 @@ TOKEN_FOLDER_PREFIX = "cell-harness-host-service-"
 TOKEN_FILE_NAME = "token"
 STARTUP_SECONDS = 20.0
 POLL_SECONDS = 0.1
+STEADY_PORT_FLOOR = 47000
+STEADY_PORT_SPAN = 1000
 
 
 class HostServiceError(RuntimeError):
@@ -56,11 +59,26 @@ def free_loopback_port() -> int:
         return int(probe.getsockname()[1])
 
 
+def steady_port(env_prefix: str) -> int:
+    """The port a service asks for first: the same on every start, so the PC is kept."""
+    return STEADY_PORT_FLOOR + zlib.crc32(env_prefix.encode()) % STEADY_PORT_SPAN
+
+
+def loopback_port_for(env_prefix: str) -> int:
+    """`steady_port` when nothing holds it, else a free port the system hands out."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind((LOOPBACK, steady_port(env_prefix)))
+        except OSError:
+            return free_loopback_port()
+        return int(probe.getsockname()[1])
+
+
 def prepared_host_service(service: HostService, files: Path) -> PreparedHostService:
-    """`service` on a free loopback port with a new 64-hex token, `files` as its {files}."""
+    """`service` on its steady loopback port with a new 64-hex token, `files` as its {files}."""
     return PreparedHostService(
         service=service,
-        port=free_loopback_port(),
+        port=loopback_port_for(service.env_prefix),
         token=secrets.token_hex(TOKEN_BYTES),
         files=files,
     )
