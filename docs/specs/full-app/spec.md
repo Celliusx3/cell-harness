@@ -1,5 +1,9 @@
 # The full Mac app
 
+`docs/specs/mcp-screen/` replaces this spec's capability decisions: only the PC
+is built in, the person adds every other MCP server on a screen, and the app no
+longer carries uv or Node.
+
 ## Problem
 
 The Mac app has chat, bots and one skill. It has no PC and no capabilities:

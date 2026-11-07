@@ -42,9 +42,9 @@ closed on 2026-11-07: the PC reaches only public addresses and the skills' own M
 programs (`docs/specs/pc-center/`);
 phase 13, built in the computer, spec in `docs/specs/comic-skill/`), 20 a Mac app
 you and friends install (`make app`: Electron around the same pages, its own
-Python, Deno, Node and uv, signed ad-hoc; since 7 November every capability and
-its own PC, a capability's key saved on Credentials; specs in
-`docs/specs/desktop-app/` and `docs/specs/full-app/`), 21 a
+Python and Deno, signed ad-hoc; since 7 November its own PC, and every other MCP
+server added on an MCP servers screen with its keys on Credentials; specs in
+`docs/specs/desktop-app/`, `docs/specs/full-app/` and `docs/specs/mcp-screen/`), 21 a
 Credentials page (the harness's own keys, masked to their last four characters,
 saved only from this Mac straight to the harness, which then restarts; spec in
 `docs/specs/credentials-page/`), 22 typed credentials (that page holds every

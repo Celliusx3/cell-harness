@@ -11,16 +11,18 @@ cell-bot's. The directory does not, because a folder called `mcp-servers`
 needs no glossary — and because `backend/harness/mcp/` is the MCP *client*, so a
 top-level `mcp/` would name both sides of one protocol.
 
-Third-party servers we merely *declare* — `sysmon`, `memory`, `exa` — are not here. They are
-an `npx` or `uvx` line in config, so being in this directory is what "ours"
-means. `memory` is Basic Memory, the model's long-term memory over a folder of
+Third-party servers — `sysmon`, `memory`, `exa` — are not here. They are an
+`npx` or `uvx` command added on the MCP servers screen, so being in this
+directory is what "ours" means. `memory` is Basic Memory, the model's long-term memory over a folder of
 Markdown notes; why it and not our own server, and how to set it up, is in
 [docs/memory.md](../docs/memory.md).
 
 Each directory is its own `uv` project with its own dependencies, its own tests
 and its own coverage gate. `backend/harness/` imports nothing from here and
-knows nothing about them — a server here reaches the model only by being
-declared in `mcp.servers`.
+knows nothing about them. Only `computer` is built in, in `config.json`'s
+`mcp.servers`; every other server here reaches the model by being added on the
+MCP servers screen (Settings → MCP servers), which saves it in `mcp.json` and
+starts it at once.
 
 | Server | Capability |
 |---|---|
@@ -36,10 +38,10 @@ code-mode script reading its result would get `undefined` — the exact failure
 `docs/mcp-tool-scaling.md` §6 finding 4 measured at *"five failing scripts and a
 cancelled turn."* Its hardcoded Enterprise-tier field masks also cut the free
 allowance by 80% and pulled reviews into the permanent session log. Before
-declaring any third-party server, list its tools and check for an `outputSchema`;
+adding any third-party server, list its tools and check for an `outputSchema`;
 without one it is the wrong shape for this harness however well maintained it is.
 
-`exa` (`npx exa-mcp-server`, web search and page reading) is the one declared
+`exa` (`npx exa-mcp-server`, web search and page reading) is the one recommended
 exception, on purpose. Its `web_search_exa` and `web_fetch_exa` declare no
 `outputSchema` and return prose, and so does every other web-search server we
 found — Tavily's, Brave's, the official `mcp-server-fetch`. It holds because the
@@ -49,22 +51,25 @@ the `search-web` skill tells the model to call both directly, one at a time,
 never from a script. The day a turn needs the hits as objects, the shape is an
 own server under this directory on Exa's REST API.
 
-## Declaring one
+## Adding one
 
-Committed shape in `backend/config.json`, secrets in `backend/config.local.json`.
-The two **deep-merge per server**, so a server's `command` and `args` are
-committed and only its `env` secrets are not.
+Open **Settings → MCP servers** and click **Add server**. For one of ours, in
+`make dev`:
 
-```jsonc
-// backend/config.json
-{"mcp": {"servers": {"instagram": {
-  "command": "uv",
-  "args": ["run", "--quiet", "--project", "../mcp-servers/instagram", "instagram"],
-  "env": {"INSTAGRAM_MEDIA_BACKEND": "instaloader"}
-}}}}
-// backend/config.local.json
-{"mcp": {"servers": {"instagram": {"env": {"INSTAGRAM_PROVIDER_API_KEY": "sk-..."}}}}}
-```
+| Field | Value |
+|---|---|
+| Name | `places` |
+| Command | `uv` |
+| Arguments | `run`, `--quiet`, `--project`, `../mcp-servers/places`, `places`, one per line |
+| Settings | `PLACES_MAX_RESULTS=3` |
+| Keys it needs | `GOOGLE_MAPS_API_KEY` |
+
+It is saved in `mcp.json` (`~/.harness/mcp.json` for `make dev`) and starts at
+once. A key is never a setting: add its value on the Credentials page as a
+**Capability key**, and the server starts when it is saved. Only `computer` is
+declared in `backend/config.json`; a server listed only in
+`backend/config.local.json` stops the start, with a message to add it on the
+screen.
 
 ### Three things that will bite you
 

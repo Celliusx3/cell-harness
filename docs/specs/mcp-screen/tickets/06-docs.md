@@ -1,6 +1,6 @@
 # 06 The docs describe the MCP servers screen
 
-**Status.** open
+**Status.** done
 
 **What to build.** README (Desktop app and MCP sections), CLAUDE.md's "a
 capability is an MCP server" line, mcp-servers/README.md (how to add one of
