@@ -19,7 +19,13 @@ from tests.webapp import MODEL_CREDENTIAL, bots_in, secrets_in, web_app
 
 KEY = "tok-9Zx=7Lm/q+Abc"
 ASK = json.dumps(
-    {"name": "github", "origin": "https://api.github.com", "auth": "bearer", "label": "GitHub"}
+    {
+        "kind": "custom",
+        "name": "github",
+        "origin": "https://api.github.com",
+        "auth": "bearer",
+        "label": "GitHub",
+    }
 )
 FETCH = json.dumps(
     {"name": "github", "url": "https://api.github.com/notifications", "method": "GET"}

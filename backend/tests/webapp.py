@@ -36,7 +36,7 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
-from harness.web.platforms import PlatformChannels
+from harness.web.platforms import PlatformChannelMaker, PlatformChannels
 from harness.web.server import Channels, ChannelServices, create_app
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools as default_client_tools
@@ -155,9 +155,14 @@ def no_platform_channel(platform: ChatPlatform, token: SecretStr) -> Channel:
     raise AssertionError(f"a test started a real {platform} channel")
 
 
-def channels_of(gateway: ChannelGateway, web: WebChannel, secrets: SecretService) -> Channels:
-    """What `create_app` takes: the gateway and the web, and platforms a test never starts."""
-    platforms = PlatformChannels(gateway, secrets, no_platform_channel)
+def channels_of(
+    gateway: ChannelGateway,
+    web: WebChannel,
+    secrets: SecretService,
+    make_platform: PlatformChannelMaker = no_platform_channel,
+) -> Channels:
+    """What `create_app` takes: the gateway and the web, and platforms made by `make_platform`."""
+    platforms = PlatformChannels(gateway, secrets, make_platform)
     return Channels(gateway, web, platforms, LinkCodes(time.monotonic))
 
 
@@ -202,6 +207,7 @@ def web_app(
     bots: BotService | None = None,
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
+    make_platform: PlatformChannelMaker = no_platform_channel,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
@@ -210,7 +216,7 @@ def web_app(
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots, files=files)
     return create_app(
         runs,
-        channels_of(gateway, web, secrets),
+        channels_of(gateway, web, secrets, make_platform),
         mcp or web_mcp(),
         saved_servers_in(tmp_path),
         skills,

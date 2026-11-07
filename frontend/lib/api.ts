@@ -18,6 +18,7 @@ import type {
   SkillSummary,
   ChatFile,
 } from "./types";
+import type { ModelDetails } from "./credentials";
 
 /** Thrown for any non-2xx, carrying the backend's `detail` so the UI can show it. */
 export class ApiError extends Error {
@@ -111,13 +112,16 @@ export const sendToolOutput = <T>(
     },
   );
 
+/** What an `ask_for_secret` card posts: the key, and an LLM's endpoint, model and vision as edited. */
+export type SecretEntry = { value: string } | { value: string; details: ModelDetails };
+
 /** The key the person typed on an `ask_for_secret` card; the model gets back only its name. */
-export const saveSecret = (id: string, callId: string, value: string) =>
+export const saveSecret = (id: string, callId: string, entry: SecretEntry) =>
   request<void>(
     `/conversations/${id}/calls/${encodeURIComponent(callId)}/secret`,
     {
       method: "POST",
-      body: JSON.stringify({ value }),
+      body: JSON.stringify(entry),
     },
   );
 

@@ -1,6 +1,6 @@
 # 07 An LLM, Telegram or Discord credential is added from a chat card
 
-**Status.** open
+**Status.** done
 
 **What to build.** `ask_for_secret` gains `kind`: `custom` (today's card), `llm` (with address, model and vision for the card to show filled in), `telegram` or `discord`. The card shows those fields, editable, and the hidden key field. The save stores that kind of credential and gives the waiting call only its name. Files: `tools/native/secrets/models.py`, `tools/native/secrets/tools.py`, `web/routes/secret_card.py`, `frontend/components/answer/SecretRequest.tsx`.
 

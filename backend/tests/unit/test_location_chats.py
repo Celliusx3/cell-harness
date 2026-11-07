@@ -27,7 +27,15 @@ SITE = "https://api.github.com"
 KEY_ASK = PendingCall(
     ASK_FOR_SECRET,
     "c1",
-    json.dumps({"name": "github", "origin": SITE, "auth": "bearer", "label": "GitHub token"}),
+    json.dumps(
+        {
+            "kind": "custom",
+            "name": "github",
+            "origin": SITE,
+            "auth": "bearer",
+            "label": "GitHub token",
+        }
+    ),
 )
 KEEPS_KEYS_OUT = "never paste a key or password into this chat"
 

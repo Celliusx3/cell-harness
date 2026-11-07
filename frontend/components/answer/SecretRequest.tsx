@@ -3,14 +3,13 @@
 import { KeyRound } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { z } from "zod";
 
+import { askedModel, askOf, destinationNote, secretEntry, type SecretAsk } from "@/components/answer/secretAsk";
 import type { ClientToolProps } from "@/components/answer/useClientTool";
 import type { ToolItem } from "@/components/conversation/timelineItems";
+import { Field, INPUT_CLASSES, VisionCheck } from "@/components/credentials/CredentialFields";
 import { ApiError, saveSecret } from "@/lib/api";
-
-const SecretAsk = z.object({ name: z.string(), origin: z.url(), label: z.string() });
-type SecretAsk = z.infer<typeof SecretAsk>;
+import type { ModelDetails } from "@/lib/credentials";
 
 type Phase = "asking" | "saving" | "sent";
 
@@ -20,6 +19,7 @@ export function SecretRequest({ item, conversationId, onAnswered }: ClientToolPr
   const [phase, setPhase] = useState<Phase>("asking");
   const [problem, setProblem] = useState<string | null>(null);
   const ask = askOf(item.call.arguments);
+  const [model, setModel] = useState<ModelDetails | null>(() => askedModel(ask));
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -28,7 +28,7 @@ export function SecretRequest({ item, conversationId, onAnswered }: ClientToolPr
     setProblem(null);
     setPhase("saving");
     try {
-      await saveSecret(conversationId, item.call.id, value);
+      await saveSecret(conversationId, item.call.id, secretEntry(value, model));
       setPhase("sent");
       onAnswered();
     } catch (err) {
@@ -45,11 +45,8 @@ export function SecretRequest({ item, conversationId, onAnswered }: ClientToolPr
       </div>
       {item.result === null && phase === "asking" && (
         <>
-          {ask !== null && (
-            <p className="mt-1 break-words text-xs text-ink-soft">
-              {`Sent only to ${new URL(ask.origin).host}. The assistant never sees it.`}
-            </p>
-          )}
+          {ask !== null && <p className="mt-1 break-words text-xs text-ink-soft">{destinationNote(ask)}</p>}
+          {model !== null && <ModelFields callId={item.call.id} model={model} onChange={setModel} />}
           <form onSubmit={(event) => void handleSubmit(event)} className="mt-2 flex gap-2">
             <input
               type="password"
@@ -57,7 +54,7 @@ export function SecretRequest({ item, conversationId, onAnswered }: ClientToolPr
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               aria-label={ask?.label ?? "Key"}
-              placeholder="Paste the key here"
+              placeholder={isPlatform(ask) ? "Paste the token here" : "Paste the key here"}
               className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2.5 py-1 text-sm outline-none transition focus:border-accent"
             />
             <button
@@ -75,15 +72,42 @@ export function SecretRequest({ item, conversationId, onAnswered }: ClientToolPr
   );
 }
 
-function askOf(raw: string): SecretAsk | null {
-  let value: unknown;
-  try {
-    value = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  const parsed = SecretAsk.safeParse(value);
-  return parsed.success ? parsed.data : null;
+interface ModelFieldsProps {
+  callId: string;
+  model: ModelDetails;
+  onChange: (model: ModelDetails) => void;
+}
+
+/** The endpoint, model and vision the assistant filled in, editable before the key is saved. */
+function ModelFields({ callId, model, onChange }: ModelFieldsProps) {
+  return (
+    <div className="mt-2 grid gap-2">
+      <Field label="Endpoint" htmlFor={`endpoint-${callId}`}>
+        <input
+          id={`endpoint-${callId}`}
+          value={model.base_url}
+          onChange={(event) => onChange({ ...model, base_url: event.target.value })}
+          inputMode="url"
+          autoComplete="off"
+          className={INPUT_CLASSES}
+        />
+      </Field>
+      <Field label="Model" htmlFor={`model-${callId}`}>
+        <input
+          id={`model-${callId}`}
+          value={model.model}
+          onChange={(event) => onChange({ ...model, model: event.target.value })}
+          autoComplete="off"
+          className={`font-mono ${INPUT_CLASSES}`}
+        />
+      </Field>
+      <VisionCheck id={`vision-${callId}`} isChecked={model.vision} onChange={(vision) => onChange({ ...model, vision })} />
+    </div>
+  );
+}
+
+function isPlatform(ask: SecretAsk | null): boolean {
+  return ask?.kind === "telegram" || ask?.kind === "discord";
 }
 
 function headline(item: ToolItem, ask: SecretAsk | null, phase: Phase): string {
@@ -104,14 +128,5 @@ function headline(item: ToolItem, ask: SecretAsk | null, phase: Phase): string {
 
 function refusalReason(err: unknown): string {
   if (!(err instanceof ApiError)) return "The key could not be saved. Try again.";
-  switch (err.status) {
-    case 422:
-      return err.message;
-    case 404:
-      return "This request was already answered or skipped.";
-    case 409:
-      return "The assistant is busy. Try again in a moment.";
-    default:
-      return err.message;
-  }
+  return err.status === 404 ? "This request was already answered or skipped." : err.message;
 }

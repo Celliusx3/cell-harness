@@ -29,6 +29,7 @@ KEY = 'tok-"q/+9Zx=7Lm'
 ECHOES = (KEY, json.dumps(KEY)[1:-1], quote(KEY, safe=""), base64.b64encode(KEY.encode()).decode())
 ASK = json.dumps(
     {
+        "kind": "custom",
         "name": "github",
         "origin": "https://api.github.com",
         "auth": "bearer",
@@ -107,7 +108,8 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
         stream = (await client.get(f"/api/conversations/{ASSISTANT_ID}/events?after=0")).text
         results = _results(events_from(stream))
         assert json.loads(results["call_ask"]["message"]["content"][0]["text"]) == {
-            "name": "github"
+            "name": "github",
+            "kind": "custom",
         }
         fetched = json.loads(results["call_fetch"]["message"]["content"][0]["text"])
         assert fetched["status"] == 200

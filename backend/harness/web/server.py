@@ -30,6 +30,7 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
+from harness.web.credential_effects import CredentialEffects
 from harness.web.errors import exception_handlers
 from harness.web.logs import configure_logging
 from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
@@ -211,7 +212,8 @@ def create_app(
     app.include_router(build_mcp_router(mcp, relays))
     app.include_router(build_relay_router(relays))
     app.include_router(build_client_router(web, client_tools))
-    app.include_router(build_secret_card_router(web, client_tools, secrets))
+    effects = CredentialEffects(bots, channels.platforms, mcp)
+    app.include_router(build_secret_card_router(web, client_tools, secrets, effects))
     app.include_router(build_secrets_router(secrets, bots))
     app.include_router(build_credentials_router(secrets, bots, channels.platforms, mcp))
     app.include_router(build_approvals_router(approvals))
