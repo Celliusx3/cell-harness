@@ -126,6 +126,12 @@ def test_act_states_the_limit_the_schema_enforces() -> None:
     assert "1 to 24 actions" in ACT_DESCRIPTION
 
 
+def test_act_asks_the_person_before_a_click_it_cannot_undo() -> None:
+    assert "ask_user" in ACT_DESCRIPTION
+    for action in ("sends", "posts", "pays", "deletes"):
+        assert action in ACT_DESCRIPTION
+
+
 def test_a_held_screen_tells_the_bot_to_wait_for_the_person() -> None:
     assert "taken control" in HELD_BY_PERSON
     assert " ".join(HELD_BY_PERSON.split()) == HELD_BY_PERSON

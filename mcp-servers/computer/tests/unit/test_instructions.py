@@ -28,3 +28,9 @@ def test_the_instructions_name_the_tools_and_the_computer_page() -> None:
         "Computer page",
     ):
         assert name in COMPUTER_INSTRUCTIONS
+
+
+def test_the_instructions_tell_the_bot_to_ask_before_an_action_it_cannot_undo() -> None:
+    assert "ask_user" in COMPUTER_INSTRUCTIONS
+    for action in ("sends", "posts", "pays", "deletes"):
+        assert action in COMPUTER_INSTRUCTIONS

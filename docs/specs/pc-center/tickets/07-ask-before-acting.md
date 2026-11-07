@@ -1,6 +1,6 @@
 # 07 The bot asks before acting on a site
 
-**Status.** open
+**Status.** done
 
 **What to build.** The `computer` server's instructions and its
 `browser_act` description in `tools/descriptions.py` tell the bot to ask first.
