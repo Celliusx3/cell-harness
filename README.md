@@ -29,8 +29,8 @@ phase ordering.
 cp backend/config.local.example.json backend/config.local.json
 # set secrets.encryption_key (`openssl rand -hex 32`), which seals the keyring;
 # every key — the model's, the bot tokens — is saved in the app: the setup screen, then Credentials
-# everything else — sessions root, MCP servers — is in
-# backend/config.json (committed); a server's `env` secrets go in config.local.json
+# every MCP server, the bots' PC too, is added in the app: Settings → MCP servers;
+# everything else — sessions root, skills — is in backend/config.json (committed)
 make install                           # uv sync the backend package + dev deps
 make test                              # pytest, 80% coverage gate — needs Deno on PATH, https://deno.com
 make lint                              # ruff check + format check
@@ -165,10 +165,10 @@ skills and the PC; the dmg is about 260 MB. It carries its own Python and Deno.
 The first time the PC starts it downloads the PC image (about 400 MB). Only the
 `create-skill` skill ships. Apple Silicon only.
 
-Every other MCP server is added on **Settings → MCP servers**: a name, a
-command, its arguments, its settings and the names of the keys it needs. It
-starts at once. A server that needs a key waits until the key is saved on the
-Credentials page as a **Capability key**. The app does not carry Node or uv: a
+The app ships no MCP server. Each one, the PC too, is added on **Settings → MCP
+servers**: a name, a command, its arguments, its settings and the keys it
+needs, typed in hidden fields. It starts at once. The PC's command is in
+[mcp-servers/README.md](./mcp-servers/README.md). The app does not carry Node or uv: a
 server run with `npx` or `uvx` needs them installed, and the app finds them
 through your Terminal's PATH. The app's PC is its own, beside `make dev`'s: its
 runtime lives in `~/.cell-harness/msb`, a short path because microsandbox's

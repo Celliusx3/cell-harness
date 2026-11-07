@@ -22,9 +22,9 @@ Five shapes that hold everywhere:
   carries three schemas however many servers are connected. **Deno is a startup
   requirement.** [docs/mcp-tool-scaling.md](./docs/mcp-tool-scaling.md).
 - **A capability is an MCP server** — a separate process with its own
-  dependencies. Only the PC is built in (`computer` in `config.json`); every
-  other server is added on the MCP servers screen in Settings, saved in
-  `mcp.json` and started live. Ours live under [mcp-servers/](./mcp-servers/),
+  dependencies. None is built in: every server, the PC (`computer`) too, is
+  added on the MCP servers screen in Settings, saved in `mcp.json` and started
+  live. Ours live under [mcp-servers/](./mcp-servers/),
   each with its own 80% gate. The key is the tool namespace: `fs` gives the
   model `fs__read_file`. `backend/harness/` imports nothing from it.
   [mcp-servers/README.md](./mcp-servers/README.md).
@@ -37,8 +37,8 @@ Five shapes that hold everywhere:
   and keep their own tests and 80% gate (`make test-skills`).
 - **Every bot works on one PC.** A Linux desktop with Chrome and a shell, run by
   the `computer` server in a microVM that ships inside the app (microsandbox;
-  `COMPUTER_ENGINE=docker` is the other engine). The app does not start without
-  it, and every bot is told about it by the server's own instructions. Scripts
+  `COMPUTER_ENGINE=docker` is the other engine). Once it is added, every bot is
+  told about it by the server's own instructions. Scripts
   that call tools still run in Deno; the PC is a tool the bot uses.
   [docs/specs/pc-center/spec.md](./docs/specs/pc-center/spec.md).
 - **Every channel is a client of one gateway** — browser, Telegram, Discord. A
@@ -48,8 +48,8 @@ Five shapes that hold everywhere:
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # set secrets.encryption_key
 # every key and model is saved in the app — the setup screen, then Credentials;
-# everything else — sessions root, MCP servers — is in
-# backend/config.json (committed); other secrets stay in config.local.json (gitignored)
+# every MCP server is added in the app — Settings → MCP servers;
+# everything else — sessions root, skills — is in backend/config.json (committed)
 make install && make test          # needs Deno on PATH — https://deno.com
 # the PC needs virtualization: Apple Silicon, KVM on Linux, or the Windows Hypervisor Platform
 make dev                           # backend :4896 + frontend :4897; `sysmon` needs Node (npx)
@@ -57,14 +57,8 @@ make app                           # the Mac app, desktop/dist-app/Cell Harness-
 # open http://localhost:4897 — there is no CLI, the API is the only surface
 ```
 
-```json
-{ "mcp": { "servers": {
-    "fs": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"] }
-} } }
-```
-
-The two config files **deep-merge per server**, so a server's shape is committed
-and only its `env` secrets go in `config.local.json`.
+To give the bots their PC, add `computer` on **Settings → MCP servers**: command `uv`, arguments `run`, `--quiet`, `--project`, `../mcp-servers/computer`, `computer`, settings `COMPUTER_ENGINE=microsandbox`, `COMPUTER_IDLE_MINUTES=10`, `COMPUTER_FILES_DIR=~/.harness/files`, `COMPUTER_SKILLS_DIRS=../.agents/skills`.
+The Mac app's command is in [mcp-servers/README.md](./mcp-servers/README.md).
 
 ## Layout
 

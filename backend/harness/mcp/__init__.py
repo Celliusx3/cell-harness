@@ -5,11 +5,9 @@ from harness.mcp.clients.stdio import open_stdio_client
 from harness.mcp.models.errors import (
     McpConnectionError,
     McpNotConnectedError,
-    McpServerBuiltIn,
     McpServerNotFound,
     McpServerTaken,
     McpTimeoutError,
-    RequiredServerError,
 )
 from harness.mcp.models.saved import NewServer, SavedServer, ServerDraft
 from harness.mcp.repositories.disk import DiskSavedServerRepository
@@ -22,13 +20,11 @@ __all__ = [
     "McpClientFactory",
     "McpConnectionError",
     "McpNotConnectedError",
-    "McpServerBuiltIn",
     "McpServerNotFound",
     "McpServerTaken",
     "McpService",
     "McpTimeoutError",
     "NewServer",
-    "RequiredServerError",
     "SavedServer",
     "SavedServerService",
     "ServerDraft",

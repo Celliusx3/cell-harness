@@ -106,7 +106,7 @@ class CompactionSettings(BaseModel):
 
 
 class McpServer(BaseModel):
-    """One stdio MCP server, keyed in `McpSettings.servers` by its id."""
+    """One stdio MCP server as it is run, keyed by its id in the servers file."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -114,7 +114,6 @@ class McpServer(BaseModel):
     args: tuple[str, ...] = ()
     env: dict[str, str] = Field(default_factory=dict)
     needs: tuple[str, ...] = ()
-    required: bool = False
 
     @field_validator("command")
     @classmethod
@@ -139,18 +138,11 @@ class McpServer(BaseModel):
 
 
 class McpSettings(BaseModel):
-    """Which MCP servers to connect at startup, and where the person's own servers are kept."""
+    """Where the servers file is: every MCP server is added on the MCP servers screen."""
 
-    servers: dict[str, McpServer] = Field(default_factory=dict)
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     path: Path = Path.home() / ".harness" / "mcp.json"
-
-    @field_validator("servers")
-    @classmethod
-    def _usable_ids(cls, value: dict[str, McpServer]) -> dict[str, McpServer]:
-        """Ids must survive being half of a tool name, and half of an identifier."""
-        for name in value:
-            usable_server_id(name)
-        return value
 
     @field_validator("path")
     @classmethod

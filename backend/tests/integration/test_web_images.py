@@ -31,7 +31,6 @@ DOT_SHA256 = hashlib.sha256(DOT).hexdigest()
 async def snapshot_tool():
     store = McpService(
         {"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})},
-        saved={},
     )
     tool_service = ToolService((), approvals=no_approvals())
     tool_service.add_provider(store.tools)

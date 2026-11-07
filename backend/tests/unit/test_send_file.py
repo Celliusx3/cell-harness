@@ -215,7 +215,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, saved={}),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),

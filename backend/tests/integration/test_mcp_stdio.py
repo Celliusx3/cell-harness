@@ -11,7 +11,7 @@ import pytest
 from mcp.server.apps import APP_MIME_TYPE
 
 from harness.config.sections import McpServer
-from harness.mcp import McpService, RequiredServerError
+from harness.mcp import McpService
 from harness.mcp import _connection as connection_module
 from harness.tools import Failure, Ok, ToolService, ToolUi
 from tests.unit.helpers import context_for, no_approvals
@@ -30,7 +30,7 @@ async def live():
     made: list[McpService] = []
 
     async def start(servers: dict[str, McpServer]):
-        store = McpService(servers, saved={})
+        store = McpService(servers)
         tool_service = ToolService((), approvals=no_approvals())
         tool_service.add_provider(store.tools)
         made.append(store)
@@ -121,12 +121,23 @@ async def test_a_server_that_stops_answering_fails_within_the_timeout(live, monk
     assert store.statuses()[0].status == "connected"
 
 
-async def test_a_required_server_that_exits_before_the_handshake_stops_startup() -> None:
-    refusing = McpServer(command=sys.executable, args=("-c", "raise SystemExit(2)"), required=True)
-    store = McpService({"computer": refusing}, saved={})
+async def settled(store: McpService) -> None:
+    for _ in range(int(TIMEOUT * 10)):
+        if store.statuses()[0].status != "connecting":
+            return
+        await asyncio.sleep(0.1)
 
-    with pytest.raises(RequiredServerError, match="computer is required and failed to connect"):
-        await asyncio.wait_for(store.start(), TIMEOUT)
+
+async def test_a_server_that_exits_before_the_handshake_fails_and_the_start_goes_on() -> None:
+    refusing = McpServer(command=sys.executable, args=("-c", "raise SystemExit(2)"))
+    store = McpService({"computer": refusing})
+
+    await asyncio.wait_for(store.start(), TIMEOUT)
+    await settled(store)
+
+    assert store.statuses()[0].status == "failed"
+    assert store.tools() == []
+    await store.aclose()
 
 
 async def test_a_server_that_explains_itself_on_stderr_and_exits_is_named_with_its_reason() -> None:
@@ -134,8 +145,13 @@ async def test_a_server_that_explains_itself_on_stderr_and_exits_is_named_with_i
         "import sys; print('starting', file=sys.stderr); "
         "print('Turn on virtualization.', file=sys.stderr); raise SystemExit(2)"
     )
-    refusing = McpServer(command=sys.executable, args=("-c", script), required=True)
-    store = McpService({"computer": refusing}, saved={})
+    refusing = McpServer(command=sys.executable, args=("-c", script))
+    store = McpService({"computer": refusing})
 
-    with pytest.raises(RequiredServerError, match="Turn on virtualization."):
-        await asyncio.wait_for(store.start(), TIMEOUT)
+    await asyncio.wait_for(store.start(), TIMEOUT)
+    await settled(store)
+
+    [status] = store.statuses()
+    assert status.status == "failed"
+    assert "Turn on virtualization." in status.error
+    await store.aclose()

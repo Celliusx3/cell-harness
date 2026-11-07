@@ -59,7 +59,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
         compaction={"context_tokens": 1000},
-        mcp={"servers": {}, "path": tmp_path / "mcp.json"},
+        mcp={"path": tmp_path / "mcp.json"},
     )
 
 
@@ -184,14 +184,12 @@ def web_mcp(
     client_factory: McpClientFactory = open_stdio_client,
 ) -> McpService:
     """A service over whatever servers a test declares — none, by default."""
-    return McpService(servers or {}, client_factory=client_factory, saved={})
+    return McpService(servers or {}, client_factory=client_factory)
 
 
 def saved_servers_in(tmp_path: Path) -> SavedServerService:
-    """The servers a test saves, kept in a file under `tmp_path`, beside no built-in one."""
-    return SavedServerService(
-        DiskSavedServerRepository(tmp_path / "mcp.json"), built_in_ids=frozenset()
-    )
+    """The servers a test saves, kept in a file under `tmp_path`."""
+    return SavedServerService(DiskSavedServerRepository(tmp_path / "mcp.json"))
 
 
 def web_app(

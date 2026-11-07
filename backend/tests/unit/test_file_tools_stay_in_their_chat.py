@@ -51,7 +51,7 @@ async def result_in_chat_s(
     runtime = build_runtime(
         Settings(),
         sessions,
-        McpService({}, saved={}),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),

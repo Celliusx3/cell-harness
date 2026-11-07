@@ -13,7 +13,6 @@ from harness.files import FileTooLarge, UnsafeFileName
 from harness.mcp import (
     McpConnectionError,
     McpNotConnectedError,
-    McpServerBuiltIn,
     McpServerNotFound,
     McpServerTaken,
     McpTimeoutError,
@@ -38,7 +37,6 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
         InvalidSkill: status.HTTP_422_UNPROCESSABLE_CONTENT,
         McpConnectionError: status.HTTP_502_BAD_GATEWAY,
         McpNotConnectedError: status.HTTP_503_SERVICE_UNAVAILABLE,
-        McpServerBuiltIn: status.HTTP_409_CONFLICT,
         McpServerNotFound: status.HTTP_404_NOT_FOUND,
         McpServerTaken: status.HTTP_409_CONFLICT,
         McpTimeoutError: status.HTTP_502_BAD_GATEWAY,

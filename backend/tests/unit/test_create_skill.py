@@ -58,7 +58,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({"stub": McpServer(command="does-not-run")}, saved={}),
+        McpService({"stub": McpServer(command="does-not-run")}),
         skills_at(tmp_path / "skills"),
         client_tools(),
         no_approvals(),

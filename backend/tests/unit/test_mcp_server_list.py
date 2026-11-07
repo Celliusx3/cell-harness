@@ -22,7 +22,7 @@ async def _listed(tmp_path, mcp) -> list[str]:
     return response.json()["servers"]
 
 
-async def test_every_configured_server_is_listed_by_its_namespace(tmp_path) -> None:
+async def test_every_server_is_listed_by_its_namespace(tmp_path) -> None:
     assert await _listed(tmp_path, web_mcp(servers("computer", "places"))) == [
         "computer",
         "places",

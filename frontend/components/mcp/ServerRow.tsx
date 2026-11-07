@@ -10,13 +10,12 @@ export interface ServerActions {
   onRestart: (() => void) | null;
 }
 
-/** One server: its name, its command line, whether it is built in, its state, each key set or missing, and what may be done to it. */
+/** One server: its name, its command line, its state, each key set or missing, and what may be done to it. */
 export function ServerRow({ server, actions }: { server: McpServer; actions: ServerActions }) {
   return (
     <li className="px-3 py-2 text-sm">
       <div className="flex items-baseline gap-2">
         <span className="min-w-0 break-all font-mono text-[13px]">{server.id}</span>
-        {server.built_in && <span className="shrink-0 text-xs font-medium text-ink">Built in</span>}
         <span className={`ml-auto min-w-0 break-words text-right text-xs ${stateColor(server)}`}>
           {stateLabel(server)}
         </span>

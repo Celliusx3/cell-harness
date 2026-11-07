@@ -59,7 +59,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
-        mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={})
+        mcp = McpService({"stub": McpServer(command="does-not-run")})
         bots = bots_in(tmp_path, SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
         runtime = build_runtime(
             settings,

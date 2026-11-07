@@ -50,7 +50,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     runtime = build_runtime(
         Settings(),
         service,
-        McpService({}, saved={}),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),

@@ -16,12 +16,11 @@ export interface McpServer {
   args: string[];
   env: Record<string, string>;
   keys: KeyState[];
-  built_in: boolean;
   status: ServerStatus;
   error: string;
 }
 
-/** `GET /api/mcp/servers`: the built-in servers first, then the person's own as added. */
+/** `GET /api/mcp/servers`: every server, in the order each was added. */
 export interface McpServerList {
   servers: McpServer[];
 }

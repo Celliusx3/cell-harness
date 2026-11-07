@@ -67,7 +67,7 @@ PY
 
 For a check that needs no real key, run two fake OpenAI-compatible servers on localhost and save them on the copy's Credentials page instead: an endpoint may be `http` on localhost.
 
-Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The backend connects every MCP server in `backend/config.json` at startup; the first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
+Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The copy starts with no MCP server; add each one it needs, `computer` too, as in [features/mcp-servers.md](features/mcp-servers.md). The first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
 
 Why each variable: the sessions root, files root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. `HARNESS_CONFIG_LOCAL` points at an empty scratch file, so the copy reads no settings of the person's: it must never be `backend/config.local.json`. Every key the copy holds is in its own keyring, saved there by the step above or on its Credentials page. Never save the person's Telegram or Discord token on the copy: a copy with one answers the person's real chats.
 

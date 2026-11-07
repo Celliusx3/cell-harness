@@ -11,7 +11,6 @@ from pydantic import SecretStr, ValidationError
 from harness.config.sections import BotSettings, McpSettings
 from harness.mcp import (
     DiskSavedServerRepository,
-    McpServerBuiltIn,
     McpServerNotFound,
     McpServerTaken,
     SavedServer,
@@ -25,10 +24,8 @@ EXA = SavedServer(
 NO_KEYS: dict[str, SecretStr] = {}
 
 
-def saved_in(tmp_path: Path, *built_in: str) -> SavedServerService:
-    return SavedServerService(
-        DiskSavedServerRepository(tmp_path / "mcp.json"), built_in_ids=frozenset(built_in)
-    )
+def saved_in(tmp_path: Path) -> SavedServerService:
+    return SavedServerService(DiskSavedServerRepository(tmp_path / "mcp.json"))
 
 
 def test_no_file_is_no_server(tmp_path: Path) -> None:
@@ -39,15 +36,6 @@ def test_a_server_added_is_read_back_by_another_service_over_the_same_file(tmp_p
     saved_in(tmp_path).add(EXA)
 
     assert saved_in(tmp_path).servers() == (EXA,)
-
-
-def test_an_id_a_built_in_server_uses_is_refused_unsaved(tmp_path: Path) -> None:
-    service = saved_in(tmp_path, "exa")
-
-    with pytest.raises(McpServerTaken, match="built-in"):
-        service.add(EXA)
-
-    assert service.servers() == ()
 
 
 def test_an_id_another_saved_server_uses_is_refused(tmp_path: Path) -> None:
@@ -84,16 +72,6 @@ def test_a_removed_server_is_gone_from_the_file(tmp_path: Path) -> None:
     assert saved_in(tmp_path).servers() == ()
 
 
-def test_a_built_in_server_cannot_be_changed_or_removed(tmp_path: Path) -> None:
-    service = saved_in(tmp_path, "fs")
-    draft = ServerDraft(command="npx", args=(), env={}, needs=(), keys=NO_KEYS)
-
-    with pytest.raises(McpServerBuiltIn):
-        service.change("fs", draft)
-    with pytest.raises(McpServerBuiltIn):
-        service.remove("fs")
-
-
 def test_an_unknown_server_is_not_found(tmp_path: Path) -> None:
     service = saved_in(tmp_path)
 
@@ -128,14 +106,13 @@ def test_a_blank_needed_key_name_is_refused() -> None:
         ServerDraft(command="npx", args=(), env={}, needs=(" ",), keys=NO_KEYS)
 
 
-def test_a_draft_runs_as_a_server_that_is_never_required() -> None:
+def test_a_saved_server_runs_as_it_was_saved() -> None:
     server = EXA.server()
 
-    assert (server.command, server.args, server.needs, server.required) == (
+    assert (server.command, server.args, server.needs) == (
         "npx",
         ("-y", "exa-mcp-server"),
         ("EXA_API_KEY",),
-        False,
     )
 
 

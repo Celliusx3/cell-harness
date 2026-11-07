@@ -165,11 +165,6 @@ listen. A PC made with other rules is rebuilt; its home volume keeps the files.
 OpenMausBot's gate and Rakazo's restricted mode block the same addresses.
 `docs/specs/pc-center/spec.md`.
 
-**The app does not start without its PC.** A server marked `required` must
-connect before the app serves, so a machine that cannot run the PC fails at
-start with what to turn on, not on a bot's first click. `computer` is the only
-required server; every other one still fails quietly.
-
 **Prompt assembly cannot raise.** The TypeScript printer degrades an unprintable
 schema to `unknown` rather than raising, because one odd server schema would
 otherwise cost the turn *every* tool — the request is built as one string. A

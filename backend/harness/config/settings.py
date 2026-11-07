@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import shutil
-from collections.abc import Mapping
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -36,7 +35,6 @@ _LOCAL_JSON = Path(
         _CONFIG_JSON.with_name(_CONFIG_JSON.stem + ".local" + _CONFIG_JSON.suffix),
     )
 )
-_ENVIRONMENT = "the environment"
 
 
 class SkillSettings(BaseModel):
@@ -112,33 +110,11 @@ class Settings(BaseSettings):
         """Highest priority first."""
         local = JsonConfigSettingsSource(settings_cls, json_file=_LOCAL_JSON)
         committed = JsonConfigSettingsSource(settings_cls, json_file=_CONFIG_JSON)
-        built_in = _server_ids(committed())
-        _refuse_servers_beyond(built_in, _server_ids(local()), str(_LOCAL_JSON), "that file")
-        _refuse_servers_beyond(built_in, _server_ids(env_settings()), _ENVIRONMENT, _ENVIRONMENT)
         return (init_settings, env_settings, local, committed)
 
 
 class MissingConfigError(RuntimeError):
     """A value with no possible default was not supplied anywhere."""
-
-
-def _server_ids(values: Mapping[str, object]) -> tuple[str, ...]:
-    """The ids under `mcp.servers` in one source; validation refuses any other shape later."""
-    mcp = values.get("mcp")
-    servers = mcp.get("servers") if isinstance(mcp, Mapping) else None
-    return tuple(servers) if isinstance(servers, Mapping) else ()
-
-
-def _refuse_servers_beyond(
-    built_in: tuple[str, ...], set_up: tuple[str, ...], place: str, there: str
-) -> None:
-    """A server only `place` sets up belongs on the MCP servers screen, so the start stops."""
-    for server_id in set_up:
-        if server_id not in built_in:
-            raise MissingConfigError(
-                f"{server_id} is set up in {place}, but MCP servers are added on the "
-                f"MCP servers screen now; remove it from {there} and add it there"
-            )
 
 
 def load() -> Settings:

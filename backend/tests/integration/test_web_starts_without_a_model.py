@@ -63,7 +63,7 @@ def _config_with_no_model(tmp_path: Path) -> Path:
         "approval": {"grants_path": str(tmp_path / "approvals.json")},
         "skills": {"roots": [str(tmp_path / "skills")], "editable": str(tmp_path / "skills")},
         "compaction": {"context_tokens": 1000},
-        "mcp": {"servers": {}, "path": str(tmp_path / "mcp.json")},
+        "mcp": {"path": str(tmp_path / "mcp.json")},
     }
     committed.write_text(json.dumps(config), encoding="utf-8")
     return committed

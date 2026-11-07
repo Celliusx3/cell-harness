@@ -65,7 +65,7 @@ def composed(tmp_path: Path) -> Runtime:
     return build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, saved={}),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),

@@ -10,7 +10,6 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict
 
 from harness.mcp import (
-    McpServerBuiltIn,
     McpServerNotFound,
     McpServerTaken,
     McpService,
@@ -29,7 +28,7 @@ from harness.web.this_mac import (
 
 logger = logging.getLogger("harness.mcp")
 
-REFUSED = (McpServerBuiltIn, McpServerNotFound, McpServerTaken)
+REFUSED = (McpServerNotFound, McpServerTaken)
 
 
 class KeyState(BaseModel):
@@ -42,7 +41,7 @@ class KeyState(BaseModel):
 
 
 class ServerEntry(BaseModel):
-    """One server as the screen lists it: how it runs, its keys, whether built in, and its state."""
+    """One server as the screen lists it: how it runs, its keys, and its state."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -51,13 +50,12 @@ class ServerEntry(BaseModel):
     args: tuple[str, ...]
     env: dict[str, str]
     keys: tuple[KeyState, ...]
-    built_in: bool
     status: Status
     error: str
 
 
 class ServerEntries(BaseModel):
-    """Every server: the built-in ones from config first, then the saved ones as added."""
+    """Every server, in the order each was added."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -65,7 +63,7 @@ class ServerEntries(BaseModel):
 
 
 def build_router(mcp: McpService, saved: SavedServerService) -> APIRouter:
-    """List every server; add, change, remove and restart the person's own from this Mac."""
+    """List every server; add, change, remove and restart one from this Mac."""
     router = APIRouter(prefix="/api/mcp/servers", tags=["mcp"])
     _reading_routes(router, mcp)
     _saving_routes(router, mcp, saved)
@@ -167,7 +165,6 @@ def _entry(mcp: McpService, server_id: str) -> ServerEntry:
         args=server.args,
         env={name: value for name, value in server.env.items() if name not in server.needs},
         keys=tuple(KeyState(name=name, is_set=name not in missing) for name in server.needs),
-        built_in=mcp.is_built_in(server_id),
         status=state.status,
         error=state.error,
     )

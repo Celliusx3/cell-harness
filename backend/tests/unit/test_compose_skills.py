@@ -50,7 +50,7 @@ def compose(tmp_path: Path):
     def build() -> Runtime:
         settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-        mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={})
+        mcp = McpService({"stub": McpServer(command="does-not-run")})
         return build_runtime(
             settings,
             sessions,

@@ -10,7 +10,6 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI
 
-from harness.config.sections import McpServer
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServer, SavedServerService
 from harness.relay import RelayService
 from harness.web.errors import exception_handlers
@@ -20,10 +19,6 @@ from tests.unit.mcp_fakes import FakeFactory, tool
 
 PAGE = "http://127.0.0.1:4887"
 THIS_MAC = ("127.0.0.1", 50000)
-
-
-def built_ins() -> dict[str, McpServer]:
-    return {"computer": McpServer(command="uv", args=("run", "computer"))}
 
 
 @dataclass
@@ -43,17 +38,16 @@ class BreakableRepository:
 
 
 class ServerWorld:
-    """A harness's servers, built from config and the saved file, behind its routes."""
+    """A harness's servers, built from the servers file, behind its routes."""
 
     def __init__(self, tmp_path: Path, factory: FakeFactory | None = None) -> None:
         self.path = tmp_path / "mcp.json"
         self.factory = factory or FakeFactory()
         self.factory.client.tools = [tool("search")]
         self.repository = BreakableRepository(DiskSavedServerRepository(self.path))
-        self.saved = SavedServerService(self.repository, built_in_ids=frozenset(built_ins()))
+        self.saved = SavedServerService(self.repository)
         self.mcp = McpService(
-            built_ins(),
-            saved={server.id: server.server() for server in self.saved.servers()},
+            {server.id: server.server() for server in self.saved.servers()},
             client_factory=self.factory,
         )
         app = FastAPI(exception_handlers=exception_handlers())

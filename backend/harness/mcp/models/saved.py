@@ -97,10 +97,8 @@ class SavedServer(ServerCommand):
         return usable_server_id(value)
 
     def server(self) -> McpServer:
-        """The server to run: never required, so a failure never stops the harness."""
-        return McpServer(
-            command=self.command, args=self.args, env=self.env, needs=self.needs, required=False
-        )
+        """The server to run, its keys in its env."""
+        return McpServer(command=self.command, args=self.args, env=self.env, needs=self.needs)
 
 
 class SavedServersFile(BaseModel):

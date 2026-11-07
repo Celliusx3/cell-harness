@@ -61,18 +61,13 @@ def build_subagent_logs(settings: Settings) -> SessionService:
 
 
 def build_saved_servers(settings: Settings) -> SavedServerService:
-    """The person's own servers, kept in `mcp.path`, none under a built-in server's id."""
-    return SavedServerService(
-        DiskSavedServerRepository(settings.mcp.path), built_in_ids=frozenset(settings.mcp.servers)
-    )
+    """Every MCP server, as the person added it on the MCP servers screen, kept in `mcp.path`."""
+    return SavedServerService(DiskSavedServerRepository(settings.mcp.path))
 
 
-def build_mcp(settings: Settings, saved: SavedServerService) -> McpService:
-    """Connections to `config.json`'s `mcp.servers` and the person's saved ones, with their keys."""
-    return McpService(
-        settings.mcp.servers,
-        saved={server.id: server.server() for server in saved.servers()},
-    )
+def build_mcp(saved: SavedServerService) -> McpService:
+    """Connections to the person's saved servers, with their keys."""
+    return McpService({server.id: server.server() for server in saved.servers()})
 
 
 def build_keyring(settings: Settings) -> SecretService:
@@ -136,7 +131,7 @@ def create_web_app() -> FastAPI:
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
     saved_servers = build_saved_servers(settings)
-    mcp = build_mcp(settings, saved_servers)
+    mcp = build_mcp(saved_servers)
     skills = SkillService(settings.skills)
     approvals = ApprovalService(
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
