@@ -12,12 +12,12 @@ computer = "computer.server:main"
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "pytest-cov>=5", "ruff>=0.6", "websockets>=15"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=computer --cov-report=term-missing --cov-fail-under=80"
+addopts = "--cov=computer --cov=image --cov-report=term-missing --cov-fail-under=80"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["computer"]
+source = ["computer", "image"]
 omit = ["tests/*", "computer/vendor/*"]
 
 [tool.ruff]
