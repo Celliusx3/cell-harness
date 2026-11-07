@@ -9,12 +9,12 @@ import logging
 import httpx
 
 from harness.bots import BotService
-from harness.config.sections import LLMSettings
+from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService
 from harness.images import ImageService
 from harness.llm import LLMClient
-from harness.llm.adapters import OpenAIClient
+from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
 from harness.runs.bot_messages import BotMessages
@@ -69,7 +69,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
-from harness.web.bot_models import CredentialModels
+from harness.web.bot_models import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")
 
@@ -94,6 +94,7 @@ DEFAULT_TOOLS = (
     *sorted(CLIENT_TOOLS.names),
 )
 SUBAGENT_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
+SIGHT_TOOLS = frozenset({VIEW_IMAGE})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,
@@ -118,7 +119,6 @@ def build_runtime(
     skills: SkillService,
     client_tools: ClientToolService,
     approvals: ApprovalService,
-    context_tokens: int | None = None,
     *,
     bots: BotService,
     subagent_logs: SessionService,
@@ -133,31 +133,36 @@ def build_runtime(
             skill_save_tool(skills),
             skill_delete_tool(skills),
             skill_write_file_tool(skills),
-            bot_create_tool(bots),
             fetch_with_secret_tool(secrets, bots, httpx.AsyncHTTPTransport()),
             send_file_tool(),
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
-            *([view_image_tool(files)] if settings.llm.vision else []),
+            view_image_tool(files),
             *client_tools.tools(),
         ],
         approvals=approvals,
     )
     tool_service.add_provider(mcp.tools)
     tool_service.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
+    tool_service.add_provider(lambda: [tool] if (tool := bot_create_tool(bots, secrets)) else [])
 
     logger.info("approval asks for: %s", sorted(approvals.protected_tools) or "nothing")
     _register_code_mode(tool_service, settings)
 
     runtime = Runtime(
         models=CredentialModels(
-            secrets, bots, settings.llm, functools.partial(_openai_client, images)
+            secrets,
+            bots,
+            settings.llm,
+            ModelEndpoint(
+                client_for=functools.partial(_openai_client, images),
+                blocking_window_for=functools.partial(context_window, settings.compaction),
+            ),
         ),
-        images=images if settings.llm.vision else None,
-        tools=Toolset(tool_service, DEFAULT_TOOLS),
+        images=images,
+        tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
         guidance=GUIDANCE,
         checkpoint=store.flush,
-        context_tokens=context_tokens,
         hooks=default_hooks(skills),
         files=files,
         server_instructions=mcp.instructions,
@@ -166,8 +171,29 @@ def build_runtime(
     return runtime
 
 
-def _openai_client(images: ImageService, settings: LLMSettings) -> LLMClient:
+def _openai_client(images: ImageService, settings: OpenAISettings) -> LLMClient:
     return OpenAIClient(settings, read_image=images.read)
+
+
+def context_window(compaction: CompactionSettings, llm: OpenAISettings) -> int | None:
+    """The window `llm`'s model compacts at: the configured one, else its endpoint's report."""
+    configured = compaction.context_tokens
+    if configured is not None:
+        logger.info("compaction: %s has a %d-token window (from config)", llm.model, configured)
+        return configured
+    discovered = context_window_tokens(llm)
+    if discovered is None:
+        logger.warning(
+            "compaction: %s at %s reports no window and none is configured; automatic "
+            "compaction is off for it, only a provider overflow triggers it",
+            llm.model,
+            llm.base_url,
+        )
+    else:
+        logger.info(
+            "compaction: %s has a %d-token window (reported by endpoint)", llm.model, discovered
+        )
+    return discovered
 
 
 def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
@@ -187,7 +213,7 @@ def _register_run_subagent(
 ) -> None:
     subagent = dataclasses.replace(
         runtime,
-        tools=Toolset(tool_service, SUBAGENT_TOOLS),
+        tools=Toolset(tool_service, SUBAGENT_TOOLS, sight_tools=SIGHT_TOOLS),
         guidance=CODE_PROMPT,
     )
     tool_service.register(run_subagent_tool(Subagents(subagent, logs)))

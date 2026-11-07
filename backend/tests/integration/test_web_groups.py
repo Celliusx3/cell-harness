@@ -15,10 +15,14 @@ from harness.tools.native.question import ASK_USER
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, hanging_tool
 from tests.unit.helpers import client_tools, durable_service, no_skills, runtime_over
-from tests.webapp import web_app
+from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, web_app
 
-RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every claim."}
-WRITER = {"name": "Writer", "instructions": "Write short posts."}
+RESEARCHER = {
+    "name": "Researcher",
+    "instructions": "Find sources and cite every claim.",
+    "model": MODEL_CREDENTIAL,
+}
+WRITER = {"name": "Writer", "instructions": "Write short posts.", "model": MODEL_CREDENTIAL}
 ASKED = json.dumps({"question": "Which tone?", "options": ["Calm", "Loud"]})
 
 
@@ -31,7 +35,10 @@ async def _group(tmp_path, *scripts, extra=()):
         model, *tools.tools(), *extra, guidance="GUIDE", checkpoint=service.flush
     )
     runs = RunService(service, runtime, store)
-    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store, client_tools=tools)
+    secrets = a_model_saved_in(tmp_path)
+    app = web_app(
+        tmp_path, service, runs, skills=no_skills(), bots=store, client_tools=tools, secrets=secrets
+    )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as setup:
         researcher = (await setup.post("/api/bots", json=RESEARCHER)).json()["id"]

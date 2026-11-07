@@ -7,37 +7,31 @@ export interface Destination {
   header_name: string | null;
 }
 
-/** What a credential is for, by its kind: a website's key, a model, a chat platform's token, or a capability's key. */
+/** What a credential is for, by its kind: a website's key, a model, or a chat platform's token. */
 export type CredentialDetails =
   | { kind: "custom"; destination: Destination }
-  | { kind: "llm"; base_url: string; model: string }
+  | { kind: "llm"; base_url: string; model: string; vision: boolean }
   | { kind: "telegram" }
-  | { kind: "discord" }
-  | { kind: "capability"; server: string; variable: string };
+  | { kind: "discord" };
 
-/** A model provider's endpoint and the model to ask there. */
+/** A model provider's endpoint, the model to ask there, and whether it can see images. */
 export type ModelDetails = Extract<CredentialDetails, { kind: "llm" }>;
 
 /** The kinds that sign the app in to a chat platform. */
 export type ChatPlatform = Extract<CredentialDetails["kind"], "telegram" | "discord">;
-
-/** The name the harness gives the Default model. */
-export const DEFAULT_MODEL_CREDENTIAL = "default_model";
 
 /** `GET /api/credentials`: one keyring entry, the bots it serves, and its last four characters at most. */
 export interface Credential {
   name: string;
   details: CredentialDetails;
   last_four: string | null;
-  is_default_model: boolean;
   bots: { id: string; name: string }[];
 }
 
-/** `GET /api/credentials`, with the harness's own address, where every save goes, and the model the app ships with. */
+/** `GET /api/credentials`, with the harness's own address, where every save goes. */
 export interface CredentialList {
   credentials: Credential[];
   direct_url: string;
-  shipped_model: ModelDetails;
 }
 
 /** `POST /api/credentials`: a new credential, its key, and the bots it serves. */
@@ -58,9 +52,9 @@ export interface CredentialChange {
 /** Every credential in the keyring, with its bots, each by its last four characters at most. */
 export const listCredentials = () => request<CredentialList>("/credentials");
 
-/** Whether setup is done: the keyring holds the Default model. */
-export function hasDefaultModel(credentials: Credential[]): boolean {
-  return credentials.some((credential) => credential.is_default_model);
+/** Whether setup is done: the keyring holds an LLM credential. */
+export function hasModelCredential(credentials: Credential[]): boolean {
+  return credentials.some((credential) => credential.details.kind === "llm");
 }
 
 /** Whether this browser reaches the harness directly, which only a page on its own Mac does. */
@@ -89,4 +83,24 @@ async function sendToHarness(directUrl: string, path: string, init: { method: st
     headers: init.body === undefined ? undefined : { "content-type": "application/json" },
   });
   if (!response.ok) throw new ApiError(response.status, await detailOf(response));
+}
+
+/** An LLM credential a bot can answer on, by name, with the model it asks and that endpoint's host. */
+export interface ModelOption {
+  name: string;
+  model: string;
+  host: string;
+}
+
+/** The LLM credentials in `credentials`, in the order the keyring lists them. */
+export function modelOptions(credentials: Credential[]): ModelOption[] {
+  return credentials.flatMap((credential) =>
+    credential.details.kind === "llm"
+      ? [{ name: credential.name, model: credential.details.model, host: hostOf(credential.details.base_url) }]
+      : [],
+  );
+}
+
+function hostOf(baseUrl: string): string {
+  return baseUrl.replace(/^[a-z]+:\/\//i, "").replace(/\/.*$/, "");
 }

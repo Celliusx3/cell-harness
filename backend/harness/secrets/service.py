@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
 
 from pydantic import SecretStr
 
 from harness.secrets.masking import last_four
 from harness.secrets.models.destination import Destination
 from harness.secrets.models.details import (
-    CapabilityDetails,
     ChatPlatform,
     ChatPlatformDetails,
     CredentialDetails,
@@ -20,7 +18,6 @@ from harness.secrets.models.details import (
 from harness.secrets.models.errors import SecretNotFound, SecretRefused
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.models.secret import (
-    DEFAULT_MODEL_CREDENTIAL,
     SavedCredential,
     SecretSummary,
     UnsealedModelCredential,
@@ -31,7 +28,6 @@ from harness.secrets.sealing import sealed, unsealed
 
 RECORD_ID_BYTES = 12
 MAX_SECRETS = 100
-DEFAULT_MODEL_REMOVAL_REFUSAL = "The Default model cannot be removed; edit it instead."
 
 
 class SecretService:
@@ -80,8 +76,6 @@ class SecretService:
             raise SecretRefused(f"a credential is already named {name!r}; pick another name")
         if isinstance(details, ChatPlatformDetails):
             _refuse_a_second(stored, details.kind)
-        if isinstance(details, CapabilityDetails):
-            _refuse_a_second_capability_key(stored, details, name)
         if len(stored) >= MAX_SECRETS:
             raise SecretRefused(f"{MAX_SECRETS} keys are already saved; remove one first")
         added = self._sealed_secret(name, details, value.get_secret_value())
@@ -99,8 +93,6 @@ class SecretService:
             raise SecretRefused(
                 f"{name!r} is a {existing.details.kind} credential; its type cannot change"
             )
-        if isinstance(details, CapabilityDetails):
-            _refuse_a_second_capability_key(stored, details, name)
         plaintext = self._plaintext(existing) if value is None else value.get_secret_value()
         changed = self._sealed_secret(name, details, plaintext)
         self._repository.replace_all(
@@ -132,12 +124,33 @@ class SecretService:
             destination=sealed_secret.details.destination, value=SecretStr(plaintext)
         )
 
+    def details_of(self, name: str) -> CredentialDetails | None:
+        """What the credential `name` is for, of any kind, or `None`; its key stays sealed."""
+        sealed_secret = self._sealed_named(name)
+        return None if sealed_secret is None else sealed_secret.details
+
     def model_credential_version(self, name: str) -> str | None:
         """The record id the LLM credential `name` is sealed under, new on every save, or `None`."""
         sealed_secret = self._sealed_named(name)
         if sealed_secret is None or not isinstance(sealed_secret.details, ModelDetails):
             return None
         return sealed_secret.id
+
+    def not_a_model_reason(self, name: str) -> str | None:
+        """Why `name` cannot be a bot's model, naming the saved LLM credentials; or `None`."""
+        if self.model_credential_version(name) is not None:
+            return None
+        saved = self.model_credential_names()
+        listed = f"the saved ones are {', '.join(saved)}" if saved else "none is saved"
+        return f"{name!r} is not a saved LLM credential; {listed}"
+
+    def model_credential_names(self) -> tuple[str, ...]:
+        """The saved LLM credentials' names, in the order they were saved."""
+        return tuple(
+            secret.name
+            for secret in self._repository.sealed_secrets()
+            if isinstance(secret.details, ModelDetails)
+        )
 
     def model_credential_named(self, name: str) -> UnsealedModelCredential | None:
         """The LLM credential called `name`, unsealed, or `None`; no other kind is handed out."""
@@ -153,19 +166,9 @@ class SecretService:
         sealed_secret = _platform_credential(self._repository.sealed_secrets(), platform)
         return None if sealed_secret is None else SecretStr(self._plaintext(sealed_secret))
 
-    def capability_keys(self, server_id: str) -> Mapping[str, SecretStr]:
-        """The capability keys saved for the MCP server `server_id`, unsealed, by env variable."""
-        return {
-            secret.details.variable: SecretStr(self._plaintext(secret))
-            for secret in self._repository.sealed_secrets()
-            if isinstance(secret.details, CapabilityDetails) and secret.details.server == server_id
-        }
-
     def delete(self, name: str) -> CredentialDetails:
-        """Remove the key called `name` and say what it was for; the Default is refused."""
+        """Remove the key called `name` and say what it was for."""
         stored = self._repository.sealed_secrets()
-        if any(secret.name == name and _is_default_model(secret) for secret in stored):
-            raise SecretRefused(DEFAULT_MODEL_REMOVAL_REFUSAL)
         removed = next((secret for secret in stored if secret.name == name), None)
         if removed is None:
             raise SecretNotFound(name)
@@ -212,15 +215,10 @@ class SecretService:
             name=secret.name,
             details=secret.details,
             last_four=last_four(self._plaintext(secret)),
-            is_default_model=_is_default_model(secret),
         )
 
     def _plaintext(self, secret: SealedSecret) -> str:
         return unsealed(secret.ciphertext, encryption_key=self._encryption_key, record_id=secret.id)
-
-
-def _is_default_model(secret: SealedSecret) -> bool:
-    return secret.name == DEFAULT_MODEL_CREDENTIAL and isinstance(secret.details, ModelDetails)
 
 
 def _platform_credential(
@@ -244,26 +242,4 @@ def _refuse_a_second(stored: tuple[SealedSecret, ...], platform: ChatPlatform) -
         raise SecretRefused(
             f"the {platform} credential is already saved as {saved.name!r}; "
             "there is one per platform, so edit or remove it"
-        )
-
-
-def _refuse_a_second_capability_key(
-    stored: tuple[SealedSecret, ...], details: CapabilityDetails, name: str
-) -> None:
-    """`SecretRefused` when another credential than `name` already holds this server's variable."""
-    saved = next(
-        (
-            secret
-            for secret in stored
-            if secret.name != name
-            and isinstance(secret.details, CapabilityDetails)
-            and (secret.details.server, secret.details.variable)
-            == (details.server, details.variable)
-        ),
-        None,
-    )
-    if saved is not None:
-        raise SecretRefused(
-            f"{details.server}'s {details.variable} is already saved as {saved.name!r}; "
-            "edit or remove it"
         )

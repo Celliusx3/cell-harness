@@ -7,10 +7,9 @@ import re
 import textwrap
 from pathlib import Path
 
-from harness.config.sections import McpServer
 from harness.config.settings import Settings
 from harness.llm import ToolCall
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import parse
@@ -26,7 +25,6 @@ from tests.unit.helpers import (
     no_progress,
     skills_at,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 PROJECT_SKILLS = Path(__file__).parents[3] / ".agents" / "skills"
@@ -57,11 +55,9 @@ def test_the_example_skill_it_teaches_is_one_the_page_would_save() -> None:
 
 async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
-        ),
+        Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys()),
+        McpService({"stub": McpServer(command="does-not-run")}),
         skills_at(tmp_path / "skills"),
         client_tools(),
         no_approvals(),
@@ -83,6 +79,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(ran, Ok), ran

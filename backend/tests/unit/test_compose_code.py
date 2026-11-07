@@ -6,10 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from harness.config.sections import McpServer
 from harness.config.settings import MissingConfigError, Settings, load
 from harness.llm import ToolCall
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
@@ -22,7 +21,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
 from harness.tools import Ok, ToolService
-from harness.tools.native.bots import MESSAGE_BOT
+from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
@@ -35,10 +34,9 @@ from tests.unit.helpers import (
     no_progress,
     no_skills,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
-WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT)]
+WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT, BOT_CREATE)]
 
 
 @pytest.fixture
@@ -46,11 +44,9 @@ def compose(tmp_path: Path):
     """The real object graph, with a service that is never started."""
 
     def build() -> Runtime:
-        settings = Settings(
-            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
-        )
+        settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path))
-        mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys())
+        mcp = McpService({"stub": McpServer(command="does-not-run")})
         return build_runtime(
             settings,
             sessions,
@@ -72,7 +68,7 @@ def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> Non
     runtime = compose()
 
     assert runtime.tools is not None
-    assert [spec.name for spec in runtime.tools.specs()] == WITHOUT_SKILLS
+    assert [spec.name for spec in runtime.tools.specs(sees_images=True)] == WITHOUT_SKILLS
 
 
 async def test_the_three_tools_actually_dispatch(compose) -> None:
@@ -84,6 +80,7 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Ok)
@@ -104,8 +101,6 @@ def test_the_code_prompt_names_each_code_mode_tool() -> None:
 
 
 def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:
-    monkeypatch.setenv("HARNESS_LLM__MODEL", "m")
-    monkeypatch.setenv("HARNESS_LLM__API_KEY", "k")
     monkeypatch.setenv("HARNESS_CODE__DENO_PATH", "definitely-not-a-real-binary")
 
     with pytest.raises(MissingConfigError, match="definitely-not-a-real-binary"):
@@ -142,7 +137,7 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
 async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:
     runtime = compose()
     assert runtime.tools is not None
-    offered = {spec.name for spec in runtime.tools.specs()}
+    offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
     assert CLIENT_TOOLS.names <= offered
 
     listed = await runtime.tools.execute(
@@ -150,6 +145,7 @@ async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> No
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     assert isinstance(listed, Ok)
     assert not any(name in listed.text for name in CLIENT_TOOLS.names)

@@ -9,6 +9,7 @@ from urllib.parse import quote
 import pytest
 
 from harness.secrets import Destination, redacted
+from harness.secrets.models.details import CustomDetails, DiscordDetails, TelegramDetails
 from harness.tools.native.secrets import SecretAsk
 from harness.web.routes.secret_card import SecretEntry
 
@@ -86,9 +87,11 @@ def test_a_header_the_transport_owns_cannot_carry_a_key(header: str) -> None:
 
 @pytest.mark.parametrize("auth", [{"auth": "bearer"}, {"auth": "header", "header_name": "X-Key"}])
 def test_an_ask_saves_its_site_and_how_it_takes_the_key(auth: dict[str, str]) -> None:
-    ask = SecretAsk.model_validate({"name": "api", "label": "API key", "origin": ORIGIN, **auth})
+    ask = SecretAsk.model_validate(
+        {"kind": "custom", "name": "api", "label": "API key", "origin": ORIGIN, **auth}
+    )
 
-    assert ask.destination == _destination(**auth)
+    assert ask.details == CustomDetails(destination=_destination(**auth))
 
 
 def test_redact_blanks_the_key_as_is_json_escaped_url_quoted_and_base64() -> None:
@@ -108,3 +111,32 @@ def test_redact_leaves_text_without_the_key_alone() -> None:
     text = 'status ok: "tok", 9Zx=7Lm and q/+ are not the key'
 
     assert redacted(text, 'tok-"q/+9Zx=7Lm') == text
+
+
+@pytest.mark.parametrize(
+    "ask",
+    [
+        {"kind": "custom"},
+        {"kind": "custom", "origin": ORIGIN, "auth": "bearer", "model": "m"},
+        {"kind": "llm", "base_url": "https://api.example.com/v1", "model": "m"},
+        {
+            "kind": "llm",
+            "base_url": "https://a.example/v1",
+            "model": "m",
+            "vision": True,
+            "auth": "bearer",
+        },
+        {"kind": "telegram", "vision": False},
+        {"kind": "discord", "origin": ORIGIN},
+    ],
+)
+def test_an_ask_carries_exactly_its_kinds_fields(ask: dict[str, str]) -> None:
+    with pytest.raises(ValueError):
+        SecretAsk.model_validate({"name": "api", "label": "API key", **ask})
+
+
+def test_a_platform_ask_is_for_that_platform() -> None:
+    telegram = SecretAsk.model_validate({"kind": "telegram", "name": "tg", "label": "Token"})
+    discord = SecretAsk.model_validate({"kind": "discord", "name": "dc", "label": "Token"})
+
+    assert (telegram.details, discord.details) == (TelegramDetails(), DiscordDetails())

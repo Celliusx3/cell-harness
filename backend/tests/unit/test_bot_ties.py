@@ -10,7 +10,7 @@ TRADER = Bot(id="trader", name="Trader", instructions="Trade.", model_credential
 
 
 def test_ticking_a_key_adds_it_and_unticking_takes_it_off() -> None:
-    retied = retied_bots((CHEF, TRADER), "github", "custom", ("trader",))
+    retied = retied_bots((CHEF, TRADER), "github", ("trader",))
 
     assert {bot.id: bot.secret_names for bot in retied} == {
         "chef": ("notion",),
@@ -19,21 +19,12 @@ def test_ticking_a_key_adds_it_and_unticking_takes_it_off() -> None:
 
 
 def test_a_bot_whose_tie_stays_is_not_among_the_changed() -> None:
-    assert retied_bots((CHEF, TRADER), "github", "custom", ("chef",)) == ()
-    assert retied_bots((CHEF, TRADER), "first_model", "llm", ("trader",)) == ()
+    assert retied_bots((CHEF, TRADER), "github", ("chef",)) == ()
 
 
-def test_ticking_a_bot_in_another_model_moves_it_there() -> None:
-    (moved,) = retied_bots((CHEF, TRADER), "second_model", "llm", ("trader",))
-
-    assert moved.model_credential == "second_model"
-    assert served_bots((CHEF, moved), "first_model", "llm") == ()
-
-
-def test_unticking_a_bot_leaves_it_on_the_default_model() -> None:
-    (untied,) = retied_bots((CHEF, TRADER), "first_model", "llm", ())
-
-    assert untied.model_credential is None
+def test_an_llm_credential_serves_the_bots_that_answer_on_it() -> None:
+    assert served_bots((CHEF, TRADER), "first_model", "llm") == (TRADER,)
+    assert served_bots((CHEF, TRADER), "github", "llm") == ()
 
 
 def test_a_chat_token_serves_no_bot() -> None:

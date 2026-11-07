@@ -1,53 +1,34 @@
-"""The built-in and saved MCP servers, started once their keys are found, and their tools."""
+"""The saved MCP servers, started once their keys are found, and their tools."""
 
 from __future__ import annotations
 
 import asyncio
-import contextlib
 from collections.abc import Mapping
 
 from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
 
-from harness.config.sections import McpServer
 from harness.mcp._connection import Connection
 from harness.mcp.client import McpClientFactory
 from harness.mcp.clients.stdio import open_stdio_client
-from harness.mcp.keys import CapabilityKeys, missing_keys, with_saved_keys
-from harness.mcp.models.errors import (
-    McpNotConnectedError,
-    McpServerBuiltIn,
-    McpServerNotFound,
-    McpServerTaken,
-    RequiredServerError,
-)
+from harness.mcp.keys import missing_keys
+from harness.mcp.models.errors import McpNotConnectedError, McpServerNotFound, McpServerTaken
+from harness.mcp.models.server import McpServer
 from harness.mcp.models.status import ServerStatus
-from harness.mcp.required import required_refusal
 from harness.mcp.tool import can_write, namespaced
 from harness.tools import Tool
 
-REQUIRED_CONNECT_TIMEOUT_SECONDS = 120.0
-
 
 class McpService:
-    """The live connections to the built-in and saved servers, those waiting, and their tools."""
+    """The live connections to the saved servers, those waiting, and their tools."""
 
     def __init__(
         self,
         servers: Mapping[str, McpServer],
         *,
-        saved: Mapping[str, McpServer],
-        keys: CapabilityKeys,
         client_factory: McpClientFactory = open_stdio_client,
     ) -> None:
-        clashes = sorted(set(servers) & set(saved))
-        if clashes:
-            raise McpServerTaken(
-                f"{', '.join(clashes)} is both built in and saved; remove the saved one"
-            )
-        self._built_in_ids = frozenset(servers)
-        self._servers: Mapping[str, McpServer] = {**servers, **saved}
-        self._keys = keys
+        self._servers: Mapping[str, McpServer] = dict(servers)
         self._factory = client_factory
         self._connections: dict[str, Connection] = {}
         self._changing = asyncio.Lock()
@@ -74,17 +55,9 @@ class McpService:
             if can_write(tool) and (tool_name := namespaced(connection.id, tool.name)) in offered
         )
 
-    def needs(self, server_id: str) -> tuple[str, ...]:
-        """The env keys `server_id` waits for until they are found. `KeyError` if not configured."""
-        return self._servers[server_id].needs
-
     def server(self, server_id: str) -> McpServer:
-        """How `server_id` is run, without its saved keys. `KeyError` if not configured."""
+        """How `server_id` is run, its keys in its env. `KeyError` if not configured."""
         return self._servers[server_id]
-
-    def is_built_in(self, server_id: str) -> bool:
-        """Whether `server_id` comes from config rather than the person's saved servers."""
-        return server_id in self._built_in_ids
 
     def published(self, server_id: str) -> tuple[McpTool, ...]:
         """One server's tools as it published them. `KeyError` if not configured."""
@@ -107,17 +80,13 @@ class McpService:
         return self._connections[server_id]
 
     async def start(self) -> None:
-        """Connect every server whose keys are found; wait only for the required, refuse without."""
+        """Start every server whose keys are found, waiting for none of them to connect."""
         async with self._changing:
             for server_id in self._servers:
                 await self._open(server_id)
-        refusal = await self._required_refusal()
-        if refusal is not None:
-            await self.aclose()
-            raise RequiredServerError(refusal)
 
     async def restart(self, server_id: str) -> None:
-        """Close `server_id`, then open it again with the keys found now. `KeyError` if unknown."""
+        """Close `server_id`, then open it again. `KeyError` if unknown."""
         if server_id not in self._servers:
             raise KeyError(server_id)
         async with self._changing:
@@ -135,23 +104,21 @@ class McpService:
             await self._open(server_id)
 
     async def change(self, server_id: str, server: McpServer) -> None:
-        """Close the saved server `server_id`, then start it again as `server`."""
+        """Close the server `server_id`, then start it again as `server`."""
         async with self._changing:
-            self._refuse_unless_saved(server_id)
+            self._refuse_unless_served(server_id)
             await self._close(server_id)
             self._servers = {**self._servers, server_id: server}
             await self._open(server_id)
 
     async def remove(self, server_id: str) -> None:
-        """Close the saved server `server_id` and forget it, its tools with it."""
+        """Close the server `server_id` and forget it, its tools with it."""
         async with self._changing:
-            self._refuse_unless_saved(server_id)
+            self._refuse_unless_served(server_id)
             await self._close(server_id)
             self._servers = {key: kept for key, kept in self._servers.items() if key != server_id}
 
-    def _refuse_unless_saved(self, server_id: str) -> None:
-        if server_id in self._built_in_ids:
-            raise McpServerBuiltIn(f"{server_id} is built in; it cannot be changed here")
+    def _refuse_unless_served(self, server_id: str) -> None:
         if server_id not in self._servers:
             raise McpServerNotFound(f"no MCP server {server_id!r}")
 
@@ -161,9 +128,8 @@ class McpService:
             await running.aclose()
 
     async def _open(self, server_id: str) -> None:
-        """Start `server_id` with its config env and saved keys, or leave it waiting for a key."""
-        saved = await asyncio.to_thread(self._keys.capability_keys, server_id)
-        server = with_saved_keys(self._servers[server_id], saved)
+        """Start `server_id` with its env, or leave it waiting for a key that env lacks."""
+        server = self._servers[server_id]
         connection = Connection(id=server_id, server=server, factory=self._factory)
         self._connections[server_id] = connection
         missing = missing_keys(server)
@@ -171,17 +137,6 @@ class McpService:
             connection.wait_for(missing)
         else:
             connection.start()
-
-    async def _required_refusal(self) -> str | None:
-        """Wait for every required server to connect or fail, then say why startup must stop."""
-        required = [c for c in self._connections.values() if c.server.required]
-        with contextlib.suppress(TimeoutError):
-            async with asyncio.timeout(REQUIRED_CONNECT_TIMEOUT_SECONDS):
-                for connection in required:
-                    await connection.settled.wait()
-        return required_refusal(
-            [connection.snapshot() for connection in required], REQUIRED_CONNECT_TIMEOUT_SECONDS
-        )
 
     async def aclose(self) -> None:
         async with self._changing:

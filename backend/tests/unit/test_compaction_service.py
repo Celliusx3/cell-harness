@@ -29,6 +29,7 @@ from harness.runtime.compaction import (
 )
 from harness.runtime.compaction.history import PRUNE_KEEP
 from harness.runtime.compaction.service import COMPACT_AT
+from harness.runtime.models import NoModel
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.session.derive import derive_messages
@@ -41,7 +42,7 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from harness.skills import SKILL
-from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.fakes import ScriptedClient, completed, model_at
 from tests.unit.helpers import new_session, runtime_over
 
 SKILL_BODY = '<skill name="find-place">\nWalk the reel to a place.\n</skill>'
@@ -87,11 +88,12 @@ def kinds(session) -> list[str]:
 
 def test_should_compact_needs_a_window_and_a_measurement() -> None:
     session = new_session()
-    assert not should_compact(runtime_with(ScriptedClient([])), session)
+    assert not should_compact(model_at(12_000), session)
     tool_turn(session, 0, "c0", "r")
-    assert not should_compact(runtime_with(ScriptedClient([]), context_tokens=None), session)
-    assert not should_compact(runtime_with(ScriptedClient([]), context_tokens=20_000), session)
-    assert should_compact(runtime_with(ScriptedClient([]), context_tokens=12_000), session)
+    assert not should_compact(model_at(None), session)
+    assert not should_compact(NoModel(), session)
+    assert not should_compact(model_at(20_000), session)
+    assert should_compact(model_at(12_000), session)
     assert COMPACT_AT == 0.8
 
 

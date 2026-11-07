@@ -41,6 +41,7 @@ async def test_missing_required_fields_say_what_was_sent_and_what_is_expected() 
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Failure)
@@ -56,6 +57,7 @@ async def test_arguments_wrapped_in_args_are_a_missing_field_not_a_server_error(
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Failure)
@@ -70,6 +72,7 @@ async def test_extra_keys_with_every_required_field_pass_through() -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(outcome, Ok)
@@ -87,7 +90,11 @@ async def test_a_schema_without_required_fields_is_not_checked() -> None:
     )
 
     outcome = await toolset(loose).execute(
-        call("loose", '{"other": 1}'), progress=no_progress, origin=ORIGIN, session=new_session()
+        call("loose", '{"other": 1}'),
+        progress=no_progress,
+        origin=ORIGIN,
+        session=new_session(),
+        sees_images=False,
     )
 
     assert not (isinstance(outcome, Failure) and outcome.code == INVALID_ARGUMENTS)

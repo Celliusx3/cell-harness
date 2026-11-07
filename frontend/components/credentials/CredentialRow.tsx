@@ -1,4 +1,3 @@
-import { capabilityKeyLabel } from "@/lib/capabilityKeys";
 import type { Credential, CredentialDetails } from "@/lib/credentials";
 
 const ROW_BUTTON =
@@ -16,7 +15,6 @@ export function CredentialRow({ credential, onEdit, onRemove }: CredentialRowPro
     <li className="px-3 py-2 text-sm">
       <div className="flex items-baseline gap-2">
         <span className="min-w-0 break-all font-mono text-[13px]">{credential.name}</span>
-        {credential.is_default_model && <span className="shrink-0 text-xs font-medium text-ink">Default model</span>}
         {purpose !== null && <span className="min-w-0 break-words text-xs text-ink-soft">{purpose}</span>}
         <span className="ml-auto shrink-0 text-xs text-ink-soft">{maskLabel(credential.last_four)}</span>
       </div>
@@ -42,12 +40,10 @@ function purposeLabel(details: CredentialDetails): string | null {
     case "custom":
       return new URL(details.destination.origin).host;
     case "llm":
-      return `${details.model} at ${new URL(details.base_url).host}`;
+      return `${details.model} at ${new URL(details.base_url).host}${details.vision ? ", sees images" : ""}`;
     case "telegram":
     case "discord":
       return null;
-    case "capability":
-      return capabilityKeyLabel(details);
     default: {
       const _exhaustive: never = details;
       return _exhaustive;

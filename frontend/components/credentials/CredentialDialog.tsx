@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/api";
 import { addCredential, changeCredential, type Credential } from "@/lib/credentials";
-import type { CapabilityKey } from "@/lib/capabilityKeys";
 import type { Bot } from "@/lib/types";
 
 interface CredentialDialogProps {
@@ -29,7 +28,6 @@ interface CredentialDialogProps {
   credential: Credential | null;
   kinds: CredentialKind[];
   bots: Bot[];
-  capabilityKeys: CapabilityKey[];
   onClose: () => void;
   onSaved: () => void;
 }
@@ -40,7 +38,6 @@ export function CredentialDialog({
   credential,
   kinds,
   bots,
-  capabilityKeys,
   onClose,
   onSaved,
 }: CredentialDialogProps) {
@@ -78,7 +75,6 @@ export function CredentialDialog({
             kinds={kinds}
             isEditing={credential !== null}
             bots={bots}
-            capabilityKeys={capabilityKeys}
             onChange={setForm}
           />
           {error && (

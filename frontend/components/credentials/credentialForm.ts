@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ChatPlatform, Credential, CredentialChange, CredentialDetails, CredentialDraft } from "@/lib/credentials";
 import type { Bot } from "@/lib/types";
 
-export const CredentialKind = z.enum(["custom", "llm", "telegram", "discord", "capability"]);
+export const CredentialKind = z.enum(["custom", "llm", "telegram", "discord"]);
 export type CredentialKind = z.infer<typeof CredentialKind>;
 
 export const KeyAuth = z.enum(["bearer", "header"]);
@@ -18,8 +18,7 @@ export interface CredentialForm {
   headerName: string;
   baseUrl: string;
   model: string;
-  server: string;
-  variable: string;
+  vision: boolean;
   value: string;
   botIds: string[];
 }
@@ -32,8 +31,7 @@ const EMPTY_FORM: CredentialForm = {
   headerName: "",
   baseUrl: "",
   model: "",
-  server: "",
-  variable: "",
+  vision: false,
   value: "",
   botIds: [],
 };
@@ -42,27 +40,26 @@ export function isChatPlatform(kind: CredentialKind): kind is ChatPlatform {
   return kind === "telegram" || kind === "discord";
 }
 
-/** Whether a credential of `kind` serves something other than bots: a chat platform or a capability. */
+/** Whether a credential of `kind` is ticked for no bots: a chat platform, or a model, which is picked in Edit bot. */
 export function servesNoBots(kind: CredentialKind): boolean {
-  return isChatPlatform(kind) || kind === "capability";
+  return isChatPlatform(kind) || kind === "llm";
 }
 
-/** The types a new credential may take: every one, but a chat platform already saved, or a capability key with none open. */
-export function addableKinds(credentials: Credential[], hasOpenCapabilityKey: boolean): CredentialKind[] {
+/** The types a new credential may take: every one, but a chat platform already saved. */
+export function addableKinds(credentials: Credential[]): CredentialKind[] {
   const saved = new Set(credentials.map((credential) => credential.details.kind));
-  return CredentialKind.options.filter((kind) =>
-    kind === "capability" ? hasOpenCapabilityKey : !isChatPlatform(kind) || !saved.has(kind),
-  );
+  return CredentialKind.options.filter((kind) => !isChatPlatform(kind) || !saved.has(kind));
 }
 
 /** The fields for a new credential, or `credential`'s with its key left empty. */
 export function initialForm(credential: Credential | null): CredentialForm {
   if (credential === null) return EMPTY_FORM;
-  const shared = { ...EMPTY_FORM, name: credential.name, botIds: credential.bots.map((bot) => bot.id) };
+  const botIds = servesNoBots(credential.details.kind) ? [] : credential.bots.map((bot) => bot.id);
+  const shared = { ...EMPTY_FORM, name: credential.name, botIds };
   const details = credential.details;
   switch (details.kind) {
     case "llm":
-      return { ...shared, kind: "llm", baseUrl: details.base_url, model: details.model };
+      return { ...shared, kind: "llm", baseUrl: details.base_url, model: details.model, vision: details.vision };
     case "custom": {
       const { origin, auth, header_name } = details.destination;
       return { ...shared, kind: "custom", origin, auth, headerName: header_name ?? "" };
@@ -70,8 +67,6 @@ export function initialForm(credential: Credential | null): CredentialForm {
     case "telegram":
     case "discord":
       return { ...shared, kind: details.kind };
-    case "capability":
-      return { ...shared, kind: "capability", server: details.server, variable: details.variable };
   }
 }
 
@@ -101,7 +96,7 @@ export function tickedIds(bots: Bot[], botIds: string[], botId: string, isTicked
 function formDetails(form: CredentialForm): CredentialDetails {
   switch (form.kind) {
     case "llm":
-      return { kind: "llm", base_url: form.baseUrl, model: form.model };
+      return { kind: "llm", base_url: form.baseUrl, model: form.model, vision: form.vision };
     case "custom": {
       const headerName = form.auth === "header" ? form.headerName : null;
       return { kind: "custom", destination: { origin: form.origin, auth: form.auth, header_name: headerName } };
@@ -109,7 +104,5 @@ function formDetails(form: CredentialForm): CredentialDetails {
     case "telegram":
     case "discord":
       return { kind: form.kind };
-    case "capability":
-      return { kind: "capability", server: form.server, variable: form.variable };
   }
 }

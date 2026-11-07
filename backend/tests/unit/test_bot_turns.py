@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from harness.bots import ASSISTANT_ID, BotDraft, BotService
+from harness.bots import ASSISTANT_ID, BotEdit, BotService
 from harness.llm import (
     ApplicationMessage,
     AssistantMessage,
@@ -49,7 +49,9 @@ def test_the_last_instructions_logged_prompt_the_turn_even_behind_a_compaction()
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="q")))
     session.append(CompactionEnd(turn=0, message=ApplicationMessage(content="SUMMARY")))
 
-    messages = runtime_over(ScriptedClient([]), guidance="GUIDE").request_messages(session)
+    messages = runtime_over(ScriptedClient([]), guidance="GUIDE").request_messages(
+        session, sees_images=False
+    )
 
     assert messages == [SystemMessage(content="Cite. GUIDE"), UserMessage(content="SUMMARY")]
 
@@ -58,7 +60,7 @@ def test_an_agent_with_no_prompt_of_its_own_sends_the_instructions_alone() -> No
     session = new_session()
     session.append(BotInstructionsEvent(name="Researcher", instructions="Cite."))
 
-    system = runtime_over(ScriptedClient([])).request_messages(session)[0]
+    system = runtime_over(ScriptedClient([])).request_messages(session, sees_images=False)[0]
 
     assert system == SystemMessage(content="Cite.")
 
@@ -73,7 +75,7 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     runs = RunService(service, runtime, bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
-    bots.update(ASSISTANT_ID, BotDraft(name="Assistant", instructions="Be brief."))
+    bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
 
     await asyncio.wait_for(runs.compact(session)._outer, timeout=5)
 
@@ -88,7 +90,7 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
     runs = RunService(service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
-    bots.update(ASSISTANT_ID, BotDraft(name="Assistant", instructions="Be brief."))
+    bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
 
     await asyncio.wait_for(runs.resume(session, "c1", Ok(content="here"))._outer, timeout=5)
 
@@ -154,7 +156,7 @@ RESEARCHER_TURN = (
 def test_another_bot_s_turn_is_one_tagged_message_of_what_it_said() -> None:
     session = log_of(*RESEARCHER_TURN, instructions("w", "Writer"), TurnStart(turn=1, bot_id="w"))
 
-    messages = runtime_over(ScriptedClient([])).request_messages(session)
+    messages = runtime_over(ScriptedClient([])).request_messages(session, sees_images=False)
 
     assert messages[1:] == [
         UserMessage(content="what now?"),
@@ -173,7 +175,9 @@ def test_a_reply_of_no_response_or_nothing_is_not_shown_to_the_others() -> None:
         TurnStart(turn=1, bot_id="w"),
     )
 
-    assert runtime_over(ScriptedClient([])).request_messages(session) == [UserMessage(content="hi")]
+    assert runtime_over(ScriptedClient([])).request_messages(session, sees_images=False) == [
+        UserMessage(content="hi")
+    ]
 
 
 def test_a_turn_cut_by_a_compaction_is_still_told_apart_by_its_speaker() -> None:
@@ -187,7 +191,7 @@ def test_a_turn_cut_by_a_compaction_is_still_told_apart_by_its_speaker() -> None
         TurnStart(turn=1, bot_id="w"),
     )
 
-    assert runtime_over(ScriptedClient([])).request_messages(session) == [
+    assert runtime_over(ScriptedClient([])).request_messages(session, sees_images=False) == [
         UserMessage(content="SUMMARY"),
         UserMessage(content='<speaker name="Researcher" />\nThree trends.'),
     ]
@@ -200,7 +204,9 @@ def test_a_bot_is_told_its_group_and_the_others_in_it_by_name() -> None:
         TurnStart(turn=0, bot_id="w"),
     )
 
-    system = runtime_over(ScriptedClient([]), guidance="GUIDE").request_messages(session)[0]
+    system = runtime_over(ScriptedClient([]), guidance="GUIDE").request_messages(
+        session, sees_images=False
+    )[0]
 
     note = (
         'You are Writer, one of the bots in the group chat "Launch", talking with the person '
@@ -220,7 +226,7 @@ def test_a_group_of_two_names_the_other_alone() -> None:
         TurnStart(turn=0, bot_id="r"),
     )
 
-    system = runtime_over(ScriptedClient([])).request_messages(session)[0]
+    system = runtime_over(ScriptedClient([])).request_messages(session, sees_images=False)[0]
 
     assert "talking with the person and Writer. " in str(system.content)
 

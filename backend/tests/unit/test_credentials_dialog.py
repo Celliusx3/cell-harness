@@ -12,7 +12,7 @@ from harness.bots import BotDraft, BotService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
-from tests.webapp import SHIPPED_MODEL, no_platforms, web_mcp
+from tests.webapp import MODEL_CREDENTIAL, no_platforms, put_on_model
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
@@ -21,7 +21,12 @@ GITHUB_DETAILS = {
     "kind": "custom",
     "destination": {"origin": "https://api.github.com", "auth": "bearer"},
 }
-MODEL_DETAILS = {"kind": "llm", "base_url": "https://api.example.com/v1", "model": "big"}
+MODEL_DETAILS = {
+    "kind": "llm",
+    "base_url": "https://api.example.com/v1",
+    "model": "big",
+    "vision": False,
+}
 
 
 @pytest.fixture
@@ -40,7 +45,7 @@ def bots(tmp_path: Path) -> BotService:
 
 def _client(secrets: SecretService, bots: BotService, peer=THIS_MAC) -> httpx.AsyncClient:
     app = FastAPI()
-    app.include_router(build_router(secrets, bots, no_platforms(secrets), web_mcp(), SHIPPED_MODEL))
+    app.include_router(build_router(secrets, bots, no_platforms(secrets)))
     transport = httpx.ASGITransport(app=app, client=peer)
     return httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1:4886")
 
@@ -59,7 +64,7 @@ async def _listed(secrets, bots) -> dict:
 
 
 async def test_a_custom_key_is_added_for_the_bots_ticked(secrets, bots) -> None:
-    chef = await bots.create(BotDraft(name="Chef", instructions="Cook."))
+    chef = await bots.create(BotDraft(name="Chef", instructions="Cook.", model=MODEL_CREDENTIAL))
 
     response = await _send(
         secrets,
@@ -79,9 +84,10 @@ async def test_a_custom_key_is_added_for_the_bots_ticked(secrets, bots) -> None:
     assert (await _listed(secrets, bots))["github"]["bots"] == [{"id": chef.id, "name": "Chef"}]
 
 
-async def test_an_llm_credential_serves_the_bots_ticked(secrets, bots) -> None:
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
-
+async def test_an_llm_credential_lists_the_bots_that_answer_on_it(secrets, bots) -> None:
+    trader = await bots.create(
+        BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
+    )
     await _send(
         secrets,
         bots,
@@ -91,37 +97,15 @@ async def test_an_llm_credential_serves_the_bots_ticked(secrets, bots) -> None:
             "name": "trader_model",
             "details": MODEL_DETAILS,
             "value": "sk-model-key-5678",
-            "bot_ids": [trader.id],
+            "bot_ids": [],
         },
     )
 
-    assert bots.active_bot(trader.id).model_credential == "trader_model"
+    put_on_model(bots, trader.id, "trader_model")
+
     assert (await _listed(secrets, bots))["trader_model"]["bots"] == [
         {"id": trader.id, "name": "Trader"}
     ]
-
-
-async def test_ticking_a_bot_in_another_llm_credential_moves_it(secrets, bots) -> None:
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
-    for name in ("first_model", "second_model"):
-        await _send(
-            secrets,
-            bots,
-            "POST",
-            "/api/credentials",
-            {
-                "name": name,
-                "details": MODEL_DETAILS,
-                "value": "sk-model-key-5678",
-                "bot_ids": [trader.id],
-            },
-        )
-
-    listed = await _listed(secrets, bots)
-
-    assert bots.active_bot(trader.id).model_credential == "second_model"
-    assert listed["first_model"]["bots"] == []
-    assert listed["second_model"]["bots"] == [{"id": trader.id, "name": "Trader"}]
 
 
 async def test_an_edit_with_no_key_keeps_the_saved_key(secrets, bots) -> None:
@@ -157,7 +141,9 @@ async def test_an_edit_with_no_key_keeps_the_saved_key(secrets, bots) -> None:
 
 
 async def test_removing_a_credential_unties_it_from_its_bots(secrets, bots) -> None:
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
+    trader = await bots.create(
+        BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
+    )
     await _send(
         secrets,
         bots,
@@ -167,9 +153,10 @@ async def test_removing_a_credential_unties_it_from_its_bots(secrets, bots) -> N
             "name": "trader_model",
             "details": MODEL_DETAILS,
             "value": "sk-model-key-5678",
-            "bot_ids": [trader.id],
+            "bot_ids": [],
         },
     )
+    put_on_model(bots, trader.id, "trader_model")
     await _send(
         secrets,
         bots,

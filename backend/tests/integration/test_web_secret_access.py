@@ -15,11 +15,17 @@ from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, durable_service, no_skills, run_service
-from tests.webapp import bots_in, secrets_in, web_app
+from tests.webapp import MODEL_CREDENTIAL, bots_in, secrets_in, web_app
 
 KEY = "tok-9Zx=7Lm/q+Abc"
 ASK = json.dumps(
-    {"name": "github", "origin": "https://api.github.com", "auth": "bearer", "label": "GitHub"}
+    {
+        "kind": "custom",
+        "name": "github",
+        "origin": "https://api.github.com",
+        "auth": "bearer",
+        "label": "GitHub",
+    }
 )
 FETCH = json.dumps(
     {"name": "github", "url": "https://api.github.com/notifications", "method": "GET"}
@@ -100,7 +106,9 @@ async def test_a_bot_uses_a_saved_key_only_once_the_person_allows_it(tmp_path: P
         ]
         assert KEY not in json.dumps(listed)
 
-        notion = await bots.create(BotDraft(name="Notion", instructions="You read Notion."))
+        notion = await bots.create(
+            BotDraft(name="Notion", instructions="You read Notion.", model=MODEL_CREDENTIAL)
+        )
         chat = bots.chat_of(notion.id)
         await _post(client, runs, chat, "/messages", {"prompt": "check my GitHub"})
         await _post(client, runs, chat, "/calls/call_refused/output", APPROVE_ONCE)
@@ -141,8 +149,12 @@ async def _launch(tmp_path: Path):
     )
     runs = run_service(service, model, *tools.tools(), bots=bots)
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, bots=bots)
-    researcher = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
-    writer = await bots.create(BotDraft(name="Writer", instructions="Post."))
+    researcher = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
+    writer = await bots.create(
+        BotDraft(name="Writer", instructions="Post.", model=MODEL_CREDENTIAL)
+    )
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )

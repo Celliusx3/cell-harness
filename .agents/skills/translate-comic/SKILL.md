@@ -1,7 +1,7 @@
 ---
 name: translate-comic
 description: Translate comic pages into English and write it into the original bubbles. Use when the person attaches comic pages or a chapter and asks for it in English.
-compatibility: Needs photocraft-cli installed on the Mac that runs the app; the bots' computer starts it for this skill.
+compatibility: Needs the computer MCP server added, and photocraft-cli installed on the Mac that runs the app; the computer starts it for this skill.
 metadata:
   host-service: photocraft-cli serve --port {port} --control-token-file {token_file} --automation-read-root {files} --automation-write-root {files}
   host-service-env: PHOTOCRAFT

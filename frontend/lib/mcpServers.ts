@@ -3,29 +3,35 @@ import { z } from "zod";
 import { ApiError, detailOf, request } from "./api";
 import type { ServerStatus } from "./types";
 
+/** A key a server needs, by name, and whether its value is saved; the value is never sent back. */
+export interface KeyState {
+  name: string;
+  is_set: boolean;
+}
+
 /** `GET /api/mcp/servers`: one server, how it runs, its plain settings, the keys it needs, and its state. */
 export interface McpServer {
   id: string;
   command: string;
   args: string[];
   env: Record<string, string>;
-  needs: string[];
-  built_in: boolean;
+  keys: KeyState[];
   status: ServerStatus;
   error: string;
 }
 
-/** `GET /api/mcp/servers`: the built-in servers first, then the person's own as added. */
+/** `GET /api/mcp/servers`: every server, in the order each was added. */
 export interface McpServerList {
   servers: McpServer[];
 }
 
-/** `PUT /api/mcp/servers/{id}`: how to run a server, its plain settings, and the names of the keys it needs. */
+/** `PUT /api/mcp/servers/{id}`: how to run a server, its plain settings, the keys it needs, and each key typed; one left out keeps its saved value. */
 export interface McpServerChange {
   command: string;
   args: string[];
   env: Record<string, string>;
   needs: string[];
+  keys: Record<string, string>;
 }
 
 /** `POST /api/mcp/servers`: a change under the name its tools are called by. */
@@ -64,7 +70,7 @@ export const addMcpServer = (directUrl: string, draft: McpServerDraft) =>
 export const changeMcpServer = (directUrl: string, id: string, change: McpServerChange) =>
   sendToHarness(directUrl, `/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(change) });
 
-/** The server stops and its tools leave the bots; its capability keys stay on Credentials. */
+/** The server stops and its tools leave the bots; its keys go with it. */
 export const removeMcpServer = (directUrl: string, id: string) =>
   sendToHarness(directUrl, `/${encodeURIComponent(id)}`, { method: "DELETE" });
 
@@ -84,7 +90,7 @@ export function stateLabel(server: McpServer): string {
     case "connecting":
       return "Starting";
     case "waiting":
-      return server.needs.length === 0 ? "Waiting for a key" : `Waiting for a key: ${server.needs.join(", ")}`;
+      return missingKeys(server).length === 0 ? "Waiting for a key" : `Waiting for a key: ${missingKeys(server).join(", ")}`;
     case "failed":
       return server.error === "" ? "Failed" : `Failed: ${server.error}`;
     case "disconnected":
@@ -94,6 +100,11 @@ export function stateLabel(server: McpServer): string {
       return _exhaustive;
     }
   }
+}
+
+/** The names of the keys `server` needs that have no value saved, in the order it lists them. */
+export function missingKeys(server: McpServer): string[] {
+  return server.keys.filter((key) => !key.is_set).map((key) => key.name);
 }
 
 /** "npx -y exa-mcp-server": the command and its arguments as one line. */

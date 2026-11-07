@@ -15,7 +15,7 @@ from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.repository import ChatRepository, ChatState
 from harness.config.settings import SkillSettings
-from harness.images import ImageService
+from harness.images import DiskImageRepository, ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.service import RunService
@@ -89,7 +89,7 @@ def toolset_for(
     """A tool service and a toolset over `tools`, offering all of them."""
     tool_service = ToolService(tools, approvals=approvals or no_approvals(), providers=providers)
     names = [*(tool.name for tool in tools), *offer]
-    return Toolset(tool_service, default_tools=names)
+    return Toolset(tool_service, default_tools=names, sight_tools=frozenset())
 
 
 def runtime_over(
@@ -102,15 +102,14 @@ def runtime_over(
     approvals: ApprovalService | None = None,
     images: ImageService | None = None,
 ) -> Runtime:
-    """A runtime over `tools`, with no toolset at all when there are none."""
+    """A runtime over `tools`, with no toolset at all when there are none; no `images`, no sight."""
     return Runtime(
-        models=OneModel(client),
-        images=images,
+        models=OneModel(client, vision=images is not None, context_tokens=context_tokens),
+        images=images or no_images(),
         tools=toolset_for(*tools, approvals=approvals) if tools else None,
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
-        context_tokens=context_tokens,
     )
 
 
@@ -177,6 +176,11 @@ def run_service(
         ),
         bots or no_bots(service),
     )
+
+
+def no_images() -> ImageService:
+    """Images over a folder that cannot exist, for a model that never sees and so keeps none."""
+    return ImageService(DiskImageRepository(Path("/nonexistent/cell-harness-images")))
 
 
 def no_bots(service: SessionService) -> BotService:

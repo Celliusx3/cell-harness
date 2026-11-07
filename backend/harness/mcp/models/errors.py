@@ -15,17 +15,9 @@ class McpNotConnectedError(RuntimeError):
     """There is no live session to carry this command."""
 
 
-class RequiredServerError(RuntimeError):
-    """A server the config marks `required` did not connect, so the app must not serve."""
-
-
 class McpServerTaken(ValueError):
-    """The id is already a built-in server's, or another saved server's."""
+    """The id is already another saved server's."""
 
 
 class McpServerNotFound(LookupError):
     """No server has this id."""
-
-
-class McpServerBuiltIn(ValueError):
-    """The server comes from config, so the screen cannot change or remove it."""

@@ -13,7 +13,6 @@ from harness.files import FileTooLarge, UnsafeFileName
 from harness.mcp import (
     McpConnectionError,
     McpNotConnectedError,
-    McpServerBuiltIn,
     McpServerNotFound,
     McpServerTaken,
     McpTimeoutError,
@@ -40,7 +39,6 @@ PINNED = [
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),
     pytest.param(McpNotConnectedError("stub is not connected"), 503, id="McpNotConnectedError"),
-    pytest.param(McpServerBuiltIn("computer is built in"), 409, id="McpServerBuiltIn"),
     pytest.param(McpServerNotFound("no MCP server 'exa'"), 404, id="McpServerNotFound"),
     pytest.param(McpServerTaken("a server is already named 'exa'"), 409, id="McpServerTaken"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),

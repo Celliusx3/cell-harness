@@ -14,10 +14,15 @@ from harness.prompts import ATTACHED_FILE
 from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, completed
+from tests.webapp import MODEL_CREDENTIAL
 
 DOT = base64.b64decode(DOT_PNG)
 DOT_SHA256 = hashlib.sha256(DOT).hexdigest()
-RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every claim."}
+RESEARCHER = {
+    "name": "Researcher",
+    "instructions": "Find sources and cite every claim.",
+    "model": MODEL_CREDENTIAL,
+}
 
 
 def chat(chat_id: str) -> str:

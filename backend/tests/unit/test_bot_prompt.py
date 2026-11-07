@@ -46,7 +46,7 @@ def test_assistant_s_system_prompt_is_byte_for_byte_the_one_before_bots() -> Non
     session = Session(SessionHeader(id="s", created_at=datetime(2026, 1, 1, tzinfo=UTC)))
     session.append(BotInstructionsEvent(name="Assistant", instructions=ASSISTANT_INSTRUCTIONS))
 
-    system = runtime.request_messages(session)[0]
+    system = runtime.request_messages(session, sees_images=False)[0]
 
     assert system.content == PROMPT_BEFORE_BOTS
 
@@ -55,7 +55,7 @@ def test_a_session_with_no_instructions_logged_keeps_the_agent_s_own_prompt() ->
     runtime = runtime_over(ScriptedClient(completed("x")), guidance="only this")
     session = Session(SessionHeader(id="s", created_at=datetime(2026, 1, 1, tzinfo=UTC)))
 
-    system = runtime.request_messages(session)[0]
+    system = runtime.request_messages(session, sees_images=False)[0]
 
     assert system.content == "only this"
 
@@ -106,8 +106,8 @@ def test_a_bot_s_own_chat_sends_the_same_request_once_its_events_carry_its_id() 
     with_ids = _bot_s_own_chat("r1")
 
     assert (
-        runtime.request_messages(with_ids)
-        == runtime.request_messages(before_groups)
+        runtime.request_messages(with_ids, sees_images=False)
+        == runtime.request_messages(before_groups, sees_images=False)
         == [
             SystemMessage(content="Cite. GUIDE"),
             UserMessage(content="find a source"),

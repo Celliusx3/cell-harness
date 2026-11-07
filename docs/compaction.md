@@ -65,10 +65,12 @@ threshold = floor(context_tokens × 0.8)          # COMPACT_AT; dsh's ratio
 used      = last assistant/message.usage.input_tokens + output_tokens
 ```
 
-`context_tokens` is resolved once at startup (`create_web_app`):
+`context_tokens` is each LLM credential's own, carried on the bot's
+`ModelChoice` and resolved when `CredentialModels` first makes that choice — once
+per saved version of the credential (`web/runtime.py` `context_window`):
 `compaction.context_tokens` from config if set, else `context_length` read from
-the endpoint's `GET /v1/models`, else unknown → proactive compaction off, one
-warning, the reactive net alone. It is a cap on cost and latency, not a claim
+that credential's endpoint's `GET /v1/models`, else unknown → proactive
+compaction off for that model, one warning, the reactive net alone. It is a cap on cost and latency, not a claim
 about the model — the net covers a value set too high.
 
 When due, before the request is built: prune if anything is prunable (no model

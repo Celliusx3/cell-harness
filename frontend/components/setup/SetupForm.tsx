@@ -3,20 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { Field, INPUT_CLASSES } from "@/components/credentials/CredentialFields";
-import { ApiError } from "@/lib/api";
-import { addCredential, DEFAULT_MODEL_CREDENTIAL, type ModelDetails } from "@/lib/credentials";
+import { Field, INPUT_CLASSES, VisionCheck } from "@/components/credentials/CredentialFields";
+import { ApiError, ASSISTANT_ID, listBots, updateBot } from "@/lib/api";
+import { addCredential, type ModelDetails } from "@/lib/credentials";
+
+const SETUP_MODEL_CREDENTIAL = "first_model";
+const NO_MODEL_YET: ModelDetails = { kind: "llm", base_url: "", model: "", vision: false };
 
 interface SetupFormProps {
-  shippedModel: ModelDetails;
   directUrl: string;
 }
 
-/** The API key saved as the Default model, at the endpoint and model shown, which start as the shipped ones. */
-export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
+/** The API key saved as Assistant's model, at the endpoint and model the person types. */
+export function SetupForm({ directUrl }: SetupFormProps) {
   const router = useRouter();
   const [apiKey, setApiKey] = useState("");
-  const [details, setDetails] = useState<ModelDetails>(shippedModel);
+  const [details, setDetails] = useState<ModelDetails>(NO_MODEL_YET);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +27,8 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
     setIsStarting(true);
     setError(null);
     try {
-      await addCredential(directUrl, { name: DEFAULT_MODEL_CREDENTIAL, details, value: apiKey, bot_ids: [] });
+      await addCredential(directUrl, { name: SETUP_MODEL_CREDENTIAL, details, value: apiKey, bot_ids: [] });
+      await putAssistantOnModel(SETUP_MODEL_CREDENTIAL);
       router.replace("/");
     } catch (err: unknown) {
       setError(err instanceof ApiError ? err.message : "Could not reach the harness to save.");
@@ -72,6 +75,13 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
   );
 }
 
+/** Save Assistant as it is, on the LLM credential `name`. */
+async function putAssistantOnModel(name: string) {
+  const assistant = (await listBots()).find((bot) => bot.id === ASSISTANT_ID);
+  if (assistant === undefined) throw new ApiError(404, "The harness lists no Assistant.");
+  await updateBot(ASSISTANT_ID, { name: assistant.name, instructions: assistant.instructions, model: name });
+}
+
 interface ProviderFieldsProps {
   details: ModelDetails;
   onChange: (details: ModelDetails) => void;
@@ -85,6 +95,7 @@ function ProviderFields({ details, onChange }: ProviderFieldsProps) {
           id="setup-endpoint"
           value={details.base_url}
           onChange={(event) => onChange({ ...details, base_url: event.target.value })}
+          placeholder="https://api.example.com/v1"
           inputMode="url"
           autoComplete="off"
           spellCheck={false}
@@ -101,6 +112,11 @@ function ProviderFields({ details, onChange }: ProviderFieldsProps) {
           className={`font-mono ${INPUT_CLASSES}`}
         />
       </Field>
+      <VisionCheck
+        id="setup-vision"
+        isChecked={details.vision}
+        onChange={(vision) => onChange({ ...details, vision })}
+      />
     </>
   );
 }

@@ -19,8 +19,8 @@ from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import OneModel, PerBotClient
-from tests.unit.helpers import durable_service, no_approvals, no_skills, run_service
-from tests.webapp import bots_in, images_in, web_app
+from tests.unit.helpers import durable_service, no_approvals, no_images, no_skills, run_service
+from tests.webapp import a_model_saved_in, bots_in, images_in, web_app
 
 ASSISTANT_START = "ASSISTANT"
 
@@ -38,7 +38,7 @@ def build(tmp_path, client, *tools, vision: bool = False) -> tuple[SessionServic
 
 
 def api(tmp_path, service: SessionService, runs: RunService) -> httpx.AsyncClient:
-    app = web_app(tmp_path, service, runs, skills=no_skills())
+    app = web_app(tmp_path, service, runs, skills=no_skills(), secrets=a_model_saved_in(tmp_path))
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://harness.test")
 
 
@@ -95,14 +95,15 @@ def messaging_app(
     offered = (MESSAGE_BOT, *(tool.name for tool in tools))
     runtime = Runtime(
         models=OneModel(model),
-        images=None,
-        tools=Toolset(tool_service, offered),
+        images=no_images(),
+        tools=Toolset(tool_service, offered, sight_tools=frozenset()),
         guidance="GUIDE",
         checkpoint=service.flush,
     )
     runs = RunService(service, runtime, bots)
     messages = attach_bot_messages(tool_service, service, bots, runs)
-    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots)
+    secrets = a_model_saved_in(tmp_path)
+    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return Messaging(client, model, runs, messages, service)
 

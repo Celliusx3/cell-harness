@@ -23,6 +23,7 @@ from harness.session.models import UserMessageEvent
 from harness.web.routes.link_codes import build_router
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
+from tests.webapp import MODEL_CREDENTIAL
 
 KEY = "0123456789abcdef0123456789abcdef"
 WRONG_GUESSES = 5
@@ -110,8 +111,10 @@ def test_a_chat_that_guesses_wrong_five_times_is_ignored() -> None:
 async def world(tmp_path: Path):
     sessions = durable_service(tmp_path / "sessions")
     bots = BotService(tmp_path / "bots.json", sessions, assistant_instructions="Be kind.")
-    chef = await bots.create(BotDraft(name="Chef", instructions="Cook."))
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
+    chef = await bots.create(BotDraft(name="Chef", instructions="Cook.", model=MODEL_CREDENTIAL))
+    trader = await bots.create(
+        BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
+    )
     runs = run_service(sessions, ScriptedClient(completed("hi")), bots=bots)
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")

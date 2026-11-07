@@ -21,8 +21,10 @@ ASK_FOR_SECRET_TOOL = ClientTool(
     description=(
         "Ask the user for an API key or token on a protected card, and wait while they save "
         "it. Pick the name and label yourself and call this at once; the card is where the "
-        "user acts. You never see the key: the result is only the name it was saved under, "
-        "which you pass to fetch_with_secret. Never ask the user to paste a key into the chat."
+        "user acts. You never see the key: the result is only the name and kind it was saved "
+        "under. Pass a custom key's name to fetch_with_secret. An llm key is a model the user "
+        "picks for a bot in Edit bot; a telegram or discord token starts that chat bot. Never "
+        "ask the user to paste a key into the chat."
     ),
     args_model=SecretAsk,
     data_model=SavedName,
@@ -33,6 +35,7 @@ FETCH_WITH_SECRET = "fetch_with_secret"
 
 NO_SECRET = "NO_SECRET"
 NOT_ALLOWED = "NOT_ALLOWED"
+WRONG_KIND = "WRONG_KIND"
 WRONG_ORIGIN = "WRONG_ORIGIN"
 REDIRECTED = "REDIRECTED"
 TOO_LARGE = "TOO_LARGE"
@@ -57,9 +60,7 @@ def fetch_with_secret_tool(
     async def execute(args: FetchArgs, context: ToolContext) -> ToolOutcome:
         saved = secrets.secret_named(args.name)
         if saved is None:
-            return Failure(
-                NO_SECRET, f"no saved key named {args.name!r}; call ask_for_secret first"
-            )
+            return _not_a_custom_key(secrets, args.name)
         if not _can_use(bots, context.origin.bot_id, args.name):
             return Failure(
                 NOT_ALLOWED,
@@ -85,6 +86,18 @@ def fetch_with_secret_tool(
         description=_FETCH_DESCRIPTION,
         args_model=FetchArgs,
         execute=execute,
+    )
+
+
+def _not_a_custom_key(secrets: SecretService, name: str) -> Failure:
+    details = secrets.details_of(name)
+    if details is None:
+        return Failure(NO_SECRET, f"no saved key named {name!r}; call ask_for_secret first")
+    article = "an" if details.kind == "llm" else "a"
+    return Failure(
+        WRONG_KIND,
+        f"{name!r} is {article} {details.kind} credential; "
+        "fetch_with_secret only sends custom website keys",
     )
 
 

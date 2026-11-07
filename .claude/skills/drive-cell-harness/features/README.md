@@ -9,12 +9,12 @@ One file per thing a person can see in the browser chat. Add a file when a featu
 - [approvals.md](approvals.md): a card that asks before a write runs
 - [settings.md](settings.md): the Settings screen, its menu and its way back to the chat you left
 - [skills.md](skills.md): the Skills page
-- [bots.md](bots.md): bots, each with its own instructions and one chat, made by describing one to Bot builder or by asking any bot
+- [bots.md](bots.md): bots, each with its own instructions, model (picked in Edit bot) and one chat, made by describing one to Bot builder or by asking any bot
 - [groups.md](groups.md): two to six bots in one chat, taking turns, each turn under the bot's name with its tool calls folded
 - [bot-messages.md](bot-messages.md): a bot messages another with `message_bot`, and the answer wakes it in its own chat
-- [secrets.md](secrets.md): a card that saves an API key the model never sees, each bot's keys, and the fetch that uses one
-- [setup.md](setup.md): the setup screen every chat page shows until a Default model is saved, and the note on another device
-- [credentials.md](credentials.md): the Credentials page: every key, typed and masked, changed only from this Mac with no restart, a capability's key that turns it on, and a bot's link codes
-- [mcp-servers.md](mcp-servers.md): the MCP servers page: every server and its state, and the person's own added, edited, restarted and removed live
+- [secrets.md](secrets.md): a card that saves a website key, a model's key or a chat bot's token the model never sees, each bot's keys, and the fetch that uses one
+- [setup.md](setup.md): the setup screen every chat page shows until an LLM credential is saved, and the note on another device
+- [credentials.md](credentials.md): the Credentials page: every key, typed and masked, changed only from this Mac with no restart, and a bot's link codes
+- [mcp-servers.md](mcp-servers.md): the MCP servers page: every server, its state and its keys, all added, edited, restarted and removed live
 - [computer.md](computer.md): the Computer page: the shared computer's live screen, control on open, a terminal and files
 - [hand-over.md](hand-over.md): a "Needs you" card when a bot needs a step only you should do on the computer

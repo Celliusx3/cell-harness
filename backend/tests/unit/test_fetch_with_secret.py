@@ -12,6 +12,12 @@ from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
 from harness.secrets import Destination, SecretService
+from harness.secrets.models.details import (
+    CredentialDetails,
+    DiscordDetails,
+    ModelDetails,
+    TelegramDetails,
+)
 from harness.tools import Failure, Ok, ToolOutcome
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
 from harness.tools.native.secrets.tools import (
@@ -20,6 +26,7 @@ from harness.tools.native.secrets.tools import (
     REDIRECTED,
     REQUEST_FAILED,
     TOO_LARGE,
+    WRONG_KIND,
     WRONG_ORIGIN,
 )
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
@@ -78,6 +85,36 @@ async def test_a_name_with_no_saved_key_says_to_ask_for_one_and_sends_nothing(tm
     assert isinstance(outcome, Failure)
     assert outcome.code == NO_SECRET
     assert "call ask_for_secret first" in outcome.message
+    assert seen == []
+
+
+@pytest.mark.parametrize(
+    ("details", "kind_said"),
+    [
+        (ModelDetails(base_url="https://api.example.com/v1", model="big", vision=False), "an llm"),
+        (TelegramDetails(), "a telegram"),
+        (DiscordDetails(), "a discord"),
+    ],
+    ids=["llm", "telegram", "discord"],
+)
+async def test_a_credential_of_another_kind_says_so_and_sends_nothing(
+    tmp_path, details: CredentialDetails, kind_said: str
+) -> None:
+    secrets, bots = _keyring(tmp_path)
+    secrets.add_credential("other", details, SecretStr(KEY))
+    seen: list[httpx.Request] = []
+    tool = fetch_with_secret_tool(secrets, bots, httpx.MockTransport(seen.append))
+
+    outcome = await tool.invoke(
+        json.dumps({**NOTIFICATIONS, "name": "other"}), context=context_for(bot_id=BOT)
+    )
+
+    assert isinstance(outcome, Failure)
+    assert outcome.code == WRONG_KIND
+    assert outcome.message == (
+        f"'other' is {kind_said} credential; fetch_with_secret only sends custom website keys"
+    )
+    assert KEY not in outcome.message
     assert seen == []
 
 

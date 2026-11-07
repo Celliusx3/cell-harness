@@ -27,7 +27,7 @@ NonBlankText = Annotated[str, AfterValidator(_stripped_not_blank)]
 
 
 class BotDraft(BaseModel):
-    """A bot's name and instructions from the form or a tool call, stripped and not blank."""
+    """A new bot's name, instructions and model, from the API or a tool call."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -38,6 +38,17 @@ class BotDraft(BaseModel):
             "e.g. 'You find sources for a question and cite every claim.'"
         )
     )
+    model: SecretName = Field(description="The saved LLM credential the bot answers on.")
+
+
+class BotEdit(BaseModel):
+    """What Edit bot saves: a bot's name and instructions, and its model, `None` for none."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: NonBlankText
+    instructions: NonBlankText
+    model: SecretName | None
 
 
 class Bot(BaseModel):

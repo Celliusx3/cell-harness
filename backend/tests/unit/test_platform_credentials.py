@@ -20,7 +20,6 @@ from harness.web.platforms import PlatformChannels
 from harness.web.routes.credentials import build_router
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, no_skills, run_service
-from tests.webapp import SHIPPED_MODEL, web_mcp
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
@@ -38,7 +37,12 @@ GITHUB = {
 }
 MODEL = {
     "name": "trader_model",
-    "details": {"kind": "llm", "base_url": "https://api.example.com/v1", "model": "big"},
+    "details": {
+        "kind": "llm",
+        "base_url": "https://api.example.com/v1",
+        "model": "big",
+        "vision": False,
+    },
     "value": "sk-model-4444",
     "bot_ids": [],
 }
@@ -114,7 +118,7 @@ def http(tmp_path: Path, keyring, gateway, started) -> httpx.AsyncClient:
     )
     app = FastAPI()
     platforms = PlatformChannels(gateway, keyring, started)
-    app.include_router(build_router(keyring, bots, platforms, web_mcp(), SHIPPED_MODEL))
+    app.include_router(build_router(keyring, bots, platforms))
     transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
     return httpx.AsyncClient(
         transport=transport, base_url="http://127.0.0.1:4886", headers={"origin": PAGE}

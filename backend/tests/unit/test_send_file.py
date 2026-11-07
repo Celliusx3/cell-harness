@@ -44,11 +44,11 @@ from tests.unit.helpers import (
     new_session,
     no_approvals,
     no_bots,
+    no_images,
     no_progress,
     no_skills,
     toolset_for,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -67,7 +67,7 @@ async def session_after(tool: Tool, files: ChatFileService, arguments: str) -> S
     """Chat `s` after the model calls `tool` once with `arguments` and then answers."""
     runtime = Runtime(
         models=OneModel(SteppedClient(calls_tool(tool.name, arguments), completed("done"))),
-        images=None,
+        images=no_images(),
         tools=toolset_for(tool),
         files=files,
     )
@@ -82,8 +82,12 @@ def the_result(session: Session) -> ToolResultEvent:
 
 
 def what_the_model_reads(session: Session) -> str:
-    runtime = Runtime(models=OneModel(SteppedClient()), images=None)
-    (message,) = [m for m in runtime.request_messages(session) if isinstance(m, ToolMessage)]
+    runtime = Runtime(models=OneModel(SteppedClient()), images=no_images())
+    (message,) = [
+        m
+        for m in runtime.request_messages(session, sees_images=False)
+        if isinstance(m, ToolMessage)
+    ]
     return text_of(message.content)
 
 
@@ -209,11 +213,9 @@ def test_it_never_asks_for_approval() -> None:
 
 async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
-        ),
+        Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),
@@ -224,13 +226,14 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
-    assert SEND_FILE in [spec.name for spec in runtime.tools.specs()]
+    assert SEND_FILE in [spec.name for spec in runtime.tools.specs(sees_images=False)]
 
     listed = await runtime.tools.execute(
         ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     ran = await runtime.tools.execute(
         ToolCall(
@@ -243,6 +246,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(listed, Ok) and SEND_FILE not in listed.text

@@ -15,24 +15,7 @@ From the checkout being proved (a worktree is fine), with a scratch folder `$RUN
 RUN=<scratchpad>/drive-run && mkdir -p "$RUN"
 [ -f "$RUN/encryption_key" ] || (umask 077 && openssl rand -hex 32 > "$RUN/encryption_key")
 cd backend && uv sync --quiet && cd ..
-[ -f "$RUN/config.local.json" ] || (cd backend && umask 077 && uv run python - "$RUN/config.local.json") <<'PY'
-import json, sys
-from pathlib import Path
-from harness.config.settings import load
-from harness.secrets import DEFAULT_MODEL_CREDENTIAL, DiskSecretRepository, SecretService
-settings = load()
-local = settings.local_settings_path
-held = json.loads(local.read_text()).get("llm", {}) if local.exists() else {}
-if held.get("api_key"):
-    llm = {"api_key": held["api_key"], "base_url": settings.llm.base_url, "model": settings.llm.model}
-else:
-    keyring = SecretService(DiskSecretRepository(settings.secrets.path), encryption_key=settings.secrets.encryption_key)
-    default = keyring.model_credential_named(DEFAULT_MODEL_CREDENTIAL)
-    if default is None:
-        sys.exit("no model key: neither the per-machine settings file nor the keyring holds one")
-    llm = {"api_key": default.key.get_secret_value(), "base_url": default.details.base_url, "model": default.details.model}
-Path(sys.argv[1]).write_text(json.dumps({"llm": llm}))
-PY
+[ -f "$RUN/config.local.json" ] || (umask 077 && echo '{}' > "$RUN/config.local.json")
 [ -d frontend/node_modules ] || (cd frontend && npm ci --silent)
 cd backend && HARNESS_CONFIG_LOCAL="$RUN/config.local.json" \
   HARNESS_SESSIONS__ROOT="$RUN/harness/sessions" \
@@ -49,9 +32,44 @@ cd frontend && BACKEND_PORT=4996 npx next dev -p 4997 > "$RUN/frontend.log" 2>&1
 echo $! > "$RUN/frontend.pid"; cd ..
 ```
 
-Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The backend connects every MCP server in `backend/config.json` at startup; the first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
+Once the backend answers, give the copy a model: the first LLM credential in the person's own keyring, saved on the copy through `POST /api/credentials` and picked for Assistant through `PUT /api/bots/assistant`, without printing the key. A copy that already holds an LLM credential is left alone.
 
-Why each variable: the sessions root, files root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. `HARNESS_CONFIG_LOCAL` points at a scratch file holding only the model's key and endpoint, copied without printing them from the per-machine file while it still holds the key, else from the keyring's Default model: on start the harness moves every key in its per-machine file into the keyring and strips the file, so it must never be `backend/config.local.json`. That file also holds live Telegram and Discord tokens, and a copy with them answers the person's real chats.
+```sh
+MAIN="$(git worktree list --porcelain | sed -n '1s/^worktree //p')"
+(cd backend && uv run python - "$MAIN/backend/config.local.json") <<'PY'
+import json, os, sys
+from pathlib import Path
+import httpx
+from harness.secrets import DiskSecretRepository, SecretService
+from harness.secrets.models.details import ModelDetails
+copy = httpx.Client(base_url="http://127.0.0.1:4996", headers={"origin": "http://localhost:4997"})
+if any(c["details"]["kind"] == "llm" for c in copy.get("/api/credentials").json()["credentials"]):
+    sys.exit(0)
+local = Path(sys.argv[1])
+held = json.loads(local.read_text()).get("secrets", {}) if local.exists() else {}
+encryption_key = os.environ.get("HARNESS_SECRETS__ENCRYPTION_KEY") or held.get("encryption_key")
+if not encryption_key:
+    sys.exit(f"no encryption key: neither HARNESS_SECRETS__ENCRYPTION_KEY nor {local} holds one")
+path = Path(held.get("path", "~/.harness/secrets.json")).expanduser()
+keyring = SecretService(DiskSecretRepository(path), encryption_key=encryption_key)
+name = next((c.name for c in keyring.saved_credentials() if isinstance(c.details, ModelDetails)), None)
+if name is None:
+    sys.exit(f"no LLM credential in {path}: save one on the person's Credentials page")
+model = keyring.model_credential_named(name)
+draft = {"name": name, "details": model.details.model_dump(), "value": model.key.get_secret_value(), "bot_ids": []}
+copy.post("/api/credentials", json=draft).raise_for_status()
+assistant = next(bot for bot in copy.get("/api/bots").json() if bot["id"] == "assistant")
+edit = {"name": assistant["name"], "instructions": assistant["instructions"], "model": name}
+copy.put("/api/bots/assistant", json=edit).raise_for_status()
+print(f"Assistant answers on {model.details.model} at {model.details.base_url}")
+PY
+```
+
+For a check that needs no real key, run two fake OpenAI-compatible servers on localhost and save them on the copy's Credentials page instead: an endpoint may be `http` on localhost.
+
+Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The copy starts with no MCP server; add each one it needs, `computer` too, as in [features/mcp-servers.md](features/mcp-servers.md). The first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
+
+Why each variable: the sessions root, files root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. `HARNESS_CONFIG_LOCAL` points at an empty scratch file, so the copy reads no settings of the person's: it must never be `backend/config.local.json`. Every key the copy holds is in its own keyring, saved there by the step above or on its Credentials page. Never save the person's Telegram or Discord token on the copy: a copy with one answers the person's real chats.
 
 ## Doctor
 
@@ -62,7 +80,7 @@ grep -E "channel registered|ERROR|connected" "$RUN/backend.log" | tail
 
 Both ports must belong to the pids in `$RUN/*.pid`. The log must say `web channel registered (pull)` and must not say `telegram channel registered`. A port held by another process is the person's own copy: pick other ports, never kill it.
 
-Check which model this copy talks to before blaming the code: `backend/config.local.json` can override `llm.base_url` (for example LM Studio on `localhost:1234`). For LM Studio, `~/.lmstudio/bin/lms ps` shows the loaded `CONTEXT` and `PARALLEL`; a request over the context fails as "Context length exceeded", and requests running at once share that context, so with `PARALLEL` above 1 they fail together as "failed to decode". Load with `lms load <model> --context-length 16384 --parallel 1` to have LM Studio queue them.
+Check which model this copy talks to before blaming the code: Assistant's LLM credential on the copy's Credentials page names its endpoint (for example LM Studio on `localhost:1234`). For LM Studio, `~/.lmstudio/bin/lms ps` shows the loaded `CONTEXT` and `PARALLEL`; a request over the context fails as "Context length exceeded", and requests running at once share that context, so with `PARALLEL` above 1 they fail together as "failed to decode". Load with `lms load <model> --context-length 16384 --parallel 1` to have LM Studio queue them.
 
 ## Drive
 

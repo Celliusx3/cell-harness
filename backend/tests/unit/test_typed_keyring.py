@@ -6,10 +6,9 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 
 from harness.secrets import (
-    DEFAULT_MODEL_CREDENTIAL,
     Destination,
     DiskSecretRepository,
     SecretService,
@@ -73,6 +72,17 @@ def test_a_key_saved_before_types_existed_reads_as_custom(path: Path) -> None:
     assert found.value.get_secret_value() == "ghp-old-key-1234"
 
 
+def test_a_keyring_still_holding_an_mcp_key_fails_to_load(path: Path) -> None:
+    record_id = "00cd"
+    details = {"kind": "capability", "server": "places", "variable": "GOOGLE_MAPS_API_KEY"}
+    ciphertext = sealed("AIza-old-key-1234", encryption_key=KEY, record_id=record_id)
+    record = {"id": record_id, "name": "maps", "details": details, "ciphertext": ciphertext}
+    path.write_text(json.dumps({"secrets": [record]}))
+
+    with pytest.raises(ValidationError, match="capability"):
+        SecretService(DiskSecretRepository(path), encryption_key=KEY).saved_credentials()
+
+
 def test_a_saved_custom_key_is_written_with_its_kind(path: Path) -> None:
     SecretService(DiskSecretRepository(path), encryption_key=KEY).save(
         "github", GITHUB, SecretStr("ghp-new-key-5678")
@@ -89,7 +99,7 @@ def test_a_credential_of_each_kind_reads_back_equal(path: Path) -> None:
         _sealed(
             "02",
             "trader_model",
-            ModelDetails(base_url="https://api.example.com/v1", model="big-model"),
+            ModelDetails(base_url="https://api.example.com/v1", model="big-model", vision=False),
             "sk-model-0002",
         ),
         _sealed("03", "telegram", TelegramDetails(), TOKEN),
@@ -148,23 +158,20 @@ def test_the_keys_list_holds_only_custom_keys(path: Path) -> None:
 
 def test_a_model_credential_needs_a_web_endpoint_and_a_model() -> None:
     with pytest.raises(ValueError):
-        ModelDetails(base_url="ftp://example.com", model="m")
+        ModelDetails(base_url="ftp://example.com", model="m", vision=False)
     with pytest.raises(ValueError):
-        ModelDetails(base_url="https://api.example.com/v1", model="  ")
+        ModelDetails(base_url="https://api.example.com/v1", model="  ", vision=False)
 
 
-def test_the_default_model_cannot_be_removed_but_a_custom_key_of_its_name_can(path: Path) -> None:
+def test_an_llm_credential_is_removed_like_any_other(path: Path) -> None:
     keyring = SecretService(DiskSecretRepository(path), encryption_key=KEY)
-    keyring.save(DEFAULT_MODEL_CREDENTIAL, GITHUB, SecretStr("custom-key-5555"))
-    keyring.delete(DEFAULT_MODEL_CREDENTIAL)
-    default = ModelDetails(base_url="https://api.example.com/v1", model="glm")
-    keyring.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr("sk-default-key-1234"))
+    model = ModelDetails(base_url="https://api.example.com/v1", model="glm", vision=False)
+    keyring.add_credential("first_model", model, SecretStr("sk-model-key-1234"))
 
-    with pytest.raises(SecretRefused, match="cannot be removed"):
-        keyring.delete(DEFAULT_MODEL_CREDENTIAL)
+    removed = keyring.delete("first_model")
 
-    [saved] = keyring.saved_credentials()
-    assert saved.is_default_model
+    assert removed == model
+    assert keyring.saved_credentials() == ()
 
 
 def test_only_a_telegram_or_discord_credential_hands_out_its_token(path: Path) -> None:

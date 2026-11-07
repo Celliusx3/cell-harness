@@ -17,7 +17,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import no_bots, no_skills
+from tests.unit.helpers import no_bots, no_images, no_skills
 from tests.webapp import files_in, images_in
 
 
@@ -30,7 +30,7 @@ def build(tmp_path: Path):
     )
     runtime = Runtime(
         models=OneModel(ScriptedClient(completed("answered"))),
-        images=None,
+        images=no_images(),
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)

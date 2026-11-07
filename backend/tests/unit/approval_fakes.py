@@ -8,6 +8,7 @@ from harness.runtime.hooks import HookChain
 from harness.runtime.service import Runtime
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome, ToolService, Toolset
 from tests.unit.fakes import EchoArgs, OneModel
+from tests.unit.helpers import no_images
 
 WRITE = "memory__write_note"
 
@@ -30,5 +31,7 @@ def runtime_offering(
     client, approvals: ApprovalService, *tools: Tool, hooks: HookChain | None = None
 ) -> Runtime:
     tool_service = ToolService(tools, approvals=approvals)
-    toolset = Toolset(tool_service, default_tools=[t.name for t in tools])
-    return Runtime(models=OneModel(client), images=None, tools=toolset, hooks=hooks or HookChain())
+    toolset = Toolset(tool_service, default_tools=[t.name for t in tools], sight_tools=frozenset())
+    return Runtime(
+        models=OneModel(client), images=no_images(), tools=toolset, hooks=hooks or HookChain()
+    )

@@ -9,19 +9,20 @@ from pathlib import Path
 from fastapi import FastAPI
 from pydantic import SecretStr
 
-from harness.bots import BotService
+from harness.bots import ASSISTANT_ID, Bot, BotEdit, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
 from harness.channels.protocol import Channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
-from harness.config.sections import FileSettings, McpServer
+from harness.config.sections import FileSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import (
     DiskSavedServerRepository,
     McpClientFactory,
+    McpServer,
     McpService,
     SavedServerService,
     open_stdio_client,
@@ -29,32 +30,29 @@ from harness.mcp import (
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import DEFAULT_MODEL_CREDENTIAL, DiskSecretRepository, SecretService
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
-from harness.web.platforms import PlatformChannels
+from harness.web.platforms import PlatformChannelMaker, PlatformChannels
 from harness.web.server import Channels, ChannelServices, create_app
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools as default_client_tools
 from tests.unit.helpers import no_approvals, no_bots, no_skills, run_service
-from tests.unit.mcp_fakes import no_keys
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
-DEFAULT_MODEL_KEY = "sk-test-default-0000"
-SHIPPED_MODEL = ModelDetails(base_url="https://shipped.example/v1", model="shipped-model")
+MODEL_CREDENTIAL = "test_model"
+MODEL_KEY = "sk-test-model-0000"
 NO_PLATFORM_STORAGE = Path("/nonexistent/cell-harness-platforms")
 
 
 def startup_settings(tmp_path: Path) -> Settings:
     """Settings that keep all `create_web_app` makes under `tmp_path`, keys as `secrets_in`."""
     return Settings(
-        local_settings_path=tmp_path / "config.local.json",
-        llm={"model": "m", "vision": True},
         sessions={"root": tmp_path / "sessions"},
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
@@ -62,7 +60,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
         compaction={"context_tokens": 1000},
-        mcp={"servers": {}, "path": tmp_path / "mcp.json"},
+        mcp={"path": tmp_path / "mcp.json"},
     )
 
 
@@ -73,12 +71,26 @@ def secrets_in(tmp_path: Path) -> SecretService:
     )
 
 
-def secrets_with_default_model(tmp_path: Path) -> SecretService:
-    """`secrets_in`, holding the Default model a turn needs."""
+def a_model_saved_in(tmp_path: Path) -> SecretService:
+    """`secrets_in`, holding the LLM credential `MODEL_CREDENTIAL`, which new bots are made on."""
     secrets = secrets_in(tmp_path)
-    default = ModelDetails(base_url="https://api.example.com/v1", model="m")
-    secrets.add_credential(DEFAULT_MODEL_CREDENTIAL, default, SecretStr(DEFAULT_MODEL_KEY))
+    details = ModelDetails(base_url="https://api.example.com/v1", model="m", vision=True)
+    secrets.add_credential(MODEL_CREDENTIAL, details, SecretStr(MODEL_KEY))
     return secrets
+
+
+def assistant_on_a_model(tmp_path: Path, bots: BotService) -> SecretService:
+    """`a_model_saved_in`, with Assistant's turns asking that credential."""
+    secrets = a_model_saved_in(tmp_path)
+    put_on_model(bots, ASSISTANT_ID, MODEL_CREDENTIAL)
+    return secrets
+
+
+def put_on_model(bots: BotService, bot_id: str, name: str | None) -> Bot:
+    """Save the bot as Edit bot does, changing only its model to `name`."""
+    bot = bots.active_bot(bot_id)
+    edit = BotEdit(name=bot.name, instructions=bot.instructions, model=name)
+    return bots.update(bot_id, edit)
 
 
 def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService) -> ChannelServices:
@@ -143,9 +155,14 @@ def no_platform_channel(platform: ChatPlatform, token: SecretStr) -> Channel:
     raise AssertionError(f"a test started a real {platform} channel")
 
 
-def channels_of(gateway: ChannelGateway, web: WebChannel, secrets: SecretService) -> Channels:
-    """What `create_app` takes: the gateway and the web, and platforms a test never starts."""
-    platforms = PlatformChannels(gateway, secrets, no_platform_channel)
+def channels_of(
+    gateway: ChannelGateway,
+    web: WebChannel,
+    secrets: SecretService,
+    make_platform: PlatformChannelMaker = no_platform_channel,
+) -> Channels:
+    """What `create_app` takes: the gateway and the web, and platforms made by `make_platform`."""
+    platforms = PlatformChannels(gateway, secrets, make_platform)
     return Channels(gateway, web, platforms, LinkCodes(time.monotonic))
 
 
@@ -168,14 +185,12 @@ def web_mcp(
     client_factory: McpClientFactory = open_stdio_client,
 ) -> McpService:
     """A service over whatever servers a test declares — none, by default."""
-    return McpService(servers or {}, client_factory=client_factory, saved={}, keys=no_keys())
+    return McpService(servers or {}, client_factory=client_factory)
 
 
 def saved_servers_in(tmp_path: Path) -> SavedServerService:
-    """The servers a test saves, kept in a file under `tmp_path`, beside no built-in one."""
-    return SavedServerService(
-        DiskSavedServerRepository(tmp_path / "mcp.json"), built_in_ids=frozenset()
-    )
+    """The servers a test saves, kept in a file under `tmp_path`."""
+    return SavedServerService(DiskSavedServerRepository(tmp_path / "mcp.json"))
 
 
 def web_app(
@@ -190,6 +205,7 @@ def web_app(
     bots: BotService | None = None,
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
+    make_platform: PlatformChannelMaker = no_platform_channel,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
@@ -198,7 +214,7 @@ def web_app(
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots, files=files)
     return create_app(
         runs,
-        channels_of(gateway, web, secrets),
+        channels_of(gateway, web, secrets, make_platform),
         mcp or web_mcp(),
         saved_servers_in(tmp_path),
         skills,
@@ -207,7 +223,6 @@ def web_app(
         bots,
         secrets,
         BotMessages(service, bots, runs),
-        SHIPPED_MODEL,
     )
 
 
@@ -238,7 +253,6 @@ def web_app_with_telegram(
         bots,
         secrets,
         BotMessages(service, bots, runs),
-        SHIPPED_MODEL,
     )
     return app, gateway, bot
 

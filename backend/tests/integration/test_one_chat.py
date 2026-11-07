@@ -21,10 +21,9 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import create_app
 from tests.unit.fakes import OneModel, SteppedClient, completed
-from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_skills
+from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_images, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import (
-    SHIPPED_MODEL,
     channels_of,
     saved_servers_in,
     secrets_in,
@@ -61,7 +60,7 @@ def build_on(tmp_path, model: LLMClient):
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
     )
     bots = BotService(tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT")
-    runtime = Runtime(models=OneModel(model), images=None, checkpoint=sessions.flush)
+    runtime = Runtime(models=OneModel(model), images=no_images(), checkpoint=sessions.flush)
     runs = RunService(sessions, runtime, bots)
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
@@ -77,7 +76,6 @@ def build_on(tmp_path, model: LLMClient):
         bots,
         secrets_in(tmp_path),
         BotMessages(sessions, bots, runs),
-        SHIPPED_MODEL,
     )
     http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return bot, http, gateway, runs

@@ -1,4 +1,4 @@
-"""The saved servers on disk: one JSON file, beside the bots file."""
+"""The saved servers on disk: one JSON file beside the bots file, readable by its owner alone."""
 
 from __future__ import annotations
 
@@ -9,10 +9,12 @@ from pathlib import Path
 
 from harness.mcp.models.saved import SavedServer, SavedServersFile
 
+FILE_MODE = 0o600
+
 
 @dataclass(frozen=True)
 class DiskSavedServerRepository:
-    """The saved servers as one file at `path`, replaced whole."""
+    """The saved servers and their keys, as one file at `path`, replaced whole, owner-only."""
 
     path: Path
 
@@ -26,6 +28,7 @@ class DiskSavedServerRepository:
         """The file replaced whole by `servers`, its folder made when missing."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         handle, temp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
+        os.fchmod(handle, FILE_MODE)
         with os.fdopen(handle, "w", encoding="utf-8") as file:
             file.write(SavedServersFile(servers=servers).model_dump_json(indent=2))
         os.replace(temp, self.path)

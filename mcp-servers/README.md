@@ -19,10 +19,9 @@ Markdown notes; why it and not our own server, and how to set it up, is in
 
 Each directory is its own `uv` project with its own dependencies, its own tests
 and its own coverage gate. `backend/harness/` imports nothing from here and
-knows nothing about them. Only `computer` is built in, in `config.json`'s
-`mcp.servers`; every other server here reaches the model by being added on the
-MCP servers screen (Settings → MCP servers), which saves it in `mcp.json` and
-starts it at once.
+knows nothing about them. None is built in: each one, `computer` too, reaches
+the model by being added on the MCP servers screen (Settings → MCP servers),
+which saves it in `mcp.json` and starts it at once.
 
 | Server | Capability |
 |---|---|
@@ -62,14 +61,27 @@ Open **Settings → MCP servers** and click **Add server**. For one of ours, in
 | Command | `uv` |
 | Arguments | `run`, `--quiet`, `--project`, `../mcp-servers/places`, `places`, one per line |
 | Settings | `PLACES_MAX_RESULTS=3` |
-| Keys it needs | `GOOGLE_MAPS_API_KEY` |
+| Keys it needs | `GOOGLE_MAPS_API_KEY`, with its value in the hidden field beside it |
 
-It is saved in `mcp.json` (`~/.harness/mcp.json` for `make dev`) and starts at
-once. A key is never a setting: add its value on the Credentials page as a
-**Capability key**, and the server starts when it is saved. Only `computer` is
-declared in `backend/config.json`; a server listed only in
-`backend/config.local.json` stops the start, with a message to add it on the
-screen.
+It is saved in `mcp.json` (`~/.harness/mcp.json` for `make dev`), owner-only,
+with each key's value in the server's `env`, and starts at once. The list shows
+a key as set or missing, never its value; an edit that leaves a key empty keeps
+the one saved, and a server missing a key waits until an edit gives it. No
+settings file lists a server: `mcp.servers` in `config.json` or
+`config.local.json` stops the start as an unknown setting.
+
+The bots' PC is added the same way, named `computer` (the Computer page shows
+only for that name). In `make dev`: command `uv`, arguments `run`, `--quiet`,
+`--project`, `../mcp-servers/computer`, `computer`, settings
+`COMPUTER_ENGINE=microsandbox`, `COMPUTER_IDLE_MINUTES=10`,
+`COMPUTER_FILES_DIR=~/.harness/files`, `COMPUTER_SKILLS_DIRS=../.agents/skills`.
+In the Mac app: command `python3`, arguments `-c`,
+`from computer.server import main; main()`, settings
+`PYTHONPATH=../../servers/computer`, `COMPUTER_ENGINE=microsandbox`,
+`COMPUTER_IDLE_MINUTES=10`,
+`COMPUTER_FILES_DIR=~/Library/Application Support/Cell Harness/files`,
+`COMPUTER_SKILLS_DIRS=../.agents/skills`, `COMPUTER_NAME=cell-harness-app-computer`,
+`MSB_HOME=~/.cell-harness/msb`. A PC that cannot start shows why on its row.
 
 ### Three things that will bite you
 

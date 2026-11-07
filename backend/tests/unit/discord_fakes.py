@@ -17,7 +17,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import no_bots, no_links, no_skills
+from tests.unit.helpers import no_bots, no_images, no_links, no_skills
 
 BOT_ID = 900
 
@@ -126,7 +126,7 @@ def build(tmp_path, client: LLMClient | None = None):
     )
     runtime = Runtime(
         models=OneModel(client or ScriptedClient(completed("ok"))),
-        images=None,
+        images=no_images(),
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)

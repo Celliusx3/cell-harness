@@ -36,7 +36,6 @@ from tests.unit.helpers import (
     no_progress,
     no_skills,
 )
-from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -95,11 +94,9 @@ def test_it_never_asks_for_approval(name: str) -> None:
 
 async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
-        ),
+        Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),
@@ -110,7 +107,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
-    offered = [spec.name for spec in runtime.tools.specs()]
+    offered = [spec.name for spec in runtime.tools.specs(sees_images=False)]
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered
 
     listed = await runtime.tools.execute(
@@ -118,6 +115,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
     script = (
         'await extract_archive({path: "/tmp/a.cbz"}); '
@@ -132,6 +130,7 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
+        sees_images=False,
     )
 
     assert isinstance(listed, Ok)

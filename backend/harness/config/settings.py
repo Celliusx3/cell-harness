@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import shutil
-from collections.abc import Mapping
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -36,7 +35,6 @@ _LOCAL_JSON = Path(
         _CONFIG_JSON.with_name(_CONFIG_JSON.stem + ".local" + _CONFIG_JSON.suffix),
     )
 )
-_ENVIRONMENT = "the environment"
 
 
 class SkillSettings(BaseModel):
@@ -84,11 +82,11 @@ class Settings(BaseSettings):
         env_prefix="HARNESS_",
         env_nested_delimiter="__",
         case_sensitive=False,
-        extra="ignore",
+        extra="forbid",
+        hide_input_in_errors=True,
     )
 
-    local_settings_path: Path = Field(exclude=True)
-    llm: LLMSettings
+    llm: LLMSettings = Field(default_factory=LLMSettings)
     sessions: SessionSettings = Field(default_factory=SessionSettings)
     web: WebSettings = Field(default_factory=WebSettings)
     code: CodeModeSettings = Field(default_factory=CodeModeSettings)
@@ -112,9 +110,6 @@ class Settings(BaseSettings):
         """Highest priority first."""
         local = JsonConfigSettingsSource(settings_cls, json_file=_LOCAL_JSON)
         committed = JsonConfigSettingsSource(settings_cls, json_file=_CONFIG_JSON)
-        built_in = _server_ids(committed())
-        _refuse_servers_beyond(built_in, _server_ids(local()), str(_LOCAL_JSON), "that file")
-        _refuse_servers_beyond(built_in, _server_ids(env_settings()), _ENVIRONMENT, _ENVIRONMENT)
         return (init_settings, env_settings, local, committed)
 
 
@@ -122,36 +117,15 @@ class MissingConfigError(RuntimeError):
     """A value with no possible default was not supplied anywhere."""
 
 
-def _server_ids(values: Mapping[str, object]) -> tuple[str, ...]:
-    """The ids under `mcp.servers` in one source; validation refuses any other shape later."""
-    mcp = values.get("mcp")
-    servers = mcp.get("servers") if isinstance(mcp, Mapping) else None
-    return tuple(servers) if isinstance(servers, Mapping) else ()
-
-
-def _refuse_servers_beyond(
-    built_in: tuple[str, ...], set_up: tuple[str, ...], place: str, there: str
-) -> None:
-    """A server only `place` sets up belongs on the MCP servers screen, so the start stops."""
-    for server_id in set_up:
-        if server_id not in built_in:
-            raise MissingConfigError(
-                f"{server_id} is set up in {place}, but MCP servers are added on the "
-                f"MCP servers screen now; remove it from {there} and add it there"
-            )
-
-
 def load() -> Settings:
-    """Settings for a real run, with the two unguessable values checked."""
-    settings = Settings(local_settings_path=_LOCAL_JSON)
+    """Settings for a real run, with Deno and the encryption key checked."""
+    settings = Settings()
     if shutil.which(settings.code.deno_path) is None:
         raise MissingConfigError(
             f"{settings.code.deno_path!r} is not on PATH, and the harness runs "
             "every tool call through a Deno sandbox. Install Deno "
             f"(https://deno.com) or set code.deno_path in {_CONFIG_JSON}."
         )
-    if not settings.llm.model.strip():
-        raise MissingConfigError(f"llm.model is not set. It belongs in {_CONFIG_JSON}.")
     if not settings.secrets.encryption_key.strip():
         raise MissingConfigError(
             f"secrets.encryption_key is not set. It belongs in {_LOCAL_JSON} (gitignored) as "

@@ -15,8 +15,7 @@ from harness.web.runtime import build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
-from tests.unit.mcp_fakes import no_keys
-from tests.webapp import files_in, images_in, secrets_in, web_app
+from tests.webapp import a_model_saved_in, files_in, images_in, web_app
 
 
 class Tool(NamedTuple):
@@ -111,10 +110,7 @@ ROUTES: dict[str, Tool | NotATool] = {
 }
 
 CONFIG: dict[str, Tool | NotATool] = {
-    "local_settings_path": NotATool(
-        "where this machine's settings file is; the harness reads it once, at start"
-    ),
-    "llm": NotATool("not yet: switching model from chat; the api key never passes the model"),
+    "llm": NotATool("how every model is asked; a bot's own model is picked in Edit bot"),
     "sessions": NotATool("where conversations are stored; moving it while running loses them"),
     "web": NotATool("the address the app is reached at belongs to whoever hosts it"),
     "code": NotATool("the sandbox's limits; the model never loosens its own"),
@@ -154,23 +150,21 @@ def test_every_config_section_names_its_tool_or_a_reason() -> None:
 
 def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> None:
     runtime = build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
-        ),
+        Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
-        secrets=secrets_in(tmp_path),
+        secrets=a_model_saved_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
 
-    offered = {spec.name for spec in runtime.tools.specs()}
+    offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
     named = {
         entry.name for entry in (*ROUTES.values(), *CONFIG.values()) if isinstance(entry, Tool)
     }

@@ -1,13 +1,4 @@
 {
-  "llm": {
-    "api_key": "sk-…"
-  },
-  "telegram": {
-    "bot_token": ""
-  },
-  "discord": {
-    "bot_token": ""
-  },
   "secrets": {
     "encryption_key": "… (openssl rand -hex 32)"
   }

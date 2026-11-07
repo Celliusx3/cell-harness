@@ -25,6 +25,7 @@ def test_ask_for_secret_says_what_a_name_may_be() -> None:
     with pytest.raises(ValidationError):
         SecretAsk.model_validate(
             {
+                "kind": "custom",
                 "name": "httpbinToken",
                 "origin": "https://httpbin.org",
                 "auth": "bearer",

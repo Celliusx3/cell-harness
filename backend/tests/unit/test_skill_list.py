@@ -46,7 +46,7 @@ def two_turns(session: Session) -> Session:
 def test_the_context_rides_on_the_first_user_message_only() -> None:
     session = two_turns(new_session())
 
-    messages = RUNTIME.request_messages(session, (LIST,))
+    messages = RUNTIME.request_messages(session, (LIST,), sees_images=False)
 
     assert messages == [
         SystemMessage(content="GUIDE"),
@@ -60,7 +60,7 @@ def test_the_context_rides_on_the_first_user_message_only() -> None:
 def test_each_text_is_its_own_system_reminder() -> None:
     session = two_turns(new_session())
 
-    first = RUNTIME.request_messages(session, ("one", "two"))[1]
+    first = RUNTIME.request_messages(session, ("one", "two"), sees_images=False)[1]
 
     assert first == UserMessage(
         content="first\n\n<system-reminder>\none\n</system-reminder>"
@@ -74,7 +74,7 @@ def test_after_compaction_the_context_rides_on_the_summary() -> None:
     session.append(TurnStart(turn=2, bot_id="b"))
     session.append(UserMessageEvent(turn=2, message=UserMessage(content="third")))
 
-    messages = RUNTIME.request_messages(session, (LIST,))
+    messages = RUNTIME.request_messages(session, (LIST,), sees_images=False)
 
     assert messages == [
         SystemMessage(content="GUIDE"),
@@ -86,13 +86,15 @@ def test_after_compaction_the_context_rides_on_the_summary() -> None:
 def test_no_context_leaves_the_request_as_it_was() -> None:
     session = two_turns(new_session())
 
-    assert RUNTIME.request_messages(session, ()) == RUNTIME.request_messages(session)
+    assert RUNTIME.request_messages(session, (), sees_images=False) == RUNTIME.request_messages(
+        session, sees_images=False
+    )
 
 
 def test_the_log_keeps_only_what_was_typed() -> None:
     session = two_turns(new_session())
 
-    RUNTIME.request_messages(session, (LIST,))
+    RUNTIME.request_messages(session, (LIST,), sees_images=False)
 
     typed = [e.message.content for e in session.events() if isinstance(e, UserMessageEvent)]
     assert typed == ["first", "second"]

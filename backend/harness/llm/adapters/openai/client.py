@@ -8,12 +8,12 @@ from collections.abc import AsyncIterator, Callable, Sequence
 import httpx
 from pydantic import ValidationError
 
-from harness.config.sections import LLMSettings
 from harness.llm.adapters.openai._errors import failure_code
 from harness.llm.adapters.openai._request import openai_messages, request_body
 from harness.llm.adapters.openai._streaming import chunks_of
 from harness.llm.adapters.openai._tool_calls import ToolCallAssembler
 from harness.llm.adapters.openai.models.model_list import ModelList
+from harness.llm.adapters.openai.settings import OpenAISettings
 from harness.llm.client import LLMClient
 from harness.llm.models.blocks import Image
 from harness.llm.models.messages import Message, images_of
@@ -42,12 +42,12 @@ def _image_bytes(messages: Sequence[Message], read: ImageReader) -> dict[str, by
     }
 
 
-def _endpoint(settings: LLMSettings, path: str) -> str:
+def _endpoint(settings: OpenAISettings, path: str) -> str:
     """The address of `path` under the configured base URL."""
     return f"{settings.base_url.rstrip('/')}/{path}"
 
 
-def _auth_headers(settings: LLMSettings) -> dict[str, str]:
+def _auth_headers(settings: OpenAISettings) -> dict[str, str]:
     """The header that carries the configured key."""
     return {"Authorization": f"Bearer {settings.api_key}"}
 
@@ -55,7 +55,7 @@ def _auth_headers(settings: LLMSettings) -> dict[str, str]:
 class OpenAIClient(LLMClient):
     """Streams completions from an OpenAI-compatible endpoint."""
 
-    def __init__(self, settings: LLMSettings, *, read_image: ImageReader) -> None:
+    def __init__(self, settings: OpenAISettings, *, read_image: ImageReader) -> None:
         self._settings = settings
         self._read_image = read_image
 
@@ -113,7 +113,7 @@ class OpenAIClient(LLMClient):
         yield Completed(full_text=accumulated, tool_calls=tuple(assembled), usage=usage)
 
 
-def context_window_tokens(settings: LLMSettings) -> int | None:
+def context_window_tokens(settings: OpenAISettings) -> int | None:
     """`context_length` of `settings.model` from the endpoint's list of models, or `None`."""
     url = _endpoint(settings, "models")
     try:

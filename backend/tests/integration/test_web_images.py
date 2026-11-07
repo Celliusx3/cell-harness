@@ -11,15 +11,13 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.config.sections import McpServer
 from harness.llm import Image, ToolMessage, UserMessage
-from harness.mcp import McpService
+from harness.mcp import McpServer, McpService
 from harness.tools import ToolService
 from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import no_approvals
-from tests.unit.mcp_fakes import no_keys
 
 STUB = Path(__file__).resolve().parent.parent / "mcp_stub.py"
 MESSAGES = f"/api/conversations/{ASSISTANT_ID}/messages"
@@ -32,8 +30,6 @@ DOT_SHA256 = hashlib.sha256(DOT).hexdigest()
 async def snapshot_tool():
     store = McpService(
         {"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})},
-        saved={},
-        keys=no_keys(),
     )
     tool_service = ToolService((), approvals=no_approvals())
     tool_service.add_provider(store.tools)

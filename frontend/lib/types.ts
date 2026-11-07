@@ -80,18 +80,9 @@ export interface ToolUi {
 /** Whether a server is on: waiting for a key, starting, on, failed, or closed. */
 export type ServerStatus = "waiting" | "connecting" | "connected" | "failed" | "disconnected";
 
-/** A server that needs keys: its namespace, the env keys it needs, and whether it is on. */
-export interface KeyedServer {
-  id: string;
-  needs: string[];
-  status: ServerStatus;
-  error: string;
-}
-
-/** `GET /api/mcp`: every server the harness is set up with by its tool namespace, and those that need keys. */
+/** `GET /api/mcp`: every server the harness is set up with, by its tool namespace. */
 export interface ServerList {
   servers: string[];
-  keyed: KeyedServer[];
 }
 
 /** `GET /api/mcp/{server}/resources` */
@@ -182,9 +173,15 @@ export interface Bot {
   name: string;
   instructions: string;
   secret_names: string[];
+  model_credential: string | null;
 }
 
-export type BotDraft = Pick<Bot, "name" | "instructions">;
+/** What Edit bot saves: a name, instructions, and the LLM credential the bot answers on, or null for none. */
+export interface BotEdit {
+  name: string;
+  instructions: string;
+  model: string | null;
+}
 
 /** Two to six bots sharing one chat, whose id is the group's; they take turns in member order. */
 export interface Group {

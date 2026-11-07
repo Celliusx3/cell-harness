@@ -12,16 +12,22 @@ from harness.session.models import TurnEnd, UserMessageEvent
 from tests.integration.web_helpers import build, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills
-from tests.webapp import web_app
+from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, web_app
 
-RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every claim."}
+RESEARCHER = {
+    "name": "Researcher",
+    "instructions": "Find sources and cite every claim.",
+    "model": MODEL_CREDENTIAL,
+}
 
 
 @pytest.fixture
 async def bots(tmp_path):
     service, runs = build(tmp_path, ScriptedClient(completed("hello")))
     store = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
-    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
+    app = web_app(
+        tmp_path, service, runs, skills=no_skills(), bots=store, secrets=a_model_saved_in(tmp_path)
+    )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
         bot_id = (await client.post("/api/bots", json=RESEARCHER)).json()["id"]
@@ -85,7 +91,9 @@ async def test_assistant_can_be_neither_archived_nor_deleted(bots) -> None:
 async def test_archiving_a_bot_stops_its_running_turn_and_keeps_its_chat_whole(tmp_path) -> None:
     service, runs = build(tmp_path, HangingClient("thinking"))
     store = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
-    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
+    app = web_app(
+        tmp_path, service, runs, skills=no_skills(), bots=store, secrets=a_model_saved_in(tmp_path)
+    )
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         bot_id = (await c.post("/api/bots", json=RESEARCHER)).json()["id"]
         await c.post(f"/api/conversations/{bot_id}/messages", json={"prompt": "go"})

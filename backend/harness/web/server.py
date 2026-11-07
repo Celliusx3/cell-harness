@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import functools
-import logging
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -20,26 +19,19 @@ from harness.channels.web.channel import WebChannel
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.llm.adapters import context_window_tokens
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
-from harness.secrets import (
-    DEFAULT_MODEL_CREDENTIAL,
-    DiskSecretRepository,
-    SecretService,
-)
-from harness.secrets.models.details import ModelDetails
+from harness.secrets import DiskSecretRepository, SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
-from harness.web.bot_models import llm_settings_for
+from harness.web.credential_effects import CredentialEffects
 from harness.web.errors import exception_handlers
-from harness.web.file_keys import move_file_keys
 from harness.web.logs import configure_logging
 from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.web.routes.approvals import build_router as build_approvals_router
@@ -57,8 +49,6 @@ from harness.web.routes.secrets import build_router as build_secrets_router
 from harness.web.routes.skills import build_router as build_skills_router
 from harness.web.runtime import CLIENT_TOOLS, attach_bot_messages, build_runtime
 
-logger = logging.getLogger("harness.web")
-
 
 def build_store(settings: Settings) -> SessionService:
     """The session service over the configured storage backend."""
@@ -71,29 +61,21 @@ def build_subagent_logs(settings: Settings) -> SessionService:
 
 
 def build_saved_servers(settings: Settings) -> SavedServerService:
-    """The person's own servers, kept in `mcp.path`, none under a built-in server's id."""
-    return SavedServerService(
-        DiskSavedServerRepository(settings.mcp.path), built_in_ids=frozenset(settings.mcp.servers)
-    )
+    """Every MCP server, as the person added it on the MCP servers screen, kept in `mcp.path`."""
+    return SavedServerService(DiskSavedServerRepository(settings.mcp.path))
 
 
-def build_mcp(settings: Settings, keyring: SecretService, saved: SavedServerService) -> McpService:
-    """Connections to `config.json`'s `mcp.servers` and the person's saved ones, with their keys."""
-    return McpService(
-        settings.mcp.servers,
-        saved={server.id: server.server() for server in saved.servers()},
-        keys=keyring,
-    )
+def build_mcp(saved: SavedServerService) -> McpService:
+    """Connections to the person's saved servers, with their keys."""
+    return McpService({server.id: server.server() for server in saved.servers()})
 
 
 def build_keyring(settings: Settings) -> SecretService:
-    """The keyring, once the settings file's keys are moved in."""
-    keyring = SecretService(
+    """The keyring, where every key the app holds is saved from Credentials."""
+    return SecretService(
         DiskSecretRepository(settings.secrets.path),
         encryption_key=settings.secrets.encryption_key,
     )
-    move_file_keys(settings.local_settings_path, settings.llm, keyring)
-    return keyring
 
 
 @dataclass(frozen=True)
@@ -138,31 +120,6 @@ def build_channels(
     return Channels(gateway, web, PlatformChannels(gateway, keyring, make_channel), link_codes)
 
 
-def _resolve_context_tokens(settings: Settings, keyring: SecretService) -> int | None:
-    """The compaction window: the configured cap, the Default model endpoint's report, or `None`."""
-    configured = settings.compaction.context_tokens
-    if configured is not None:
-        logger.info("compaction: context window %d tokens (from config)", configured)
-        return configured
-    default = keyring.model_credential_named(DEFAULT_MODEL_CREDENTIAL)
-    if default is None:
-        logger.warning(
-            "compaction: context window unknown — no config value and no Default model saved "
-            "yet; automatic compaction is off until the next start, only a provider overflow "
-            "triggers it"
-        )
-        return None
-    discovered = context_window_tokens(llm_settings_for(default, settings.llm))
-    if discovered is not None:
-        logger.info("compaction: context window %d tokens (reported by endpoint)", discovered)
-    else:
-        logger.warning(
-            "compaction: context window unknown — no config value and the endpoint did not "
-            "report one; automatic compaction is off, only a provider overflow triggers it"
-        )
-    return discovered
-
-
 def create_web_app() -> FastAPI:
     """The application uvicorn starts."""
     configure_logging()
@@ -174,13 +131,12 @@ def create_web_app() -> FastAPI:
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
     saved_servers = build_saved_servers(settings)
-    mcp = build_mcp(settings, secrets, saved_servers)
+    mcp = build_mcp(saved_servers)
     skills = SkillService(settings.skills)
     approvals = ApprovalService(
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
-    context_tokens = _resolve_context_tokens(settings, secrets)
     bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
     runtime = build_runtime(
         settings,
@@ -189,7 +145,6 @@ def create_web_app() -> FastAPI:
         skills,
         client_tools,
         approvals,
-        context_tokens,
         bots=bots,
         subagent_logs=build_subagent_logs(settings),
         secrets=secrets,
@@ -202,7 +157,6 @@ def create_web_app() -> FastAPI:
     channels = build_channels(
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
-    shipped_model = ModelDetails(base_url=settings.llm.base_url, model=settings.llm.model)
     return create_app(
         runs,
         channels,
@@ -214,7 +168,6 @@ def create_web_app() -> FastAPI:
         bots,
         secrets,
         messages,
-        shipped_model,
     )
 
 
@@ -229,7 +182,6 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
-    shipped_model: ModelDetails,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -254,11 +206,10 @@ def create_app(
     app.include_router(build_mcp_router(mcp, relays))
     app.include_router(build_relay_router(relays))
     app.include_router(build_client_router(web, client_tools))
-    app.include_router(build_secret_card_router(web, client_tools, secrets))
+    effects = CredentialEffects(bots, channels.platforms)
+    app.include_router(build_secret_card_router(web, client_tools, secrets, effects))
     app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(
-        build_credentials_router(secrets, bots, channels.platforms, mcp, shipped_model)
-    )
+    app.include_router(build_credentials_router(secrets, bots, channels.platforms))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets))

@@ -3,7 +3,7 @@ import type {
   AppToolResult,
   Approvals,
   Bot,
-  BotDraft,
+  BotEdit,
   BundledFile,
   ConversationDetail,
   ClientAnswer,
@@ -18,6 +18,7 @@ import type {
   SkillSummary,
   ChatFile,
 } from "./types";
+import type { ModelDetails } from "./credentials";
 
 /** Thrown for any non-2xx, carrying the backend's `detail` so the UI can show it. */
 export class ApiError extends Error {
@@ -111,13 +112,16 @@ export const sendToolOutput = <T>(
     },
   );
 
+/** What an `ask_for_secret` card posts: the key, and an LLM's endpoint, model and vision as edited. */
+export type SecretEntry = { value: string } | { value: string; details: ModelDetails };
+
 /** The key the person typed on an `ask_for_secret` card; the model gets back only its name. */
-export const saveSecret = (id: string, callId: string, value: string) =>
+export const saveSecret = (id: string, callId: string, entry: SecretEntry) =>
   request<void>(
     `/conversations/${id}/calls/${encodeURIComponent(callId)}/secret`,
     {
       method: "POST",
-      body: JSON.stringify({ value }),
+      body: JSON.stringify(entry),
     },
   );
 
@@ -129,10 +133,11 @@ export const listBots = () => request<Bot[]>("/bots");
 
 export const listArchivedBots = () => request<Bot[]>("/bots/archived");
 
-export const updateBot = (id: string, draft: BotDraft) =>
+/** Save the bot's name, instructions and model, or no model for null, in one request. */
+export const updateBot = (id: string, edit: BotEdit) =>
   request<Bot>(`/bots/${encodeURIComponent(id)}`, {
     method: "PUT",
-    body: JSON.stringify(draft),
+    body: JSON.stringify(edit),
   });
 
 /** Hide a bot and its chat until it is restored. */

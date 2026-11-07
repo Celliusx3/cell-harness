@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.bots import ASSISTANT_ID
 from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.session.models import ToolResultEvent
@@ -21,9 +22,8 @@ from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
-from tests.unit.helpers import client_tools, drain, no_approvals, no_bots, no_skills
-from tests.unit.mcp_fakes import no_keys
-from tests.webapp import files_in, images_in, secrets_with_default_model
+from tests.unit.helpers import client_tools, drain, no_approvals, no_skills
+from tests.webapp import assistant_on_a_model, bots_in, files_in, images_in
 
 DOT = base64.b64decode(DOT_PNG)
 NOT_THIS_CHAT = "is not a file in this chat"
@@ -47,24 +47,22 @@ async def result_in_chat_s(
     model = SteppedClient(calls_tool(tool, json.dumps(arguments)), completed("done"))
     monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: model)
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
+    bots = bots_in(tmp_path, SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
     runtime = build_runtime(
-        Settings(
-            local_settings_path=tmp_path / "config.local.json",
-            llm={"model": "m", "api_key": "k", "vision": True},
-        ),
+        Settings(),
         sessions,
-        McpService({}, saved={}, keys=no_keys()),
+        McpService({}),
         no_skills(),
         client_tools(),
         no_approvals(),
-        bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
+        bots=bots,
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
-        secrets=secrets_with_default_model(tmp_path),
+        secrets=assistant_on_a_model(tmp_path, bots),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
     session = await sessions.create("s")
-    await drain(runtime.run("open it", session=session, bot_id="b"))
+    await drain(runtime.run("open it", session=session, bot_id=ASSISTANT_ID))
     (result,) = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     return result
 

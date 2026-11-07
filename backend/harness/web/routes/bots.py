@@ -1,4 +1,4 @@
-"""The bots: list, make, edit, archive, restore or delete one, and choose the keys it may use."""
+"""The bots: list, make, edit, archive, restore or delete one, and choose its keys."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from harness.bots import Bot, BotDraft, BotService
+from harness.bots import Bot, BotDraft, BotEdit, BotService
 from harness.runs.service import RunService
-from harness.secrets import SecretNotFound, SecretService
+from harness.secrets import SecretName, SecretNotFound, SecretService
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,13 @@ class AllowedSecrets(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     names: tuple[str, ...]
+
+
+def _refuse_an_unsaved_model(secrets: SecretService, name: SecretName | None) -> None:
+    """Raise a 422 when `name` is not a saved LLM credential; `None` is no model, and passes."""
+    reason = None if name is None else secrets.not_a_model_reason(name)
+    if reason is not None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=reason)
 
 
 def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) -> None:
@@ -35,13 +42,17 @@ def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) ->
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=Bot)
     async def create_bot(body: BotDraft) -> Bot:
+        _refuse_an_unsaved_model(secrets, body.model)
         bot = await bots.create(body)
         logger.info("bot %s created", bot.id)
         return bot
 
     @router.put("/{bot_id}", response_model=Bot)
-    async def update_bot(bot_id: str, body: BotDraft) -> Bot:
-        return bots.update(bot_id, body)
+    async def update_bot(bot_id: str, body: BotEdit) -> Bot:
+        _refuse_an_unsaved_model(secrets, body.model)
+        bot = bots.update(bot_id, body)
+        logger.info("bot %s saved, answering on %s", bot_id, bot.model_credential)
+        return bot
 
     @router.put("/{bot_id}/secrets", response_model=Bot)
     async def set_bot_secrets(bot_id: str, body: AllowedSecrets) -> Bot:

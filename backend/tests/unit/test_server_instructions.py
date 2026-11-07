@@ -11,14 +11,14 @@ from harness.session.log import Session
 from harness.session.models import ServerInstructionsEvent
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, new_session, runtime_over
-from tests.unit.mcp_fakes import FakeFactory, no_keys, servers
+from tests.unit.mcp_fakes import FakeFactory, servers
 
 PC = "You have a PC."
 
 
 async def connected(factory: FakeFactory, *ids: str) -> McpService:
     """A started service, waited until its connections have settled."""
-    store = McpService(servers(*ids), client_factory=factory, saved={}, keys=no_keys())
+    store = McpService(servers(*ids), client_factory=factory)
     await store.start()
     for _ in range(200):
         if all(s.status != "connecting" for s in store.statuses()):
@@ -108,6 +108,6 @@ def test_the_prompt_holds_each_server_s_latest_instructions_as_a_paragraph() -> 
     ):
         session.append(event)
 
-    system = runtime.request_messages(session)[0]
+    system = runtime.request_messages(session, sees_images=False)[0]
 
     assert system.content == f"GUIDE\n\n{PC}\n\nFind places."

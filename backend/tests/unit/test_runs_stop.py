@@ -27,6 +27,7 @@ from tests.unit.fakes import (
     hanging_tool,
 )
 from tests.unit.helpers import drain, durable_service, run_service, unanswered_calls, until
+from tests.webapp import MODEL_CREDENTIAL
 
 
 @pytest.fixture
@@ -117,7 +118,7 @@ async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
     )
     first = await service.create(ASSISTANT_ID)
     second = await service.resume(
-        (await bots.create(BotDraft(name="Second", instructions="Two."))).id
+        (await bots.create(BotDraft(name="Second", instructions="Two.", model=MODEL_CREDENTIAL))).id
     )
     runs.start(first, "go")
     runs.start(second, "go")

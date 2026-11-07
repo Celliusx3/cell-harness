@@ -104,12 +104,19 @@ class HangingClient(LLMClient):
 
 @dataclass(frozen=True)
 class OneModel:
-    """Every bot's turns, and every compaction, ask `client` for the model `m`."""
+    """Every bot's turns, and every compaction, ask `client` for the model `m`, at one window."""
 
     client: LLMClient
+    vision: bool = False
+    context_tokens: int | None = None
 
     async def model_for(self, bot_id: str | None) -> ModelChoice:
-        return ModelChoice(self.client, "m")
+        return ModelChoice(self.client, "m", self.vision, self.context_tokens)
+
+
+def model_at(context_tokens: int | None) -> ModelChoice:
+    """A model that answers nothing, at the window `context_tokens`."""
+    return ModelChoice(ScriptedClient([]), "m", False, context_tokens)
 
 
 def completed(text: str) -> list[StreamEvent]:

@@ -10,14 +10,14 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict
 
 from harness.mcp import (
-    McpServerBuiltIn,
     McpServerNotFound,
     McpServerTaken,
     McpService,
-    SavedServer,
+    NewServer,
     SavedServerService,
     ServerDraft,
 )
+from harness.mcp.keys import missing_keys
 from harness.mcp.models.status import Status
 from harness.web.this_mac import (
     cors_headers,
@@ -28,11 +28,20 @@ from harness.web.this_mac import (
 
 logger = logging.getLogger("harness.mcp")
 
-REFUSED = (McpServerBuiltIn, McpServerNotFound, McpServerTaken)
+REFUSED = (McpServerNotFound, McpServerTaken)
+
+
+class KeyState(BaseModel):
+    """A key a server needs, by name, and whether its value is saved; never the value."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    is_set: bool
 
 
 class ServerEntry(BaseModel):
-    """One server as the screen lists it: how it runs, whether it is built in, and its state."""
+    """One server as the screen lists it: how it runs, its keys, and its state."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -40,14 +49,13 @@ class ServerEntry(BaseModel):
     command: str
     args: tuple[str, ...]
     env: dict[str, str]
-    needs: tuple[str, ...]
-    built_in: bool
+    keys: tuple[KeyState, ...]
     status: Status
     error: str
 
 
 class ServerEntries(BaseModel):
-    """Every server: the built-in ones from config first, then the saved ones as added."""
+    """Every server, in the order each was added."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -55,7 +63,7 @@ class ServerEntries(BaseModel):
 
 
 def build_router(mcp: McpService, saved: SavedServerService) -> APIRouter:
-    """List every server; add, change, remove and restart the person's own from this Mac."""
+    """List every server; add, change, remove and restart one from this Mac."""
     router = APIRouter(prefix="/api/mcp/servers", tags=["mcp"])
     _reading_routes(router, mcp)
     _saving_routes(router, mcp, saved)
@@ -81,10 +89,11 @@ def _saving_routes(router: APIRouter, mcp: McpService, saved: SavedServerService
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=ServerEntry)
     async def add_server(request: Request, response: Response) -> ServerEntry:
         headers = _permitted(request, response)
-        body = parsed_body(SavedServer, await request.body(), headers)
+        body = parsed_body(NewServer, await request.body(), headers)
+        added = body.saved(body.id, kept={})
         with _saved_or_answered(headers):
-            saved.add(body)
-        await mcp.add(body.id, body.server())
+            saved.add(added)
+        await mcp.add(added.id, added.server())
         logger.info("MCP server %s added", body.id)
         return _entry(mcp, body.id)
 
@@ -104,7 +113,7 @@ def _saving_routes(router: APIRouter, mcp: McpService, saved: SavedServerService
         with _saved_or_answered(headers):
             saved.remove(server_id)
         await mcp.remove(server_id)
-        logger.info("MCP server %s removed; its capability keys stay on Credentials", server_id)
+        logger.info("MCP server %s removed, its keys with it", server_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
 
 
@@ -146,16 +155,16 @@ def _known(mcp: McpService, server_id: str) -> None:
 
 
 def _entry(mcp: McpService, server_id: str) -> ServerEntry:
-    """`server_id` as listed; a key it needs is never shown, whichever file set it."""
+    """`server_id` as listed; a key it needs is only set or missing, whichever file set it."""
     server = mcp.server(server_id)
     state = next(s for s in mcp.statuses() if s.id == server_id)
+    missing = missing_keys(server)
     return ServerEntry(
         id=server_id,
         command=server.command,
         args=server.args,
         env={name: value for name, value in server.env.items() if name not in server.needs},
-        needs=server.needs,
-        built_in=mcp.is_built_in(server_id),
+        keys=tuple(KeyState(name=name, is_set=name not in missing) for name in server.needs),
         status=state.status,
         error=state.error,
     )

@@ -1,4 +1,4 @@
-"""What a credential is for beside its key: a site, a model, a chat platform, or a capability."""
+"""What a credential is for beside its key: a site, a model, or a chat platform."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from harness.secrets.models.destination import Destination
 
-WEB_SCHEMES = frozenset({"http", "https"})
+THIS_COMPUTER = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
 class CustomDetails(BaseModel):
@@ -22,21 +22,29 @@ class CustomDetails(BaseModel):
 
 
 class ModelDetails(BaseModel):
-    """A model provider's endpoint and the model to ask there; the key is the sealed value."""
+    """A model provider's endpoint, the model to ask there, and whether it can see images."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     kind: Literal["llm"] = "llm"
     base_url: str
     model: str
+    vision: bool
 
     @field_validator("base_url")
     @classmethod
     def _web_endpoint(cls, value: str) -> str:
         parts = urlsplit(value)
-        if parts.scheme not in WEB_SCHEMES or not parts.netloc:
-            raise ValueError("the endpoint must be an http:// or https:// address")
-        return value
+        if not parts.hostname:
+            raise ValueError("the endpoint must be an https:// address")
+        if parts.scheme == "https":
+            return value
+        if parts.scheme == "http" and parts.hostname in THIS_COMPUTER:
+            return value
+        raise ValueError(
+            "the endpoint must be an https:// address; plain http:// is only for "
+            "localhost or 127.0.0.1"
+        )
 
     @field_validator("model")
     @classmethod
@@ -62,28 +70,11 @@ class DiscordDetails(BaseModel):
     kind: Literal["discord"] = "discord"
 
 
-class CapabilityDetails(BaseModel):
-    """One env variable of one MCP server, by the server's id; the key is the sealed value."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    kind: Literal["capability"] = "capability"
-    server: str
-    variable: str
-
-    @field_validator("server", "variable")
-    @classmethod
-    def _named(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("a capability key names its server and its env variable")
-        return value
-
-
 ChatPlatform = Literal["telegram", "discord"]
 
 ChatPlatformDetails = TelegramDetails | DiscordDetails
 
 CredentialDetails = Annotated[
-    CustomDetails | ModelDetails | TelegramDetails | DiscordDetails | CapabilityDetails,
+    CustomDetails | ModelDetails | TelegramDetails | DiscordDetails,
     Field(discriminator="kind"),
 ]

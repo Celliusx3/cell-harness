@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { SetupColumn } from "@/components/setup/SetupColumn";
 import { SetupForm } from "@/components/setup/SetupForm";
 import { ApiError } from "@/lib/api";
-import { canSaveCredentials, hasDefaultModel, listCredentials, type CredentialList } from "@/lib/credentials";
+import { canSaveCredentials, hasModelCredential, listCredentials, type CredentialList } from "@/lib/credentials";
 
 type SetupState =
   | { kind: "loading" }
@@ -15,7 +15,7 @@ type SetupState =
   | { kind: "cannotSave" }
   | { kind: "canSave"; list: CredentialList };
 
-/** Asks for the API key that becomes the Default model, on the Mac that runs the harness and only before one is saved. */
+/** Asks for the API key Assistant answers with, on the Mac that runs the harness and only before a model is saved. */
 export default function SetupPage() {
   const router = useRouter();
   const [state, setState] = useState<SetupState>({ kind: "loading" });
@@ -48,7 +48,7 @@ export default function SetupPage() {
         </h1>
       )}
       {state.kind === "canSave" && (
-        <SetupForm shippedModel={state.list.shipped_model} directUrl={state.list.direct_url} />
+        <SetupForm directUrl={state.list.direct_url} />
       )}
     </SetupColumn>
   );
@@ -56,6 +56,6 @@ export default function SetupPage() {
 
 async function readSetupState(): Promise<SetupState> {
   const list = await listCredentials();
-  if (hasDefaultModel(list.credentials)) return { kind: "alreadySetUp" };
+  if (hasModelCredential(list.credentials)) return { kind: "alreadySetUp" };
   return (await canSaveCredentials(list.direct_url)) ? { kind: "canSave", list } : { kind: "cannotSave" };
 }

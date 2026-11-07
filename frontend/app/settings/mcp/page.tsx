@@ -78,10 +78,9 @@ export default function McpServersPage() {
   }
 
   function actionsFor(server: McpServer): ServerActions {
-    const isOwn = canChange === true && !server.built_in;
     return {
-      onEdit: isOwn ? () => setDialog({ isOpen: true, server }) : null,
-      onRemove: isOwn ? () => handleRemove(server) : null,
+      onEdit: canChange === true ? () => setDialog({ isOpen: true, server }) : null,
+      onRemove: canChange === true ? () => handleRemove(server) : null,
       onRestart:
         canChange === true && server.status === "failed"
           ? () => void act((url) => restartMcpServer(url, server.id), "Could not reach the harness to restart it.")

@@ -119,7 +119,9 @@ def test_without_vision_an_image_already_logged_is_not_sent() -> None:
     for event in person_then_tool(attached=(DOT_IMAGE,), returned=()):
         session.append(event)
 
-    messages = runtime_over(ScriptedClient([]), images=None).request_messages(session)
+    messages = runtime_over(ScriptedClient([]), images=None).request_messages(
+        session, sees_images=False
+    )
 
     assert shown(messages) == []
     assert messages[0] == UserMessage(content=f"look\n{IMAGE_NOT_SHOWN}")
@@ -131,7 +133,7 @@ async def test_the_summary_request_carries_no_images(tmp_path) -> None:
         session.append(event)
     client = ScriptedClient(completed("THE SUMMARY"))
     runtime = runtime_over(client, images=images_at(tmp_path))
-    assert len(shown(runtime.request_messages(session))) == 2
+    assert len(shown(runtime.request_messages(session, sees_images=True))) == 2
 
     await drain(run_compaction(runtime, session, turn=1, trigger="manual"))
 

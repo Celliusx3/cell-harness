@@ -1,4 +1,4 @@
-"""A saved server survives a restart, waits for its Capability key, and is never half-saved."""
+"""A saved server survives a restart, keeps its keys in its own file, and is never half-saved."""
 
 from __future__ import annotations
 
@@ -9,12 +9,7 @@ import pytest
 from tests.unit.mcp_server_world import ServerWorld, draft, exa
 
 EXA_KEY = "EXA_API_KEY"
-CAPABILITY_KEY = {
-    "name": "exa",
-    "details": {"kind": "capability", "server": "exa", "variable": EXA_KEY},
-    "value": "exa-secret-key-1234",
-    "bot_ids": [],
-}
+SECRET = "exa-secret-key-1234"
 
 
 @pytest.fixture
@@ -42,38 +37,55 @@ async def test_the_servers_survive_a_new_harness_reading_the_same_file(tmp_path:
     await second.mcp.aclose()
 
 
-async def test_a_server_that_needs_a_key_waits_until_it_is_saved_on_credentials(world) -> None:
+async def test_a_server_that_needs_a_key_waits_until_an_edit_gives_it(world) -> None:
     added = await world.send("POST", "/api/mcp/servers", exa(needs=[EXA_KEY]))
 
     assert added.json()["status"] == "waiting"
     assert added.json()["error"] == f"needs {EXA_KEY}"
 
-    saved = await world.send("POST", "/api/credentials", CAPABILITY_KEY)
+    body = draft(exa(needs=[EXA_KEY], keys={EXA_KEY: SECRET}))
+    changed = await world.send("PUT", "/api/mcp/servers/exa", body)
     await world.settled()
 
-    assert saved.status_code == 201
+    assert changed.status_code == 200
+    assert changed.json()["keys"] == [{"name": EXA_KEY, "is_set": True}]
     assert world.status("exa") == "connected"
-    assert world.factory.started[-1].env[EXA_KEY] == "exa-secret-key-1234"
+    assert world.factory.started[-1].env[EXA_KEY] == SECRET
 
 
-async def test_a_key_for_a_variable_the_saved_server_does_not_need_is_refused(world) -> None:
-    await world.send("POST", "/api/mcp/servers", exa(needs=[EXA_KEY]))
-    wrong = {**CAPABILITY_KEY["details"], "variable": "OTHER_KEY"}
-
-    response = await world.send("POST", "/api/credentials", {**CAPABILITY_KEY, "details": wrong})
+@pytest.mark.parametrize(
+    ("keys", "refusal"),
+    [
+        ({"OTHER_KEY": SECRET}, "OTHER_KEY is not a key this server needs"),
+        ({EXA_KEY: "  "}, f"{EXA_KEY} is blank; leave a key out to keep the one saved"),
+    ],
+)
+async def test_a_key_not_needed_or_blank_is_refused_unsaved_and_unechoed(
+    world, keys: dict[str, str], refusal: str
+) -> None:
+    response = await world.send("POST", "/api/mcp/servers", exa(needs=[EXA_KEY], keys=keys))
 
     assert response.status_code == 422
-    assert world.secrets.saved_credentials() == ()
+    assert refusal in response.text
+    assert SECRET not in response.text
+    assert world.saved.servers() == ()
 
 
-async def test_a_removed_server_leaves_its_key_in_the_keyring(world) -> None:
-    await world.send("POST", "/api/mcp/servers", exa(needs=[EXA_KEY]))
-    await world.send("POST", "/api/credentials", CAPABILITY_KEY)
+async def test_a_key_no_longer_needed_is_dropped_from_the_file(world) -> None:
+    await world.send("POST", "/api/mcp/servers", exa(needs=[EXA_KEY], keys={EXA_KEY: SECRET}))
+
+    await world.send("PUT", "/api/mcp/servers/exa", draft(exa()))
+
+    assert SECRET not in world.path.read_text()
+    assert EXA_KEY not in world.saved.servers()[0].env
+
+
+async def test_a_removed_server_takes_its_key_with_it(world) -> None:
+    await world.send("POST", "/api/mcp/servers", exa(needs=[EXA_KEY], keys={EXA_KEY: SECRET}))
 
     await world.send("DELETE", "/api/mcp/servers/exa")
 
-    assert [c.name for c in world.secrets.saved_credentials()] == ["exa"]
-    assert (await world.send("DELETE", "/api/credentials/exa")).status_code == 204
+    assert SECRET not in world.path.read_text()
 
 
 async def test_an_add_that_cannot_be_written_changes_nothing(world) -> None:
