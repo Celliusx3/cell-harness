@@ -213,7 +213,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
             local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
         ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, keys=no_keys()),
+        McpService({}, saved={}, keys=no_keys()),
         no_skills(),
         client_tools(),
         no_approvals(),

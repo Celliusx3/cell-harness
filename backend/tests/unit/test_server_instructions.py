@@ -18,7 +18,7 @@ PC = "You have a PC."
 
 async def connected(factory: FakeFactory, *ids: str) -> McpService:
     """A started service, waited until its connections have settled."""
-    store = McpService(servers(*ids), client_factory=factory, keys=no_keys())
+    store = McpService(servers(*ids), client_factory=factory, saved={}, keys=no_keys())
     await store.start()
     for _ in range(200):
         if all(s.status != "connecting" for s in store.statuses()):

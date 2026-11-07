@@ -1,6 +1,6 @@
 # 01 The person's MCP servers are saved, and start and stop live
 
-**Status.** open
+**Status.** done
 
 **What to build.** A saved list of the person's servers in its own file
 (`mcp.path`, default `~/.harness/mcp.json`; the Mac app's is in its data

@@ -69,7 +69,7 @@ def runtime_seeing(tmp_path: Path, *, vision: bool) -> Runtime:
             llm={"model": "m", "api_key": "k", "vision": vision},
         ),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}, keys=no_keys()),
+        McpService({}, saved={}, keys=no_keys()),
         no_skills(),
         client_tools(),
         no_approvals(),

@@ -46,7 +46,7 @@ class World:
             "markets": McpServer(command="does-not-run", needs=(COINGECKO,)),
             "fs": McpServer(command="does-not-run"),
         }
-        self.mcp = McpService(configured, keys=self.secrets, client_factory=self.factory)
+        self.mcp = McpService(configured, saved={}, keys=self.secrets, client_factory=self.factory)
         app = FastAPI()
         app.include_router(
             build_router(

@@ -122,9 +122,7 @@ class McpServer(BaseModel):
     @classmethod
     def _spawnable(cls, value: str) -> str:
         """A config that cannot work is a startup failure, not a silent no-op."""
-        if not value.strip():
-            raise ValueError("command must not be blank")
-        return value
+        return spawnable_command(value)
 
     @field_validator("env")
     @classmethod
@@ -139,30 +137,54 @@ class McpServer(BaseModel):
     @classmethod
     def _named(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         """Each key the server waits for is named by the env variable it is passed in."""
-        if any(not name.strip() for name in value):
-            raise ValueError("needs must name env variables, none blank")
-        return value
+        return named_keys(value)
 
 
 class McpSettings(BaseModel):
-    """Which MCP servers to connect at startup."""
+    """Which MCP servers to connect at startup, and where the person's own servers are kept."""
 
     servers: dict[str, McpServer] = Field(default_factory=dict)
+    path: Path = Path.home() / ".harness" / "mcp.json"
 
     @field_validator("servers")
     @classmethod
     def _usable_ids(cls, value: dict[str, McpServer]) -> dict[str, McpServer]:
         """Ids must survive being half of a tool name, and half of an identifier."""
         for name in value:
-            if not _SERVER_ID.match(name):
-                raise ValueError(
-                    f"{name!r} is not a usable MCP server id: a lowercase letter followed "
-                    "by lowercase letters or digits, at most 32. No underscore, because it "
-                    "would make the {server}__{tool} split ambiguous; no hyphen and no "
-                    "leading digit, because {server}__{tool} becomes a TypeScript identifier "
-                    "in code mode"
-                )
+            usable_server_id(name)
         return value
+
+    @field_validator("path")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
 
 
 _SERVER_ID = re.compile(r"^[a-z][a-z0-9]{0,31}$")
+
+
+def usable_server_id(name: str) -> str:
+    """`name`, if it can be half of a tool name and half of an identifier; `ValueError` if not."""
+    if not _SERVER_ID.match(name):
+        raise ValueError(
+            f"{name!r} is not a usable MCP server id: a lowercase letter followed "
+            "by lowercase letters or digits, at most 32. No underscore, because it "
+            "would make the {server}__{tool} split ambiguous; no hyphen and no "
+            "leading digit, because {server}__{tool} becomes a TypeScript identifier "
+            "in code mode"
+        )
+    return name
+
+
+def spawnable_command(value: str) -> str:
+    """`value`, if it names something to run; `ValueError` for a blank one."""
+    if not value.strip():
+        raise ValueError("command must not be blank")
+    return value
+
+
+def named_keys(value: tuple[str, ...]) -> tuple[str, ...]:
+    """`value`, if each key is named by an env variable; `ValueError` for a blank name."""
+    if any(not name.strip() for name in value):
+        raise ValueError("needs must name env variables, none blank")
+    return value

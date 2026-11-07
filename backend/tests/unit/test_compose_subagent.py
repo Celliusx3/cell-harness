@@ -62,7 +62,7 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
         subagent_logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
-        mcp = McpService({"stub": McpServer(command="does-not-run")}, keys=no_keys())
+        mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys())
         runtime = build_runtime(
             settings,
             sessions,

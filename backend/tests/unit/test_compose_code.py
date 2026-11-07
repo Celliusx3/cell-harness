@@ -50,7 +50,7 @@ def compose(tmp_path: Path):
             local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
         )
         sessions = SessionService(JsonlSessionRepository(tmp_path))
-        mcp = McpService({"stub": McpServer(command="does-not-run")}, keys=no_keys())
+        mcp = McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys())
         return build_runtime(
             settings,
             sessions,

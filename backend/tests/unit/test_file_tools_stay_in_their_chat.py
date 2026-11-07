@@ -53,7 +53,7 @@ async def result_in_chat_s(
             llm={"model": "m", "api_key": "k", "vision": True},
         ),
         sessions,
-        McpService({}, keys=no_keys()),
+        McpService({}, saved={}, keys=no_keys()),
         no_skills(),
         client_tools(),
         no_approvals(),

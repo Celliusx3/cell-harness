@@ -18,7 +18,9 @@ from tests.webapp import web_app
 
 async def test_a_required_server_that_fails_stops_startup_naming_it_and_its_error() -> None:
     factory = FakeFactory(connect_error=RuntimeError("turn on virtualization"))
-    store = McpService(servers("computer", required=True), client_factory=factory, keys=no_keys())
+    store = McpService(
+        servers("computer", required=True), client_factory=factory, saved={}, keys=no_keys()
+    )
 
     with pytest.raises(RequiredServerError, match="computer.*turn on virtualization"):
         await store.start()
@@ -28,7 +30,9 @@ async def test_a_required_server_that_fails_stops_startup_naming_it_and_its_erro
 
 async def test_a_required_server_that_connects_lets_startup_continue() -> None:
     factory = FakeFactory(connect_delay=0.05)
-    store = McpService(servers("computer", required=True), client_factory=factory, keys=no_keys())
+    store = McpService(
+        servers("computer", required=True), client_factory=factory, saved={}, keys=no_keys()
+    )
 
     await store.start()
 
@@ -39,7 +43,7 @@ async def test_a_required_server_that_connects_lets_startup_continue() -> None:
 
 async def test_a_server_that_is_not_required_still_fails_quietly() -> None:
     factory = FakeFactory(connect_error=RuntimeError("no such command"))
-    store = McpService(servers("sysmon"), client_factory=factory, keys=no_keys())
+    store = McpService(servers("sysmon"), client_factory=factory, saved={}, keys=no_keys())
 
     await store.start()
     await store.aclose()
@@ -50,7 +54,9 @@ async def test_a_required_server_that_never_answers_stops_startup_after_the_wait
 ) -> None:
     monkeypatch.setattr(service_module, "REQUIRED_CONNECT_TIMEOUT_SECONDS", 0.05)
     factory = FakeFactory(connect_delay=5.0)
-    store = McpService(servers("computer", required=True), client_factory=factory, keys=no_keys())
+    store = McpService(
+        servers("computer", required=True), client_factory=factory, saved={}, keys=no_keys()
+    )
 
     with pytest.raises(RequiredServerError, match="computer.*within 0.05s"):
         await store.start()
@@ -59,7 +65,9 @@ async def test_a_required_server_that_never_answers_stops_startup_after_the_wait
 async def test_the_app_does_not_serve_without_a_required_server(tmp_path) -> None:
     service, runs = build(tmp_path, ScriptedClient([]))
     factory = FakeFactory(connect_error=RuntimeError("Docker is not running"))
-    mcp = McpService(servers("computer", required=True), client_factory=factory, keys=no_keys())
+    mcp = McpService(
+        servers("computer", required=True), client_factory=factory, saved={}, keys=no_keys()
+    )
     app = web_app(tmp_path, service, runs, mcp=mcp, skills=no_skills())
 
     with pytest.raises(RequiredServerError, match="computer.*Docker is not running"):

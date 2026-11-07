@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterator
-from contextlib import contextmanager
-from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
-from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from harness.bots import Bot, BotNotFound, BotService, served_bots
 from harness.mcp import McpService
@@ -28,17 +25,17 @@ from harness.secrets.models.details import (
     ModelDetails,
 )
 from harness.web.credential_effects import CredentialEffects
-from harness.web.errors import STATUS_OF
 from harness.web.platforms import PlatformChannels
+from harness.web.this_mac import (
+    cors_headers,
+    parsed_body,
+    permitted_write_headers,
+    refusals_answered_with,
+)
 
 logger = logging.getLogger(__name__)
 
-LOOPBACK_ADDRESSES = frozenset({"127.0.0.1", "::1"})
-LOOPBACK_HOSTNAMES = frozenset({"localhost", "127.0.0.1", "::1"})
-PROXY_HEADER_NAMES = ("forwarded", "x-real-ip")
-PROXY_HEADER_PREFIX = "x-forwarded-"
-ALLOWED_METHODS = "GET, POST, PATCH, DELETE, OPTIONS"
-ALLOWED_HEADERS = "content-type"
+REFUSED = (BotNotFound, SecretNotFound, SecretRefused)
 PLATFORM_SERVES_NO_BOTS = "a Telegram or Discord credential serves no bots; tick none"
 CAPABILITY_SERVES_NO_BOTS = "a capability key serves its capability, not bots; tick none"
 
@@ -112,7 +109,7 @@ def build_router(
 
     @router.get("", response_model=CredentialList)
     async def list_credentials(request: Request, response: Response) -> CredentialList:
-        response.headers.update(_cors_headers(request))
+        response.headers.update(cors_headers(request))
         saved = await asyncio.to_thread(secrets.saved_credentials)
         active = await bots.active_bots()
         return CredentialList(
@@ -125,14 +122,14 @@ def build_router(
     @router.options("/{name}")
     async def answer_preflight(request: Request) -> Response:
         """A page on this Mac may write here; any other page gets no permission."""
-        return Response(status_code=status.HTTP_204_NO_CONTENT, headers=_cors_headers(request))
+        return Response(status_code=status.HTTP_204_NO_CONTENT, headers=cors_headers(request))
 
     @router.post("", status_code=status.HTTP_201_CREATED)
     async def add_credential(request: Request) -> Response:
-        headers = _permitted_write_headers(request)
-        body = _parsed_body(NewCredential, await request.body(), headers)
+        headers = permitted_write_headers(request)
+        body = parsed_body(NewCredential, await request.body(), headers)
         _refuse_unneeded_capability_key(effects, body.details, headers)
-        with _refusals_answered_with(headers):
+        with refusals_answered_with(headers, REFUSED):
             _refuse_inactive_bots(bots, body.bot_ids)
             await asyncio.to_thread(secrets.add_credential, body.name, body.details, body.value)
         await effects.added(body.name, body.details, body.bot_ids)
@@ -141,10 +138,10 @@ def build_router(
 
     @router.patch("/{name}")
     async def change_credential(name: str, request: Request) -> Response:
-        headers = _permitted_write_headers(request)
-        body = _parsed_body(CredentialChange, await request.body(), headers)
+        headers = permitted_write_headers(request)
+        body = parsed_body(CredentialChange, await request.body(), headers)
         _refuse_unneeded_capability_key(effects, body.details, headers)
-        with _refusals_answered_with(headers):
+        with refusals_answered_with(headers, REFUSED):
             _refuse_inactive_bots(bots, body.bot_ids)
             replaced = await asyncio.to_thread(
                 secrets.change_credential, name, body.details, body.value
@@ -157,8 +154,8 @@ def build_router(
 
     @router.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
     async def remove_credential(name: str, request: Request) -> Response:
-        headers = _permitted_write_headers(request)
-        with _refusals_answered_with(headers):
+        headers = permitted_write_headers(request)
+        with refusals_answered_with(headers, REFUSED):
             removed = secrets.delete(name)
         await effects.removed(name, removed)
         logger.info("credential %r removed from the keyring and every bot", name)
@@ -196,76 +193,10 @@ def _credential_entry(credential: SavedCredential, active: tuple[Bot, ...]) -> C
     )
 
 
-def _permitted_write_headers(request: Request) -> dict[str, str]:
-    """The CORS headers for a write from a page on this Mac; a 403 saying why for any other."""
-    headers = _cors_headers(request)
-    refusal = _save_refusal_reason(request)
-    if refusal is not None:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=refusal, headers=headers)
-    return headers
-
-
-def _parsed_body[Body: BaseModel](model: type[Body], raw: bytes, headers: dict[str, str]) -> Body:
-    """`raw` parsed as `model`; a 422 naming each refused field, never what was typed in it."""
-    try:
-        return model.model_validate_json(raw)
-    except ValidationError as err:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=err.errors(include_url=False, include_context=False, include_input=False),
-            headers=headers,
-        ) from None
-
-
-@contextmanager
-def _refusals_answered_with(headers: dict[str, str]) -> Iterator[None]:
-    """A refused write answered with its usual status, and the headers that let the page read it."""
-    try:
-        yield
-    except (BotNotFound, SecretNotFound, SecretRefused) as err:
-        raise HTTPException(STATUS_OF[type(err)], detail=str(err), headers=headers) from err
-
-
 def _refuse_inactive_bots(bots: BotService, bot_ids: tuple[str, ...]) -> None:
     """`BotNotFound` for a ticked bot that is not active, before anything is saved."""
     for bot_id in bot_ids:
         bots.active_bot(bot_id)
-
-
-def _save_refusal_reason(request: Request) -> str | None:
-    """Why a save is refused, or None for a page on this Mac that reached the harness directly."""
-    if any(_is_proxy_header(name) for name in request.headers):
-        return "Saving through a proxy is refused; open the page on the Mac that runs the harness."
-    if request.client is None or request.client.host not in LOOPBACK_ADDRESSES:
-        return "Saving is refused from another device."
-    if not _is_page_on_this_mac(request.headers.get("origin")):
-        return "Saving is refused from a page that is not this harness's own."
-    return None
-
-
-def _is_proxy_header(name: str) -> bool:
-    lowered = name.lower()
-    return lowered.startswith(PROXY_HEADER_PREFIX) or lowered in PROXY_HEADER_NAMES
-
-
-def _is_page_on_this_mac(origin: str | None) -> bool:
-    if origin is None:
-        return False
-    parts = urlsplit(origin)
-    return parts.scheme == "http" and parts.hostname in LOOPBACK_HOSTNAMES
-
-
-def _cors_headers(request: Request) -> dict[str, str]:
-    """Cross-origin permission for a page served from this Mac, and none for any other page."""
-    origin = request.headers.get("origin")
-    if not _is_page_on_this_mac(origin):
-        return {}
-    return {
-        "access-control-allow-origin": str(origin),
-        "access-control-allow-methods": ALLOWED_METHODS,
-        "access-control-allow-headers": ALLOWED_HEADERS,
-        "vary": "Origin",
-    }
 
 
 def _direct_url(request: Request) -> str:

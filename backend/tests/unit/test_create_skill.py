@@ -61,7 +61,7 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
             local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
         ),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({"stub": McpServer(command="does-not-run")}, keys=no_keys()),
+        McpService({"stub": McpServer(command="does-not-run")}, saved={}, keys=no_keys()),
         skills_at(tmp_path / "skills"),
         client_tools(),
         no_approvals(),

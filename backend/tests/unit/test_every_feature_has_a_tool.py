@@ -60,6 +60,23 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/mcp/{server}/tools/{name}": NotATool(
         "an MCP App's own call to its server; the model reaches that tool through code mode"
     ),
+    "OPTIONS /api/mcp/servers": NotATool("a browser's preflight; it changes nothing"),
+    "OPTIONS /api/mcp/servers/{server_id}": NotATool("a browser's preflight; it changes nothing"),
+    "OPTIONS /api/mcp/servers/{server_id}/restart": NotATool(
+        "a browser's preflight; it changes nothing"
+    ),
+    "POST /api/mcp/servers": NotATool(
+        "a server is a program run on the person's Mac; only the person adds one, on the screen"
+    ),
+    "PUT /api/mcp/servers/{server_id}": NotATool(
+        "changing the program a server runs is the person's call, on the MCP servers screen"
+    ),
+    "DELETE /api/mcp/servers/{server_id}": NotATool(
+        "removing a server is the person's call, on the MCP servers screen"
+    ),
+    "POST /api/mcp/servers/{server_id}/restart": NotATool(
+        "not yet: restarting a failed server from chat; the person does it on the screen"
+    ),
     "POST /api/bots": Tool(BOT_CREATE),
     "PUT /api/bots/{bot_id}": NotATool(
         "not yet: a bot made from chat has its instructions changed on its page"
@@ -102,7 +119,9 @@ CONFIG: dict[str, Tool | NotATool] = {
     "web": NotATool("the address the app is reached at belongs to whoever hosts it"),
     "code": NotATool("the sandbox's limits; the model never loosens its own"),
     "compaction": NotATool("the model's window size, set once per model"),
-    "mcp": NotATool("not yet: connecting from chat needs a server to start while the app runs"),
+    "mcp": NotATool(
+        "the servers config builds in, and where the person's own are kept; set at start"
+    ),
     "skills": NotATool("where skills live; skill_save and skill_delete work in the editable one"),
     "approval": NotATool("what the model must ask before doing; it never edits its own list"),
     "bots": NotATool("where the bots are kept; moving it while running loses them"),
@@ -139,7 +158,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
             local_settings_path=tmp_path / "config.local.json", llm={"model": "m", "api_key": "k"}
         ),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({}, keys=no_keys()),
+        McpService({}, saved={}, keys=no_keys()),
         no_skills(),
         client_tools(),
         no_approvals(),

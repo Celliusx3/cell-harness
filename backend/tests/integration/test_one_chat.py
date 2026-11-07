@@ -23,7 +23,14 @@ from harness.web.server import create_app
 from tests.unit.fakes import OneModel, SteppedClient, completed
 from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_skills
 from tests.unit.telegram_fakes import telegram_channel
-from tests.webapp import SHIPPED_MODEL, channels_of, secrets_in, web_gateway, web_mcp
+from tests.webapp import (
+    SHIPPED_MODEL,
+    channels_of,
+    saved_servers_in,
+    secrets_in,
+    web_gateway,
+    web_mcp,
+)
 
 CHAT = "909"
 
@@ -63,6 +70,7 @@ def build_on(tmp_path, model: LLMClient):
         runs,
         channels_of(gateway, web, secrets_in(tmp_path)),
         web_mcp(),
+        saved_servers_in(tmp_path),
         no_skills(),
         client_tools(),
         no_approvals(),

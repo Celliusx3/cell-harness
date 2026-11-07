@@ -19,7 +19,13 @@ from harness.config.sections import FileSettings, McpServer
 from harness.config.settings import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.mcp import McpClientFactory, McpService, open_stdio_client
+from harness.mcp import (
+    DiskSavedServerRepository,
+    McpClientFactory,
+    McpService,
+    SavedServerService,
+    open_stdio_client,
+)
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
@@ -56,7 +62,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
         compaction={"context_tokens": 1000},
-        mcp={"servers": {}},
+        mcp={"servers": {}, "path": tmp_path / "mcp.json"},
     )
 
 
@@ -162,7 +168,14 @@ def web_mcp(
     client_factory: McpClientFactory = open_stdio_client,
 ) -> McpService:
     """A service over whatever servers a test declares — none, by default."""
-    return McpService(servers or {}, client_factory=client_factory, keys=no_keys())
+    return McpService(servers or {}, client_factory=client_factory, saved={}, keys=no_keys())
+
+
+def saved_servers_in(tmp_path: Path) -> SavedServerService:
+    """The servers a test saves, kept in a file under `tmp_path`, beside no built-in one."""
+    return SavedServerService(
+        DiskSavedServerRepository(tmp_path / "mcp.json"), built_in_ids=frozenset()
+    )
 
 
 def web_app(
@@ -187,6 +200,7 @@ def web_app(
         runs,
         channels_of(gateway, web, secrets),
         mcp or web_mcp(),
+        saved_servers_in(tmp_path),
         skills,
         client_tools,
         approvals or no_approvals(),
@@ -217,6 +231,7 @@ def web_app_with_telegram(
         runs,
         channels_of(gateway, web, secrets),
         web_mcp(),
+        saved_servers_in(tmp_path),
         skills,
         client_tools or default_client_tools(),
         approvals or no_approvals(),

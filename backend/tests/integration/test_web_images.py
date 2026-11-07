@@ -31,7 +31,9 @@ DOT_SHA256 = hashlib.sha256(DOT).hexdigest()
 @pytest.fixture
 async def snapshot_tool():
     store = McpService(
-        {"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})}, keys=no_keys()
+        {"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})},
+        saved={},
+        keys=no_keys(),
     )
     tool_service = ToolService((), approvals=no_approvals())
     tool_service.add_provider(store.tools)
