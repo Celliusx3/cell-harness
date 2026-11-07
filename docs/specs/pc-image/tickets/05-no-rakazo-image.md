@@ -1,6 +1,6 @@
 # 05 Nothing of Rakazo's image is left, and the docs say so
 
-**Status.** open
+**Status.** done
 
 **What to build.** Rename every remaining `RAKAZO_` variable and `rakazo-`
 program name that the server passes to the PC. `mcp-servers/computer/NOTICE`

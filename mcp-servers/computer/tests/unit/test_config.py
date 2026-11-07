@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from computer.config import ConfigError, load
+from tests.conftest import IMAGE
 
 
 def folders(tmp_path: Path) -> dict[str, str]:
@@ -20,10 +21,10 @@ def folders(tmp_path: Path) -> dict[str, str]:
     }
 
 
-def test_only_the_folders_set_loads_rakazos_image_and_the_shared_name(tmp_path: Path) -> None:
+def test_only_the_folders_set_loads_our_image_and_the_shared_name(tmp_path: Path) -> None:
     config = load(folders(tmp_path))
 
-    assert config.image == "ghcr.io/elie222/rakazo/computer:edge"
+    assert config.image == IMAGE
     assert config.container_name == "cell-harness-computer"
     assert config.idle_minutes == 10
 

@@ -9,7 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, get_args
 
-IMAGE = "ghcr.io/elie222/rakazo/computer:edge"
+IMAGE = (
+    "ghcr.io/celliusx3/cell-harness/pc"
+    "@sha256:50c6c9f7c0aad1fb369f44d532a3c19f62c732a08f12b953b44664f3af21e9e3"
+)
 NAME = "cell-harness-computer"
 IDLE_MINUTES = 10
 
