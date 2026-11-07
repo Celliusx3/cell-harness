@@ -21,16 +21,16 @@ from computer.services.gateway import (
 )
 
 HOLD_TOKEN = "Zk3_q-9xYw2PqLm0aBcDeFgHiJkLmNoP"
-SOCKETS = "/tmp/rakazo/sockets"
-TARGETS = "/tmp/rakazo/desktop-targets"
+SOCKETS = "/tmp/pc/sockets"
+TARGETS = "/tmp/pc/desktop-targets"
 CONTROL_SOCKET = f"{SOCKETS}/control-1-{hashlib.sha256(HOLD_TOKEN.encode()).hexdigest()[:32]}"
-TOKEN_FILE = "/tmp/rakazo/control-token-1"
+TOKEN_FILE = "/tmp/pc/control-token-1"
 GATEWAY = f"--token-source={TARGETS} 0.0.0.0:6080"
 TERMINAL_TOKEN = "s4ell_Token-0123456789abcdefghijkl"
 TERMINAL_SOCKET = f"{SOCKETS}/terminal-1-{hashlib.sha256(HOLD_TOKEN.encode()).hexdigest()[:32]}"
-TERMINAL_SERVER = "/tmp/rakazo/rakazo-terminal.py"
+TERMINAL_SERVER = "/tmp/pc/terminal.py"
 TERMINAL_TARGET = f"{TARGETS}/terminal-1"
-TERMINAL_STAGED = "/tmp/rakazo/terminal-target-next-1"
+TERMINAL_STAGED = "/tmp/pc/terminal-target-next-1"
 
 
 def terminal_for(token: str) -> str:
@@ -136,10 +136,10 @@ def test_release_revokes_the_control_target_stops_its_vnc_and_forgets_the_token(
     script = release_script(HOLD_TOKEN)
 
     assert f'if [ -f {TOKEN_FILE} ] && [ "$(cat {TOKEN_FILE})" = {HOLD_TOKEN} ]; then' in script
-    revoke = script.index(": >/tmp/rakazo/control-target-next-1")
+    revoke = script.index(": >/tmp/pc/control-target-next-1")
     stop = script.index(f"pkill -f '^([^ ]*/)?x11vnc .* -unixsock {SOCKETS}/control-1-[^ ]+( |$)'")
     assert revoke < stop
-    assert f"mv /tmp/rakazo/control-target-next-1 {TARGETS}/control-1" in script
+    assert f"mv /tmp/pc/control-target-next-1 {TARGETS}/control-1" in script
     assert f"rm -f {TOKEN_FILE}" in script
     assert "x11vnc -display" not in script
     assert "view-1" not in script
@@ -182,8 +182,8 @@ def test_the_shell_server_takes_its_program_on_stdin_and_serves_a_socket_named_f
 
     assert f"  cat >{TERMINAL_SERVER}.$$\n  mv {TERMINAL_SERVER}.$$ {TERMINAL_SERVER}\n" in script
     assert (
-        f"HOME=/home/rakazo nohup python3 {TERMINAL_SERVER} {TERMINAL_SOCKET} /home/rakazo "
-        "/tmp/rakazo/terminal-state-1 " in script
+        f"HOME=/home/pc nohup python3 {TERMINAL_SERVER} {TERMINAL_SOCKET} /home/pc "
+        "/tmp/pc/terminal-state-1 " in script
     )
     assert "import " not in script
     assert (
@@ -214,7 +214,7 @@ def test_ending_or_renewing_a_hold_stops_the_shell_with_the_control_screen(
     server = f"{TERMINAL_SERVER} {SOCKETS}/terminal-1-[^ ]+"
     kill = text.index(f"pkill -f '^([^ ]*/)?python[0-9.]* {server}")
     assert revoke < kill
-    assert f"rm -rf {SOCKETS}/terminal-1-* /tmp/rakazo/terminal-state-1" in text
+    assert f"rm -rf {SOCKETS}/terminal-1-* /tmp/pc/terminal-state-1" in text
 
 
 def test_the_shell_url_is_the_gateway_socket_for_its_token() -> None:

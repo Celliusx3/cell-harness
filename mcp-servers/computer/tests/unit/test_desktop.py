@@ -150,7 +150,7 @@ async def test_a_docker_failure_on_the_port_reaches_the_preview_as_an_error() ->
 
 
 def test_the_token_is_read_from_the_containers_environment() -> None:
-    env = {"DISPLAY": ":1", "RAKAZO_COMPUTER_CONTROL_TOKEN": API_TOKEN, "HOME": "/home/rakazo"}
+    env = {"DISPLAY": ":1", "RAKAZO_COMPUTER_CONTROL_TOKEN": API_TOKEN, "HOME": "/home/pc"}
 
     assert api_token(env) == API_TOKEN
 

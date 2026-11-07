@@ -128,7 +128,7 @@ async def test_acting_returns_the_page_and_how_many_actions_completed() -> None:
         ("browser_act", {"actions": [CLICK | {"text": "x"}]}),
         ("browser_act", {"actions": [{"kind": "fill", "ref": "e1"}]}),
         ("browser_navigate", {"url": "example.com"}),
-        ("browser_navigate", {"url": "file:///home/rakazo/.bashrc"}),
+        ("browser_navigate", {"url": "file:///home/pc/.bashrc"}),
     ],
 )
 async def test_arguments_that_do_not_fit_are_refused_before_any_docker_call(

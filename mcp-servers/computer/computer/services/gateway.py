@@ -14,12 +14,12 @@ from computer.services.machine import DISPLAY, GATEWAY_PORT
 
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,64}")
 DISPLAY_NUMBER = DISPLAY.removeprefix(":")
-RAKAZO_DIR = "/tmp/rakazo"
-TARGETS = f"{RAKAZO_DIR}/desktop-targets"
-SOCKETS = f"{RAKAZO_DIR}/sockets"
-HOLD_TOKEN_FILE = f"{RAKAZO_DIR}/control-token-{DISPLAY_NUMBER}"
-TERMINAL_SERVER = f"{RAKAZO_DIR}/rakazo-terminal.py"
-TERMINAL_STATE = f"{RAKAZO_DIR}/terminal-state-{DISPLAY_NUMBER}"
+WORK_DIR = "/tmp/pc"
+TARGETS = f"{WORK_DIR}/desktop-targets"
+SOCKETS = f"{WORK_DIR}/sockets"
+HOLD_TOKEN_FILE = f"{WORK_DIR}/control-token-{DISPLAY_NUMBER}"
+TERMINAL_SERVER = f"{WORK_DIR}/terminal.py"
+TERMINAL_STATE = f"{WORK_DIR}/terminal-state-{DISPLAY_NUMBER}"
 WEBSOCKIFY_PATTERN = "^([^ ]*/)?python[0-9.]* +(-m +websockify|[^ ]*websockify[^ ]*) +.*"
 GATEWAY_ATTEMPTS = 5
 GATEWAY_ANSWERS = f"(echo >/dev/tcp/127.0.0.1/{GATEWAY_PORT}) >/dev/null 2>&1"
@@ -53,7 +53,7 @@ def hold_key(token: str) -> str:
 
 
 def screen_url(port: int, token: str, *, view_only: bool) -> str:
-    """Rakazo's noVNC page on the published gateway port, opening the screen this token names."""
+    """Our noVNC page on the published gateway port, opening the screen this token names."""
     query = urlencode(
         {"path": f"websockify?token={checked_token(token)}", "view_only": "1" if view_only else "0"}
     )
@@ -79,7 +79,7 @@ def x11vnc_script(socket: str, *, view_only: bool, log: str) -> str:
 
 def publish_target_script(kind: TargetKind, token: str, socket: str) -> str:
     """The gateway's token line for this screen, swapped in whole so a reader never sees half."""
-    staged = f"{RAKAZO_DIR}/{kind}-target-next-{DISPLAY_NUMBER}"
+    staged = f"{WORK_DIR}/{kind}-target-next-{DISPLAY_NUMBER}"
     return "\n".join(
         [
             f"for i in $(seq 1 50); do [ -S {socket} ] && break; sleep 0.1; done",
@@ -92,7 +92,7 @@ def publish_target_script(kind: TargetKind, token: str, socket: str) -> str:
 
 def revoke_target_script(kind: TargetKind) -> str:
     """The target file emptied, not removed: the gateway may be reading the directory."""
-    staged = f"{RAKAZO_DIR}/{kind}-target-next-{DISPLAY_NUMBER}"
+    staged = f"{WORK_DIR}/{kind}-target-next-{DISPLAY_NUMBER}"
     return f"mkdir -p {TARGETS}; : >{staged}; mv {staged} {TARGETS}/{kind}-{DISPLAY_NUMBER}"
 
 
@@ -116,7 +116,7 @@ def gateway_script() -> str:
     """websockify serving every target in the directory; started only when it is not already."""
     on_port = shlex.quote(f"{WEBSOCKIFY_PATTERN}[ :]{GATEWAY_PORT}( |$)")
     ours = shlex.quote(f"{WEBSOCKIFY_PATTERN}--token-source={TARGETS} +0.0.0.0:{GATEWAY_PORT}( |$)")
-    lock = f"{RAKAZO_DIR}/gateway-{GATEWAY_PORT}.lock"
+    lock = f"{WORK_DIR}/gateway-{GATEWAY_PORT}.lock"
     return "\n".join(
         [
             PROXY_ENVIRONMENT,
@@ -128,7 +128,7 @@ def gateway_script() -> str:
             f"  for i in $(seq 1 20); do if ! {GATEWAY_ANSWERS}; then break; fi; sleep 0.1; done",
             '  nohup "$proxy" --heartbeat=30 --web="$web" --token-plugin=TokenFile '
             f"--token-source={TARGETS} 0.0.0.0:{GATEWAY_PORT} 8>&- 9>&- 10>&- </dev/null "
-            f">{RAKAZO_DIR}/gateway-{GATEWAY_PORT}.log 2>&1 &",
+            f">{WORK_DIR}/gateway-{GATEWAY_PORT}.log 2>&1 &",
             f"  for i in $(seq 1 50); do {GATEWAY_ANSWERS} && break; sleep 0.1; done",
             "  sleep 0.5",
             "done",
@@ -153,7 +153,7 @@ def view_script(token: str) -> str:
             stop_vnc_script("view"),
             "  "
             + x11vnc_script(
-                socket, view_only=True, log=f"{RAKAZO_DIR}/x11vnc-view-{DISPLAY_NUMBER}.log"
+                socket, view_only=True, log=f"{WORK_DIR}/x11vnc-view-{DISPLAY_NUMBER}.log"
             ),
             "fi",
             publish_target_script("view", token, socket),
@@ -207,7 +207,7 @@ def take_control_script(token: str) -> str:
             f"mkdir -p {TARGETS} {SOCKETS}",
             f"printf %s {token} >{HOLD_TOKEN_FILE}",
             x11vnc_script(
-                socket, view_only=False, log=f"{RAKAZO_DIR}/x11vnc-control-{DISPLAY_NUMBER}.log"
+                socket, view_only=False, log=f"{WORK_DIR}/x11vnc-control-{DISPLAY_NUMBER}.log"
             ),
             publish_target_script("control", token, socket),
             gateway_script(),
@@ -234,7 +234,7 @@ def open_terminal_script(hold_token: str, terminal_token: str) -> str:
     hold_token, terminal_token = checked_token(hold_token), checked_token(terminal_token)
     socket = f"{SOCKETS}/terminal-{DISPLAY_NUMBER}-{hold_key(hold_token)}"
     target = f"{TARGETS}/terminal-{DISPLAY_NUMBER}"
-    staged = f"{RAKAZO_DIR}/terminal-target-next-{DISPLAY_NUMBER}"
+    staged = f"{WORK_DIR}/terminal-target-next-{DISPLAY_NUMBER}"
     entry = f"printf '%s: unix_socket:%s\\n' {terminal_token} {socket}"
     held = f'[ -f {HOLD_TOKEN_FILE} ] && [ "$(cat {HOLD_TOKEN_FILE})" = {hold_token} ]'
     return "\n".join(
@@ -249,7 +249,7 @@ def open_terminal_script(hold_token: str, terminal_token: str) -> str:
             f"  cat >{TERMINAL_SERVER}.$$",
             f"  mv {TERMINAL_SERVER}.$$ {TERMINAL_SERVER}",
             f"  HOME={HOME} nohup python3 {TERMINAL_SERVER} {socket} {HOME} {TERMINAL_STATE} "
-            f"8>&- 9>&- </dev/null >{RAKAZO_DIR}/terminal-{DISPLAY_NUMBER}.log 2>&1 &",
+            f"8>&- 9>&- </dev/null >{WORK_DIR}/terminal-{DISPLAY_NUMBER}.log 2>&1 &",
             f"  for i in $(seq 1 50); do [ -S {socket} ] && break; sleep 0.1; done",
             f"  [ -S {socket} ] || exit 1",
             f"  {entry} >{staged}",

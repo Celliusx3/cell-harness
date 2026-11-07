@@ -55,7 +55,7 @@ async def test_a_computer_without_the_mounts_is_replaced_keeping_its_home(tmp_pa
     assert MOUNTS in docker.calls
     assert verbs.index("rm") < verbs.index("run")
     run = next(call for call in docker.calls if call[0] == "run")
-    assert f"{NAME}-home:/home/rakazo" in run
+    assert f"{NAME}-home:/home/pc" in run
     assert f"{files}:{files}" in run
 
 

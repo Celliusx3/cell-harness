@@ -51,7 +51,7 @@ async def test_listing_returns_the_folder_and_its_entries() -> None:
     result = await call(docker, "file_list", {"path": "/notes/"})
 
     assert result.structured_content == {"path": "notes", "entries": ENTRIES}
-    assert file_calls(docker) == [([LIST_SCRIPT, HOME, "/home/rakazo/notes", "notes"], "")]
+    assert file_calls(docker) == [([LIST_SCRIPT, HOME, "/home/pc/notes", "notes"], "")]
 
 
 async def test_an_empty_path_lists_the_home_folder() -> None:
@@ -61,7 +61,7 @@ async def test_an_empty_path_lists_the_home_folder() -> None:
     result = await call(docker, "file_list", {"path": ""})
 
     assert result.structured_content == {"path": "", "entries": []}
-    assert file_calls(docker) == [([LIST_SCRIPT, HOME, "/home/rakazo", ""], "")]
+    assert file_calls(docker) == [([LIST_SCRIPT, HOME, "/home/pc", ""], "")]
 
 
 @pytest.mark.parametrize("path", ["null", "[1]", "{}"])
@@ -72,7 +72,7 @@ async def test_a_path_that_reads_as_json_is_still_a_path(path: str) -> None:
     result = await call(docker, "file_list", {"path": path})
 
     assert result.structured_content == {"path": path, "entries": []}
-    assert file_calls(docker) == [([LIST_SCRIPT, HOME, f"/home/rakazo/{path}", path], "")]
+    assert file_calls(docker) == [([LIST_SCRIPT, HOME, f"/home/pc/{path}", path], "")]
 
 
 async def test_reading_returns_the_text_read_up_to_two_mebibytes() -> None:
@@ -83,7 +83,7 @@ async def test_reading_returns_the_text_read_up_to_two_mebibytes() -> None:
 
     assert result.structured_content == {"path": "notes/hello.txt", "content": "héllo\n"}
     assert file_calls(docker) == [
-        ([READ_SCRIPT, HOME, "/home/rakazo/notes/hello.txt", str(2 * MIB)], "")
+        ([READ_SCRIPT, HOME, "/home/pc/notes/hello.txt", str(2 * MIB)], "")
     ]
 
 
@@ -105,7 +105,7 @@ async def test_downloading_returns_the_bytes_as_base64_read_up_to_ten_mebibytes(
 
     assert result.structured_content == {"path": "notes/hello.txt", "content_base64": HELLO}
     assert file_calls(docker) == [
-        ([READ_SCRIPT, HOME, "/home/rakazo/notes/hello.txt", str(10 * MIB)], "")
+        ([READ_SCRIPT, HOME, "/home/pc/notes/hello.txt", str(10 * MIB)], "")
     ]
 
 
@@ -122,7 +122,7 @@ async def test_a_file_past_the_limit_is_refused(tool: str, limit: str) -> None:
 
 async def test_a_missing_file_reaches_the_computer_page_in_the_computers_words() -> None:
     docker = FakeDocker(status="running")
-    said = "[Errno 2] No such file or directory: '/home/rakazo/nope'"
+    said = "[Errno 2] No such file or directory: '/home/pc/nope'"
     docker.python_result = CommandResult(1, "", said + "\n")
 
     result = await call(docker, "file_read", {"path": "nope"})
@@ -164,7 +164,7 @@ async def test_an_upload_with_control_sends_the_bytes_on_stdin() -> None:
         result = await client.call_tool("file_upload", arguments_for("file_upload", "notes/a.txt"))
 
     assert result.structured_content == {"path": "notes/a.txt", "size": 8}
-    assert file_calls(docker) == [([WRITE_SCRIPT, HOME, "/home/rakazo/notes/a.txt"], HELLO)]
+    assert file_calls(docker) == [([WRITE_SCRIPT, HOME, "/home/pc/notes/a.txt"], HELLO)]
 
 
 @pytest.mark.parametrize("path", ["../etc/passwd", "notes/../../etc", "./x", "..\\etc", "a\x00b"])

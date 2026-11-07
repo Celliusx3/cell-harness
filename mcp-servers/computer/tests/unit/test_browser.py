@@ -131,7 +131,7 @@ async def test_chrome_not_up_is_launched_once_and_the_command_retried_until_it_w
     opened = await browser(docker).navigate("https://example.com")
 
     assert opened.title == "Example Domain"
-    assert docker.launches() == [["exec", "-d", NAME, "rakazo-focus-or-launch", "rakazo-browser"]]
+    assert docker.launches() == [["exec", "-d", NAME, "pc-browser"]]
     assert [call for call in docker.calls if call[:2] == ["exec", "-i"]] == [
         page_command("navigate")
     ] * 4

@@ -94,7 +94,7 @@ def mount_of(volume: str) -> dict[str, object]:
 
 
 MOUNTED = [
-    mount_of(f"{NAME}-home:/home/rakazo"),
+    mount_of(f"{NAME}-home:/home/pc"),
     mount_of(f"{FILES_DIR}:{FILES_DIR}"),
     mount_of(f"{SKILLS_DIR}:{SKILLS_DIR}:ro"),
 ]

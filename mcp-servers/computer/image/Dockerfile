@@ -9,6 +9,7 @@ RUN apt-get update \
     fluxbox \
     fonts-liberation \
     fonts-noto-color-emoji \
+    hsetroot \
     novnc \
     procps \
     python3 \
@@ -22,6 +23,8 @@ RUN apt-get update \
   && useradd --uid 1000 --create-home --home-dir /home/pc --shell /bin/bash pc
 
 COPY --chmod=755 start /usr/local/bin/pc-start
+COPY --chmod=755 pc-browser /usr/local/bin/pc-browser
+COPY --chmod=644 embed.html /usr/share/novnc/embed.html
 
 USER pc
 WORKDIR /home/pc
