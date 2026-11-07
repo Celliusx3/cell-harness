@@ -1,6 +1,6 @@
 # 04 The Mac app finds commands through your Terminal's PATH
 
-**Status.** open
+**Status.** done
 
 **What to build.** At start, the Mac app runs your login shell once
 (`$SHELL -l -i -c`, with markers so profile output is skipped, and a time
