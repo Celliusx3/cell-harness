@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 
 from harness.bots import BotService
@@ -12,10 +14,16 @@ from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
-from tests.webapp import web_app
+from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, web_app
 
 BUILDER = "builder"
-READER = '{"name": "Reader", "instructions": "You quiz me on my reading notes."}'
+READER = json.dumps(
+    {
+        "name": "Reader",
+        "instructions": "You quiz me on my reading notes.",
+        "model": MODEL_CREDENTIAL,
+    }
+)
 ANSWER = "/api/conversations/builder/calls/call_reader/output"
 
 
@@ -24,11 +32,17 @@ async def test_the_builder_makes_the_bot_its_chat_drafted_once_it_is_allowed(tmp
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     bots = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
+    secrets = a_model_saved_in(tmp_path)
     model = SteppedClient(
         calls_tool(BOT_CREATE, READER, id="call_reader"), completed("Reader is under Bots.")
     )
     runs = run_service(
-        service, model, bot_create_tool(bots), *client_tools.tools(), approvals=approvals, bots=bots
+        service,
+        model,
+        bot_create_tool(bots, secrets),
+        *client_tools.tools(),
+        approvals=approvals,
+        bots=bots,
     )
     app = web_app(
         tmp_path,
@@ -38,6 +52,7 @@ async def test_the_builder_makes_the_bot_its_chat_drafted_once_it_is_allowed(tmp
         client_tools=client_tools,
         approvals=approvals,
         bots=bots,
+        secrets=secrets,
     )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:

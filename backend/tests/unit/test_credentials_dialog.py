@@ -12,7 +12,7 @@ from harness.bots import BotDraft, BotService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
-from tests.webapp import SHIPPED_MODEL, no_platforms, web_mcp
+from tests.webapp import MODEL_CREDENTIAL, SHIPPED_MODEL, no_platforms, put_on_model, web_mcp
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"
@@ -59,7 +59,7 @@ async def _listed(secrets, bots) -> dict:
 
 
 async def test_a_custom_key_is_added_for_the_bots_ticked(secrets, bots) -> None:
-    chef = await bots.create(BotDraft(name="Chef", instructions="Cook."))
+    chef = await bots.create(BotDraft(name="Chef", instructions="Cook.", model=MODEL_CREDENTIAL))
 
     response = await _send(
         secrets,
@@ -80,7 +80,9 @@ async def test_a_custom_key_is_added_for_the_bots_ticked(secrets, bots) -> None:
 
 
 async def test_an_llm_credential_lists_the_bots_that_answer_on_it(secrets, bots) -> None:
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
+    trader = await bots.create(
+        BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
+    )
     await _send(
         secrets,
         bots,
@@ -94,7 +96,7 @@ async def test_an_llm_credential_lists_the_bots_that_answer_on_it(secrets, bots)
         },
     )
 
-    bots.set_model_credential(trader.id, "trader_model")
+    put_on_model(bots, trader.id, "trader_model")
 
     assert (await _listed(secrets, bots))["trader_model"]["bots"] == [
         {"id": trader.id, "name": "Trader"}
@@ -134,7 +136,9 @@ async def test_an_edit_with_no_key_keeps_the_saved_key(secrets, bots) -> None:
 
 
 async def test_removing_a_credential_unties_it_from_its_bots(secrets, bots) -> None:
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
+    trader = await bots.create(
+        BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
+    )
     await _send(
         secrets,
         bots,
@@ -147,7 +151,7 @@ async def test_removing_a_credential_unties_it_from_its_bots(secrets, bots) -> N
             "bot_ids": [],
         },
     )
-    bots.set_model_credential(trader.id, "trader_model")
+    put_on_model(bots, trader.id, "trader_model")
     await _send(
         secrets,
         bots,

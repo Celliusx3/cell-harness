@@ -133,7 +133,6 @@ def build_runtime(
             skill_save_tool(skills),
             skill_delete_tool(skills),
             skill_write_file_tool(skills),
-            bot_create_tool(bots),
             fetch_with_secret_tool(secrets, bots, httpx.AsyncHTTPTransport()),
             send_file_tool(),
             extract_archive_tool(files, settings.files.max_bytes),
@@ -145,6 +144,7 @@ def build_runtime(
     )
     tool_service.add_provider(mcp.tools)
     tool_service.add_provider(lambda: [tool] if (tool := skill_tool(skills)) else [])
+    tool_service.add_provider(lambda: [tool] if (tool := bot_create_tool(bots, secrets)) else [])
 
     logger.info("approval asks for: %s", sorted(approvals.protected_tools) or "nothing")
     _register_code_mode(tool_service, settings)

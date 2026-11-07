@@ -14,6 +14,7 @@ from harness.bots.models import (
     BUILDER_NAME,
     Bot,
     BotDraft,
+    BotEdit,
     BotNotFound,
     BotPermanent,
     BotsFile,
@@ -23,7 +24,6 @@ from harness.bots.models import (
     GroupEmpty,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
-from harness.secrets import SecretName
 from harness.session.log import Session
 from harness.session.models import BotInstructionsEvent, GroupMembersEvent
 from harness.session.repository import SessionNotFoundError
@@ -129,21 +129,29 @@ class BotService:
         return bot_id
 
     async def create(self, draft: BotDraft) -> Bot:
-        """A new bot, with its chat already holding its instructions."""
+        """A new bot on the model `draft` names, with its chat already holding its instructions."""
         session = await self._sessions.create()
-        bot = Bot(id=session.id, name=draft.name, instructions=draft.instructions)
+        bot = Bot(
+            id=session.id,
+            name=draft.name,
+            instructions=draft.instructions,
+            model_credential=draft.model,
+        )
         await self._log_instructions(session, bot)
         stored = self._read_file()
         self._write_file(stored.model_copy(update={"bots": (*stored.bots, bot)}))
         return bot
 
-    def update(self, bot_id: str, draft: BotDraft) -> Bot:
-        """Edit an active bot's name or instructions; its chat logs them before its next turn."""
+    def update(self, bot_id: str, edit: BotEdit) -> Bot:
+        """Set an active bot's name, instructions and model; its chat logs the text next turn."""
         stored = self._read_file()
         bot = self._active_bot_in(stored, bot_id)
-        return self._save_bot(
-            stored, bot.model_copy(update={"name": draft.name, "instructions": draft.instructions})
-        )
+        changes = {
+            "name": edit.name,
+            "instructions": edit.instructions,
+            "model_credential": edit.model,
+        }
+        return self._save_bot(stored, bot.model_copy(update=changes))
 
     def allow_secret(self, bot_id: str, secret_name: str) -> Bot:
         """Add the saved key `secret_name` to the keys an active bot may use."""
@@ -168,12 +176,6 @@ class BotService:
         """Make the saved key `name` one of the keys of exactly the active bots `bot_ids`."""
         stored = self._read_file()
         self._save_bots(stored, ties.retied_bots(self._active_bots_in(stored), name, bot_ids))
-
-    def set_model_credential(self, bot_id: str, name: SecretName | None) -> Bot:
-        """Make the LLM credential `name` an active bot's model; `None` leaves it with none."""
-        stored = self._read_file()
-        bot = self._active_bot_in(stored, bot_id)
-        return self._save_bot(stored, bot.model_copy(update={"model_credential": name}))
 
     def forget_secret(self, secret_name: str) -> None:
         """Take `secret_name` off every stored bot, archived ones too, as a key and as a model."""

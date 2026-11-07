@@ -16,7 +16,7 @@ from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.sealing import sealed
 from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
-from tests.webapp import SHIPPED_MODEL, no_platforms, web_mcp
+from tests.webapp import MODEL_CREDENTIAL, SHIPPED_MODEL, no_platforms, web_mcp
 
 KEY = "0123456789abcdef0123456789abcdef"
 GITHUB = Destination(origin="https://api.github.com", auth="bearer")
@@ -96,8 +96,8 @@ async def test_a_custom_key_lists_the_bots_allowed_to_use_it(
     secrets: SecretService, bots: BotService
 ) -> None:
     secrets.save("github", GITHUB, SecretStr(GITHUB_KEY))
-    chef = await bots.create(BotDraft(name="Chef", instructions="Cook."))
-    await bots.create(BotDraft(name="Trader", instructions="Trade."))
+    chef = await bots.create(BotDraft(name="Chef", instructions="Cook.", model=MODEL_CREDENTIAL))
+    await bots.create(BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL))
     bots.allow_secret(chef.id, "github")
 
     listed = (await _listed(secrets, bots)).json()["credentials"]

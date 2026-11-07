@@ -23,7 +23,7 @@ from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
-from tests.webapp import bots_in, secrets_in, web_app
+from tests.webapp import MODEL_CREDENTIAL, bots_in, secrets_in, web_app
 
 KEY = 'tok-"q/+9Zx=7Lm'
 ECHOES = (KEY, json.dumps(KEY)[1:-1], quote(KEY, safe=""), base64.b64encode(KEY.encode()).decode())
@@ -114,7 +114,9 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
         assert fetched["body"] == " | ".join(["[secret]"] * len(ECHOES))
         assert _leaks(stream) == []
 
-        other = await bots.create(BotDraft(name="Notion", instructions="You read Notion."))
+        other = await bots.create(
+            BotDraft(name="Notion", instructions="You read Notion.", model=MODEL_CREDENTIAL)
+        )
         await _post(client, runs, other.id, "/messages", {"prompt": "check my GitHub"})
         await _post(client, runs, other.id, "/calls/call_other/output", APPROVE_ONCE)
         other_stream = (await client.get(f"/api/conversations/{other.id}/events?after=0")).text

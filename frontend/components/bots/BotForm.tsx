@@ -4,12 +4,12 @@ import { useState, type FormEvent } from "react";
 
 import { ApiError } from "@/lib/api";
 import type { ModelOption } from "@/lib/credentials";
-import type { BotEdit } from "@/lib/types";
+import type { Bot, BotEdit } from "@/lib/types";
 
 const NO_MODEL = "";
 
 interface BotFormProps {
-  initial: BotEdit;
+  initial: Bot;
   models: ModelOption[];
   onSave: (edit: BotEdit) => Promise<void>;
   onArchive: (() => Promise<void>) | null;
@@ -37,7 +37,7 @@ export function BotForm({ initial, models, onSave, onArchive }: BotFormProps) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const modelCredential = model === NO_MODEL ? null : model;
-    void run(() => onSave({ name, instructions, model_credential: modelCredential }), "Could not save the bot.");
+    void run(() => onSave({ name, instructions, model: modelCredential }), "Could not save the bot.");
   }
 
   return (

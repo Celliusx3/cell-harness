@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Field, INPUT_CLASSES } from "@/components/credentials/CredentialFields";
-import { ApiError, ASSISTANT_ID, setBotModel } from "@/lib/api";
+import { ApiError, ASSISTANT_ID, listBots, updateBot } from "@/lib/api";
 import { addCredential, type ModelDetails } from "@/lib/credentials";
 
 const SETUP_MODEL_CREDENTIAL = "first_model";
@@ -28,7 +28,7 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
     setError(null);
     try {
       await addCredential(directUrl, { name: SETUP_MODEL_CREDENTIAL, details, value: apiKey, bot_ids: [] });
-      await setBotModel(ASSISTANT_ID, SETUP_MODEL_CREDENTIAL);
+      await putAssistantOnModel(SETUP_MODEL_CREDENTIAL);
       router.replace("/");
     } catch (err: unknown) {
       setError(err instanceof ApiError ? err.message : "Could not reach the harness to save.");
@@ -73,6 +73,13 @@ export function SetupForm({ shippedModel, directUrl }: SetupFormProps) {
       </div>
     </form>
   );
+}
+
+/** Save Assistant as it is, on the LLM credential `name`. */
+async function putAssistantOnModel(name: string) {
+  const assistant = (await listBots()).find((bot) => bot.id === ASSISTANT_ID);
+  if (assistant === undefined) throw new ApiError(404, "The harness lists no Assistant.");
+  await updateBot(ASSISTANT_ID, { name: assistant.name, instructions: assistant.instructions, model: name });
 }
 
 interface ProviderFieldsProps {

@@ -9,7 +9,7 @@ Today a bot with no model of its own falls back to the Default model. One config
 1. On first start the setup screen asks for an address, a model name and a key. You save. Assistant now answers on that model.
 2. You open another bot. It answers: "Pick a model for this bot in Edit bot."
 3. You open **Edit bot**. A **Model** dropdown lists every LLM credential. You pick one and save. The bot's next answer comes from that model.
-4. You click **New bot**. The **Model** dropdown is required. A bot made by asking in chat names its model too.
+4. You ask Bot builder for a new bot. It offers your saved models and asks which one. The bot is made on the model you name.
 5. On Credentials you add an LLM credential. It has a **Can see images** switch. A bot on a model without it gets no images and no image tools.
 6. In a chat you ask a bot to add your NVIDIA model. It shows a protected card with the fields filled in. You type the key on the card. The key never appears in the chat. Telegram and Discord tokens can be added the same way.
 7. You remove an LLM credential that two bots use. Those bots now answer with the line from step 2.
@@ -39,7 +39,7 @@ Today a bot with no model of its own falls back to the Default model. One config
 
 - Start a fresh app and finish setup. Assistant answers. A second bot answers the "Pick a model" line.
 - Pick a model for that bot in Edit bot. Its next answer comes from that model, with no restart.
-- Create a bot with no model, on the form or with `bot_create`. It is refused.
+- Create a bot with no model, through the route or with `bot_create`. It is refused. With no LLM credential saved, `bot_create` is not offered.
 - Put a bot on a credential without **Can see images**, and attach an image. The request has no image and no `view_image` tool.
 - Two bots on two credentials whose endpoints report different context windows each compact at their own window.
 - Add an LLM credential from a chat card. The stored conversation holds its name, never its key.

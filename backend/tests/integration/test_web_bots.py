@@ -11,11 +11,15 @@ from harness.runs.service import RunService
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, runtime_over
-from tests.webapp import web_app
+from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, web_app
 
 GUIDE = "GUIDE"
 ASSISTANT = "You are a helpful assistant."
-RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every claim."}
+RESEARCHER = {
+    "name": "Researcher",
+    "instructions": "Find sources and cite every claim.",
+    "model": MODEL_CREDENTIAL,
+}
 
 
 @pytest.fixture
@@ -25,7 +29,9 @@ async def bots(tmp_path):
     store = BotService(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT)
     runtime = runtime_over(model, guidance=GUIDE, checkpoint=service.flush)
     runs = RunService(service, runtime, store)
-    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
+    app = web_app(
+        tmp_path, service, runs, skills=no_skills(), bots=store, secrets=a_model_saved_in(tmp_path)
+    )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:
         yield client, model, runs
@@ -87,7 +93,8 @@ async def test_an_edit_is_logged_once_before_the_next_turn(bots) -> None:
     await _say(client, runs, bot_id)
 
     edited = await client.put(
-        f"/api/bots/{bot_id}", json={"name": "Researcher", "instructions": "Be brief."}
+        f"/api/bots/{bot_id}",
+        json={"name": "Researcher", "instructions": "Be brief.", "model": None},
     )
     await _say(client, runs, bot_id)
     await _say(client, runs, bot_id)
@@ -113,8 +120,8 @@ async def test_assistant_cannot_be_deleted_and_another_bot_can(bots) -> None:
 async def test_a_blank_name_or_instructions_is_refused(bots) -> None:
     client, _, _ = bots
 
-    blank_name = await client.post("/api/bots", json={"name": "  ", "instructions": "x"})
-    blank_instructions = await client.post("/api/bots", json={"name": "x", "instructions": " "})
+    blank_name = await client.post("/api/bots", json={**RESEARCHER, "name": "  "})
+    blank_instructions = await client.post("/api/bots", json={**RESEARCHER, "instructions": " "})
 
     assert blank_name.status_code == 422
     assert blank_instructions.status_code == 422
@@ -123,7 +130,8 @@ async def test_a_blank_name_or_instructions_is_refused(bots) -> None:
 async def test_editing_a_bot_that_does_not_exist_is_not_found(bots) -> None:
     client, _, _ = bots
 
-    missing = await client.put("/api/bots/nope", json=RESEARCHER)
+    edit = {"name": "Researcher", "instructions": "Cite.", "model": None}
+    missing = await client.put("/api/bots/nope", json=edit)
 
     assert missing.status_code == 404
 

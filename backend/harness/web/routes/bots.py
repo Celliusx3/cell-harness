@@ -1,4 +1,4 @@
-"""The bots: list, make, edit, archive, restore or delete one, and choose its keys and model."""
+"""The bots: list, make, edit, archive, restore or delete one, and choose its keys."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict
 
-from harness.bots import Bot, BotDraft, BotService
+from harness.bots import Bot, BotDraft, BotEdit, BotService
 from harness.runs.service import RunService
 from harness.secrets import SecretName, SecretNotFound, SecretService
 
@@ -22,20 +22,11 @@ class AllowedSecrets(BaseModel):
     names: tuple[str, ...]
 
 
-class ModelPick(BaseModel):
-    """The LLM credential a bot answers on, by name, or `None` to leave it with no model."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    model_credential: SecretName | None
-
-
-def not_a_model_reason(secrets: SecretService, pick: ModelPick) -> str | None:
-    """Why `pick` cannot be a bot's model: it names no saved LLM credential; `None` when it can."""
-    name = pick.model_credential
-    if name is None or secrets.model_credential_version(name) is not None:
-        return None
-    return f"{name!r} is not a saved LLM credential"
+def _refuse_an_unsaved_model(secrets: SecretService, name: SecretName | None) -> None:
+    """Raise a 422 when `name` is not a saved LLM credential; `None` is no model, and passes."""
+    reason = None if name is None else secrets.not_a_model_reason(name)
+    if reason is not None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=reason)
 
 
 def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) -> None:
@@ -51,13 +42,17 @@ def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) ->
 
     @router.post("", status_code=status.HTTP_201_CREATED, response_model=Bot)
     async def create_bot(body: BotDraft) -> Bot:
+        _refuse_an_unsaved_model(secrets, body.model)
         bot = await bots.create(body)
         logger.info("bot %s created", bot.id)
         return bot
 
     @router.put("/{bot_id}", response_model=Bot)
-    async def update_bot(bot_id: str, body: BotDraft) -> Bot:
-        return bots.update(bot_id, body)
+    async def update_bot(bot_id: str, body: BotEdit) -> Bot:
+        _refuse_an_unsaved_model(secrets, body.model)
+        bot = bots.update(bot_id, body)
+        logger.info("bot %s saved, answering on %s", bot_id, bot.model_credential)
+        return bot
 
     @router.put("/{bot_id}/secrets", response_model=Bot)
     async def set_bot_secrets(bot_id: str, body: AllowedSecrets) -> Bot:
@@ -67,15 +62,6 @@ def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) ->
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(SecretNotFound(unsaved)))
         bot = bots.set_allowed_secrets(bot_id, body.names)
         logger.info("bot %s may use %s", bot_id, list(bot.secret_names))
-        return bot
-
-    @router.put("/{bot_id}/model", response_model=Bot)
-    async def set_bot_model(bot_id: str, body: ModelPick) -> Bot:
-        reason = not_a_model_reason(secrets, body)
-        if reason is not None:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=reason)
-        bot = bots.set_model_credential(bot_id, body.model_credential)
-        logger.info("bot %s answers on %s", bot_id, bot.model_credential)
         return bot
 
 

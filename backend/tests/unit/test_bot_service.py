@@ -14,6 +14,7 @@ from harness.bots import (
     BUILDER_NAME,
     Bot,
     BotDraft,
+    BotEdit,
     BotNotFound,
     BotPermanent,
     BotService,
@@ -24,6 +25,7 @@ from harness.session.models import BotInstructionsEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.helpers import durable_service
+from tests.webapp import MODEL_CREDENTIAL
 
 KIND = Bot(id=ASSISTANT_ID, name="Assistant", instructions="Be kind.")
 BUILDER = Bot(id=BUILDER_ID, name=BUILDER_NAME, instructions=BUILDER_INSTRUCTIONS)
@@ -62,7 +64,9 @@ async def test_listing_opens_assistant_s_chat_only_the_first_time(
 
 
 async def test_a_chat_belongs_to_the_bot_whose_chat_it_is(bots: BotService) -> None:
-    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
 
     assert bots.members_of_chat("c0") == ChatMembers(group=None, bots=(made,))
     with pytest.raises(BotNotFound):
@@ -70,7 +74,9 @@ async def test_a_chat_belongs_to_the_bot_whose_chat_it_is(bots: BotService) -> N
 
 
 async def test_a_bot_answers_in_the_chat_that_belongs_to_it(bots: BotService) -> None:
-    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
 
     assert bots.members_of_chat(bots.chat_of(made.id)).bots == (made,)
 
@@ -89,7 +95,9 @@ def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotService) -> Non
 async def test_a_failed_write_leaves_the_file_as_it_was(
     tmp_path: Path, bots: BotService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
     before = (tmp_path / "bots.json").read_text()
 
     def refuse(src: str, dst: Path) -> None:
@@ -97,7 +105,10 @@ async def test_a_failed_write_leaves_the_file_as_it_was(
 
     monkeypatch.setattr(os, "replace", refuse)
     with pytest.raises(OSError, match="disk full"):
-        bots.update(made.id, BotDraft(name="Renamed", instructions="Be brief."))
+        bots.update(
+            made.id,
+            BotEdit(name="Renamed", instructions="Be brief.", model=MODEL_CREDENTIAL),
+        )
 
     assert (tmp_path / "bots.json").read_text() == before
 
@@ -108,7 +119,9 @@ async def test_deleting_a_bot_nobody_made_is_refused(bots: BotService) -> None:
 
 
 async def test_a_deleted_bot_owns_its_chat_no_more(bots: BotService) -> None:
-    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
 
     await bots.delete(made.id)
 
@@ -119,7 +132,9 @@ async def test_a_deleted_bot_owns_its_chat_no_more(bots: BotService) -> None:
 async def test_deleting_a_bot_removes_its_chat_for_good(
     tmp_path: Path, bots: BotService, service: SessionService
 ) -> None:
-    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
     bots.archive(made.id)
 
     await bots.delete(made.id)
@@ -133,8 +148,8 @@ async def test_deleting_a_bot_removes_its_chat_for_good(
 async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
     bots: BotService, service: SessionService
 ) -> None:
-    first = await bots.create(BotDraft(name="First", instructions="One."))
-    second = await bots.create(BotDraft(name="Second", instructions="Two."))
+    first = await bots.create(BotDraft(name="First", instructions="One.", model=MODEL_CREDENTIAL))
+    second = await bots.create(BotDraft(name="Second", instructions="Two.", model=MODEL_CREDENTIAL))
     chat_before = list((await service.read(first.id)).events())
 
     bots.archive(second.id)
@@ -153,14 +168,19 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
 
 
 async def test_an_archived_bot_owns_no_chat_and_cannot_be_edited(bots: BotService) -> None:
-    made = await bots.create(BotDraft(name="Researcher", instructions="Cite."))
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
 
     bots.archive(made.id)
 
     with pytest.raises(BotNotFound):
         bots.active_bot(made.id)
     with pytest.raises(BotNotFound):
-        bots.update(made.id, BotDraft(name="Renamed", instructions="Be brief."))
+        bots.update(
+            made.id,
+            BotEdit(name="Renamed", instructions="Be brief.", model=MODEL_CREDENTIAL),
+        )
 
 
 def test_archiving_or_restoring_a_bot_nobody_made_is_refused(bots: BotService) -> None:
@@ -202,15 +222,15 @@ def test_a_bots_file_written_before_archiving_reads_every_bot_as_active(
 async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
     bots: BotService,
 ) -> None:
-    first = await bots.create(BotDraft(name="First", instructions="One."))
-    second = await bots.create(BotDraft(name="Second", instructions="Two."))
+    first = await bots.create(BotDraft(name="First", instructions="One.", model=MODEL_CREDENTIAL))
+    second = await bots.create(BotDraft(name="Second", instructions="Two.", model=MODEL_CREDENTIAL))
 
-    bots.update(first.id, BotDraft(name="First", instructions="Uno."))
-    bots.update(ASSISTANT_ID, BotDraft(name="Helper", instructions="Be terse."))
+    bots.update(first.id, BotEdit(name="First", instructions="Uno.", model=MODEL_CREDENTIAL))
+    bots.update(ASSISTANT_ID, BotEdit(name="Helper", instructions="Be terse.", model=None))
 
     assert await bots.active_bots() == (
         Bot(id=ASSISTANT_ID, name="Helper", instructions="Be terse."),
         BUILDER,
-        Bot(id=first.id, name="First", instructions="Uno."),
+        Bot(id=first.id, name="First", instructions="Uno.", model_credential=MODEL_CREDENTIAL),
         second,
     )

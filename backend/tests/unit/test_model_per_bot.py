@@ -27,6 +27,7 @@ from harness.session.models import (
 from harness.web.bot_models import CredentialModels
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, durable_service, new_session
+from tests.webapp import put_on_model
 
 KEY = "0123456789abcdef0123456789abcdef"
 TRADER_URL = "https://api.trader.example/v1"
@@ -156,9 +157,8 @@ def bots(tmp_path: Path) -> BotService:
 
 
 async def _trader_on_its_model(keyring: SecretService, bots: BotService) -> str:
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
     keyring.add_credential("trader_model", TRADER_MODEL, SecretStr(TRADER_KEY))
-    bots.set_model_credential(trader.id, "trader_model")
+    trader = await bots.create(BotDraft(name="Trader", instructions="Trade.", model="trader_model"))
     return trader.id
 
 
@@ -178,7 +178,8 @@ async def test_a_bot_on_a_credential_gets_its_endpoint_model_and_key(keyring, bo
 
 async def test_a_bot_with_no_llm_credential_has_no_model(keyring, bots) -> None:
     await _trader_on_its_model(keyring, bots)
-    chef = await bots.create(BotDraft(name="Chef", instructions="Cook."))
+    chef = await bots.create(BotDraft(name="Chef", instructions="Cook.", model="trader_model"))
+    put_on_model(bots, chef.id, None)
     clients = ClientsMade()
 
     choice = await CredentialModels(keyring, bots, BASE, clients).model_for(chef.id)
@@ -201,7 +202,7 @@ async def test_clearing_a_bots_model_leaves_its_next_turn_with_no_model(keyring,
     models = CredentialModels(keyring, bots, BASE, ClientsMade())
     await models.model_for(trader_id)
 
-    bots.set_model_credential(trader_id, None)
+    put_on_model(bots, trader_id, None)
 
     assert await models.model_for(trader_id) == NoModel()
 

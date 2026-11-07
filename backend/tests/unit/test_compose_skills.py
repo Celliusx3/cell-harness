@@ -1,4 +1,4 @@
-"""Skills through the real object graph: offered while one exists, withheld from scripts."""
+"""Skills and bot_create through the real object graph: offered while one exists."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
 from harness.tools import Ok
-from harness.tools.native.bots import MESSAGE_BOT
+from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
 from harness.web.runtime import DEFAULT_TOOLS, build_runtime
@@ -32,7 +32,7 @@ from tests.unit.helpers import (
     skills_at,
 )
 from tests.unit.mcp_fakes import no_keys
-from tests.webapp import files_in, images_in, secrets_in
+from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, files_in, images_in, secrets_in
 
 COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
 
@@ -81,10 +81,26 @@ def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
     directory = write_skill(root, "pdf")
     offered = [s.name for s in runtime.tools.specs()]
     assert SKILL in offered
-    assert offered == [name for name in DEFAULT_TOOLS if name != MESSAGE_BOT]
+    assert offered == [name for name in DEFAULT_TOOLS if name not in (MESSAGE_BOT, BOT_CREATE)]
 
     (directory / "SKILL.md").unlink()
     assert SKILL not in [s.name for s in runtime.tools.specs()]
+
+
+def test_bot_create_is_offered_exactly_while_an_llm_credential_is_saved(
+    compose, tmp_path: Path
+) -> None:
+    build, _ = compose
+    runtime = build()
+    assert runtime.tools is not None
+
+    assert BOT_CREATE not in [s.name for s in runtime.tools.specs()]
+
+    saved = a_model_saved_in(tmp_path)
+    assert BOT_CREATE in [s.name for s in runtime.tools.specs()]
+
+    saved.delete(MODEL_CREDENTIAL)
+    assert BOT_CREATE not in [s.name for s in runtime.tools.specs()]
 
 
 async def test_the_first_user_message_lists_the_skills_exactly_while_one_exists(compose) -> None:

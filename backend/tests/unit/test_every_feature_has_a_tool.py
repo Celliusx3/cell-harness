@@ -16,7 +16,7 @@ from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.unit.mcp_fakes import no_keys
-from tests.webapp import files_in, images_in, secrets_in, web_app
+from tests.webapp import a_model_saved_in, files_in, images_in, web_app
 
 
 class Tool(NamedTuple):
@@ -94,9 +94,6 @@ ROUTES: dict[str, Tool | NotATool] = {
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
     ),
-    "PUT /api/bots/{bot_id}/model": NotATool(
-        "a bot's model is picked in Edit bot; a bot does not switch its own model in a chat"
-    ),
     "POST /api/bots/{bot_id}/link-codes": NotATool(
         "a code lets someone's chat talk to a bot; only the person hands one out, from its page"
     ),
@@ -167,7 +164,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
-        secrets=secrets_in(tmp_path),
+        secrets=a_model_saved_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )

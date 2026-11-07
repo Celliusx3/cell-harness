@@ -40,7 +40,7 @@ from tests.unit.fakes import (
     pending_tool,
 )
 from tests.unit.helpers import drain, durable_service, run_service, until
-from tests.webapp import bots_in
+from tests.webapp import MODEL_CREDENTIAL, bots_in
 
 
 @pytest.fixture
@@ -204,7 +204,12 @@ async def _group_chat(
 ) -> tuple[Session, tuple[Bot, ...]]:
     """A group of new bots called `names`, and its chat."""
     members = tuple(
-        [await bots.create(BotDraft(name=name, instructions=f"You are {name}.")) for name in names]
+        [
+            await bots.create(
+                BotDraft(name=name, instructions=f"You are {name}.", model=MODEL_CREDENTIAL)
+            )
+            for name in names
+        ]
     )
     group = await bots.create_group(
         GroupDraft(name="Launch", member_ids=tuple(bot.id for bot in members))

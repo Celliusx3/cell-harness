@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from pydantic import SecretStr
 
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, Bot, BotEdit, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
 from harness.channels.protocol import Channel
@@ -74,13 +74,26 @@ def secrets_in(tmp_path: Path) -> SecretService:
     )
 
 
-def assistant_on_a_model(tmp_path: Path, bots: BotService) -> SecretService:
-    """`secrets_in`, holding the LLM credential Assistant's turns ask."""
+def a_model_saved_in(tmp_path: Path) -> SecretService:
+    """`secrets_in`, holding the LLM credential `MODEL_CREDENTIAL`, which new bots are made on."""
     secrets = secrets_in(tmp_path)
     details = ModelDetails(base_url="https://api.example.com/v1", model="m")
     secrets.add_credential(MODEL_CREDENTIAL, details, SecretStr(MODEL_KEY))
-    bots.set_model_credential(ASSISTANT_ID, MODEL_CREDENTIAL)
     return secrets
+
+
+def assistant_on_a_model(tmp_path: Path, bots: BotService) -> SecretService:
+    """`a_model_saved_in`, with Assistant's turns asking that credential."""
+    secrets = a_model_saved_in(tmp_path)
+    put_on_model(bots, ASSISTANT_ID, MODEL_CREDENTIAL)
+    return secrets
+
+
+def put_on_model(bots: BotService, bot_id: str, name: str | None) -> Bot:
+    """Save the bot as Edit bot does, changing only its model to `name`."""
+    bot = bots.active_bot(bot_id)
+    edit = BotEdit(name=bot.name, instructions=bot.instructions, model=name)
+    return bots.update(bot_id, edit)
 
 
 def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService) -> ChannelServices:

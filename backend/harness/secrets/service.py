@@ -137,6 +137,22 @@ class SecretService:
             return None
         return sealed_secret.id
 
+    def not_a_model_reason(self, name: str) -> str | None:
+        """Why `name` cannot be a bot's model, naming the saved LLM credentials; or `None`."""
+        if self.model_credential_version(name) is not None:
+            return None
+        saved = self.model_credential_names()
+        listed = f"the saved ones are {', '.join(saved)}" if saved else "none is saved"
+        return f"{name!r} is not a saved LLM credential; {listed}"
+
+    def model_credential_names(self) -> tuple[str, ...]:
+        """The saved LLM credentials' names, in the order they were saved."""
+        return tuple(
+            secret.name
+            for secret in self._repository.sealed_secrets()
+            if isinstance(secret.details, ModelDetails)
+        )
+
     def model_credential_named(self, name: str) -> UnsealedModelCredential | None:
         """The LLM credential called `name`, unsealed, or `None`; no other kind is handed out."""
         sealed_secret = self._sealed_named(name)

@@ -15,6 +15,7 @@ from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
+from tests.webapp import MODEL_CREDENTIAL
 
 
 class World(NamedTuple):
@@ -33,8 +34,10 @@ async def world(tmp_path: Path, reply: str = "hi") -> World:
     """Real stores under `tmp_path`, a model that always says `reply`, and no channel yet."""
     sessions = durable_service(tmp_path / "sessions")
     bots = BotService(tmp_path / "bots.json", sessions, assistant_instructions="Be kind.")
-    chef = await bots.create(BotDraft(name="Chef", instructions="Cook."))
-    trader = await bots.create(BotDraft(name="Trader", instructions="Trade."))
+    chef = await bots.create(BotDraft(name="Chef", instructions="Cook.", model=MODEL_CREDENTIAL))
+    trader = await bots.create(
+        BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
+    )
     runs = run_service(sessions, ScriptedClient(completed(reply)), bots=bots)
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")

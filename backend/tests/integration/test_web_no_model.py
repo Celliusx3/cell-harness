@@ -9,16 +9,19 @@ from pathlib import Path
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID
+from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import Image
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
+from harness.secrets import SecretService
+from harness.tools import Failure, Ok
+from harness.tools.native.bots import bot_create_tool
 from harness.web.bot_models import CredentialModels
 from tests.integration.web_helpers import settle
-from tests.unit.helpers import durable_service, no_skills
+from tests.unit.helpers import context_for, durable_service, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
 
 PICK_A_MODEL = "Pick a model for this bot in Edit bot."
@@ -70,6 +73,8 @@ class App:
     client: httpx.AsyncClient
     runs: RunService
     provider: FakeProvider
+    bots: BotService
+    secrets: SecretService
 
 
 @pytest.fixture
@@ -94,7 +99,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         lambda **kwargs: real(transport=httpx.MockTransport(provider), **kwargs),
     )
     async with client:
-        yield App(client, runs, provider)
+        yield App(client, runs, provider, bots, secrets)
 
 
 async def _say(app: App, conversation_id: str) -> list[dict]:
@@ -107,7 +112,9 @@ async def _say(app: App, conversation_id: str) -> list[dict]:
 
 
 async def _pick_model(app: App, bot_id: str, name: str | None) -> httpx.Response:
-    return await app.client.put(f"/api/bots/{bot_id}/model", json={"model_credential": name})
+    bot = next(bot for bot in (await app.client.get("/api/bots")).json() if bot["id"] == bot_id)
+    edit = {"name": bot["name"], "instructions": bot["instructions"], "model": name}
+    return await app.client.put(f"/api/bots/{bot_id}", json=edit)
 
 
 def _last_chunk(events: list[dict]) -> dict:
@@ -123,8 +130,7 @@ async def test_setup_picks_assistant_a_model_and_a_bot_with_no_model_refuses(app
     await _say(app, ASSISTANT_ID)
     assert len(app.provider.requests) == 1
 
-    researcher = (await app.client.post("/api/bots", json=RESEARCHER)).json()["id"]
-    events = await _say(app, researcher)
+    events = await _say(app, BUILDER_ID)
     assert len(app.provider.requests) == 1
     assert _last_chunk(events) == {"kind": "failed", "reason": PICK_A_MODEL, "code": None}
     assert events[-1]["type"] == "turn/end"
@@ -139,7 +145,8 @@ async def test_setup_picks_assistant_a_model_and_a_bot_with_no_model_refuses(app
 async def test_a_model_picked_in_edit_bot_answers_the_next_turn(app: App) -> None:
     for credential in (SETUP_CREDENTIAL, OTHER_CREDENTIAL):
         assert (await app.client.post("/api/credentials", json=credential)).status_code == 201
-    researcher = (await app.client.post("/api/bots", json=RESEARCHER)).json()["id"]
+    made = await app.client.post("/api/bots", json={**RESEARCHER, "model": "first_model"})
+    researcher = made.json()["id"]
 
     picked = await _pick_model(app, researcher, "other_model")
     assert picked.status_code == 200, picked.text
@@ -178,3 +185,54 @@ async def test_an_llm_credential_refuses_ticked_bots(app: App) -> None:
     assert refused.status_code == 422, refused.text
     assistant = (await app.client.get("/api/bots")).json()[0]
     assert assistant["model_credential"] is None
+
+
+async def _save_credentials(app: App, *credentials: dict) -> None:
+    for credential in credentials:
+        saved = await app.client.post("/api/credentials", json=credential)
+        assert saved.status_code == 201, saved.text
+
+
+async def _bot_create(app: App, model: str):
+    arguments = json.dumps({**RESEARCHER, "model": model})
+    return await bot_create_tool(app.bots, app.secrets).invoke(arguments, context=context_for())
+
+
+@pytest.mark.parametrize(
+    "body",
+    [RESEARCHER, {**RESEARCHER, "model": "github"}, {**RESEARCHER, "model": "no_such_model"}],
+)
+async def test_a_bot_is_not_made_without_a_saved_llm_credential(app: App, body: dict) -> None:
+    await _save_credentials(app, SETUP_CREDENTIAL, GITHUB_CREDENTIAL)
+
+    refused = await app.client.post("/api/bots", json=body)
+
+    assert refused.status_code == 422, refused.text
+    assert len((await app.client.get("/api/bots")).json()) == 2
+
+
+async def test_bot_create_with_an_unknown_model_names_the_saved_ones(app: App) -> None:
+    await _save_credentials(app, SETUP_CREDENTIAL, OTHER_CREDENTIAL, GITHUB_CREDENTIAL)
+
+    outcome = await _bot_create(app, "nvidia_model")
+
+    assert isinstance(outcome, Failure)
+    (text,) = outcome.content
+    assert text.text.startswith("error:")
+    assert "first_model" in text.text
+    assert "other_model" in text.text
+    assert "github" not in text.text
+    assert len(await app.bots.active_bots()) == 2
+
+
+async def test_a_bot_made_by_bot_create_answers_on_its_model(app: App) -> None:
+    await _save_credentials(app, SETUP_CREDENTIAL, OTHER_CREDENTIAL)
+
+    outcome = await _bot_create(app, "other_model")
+
+    assert isinstance(outcome, Ok)
+    made = (await app.bots.active_bots())[2]
+    assert made.model_credential == "other_model"
+    await _say(app, made.id)
+    (asked,) = app.provider.requests
+    assert asked.url.host == "api.other.example"

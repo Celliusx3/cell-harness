@@ -20,8 +20,13 @@ from tests.integration.web_helpers import (
     send,
 )
 from tests.unit.fakes import calls_tool, completed, gated_tool, pending_tool
+from tests.webapp import MODEL_CREDENTIAL
 
-RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every claim."}
+RESEARCHER = {
+    "name": "Researcher",
+    "instructions": "Find sources and cite every claim.",
+    "model": MODEL_CREDENTIAL,
+}
 ASKED = json.dumps({"bot": "Researcher", "message": "Is B still true?"})
 
 

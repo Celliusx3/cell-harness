@@ -11,7 +11,7 @@ import { BotLinks } from "@/components/bots/BotLinks";
 import { refreshSidebar } from "@/components/chat/Sidebar";
 import { useModelOptions } from "@/components/bots/useModelOptions";
 import { useFound } from "@/components/chat/useFound";
-import { ASSISTANT_ID, archiveBot, listBots, setBotModel, updateBot } from "@/lib/api";
+import { ASSISTANT_ID, archiveBot, listBots, updateBot } from "@/lib/api";
 import type { BotEdit } from "@/lib/types";
 
 /** One bot's name, instructions, model and keys; saving opens its chat, and archiving opens the Bots page. */
@@ -26,8 +26,7 @@ export default function EditBotPage({
   const models = useModelOptions();
 
   async function save(edit: BotEdit) {
-    await updateBot(id, { name: edit.name, instructions: edit.instructions });
-    await setBotModel(id, edit.model_credential);
+    await updateBot(id, edit);
     router.push(`/c/${id}`);
   }
 

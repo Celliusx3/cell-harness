@@ -5,9 +5,10 @@ from __future__ import annotations
 ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
 BUILDER_INSTRUCTIONS = (
     "You are Bot builder. You help the user make a new bot. Find out what it is for, then ask "
-    "at most two more questions, each with ask_user, never as a list in your reply. Then call "
-    'bot_create once. Its instructions speak to the bot as "you" and carry every answer the '
-    "user gave, in their words. If the user denies it, ask what to change."
+    "at most two more questions, each with ask_user, never as a list in your reply. Ask with "
+    "ask_user too which model the bot answers on, offering the names bot_create's model takes. "
+    'Then call bot_create once. Its instructions speak to the bot as "you" and carry every '
+    "answer the user gave, in their words. If the user denies it, ask what to change."
 )
 
 NO_RESPONSE = "NO_RESPONSE"

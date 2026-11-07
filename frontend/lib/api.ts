@@ -3,7 +3,7 @@ import type {
   AppToolResult,
   Approvals,
   Bot,
-  BotDraft,
+  BotEdit,
   BundledFile,
   ConversationDetail,
   ClientAnswer,
@@ -129,10 +129,11 @@ export const listBots = () => request<Bot[]>("/bots");
 
 export const listArchivedBots = () => request<Bot[]>("/bots/archived");
 
-export const updateBot = (id: string, draft: BotDraft) =>
+/** Save the bot's name, instructions and model, or no model for null, in one request. */
+export const updateBot = (id: string, edit: BotEdit) =>
   request<Bot>(`/bots/${encodeURIComponent(id)}`, {
     method: "PUT",
-    body: JSON.stringify(draft),
+    body: JSON.stringify(edit),
   });
 
 /** Hide a bot and its chat until it is restored. */
@@ -152,13 +153,6 @@ export const setBotSecrets = (botId: string, names: string[]) =>
   request<Bot>(`/bots/${encodeURIComponent(botId)}/secrets`, {
     method: "PUT",
     body: JSON.stringify({ names }),
-  });
-
-/** Make the LLM credential `name` the bot's model, or leave it with none for null. */
-export const setBotModel = (botId: string, name: string | null) =>
-  request<Bot>(`/bots/${encodeURIComponent(botId)}/model`, {
-    method: "PUT",
-    body: JSON.stringify({ model_credential: name }),
   });
 
 export const listGroups = () => request<Group[]>("/groups");

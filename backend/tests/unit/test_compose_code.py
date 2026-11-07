@@ -22,7 +22,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
 from harness.tools import Ok, ToolService
-from harness.tools.native.bots import MESSAGE_BOT
+from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
@@ -38,7 +38,7 @@ from tests.unit.helpers import (
 from tests.unit.mcp_fakes import no_keys
 from tests.webapp import files_in, images_in, secrets_in
 
-WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT)]
+WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT, BOT_CREATE)]
 
 
 @pytest.fixture

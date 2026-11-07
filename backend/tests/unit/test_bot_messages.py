@@ -25,6 +25,7 @@ from harness.tools import Failure, Ok
 from harness.tools.native.bots import MESSAGE_BOT, message_bot_tool
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
 from tests.unit.helpers import durable_service
+from tests.webapp import MODEL_CREDENTIAL
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
 ASKED = BotMessage(
@@ -128,8 +129,10 @@ async def test_the_bot_argument_lists_the_active_bots_by_name(tmp_path: Path) ->
     store = BotService(
         tmp_path / "bots.json", durable_service(tmp_path / "sessions"), assistant_instructions="A."
     )
-    await store.create(BotDraft(name="Researcher", instructions="Cite."))
-    gone = await store.create(BotDraft(name="Writer", instructions="Write."))
+    await store.create(BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL))
+    gone = await store.create(
+        BotDraft(name="Writer", instructions="Write.", model=MODEL_CREDENTIAL)
+    )
     store.archive(gone.id)
 
     schema = message_bot_tool(store, Unsent()).spec().input_schema

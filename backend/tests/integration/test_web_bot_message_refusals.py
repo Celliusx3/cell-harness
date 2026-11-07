@@ -8,8 +8,13 @@ from harness.bots import ASSISTANT_ID
 from harness.tools.native.bots import MESSAGE_BOT
 from tests.integration.web_helpers import ASSISTANT_START, messaging_app, of_type, once_said, send
 from tests.unit.fakes import calls_tool, completed
+from tests.webapp import MODEL_CREDENTIAL
 
-RESEARCHER = {"name": "Researcher", "instructions": "Find sources and cite every claim."}
+RESEARCHER = {
+    "name": "Researcher",
+    "instructions": "Find sources and cite every claim.",
+    "model": MODEL_CREDENTIAL,
+}
 
 
 def sending_to(name: str) -> list:
