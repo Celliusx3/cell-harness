@@ -127,3 +127,15 @@ async def test_a_required_server_that_exits_before_the_handshake_stops_startup()
 
     with pytest.raises(RequiredServerError, match="computer is required and failed to connect"):
         await asyncio.wait_for(store.start(), TIMEOUT)
+
+
+async def test_a_server_that_explains_itself_on_stderr_and_exits_is_named_with_its_reason() -> None:
+    script = (
+        "import sys; print('starting', file=sys.stderr); "
+        "print('Turn on virtualization.', file=sys.stderr); raise SystemExit(2)"
+    )
+    refusing = McpServer(command=sys.executable, args=("-c", script), required=True)
+    store = McpService({"computer": refusing})
+
+    with pytest.raises(RequiredServerError, match="Turn on virtualization."):
+        await asyncio.wait_for(store.start(), TIMEOUT)
