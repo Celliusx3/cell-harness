@@ -1,6 +1,6 @@
 # 05 The app needs the PC to start
 
-**Status.** open
+**Status.** done
 
 **What to build.** Add `required: bool = False` to `McpServer` in
 `config/sections.py`, and set it on `computer`. At startup, a required server

@@ -39,6 +39,7 @@ class Connection:
     published: tuple[McpTool, ...] = ()
     instructions: str = ""
     commands: asyncio.Queue[Command] = field(default_factory=asyncio.Queue)
+    settled: asyncio.Event = field(default_factory=asyncio.Event)
     task: asyncio.Task[None] | None = None
 
     def snapshot(self) -> ServerStatus:
@@ -112,6 +113,7 @@ class Connection:
                 self.tools = tuple(build_tools(self.id, self.published, self.call))
                 self.instructions = client.instructions or ""
                 self.status = "connected"
+                self.settled.set()
                 logger.info("MCP server %s connected with %d tools", self.id, len(self.tools))
                 while True:
                     await self._run(client, await self.commands.get())
@@ -123,6 +125,7 @@ class Connection:
             self.error = describe_error(err)
             logger.warning("MCP server %s failed: %s", self.id, self.error)
         finally:
+            self.settled.set()
             self.tools = ()
             self.published = ()
             self.instructions = ""

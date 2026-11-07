@@ -18,6 +18,7 @@ def test_a_plain_server_is_accepted() -> None:
     server = McpServer(command="npx", args=("-y", "server-fs"))
     assert server.args == ("-y", "server-fs")
     assert server.env == {}
+    assert server.required is False
 
 
 def test_no_servers_is_the_default() -> None:

@@ -115,6 +115,7 @@ class McpServer(BaseModel):
     command: str
     args: tuple[str, ...] = ()
     env: dict[str, str] = Field(default_factory=dict)
+    required: bool = False
 
     @field_validator("command")
     @classmethod

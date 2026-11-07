@@ -98,6 +98,7 @@
           "../mcp-servers/computer",
           "computer"
         ],
+        "required": true,
         "env": {
           "COMPUTER_ENGINE": "microsandbox",
           "COMPUTER_IDLE_MINUTES": "10",

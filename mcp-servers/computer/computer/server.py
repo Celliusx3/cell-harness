@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import sys
@@ -14,6 +15,7 @@ from mcp.server import MCPServer
 from mcp.server.apps import Apps, ResourceCsp
 from microsandbox import Image, Sandbox
 
+from computer import host_probe
 from computer.browser import Browser
 from computer.clock import SYSTEM
 from computer.config import ConfigError, EngineName, load
@@ -87,6 +89,15 @@ def main() -> None:
     except ConfigError as err:
         logger.error("computer refusing to start: %s", err)
         raise SystemExit(2) from err
+
+    refusal = asyncio.run(
+        host_probe.host_refusal(
+            config.engine, docker=DockerCli(executable="docker"), host=host_probe.probed_host
+        )
+    )
+    if refusal is not None:
+        logger.error("computer refusing to start: %s", refusal)
+        raise SystemExit(2)
 
     engine = engine_named(config.engine)
     machine = Machine(engine=engine, config=config, clock=SYSTEM)
