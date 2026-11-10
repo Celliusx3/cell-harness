@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { NewMenu } from "@/components/chat/NewMenu";
 import { SidebarLink } from "@/components/chat/SidebarLink";
+import { useBotListChanges } from "@/components/chat/useBotListChanges";
 import { useWorkingChat } from "@/components/chat/workingChat";
 import { SERVER as COMPUTER_SERVER } from "@/components/computer/server";
 import { rememberChatPath } from "@/components/settings/chatReturn";
@@ -32,6 +33,8 @@ export function Sidebar() {
   const [hasComputer, setHasComputer] = useState(false);
 
   useEffect(() => rememberChatPath(pathname), [pathname]);
+
+  useBotListChanges(refreshSidebar);
 
   useEffect(() => {
     const bump = () => setStale((count) => count + 1);
