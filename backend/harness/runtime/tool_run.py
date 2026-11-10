@@ -228,7 +228,12 @@ async def _execute(
     runtime: Runtime, call: ToolCall, run: ToolRun
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
-    origin = CallOrigin(bot_id=run.bot_id, conversation_id=run.session.id)
+    assert runtime.tools is not None
+    origin = CallOrigin(
+        bot_id=run.bot_id,
+        conversation_id=run.session.id,
+        mode=runtime.tools.mode_of(run.session),
+    )
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 
     async def report(*, percent: float | None, message: str | None) -> None:

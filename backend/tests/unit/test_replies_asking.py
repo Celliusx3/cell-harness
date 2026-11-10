@@ -63,7 +63,9 @@ async def _two_waiting(tmp_path: Path, platform: AskingPlatform) -> None:
     calls = tuple(ToolCall(id=f"w{n}", name=WRITE, arguments=f'{{"value": "{n}"}}') for n in (1, 2))
     step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
     sessions = durable_service(tmp_path / "sessions")
-    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
     runs = run_service(
         sessions, SteppedClient(step, completed("never")), _writer(), approvals=approvals
     )

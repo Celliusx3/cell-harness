@@ -15,9 +15,10 @@ from harness.runs.chain import discussion_events
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.log import Session
-from harness.session.models import BotMessage, ToolCallEvent
+from harness.session.models import ApprovalModeChanged, BotMessage, ToolCallEvent
+from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
-from harness.tools import Approval, Failure, Ok
+from harness.tools import Approval, ApprovalMode, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 
@@ -124,6 +125,27 @@ class RunService:
         run = self._begin(session)
         run._outer = asyncio.create_task(self._end_then_wipe(in_flight, run))
         return run
+
+    async def set_mode(self, conversation_id: str, mode: ApprovalMode) -> None:
+        """Switch the chat to `mode`, in the log its turn in flight reads, from its next call."""
+        session = await self._session_to_switch(conversation_id)
+        session.append(ApprovalModeChanged(mode=mode))
+        await self._service.flush(session)
+        run = self._runs.get(conversation_id)
+        if run is not None:
+            await self._wake(run)
+
+    async def _session_to_switch(self, conversation_id: str) -> Session:
+        """The running turn's log, else the stored one, created when the chat was never written."""
+        run = self._runs.get(conversation_id)
+        if run is not None:
+            return run.session
+        try:
+            stored = await self._service.resume(conversation_id)
+        except SessionNotFoundError:
+            stored = await self._service.create(conversation_id)
+        started = self._runs.get(conversation_id)
+        return started.session if started is not None else stored
 
     async def stop(self, conversation_id: str) -> bool:
         """End a turn early."""

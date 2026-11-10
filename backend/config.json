@@ -25,7 +25,8 @@
   },
   "approval": {
     "tools": ["skill_save", "skill_delete", "skill_write_file", "bot_create", "fetch_with_secret"],
-    "grants_path": "~/.harness/approvals.json"
+    "grants_path": "~/.harness/approvals.json",
+    "default_mode": "ask"
   },
   "bots": {
     "path": "~/.harness/bots.json"

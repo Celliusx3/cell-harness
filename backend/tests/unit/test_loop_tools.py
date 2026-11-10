@@ -279,4 +279,4 @@ async def test_a_turn_runs_its_tools_for_the_bot_and_the_conversation_it_was_sta
 
     await drain(runtime_over(client, typed).run("q", session=new_session("c0"), bot_id="notion"))
 
-    assert seen == [CallOrigin(bot_id="notion", conversation_id="c0")]
+    assert seen == [CallOrigin(bot_id="notion", conversation_id="c0", mode="ask")]

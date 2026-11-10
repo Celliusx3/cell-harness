@@ -76,7 +76,9 @@ class CardApp:
     """The app with a scripted model, the keyring, the requests `fetch_with_secret` sent."""
 
     def __init__(self, tmp_path: Path, model: SteppedClient) -> None:
-        approvals = ApprovalService(frozenset(), frozenset, tmp_path / "approvals.json")
+        approvals = ApprovalService(
+            frozenset(), frozenset, tmp_path / "approvals.json", default_mode="ask"
+        )
         tools = ClientToolService(CLIENT_TOOLS, approvals)
         self.sent: list[httpx.Request] = []
         self.secrets: SecretService = secrets_in(tmp_path)

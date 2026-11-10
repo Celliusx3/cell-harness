@@ -25,7 +25,9 @@ WRITE = "memory__write_note"
 
 
 def _approvals(tmp_path: Path, *tools: str) -> ApprovalService:
-    return ApprovalService(frozenset(tools), frozenset, tmp_path / "approvals.json")
+    return ApprovalService(
+        frozenset(tools), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
 
 
 def _call(call_id: str) -> ToolCallEvent:
@@ -115,7 +117,10 @@ def test_a_name_that_is_both_client_and_listed_is_refused_at_construction(tmp_pa
 
 def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) -> None:
     approvals = ApprovalService(
-        frozenset(), lambda: frozenset({"mail__send_email"}), tmp_path / "approvals.json"
+        frozenset(),
+        lambda: frozenset({"mail__send_email"}),
+        tmp_path / "approvals.json",
+        default_mode="ask",
     )
 
     assert approvals.needs_approval("mail__send_email")
@@ -126,7 +131,7 @@ def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) 
 def test_the_servers_tools_are_read_again_on_every_check(tmp_path) -> None:
     connected: set[str] = set()
     approvals = ApprovalService(
-        frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json"
+        frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json", default_mode="ask"
     )
 
     assert not approvals.needs_approval("mail__send_email")

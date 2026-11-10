@@ -153,6 +153,8 @@ export type SessionEvent =
   /** These results are cleared from the model's view; the log and the screen keep them. */
   | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
   | ApprovalGrantEvent
+  /** The person switched the chat's mode; the latest switch decides what asks. */
+  | { type: "approval/mode"; mode: "ask" | "auto" }
   /** A bot answering from here on, and the instructions its turns are prompted with. */
   | { type: "bot/instructions"; name: string; instructions: string; bot_id?: string | null }
   /** What a connected MCP server tells the model from here on; empty once it tells nothing. */

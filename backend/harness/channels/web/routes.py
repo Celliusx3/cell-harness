@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from harness.bots import ChatMembers
 from harness.channels.commands import unknown_skill
 from harness.channels.protocol import InboundMessage
-from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage
+from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage, SetMode
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService
 from harness.images import is_sha256
@@ -199,7 +199,7 @@ def _file_routes(router: APIRouter, web: WebChannel) -> None:
 
 
 def _turn_routes(router: APIRouter, web: WebChannel) -> None:
-    """A chat's events streamed as its turn runs, the turn stopped, and the chat cleared."""
+    """A chat's events streamed, its turn stopped, its mode switched, and the chat cleared."""
 
     @router.get("/{conversation_id}/events")
     async def stream_events(conversation_id: str, after: int = Query(0, ge=0)) -> StreamingResponse:
@@ -226,6 +226,13 @@ def _turn_routes(router: APIRouter, web: WebChannel) -> None:
         """Stop the turn in flight."""
         if not await web.runs.stop(conversation_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no turn is running")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @router.put("/{conversation_id}/mode", status_code=status.HTTP_204_NO_CONTENT)
+    async def set_mode(conversation_id: str, body: SetMode) -> Response:
+        """Switch what asks in this chat: its next call follows `mode`."""
+        await web.runs.set_mode(conversation_id, body.mode)
+        logger.info("conversation %s switched to %s by the browser", conversation_id, body.mode)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @router.post("/{conversation_id}/clear", status_code=status.HTTP_204_NO_CONTENT)

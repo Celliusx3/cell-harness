@@ -2,7 +2,7 @@
 
 from harness.tools.approvals import ApprovalService, NotApproved
 from harness.tools.models.context import CallOrigin, ToolContext
-from harness.tools.models.decision import Approval
+from harness.tools.models.decision import Approval, ApprovalMode
 from harness.tools.models.outcome import (
     BLOCKED,
     EXECUTION_ERROR,
@@ -30,6 +30,7 @@ __all__ = [
     "ApprovalService",
     "NotApproved",
     "Approval",
+    "ApprovalMode",
     "CallOrigin",
     "Failure",
     "Ok",

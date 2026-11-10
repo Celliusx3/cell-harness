@@ -6,6 +6,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from harness.tools import ApprovalMode
+
 
 class LLMSettings(BaseModel):
     """How every model is asked; which model a bot asks is its LLM credential."""
@@ -32,6 +34,7 @@ class ApprovalSettings(BaseModel):
 
     tools: tuple[str, ...] = ()
     grants_path: Path = Path.home() / ".harness" / "approvals.json"
+    default_mode: ApprovalMode = "ask"
 
     @field_validator("grants_path")
     @classmethod

@@ -265,4 +265,4 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversatio
         code, context=context_for(bot_id="bot-7", conversation_id="chat-7")
     )
 
-    assert seen == [CallOrigin(bot_id="bot-7", conversation_id="chat-7")]
+    assert seen == [CallOrigin(bot_id="bot-7", conversation_id="chat-7", mode="ask")]

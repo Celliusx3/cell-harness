@@ -8,6 +8,7 @@ from typing import NamedTuple
 from harness.llm import ToolReference
 from harness.session.models import (
     ApprovalGrant,
+    ApprovalModeChanged,
     AssistantMessageEvent,
     BotInstructionsEvent,
     GroupMembersEvent,
@@ -19,6 +20,7 @@ from harness.session.models import (
     TurnStart,
 )
 from harness.session.speakers import last_speaker, turn_speakers
+from harness.tools import ApprovalMode
 
 
 class Numbered(NamedTuple):
@@ -96,6 +98,13 @@ class Session:
         return frozenset(
             e.tool for e in self._events if isinstance(e, ApprovalGrant) and e.turn not in others
         )
+
+    def approval_mode(self, default: ApprovalMode) -> ApprovalMode:
+        """The mode the person switched this chat to last, for every bot in it; else `default`."""
+        for event in reversed(self._events):
+            if isinstance(event, ApprovalModeChanged):
+                return event.mode
+        return default
 
     def bot_instructions(self, bot_id: str | None) -> BotInstructionsEvent | None:
         """The instructions logged last for `bot_id` or for no bot, compacted or not, or `None`."""

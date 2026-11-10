@@ -206,6 +206,7 @@ def test_it_never_asks_for_approval() -> None:
         frozenset(committed["approval"]["tools"]),
         frozenset,
         Path("/nonexistent/cell-harness-approvals.json"),
+        default_mode="ask",
     )
 
     assert not approvals.needs_approval(SEND_FILE)

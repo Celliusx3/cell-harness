@@ -60,14 +60,14 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
 
 CONVERSATION_ID = "s"
 NO_LINK_STORAGE = Path("/nonexistent/cell-harness-links")
-ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID)
+ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID, mode="ask")
 
 
 def context_for(
     call_id: str = "call-1", bot_id: str = "s", conversation_id: str = CONVERSATION_ID
 ) -> ToolContext:
     """A context for invoking a tool directly, outside the dispatcher."""
-    origin = CallOrigin(bot_id=bot_id, conversation_id=conversation_id)
+    origin = CallOrigin(bot_id=bot_id, conversation_id=conversation_id, mode="ask")
     return ToolContext(call_id=call_id, progress=no_progress, origin=origin)
 
 
@@ -78,7 +78,9 @@ def new_session(session_id: str = "s") -> Session:
 
 def no_approvals() -> ApprovalService:
     """An approval service that lists nothing, over an approvals file that cannot exist."""
-    return ApprovalService(frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"))
+    return ApprovalService(
+        frozenset(), frozenset, Path("/nonexistent/cell-harness-approvals.json"), default_mode="ask"
+    )
 
 
 def toolset_for(

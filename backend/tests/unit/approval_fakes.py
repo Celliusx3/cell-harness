@@ -14,7 +14,9 @@ WRITE = "memory__write_note"
 
 
 def approvals_asking_for(tmp_path: Path, *tools: str) -> ApprovalService:
-    return ApprovalService(frozenset(tools), frozenset, tmp_path / "approvals.json")
+    return ApprovalService(
+        frozenset(tools), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
 
 
 def note_writer(ran: list[str]) -> Tool[EchoArgs]:

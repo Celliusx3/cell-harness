@@ -29,7 +29,9 @@ ANSWER = "/api/conversations/builder/calls/call_reader/output"
 
 
 async def test_the_builder_makes_the_bot_its_chat_drafted_once_it_is_allowed(tmp_path) -> None:
-    approvals = ApprovalService(frozenset({BOT_CREATE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset({BOT_CREATE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     bots = BotService(
