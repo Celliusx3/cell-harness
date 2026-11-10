@@ -51,6 +51,7 @@ class RunService:
         self._runtime = runtime
         self._bots = bots
         self._runs: dict[str, Run] = {}
+        self._started = asyncio.Event()
 
     @property
     def bots(self) -> BotService:
@@ -60,6 +61,15 @@ class RunService:
     def active(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)
+
+    async def next_run(self, conversation_id: str) -> Run:
+        """The run in flight for this conversation, once one has begun."""
+        while True:
+            started = self._started
+            run = self._runs.get(conversation_id)
+            if run is not None:
+                return run
+            await started.wait()
 
     def chats_spoken_in(self, bot_id: str) -> tuple[str, ...]:
         """The conversations whose run is in a turn of `bot_id`'s right now."""
@@ -104,8 +114,7 @@ class RunService:
         """Begin a manual compaction as its own run — no model turn, just the compaction events."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
+        run = self._begin(session)
         run._inner = asyncio.create_task(self._stream(run, self._runtime.compact(session=session)))
         run._outer = asyncio.create_task(self._drive(run))
         return run
@@ -113,8 +122,7 @@ class RunService:
     def clear(self, session: Session) -> Run:
         """Begin wiping this chat as a run of its own, taking over from the turn in flight."""
         in_flight = self._runs.get(session.id)
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
+        run = self._begin(session)
         run._outer = asyncio.create_task(self._end_then_wipe(in_flight, run))
         return run
 
@@ -133,12 +141,19 @@ class RunService:
 
     def _converse(self, session: Session, opening: AsyncIterator[TurnEvent]) -> Run:
         """Run `opening` and the discussion after it on a task this service owns."""
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
+        run = self._begin(session)
         run._inner = asyncio.create_task(
             self._stream(run, discussion_events(self._runtime, self._bots, session, opening))
         )
         run._outer = asyncio.create_task(self._drive(run))
+        return run
+
+    def _begin(self, session: Session) -> Run:
+        """Record a new run for `session` and release everyone waiting in `next_run`."""
+        run = Run(session, session.next_number())
+        self._runs[session.id] = run
+        self._started.set()
+        self._started = asyncio.Event()
         return run
 
     async def _end(self, run: Run) -> None:

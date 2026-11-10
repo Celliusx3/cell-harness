@@ -203,7 +203,7 @@ def _turn_routes(router: APIRouter, web: WebChannel) -> None:
 
     @router.get("/{conversation_id}/events")
     async def stream_events(conversation_id: str, after: int = Query(0, ge=0)) -> StreamingResponse:
-        """Events from `after` onward as SSE, live if a turn is running."""
+        """Events from `after` onward as SSE, live; at an idle chat's head, its next turn."""
 
         async def source() -> Source:
             run = web.runs.active(conversation_id)
@@ -211,12 +211,18 @@ def _turn_routes(router: APIRouter, web: WebChannel) -> None:
                 return run
             return await _load(web.sessions, conversation_id, for_writing=False)
 
+        async def first_source() -> Source:
+            found = await source()
+            if isinstance(found, Session) and found.next_number() <= after:
+                return await web.runs.next_run(conversation_id)
+            return found
+
         async def after_drain() -> Source:
             await web.gateway.drained(web.channel, conversation_id)
             return await source()
 
         return StreamingResponse(
-            kept_alive(sse_frames(await source(), after=after, after_drain=after_drain)),
+            kept_alive(sse_frames(first_source, after=after, after_drain=after_drain)),
             media_type=MEDIA_TYPE,
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )

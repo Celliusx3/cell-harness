@@ -47,8 +47,6 @@ export function useConversation(conversationId: string): Conversation {
 
   const cursor = useRef(0);
 
-  const resume = useRef<(() => void) | null>(null);
-
   useEffect(() => {
     const controller = new AbortController();
     let cancelled = false;
@@ -98,15 +96,7 @@ export function useConversation(conversationId: string): Conversation {
           },
         });
         if (cancelled || controller.signal.aborted) break;
-
-        if (ended) {
-          await new Promise<void>((resolve) => {
-            resume.current = resolve;
-          });
-          resume.current = null;
-          if (cancelled || controller.signal.aborted) break;
-          continue;
-        }
+        if (ended) continue;
 
         await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
         if (cancelled || controller.signal.aborted) break;
@@ -117,14 +107,12 @@ export function useConversation(conversationId: string): Conversation {
     return () => {
       cancelled = true;
       controller.abort();
-      resume.current?.();
     };
   }, [conversationId]);
 
   /** A turn was just started elsewhere */
   const wake = useCallback(() => {
     setRunning(true);
-    resume.current?.();
   }, []);
 
   const send = useCallback(

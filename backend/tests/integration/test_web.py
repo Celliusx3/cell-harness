@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from tests.integration.web_helpers import assistant_chat, events_from, frame_names, settle
 from tests.unit.helpers import until
 
@@ -88,11 +90,13 @@ async def test_snapshot_then_stream_reconstructs_the_log_exactly(simple) -> None
     await settle(runs, conversation_id)
 
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
-    tail = await client.get(
-        f"/api/conversations/{conversation_id}/events?after={detail['next_cursor']}"
+    tailing = asyncio.create_task(
+        client.get(f"/api/conversations/{conversation_id}/events?after={detail['next_cursor']}")
     )
+    await assistant_chat(client, "again")
+    tail = await asyncio.wait_for(tailing, timeout=5)
 
-    assert events_from(tail.text) == []
+    assert [e["type"] for e in events_from(tail.text)][-1] == "turn/end"
     whole = (await client.get(f"/api/conversations/{conversation_id}/events?after=0")).text
     assert detail["events"] + events_from(tail.text) == events_from(whole)
 
