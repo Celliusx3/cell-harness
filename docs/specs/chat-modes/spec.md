@@ -10,7 +10,7 @@ A person cannot choose, per chat, how far a bot goes without them. Every chat fo
 
 1. You open a chat. The message box shows "Ask", the mode every new chat starts in.
 2. The bot calls a tool that changes something. An approval card appears, as today.
-3. You pick "Auto" in the message box. A dialog asks "Let this bot act without asking in this chat?" You confirm.
+3. You pick "Auto" in the message box. A dialog asks "Switch to Auto?" You tick "I understand the risks and want to continue", then press "Enable Auto".
 4. The timeline shows a line, "Switched to Auto".
 5. The bot calls a tool that changes something. It runs, and no card appears.
 6. You pick "Ask" again. No dialog appears, and the timeline shows "Switched to Ask".
@@ -26,7 +26,7 @@ A person cannot choose, per chat, how far a bot goes without them. Every chat fo
 - The default for new chats is Ask, set by one config setting. DeepSeek Harness and Claude Code both read a default from config.
 - One mode per chat. Every bot in a group chat follows it. DeepSeek Harness keeps the mode per session, and a group chat is one session here.
 - A picker in the message box and a `/mode` command. DeepSeek Harness has `/permission`, ZCode has `/mode`, and Claude Code, ZCode and OpenMaus have a picker.
-- Picking Auto in the browser asks to confirm first. DeepSeek Harness asks "Enable Full access?" Typing `/mode auto` is already a clear choice, so it does not ask.
+- Picking Auto in the browser asks to confirm first, with a box to tick before the button works. DeepSeek Harness does the same before "Enable Full access". Typing `/mode auto` is already a clear choice, so it does not ask.
 - A switch takes effect from the next tool call, and the bot is told at its next step, with a note saved in the history. DeepSeek Harness does this.
 - Every step, the bot is told the current mode in one line after the history. So a switch does not change the start of the request. DeepSeek Harness places it there for the same reason.
 - Scripts the bot writes follow the chat's mode, as its own calls do.

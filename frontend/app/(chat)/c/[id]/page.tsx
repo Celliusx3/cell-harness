@@ -45,6 +45,7 @@ export default function ConversationPage({
   );
   const elapsed = useElapsed(conversation.running || conversation.sending !== null);
   const [folded, setFolded] = useState<string | null>(null);
+  const [pickingMode, setPickingMode] = useState(false);
   const wasRunning = useRef(false);
 
   useEffect(() => {
@@ -114,13 +115,19 @@ export default function ConversationPage({
             autoFocus
             chatId={id}
             running={conversation.running}
-            onSend={(prompt, files) => void conversation.send(prompt, files)}
+            onSend={(prompt, files) =>
+              opensModePicker(prompt) && conversation.mode !== null
+                ? setPickingMode(true)
+                : void conversation.send(prompt, files)
+            }
             onStop={() => void conversation.stop()}
             modePicker={
               conversation.mode !== null && (
                 <ModePicker
                   mode={conversation.mode}
                   onPick={(mode) => void conversation.switchMode(mode)}
+                  open={pickingMode}
+                  onOpenChange={setPickingMode}
                 />
               )
             }
@@ -130,6 +137,9 @@ export default function ConversationPage({
     </>
   );
 }
+
+/** Whether a sent line is a bare `/mode`, which opens the picker instead of reaching the server. */
+const opensModePicker = (prompt: string) => prompt.trim().toLowerCase() === "/mode";
 
 function followAppEvent(event: AppEvent, id: string, conversation: Conversation): void {
   if (event.type === "chat/turn-started" && event.chat_id === id) conversation.wake();
