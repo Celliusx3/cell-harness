@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.channels.commands import Command
+from harness.channels.commands import ChatCommand, Command, mode_command, slash_words
 
 _NAMES = {
     "/new": Command.NEW,
@@ -12,11 +12,10 @@ _NAMES = {
 }
 
 
-def parse(text: str) -> Command | None:
+def parse(text: str) -> ChatCommand | None:
     """The command this message asks for, or `None` for anything else."""
-    stripped = text.strip()
-    if not stripped.startswith("/"):
-        return None
-    # Telegram appends the bot's name in groups: `/new@my_bot`.
-    word = stripped.split()[0].split("@")[0].lower()
-    return _NAMES.get(word)
+    mode = mode_command(text)
+    if mode is not None:
+        return mode
+    words = slash_words(text)
+    return _NAMES.get(words[0]) if words else None

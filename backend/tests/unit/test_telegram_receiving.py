@@ -196,7 +196,10 @@ async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path)
     await settle(gateway, runs)
 
     assert bot.sent == [
-        (CHAT, "No skill named 'start'. Skills: /find-place. Commands: /new, /stop, /compact.")
+        (
+            CHAT,
+            "No skill named 'start'. Skills: /find-place. Commands: /new, /stop, /compact, /mode.",
+        )
     ]
     with pytest.raises(SessionNotFoundError):
         await sessions.read(ASSISTANT_ID)

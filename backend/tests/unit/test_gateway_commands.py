@@ -83,11 +83,11 @@ def test_an_unknown_skill_reply_says_what_can_be_typed() -> None:
 
     assert reply == (
         "No skill named 'summarise'. Skills: /find-place, /weekly-report. "
-        "Commands: /new, /stop, /compact."
+        "Commands: /new, /stop, /compact, /mode."
     )
     assert (
         unknown_skill("x", [])
-        == "No skill named 'x'. Skills: none. Commands: /new, /stop, /compact."
+        == "No skill named 'x'. Skills: none. Commands: /new, /stop, /compact, /mode."
     )
 
 
@@ -143,13 +143,13 @@ async def test_skills_lists_what_can_be_typed(tmp_path) -> None:
 
     assert reply == (
         "Skills you can type:\n/find-place — Where a reel was filmed.\n\n"
-        "Commands: /new, /stop, /compact."
+        "Commands: /new, /stop, /compact, /mode."
     )
     assert bot.sent == []
 
 
 def test_no_skills_says_so() -> None:
-    assert skills_reply([]) == "No skills installed. Commands: /new, /stop, /compact."
+    assert skills_reply([]) == "No skills installed. Commands: /new, /stop, /compact, /mode."
 
 
 async def test_compact_summarizes_this_chats_conversation(tmp_path) -> None:

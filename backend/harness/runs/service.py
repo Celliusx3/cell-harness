@@ -22,6 +22,8 @@ from harness.tools import Approval, ApprovalMode, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 
+MODE_WITHOUT_TOOLSET: ApprovalMode = "auto"
+
 
 class RunAlreadyActive(RuntimeError):
     """This conversation is already running a turn."""
@@ -134,6 +136,18 @@ class RunService:
         run = self._runs.get(conversation_id)
         if run is not None:
             await self._wake(run)
+
+    async def mode_of(self, conversation_id: str) -> ApprovalMode:
+        """The mode the chat's next call runs under; with no toolset nothing asks, so Auto."""
+        tools = self._runtime.tools
+        if tools is None:
+            return MODE_WITHOUT_TOOLSET
+        run = self._runs.get(conversation_id)
+        try:
+            session = run.session if run is not None else await self._service.read(conversation_id)
+        except SessionNotFoundError:
+            return tools.tool_service.approvals.default_mode
+        return tools.mode_of(session)
 
     async def _session_to_switch(self, conversation_id: str) -> Session:
         """The running turn's log, else the stored one, created when the chat was never written."""

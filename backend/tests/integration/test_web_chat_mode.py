@@ -95,3 +95,26 @@ async def test_a_mode_that_is_not_ask_or_auto_is_refused(tmp_path) -> None:
     refused = await client.put(MODE, json={"mode": "yolo"})
 
     assert refused.status_code == 422
+
+
+async def test_mode_typed_in_the_browser_switches_the_chat_and_starts_no_turn(tmp_path) -> None:
+    ran: list[str] = []
+    client, runs = _app(tmp_path, "Kopi", ran=ran)
+
+    await send(client, ASSISTANT_ID, "/mode auto")
+    await settle(runs, ASSISTANT_ID)
+
+    detail = (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()
+    assert {"type": "approval/mode", "mode": "auto"} in detail["events"]
+    assert not [e for e in detail["events"] if e["type"] == "turn/start"]
+
+
+async def test_mode_alone_in_the_browser_names_the_mode_on(tmp_path) -> None:
+    client, _ = _app(tmp_path, ran=[])
+
+    named = await client.post(
+        f"/api/conversations/{ASSISTANT_ID}/messages", json={"prompt": "/mode"}
+    )
+
+    assert named.status_code == 422
+    assert named.json()["detail"] == "Use /mode ask or /mode auto. Mode: Ask."

@@ -10,7 +10,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFi
 from fastapi.responses import FileResponse, StreamingResponse
 
 from harness.bots import ChatMembers
-from harness.channels.commands import unknown_skill
+from harness.channels.commands import (
+    ModeCommand,
+    mode_command,
+    mode_named,
+    mode_words,
+    unknown_skill,
+)
 from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage, SetMode
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
@@ -43,6 +49,23 @@ def _unknown_skill(web: WebChannel, err: UnknownSkill) -> HTTPException:
 def _accepted(session: Session, *, queued: bool) -> MessageAccepted:
     header = session.header
     return MessageAccepted(id=header.id, created_at=header.created_at, queued=queued)
+
+
+async def _switched(web: WebChannel, conversation_id: str, mode: ModeCommand) -> MessageAccepted:
+    """`/mode ask` or `/mode auto` switches the chat and starts no turn; any other is a 422."""
+    chosen = mode_named(mode.word)
+    if chosen is None:
+        current = await web.runs.mode_of(conversation_id)
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=mode_words(current))
+    await web.gateway.set_mode(web.channel, conversation_id, chosen)
+    logger.info("conversation %s switched to %s by /mode", conversation_id, chosen)
+    active = web.runs.active(conversation_id)
+    session = (
+        active.session
+        if active is not None
+        else await _load(web.sessions, conversation_id, for_writing=False)
+    )
+    return _accepted(session, queued=False)
 
 
 def _attached_files(files: ChatFileService, chat_id: str, paths: list[str]) -> tuple[ChatFile, ...]:
@@ -117,7 +140,10 @@ def _message_routes(router: APIRouter, web: WebChannel) -> None:
         response_model=MessageAccepted,
     )
     async def send_message(conversation_id: str, body: SendMessage) -> MessageAccepted:
-        """Continue a conversation."""
+        """Continue a conversation; `/mode` switches it instead, before any skill is looked for."""
+        mode = mode_command(body.prompt)
+        if mode is not None:
+            return await _switched(web, conversation_id, mode)
         files = _attached_files(web.files, conversation_id, body.files)
         try:
             run = await web.gateway.receive(

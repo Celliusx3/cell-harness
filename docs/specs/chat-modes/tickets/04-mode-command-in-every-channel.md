@@ -1,6 +1,6 @@
 # 04 · `/mode` switches the chat in Telegram, Discord and the browser
 
-**Status.** open
+**Status.** done
 
 **What to build.** A `/mode` command that takes `ask`, `auto` or nothing. With a mode it calls `RunService.set_mode` and answers "Mode: Auto." With nothing it answers the current mode. Any other word answers which words it takes. The command needs an argument, so the commands module gets a typed value for it beside `Command`.
 
