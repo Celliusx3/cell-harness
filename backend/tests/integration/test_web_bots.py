@@ -5,6 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.runs.service import RunService
@@ -26,9 +27,12 @@ RESEARCHER = {
 async def bots(tmp_path):
     model = ScriptedClient(completed("hello"))
     service = durable_service(tmp_path / "sessions")
-    store = BotService(tmp_path / "bots.json", service, assistant_instructions=ASSISTANT)
+    app_events = AppEvents()
+    store = BotService(
+        tmp_path / "bots.json", service, assistant_instructions=ASSISTANT, events=app_events
+    )
     runtime = runtime_over(model, guidance=GUIDE, checkpoint=service.flush)
-    runs = RunService(service, runtime, store)
+    runs = RunService(service, runtime, store, events=app_events)
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=store, secrets=a_model_saved_in(tmp_path)
     )

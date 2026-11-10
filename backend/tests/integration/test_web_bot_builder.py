@@ -6,6 +6,7 @@ import json
 
 import httpx
 
+from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
@@ -31,7 +32,9 @@ async def test_the_builder_makes_the_bot_its_chat_drafted_once_it_is_allowed(tmp
     approvals = ApprovalService(frozenset({BOT_CREATE}), frozenset, tmp_path / "approvals.json")
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
-    bots = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
+    bots = BotService(
+        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", events=AppEvents()
+    )
     secrets = a_model_saved_in(tmp_path)
     model = SteppedClient(
         calls_tool(BOT_CREATE, READER, id="call_reader"), completed("Reader is under Bots.")

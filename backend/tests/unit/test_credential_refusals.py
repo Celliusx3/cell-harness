@@ -8,6 +8,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.web.errors import exception_handlers
@@ -38,7 +39,10 @@ MODEL_DETAILS = {
 def http(tmp_path: Path) -> httpx.AsyncClient:
     secrets = SecretService(DiskSecretRepository(tmp_path / "secrets.json"), encryption_key=KEY)
     bots = BotService(
-        tmp_path / "bots.json", durable_service(tmp_path / "sessions"), assistant_instructions="Hi."
+        tmp_path / "bots.json",
+        durable_service(tmp_path / "sessions"),
+        assistant_instructions="Hi.",
+        events=AppEvents(),
     )
     app = FastAPI(exception_handlers=exception_handlers())
     app.include_router(build_router(secrets, bots, no_platforms(secrets)))

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
+from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
@@ -137,7 +138,10 @@ def create_web_app() -> FastAPI:
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
-    bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
+    events = AppEvents()
+    bots = BotService(
+        settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS, events=events
+    )
     runtime = build_runtime(
         settings,
         service,
@@ -151,7 +155,7 @@ def create_web_app() -> FastAPI:
         images=images,
         files=files,
     )
-    runs = RunService(service, runtime, bots)
+    runs = RunService(service, runtime, bots, events=events)
     assert runtime.tools is not None
     messages = attach_bot_messages(runtime.tools.tool_service, service, bots, runs)
     channels = build_channels(

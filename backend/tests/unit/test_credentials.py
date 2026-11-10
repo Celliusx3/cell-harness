@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 from pydantic import SecretStr
 
+from harness.app_events import AppEvents
 from harness.bots import BotDraft, BotService
 from harness.secrets import Destination, DiskSecretRepository, SecretService
 from harness.secrets.models.details import ModelDetails, TelegramDetails
@@ -36,6 +37,7 @@ def bots(tmp_path: Path) -> BotService:
         tmp_path / "bots.json",
         durable_service(tmp_path / "sessions"),
         assistant_instructions="Be kind.",
+        events=AppEvents(),
     )
 
 

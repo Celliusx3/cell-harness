@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.app_events import AppEvents
 from harness.bots import (
     ASSISTANT_ID,
     BUILDER_ID,
@@ -38,13 +39,20 @@ def service(tmp_path: Path) -> SessionService:
 
 @pytest.fixture
 def bots(tmp_path: Path, service: SessionService) -> BotService:
-    return BotService(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
+    return BotService(
+        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=AppEvents()
+    )
 
 
 async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
     tmp_path: Path, service: SessionService
 ) -> None:
-    missing = BotService(tmp_path / "no" / "bots.json", service, assistant_instructions="Be kind.")
+    missing = BotService(
+        tmp_path / "no" / "bots.json",
+        service,
+        assistant_instructions="Be kind.",
+        events=AppEvents(),
+    )
 
     assert await missing.active_bots() == (KIND, BUILDER)
     with pytest.raises(BotNotFound):

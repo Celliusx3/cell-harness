@@ -6,6 +6,7 @@ import asyncio
 
 import httpx
 
+from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.runs.service import RunService
 from tests.integration.test_web_stream import TIMEOUT, serving
@@ -18,8 +19,13 @@ RESEARCHER = {"name": "Researcher", "instructions": "Cite.", "model": MODEL_CRED
 
 async def test_an_open_page_hears_of_a_bot_made_elsewhere(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
-    bots = BotService(tmp_path / "bots.json", service, assistant_instructions="Help.")
-    runs = RunService(service, runtime_over(ScriptedClient(completed("hi"))), bots)
+    app_events = AppEvents()
+    bots = BotService(
+        tmp_path / "bots.json", service, assistant_instructions="Help.", events=app_events
+    )
+    runs = RunService(
+        service, runtime_over(ScriptedClient(completed("hi"))), bots, events=app_events
+    )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=a_model_saved_in(tmp_path)
     )

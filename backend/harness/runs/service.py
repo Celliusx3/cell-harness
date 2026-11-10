@@ -8,6 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
+from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.files import ChatFile
 from harness.runs.chain import discussion_events
@@ -46,10 +47,13 @@ class Run:
 class RunService:
     """Starts and stops turns, and knows which conversations are busy."""
 
-    def __init__(self, service: SessionService, runtime: Runtime, bots: BotService) -> None:
+    def __init__(
+        self, service: SessionService, runtime: Runtime, bots: BotService, *, events: AppEvents
+    ) -> None:
         self._service = service
         self._runtime = runtime
         self._bots = bots
+        self._events = events
         self._runs: dict[str, Run] = {}
         self._started = asyncio.Event()
 

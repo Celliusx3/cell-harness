@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 import httpx
 import pytest
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotService
 from harness.llm import Message, StreamEvent, ToolSpec
 from harness.runs.service import RunService
@@ -21,8 +22,13 @@ from tests.webapp import web_app
 async def assistant(tmp_path):
     model = ScriptedClient(completed("noted"))
     service = durable_service(tmp_path / "sessions")
-    store = BotService(tmp_path / "bots.json", service, assistant_instructions="ASSISTANT")
-    runs = RunService(service, runtime_over(model, checkpoint=service.flush), store)
+    app_events = AppEvents()
+    store = BotService(
+        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", events=app_events
+    )
+    runs = RunService(
+        service, runtime_over(model, checkpoint=service.flush), store, events=app_events
+    )
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:

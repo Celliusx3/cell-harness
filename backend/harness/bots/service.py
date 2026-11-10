@@ -6,6 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
+from harness.app_events import AppEvents
 from harness.bots import _turn_order, ties
 from harness.bots.changes import BotListChanges
 from harness.bots.models import (
@@ -35,10 +36,16 @@ class BotService:
     """Every bot, Assistant and Bot builder first, the one chat each owns, and every group."""
 
     def __init__(
-        self, path: Path, sessions: SessionService, *, assistant_instructions: str
+        self,
+        path: Path,
+        sessions: SessionService,
+        *,
+        assistant_instructions: str,
+        events: AppEvents,
     ) -> None:
         self._path = path
         self._sessions = sessions
+        self._events = events
         self.changes = BotListChanges()
         self._built_ins = (
             Bot(id=ASSISTANT_ID, name=ASSISTANT_NAME, instructions=assistant_instructions),

@@ -10,6 +10,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID
 from harness.config import settings as settings_module
 from harness.llm.adapters.openai import client as adapter_module
@@ -76,8 +77,8 @@ def _started_app(
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     built: list[RunService] = []
 
-    def runs_seen(*args) -> RunService:
-        runs = RunService(*args)
+    def runs_seen(*args, events: AppEvents) -> RunService:
+        runs = RunService(*args, events=events)
         built.append(runs)
         return runs
 

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.app_events import AppEvents
 from harness.bots import (
     ASSISTANT_ID,
     Bot,
@@ -189,7 +190,10 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
         return Ok(content=args.value)
 
     bots = _ChatsOfNotion(
-        Path("/nonexistent/bots.json"), service, assistant_instructions=ASSISTANT_INSTRUCTIONS
+        Path("/nonexistent/bots.json"),
+        service,
+        assistant_instructions=ASSISTANT_INSTRUCTIONS,
+        events=AppEvents(),
     )
     client = SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done"))
     runs = run_service(service, client, replace(echo_tool(), execute=execute), bots=bots)

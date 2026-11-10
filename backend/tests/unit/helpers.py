@@ -10,6 +10,7 @@ from contextlib import aclosing
 from datetime import UTC, datetime
 from pathlib import Path
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -175,6 +176,7 @@ def run_service(
             images=images,
         ),
         bots or no_bots(service),
+        events=AppEvents(),
     )
 
 
@@ -189,6 +191,7 @@ def no_bots(service: SessionService) -> BotService:
         Path("/nonexistent/cell-harness-bots.json"),
         service,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
+        events=AppEvents(),
     )
 
 

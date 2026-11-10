@@ -11,6 +11,7 @@ import pytest
 from fastapi import FastAPI
 from pydantic import SecretStr
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -114,7 +115,10 @@ def started() -> Started:
 @pytest.fixture
 def http(tmp_path: Path, keyring, gateway, started) -> httpx.AsyncClient:
     bots = BotService(
-        tmp_path / "bots.json", durable_service(tmp_path / "bots"), assistant_instructions="Hi."
+        tmp_path / "bots.json",
+        durable_service(tmp_path / "bots"),
+        assistant_instructions="Hi.",
+        events=AppEvents(),
     )
     app = FastAPI()
     platforms = PlatformChannels(gateway, keyring, started)
