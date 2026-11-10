@@ -39,9 +39,14 @@ class Toolset:
         self._default_tools = tuple(default_tools)
         self._sight_tools = sight_tools
 
+    @property
+    def default_mode(self) -> ApprovalMode:
+        """The mode a chat follows until the person switches it."""
+        return self.tool_service.approvals.default_mode
+
     def mode_of(self, session: ToolChoices) -> ApprovalMode:
         """The mode `session`'s calls run under: its latest switch, else the configured default."""
-        return session.approval_mode(self.tool_service.approvals.default_mode)
+        return session.approval_mode(self.default_mode)
 
     def specs(self, tools_selected: Sequence[str] = (), *, sees_images: bool) -> list[ToolSpec]:
         """What the model is offered this step — the only place visibility is decided."""

@@ -217,6 +217,13 @@ is stopped midway.
   must stay shut cannot (rules.md). Scripts pass through the same dispatch,
   so a script calling a gated tool gets a `BridgeError` telling the model to
   read the tool with `get_function_details` and call it directly.
+- **A chat's mode decides whether the gate asks at all.** Each chat is in Ask
+  or Auto, logged as an `approval/mode` event; the latest wins, and a chat with
+  none follows `approval.default_mode`. The mode rides on `CallOrigin`, and
+  dispatch answers `Pending` only in Ask, so in Auto the model's calls and its
+  scripts' calls run with no card. Questions such as `get_location` answer
+  `Pending` from their own tool, so they still wait. Spec in
+  `docs/specs/chat-modes/`.
 - **Three answers, three scopes.** `{"kind": "approved", "scope": "once" |
   "conversation" | "always"}` or `{"kind": "denied"}`, posted to the same
   `POST …/calls/{call_id}/output`. `once` runs the call. `conversation` first

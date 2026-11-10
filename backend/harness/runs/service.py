@@ -138,7 +138,7 @@ class RunService:
             await self._wake(run)
 
     async def mode_of(self, conversation_id: str) -> ApprovalMode:
-        """The mode the chat's next call runs under; with no toolset nothing asks, so Auto."""
+        """The mode the chat's next call runs under."""
         tools = self._runtime.tools
         if tools is None:
             return MODE_WITHOUT_TOOLSET
@@ -146,7 +146,7 @@ class RunService:
         try:
             session = run.session if run is not None else await self._service.read(conversation_id)
         except SessionNotFoundError:
-            return tools.tool_service.approvals.default_mode
+            return tools.default_mode
         return tools.mode_of(session)
 
     async def _session_to_switch(self, conversation_id: str) -> Session:

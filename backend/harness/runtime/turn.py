@@ -241,7 +241,7 @@ async def _shrink_history(
 def _start_step(runtime: Runtime, session: Session, at: TurnStep) -> None:
     """Open the step, and tell the model when the person switched the mode since the last one."""
     switch = (
-        session.approval_mode_switch(runtime.tools.tool_service.approvals.default_mode)
+        session.approval_mode_switch(runtime.tools.default_mode)
         if runtime.tools is not None
         else None
     )
