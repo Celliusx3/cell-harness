@@ -93,7 +93,7 @@ KEEP_AWAKE_DESCRIPTION = (
 )
 
 SHELL_DESCRIPTION = (
-    "Runs a command in your computer (Debian Linux with Python 3 and uv; the chat's files are "
+    "Runs a command in your computer (Debian Linux with Python 3; the chat's files are "
     "at the same paths as you were told) and answers its output and exit code. A command still "
     "running after 15 seconds answers status `running` with how long it has run and its output "
     "so far; call shell again with the same arguments to wait for it, and its finished result "
