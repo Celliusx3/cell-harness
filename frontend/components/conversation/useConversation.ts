@@ -35,6 +35,8 @@ export interface Conversation {
   clear(): Promise<void>;
   /** A turn was started by something other than `send` */
   wake(): void;
+  /** Read anything logged since the cursor, without showing a turn as running */
+  catchUp(): void;
 }
 
 export function useConversation(conversationId: string): Conversation {
@@ -46,6 +48,8 @@ export function useConversation(conversationId: string): Conversation {
   const [error, setError] = useState<string | null>(null);
 
   const cursor = useRef(0);
+
+  const resume = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,7 +100,15 @@ export function useConversation(conversationId: string): Conversation {
           },
         });
         if (cancelled || controller.signal.aborted) break;
-        if (ended) continue;
+
+        if (ended) {
+          await new Promise<void>((resolve) => {
+            resume.current = resolve;
+          });
+          resume.current = null;
+          if (cancelled || controller.signal.aborted) break;
+          continue;
+        }
 
         await new Promise((resolve) => setTimeout(resolve, RECONNECT_DELAY_MS));
         if (cancelled || controller.signal.aborted) break;
@@ -107,12 +119,18 @@ export function useConversation(conversationId: string): Conversation {
     return () => {
       cancelled = true;
       controller.abort();
+      resume.current?.();
     };
   }, [conversationId]);
 
   /** A turn was just started elsewhere */
   const wake = useCallback(() => {
     setRunning(true);
+    resume.current?.();
+  }, []);
+
+  const catchUp = useCallback(() => {
+    resume.current?.();
   }, []);
 
   const send = useCallback(
@@ -169,5 +187,18 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId]);
 
-  return { events, queued, sending, running, loading, error, send, stop, compact, clear, wake };
+  return {
+    events,
+    queued,
+    sending,
+    running,
+    loading,
+    error,
+    send,
+    stop,
+    compact,
+    clear,
+    wake,
+    catchUp,
+  };
 }

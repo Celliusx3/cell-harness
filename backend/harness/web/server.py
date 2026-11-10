@@ -35,6 +35,7 @@ from harness.web.credential_effects import CredentialEffects
 from harness.web.errors import exception_handlers
 from harness.web.logs import configure_logging
 from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
+from harness.web.routes.app_events import build_router as build_app_events_router
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
@@ -205,6 +206,7 @@ def create_app(
     relays = RelayService(now=time.monotonic)
     app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
+    app.include_router(build_app_events_router(runs.events))
     app.include_router(build_skills_router(skills))
     app.include_router(build_mcp_servers_router(mcp, saved_servers))
     app.include_router(build_mcp_router(mcp, relays))

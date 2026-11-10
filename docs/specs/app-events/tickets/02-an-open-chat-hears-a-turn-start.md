@@ -1,6 +1,6 @@
 # 02 · An open chat hears that a turn started outside it
 
-**Status.** open
+**Status.** done
 
 **What to build.** `RunService._begin` publishes `TurnStarted(chat_id)`. A new route file `backend/harness/web/routes/app_events.py` serves `GET /api/app-events` as server-sent events: `app/connected` first, then each published event, kept alive like the chat stream. On the frontend, `frontend/lib/appEvents.ts` opens one `EventSource` for the app and offers `useAppEvent(type, handler)`. The chat layout opens it. The chat page calls `conversation.wake()` on `chat/turn-started` for its own id, and on `app/connected`.
 

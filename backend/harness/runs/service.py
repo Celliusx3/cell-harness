@@ -8,7 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEvents, TurnStarted
 from harness.bots import BotService
 from harness.files import ChatFile
 from harness.runs.chain import discussion_events
@@ -61,6 +61,11 @@ class RunService:
     def bots(self) -> BotService:
         """Who answers in each chat — for a chat app finding whether its linked bot still does."""
         return self._bots
+
+    @property
+    def events(self) -> AppEvents:
+        """The app's publisher, for the route that streams it."""
+        return self._events
 
     def active(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
@@ -153,11 +158,12 @@ class RunService:
         return run
 
     def _begin(self, session: Session) -> Run:
-        """Record a new run for `session` and release everyone waiting in `next_run`."""
+        """Record and publish a new run for `session`, releasing everyone waiting in `next_run`."""
         run = Run(session, session.next_number())
         self._runs[session.id] = run
         self._started.set()
         self._started = asyncio.Event()
+        self._events.publish(TurnStarted(chat_id=session.id))
         return run
 
     async def _end(self, run: Run) -> None:
