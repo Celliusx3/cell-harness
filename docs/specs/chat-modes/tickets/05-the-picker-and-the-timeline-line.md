@@ -2,7 +2,7 @@
 
 **Status.** done
 
-**What to build.** `ConversationDetail` gains `mode`, the chat's current mode with the default applied. The message box shows a picker with Ask and Auto. Picking Auto first shows a risk check, "Switch to Auto?", whose button works once its box is ticked. Picking Ask switches at once. Both call `PUT …/mode` through `lib/api.ts`.
+**What to build.** `ConversationDetail` gains `mode`, the chat's current mode with the default applied. The message box shows a picker with Ask and Auto. Picking Auto first shows a confirm dialog, "Let this bot act without asking in this chat?". Picking Ask switches at once. Both call `PUT …/mode` through `lib/api.ts`.
 
 The timeline draws each `approval/mode` event as one line, "Switched to Auto" or "Switched to Ask". Files: `channels/web/schemas.py`, `frontend/lib/types.ts`, `frontend/lib/api.ts`, `frontend/components/conversation/Composer.tsx`, `frontend/components/conversation/buildTimeline.ts`.
 

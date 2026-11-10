@@ -161,7 +161,7 @@ function ModeLine({ mode }: { mode: ApprovalMode }) {
   return (
     <div className="flex items-center gap-3 text-xs text-ink-soft">
       <span aria-hidden className="h-px flex-1 bg-line" />
-      <span className="flex items-center gap-1.5">
+      <span className={`flex items-center gap-1.5 ${mode === "auto" ? "text-accent" : ""}`}>
         <Icon size={13} />
         Switched to {MODE_LABELS[mode]}
       </span>
