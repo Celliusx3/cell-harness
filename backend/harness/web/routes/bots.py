@@ -1,17 +1,13 @@
-"""The bots: list, make, edit, archive, restore or delete one, choose its keys, hear of changes."""
+"""The bots: list, make, edit, archive, restore or delete one, and choose its keys."""
 
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException, Response, status
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 
 from harness.bots import Bot, BotDraft, BotEdit, BotService
-from harness.bots.changes import BotListChanges
-from harness.channels.web.sse import MEDIA_TYPE, frame, kept_alive
 from harness.runs.service import RunService
 from harness.secrets import SecretName, SecretNotFound, SecretService
 
@@ -69,26 +65,6 @@ def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) ->
         return bot
 
 
-async def _changed_frames(changes: BotListChanges) -> AsyncGenerator[str]:
-    """`changed` at once, then again after every write to the bots file."""
-    seen = changes.version
-    while True:
-        yield frame("changed", "{}")
-        seen = await changes.after(seen)
-
-
-def _change_routes(router: APIRouter, bots: BotService) -> None:
-    """A stream that tells an open page to read the bots and groups again."""
-
-    @router.get("/changes")
-    async def stream_changes() -> StreamingResponse:
-        return StreamingResponse(
-            kept_alive(_changed_frames(bots.changes)),
-            media_type=MEDIA_TYPE,
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
-
-
 def _archive_routes(router: APIRouter, bots: BotService, runs: RunService) -> None:
     """Archiving, restoring and deleting a bot; archiving or deleting one stops its turn."""
 
@@ -122,7 +98,6 @@ def _archive_routes(router: APIRouter, bots: BotService, runs: RunService) -> No
 def build_router(bots: BotService, runs: RunService, secrets: SecretService) -> APIRouter:
     """Every bot, and the changes a person can make; archiving or deleting one stops its turn."""
     router = APIRouter(prefix="/api/bots", tags=["bots"])
-    _change_routes(router, bots)
     _edit_routes(router, bots, secrets)
     _archive_routes(router, bots, runs)
     return router

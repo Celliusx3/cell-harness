@@ -7,11 +7,11 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { NewMenu } from "@/components/chat/NewMenu";
 import { SidebarLink } from "@/components/chat/SidebarLink";
-import { useBotListChanges } from "@/components/chat/useBotListChanges";
 import { useWorkingChat } from "@/components/chat/workingChat";
 import { SERVER as COMPUTER_SERVER } from "@/components/computer/server";
 import { rememberChatPath } from "@/components/settings/chatReturn";
 import { BUILDER_ID, listBots, listGroups, listServers } from "@/lib/api";
+import { type AppEvent, useAppEvent } from "@/lib/appEvents";
 import type { Bot, Group } from "@/lib/types";
 
 const STALE = "harness:sidebar-stale";
@@ -19,6 +19,13 @@ const STALE = "harness:sidebar-stale";
 /** Ask the sidebar to read its bots again. */
 export function refreshSidebar(): void {
   window.dispatchEvent(new Event(STALE));
+}
+
+/** An app-event handler that calls `reload` when the bots changed, or after a reconnect. */
+export function whenBotsMayHaveChanged(reload: () => void): (event: AppEvent) => void {
+  return (event) => {
+    if (event.type === "bots/changed" || event.type === "app/connected") reload();
+  };
 }
 
 /** The New button, the bots, each a link to its one chat, and the groups, then the other pages. */
@@ -34,7 +41,7 @@ export function Sidebar() {
 
   useEffect(() => rememberChatPath(pathname), [pathname]);
 
-  useBotListChanges(refreshSidebar);
+  useAppEvent(whenBotsMayHaveChanged(refreshSidebar));
 
   useEffect(() => {
     const bump = () => setStale((count) => count + 1);

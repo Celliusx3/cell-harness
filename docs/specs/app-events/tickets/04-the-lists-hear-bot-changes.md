@@ -1,6 +1,6 @@
 # 04 · The sidebar and the Bots page hear that the bots changed
 
-**Status.** open
+**Status.** done
 
 **What to build.** `BotService._write_file` publishes `BotsChanged()`. The sidebar and the Bots page call their list fetch on `bots/changed` and on `app/connected` through `useAppEvent`. Remove PR #59's bot stream: `harness/bots/changes.py`, the `/api/bots/changes` route and its frames in `harness/web/routes/bots.py`, `frontend/components/chat/useBotListChanges.ts` and `backend/tests/integration/test_web_bot_changes.py`.
 

@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ArchivedBots } from "@/components/bots/ArchivedBots";
 import { BotList } from "@/components/bots/BotList";
-import { refreshSidebar } from "@/components/chat/Sidebar";
-import { useBotListChanges } from "@/components/chat/useBotListChanges";
+import { refreshSidebar, whenBotsMayHaveChanged } from "@/components/chat/Sidebar";
 import { ApiError, listArchivedBots, listBots, listGroups } from "@/lib/api";
+import { useAppEvent } from "@/lib/appEvents";
 import type { Bot, Group } from "@/lib/types";
 
 type Catalog =
@@ -31,7 +31,7 @@ export default function BotsPage() {
     void load();
   }, [load]);
 
-  useBotListChanges(load);
+  useAppEvent(whenBotsMayHaveChanged(load));
 
   function reloadBots() {
     refreshSidebar();
