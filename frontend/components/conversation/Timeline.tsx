@@ -14,9 +14,10 @@ import {
   QueuedBubble,
   UserBubble,
 } from "@/components/conversation/Message";
-import { MODE_LABELS } from "@/components/conversation/ModePicker";
+import { MODE_ICONS, MODE_LABELS } from "@/components/conversation/ModePicker";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
+import type { ApprovalMode } from "@/lib/types";
 import { ToolCard } from "@/components/conversation/ToolCard";
 import { progressOf } from "@/components/conversation/turnProgress";
 import { turnRows } from "@/components/conversation/turnRows";
@@ -149,11 +150,22 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
       return <p className="text-center text-xs text-ink-soft">Instructions updated</p>;
     case "mode":
       return (
-        <div className="flex items-center gap-3 text-xs text-ink-soft">
-          <span aria-hidden className="h-px flex-1 bg-line" />
-          Mode: {MODE_LABELS[item.mode]}
-          <span aria-hidden className="h-px flex-1 bg-line" />
-        </div>
+        <ModeLine mode={item.mode} />
       );
   }
+}
+
+/** One switch of the chat's mode, as a divider with the mode's icon. */
+function ModeLine({ mode }: { mode: ApprovalMode }) {
+  const Icon = MODE_ICONS[mode];
+  return (
+    <div className="flex items-center gap-3 text-xs text-ink-soft">
+      <span aria-hidden className="h-px flex-1 bg-line" />
+      <span className={`flex items-center gap-1.5 ${mode === "auto" ? "text-accent" : ""}`}>
+        <Icon size={13} />
+        Switched to {MODE_LABELS[mode]}
+      </span>
+      <span aria-hidden className="h-px flex-1 bg-line" />
+    </div>
+  );
 }
