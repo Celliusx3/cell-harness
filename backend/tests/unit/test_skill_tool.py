@@ -100,7 +100,7 @@ async def test_activation_returns_the_body_without_frontmatter(tmp_path) -> None
     outcome = await call(tool, name="pdf")
 
     assert isinstance(outcome, Ok)
-    assert outcome.text == '<skill name="pdf">\n# pdf\n\nSteps for pdf.\n</skill>'
+    assert outcome.text.startswith('<skill name="pdf">\n# pdf\n\nSteps for pdf.\n</skill>')
     assert "description:" not in outcome.text
 
 
@@ -201,17 +201,19 @@ def test_a_description_is_listed_as_written(tmp_path) -> None:
     assert "- pdf: Handles <b>PDF</b> & forms." in listed
 
 
-async def test_a_skill_shipped_with_the_app_names_its_folder_after_its_body(tmp_path) -> None:
+async def test_a_skill_names_its_folder_after_its_body_shipped_or_not(tmp_path) -> None:
     shipped = write_skill(tmp_path / "shipped", "pdf")
+    editable = write_skill(tmp_path / "editable", "invoice")
     tool = skill_tool(skills_at(tmp_path / "shipped", tmp_path / "editable"))
 
-    outcome = await call(tool, name="pdf")
+    for name, folder in (("pdf", shipped), ("invoice", editable)):
+        outcome = await call(tool, name=name)
 
-    assert isinstance(outcome, Ok)
-    assert outcome.text == (
-        '<skill name="pdf">\n# pdf\n\nSteps for pdf.\n</skill>\n\n'
-        f"This skill's folder: {shipped.resolve()}"
-    )
+        assert isinstance(outcome, Ok)
+        assert outcome.text == (
+            f'<skill name="{name}">\n# {name}\n\nSteps for {name}.\n</skill>\n\n'
+            f"This skill's folder: {folder.resolve()}"
+        )
 
 
 def comic_skill(tmp_path: Path) -> Skill:
@@ -232,15 +234,8 @@ def comic_skill(tmp_path: Path) -> Skill:
 def test_the_folder_line_follows_the_body_and_comes_before_the_bundled_files(
     tmp_path: Path,
 ) -> None:
-    assert instructions(comic_skill(tmp_path), shipped=True).split("\n\n") == [
+    assert instructions(comic_skill(tmp_path)).split("\n\n") == [
         '<skill name="translate-comic">\nBody.\n</skill>',
         f"This skill's folder: {tmp_path.resolve() / 'skills' / 'translate-comic'}",
-        "Bundled files, readable with `path`: scripts/run.py",
-    ]
-
-
-def test_a_skill_bots_can_change_names_no_folder(tmp_path: Path) -> None:
-    assert instructions(comic_skill(tmp_path), shipped=False).split("\n\n") == [
-        '<skill name="translate-comic">\nBody.\n</skill>',
         "Bundled files, readable with `path`: scripts/run.py",
     ]

@@ -21,11 +21,12 @@ def available_skills(skills: Sequence[Skill]) -> str:
     return "\n".join(lines)
 
 
-def instructions(skill: Skill, *, shipped: bool) -> str:
-    """The skill as the model receives it: its body, its folder when shipped, its files."""
-    parts = [f'{SKILL_TAG_OPEN}{skill.name}">\n{read_body(skill)}\n</skill>']
-    if shipped:
-        parts.append(f"This skill's folder: {skill.dir.resolve()}")
+def instructions(skill: Skill) -> str:
+    """The skill as the model receives it: its body, its folder, its files."""
+    parts = [
+        f'{SKILL_TAG_OPEN}{skill.name}">\n{read_body(skill)}\n</skill>',
+        f"This skill's folder: {skill.dir.resolve()}",
+    ]
     files = listing(skill)
     if files:
         more = len(files) - MAX_LISTED_FILES
