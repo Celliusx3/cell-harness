@@ -22,10 +22,10 @@ _DESCRIPTION = (
     "under a skill's scripts/ is a program, not a function "
     "you can call by name: read it by `path`, then pass its text as the code to "
     "execute_typescript. A script in another language runs only through a tool for "
-    "running commands, when you are offered one: from the skill's folder when the skill "
-    "names one, and otherwise after you read it by `path` and write it into the computer "
-    "yourself. Without such a tool, follow the instructions with the capabilities you "
-    "have."
+    "running commands, when you are offered one: from the folder the skill names, where its "
+    "scripts already are; only when that folder is not in your computer, read the script by "
+    "`path` and write it there yourself. Without such a tool, follow the instructions with "
+    "the capabilities you have."
 )
 
 
@@ -40,7 +40,7 @@ def skill_tool(skills: SkillService) -> Tool[SkillArgs] | None:
         skill = by_name[args.name]
         if args.path is not None:
             return _resource(skill, args.path)
-        return _instructions(skill, shipped=not skills.editable(skill))
+        return _instructions(skill)
 
     return Tool.from_model(
         name=SKILL,
@@ -95,9 +95,9 @@ def _always_enum(names: tuple[str, ...]):
     return fix
 
 
-def _instructions(skill: Skill, *, shipped: bool) -> ToolOutcome:
+def _instructions(skill: Skill) -> ToolOutcome:
     try:
-        return Ok(instructions(skill, shipped=shipped))
+        return Ok(instructions(skill))
     except (OSError, ValueError) as err:
         return Failure(INVALID_ARGUMENTS, f"skill {skill.name!r} could not be read: {err}")
 

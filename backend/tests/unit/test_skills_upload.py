@@ -243,7 +243,7 @@ async def test_a_skill_arrives_whole_with_references_scripts_and_assets(api) -> 
     assert (home / "invoice" / "assets" / "logo.png").read_bytes().startswith(b"\x89PNG")
 
 
-async def test_an_uploaded_script_is_readable_by_path_but_its_folder_is_never_named(api) -> None:
+async def test_an_uploaded_skill_names_its_folder_and_its_script_is_readable_by_path(api) -> None:
     client, _project, home = api
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as inside:
@@ -258,12 +258,12 @@ async def test_an_uploaded_script_is_readable_by_path_but_its_folder_is_never_na
     assert tool is not None
     loaded = (await tool.execute(tool.parse({"name": "invoice"}), None)).text
     assert "Bundled files, readable with `path`: references/format.md, scripts/render.py" in loaded
-    assert "This skill's folder" not in loaded
+    assert f"This skill's folder: {(home / 'invoice').resolve()}" in loaded
 
     script = tool.parse({"name": "invoice", "path": "scripts/render.py"})
     source = (await tool.execute(script, None)).text
     assert "print('rendered')" in source
     assert (
-        "from the skill's folder when the skill names one, and otherwise after you read it by "
-        "`path` and write it into the computer yourself."
+        "from the folder the skill names, where its scripts already are; only when that folder "
+        "is not in your computer, read the script by `path` and write it there yourself."
     ) in tool.description
