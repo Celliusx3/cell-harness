@@ -40,7 +40,8 @@ async def test_an_unknown_skill_name_is_a_422_and_starts_nothing(tmp_path) -> No
         )
         assert refused.status_code == 422
         assert refused.json()["detail"] == (
-            "No skill named 'summarise'. Skills: /find-place. Commands: /new, /stop, /compact."
+            "No skill named 'summarise'. Skills: /find-place. "
+            "Commands: /new, /stop, /compact, /mode."
         )
         assert list((tmp_path / "sessions").glob("*.jsonl")) == []
 

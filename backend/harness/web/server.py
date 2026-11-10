@@ -136,7 +136,10 @@ def create_web_app() -> FastAPI:
     mcp = build_mcp(saved_servers)
     skills = SkillService(settings.skills)
     approvals = ApprovalService(
-        frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
+        frozenset(settings.approval.tools),
+        mcp.writing_tool_names,
+        settings.approval.grants_path,
+        default_mode=settings.approval.default_mode,
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     events = AppEvents()

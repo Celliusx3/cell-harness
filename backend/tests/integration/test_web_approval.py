@@ -36,7 +36,9 @@ def _writer(ran: list[str]) -> Tool[EchoArgs]:
 
 def _asking(tmp_path, *steps, ran: list[str]):
     """An app whose model saves a note, then answers."""
-    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(
         calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"), completed("saved"), *steps
@@ -52,7 +54,9 @@ def _asking(tmp_path, *steps, ran: list[str]):
 
 def _asking_beside_telegram(tmp_path, *scripts: list[StreamEvent], ran: list[str]):
     """An app whose model runs `scripts` in order, with Telegram on the same gateway."""
-    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     model = SteppedClient(*scripts)

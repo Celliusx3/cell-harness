@@ -54,7 +54,7 @@ async def test_an_empty_registry_says_none_rather_than_nothing() -> None:
 
 async def test_a_call_that_must_ask_waits_before_its_name_is_looked_up() -> None:
     approvals = ApprovalService(
-        frozenset({"ghost"}), frozenset, Path("/nonexistent/approvals.json")
+        frozenset({"ghost"}), frozenset, Path("/nonexistent/approvals.json"), default_mode="ask"
     )
 
     outcome = await ToolService((), approvals=approvals).dispatch(

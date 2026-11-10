@@ -17,6 +17,7 @@ from harness.llm import (
     TextChunk,
     ToolCallChunk,
 )
+from harness.prompts import APPROVAL_MODE_CHANGED
 from harness.runtime.compaction import run_compaction, should_compact
 from harness.runtime.events import (
     AgentCompleted,
@@ -69,7 +70,7 @@ async def run_turn(
     try:
         for step in itertools.count():
             at = TurnStep(turn=turn, step=step)
-            session.append(StepStart(turn=turn, step=step))
+            _start_step_noting_mode_switch(runtime, session, at)
             await _shrink_history_when_due(runtime, session, turn=turn, bot_id=bot_id)
 
             reply: Completed | Failed | RetryStep | None = None
@@ -235,6 +236,16 @@ async def _shrink_history(
             ):
                 shrank = True
     return shrank
+
+
+def _start_step_noting_mode_switch(runtime: Runtime, session: Session, at: TurnStep) -> None:
+    """Open the step, and tell the model when the person switched the mode since the last one."""
+    switch = runtime.approval_mode_switch(session)
+    session.append(StepStart(turn=at.turn, step=at.step))
+    if switch is not None:
+        note = APPROVAL_MODE_CHANGED.format(before=switch.before, after=switch.after)
+        message = ApplicationMessage(content=note)
+        session.append(ApplicationMessageEvent(turn=at.turn, message=message))
 
 
 def _tell(session: Session, turn: int, step: int, note: str) -> None:

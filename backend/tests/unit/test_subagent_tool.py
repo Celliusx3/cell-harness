@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from harness.tools import INVALID_ARGUMENTS, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, ApprovalMode, Failure, Ok
 from harness.tools.native.subagent import (
     RUN_SUBAGENT,
     SubagentOutcome,
@@ -27,7 +27,7 @@ class Recording:
         self.asked: list[tuple[str, SubagentTask]] = []
 
     async def __call__(
-        self, subagent_id: str, task: SubagentTask, *, bot_id: str
+        self, subagent_id: str, task: SubagentTask, *, bot_id: str, mode: ApprovalMode
     ) -> SubagentOutcome:
         self.asked.append((subagent_id, task))
         return self._outcomes[task.name]
@@ -76,7 +76,9 @@ async def test_subagents_run_at_the_same_time() -> None:
     started = 0
     both = asyncio.Event()
 
-    async def runner(subagent_id: str, task: SubagentTask, *, bot_id: str) -> SubagentOutcome:
+    async def runner(
+        subagent_id: str, task: SubagentTask, *, bot_id: str, mode: ApprovalMode
+    ) -> SubagentOutcome:
         nonlocal started
         started += 1
         if started == 2:
@@ -94,7 +96,9 @@ async def test_stopping_the_call_stops_every_subagent() -> None:
     cancelled: list[str] = []
     running = 0
 
-    async def runner(subagent_id: str, task: SubagentTask, *, bot_id: str) -> SubagentOutcome:
+    async def runner(
+        subagent_id: str, task: SubagentTask, *, bot_id: str, mode: ApprovalMode
+    ) -> SubagentOutcome:
         nonlocal running
         running += 1
         try:
@@ -120,7 +124,9 @@ async def test_stopping_the_call_stops_every_subagent() -> None:
 async def test_a_subagent_that_breaks_stops_the_others_and_says_why() -> None:
     cancelled: list[str] = []
 
-    async def runner(subagent_id: str, task: SubagentTask, *, bot_id: str) -> SubagentOutcome:
+    async def runner(
+        subagent_id: str, task: SubagentTask, *, bot_id: str, mode: ApprovalMode
+    ) -> SubagentOutcome:
         if task.name == "a":
             await asyncio.sleep(0)
             raise RuntimeError("disk full")

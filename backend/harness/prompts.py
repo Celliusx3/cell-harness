@@ -60,6 +60,12 @@ GUIDANCE = (
 SKILL_LIST_INTRO = "The following skills are available for use with the skill tool:"
 SYSTEM_REMINDER = "<system-reminder>\n{text}\n</system-reminder>"
 
+APPROVAL_MODE_ASK = (
+    "Approval mode: ask. A call that changes something may wait for the user's approval."
+)
+APPROVAL_MODE_AUTO = "Approval mode: auto. Your calls run without asking the user."
+APPROVAL_MODE_CHANGED = "The approval mode changed from {before} to {after} (changed by the user)."
+
 SUBAGENT_INTRO = (
     "You are a helper named {name}, started by the main assistant to do one task as part "
     "of its answer to the user. Nobody will read your questions, so do not ask any: do the "

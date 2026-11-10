@@ -55,7 +55,7 @@ async def _bots_allowed(client: httpx.AsyncClient) -> dict[str, list[str]]:
 async def test_a_bot_uses_a_saved_key_only_once_the_person_allows_it(tmp_path: Path) -> None:
     seen: list[httpx.Request] = []
     approvals = ApprovalService(
-        frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json"
+        frozenset({FETCH_WITH_SECRET}), frozenset, tmp_path / "approvals.json", default_mode="ask"
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     secrets = secrets_in(tmp_path)

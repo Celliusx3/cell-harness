@@ -7,6 +7,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from harness.session.models import SessionEvent
+from harness.tools import ApprovalMode
 
 
 class ConversationDetail(BaseModel):
@@ -19,6 +20,7 @@ class ConversationDetail(BaseModel):
     events: list[SessionEvent]
     next_cursor: int
     running: bool
+    mode: ApprovalMode
 
 
 class MessageAccepted(BaseModel):
@@ -48,3 +50,11 @@ class SendMessage(BaseModel):
         if not value.strip():
             raise ValueError("prompt must not be blank")
         return value
+
+
+class SetMode(BaseModel):
+    """The mode the person switches a chat to."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    mode: ApprovalMode

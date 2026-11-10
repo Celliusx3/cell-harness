@@ -7,6 +7,7 @@ from typing import Protocol
 
 from harness.llm import ToolCall, ToolSpec
 from harness.tools.models.context import CallOrigin, ToolProgressReporter
+from harness.tools.models.decision import ApprovalMode
 from harness.tools.models.outcome import REFUSED, Failure, ToolOutcome
 from harness.tools.models.tool import Tool
 from harness.tools.service import ToolService
@@ -20,6 +21,8 @@ class ToolChoices(Protocol):
     def tools_selected(self) -> tuple[str, ...]: ...
 
     def conversation_approved_tools(self) -> frozenset[str]: ...
+
+    def approval_mode(self, default: ApprovalMode) -> ApprovalMode: ...
 
 
 class Toolset:
@@ -35,6 +38,15 @@ class Toolset:
         self.tool_service = tool_service
         self._default_tools = tuple(default_tools)
         self._sight_tools = sight_tools
+
+    @property
+    def default_mode(self) -> ApprovalMode:
+        """The mode a chat follows until the person switches it."""
+        return self.tool_service.approvals.default_mode
+
+    def approval_mode(self, session: ToolChoices) -> ApprovalMode:
+        """The mode `session`'s calls run under: its latest switch, else the configured default."""
+        return session.approval_mode(self.default_mode)
 
     def specs(self, tools_selected: Sequence[str] = (), *, sees_images: bool) -> list[ToolSpec]:
         """What the model is offered this step — the only place visibility is decided."""

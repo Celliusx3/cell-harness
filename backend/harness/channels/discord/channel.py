@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 import discord
 from discord import app_commands
 
-from harness.channels.commands import Command, unknown_skill
+from harness.channels.commands import (
+    ChatCommand,
+    Command,
+    ModeChoice,
+    ModeQuestion,
+    unknown_skill,
+)
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, link_or_receive
@@ -49,7 +56,7 @@ class DiscordChannel:
         self._register_commands()
 
     def _register_commands(self) -> None:
-        """`/new` and `/stop` as the interactions API expects them."""
+        """The slash commands, as the interactions API expects them."""
 
         @self._tree.command(name="new", description="Clear this chat")
         async def new(interaction: discord.Interaction) -> None:
@@ -68,6 +75,14 @@ class DiscordChannel:
         )
         async def compact(interaction: discord.Interaction) -> None:
             await self._on_command(interaction, Command.COMPACT)
+
+        @self._tree.command(name="mode", description="Show or switch what asks before it runs")
+        async def mode(
+            interaction: discord.Interaction, mode: Literal["ask", "auto"] | None = None
+        ) -> None:
+            await self._on_command(
+                interaction, ModeChoice(mode=mode) if mode is not None else ModeQuestion()
+            )
 
     def conversation_for(self, chat_id: str) -> str:
         """None: a Discord chat writes where its stored state says, or nowhere."""
@@ -123,7 +138,7 @@ class DiscordChannel:
         # `<@!id>` is the legacy nickname form; clients still send it.
         return content.replace(f"<@{me.id}>", "").replace(f"<@!{me.id}>", "")
 
-    async def _on_command(self, interaction: discord.Interaction, command: Command) -> None:
+    async def _on_command(self, interaction: discord.Interaction, command: ChatCommand) -> None:
         """One slash command; a chat linked to no bot is not even acknowledged."""
         chat_id = str(interaction.channel_id)
         if not await self._gateway.is_linked(CHANNEL, chat_id):

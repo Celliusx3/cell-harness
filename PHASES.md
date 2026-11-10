@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and twenty-five insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and twenty-six insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -63,7 +63,12 @@ New button, and Bots, Computer and Settings at its foot; spec in
 `docs/specs/ui-layers/`), 25 app credentials (a model per bot, picked in Edit bot,
 with no Default model; "Can see images" and the context window per LLM
 credential; no model or key in the settings files; MCP server keys saved with
-their server; no built-in MCP servers; spec in `docs/specs/app-credentials/`). Their plans
+their server; no built-in MCP servers; spec in `docs/specs/app-credentials/`), 26 chat
+modes (each chat is in Ask, today's rule, or Auto, which runs every call with no
+approval card; a picker in the message box and `/mode` in every channel switch it,
+the bot is told the mode and told when it changes, and a subagent starts in its
+chat's mode; new chats start in `approval.default_mode`; plan first is #60; spec in
+`docs/specs/chat-modes/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made

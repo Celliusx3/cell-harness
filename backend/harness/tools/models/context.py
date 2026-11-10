@@ -6,6 +6,8 @@ from collections.abc import Awaitable
 from dataclasses import dataclass
 from typing import Protocol
 
+from harness.tools.models.decision import ApprovalMode
+
 
 class ToolProgressReporter(Protocol):
     """What a tool calls to say how far along it is."""
@@ -15,10 +17,11 @@ class ToolProgressReporter(Protocol):
 
 @dataclass(frozen=True)
 class CallOrigin:
-    """Who a call comes from: the bot and the conversation it is in."""
+    """Who a call comes from: the bot, the conversation it is in, and that chat's mode."""
 
     bot_id: str
     conversation_id: str
+    mode: ApprovalMode
 
 
 @dataclass(frozen=True)

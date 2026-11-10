@@ -10,6 +10,8 @@ DENIED = "DENIED"
 
 Scope = Literal["once", "conversation", "always"]
 
+ApprovalMode = Literal["ask", "auto"]
+
 
 class Approval(BaseModel):
     """The person let the call run, for this call, this conversation, or always."""

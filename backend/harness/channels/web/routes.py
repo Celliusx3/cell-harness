@@ -10,9 +10,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFi
 from fastapi.responses import FileResponse, StreamingResponse
 
 from harness.bots import ChatMembers
-from harness.channels.commands import unknown_skill
+from harness.channels.commands import (
+    ModeChoice,
+    ModeCommand,
+    mode_command,
+    mode_usage_reply,
+    unknown_skill,
+)
 from harness.channels.protocol import InboundMessage
-from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage
+from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage, SetMode
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService
 from harness.images import is_sha256
@@ -43,6 +49,18 @@ def _unknown_skill(web: WebChannel, err: UnknownSkill) -> HTTPException:
 def _accepted(session: Session, *, queued: bool) -> MessageAccepted:
     header = session.header
     return MessageAccepted(id=header.id, created_at=header.created_at, queued=queued)
+
+
+async def _switch_by_command(
+    web: WebChannel, conversation_id: str, command: ModeCommand
+) -> MessageAccepted:
+    """`/mode ask` or `/mode auto` switches the chat and starts no turn; any other is a 422."""
+    if not isinstance(command, ModeChoice):
+        current = await web.runs.approval_mode(conversation_id)
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=mode_usage_reply(current))
+    await web.gateway.set_approval_mode(web.channel, conversation_id, command.mode)
+    logger.info("conversation %s switched to %s by /mode", conversation_id, command.mode)
+    return _accepted(await _chat_session(web, conversation_id), queued=False)
 
 
 def _attached_files(files: ChatFileService, chat_id: str, paths: list[str]) -> tuple[ChatFile, ...]:
@@ -89,6 +107,14 @@ async def _load(service: SessionService, conversation_id: str, *, for_writing: b
     return await service.read(conversation_id)
 
 
+async def _chat_session(web: WebChannel, conversation_id: str) -> Session:
+    """The running turn's session, else the stored one, read without repair."""
+    run = web.runs.active(conversation_id)
+    if run is not None:
+        return run.session
+    return await _load(web.sessions, conversation_id, for_writing=False)
+
+
 def _message_routes(router: APIRouter, web: WebChannel) -> None:
     """Reading a chat's log, and sending the chat a message."""
 
@@ -96,11 +122,7 @@ def _message_routes(router: APIRouter, web: WebChannel) -> None:
     async def get_conversation(conversation_id: str) -> ConversationDetail:
         """The whole log, and the cursor to start streaming from."""
         run = web.runs.active(conversation_id)
-        session = (
-            run.session
-            if run is not None
-            else await _load(web.sessions, conversation_id, for_writing=False)
-        )
+        session = await _chat_session(web, conversation_id)
         events = list(session.events())
         header = session.header
         return ConversationDetail(
@@ -109,6 +131,7 @@ def _message_routes(router: APIRouter, web: WebChannel) -> None:
             events=events,
             next_cursor=session.next_number(),
             running=run is not None,
+            mode=await web.runs.approval_mode(conversation_id),
         )
 
     @router.post(
@@ -117,7 +140,10 @@ def _message_routes(router: APIRouter, web: WebChannel) -> None:
         response_model=MessageAccepted,
     )
     async def send_message(conversation_id: str, body: SendMessage) -> MessageAccepted:
-        """Continue a conversation."""
+        """Continue a conversation; `/mode` switches it instead, before any skill is looked for."""
+        mode = mode_command(body.prompt)
+        if mode is not None:
+            return await _switch_by_command(web, conversation_id, mode)
         files = _attached_files(web.files, conversation_id, body.files)
         try:
             run = await web.gateway.receive(
@@ -130,13 +156,7 @@ def _message_routes(router: APIRouter, web: WebChannel) -> None:
 
         if run is not None:
             return _accepted(run.session, queued=False)
-        active = web.runs.active(conversation_id)
-        session = (
-            active.session
-            if active is not None
-            else await _load(web.sessions, conversation_id, for_writing=False)
-        )
-        return _accepted(session, queued=True)
+        return _accepted(await _chat_session(web, conversation_id), queued=True)
 
 
 def _file_routes(router: APIRouter, web: WebChannel) -> None:
@@ -180,12 +200,7 @@ def _file_routes(router: APIRouter, web: WebChannel) -> None:
         )
         if not is_sha256(sha256):
             raise missing
-        run = web.runs.active(conversation_id)
-        session = (
-            run.session
-            if run is not None
-            else await _load(web.sessions, conversation_id, for_writing=False)
-        )
+        session = await _chat_session(web, conversation_id)
         stored = web.images.file_of(sha256) if _log_shows_image(session.events(), sha256) else None
         if stored is None:
             raise missing
@@ -199,7 +214,7 @@ def _file_routes(router: APIRouter, web: WebChannel) -> None:
 
 
 def _turn_routes(router: APIRouter, web: WebChannel) -> None:
-    """A chat's events streamed as its turn runs, the turn stopped, and the chat cleared."""
+    """A chat's events streamed, its turn stopped, its mode switched, and the chat cleared."""
 
     @router.get("/{conversation_id}/events")
     async def stream_events(conversation_id: str, after: int = Query(0, ge=0)) -> StreamingResponse:
@@ -226,6 +241,13 @@ def _turn_routes(router: APIRouter, web: WebChannel) -> None:
         """Stop the turn in flight."""
         if not await web.runs.stop(conversation_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no turn is running")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @router.put("/{conversation_id}/mode", status_code=status.HTTP_204_NO_CONTENT)
+    async def set_approval_mode(conversation_id: str, body: SetMode) -> Response:
+        """Switch what asks in this chat: its next call follows `mode`."""
+        await web.runs.set_approval_mode(conversation_id, body.mode)
+        logger.info("conversation %s switched to %s by the browser", conversation_id, body.mode)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @router.post("/{conversation_id}/clear", status_code=status.HTTP_204_NO_CONTENT)

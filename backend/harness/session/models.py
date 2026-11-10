@@ -18,7 +18,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
-from harness.tools import ToolUi
+from harness.tools import ApprovalMode, ToolUi
 
 SESSION_FORMAT_VERSION = 1
 
@@ -183,6 +183,15 @@ class ApprovalGrant(BaseModel):
     tool: str
 
 
+class ApprovalModeChanged(BaseModel):
+    """The person switched the chat to `mode`; the latest switch decides what asks."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["approval/mode"] = "approval/mode"
+    mode: ApprovalMode
+
+
 class BotInstructionsEvent(BaseModel):
     """A bot answering in this conversation, as its turns from here on are prompted."""
 
@@ -238,6 +247,7 @@ SessionEvent = (
     | CompactionEnd
     | CompactionPrune
     | ApprovalGrant
+    | ApprovalModeChanged
     | BotInstructionsEvent
     | ServerInstructionsEvent
     | GroupMembersEvent

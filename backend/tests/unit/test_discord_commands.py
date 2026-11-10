@@ -12,7 +12,7 @@ from tests.unit.helpers import link_to_assistant
 CHAT = "77"
 
 
-def test_exactly_the_four_commands_are_registered(tmp_path) -> None:
+def test_exactly_the_five_commands_are_registered(tmp_path) -> None:
     channel = build(tmp_path)[0]
 
     assert {command.name for command in channel._tree.get_commands()} == {
@@ -20,6 +20,7 @@ def test_exactly_the_four_commands_are_registered(tmp_path) -> None:
         "stop",
         "skills",
         "compact",
+        "mode",
     }
 
 
@@ -30,7 +31,7 @@ async def test_skills_replies_with_the_list(tmp_path) -> None:
 
     await channel._tree.get_command("skills").callback(interaction)
 
-    assert interaction.replies == ["No skills installed. Commands: /new, /stop, /compact."]
+    assert interaction.replies == ["No skills installed. Commands: /new, /stop, /compact, /mode."]
 
 
 async def test_new_clears_the_chat_in_place(tmp_path) -> None:
@@ -79,3 +80,15 @@ async def test_stop_with_nothing_running_says_so(tmp_path) -> None:
     await channel._tree.get_command("stop").callback(interaction)
 
     assert interaction.replies == [NOTHING_TO_STOP]
+
+
+async def test_mode_with_a_choice_switches_the_chat(tmp_path) -> None:
+    channel, _, _, _, chats, sessions = build(tmp_path)
+    await link_to_assistant(chats, "discord", CHAT)
+    interaction = FakeInteraction(CHAT)
+
+    await channel._tree.get_command("mode").callback(interaction, mode="ask")
+
+    assert interaction.replies == ["Mode: Ask."]
+    stored = await sessions.read((await chats.load("discord", CHAT)).conversation_id)
+    assert [e.mode for e in stored.events() if e.type == "approval/mode"] == ["ask"]

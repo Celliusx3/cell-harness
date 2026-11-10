@@ -10,6 +10,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from harness.tools.models.decision import ApprovalMode
+
 
 class NotApproved(LookupError):
     """A tool the person has not approved always, so there is nothing to revoke."""
@@ -31,10 +33,18 @@ class ApprovalService:
         configured_tools: frozenset[str],
         writing_tool_names: Callable[[], frozenset[str]],
         grants_path: Path,
+        *,
+        default_mode: ApprovalMode,
     ) -> None:
         self._configured_tools = configured_tools
         self._writing_tool_names = writing_tool_names
         self._grants_path = grants_path
+        self._default_mode: ApprovalMode = default_mode
+
+    @property
+    def default_mode(self) -> ApprovalMode:
+        """The mode a chat follows until the person switches it."""
+        return self._default_mode
 
     @property
     def protected_tools(self) -> frozenset[str]:

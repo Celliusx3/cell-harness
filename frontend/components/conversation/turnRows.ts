@@ -38,7 +38,7 @@ export function turnRows(items: TimelineItem[], shape: TurnShape): Row[] {
 }
 
 function turnOf(item: TimelineItem): number | null {
-  return item.kind === "instructions" ? null : item.turn;
+  return "turn" in item ? item.turn : null;
 }
 
 function oneTurn(items: TimelineItem[], turn: number, shape: TurnShape): Row[] {
@@ -115,6 +115,7 @@ function isKept(
       return item.tone !== "note";
     case "compaction":
     case "instructions":
+    case "mode":
       return true;
   }
 }

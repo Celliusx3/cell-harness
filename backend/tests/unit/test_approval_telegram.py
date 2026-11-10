@@ -31,7 +31,9 @@ def _writer(ran: list[str], name: str = WRITE) -> Tool[EchoArgs]:
 
 
 def _asking(tmp_path, ran: list[str], *before: list[StreamEvent], call_id: str = "c1"):
-    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(
         *before, calls_tool(WRITE, '{"value": "Kopi"}', id=call_id), completed("saved")
@@ -168,7 +170,7 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
     send = "mail__send_email"
     connected: set[str] = set()
     approvals = ApprovalService(
-        frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json"
+        frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json", default_mode="ask"
     )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     model = SteppedClient(calls_tool(send, '{"value": "hi"}', id="c1"), completed("sent"))
@@ -195,7 +197,9 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
 async def test_an_always_allowed_tool_runs_without_buttons(tmp_path) -> None:
     ran: list[str] = []
     bot, gateway, runs, _chats, _sessions = await _asking(tmp_path, ran)
-    ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json").grant(WRITE)
+    ApprovalService(
+        frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    ).grant(WRITE)
 
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
@@ -212,7 +216,9 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
         ToolCall(id="c2", name=WRITE, arguments='{"value": "Kopi"}'),
     )
     step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
-    approvals = ApprovalService(frozenset({WRITE}), frozenset, tmp_path / "approvals.json")
+    approvals = ApprovalService(
+        frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
+    )
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     bot, gateway, runs, _chats, _sessions = await build(
         tmp_path,

@@ -13,6 +13,7 @@ import { type Found, useFound } from "@/components/chat/useFound";
 import { announceWorking } from "@/components/chat/workingChat";
 import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
+import { ModePicker } from "@/components/conversation/ModePicker";
 import { Timeline } from "@/components/conversation/Timeline";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { type Conversation, useConversation } from "@/components/conversation/useConversation";
@@ -115,6 +116,14 @@ export default function ConversationPage({
             running={conversation.running}
             onSend={(prompt, files) => void conversation.send(prompt, files)}
             onStop={() => void conversation.stop()}
+            modePicker={
+              conversation.mode !== null && (
+                <ModePicker
+                  mode={conversation.mode}
+                  onPick={(mode) => void conversation.switchMode(mode)}
+                />
+              )
+            }
           />
         </>
       )}
