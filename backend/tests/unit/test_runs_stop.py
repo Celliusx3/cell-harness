@@ -6,6 +6,7 @@ import asyncio
 
 import pytest
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotDraft, BotService
 from harness.llm import LLMClient
 from harness.runs.subscribe import subscribe
@@ -112,7 +113,9 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
 
 
 async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
-    bots = BotService(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
+    bots = BotService(
+        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=AppEvents()
+    )
     runs = run_service(
         service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), bots=bots
     )

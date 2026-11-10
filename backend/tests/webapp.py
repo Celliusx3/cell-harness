@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from pydantic import SecretStr
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, Bot, BotEdit, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
@@ -109,7 +110,10 @@ def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService)
 def bots_in(tmp_path: Path, service: SessionService) -> BotService:
     """Assistant and any bot a test makes, kept in a bots file under `tmp_path`."""
     return BotService(
-        tmp_path / "bots.json", service, assistant_instructions=ASSISTANT_INSTRUCTIONS
+        tmp_path / "bots.json",
+        service,
+        assistant_instructions=ASSISTANT_INSTRUCTIONS,
+        events=AppEvents(),
     )
 
 

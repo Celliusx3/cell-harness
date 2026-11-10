@@ -9,6 +9,7 @@ from pathlib import Path
 import httpx
 from pydantic import SecretStr
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
@@ -56,7 +57,7 @@ def build(tmp_path):
         images=no_images(),
         checkpoint=sessions.flush,
     )
-    runs = RunService(sessions, runtime, no_bots(sessions))
+    runs = RunService(sessions, runtime, no_bots(sessions), events=AppEvents())
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
@@ -130,6 +131,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         sessions,
         Runtime(models=OneModel(ScriptedClient([])), images=no_images()),
         no_bots(sessions),
+        events=AppEvents(),
     )
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
@@ -197,6 +199,7 @@ async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
         sessions,
         Runtime(models=OneModel(ScriptedClient([])), images=no_images()),
         no_bots(sessions),
+        events=AppEvents(),
     )
     settings = Settings()
     channels = build_channels(settings, channel_services(tmp_path, sessions, runs), keyring)

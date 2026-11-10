@@ -7,6 +7,7 @@ import time
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
+from harness.app_events import AppEvents
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
@@ -130,7 +131,7 @@ def build(tmp_path, client: LLMClient | None = None):
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)
-    runs = RunService(sessions, runtime, bots)
+    runs = RunService(sessions, runtime, bots, events=AppEvents())
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     channel, fake = discord_channel(gateway, ChatLinks(chats, LinkCodes(time.monotonic), bots))

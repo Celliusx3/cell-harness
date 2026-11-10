@@ -10,6 +10,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotService
 from harness.config.sections import CompactionSettings, LLMSettings
 from harness.llm.adapters import OpenAIClient
@@ -135,6 +136,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         service,
         _runtime(CredentialModels(secrets, bots, base, endpoint), tmp_path, service.flush),
         bots,
+        events=AppEvents(),
     )
     asgi = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     transport = httpx.ASGITransport(app=asgi, client=("127.0.0.1", 50000))

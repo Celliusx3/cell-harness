@@ -11,6 +11,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID
 from harness.config import settings as settings_module
 from harness.llm.adapters.openai import client as adapter_module
@@ -84,8 +85,8 @@ async def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     built: list[RunService] = []
 
-    def runs_seen(*args) -> RunService:
-        built.append(RunService(*args))
+    def runs_seen(*args, events: AppEvents) -> RunService:
+        built.append(RunService(*args, events=events))
         return built[-1]
 
     monkeypatch.setattr(server, "RunService", runs_seen)

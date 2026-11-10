@@ -15,10 +15,11 @@ import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
 import { Timeline } from "@/components/conversation/Timeline";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
-import { useConversation } from "@/components/conversation/useConversation";
+import { type Conversation, useConversation } from "@/components/conversation/useConversation";
 import { useElapsed } from "@/components/conversation/useElapsed";
 import { useTimeline } from "@/components/conversation/useTimeline";
 import { listBots, listGroups } from "@/lib/api";
+import { type AppEvent, useAppEvent } from "@/lib/appEvents";
 
 type Waiting =
   | { kind: "question"; item: ToolItem }
@@ -33,6 +34,7 @@ export default function ConversationPage({
 }) {
   const { id } = use(params);
   const conversation = useConversation(id);
+  useAppEvent((event) => followAppEvent(event, id, conversation));
   const bot = useFound(listBots, id, "Could not load bots.");
   const group = useFound(listGroups, id, "Could not load groups.");
   const { items, openTurn, speakers } = useTimeline(conversation.events);
@@ -118,6 +120,11 @@ export default function ConversationPage({
       )}
     </>
   );
+}
+
+function followAppEvent(event: AppEvent, id: string, conversation: Conversation): void {
+  if (event.type === "chat/turn-started" && event.chat_id === id) conversation.wake();
+  if (event.type === "app/connected") conversation.catchUp();
 }
 
 function speakerOf(found: Found<Speaker>): Speaker | null {

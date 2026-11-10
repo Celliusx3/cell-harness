@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
+from harness.app_events import AppEvents
 from harness.bots import BotDraft, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import AssistantMessage, Failed, LLMClient, UserMessage
@@ -160,7 +161,9 @@ def keyring(tmp_path: Path) -> SecretService:
 @pytest.fixture
 def bots(tmp_path: Path) -> BotService:
     sessions = durable_service(tmp_path / "s")
-    return BotService(tmp_path / "bots.json", sessions, assistant_instructions="Be kind.")
+    return BotService(
+        tmp_path / "bots.json", sessions, assistant_instructions="Be kind.", events=AppEvents()
+    )
 
 
 async def _trader_on_its_model(keyring: SecretService, bots: BotService) -> str:

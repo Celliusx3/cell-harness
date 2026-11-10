@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from harness.app_events import AppEvents
 from harness.bots import BotDraft, BotService, GroupDraft
 from harness.channels.protocol import InboundMessage
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
@@ -16,7 +17,9 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
     tmp_path, caplog
 ) -> None:
     service = durable_service(tmp_path / "sessions")
-    bots = BotService(tmp_path / "bots.json", service, assistant_instructions="Be kind.")
+    bots = BotService(
+        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=AppEvents()
+    )
     runs = run_service(
         service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), bots=bots
     )

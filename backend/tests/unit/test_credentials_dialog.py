@@ -8,6 +8,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from harness.app_events import AppEvents
 from harness.bots import BotDraft, BotService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.web.routes.credentials import build_router
@@ -40,6 +41,7 @@ def bots(tmp_path: Path) -> BotService:
         tmp_path / "bots.json",
         durable_service(tmp_path / "sessions"),
         assistant_instructions="Be kind.",
+        events=AppEvents(),
     )
 
 

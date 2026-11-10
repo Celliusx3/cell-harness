@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from fastapi import FastAPI
 
+from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
@@ -34,6 +35,7 @@ from harness.web.credential_effects import CredentialEffects
 from harness.web.errors import exception_handlers
 from harness.web.logs import configure_logging
 from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
+from harness.web.routes.app_events import build_router as build_app_events_router
 from harness.web.routes.approvals import build_router as build_approvals_router
 from harness.web.routes.bots import build_router as build_bots_router
 from harness.web.routes.client import build_router as build_client_router
@@ -137,7 +139,10 @@ def create_web_app() -> FastAPI:
         frozenset(settings.approval.tools), mcp.writing_tool_names, settings.approval.grants_path
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
-    bots = BotService(settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS)
+    events = AppEvents()
+    bots = BotService(
+        settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS, events=events
+    )
     runtime = build_runtime(
         settings,
         service,
@@ -151,7 +156,7 @@ def create_web_app() -> FastAPI:
         images=images,
         files=files,
     )
-    runs = RunService(service, runtime, bots)
+    runs = RunService(service, runtime, bots, events=events)
     assert runtime.tools is not None
     messages = attach_bot_messages(runtime.tools.tool_service, service, bots, runs)
     channels = build_channels(
@@ -201,6 +206,7 @@ def create_app(
     relays = RelayService(now=time.monotonic)
     app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
+    app.include_router(build_app_events_router(runs.events))
     app.include_router(build_skills_router(skills))
     app.include_router(build_mcp_servers_router(mcp, saved_servers))
     app.include_router(build_mcp_router(mcp, relays))

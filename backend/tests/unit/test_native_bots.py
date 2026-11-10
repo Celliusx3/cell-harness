@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
+from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.secrets import SecretService
 from harness.secrets.models.details import ModelDetails
@@ -23,7 +24,10 @@ CONFIG = Path(__file__).resolve().parents[2] / "config.json"
 @pytest.fixture
 def store(tmp_path: Path) -> BotService:
     return BotService(
-        tmp_path / "bots.json", durable_service(tmp_path / "sessions"), assistant_instructions="A."
+        tmp_path / "bots.json",
+        durable_service(tmp_path / "sessions"),
+        assistant_instructions="A.",
+        events=AppEvents(),
     )
 
 

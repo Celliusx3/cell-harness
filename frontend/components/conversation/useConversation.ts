@@ -35,6 +35,8 @@ export interface Conversation {
   clear(): Promise<void>;
   /** A turn was started by something other than `send` */
   wake(): void;
+  /** Read anything logged since the cursor, without showing a turn as running */
+  catchUp(): void;
 }
 
 export function useConversation(conversationId: string): Conversation {
@@ -127,6 +129,10 @@ export function useConversation(conversationId: string): Conversation {
     resume.current?.();
   }, []);
 
+  const catchUp = useCallback(() => {
+    resume.current?.();
+  }, []);
+
   const send = useCallback(
     async (prompt: string, files: ChatFile[]) => {
       setError(null);
@@ -181,5 +187,18 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId]);
 
-  return { events, queued, sending, running, loading, error, send, stop, compact, clear, wake };
+  return {
+    events,
+    queued,
+    sending,
+    running,
+    loading,
+    error,
+    send,
+    stop,
+    compact,
+    clear,
+    wake,
+    catchUp,
+  };
 }

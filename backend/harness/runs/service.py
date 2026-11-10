@@ -8,6 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
+from harness.app_events import AppEvents, TurnStarted
 from harness.bots import BotService
 from harness.files import ChatFile
 from harness.runs.chain import discussion_events
@@ -46,16 +47,24 @@ class Run:
 class RunService:
     """Starts and stops turns, and knows which conversations are busy."""
 
-    def __init__(self, service: SessionService, runtime: Runtime, bots: BotService) -> None:
+    def __init__(
+        self, service: SessionService, runtime: Runtime, bots: BotService, *, events: AppEvents
+    ) -> None:
         self._service = service
         self._runtime = runtime
         self._bots = bots
+        self._events = events
         self._runs: dict[str, Run] = {}
 
     @property
     def bots(self) -> BotService:
         """Who answers in each chat — for a chat app finding whether its linked bot still does."""
         return self._bots
+
+    @property
+    def events(self) -> AppEvents:
+        """The app's publisher, for the route that streams it."""
+        return self._events
 
     def active(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
@@ -104,8 +113,7 @@ class RunService:
         """Begin a manual compaction as its own run — no model turn, just the compaction events."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
+        run = self._begin(session)
         run._inner = asyncio.create_task(self._stream(run, self._runtime.compact(session=session)))
         run._outer = asyncio.create_task(self._drive(run))
         return run
@@ -113,8 +121,7 @@ class RunService:
     def clear(self, session: Session) -> Run:
         """Begin wiping this chat as a run of its own, taking over from the turn in flight."""
         in_flight = self._runs.get(session.id)
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
+        run = self._begin(session)
         run._outer = asyncio.create_task(self._end_then_wipe(in_flight, run))
         return run
 
@@ -133,12 +140,18 @@ class RunService:
 
     def _converse(self, session: Session, opening: AsyncIterator[TurnEvent]) -> Run:
         """Run `opening` and the discussion after it on a task this service owns."""
-        run = Run(session, session.next_number())
-        self._runs[session.id] = run
+        run = self._begin(session)
         run._inner = asyncio.create_task(
             self._stream(run, discussion_events(self._runtime, self._bots, session, opening))
         )
         run._outer = asyncio.create_task(self._drive(run))
+        return run
+
+    def _begin(self, session: Session) -> Run:
+        """Record a new run for `session`, and publish that its turn started."""
+        run = Run(session, session.next_number())
+        self._runs[session.id] = run
+        self._events.publish(TurnStarted(chat_id=session.id))
         return run
 
     async def _end(self, run: Run) -> None:
