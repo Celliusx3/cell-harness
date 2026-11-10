@@ -8,7 +8,7 @@ import {
   compactConversation,
   getConversation,
   sendMessage,
-  setMode,
+  setConversationMode,
   stopRun,
 } from "@/lib/api";
 import { streamEvents } from "@/lib/stream";
@@ -49,7 +49,7 @@ export function useConversation(conversationId: string): Conversation {
   const [queued, setQueued] = useState<string[]>([]);
   const [sending, setSending] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [mode, setChatMode] = useState<ApprovalMode | null>(null);
+  const [mode, setMode] = useState<ApprovalMode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,7 +65,7 @@ export function useConversation(conversationId: string): Conversation {
     setQueued([]);
     setSending(null);
     setRunning(false);
-    setChatMode(null);
+    setMode(null);
     setLoading(true);
     setError(null);
     cursor.current = 0;
@@ -76,7 +76,7 @@ export function useConversation(conversationId: string): Conversation {
         if (cancelled) return;
         setEvents(detail.events);
         setRunning(detail.running);
-        setChatMode(detail.mode);
+        setMode(detail.mode);
         setLoading(false);
         cursor.current = detail.next_cursor;
       } catch (err) {
@@ -100,7 +100,7 @@ export function useConversation(conversationId: string): Conversation {
               setQueued([]);
               setSending(null);
             }
-            if (event.type === "approval/mode") setChatMode(event.mode);
+            if (event.type === "approval/mode") setMode(event.mode);
             else setRunning(true);
           },
           onEnd(end) {
@@ -190,8 +190,8 @@ export function useConversation(conversationId: string): Conversation {
     async (next: ApprovalMode) => {
       setError(null);
       try {
-        await setMode(conversationId, next);
-        setChatMode(next);
+        await setConversationMode(conversationId, next);
+        setMode(next);
         catchUp();
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "could not switch this chat's mode");

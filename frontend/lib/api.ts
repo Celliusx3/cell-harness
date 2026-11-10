@@ -92,7 +92,7 @@ export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
 
 /** Switch what asks in this chat; its next call follows `mode`. */
-export const setMode = (id: string, mode: ApprovalMode) =>
+export const setConversationMode = (id: string, mode: ApprovalMode) =>
   request<void>(`/conversations/${id}/mode`, {
     method: "PUT",
     body: JSON.stringify({ mode }),

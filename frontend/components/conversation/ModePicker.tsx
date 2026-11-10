@@ -31,12 +31,12 @@ export const MODE_ICONS: Record<ApprovalMode, LucideIcon> = { ask: ShieldQuestio
 
 const MODES: ApprovalMode[] = ["ask", "auto"];
 
-const AUTO_CONFIRMATION = "Let this bot act without asking in this chat?";
+const AUTO_CONFIRM_TITLE = "Let this bot act without asking in this chat?";
 
-const AUTO_CONSEQUENCE =
+const AUTO_CONFIRM_TEXT =
   "Tools that change something run with no approval card. Questions to you still wait for your answer. Switch back to Ask at any time.";
 
-const TRIGGER_LOOK: Record<ApprovalMode, string> = {
+const TRIGGER_CLASSES: Record<ApprovalMode, string> = {
   ask: "text-ink-soft hover:bg-surface-sunken hover:text-ink data-popup-open:bg-surface-sunken data-popup-open:text-ink",
   auto: "bg-accent-soft text-accent hover:opacity-90",
 };
@@ -66,7 +66,7 @@ export function ModePicker({ mode, onPick }: Props) {
         <DropdownMenuTrigger
           aria-label={`Mode: ${MODE_LABELS[mode]}`}
           title="Choose how much the bot may do without asking"
-          className={`flex h-9 shrink-0 items-center gap-1 rounded-xl px-2 text-xs font-medium transition ${TRIGGER_LOOK[mode]}`}
+          className={`flex h-9 shrink-0 items-center gap-1 rounded-xl px-2 text-xs font-medium transition ${TRIGGER_CLASSES[mode]}`}
         >
           <Icon size={14} />
           {MODE_LABELS[mode]}
@@ -100,8 +100,8 @@ export function ModePicker({ mode, onPick }: Props) {
       <Dialog open={confirming} onOpenChange={setConfirming}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>{AUTO_CONFIRMATION}</DialogTitle>
-            <DialogDescription>{AUTO_CONSEQUENCE}</DialogDescription>
+            <DialogTitle>{AUTO_CONFIRM_TITLE}</DialogTitle>
+            <DialogDescription>{AUTO_CONFIRM_TEXT}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <button
