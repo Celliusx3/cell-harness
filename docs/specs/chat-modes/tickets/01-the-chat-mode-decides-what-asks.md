@@ -6,7 +6,7 @@
 
 `CallOrigin` gains `mode: ApprovalMode`. `runtime/tool_run.py` builds it from the session and the default. `ToolService.dispatch` returns `Pending` only when the origin's mode is `ask`. A script's calls carry the same origin, so they follow the mode too.
 
-`RunService.set_mode(conversation_id, mode)` appends the event to the running turn's session, or to the stored session when no turn runs. A route `PUT /api/conversations/{id}/mode` with body `{"mode": "ask" | "auto"}` calls it. A body with any other mode is a 422.
+`RunService.set_approval_mode(conversation_id, mode)` appends the event to the running turn's session, or to the stored session when no turn runs. A route `PUT /api/conversations/{id}/mode` with body `{"mode": "ask" | "auto"}` calls it. A body with any other mode is a 422.
 
 **Checks.** An integration test with a protected fake tool: in a new chat a call to it is pending. After `PUT …/mode` with `auto`, the next call runs with no card, and a script's call to it runs too. After `PUT …/mode` with `ask`, it is pending again. A unit test shows that the latest event wins and that a chat with none uses the default. `make lint` and `make test` stay green.
 

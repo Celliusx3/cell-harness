@@ -232,7 +232,7 @@ async def _execute(
     origin = CallOrigin(
         bot_id=run.bot_id,
         conversation_id=run.session.id,
-        mode=runtime.tools.mode_of(run.session),
+        mode=runtime.tools.approval_mode(run.session),
     )
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 

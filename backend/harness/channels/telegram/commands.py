@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.channels.commands import ChatCommand, Command, mode_command, slash_words
+from harness.channels.commands import ChatCommand, Command, command_words, mode_command
 
 _NAMES = {
     "/new": Command.NEW,
@@ -17,5 +17,5 @@ def parse(text: str) -> ChatCommand | None:
     mode = mode_command(text)
     if mode is not None:
         return mode
-    words = slash_words(text)
+    words = command_words(text)
     return _NAMES.get(words[0]) if words else None

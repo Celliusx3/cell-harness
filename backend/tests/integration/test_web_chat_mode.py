@@ -49,7 +49,7 @@ def _app(tmp_path, *notes: str, ran: list[str]):
     return client, runs
 
 
-async def _turn_ends(client: httpx.AsyncClient, runs, prompt: str) -> list[str]:
+async def _turn_end_reasons(client: httpx.AsyncClient, runs, prompt: str) -> list[str]:
     await send(client, ASSISTANT_ID, prompt)
     await settle(runs, ASSISTANT_ID)
     detail = (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()
@@ -60,7 +60,7 @@ async def test_a_new_chat_asks_before_a_protected_call(tmp_path) -> None:
     ran: list[str] = []
     client, runs = _app(tmp_path, "Kopi", ran=ran)
 
-    assert await _turn_ends(client, runs, "remember Kopi") == ["pending"]
+    assert await _turn_end_reasons(client, runs, "remember Kopi") == ["pending"]
     assert ran == []
 
 
@@ -71,7 +71,7 @@ async def test_auto_runs_the_call_with_no_card(tmp_path) -> None:
     switched = await client.put(MODE, json={"mode": "auto"})
     assert switched.status_code == 204, switched.text
 
-    assert await _turn_ends(client, runs, "remember Kopi") == ["completed"]
+    assert await _turn_end_reasons(client, runs, "remember Kopi") == ["completed"]
     assert ran == ["Kopi"]
     detail = (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()
     assert {"type": "approval/mode", "mode": "auto"} in detail["events"]
@@ -82,10 +82,10 @@ async def test_the_latest_switch_wins(tmp_path) -> None:
     client, runs = _app(tmp_path, "Kopi", "Teh", ran=ran)
 
     await client.put(MODE, json={"mode": "auto"})
-    assert await _turn_ends(client, runs, "remember Kopi") == ["completed"]
+    assert await _turn_end_reasons(client, runs, "remember Kopi") == ["completed"]
     await client.put(MODE, json={"mode": "ask"})
 
-    assert await _turn_ends(client, runs, "remember Teh") == ["completed", "pending"]
+    assert await _turn_end_reasons(client, runs, "remember Teh") == ["completed", "pending"]
     assert ran == ["Kopi"]
 
 

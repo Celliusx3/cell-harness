@@ -31,7 +31,7 @@ class Numbered(NamedTuple):
     event: SessionEvent
 
 
-class ModeSwitch(NamedTuple):
+class ApprovalModeSwitch(NamedTuple):
     """The chat's approval mode at the last step start, and the mode now."""
 
     before: ApprovalMode
@@ -109,16 +109,18 @@ class Session:
 
     def approval_mode(self, default: ApprovalMode) -> ApprovalMode:
         """The mode the person switched this chat to last, for every bot in it; else `default`."""
-        return _latest_mode(self._events, default)
+        return _latest_approval_mode(self._events, default)
 
-    def approval_mode_switch(self, default: ApprovalMode) -> ModeSwitch | None:
+    def approval_mode_switch_since_last_step(
+        self, default: ApprovalMode
+    ) -> ApprovalModeSwitch | None:
         """The switch since the last step start; `None` before any step, or when nothing changed."""
         starts = [at for at, event in enumerate(self._events) if isinstance(event, StepStart)]
         if not starts:
             return None
-        before = _latest_mode(self._events[: starts[-1]], default)
-        after = _latest_mode(self._events, default)
-        return None if before == after else ModeSwitch(before=before, after=after)
+        before = _latest_approval_mode(self._events[: starts[-1]], default)
+        after = _latest_approval_mode(self._events, default)
+        return None if before == after else ApprovalModeSwitch(before=before, after=after)
 
     def bot_instructions(self, bot_id: str | None) -> BotInstructionsEvent | None:
         """The instructions logged last for `bot_id` or for no bot, compacted or not, or `None`."""
@@ -155,7 +157,7 @@ class Session:
         )
 
 
-def _latest_mode(events: Sequence[SessionEvent], default: ApprovalMode) -> ApprovalMode:
+def _latest_approval_mode(events: Sequence[SessionEvent], default: ApprovalMode) -> ApprovalMode:
     """The mode the last switch in `events` chose; `default` when there is none."""
     for event in reversed(events):
         if isinstance(event, ApprovalModeChanged):

@@ -44,7 +44,7 @@ class Toolset:
         """The mode a chat follows until the person switches it."""
         return self.tool_service.approvals.default_mode
 
-    def mode_of(self, session: ToolChoices) -> ApprovalMode:
+    def approval_mode(self, session: ToolChoices) -> ApprovalMode:
         """The mode `session`'s calls run under: its latest switch, else the configured default."""
         return session.approval_mode(self.default_mode)
 

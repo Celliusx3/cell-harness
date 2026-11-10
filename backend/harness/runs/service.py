@@ -13,7 +13,7 @@ from harness.bots import BotService
 from harness.files import ChatFile
 from harness.runs.chain import discussion_events
 from harness.runtime.events import TurnEvent
-from harness.runtime.service import Runtime
+from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
 from harness.session.log import Session
 from harness.session.models import ApprovalModeChanged, BotMessage, ToolCallEvent
 from harness.session.repository import SessionNotFoundError
@@ -21,8 +21,6 @@ from harness.session.service import SessionService
 from harness.tools import Approval, ApprovalMode, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
-
-MODE_WITHOUT_TOOLSET: ApprovalMode = "auto"
 
 
 class RunAlreadyActive(RuntimeError):
@@ -128,10 +126,10 @@ class RunService:
         run._outer = asyncio.create_task(self._end_then_wipe(in_flight, run))
         return run
 
-    async def set_mode(self, conversation_id: str, mode: ApprovalMode) -> None:
+    async def set_approval_mode(self, conversation_id: str, mode: ApprovalMode) -> None:
         """Switch the chat to `mode` from its next call; the mode already on writes nothing."""
         session = await self._session_to_switch(conversation_id)
-        if self._mode_in(session) == mode:
+        if self._runtime.approval_mode(session) == mode:
             return
         session.append(ApprovalModeChanged(mode=mode))
         await self._service.flush(session)
@@ -139,7 +137,7 @@ class RunService:
         if run is not None:
             await self._wake(run)
 
-    async def mode_of(self, conversation_id: str) -> ApprovalMode:
+    async def approval_mode(self, conversation_id: str) -> ApprovalMode:
         """The mode the chat's next call runs under."""
         tools = self._runtime.tools
         if tools is None:
@@ -149,12 +147,7 @@ class RunService:
             session = run.session if run is not None else await self._service.read(conversation_id)
         except SessionNotFoundError:
             return tools.default_mode
-        return tools.mode_of(session)
-
-    def _mode_in(self, session: Session) -> ApprovalMode:
-        """The mode `session`'s next call runs under."""
-        tools = self._runtime.tools
-        return MODE_WITHOUT_TOOLSET if tools is None else tools.mode_of(session)
+        return self._runtime.approval_mode(session)
 
     async def _session_to_switch(self, conversation_id: str) -> Session:
         """The running turn's log, else the stored one, created when the chat was never written."""

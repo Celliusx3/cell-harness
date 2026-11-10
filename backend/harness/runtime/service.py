@@ -28,7 +28,7 @@ from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
 from harness.session.derive import derive_messages, without_images
-from harness.session.log import Session
+from harness.session.log import ApprovalModeSwitch, Session
 from harness.session.models import (
     ApprovalGrant,
     ApprovalModeChanged,
@@ -44,7 +44,11 @@ from harness.session.repair import unanswered
 from harness.tools import Approval, ApprovalMode, Failure, Ok, Toolset
 
 SKIPPED = "SKIPPED"
-MODE_LINES: Mapping[ApprovalMode, str] = {"ask": APPROVAL_MODE_ASK, "auto": APPROVAL_MODE_AUTO}
+MODE_WITHOUT_TOOLSET: ApprovalMode = "auto"
+APPROVAL_MODE_SENTENCES: Mapping[ApprovalMode, str] = {
+    "ask": APPROVAL_MODE_ASK,
+    "auto": APPROVAL_MODE_AUTO,
+}
 
 
 @dataclass(frozen=True)
@@ -68,19 +72,31 @@ class Runtime:
         """The request for `session`, with the step hooks' `context`; images only for a seer."""
         derived = derive_messages(session.events())
         history = derived if sees_images else without_images(derived)
-        history = [*_with_context(history, context), *self._mode_line(session)]
+        history = [*_with_context(history, context), *self._approval_mode_reminder(session)]
         system = system_text(session, self.guidance)
         if not system:
             return history
         return [SystemMessage(content=system), *history]
 
-    def _mode_line(self, session: Session) -> list[Message]:
+    def approval_mode(self, session: Session) -> ApprovalMode:
+        """The mode `session`'s next call runs under."""
+        if self.tools is None:
+            return MODE_WITHOUT_TOOLSET
+        return self.tools.approval_mode(session)
+
+    def approval_mode_switch(self, session: Session) -> ApprovalModeSwitch | None:
+        """The switch since `session`'s last step start; `None` without one or without tools."""
+        if self.tools is None:
+            return None
+        return session.approval_mode_switch_since_last_step(self.tools.default_mode)
+
+    def _approval_mode_reminder(self, session: Session) -> list[Message]:
         """The current mode as one system-reminder, once the person has switched this chat."""
         events = session.events()
         if self.tools is None or not any(isinstance(e, ApprovalModeChanged) for e in events):
             return []
-        line = MODE_LINES[self.tools.mode_of(session)]
-        return [UserMessage(content=SYSTEM_REMINDER.format(text=line))]
+        sentence = APPROVAL_MODE_SENTENCES[self.approval_mode(session)]
+        return [UserMessage(content=SYSTEM_REMINDER.format(text=sentence))]
 
     async def run(
         self,

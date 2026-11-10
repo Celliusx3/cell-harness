@@ -8,7 +8,13 @@ from typing import Literal
 import discord
 from discord import app_commands
 
-from harness.channels.commands import ChatCommand, Command, ModeCommand, unknown_skill
+from harness.channels.commands import (
+    ChatCommand,
+    Command,
+    ModeChoice,
+    ModeQuestion,
+    unknown_skill,
+)
 from harness.channels.commands import apply as apply_command
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, link_or_receive
@@ -74,7 +80,9 @@ class DiscordChannel:
         async def mode(
             interaction: discord.Interaction, mode: Literal["ask", "auto"] | None = None
         ) -> None:
-            await self._on_command(interaction, ModeCommand(word=mode or ""))
+            await self._on_command(
+                interaction, ModeChoice(mode=mode) if mode is not None else ModeQuestion()
+            )
 
     def conversation_for(self, chat_id: str) -> str:
         """None: a Discord chat writes where its stored state says, or nowhere."""

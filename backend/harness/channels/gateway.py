@@ -147,19 +147,19 @@ class ChannelGateway:
         await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
         return await self._runs.stop(state.conversation_id)
 
-    async def set_mode(self, channel: str, chat_id: str, mode: ApprovalMode) -> None:
+    async def set_approval_mode(self, channel: str, chat_id: str, mode: ApprovalMode) -> None:
         """Switch this chat to `mode` from its next call; nothing for a chat linked to no bot."""
         state = await self._state(channel, chat_id)
         if _ignored_as_unlinked(state):
             return
-        await self._runs.set_mode(state.conversation_id, mode)
+        await self._runs.set_approval_mode(state.conversation_id, mode)
 
-    async def mode_of(self, channel: str, chat_id: str) -> ApprovalMode | None:
+    async def approval_mode(self, channel: str, chat_id: str) -> ApprovalMode | None:
         """The mode this chat's calls run under; `None` for a chat linked to no bot."""
         state = await self._state(channel, chat_id)
         if _ignored_as_unlinked(state):
             return None
-        return await self._runs.mode_of(state.conversation_id)
+        return await self._runs.approval_mode(state.conversation_id)
 
     async def is_linked(self, channel: str, chat_id: str) -> bool:
         """Whether this chat writes into a conversation."""

@@ -95,9 +95,9 @@ def test_a_chat_runs_under_its_latest_switch_else_the_configured_default() -> No
     toolset = toolset_for(approvals=_approvals(default_mode="auto"))
     session = new_session()
 
-    assert toolset.mode_of(session) == "auto"
+    assert toolset.approval_mode(session) == "auto"
     session.append(ApprovalModeChanged(mode="ask"))
-    assert toolset.mode_of(session) == "ask"
+    assert toolset.approval_mode(session) == "ask"
 
 
 async def _script_calls_write(mode: ApprovalMode) -> list[BridgeError]:
@@ -142,7 +142,7 @@ async def test_a_switch_during_a_turn_decides_its_next_call(tmp_path) -> None:
     run = runs.start(await service.create(ASSISTANT_ID), "go")
     await until(lambda: runs.active(ASSISTANT_ID) is not None, what="the turn to start")
 
-    await runs.set_mode(ASSISTANT_ID, "auto")
+    await runs.set_approval_mode(ASSISTANT_ID, "auto")
     release.set()
     await asyncio.wait_for(run._outer, timeout=5)
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import get_args
 
 from harness.channels.gateway import ChannelGateway
 from harness.skills import Skill
@@ -21,12 +22,25 @@ class Command(StrEnum):
 
 
 @dataclass(frozen=True)
-class ModeCommand:
-    """`/mode` and the lower-cased word after it; `""` when none."""
+class ModeQuestion:
+    """`/mode` alone: which mode the chat is in."""
+
+
+@dataclass(frozen=True)
+class ModeChoice:
+    """`/mode ask` or `/mode auto`: the mode to switch the chat to."""
+
+    mode: ApprovalMode
+
+
+@dataclass(frozen=True)
+class UnknownModeWord:
+    """`/mode` and a lower-cased word that names no mode."""
 
     word: str
 
 
+ModeCommand = ModeQuestion | ModeChoice | UnknownModeWord
 ChatCommand = Command | ModeCommand
 
 
@@ -36,13 +50,12 @@ NOTHING_TO_STOP = "Nothing is running."
 COMPACTING = "Compacting the conversation to free up context…"
 NOTHING_TO_COMPACT = "Nothing to compact yet."
 COMMANDS = "Commands: /new, /stop, /compact, /mode."
-MODE_IS = "Mode: {name}."
-MODE_WORDS = "Use /mode ask or /mode auto."
-MODE_NAMES: dict[ApprovalMode, str] = {"ask": "Ask", "auto": "Auto"}
-_MODE_OF_WORD: dict[str, ApprovalMode] = {"ask": "ask", "auto": "auto"}
+MODE_REPLY = "Mode: {name}."
+MODE_USAGE = "Use /mode ask or /mode auto."
+MODE_LABELS: dict[ApprovalMode, str] = {"ask": "Ask", "auto": "Auto"}
 
 
-def slash_words(text: str) -> tuple[str, ...]:
+def command_words(text: str) -> tuple[str, ...]:
     """A `/word` message as its lower-cased command and the words after; `()` for any other."""
     words = text.strip().split()
     if not words or not words[0].startswith("/"):
@@ -53,37 +66,42 @@ def slash_words(text: str) -> tuple[str, ...]:
 
 def mode_command(text: str) -> ModeCommand | None:
     """The `/mode` this message asks for, read alike in every channel; `None` for any other."""
-    words = slash_words(text)
+    words = command_words(text)
     if words[:1] != ("/mode",):
         return None
-    return ModeCommand(word=words[1].lower() if len(words) > 1 else "")
+    if len(words) == 1:
+        return ModeQuestion()
+    word = words[1].lower()
+    for mode in get_args(ApprovalMode):
+        if word == mode:
+            return ModeChoice(mode=mode)
+    return UnknownModeWord(word=word)
 
 
-def mode_named(word: str) -> ApprovalMode | None:
-    """The mode `/mode <word>` switches to; `None` for a word that names none."""
-    return _MODE_OF_WORD.get(word)
-
-
-def mode_is(mode: ApprovalMode) -> str:
+def mode_reply(mode: ApprovalMode) -> str:
     """The line naming the mode a chat is in."""
-    return MODE_IS.format(name=MODE_NAMES[mode])
+    return MODE_REPLY.format(name=MODE_LABELS[mode])
 
 
-def mode_words(mode: ApprovalMode) -> str:
+def mode_usage_reply(mode: ApprovalMode) -> str:
     """The reply to a `/mode` that switches nothing: which words it takes, and the mode on."""
-    return f"{MODE_WORDS} {mode_is(mode)}"
+    return f"{MODE_USAGE} {mode_reply(mode)}"
 
 
-async def _mode_reply(gateway: ChannelGateway, channel: str, chat_id: str, word: str) -> str | None:
-    """Switch to the mode `word` names and say so, else name the mode on; `None` for no bot."""
-    chosen = mode_named(word)
-    if chosen is not None:
-        await gateway.set_mode(channel, chat_id, chosen)
-        return mode_is(chosen)
-    current = await gateway.mode_of(channel, chat_id)
-    if current is None:
-        return None
-    return mode_is(current) if not word else mode_words(current)
+async def _answer_mode_command(
+    gateway: ChannelGateway, channel: str, chat_id: str, command: ModeCommand
+) -> str | None:
+    """Switch to the chosen mode and say so, else name the mode on; `None` for no bot."""
+    match command:
+        case ModeChoice(mode=mode):
+            await gateway.set_approval_mode(channel, chat_id, mode)
+            return mode_reply(mode)
+        case ModeQuestion():
+            reply = mode_reply
+        case UnknownModeWord():
+            reply = mode_usage_reply
+    current = await gateway.approval_mode(channel, chat_id)
+    return None if current is None else reply(current)
 
 
 def unknown_skill(name: str, skills: Sequence[Skill]) -> str:
@@ -107,7 +125,7 @@ async def apply(
     if not await gateway.is_linked(channel, chat_id):
         return None
     if isinstance(command, ModeCommand):
-        return await _mode_reply(gateway, channel, chat_id, command.word)
+        return await _answer_mode_command(gateway, channel, chat_id, command)
     if command is Command.NEW:
         await gateway.clear(channel, chat_id)
         return CLEARED
