@@ -9,7 +9,9 @@ from dataclasses import dataclass
 from harness.prompts import SUBAGENT_INTRO
 from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
 from harness.runtime.service import Runtime
+from harness.session.models import ApprovalModeChanged
 from harness.session.service import SessionService
+from harness.tools.models.decision import ApprovalMode
 from harness.tools.native.subagent import (
     SubagentOutcome,
     SubagentReply,
@@ -26,10 +28,11 @@ class Subagents:
     sessions: SessionService
 
     async def __call__(
-        self, subagent_id: str, task: SubagentTask, *, bot_id: str
+        self, subagent_id: str, task: SubagentTask, *, bot_id: str, mode: ApprovalMode
     ) -> SubagentOutcome:
-        """Run `task` for `bot_id` in a new session `subagent_id`, and report how its turn ended."""
+        """Run `task` for `bot_id` in `mode` in a new session `subagent_id`, and report its end."""
         session = await self.sessions.create(subagent_id)
+        session.append(ApprovalModeChanged(mode=mode))
         subagent = dataclasses.replace(
             self.runtime,
             guidance=SUBAGENT_INTRO.format(name=task.name) + self.runtime.guidance,

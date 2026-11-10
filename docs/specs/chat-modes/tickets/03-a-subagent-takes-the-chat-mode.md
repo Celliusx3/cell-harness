@@ -1,6 +1,6 @@
 # 03 · A subagent takes the chat's mode when it starts
 
-**Status.** open
+**Status.** done
 
 **What to build.** The subagent tool passes the calling origin's `mode` to `Subagents.__call__`. That writes an `ApprovalModeChanged` event with the mode into the subagent's new session before its turn starts. So a subagent started in auto runs protected calls, and one started in ask stops with today's reason. Files: `runtime/subagents.py`, `tools/native/subagent/tool.py`.
 

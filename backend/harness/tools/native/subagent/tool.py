@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from harness.tools.models.context import ToolContext
+from harness.tools.models.decision import ApprovalMode
 from harness.tools.models.outcome import Ok, ToolOutcome
 from harness.tools.models.tool import Tool
 from harness.tools.native.subagent.models import (
@@ -32,10 +33,10 @@ _DESCRIPTION = (
 
 
 class SubagentRunner(Protocol):
-    """Runs one task as the subagent `subagent_id` for the bot `bot_id`, to its end."""
+    """Runs one task as the subagent `subagent_id` for the bot `bot_id` in `mode`, to its end."""
 
     async def __call__(
-        self, subagent_id: str, task: SubagentTask, *, bot_id: str
+        self, subagent_id: str, task: SubagentTask, *, bot_id: str, mode: ApprovalMode
     ) -> SubagentOutcome: ...
 
 
@@ -47,7 +48,12 @@ def run_subagent_tool(runner: SubagentRunner) -> Tool[SubagentArgs]:
             async with asyncio.TaskGroup() as group:
                 running = [
                     group.create_task(
-                        runner(f"{context.call_id}.{index}", task, bot_id=context.origin.bot_id)
+                        runner(
+                            f"{context.call_id}.{index}",
+                            task,
+                            bot_id=context.origin.bot_id,
+                            mode=context.origin.mode,
+                        )
                     )
                     for index, task in enumerate(args.tasks)
                 ]

@@ -48,7 +48,7 @@ async def test_a_subagent_answers_from_a_log_of_its_own(
     client = ScriptedClient(completed("AAPL grew 2%."))
     subagents = Subagents(runtime_over(client, guidance="BASE"), sessions)
 
-    outcome = await subagents("call-9.0", TASK, bot_id="b")
+    outcome = await subagents("call-9.0", TASK, bot_id="b", mode="ask")
 
     assert outcome == SubagentReply(text="AAPL grew 2%.")
     assert (tmp_path / "call-9.0.jsonl").exists()
@@ -63,7 +63,9 @@ async def test_a_subagent_is_told_its_name_and_keeps_the_base_prompt(
 ) -> None:
     client = ScriptedClient(completed("done"))
 
-    await Subagents(runtime_over(client, guidance="BASE"), sessions)("c.0", TASK, bot_id="b")
+    await Subagents(runtime_over(client, guidance="BASE"), sessions)(
+        "c.0", TASK, bot_id="b", mode="ask"
+    )
 
     system = client.seen[0]
     assert isinstance(system, SystemMessage)
@@ -77,7 +79,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
     client = SteppedClient(calls_tool("save_note", '{"value": "x"}'))
     subagents = Subagents(runtime_over(client, pending_tool("save_note")), sessions)
 
-    outcome = await subagents("c.0", TASK, bot_id="b")
+    outcome = await subagents("c.0", TASK, bot_id="b", mode="ask")
 
     assert isinstance(outcome, SubagentStop)
     assert "save_note" in outcome.reason
@@ -86,7 +88,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
 async def test_a_subagent_whose_turn_fails_says_why(sessions: SessionService) -> None:
     client = ScriptedClient([Failed(reason="provider down")])
 
-    outcome = await Subagents(runtime_over(client), sessions)("c.0", TASK, bot_id="b")
+    outcome = await Subagents(runtime_over(client), sessions)("c.0", TASK, bot_id="b", mode="ask")
 
     assert isinstance(outcome, SubagentStop)
     assert "provider down" in outcome.reason
@@ -97,7 +99,7 @@ async def test_a_stopped_subagent_leaves_its_log_closed_as_cancelled(
 ) -> None:
     subagents = Subagents(runtime_over(HangingClient("partial")), sessions)
 
-    running = asyncio.create_task(subagents("c.0", TASK, bot_id="b"))
+    running = asyncio.create_task(subagents("c.0", TASK, bot_id="b", mode="ask"))
     for _ in range(50):
         await asyncio.sleep(0)
     running.cancel()
