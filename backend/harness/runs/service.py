@@ -129,8 +129,10 @@ class RunService:
         return run
 
     async def set_mode(self, conversation_id: str, mode: ApprovalMode) -> None:
-        """Switch the chat to `mode`, in the log its turn in flight reads, from its next call."""
+        """Switch the chat to `mode` from its next call; the mode already on writes nothing."""
         session = await self._session_to_switch(conversation_id)
+        if self._mode_in(session) == mode:
+            return
         session.append(ApprovalModeChanged(mode=mode))
         await self._service.flush(session)
         run = self._runs.get(conversation_id)
@@ -148,6 +150,11 @@ class RunService:
         except SessionNotFoundError:
             return tools.default_mode
         return tools.mode_of(session)
+
+    def _mode_in(self, session: Session) -> ApprovalMode:
+        """The mode `session`'s next call runs under."""
+        tools = self._runtime.tools
+        return MODE_WITHOUT_TOOLSET if tools is None else tools.mode_of(session)
 
     async def _session_to_switch(self, conversation_id: str) -> Session:
         """The running turn's log, else the stored one, created when the chat was never written."""

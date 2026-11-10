@@ -128,3 +128,27 @@ async def test_the_chat_says_which_mode_is_on(tmp_path) -> None:
     assert detail["mode"] == "auto"
     await client.put(MODE, json={"mode": "ask"})
     assert (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()["mode"] == "ask"
+
+
+async def test_a_switch_to_the_mode_already_on_writes_nothing(tmp_path) -> None:
+    client, _ = _app(tmp_path, ran=[])
+    await client.put(MODE, json={"mode": "auto"})
+
+    again = await client.put(MODE, json={"mode": "auto"})
+    await client.put(MODE, json={"mode": "ask"})
+    await client.put(MODE, json={"mode": "ask"})
+
+    assert again.status_code == 204
+    detail = (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()
+    switches = [e["mode"] for e in detail["events"] if e["type"] == "approval/mode"]
+    assert switches == ["auto", "ask"]
+
+
+async def test_a_new_chat_switched_to_the_default_writes_nothing(tmp_path) -> None:
+    client, _ = _app(tmp_path, ran=[])
+
+    switched = await client.put(MODE, json={"mode": "ask"})
+    detail = await client.get(f"/api/conversations/{ASSISTANT_ID}")
+
+    assert switched.status_code == 204
+    assert detail.status_code == 404, detail.text
