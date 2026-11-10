@@ -18,7 +18,7 @@ KEEP_ALIVE_SECONDS = 15.0
 
 Source = Run | Session
 
-NextSource = Callable[[], Awaitable[Source]]
+AfterDrain = Callable[[], Awaitable[Source]]
 
 
 def frame(event: str, data: str) -> str:
@@ -31,12 +31,9 @@ def session_frame(item: Numbered) -> str:
     return f"event: session\nid: {item.number}\ndata: {item.event.model_dump_json()}\n\n"
 
 
-async def sse_frames(
-    first: NextSource, *, after: int, after_drain: NextSource
-) -> AsyncGenerator[str]:
+async def sse_frames(source: Source, *, after: int, after_drain: AfterDrain) -> AsyncGenerator[str]:
     """The conversation's events from `after`, across every turn, then `end`."""
     cursor = after
-    source = await first()
     while True:
         if isinstance(source, Run):
             async for item in subscribe(source, after=cursor):

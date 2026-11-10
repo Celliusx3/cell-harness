@@ -1,6 +1,6 @@
 # 03 · The chat's stream ends when the turn ends, as on main
 
-**Status.** open
+**Status.** done
 
 **What to build.** Remove the long poll from PR #59. `harness/channels/web/routes.py` loses `first_source`. `sse_frames` in `harness/channels/web/sse.py` takes its first source as a value again. `RunService` loses `next_run` and its `_started` event, and `_begin` stays as the one place a run starts and publishes.
 

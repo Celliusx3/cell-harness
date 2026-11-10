@@ -55,7 +55,6 @@ class RunService:
         self._bots = bots
         self._events = events
         self._runs: dict[str, Run] = {}
-        self._started = asyncio.Event()
 
     @property
     def bots(self) -> BotService:
@@ -70,15 +69,6 @@ class RunService:
     def active(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)
-
-    async def next_run(self, conversation_id: str) -> Run:
-        """The run in flight for this conversation, once one has begun."""
-        while True:
-            started = self._started
-            run = self._runs.get(conversation_id)
-            if run is not None:
-                return run
-            await started.wait()
 
     def chats_spoken_in(self, bot_id: str) -> tuple[str, ...]:
         """The conversations whose run is in a turn of `bot_id`'s right now."""
@@ -158,11 +148,9 @@ class RunService:
         return run
 
     def _begin(self, session: Session) -> Run:
-        """Record and publish a new run for `session`, releasing everyone waiting in `next_run`."""
+        """Record a new run for `session`, and publish that its turn started."""
         run = Run(session, session.next_number())
         self._runs[session.id] = run
-        self._started.set()
-        self._started = asyncio.Event()
         self._events.publish(TurnStarted(chat_id=session.id))
         return run
 
