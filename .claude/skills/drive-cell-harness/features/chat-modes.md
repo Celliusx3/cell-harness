@@ -4,7 +4,7 @@ Each chat is in Ask or Auto. Ask is the approvals rule: a protected call stops a
 
 ## Sub-features
 
-- A picker beside the attach button in the message box shows "Ask" or "Auto".
+- A picker on its own line under the text box, inside the message box, shows "Ask" or "Auto".
 - Picking Auto opens a dialog, "Let this bot act without asking in this chat?", with "Cancel" and "Switch to Auto". Picking Ask switches at once.
 - Each switch is one line in the timeline, with the mode's icon: "Switched to Auto" or "Switched to Ask". Auto shows in the accent colour, in the line and in the picker.
 - Typing `/mode ask` or `/mode auto` switches the chat and starts no turn. `/mode` alone shows "Use /mode ask or /mode auto. Mode: Ask." in the red strip above the box.

@@ -18,7 +18,7 @@ interface Props {
   onStop(): void;
   autoFocus?: boolean;
   initialDraft?: string;
-  /** The chat's mode picker, beside the attach button; a chat not made yet has none. */
+  /** The chat's mode picker, on its own line under the box; a chat not made yet has none. */
   modePicker?: ReactNode;
 }
 
@@ -114,7 +114,6 @@ export function Composer({
           >
             <Paperclip size={16} />
           </button>
-          {modePicker}
           <textarea
             ref={box}
             autoFocus={autoFocus}
@@ -151,6 +150,7 @@ export function Composer({
             </button>
           )}
         </div>
+        {modePicker && <div className="flex items-center pt-1">{modePicker}</div>}
       </div>
     </div>
   );
