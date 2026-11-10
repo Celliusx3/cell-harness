@@ -14,6 +14,7 @@ import {
   QueuedBubble,
   UserBubble,
 } from "@/components/conversation/Message";
+import { MODE_LABELS } from "@/components/conversation/ModePicker";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { ToolCard } from "@/components/conversation/ToolCard";
@@ -146,5 +147,13 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
       return <Compaction item={item} />;
     case "instructions":
       return <p className="text-center text-xs text-ink-soft">Instructions updated</p>;
+    case "mode":
+      return (
+        <div className="flex items-center gap-3 text-xs text-ink-soft">
+          <span aria-hidden className="h-px flex-1 bg-line" />
+          Mode: {MODE_LABELS[item.mode]}
+          <span aria-hidden className="h-px flex-1 bg-line" />
+        </div>
+      );
   }
 }

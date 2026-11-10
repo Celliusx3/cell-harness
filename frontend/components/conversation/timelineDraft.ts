@@ -7,7 +7,7 @@ import type {
   Timeline,
   TimelineItem,
 } from "@/components/conversation/timelineItems";
-import type { ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
+import type { ApprovalMode, ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
 
 const stepKey = (turn: number, step: number): string => `${turn}:${step}`;
 
@@ -183,6 +183,10 @@ export class TimelineDraft {
     if (this.instructed.has(whose)) this.items.push({ kind: "instructions", key });
     this.instructed.add(whose);
     if (botId !== null) this.names.set(botId, name);
+  }
+
+  onModeSwitch(key: string, mode: ApprovalMode): void {
+    this.items.push({ kind: "mode", key, mode });
   }
 
   /** In a group's chat, each turn's bot; empty in a bot's own chat. */

@@ -1,6 +1,6 @@
 # 05 · The browser shows the mode, switches it, and marks each switch
 
-**Status.** open
+**Status.** done
 
 **What to build.** `ConversationDetail` gains `mode`, the chat's current mode with the default applied. The message box shows a picker with Ask and Auto. Picking Auto first shows a confirm dialog, "Let this bot act without asking in this chat?". Picking Ask switches at once. Both call `PUT …/mode` through `lib/api.ts`.
 

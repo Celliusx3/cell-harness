@@ -8,10 +8,11 @@ import {
   compactConversation,
   getConversation,
   sendMessage,
+  setMode,
   stopRun,
 } from "@/lib/api";
 import { streamEvents } from "@/lib/stream";
-import type { SessionEvent, ChatFile } from "@/lib/types";
+import type { ApprovalMode, SessionEvent, ChatFile } from "@/lib/types";
 
 /** One conversation: its events, whether a turn is running, and how to act on it. */
 
@@ -22,9 +23,11 @@ export interface Conversation {
   events: SessionEvent[];
   /** Messages sent while a turn was running, not yet in the log. */
   queued: string[];
-  /** The prompt pressed, until the log holds it, the server queues it, or the send fails. */
+  /** The prompt pressed, until the log holds it, the server queues it, the send fails, or the stream ends. */
   sending: string | null;
   running: boolean;
+  /** The mode the chat's next call runs under, or null until the chat has loaded. */
+  mode: ApprovalMode | null;
   loading: boolean;
   error: string | null;
   send(prompt: string, files: ChatFile[]): Promise<void>;
@@ -33,6 +36,8 @@ export interface Conversation {
   compact(): Promise<void>;
   /** Clear the chat in place; the clear lands via the stream. */
   clear(): Promise<void>;
+  /** Switch what asks in this chat; the switch lands in the timeline via the stream. */
+  switchMode(mode: ApprovalMode): Promise<void>;
   /** A turn was started by something other than `send` */
   wake(): void;
   /** Read anything logged since the cursor, without showing a turn as running */
@@ -44,6 +49,7 @@ export function useConversation(conversationId: string): Conversation {
   const [queued, setQueued] = useState<string[]>([]);
   const [sending, setSending] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [mode, setChatMode] = useState<ApprovalMode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +65,7 @@ export function useConversation(conversationId: string): Conversation {
     setQueued([]);
     setSending(null);
     setRunning(false);
+    setChatMode(null);
     setLoading(true);
     setError(null);
     cursor.current = 0;
@@ -69,6 +76,7 @@ export function useConversation(conversationId: string): Conversation {
         if (cancelled) return;
         setEvents(detail.events);
         setRunning(detail.running);
+        setChatMode(detail.mode);
         setLoading(false);
         cursor.current = detail.next_cursor;
       } catch (err) {
@@ -92,11 +100,14 @@ export function useConversation(conversationId: string): Conversation {
               setQueued([]);
               setSending(null);
             }
-            setRunning(true);
+            if (event.type === "approval/mode") setChatMode(event.mode);
+            else setRunning(true);
           },
           onEnd(end) {
             ended = end.kind !== "dropped";
-            if (end.kind === "end") setRunning(false);
+            if (end.kind !== "end") return;
+            setRunning(false);
+            setSending(null);
           },
         });
         if (cancelled || controller.signal.aborted) break;
@@ -175,6 +186,20 @@ export function useConversation(conversationId: string): Conversation {
     }
   }, [conversationId, wake]);
 
+  const switchMode = useCallback(
+    async (next: ApprovalMode) => {
+      setError(null);
+      try {
+        await setMode(conversationId, next);
+        setChatMode(next);
+        catchUp();
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "could not switch this chat's mode");
+      }
+    },
+    [conversationId, catchUp],
+  );
+
   const stop = useCallback(async () => {
     try {
       await stopRun(conversationId);
@@ -192,12 +217,14 @@ export function useConversation(conversationId: string): Conversation {
     queued,
     sending,
     running,
+    mode,
     loading,
     error,
     send,
     stop,
     compact,
     clear,
+    switchMode,
     wake,
     catchUp,
   };

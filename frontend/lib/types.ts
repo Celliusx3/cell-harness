@@ -154,7 +154,7 @@ export type SessionEvent =
   | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
   | ApprovalGrantEvent
   /** The person switched the chat's mode; the latest switch decides what asks. */
-  | { type: "approval/mode"; mode: "ask" | "auto" }
+  | { type: "approval/mode"; mode: ApprovalMode }
   /** A bot answering from here on, and the instructions its turns are prompted with. */
   | { type: "bot/instructions"; name: string; instructions: string; bot_id?: string | null }
   /** What a connected MCP server tells the model from here on; empty once it tells nothing. */
@@ -162,6 +162,9 @@ export type SessionEvent =
   /** The group this chat belongs to, and its members' names. */
   | { type: "group/members"; name: string; members: string[] }
   | { type: "chat/cleared" };
+
+/** Ask shows an approval card before a protected call; Auto runs it with none. */
+export type ApprovalMode = "ask" | "auto";
 
 /** The person allowed `tool` to run unasked for the rest of this conversation. */
 export interface ApprovalGrantEvent {
@@ -216,6 +219,8 @@ export interface ConversationDetail {
   events: SessionEvent[];
   next_cursor: number;
   running: boolean;
+  /** The mode the chat's next call runs under, the default applied. */
+  mode: ApprovalMode;
 }
 
 export interface SkillSummary {

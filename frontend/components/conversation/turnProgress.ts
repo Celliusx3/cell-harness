@@ -19,7 +19,7 @@ export function progressOf(
   if (sending === null && openTurn === null) return null;
   const answered = rows.some((row) => row.kind === "answer" && row.turn === openTurn);
   if (!answered) return { kind: "starting" };
-  return openTurnProgress(items.filter((item) => item.kind !== "instructions" && item.turn === openTurn));
+  return openTurnProgress(items.filter((item) => "turn" in item && item.turn === openTurn));
 }
 
 function openTurnProgress(turn: TimelineItem[]): Progress {

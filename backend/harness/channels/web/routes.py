@@ -132,6 +132,7 @@ def _message_routes(router: APIRouter, web: WebChannel) -> None:
             events=events,
             next_cursor=session.next_number(),
             running=run is not None,
+            mode=await web.runs.mode_of(conversation_id),
         )
 
     @router.post(

@@ -20,6 +20,7 @@ class ConversationDetail(BaseModel):
     events: list[SessionEvent]
     next_cursor: int
     running: bool
+    mode: ApprovalMode
 
 
 class MessageAccepted(BaseModel):

@@ -1,6 +1,7 @@
 import type {
   AppResource,
   AppToolResult,
+  ApprovalMode,
   Approvals,
   Bot,
   BotEdit,
@@ -89,6 +90,13 @@ export const imageUrl = (id: string, sha256: string) =>
 
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });
+
+/** Switch what asks in this chat; its next call follows `mode`. */
+export const setMode = (id: string, mode: ApprovalMode) =>
+  request<void>(`/conversations/${id}/mode`, {
+    method: "PUT",
+    body: JSON.stringify({ mode }),
+  });
 
 /** Compact the conversation now. */
 export const compactConversation = (id: string) =>

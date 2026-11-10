@@ -1,7 +1,7 @@
 /** The shapes `buildTimeline` produces */
 
 import type { Invocation } from "@/components/conversation/invocation";
-import type { ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
+import type { ApprovalMode, ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
 
 export interface UserItem {
   kind: "user";
@@ -71,13 +71,21 @@ export interface InstructionsItem {
   key: string;
 }
 
+/** The person switched the chat's mode here. */
+export interface ModeItem {
+  kind: "mode";
+  key: string;
+  mode: ApprovalMode;
+}
+
 export type TimelineItem =
   | UserItem
   | AssistantItem
   | ToolItem
   | NoticeItem
   | CompactionItem
-  | InstructionsItem;
+  | InstructionsItem
+  | ModeItem;
 
 export interface Timeline {
   items: TimelineItem[];

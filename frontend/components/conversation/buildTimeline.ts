@@ -122,6 +122,10 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         });
         break;
 
+      case "approval/mode":
+        draft.onModeSwitch(`m${index}`, event.mode);
+        break;
+
       case "bot/instructions":
         draft.onBotInstructions(`b${index}`, event.bot_id ?? null, event.name);
         break;

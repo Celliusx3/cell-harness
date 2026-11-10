@@ -118,3 +118,13 @@ async def test_mode_alone_in_the_browser_names_the_mode_on(tmp_path) -> None:
 
     assert named.status_code == 422
     assert named.json()["detail"] == "Use /mode ask or /mode auto. Mode: Ask."
+
+
+async def test_the_chat_says_which_mode_is_on(tmp_path) -> None:
+    client, _ = _app(tmp_path, ran=[])
+    await send(client, ASSISTANT_ID, "/mode auto")
+
+    detail = (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()
+    assert detail["mode"] == "auto"
+    await client.put(MODE, json={"mode": "ask"})
+    assert (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()["mode"] == "ask"

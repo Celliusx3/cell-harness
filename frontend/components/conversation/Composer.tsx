@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, Paperclip, Square } from "lucide-react";
-import { type DragEvent, useEffect, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { AttachmentChips } from "@/components/conversation/AttachmentChips";
 import { useAttachments } from "@/components/conversation/useAttachments";
@@ -18,10 +18,20 @@ interface Props {
   onStop(): void;
   autoFocus?: boolean;
   initialDraft?: string;
+  /** The chat's mode picker, beside the attach button; a chat not made yet has none. */
+  modePicker?: ReactNode;
 }
 
 /** The composer, with the files attached to the next message; while a turn runs, a moving bar, and Stop until a reply is typed. */
-export function Composer({ chatId, running, onSend, onStop, autoFocus, initialDraft }: Props) {
+export function Composer({
+  chatId,
+  running,
+  onSend,
+  onStop,
+  autoFocus,
+  initialDraft,
+  modePicker,
+}: Props) {
   const [draft, setDraft] = useState(initialDraft ?? "");
   const [dragging, setDragging] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -104,6 +114,7 @@ export function Composer({ chatId, running, onSend, onStop, autoFocus, initialDr
           >
             <Paperclip size={16} />
           </button>
+          {modePicker}
           <textarea
             ref={box}
             autoFocus={autoFocus}
