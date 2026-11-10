@@ -1,16 +1,23 @@
 # 02 · The bot is told the mode, and when you change it
 
-**Status.** open
+**Status.** done
 
-**What to build.** `RunService.set_mode` also appends an `ApplicationMessageEvent` when the mode really changes: "The approval mode changed from ask to auto (changed by the user)." A switch to the mode already on appends nothing.
+**What to build.** At the start of each step, the runtime compares the chat's mode now with its mode at the previous step. When they differ, it appends an `ApplicationMessageEvent` for this turn: "The approval mode changed from ask to auto (changed by the user)." The note waits for the step start because a message between a tool call and its result breaks the request.
 
-Each step's request ends with one system-reminder line that names the current mode. It comes after the whole history, so the start of the request stays the same across a switch. The line is rebuilt from the log on every step and is not logged. The two sentences live in `prompts.py`:
+A chat with no step yet gets no note. A switch away and back between two steps gets no note either.
+
+Once a chat has a switch in its history, each request ends with one system-reminder message that names the current mode. It comes after the whole history, so the start of the request stays the same across a switch. It is rebuilt from the log on every step and is not logged. A chat never switched gets no line, because it behaves as it always did.
+
+The sentences live in `prompts.py`:
 
 - ask: "Approval mode: ask. A call that changes something may wait for the user's approval."
 - auto: "Approval mode: auto. Your calls run without asking the user."
+- changed: "The approval mode changed from {before} to {after} (changed by the user)."
 
-Files: `prompts.py`, `runtime/service.py`, `runs/service.py`.
+Files: `prompts.py`, `runtime/service.py`, `runtime/turn.py`, and a small pure module for the comparison if it keeps those files short.
 
-**Checks.** A unit test on the request: its last message carries the mode line, and a switch leaves every earlier message the same. An integration test: a switch to auto mid-turn puts the notice in front of the model on its next step. A switch to the mode already on adds no notice. `make lint` and `make test` stay green.
+**Checks.** `backend/tests/unit/test_chat_mode_told.py`: a chat never switched has no mode line. A switched chat ends each request with the line, and every earlier message stays the same. A switch since the last step is told once, at the next step. A switch away and back tells nothing.
+
+A switch before the first step tells nothing but the line. `make lint` and `make test` stay green.
 
 **Blocked by.** 01

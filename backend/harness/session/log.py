@@ -15,6 +15,7 @@ from harness.session.models import (
     ServerInstructionsEvent,
     SessionEvent,
     SessionHeader,
+    StepStart,
     ToolCallEvent,
     ToolResultEvent,
     TurnStart,
@@ -28,6 +29,13 @@ class Numbered(NamedTuple):
 
     number: int
     event: SessionEvent
+
+
+class ModeSwitch(NamedTuple):
+    """The chat's approval mode at the last step start, and the mode now."""
+
+    before: ApprovalMode
+    after: ApprovalMode
 
 
 class Session:
@@ -101,10 +109,16 @@ class Session:
 
     def approval_mode(self, default: ApprovalMode) -> ApprovalMode:
         """The mode the person switched this chat to last, for every bot in it; else `default`."""
-        for event in reversed(self._events):
-            if isinstance(event, ApprovalModeChanged):
-                return event.mode
-        return default
+        return _latest_mode(self._events, default)
+
+    def approval_mode_switch(self, default: ApprovalMode) -> ModeSwitch | None:
+        """The switch since the last step start; `None` before any step, or when nothing changed."""
+        starts = [at for at, event in enumerate(self._events) if isinstance(event, StepStart)]
+        if not starts:
+            return None
+        before = _latest_mode(self._events[: starts[-1]], default)
+        after = _latest_mode(self._events, default)
+        return None if before == after else ModeSwitch(before=before, after=after)
 
     def bot_instructions(self, bot_id: str | None) -> BotInstructionsEvent | None:
         """The instructions logged last for `bot_id` or for no bot, compacted or not, or `None`."""
@@ -139,3 +153,11 @@ class Session:
         return frozenset(
             turn for turn, bot_id in turn_speakers(self._events).items() if bot_id != speaker
         )
+
+
+def _latest_mode(events: Sequence[SessionEvent], default: ApprovalMode) -> ApprovalMode:
+    """The mode the last switch in `events` chose; `default` when there is none."""
+    for event in reversed(events):
+        if isinstance(event, ApprovalModeChanged):
+            return event.mode
+    return default

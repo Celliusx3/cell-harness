@@ -9,7 +9,12 @@ from dataclasses import dataclass
 from harness.files import ChatFile, ChatFileService
 from harness.images import ImageService
 from harness.llm import Message, SystemMessage, ToolCall, ToolMessage, UserMessage
-from harness.prompts import SKIPPED_RESULT, SYSTEM_REMINDER
+from harness.prompts import (
+    APPROVAL_MODE_ASK,
+    APPROVAL_MODE_AUTO,
+    SKIPPED_RESULT,
+    SYSTEM_REMINDER,
+)
 from harness.runtime.compaction import (
     CompactionEvent,
     CompactionRefused,
@@ -26,6 +31,7 @@ from harness.session.derive import derive_messages, without_images
 from harness.session.log import Session
 from harness.session.models import (
     ApprovalGrant,
+    ApprovalModeChanged,
     BotMessage,
     BotMessageEvent,
     ServerInstructionsEvent,
@@ -35,9 +41,10 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from harness.session.repair import unanswered
-from harness.tools import Approval, Failure, Ok, Toolset
+from harness.tools import Approval, ApprovalMode, Failure, Ok, Toolset
 
 SKIPPED = "SKIPPED"
+MODE_LINES: Mapping[ApprovalMode, str] = {"ask": APPROVAL_MODE_ASK, "auto": APPROVAL_MODE_AUTO}
 
 
 @dataclass(frozen=True)
@@ -61,11 +68,19 @@ class Runtime:
         """The request for `session`, with the step hooks' `context`; images only for a seer."""
         derived = derive_messages(session.events())
         history = derived if sees_images else without_images(derived)
-        history = _with_context(history, context)
+        history = [*_with_context(history, context), *self._mode_line(session)]
         system = system_text(session, self.guidance)
         if not system:
             return history
         return [SystemMessage(content=system), *history]
+
+    def _mode_line(self, session: Session) -> list[Message]:
+        """The current mode as one system-reminder, once the person has switched this chat."""
+        events = session.events()
+        if self.tools is None or not any(isinstance(e, ApprovalModeChanged) for e in events):
+            return []
+        line = MODE_LINES[self.tools.mode_of(session)]
+        return [UserMessage(content=SYSTEM_REMINDER.format(text=line))]
 
     async def run(
         self,
