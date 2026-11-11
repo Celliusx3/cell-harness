@@ -62,7 +62,18 @@ def _usage(payload: Mapping[str, JsonValue]) -> Usage | None:
     completion = usage.get("completion_tokens")
     if not isinstance(prompt, int) or not isinstance(completion, int):
         return None
-    return Usage(input_tokens=prompt, output_tokens=completion)
+    return Usage(
+        input_tokens=prompt, output_tokens=completion, cached_input_tokens=_cached_tokens(usage)
+    )
+
+
+def _cached_tokens(usage: Mapping[str, JsonValue]) -> int | None:
+    """Of the prompt's tokens, those the provider read from its cache, when it says."""
+    details = usage.get("prompt_tokens_details")
+    if not isinstance(details, dict):
+        return None
+    cached = details.get("cached_tokens")
+    return cached if isinstance(cached, int) else None
 
 
 def _delta(payload: Mapping[str, JsonValue]) -> Mapping[str, JsonValue]:

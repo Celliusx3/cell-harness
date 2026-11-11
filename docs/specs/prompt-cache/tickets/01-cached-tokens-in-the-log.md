@@ -1,6 +1,6 @@
 # 01 · Each reply's usage records its cached input tokens
 
-**Status.** open
+**Status.** done
 
 **What to build.** `Usage` gains `cached_input_tokens: int | None`. `None` means the provider did not report it, and old logs read as `None`. The OpenAI adapter reads it from the usage block's `prompt_tokens_details.cached_tokens`. `input_tokens` keeps its meaning, all input tokens cached or not, so the context size count does not change.
 
