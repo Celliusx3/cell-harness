@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 from microsandbox import (
@@ -12,8 +12,10 @@ from microsandbox import (
     MicrosandboxError,
     MountConfig,
     Network,
+    PortBinding,
     SandboxNotFoundError,
     SandboxStatus,
+    SandboxStillRunningError,
 )
 
 
@@ -27,8 +29,23 @@ class CreateCall:
     cpus: int
     labels: Mapping[str, str]
     volumes: Mapping[str, MountConfig]
+    ports: Sequence[PortBinding]
     network: Network
     detached: bool
+
+
+def stored_config(call: CreateCall) -> dict[str, object]:
+    """The VM's config as microsandbox keeps it, in its own names."""
+    ports = [
+        {"host_port": port.host_port, "guest_port": port.guest_port, "host_bind": port.bind}
+        for port in call.ports
+    ]
+    return {
+        "name": call.name,
+        "image": {"Oci": {"reference": call.image}},
+        "labels": dict(call.labels),
+        "network": {"enabled": True, "ports": ports},
+    }
 
 
 @dataclass(frozen=True)
@@ -109,11 +126,11 @@ class FakeRunningSandbox:
 class FakeStoredSandbox:
     vms: FakeSandboxes
     status: SandboxStatus
-    image: str
+    config: dict[str, object]
 
     @property
     def config_json(self) -> str:
-        return self.vms.raw_config or json.dumps({"image": {"Oci": {"reference": self.image}}})
+        return self.vms.raw_config or json.dumps(self.config)
 
     async def connect(self) -> FakeRunningSandbox:
         return FakeRunningSandbox(self.vms)
@@ -147,14 +164,14 @@ class FakeSandboxes:
         cpus: int,
         labels: Mapping[str, str],
         volumes: Mapping[str, MountConfig],
+        ports: Sequence[PortBinding],
         network: Network,
         detached: bool,
     ) -> FakeRunningSandbox:
+        call = CreateCall(name, image, memory, cpus, labels, volumes, ports, network, detached)
         self.calls.append("create")
-        self.created.append(
-            CreateCall(name, image, memory, cpus, labels, volumes, network, detached)
-        )
-        self.stored[name] = FakeStoredSandbox(self, SandboxStatus.RUNNING, image)
+        self.created.append(call)
+        self.stored[name] = FakeStoredSandbox(self, SandboxStatus.RUNNING, stored_config(call))
         return FakeRunningSandbox(self)
 
     async def start(self, name: str, *, detached: bool) -> FakeRunningSandbox:
@@ -166,3 +183,9 @@ class FakeSandboxes:
         if name not in self.stored:
             raise SandboxNotFoundError(f"sandbox not found: {name}")
         return self.stored[name]
+
+    async def remove(self, name: str) -> None:
+        self.calls.append("remove")
+        if (await self.get(name)).status == SandboxStatus.RUNNING:
+            raise SandboxStillRunningError(f"sandbox is still running: {name}")
+        del self.stored[name]

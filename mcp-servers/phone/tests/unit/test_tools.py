@@ -22,7 +22,18 @@ INSTRUCTIONS = (
     "files with phone__install_app, open it with phone__open_app, and act with phone__tap, "
     "phone__swipe, phone__type_text and phone__press_key. Each action returns a new screenshot."
 )
-TOOLS = ["screenshot", "install_app", "open_app", "tap", "swipe", "type_text", "press_key"]
+TOOLS = [
+    "screenshot",
+    "install_app",
+    "open_app",
+    "tap",
+    "swipe",
+    "type_text",
+    "press_key",
+    "screen_session",
+    "release_control",
+    "keep_awake",
+]
 
 
 def text_of(result: CallToolResult) -> str:

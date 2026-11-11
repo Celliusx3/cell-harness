@@ -36,24 +36,24 @@ Text = Annotated[str, Field(min_length=1)]
 def register(server: MCPServer, phone: Phone) -> None:
     @server.tool(name="tap", description=TAP_DESCRIPTION)
     async def tap(x: Pixel, y: Pixel) -> ImageContent:
-        async with phone_for_one_call(phone.machine):
+        async with phone_for_one_call(phone):
             await phone.touch.tap(x, y)
             return await screen_after_action(phone)
 
     @server.tool(name="swipe", description=SWIPE_DESCRIPTION)
     async def swipe(from_x: Pixel, from_y: Pixel, to_x: Pixel, to_y: Pixel) -> ImageContent:
-        async with phone_for_one_call(phone.machine):
+        async with phone_for_one_call(phone):
             await phone.touch.swipe(from_x, from_y, to_x, to_y)
             return await screen_after_action(phone)
 
     @server.tool(name="type_text", description=TYPE_TEXT_DESCRIPTION)
     async def type_text(text: Text) -> ImageContent:
-        async with phone_for_one_call(phone.machine):
+        async with phone_for_one_call(phone):
             await phone.touch.type_text(text)
             return await screen_after_action(phone)
 
     @server.tool(name="press_key", description=PRESS_KEY_DESCRIPTION)
     async def press_key(key: Key) -> ImageContent:
-        async with phone_for_one_call(phone.machine):
+        async with phone_for_one_call(phone):
             await phone.touch.press_key(key)
             return await screen_after_action(phone)

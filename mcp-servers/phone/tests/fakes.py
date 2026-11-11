@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mcp.server import MCPServer
@@ -15,7 +16,8 @@ from phone.models.command import CommandResult
 from phone.models.phone import PhoneSpec, PhoneState, Program
 from phone.server import build
 from phone.services.apps import LIST_PACKAGES, Apps
-from phone.services.machine import BOOT_COMPLETED, Machine
+from phone.services.live_screen import SCREEN_PROGRAM, LiveScreen
+from phone.services.machine import BOOT_COMPLETED, GATEWAY_PORT, Machine
 from phone.services.screen import SCREENSHOT, Screen
 from phone.services.touch import Touch
 from phone.tools import Phone
@@ -33,13 +35,16 @@ PNG = base64.b64decode(
 SCREENSHOT_RESULT = CommandResult(0, base64.b64encode(PNG).decode() + "\n", "")
 CONFIG = Config(image=IMAGE, name=NAME, kernel=KERNEL, files_dir=FILES_DIR, idle_minutes=10)
 IDLE_SECONDS = CONFIG.idle_minutes * 60
+GATEWAY_HOST_PORT = 49152
+EPOCH = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 class FakeEngine:
     """A phone that boots after `boot_polls_needed` looks, shows `screen`, and records commands.
 
     A `pm install` adds `installs` to its third-party packages; `answers` gives a command's
-    result in place of the phone's own.
+    result in place of the phone's own. `phone-screen` programs are recorded apart, and a phone
+    with a `replacement` reason is one made to another shape.
     """
 
     def __init__(
@@ -51,6 +56,7 @@ class FakeEngine:
         screen: CommandResult = SCREENSHOT_RESULT,
         packages: frozenset[str] = frozenset(),
         answers: Mapping[str, CommandResult] | None = None,
+        replacement: str | None = None,
     ) -> None:
         self.phone_state: PhoneState = state
         self.installs = installs
@@ -58,6 +64,8 @@ class FakeEngine:
         self.screen = screen
         self.packages = packages
         self.answers: Mapping[str, CommandResult] = answers or {}
+        self.replacement = replacement
+        self.removed = 0
         self.created = 0
         self.started = 0
         self.stopped = 0
@@ -66,6 +74,7 @@ class FakeEngine:
         self.commands: list[str] = []
         self.stdins: list[str | None] = []
         self.timeouts: list[float] = []
+        self.screen_commands: list[str] = []
 
     async def create(self, spec: PhoneSpec) -> None:
         self.specs.append(spec)
@@ -80,8 +89,19 @@ class FakeEngine:
         self.stopped += 1
         self.phone_state = "stopped"
 
+    async def remove(self, name: str) -> None:
+        self.removed += 1
+        self.phone_state = "missing"
+
     async def state(self, name: str) -> PhoneState:
         return self.phone_state
+
+    async def replacement_reason(self, spec: PhoneSpec) -> str | None:
+        return self.replacement
+
+    async def host_port(self, name: str, guest_port: int) -> int:
+        assert guest_port == GATEWAY_PORT
+        return GATEWAY_HOST_PORT
 
     async def run(
         self, name: str, program: Program, *, stdin: str | None, timeout_seconds: float
@@ -92,6 +112,9 @@ class FakeEngine:
             return CommandResult(0, "1\n" if booted else "0\n", "")
         if program == SCREENSHOT:
             return self.screen
+        if program.argv[0] == SCREEN_PROGRAM:
+            self.screen_commands.append(" ".join(program.argv))
+            return CommandResult(0, "", "")
         helper, command = program.argv
         assert (helper, program.env) == ("android", {})
         self.commands.append(command)
@@ -117,7 +140,10 @@ class Ticking:
 
     def __init__(self) -> None:
         self.now = 0.0
-        self.clock = Clock(now=lambda: self.now, sleep=self.sleep)
+        self.clock = Clock(now=lambda: self.now, sleep=self.sleep, wall=self.wall)
+
+    def wall(self) -> datetime:
+        return EPOCH + timedelta(seconds=self.now)
 
     async def sleep(self, seconds: float) -> None:
         if seconds >= IDLE_SECONDS:
@@ -132,7 +158,10 @@ class Dial:
     def __init__(self) -> None:
         self.now = 0.0
         self.sleepers: list[tuple[float, asyncio.Future[None]]] = []
-        self.clock = Clock(now=lambda: self.now, sleep=self.sleep)
+        self.clock = Clock(now=lambda: self.now, sleep=self.sleep, wall=self.wall)
+
+    def wall(self) -> datetime:
+        return EPOCH + timedelta(seconds=self.now)
 
     async def sleep(self, seconds: float) -> None:
         wake: asyncio.Future[None] = asyncio.get_running_loop().create_future()
@@ -158,11 +187,13 @@ def machine_over(engine: FakeEngine, clock: Clock | None = None) -> Machine:
 
 
 def phone_over(engine: FakeEngine, *, files_dir: Path, clock: Clock) -> Phone:
+    machine = Machine(engine=engine, config=CONFIG, clock=clock)
     return Phone(
-        machine=Machine(engine=engine, config=CONFIG, clock=clock),
+        machine=machine,
         screen=Screen(engine=engine, name=NAME),
         apps=Apps(engine=engine, name=NAME, files_dir=files_dir),
         touch=Touch(engine=engine, name=NAME),
+        live_screen=LiveScreen(engine=engine, name=NAME, machine=machine, clock=clock),
         clock=clock,
     )
 

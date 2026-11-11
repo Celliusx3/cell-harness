@@ -5,7 +5,14 @@ from __future__ import annotations
 import pytest
 from microsandbox import ExecFailedError, SandboxStatus
 
-from phone.engines.microsandbox import CPUS, MEMORY_MIB, MicrosandboxEngine, state_of
+from phone.engines.microsandbox import (
+    CPUS,
+    MEMORY_MIB,
+    SHAPE_LABEL,
+    MicrosandboxEngine,
+    shape_fingerprint,
+    state_of,
+)
 from phone.models.command import CommandResult
 from phone.models.errors import EngineError, EngineTimeout
 from phone.models.phone import LABEL, Program
@@ -41,7 +48,7 @@ async def test_the_phone_is_made_as_a_detached_labelled_vm_of_the_spec() -> None
         CPUS,
         True,
     )
-    assert call.labels == {LABEL: NAME}
+    assert call.labels == {LABEL: NAME, SHAPE_LABEL: shape_fingerprint(SPEC)}
 
 
 async def test_a_new_phone_runs_its_images_entrypoint_and_command_in_the_background() -> None:

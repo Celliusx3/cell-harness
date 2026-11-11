@@ -4,6 +4,15 @@ export const SERVER = "computer";
 export const PREVIEW_URI = "ui://computer/screen";
 export const RELAY_META = "io.cell-harness/relay";
 
+/** A server with a screen the Computer page shows: its tool namespace and the app its calls come from. */
+export interface ScreenServer {
+  id: string;
+  previewUri: string;
+}
+
+export const COMPUTER_SCREEN: ScreenServer = { id: SERVER, previewUri: PREVIEW_URI };
+export const PHONE_SCREEN: ScreenServer = { id: "phone", previewUri: "ui://phone/screen" };
+
 const RelayEntry = z.object({ url: z.string().startsWith("/api/relay/") });
 export const RelayMeta = z.object({ [RELAY_META]: RelayEntry });
 

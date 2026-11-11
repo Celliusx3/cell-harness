@@ -5,7 +5,12 @@ from __future__ import annotations
 import pytest
 
 from phone.models.errors import EngineError
-from phone.services.machine import BOOT_POLL_SECONDS, BOOT_TIMEOUT_SECONDS, Machine
+from phone.services.machine import (
+    BOOT_POLL_SECONDS,
+    BOOT_TIMEOUT_SECONDS,
+    GATEWAY_PORT,
+    Machine,
+)
 from tests.fakes import BOOT_POLLS, IMAGE, NAME, FakeEngine, machine_over
 
 
@@ -68,3 +73,29 @@ async def test_android_that_never_boots_is_given_up_on_after_the_timeout() -> No
         await use(machine_over(engine))
 
     assert engine.boot_polls == BOOT_TIMEOUT_SECONDS // BOOT_POLL_SECONDS + 1
+
+
+async def test_a_phone_made_to_another_shape_is_removed_and_made_again_once() -> None:
+    engine = FakeEngine(state="stopped", replacement="its published ports are not the spec's")
+    machine = machine_over(engine)
+
+    await use(machine)
+    await use(machine)
+
+    assert (engine.removed, engine.created, engine.started) == (1, 1, 0)
+
+
+async def test_a_phone_of_the_specs_shape_is_kept() -> None:
+    engine = FakeEngine(state="stopped")
+
+    await use(machine_over(engine))
+
+    assert (engine.removed, engine.created, engine.started) == (0, 0, 1)
+
+
+async def test_the_spec_publishes_the_screens_gateway() -> None:
+    engine = FakeEngine(state="missing")
+
+    await use(machine_over(engine))
+
+    assert engine.specs[0].published_ports == (GATEWAY_PORT,)

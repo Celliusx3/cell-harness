@@ -26,13 +26,13 @@ def installed(packages: tuple[str, ...]) -> str:
 def register(server: MCPServer, phone: Phone) -> None:
     @server.tool(name="install_app", description=INSTALL_APP_DESCRIPTION)
     async def install_app(path: str) -> list[TextContent | ImageContent]:
-        async with phone_for_one_call(phone.machine):
+        async with phone_for_one_call(phone):
             packages = await phone.apps.install(path)
             screen = await screen_after_action(phone)
         return [TextContent(type="text", text=installed(packages)), screen]
 
     @server.tool(name="open_app", description=OPEN_APP_DESCRIPTION)
     async def open_app(package: str) -> ImageContent:
-        async with phone_for_one_call(phone.machine):
+        async with phone_for_one_call(phone):
             await phone.apps.open(package)
             return await screen_after_action(phone)

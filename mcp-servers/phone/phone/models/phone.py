@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 LABEL = "cell-harness.phone"
+LOOPBACK = "127.0.0.1"
 
 PhoneState = Literal["running", "stopped", "missing"]
 
@@ -17,6 +18,7 @@ class PhoneSpec:
 
     name: str
     image: str
+    published_ports: tuple[int, ...]
 
 
 @dataclass(frozen=True)

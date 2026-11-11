@@ -12,17 +12,19 @@ from phone.config import Config
 from phone.engine import Engine
 from phone.models.command import COMMAND_TIMEOUT_SECONDS
 from phone.models.errors import EngineError
-from phone.models.phone import PhoneSpec, Program
+from phone.models.phone import PhoneSpec, PhoneState, Program
 
 logger = logging.getLogger("phone")
 
 BOOT_POLL_SECONDS = 2
 BOOT_TIMEOUT_SECONDS = 180
 BOOT_COMPLETED = Program(argv=("android", "getprop sys.boot_completed"), env={})
+GATEWAY_PORT = 6080
 
 
 def phone_spec(config: Config) -> PhoneSpec:
-    return PhoneSpec(name=config.name, image=config.image)
+    """The phone from our image, with its screen's gateway published."""
+    return PhoneSpec(name=config.name, image=config.image, published_ports=(GATEWAY_PORT,))
 
 
 class Machine:
@@ -35,6 +37,8 @@ class Machine:
         self._lock = asyncio.Lock()
         self._booted = False
         self._idle: asyncio.Task[None] | None = None
+        self._idle_stop_paused = False
+        self._shape_checked = False
 
     @asynccontextmanager
     async def serving(self) -> AsyncIterator[None]:
@@ -54,10 +58,19 @@ class Machine:
         finally:
             self._restart_idle_stop()
 
+    def pause_idle_stop(self) -> None:
+        """The person has the screen: the idle stop waits until they hand it back."""
+        self._idle_stop_paused = True
+        self._cancel_idle_stop()
+
+    def resume_idle_stop(self) -> None:
+        self._idle_stop_paused = False
+        self._restart_idle_stop()
+
     async def _ensure_running(self) -> None:
         async with self._lock:
             spec = phone_spec(self._config)
-            state = await self._engine.state(spec.name)
+            state = await self._replaced_if_misshapen(spec, await self._engine.state(spec.name))
             if state == "stopped":
                 logger.info("starting the phone %s", spec.name)
                 await self._engine.start(spec.name)
@@ -69,6 +82,20 @@ class Machine:
             if not self._booted:
                 await self._wait_for_android(spec.name)
                 self._booted = True
+
+    async def _replaced_if_misshapen(self, spec: PhoneSpec, state: PhoneState) -> PhoneState:
+        """`state`, or missing once a phone made to another shape is removed; checked once."""
+        if self._shape_checked:
+            return state
+        self._shape_checked = True
+        if state == "missing":
+            return state
+        reason = await self._engine.replacement_reason(spec)
+        if reason is None:
+            return state
+        logger.info("replacing the phone %s: %s", spec.name, reason)
+        await self._engine.remove(spec.name)
+        return "missing"
 
     async def _wait_for_android(self, name: str) -> None:
         deadline = self._clock.now() + BOOT_TIMEOUT_SECONDS
@@ -88,7 +115,8 @@ class Machine:
 
     def _restart_idle_stop(self) -> None:
         self._cancel_idle_stop()
-        self._idle = asyncio.create_task(self._stop_when_idle())
+        if not self._idle_stop_paused:
+            self._idle = asyncio.create_task(self._stop_when_idle())
 
     def _cancel_idle_stop(self) -> None:
         if self._idle is not None:

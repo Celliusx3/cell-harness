@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Protocol
 
-from microsandbox import MountConfig, Network, SandboxStatus
+from microsandbox import MountConfig, Network, PortBinding, SandboxStatus
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from phone.models.errors import EngineError
@@ -71,6 +71,7 @@ class Sandboxes(Protocol):
         cpus: int,
         labels: Mapping[str, str],
         volumes: Mapping[str, MountConfig],
+        ports: Sequence[PortBinding],
         network: Network,
         detached: bool,
     ) -> RunningSandbox: ...
@@ -78,6 +79,8 @@ class Sandboxes(Protocol):
     async def start(self, name: str, *, detached: bool) -> RunningSandbox: ...
 
     async def get(self, name: str) -> StoredSandbox: ...
+
+    async def remove(self, name: str) -> None: ...
 
 
 class ImageConfig(Protocol):
@@ -99,6 +102,20 @@ class Images(Protocol):
     async def inspect(self, reference: str) -> ImageDetail: ...
 
 
+class PublishedPort(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    host_port: int
+    guest_port: int
+    host_bind: str
+
+
+class SandboxNetwork(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    ports: tuple[PublishedPort, ...]
+
+
 class OciImage(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -117,6 +134,8 @@ class SandboxConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     image: StoredImage
+    labels: dict[str, str]
+    network: SandboxNetwork
 
 
 def sandbox_config(config_json: str) -> SandboxConfig:

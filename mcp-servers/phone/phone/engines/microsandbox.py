@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable
+import hashlib
+import json
+import socket
+from collections.abc import Awaitable, Mapping
+from contextlib import ExitStack
 from dataclasses import dataclass
 
 from microsandbox import (
@@ -15,6 +19,7 @@ from microsandbox import (
     NamedVolumeMode,
     Network,
     NetworkPolicy,
+    PortBinding,
     Rule,
     SandboxNotFoundError,
     SandboxStatus,
@@ -33,13 +38,16 @@ from phone.engines.microsandbox_sdk import (
 )
 from phone.models.command import COMMAND_TIMEOUT_SECONDS, CommandResult
 from phone.models.errors import EngineError, EngineTimeout
-from phone.models.phone import LABEL, PhoneSpec, PhoneState, Program
+from phone.models.phone import LABEL, LOOPBACK, PhoneSpec, PhoneState, Program
 
 CREATE_TIMEOUT_SECONDS = 300.0
 MEMORY_MIB = 2048
 CPUS = 2
 DATA_GUEST_PATH = "/var/lib/phone-data"
 DATA_MIB = 16384
+SHAPE_LABEL = "cell-harness.phone.shape"
+REPLACEMENT_REASON = "its published ports or network rules are not the spec's"
+STOPPED_STATUSES = frozenset({SandboxStatus.STOPPED, SandboxStatus.CRASHED, SandboxStatus.CREATED})
 
 
 def phone_network_policy() -> NetworkPolicy:
@@ -53,6 +61,48 @@ def phone_network_policy() -> NetworkPolicy:
 
 class SandboxMissing(EngineError):
     """microsandbox knows no VM by that name."""
+
+
+def shape_fingerprint(spec: PhoneSpec) -> str:
+    """A digest of the spec's published ports and network rules."""
+    shape = {"ports": sorted(spec.published_ports), "network": repr(phone_network_policy())}
+    return hashlib.sha256(json.dumps(shape).encode()).hexdigest()
+
+
+def sandbox_labels(spec: PhoneSpec) -> dict[str, str]:
+    return {LABEL: spec.name, SHAPE_LABEL: shape_fingerprint(spec)}
+
+
+def port_bindings(host_ports: Mapping[int, int]) -> list[PortBinding]:
+    """Each guest port, keyed to its host port, published on loopback only."""
+    return [
+        PortBinding.tcp(host_port, guest_port, bind=LOOPBACK)
+        for guest_port, host_port in host_ports.items()
+    ]
+
+
+def free_loopback_ports(count: int) -> tuple[int, ...]:
+    """`count` distinct loopback ports nothing listens on right now."""
+    with ExitStack() as stack:
+        sockets = [stack.enter_context(socket.socket()) for _ in range(count)]
+        for sock in sockets:
+            sock.bind((LOOPBACK, 0))
+        return tuple(sock.getsockname()[1] for sock in sockets)
+
+
+def loopback_port(config: SandboxConfig, guest_port: int) -> int:
+    """The host port a guest port is published on, refused unless it is loopback."""
+    for port in config.network.ports:
+        if port.guest_port == guest_port and port.host_bind == LOOPBACK:
+            return port.host_port
+    raise EngineError(f"The phone's port {guest_port} is not published on {LOOPBACK}.")
+
+
+def replacement_reason(config: SandboxConfig, spec: PhoneSpec) -> str | None:
+    """Why a VM made with `config` is not the spec's, read from the shape label it was made with."""
+    if config.labels.get(SHAPE_LABEL) == shape_fingerprint(spec):
+        return None
+    return REPLACEMENT_REASON
 
 
 def image_command(config: ImageConfig | None) -> Program:
@@ -90,12 +140,14 @@ class MicrosandboxEngine:
     images: Images
 
     async def create(self, spec: PhoneSpec) -> None:
+        ports = spec.published_ports
+        host_ports = dict(zip(ports, free_loopback_ports(len(ports)), strict=True))
         made = self.sandboxes.create(
             spec.name,
             image=spec.image,
             memory=MEMORY_MIB,
             cpus=CPUS,
-            labels={LABEL: spec.name},
+            labels=sandbox_labels(spec),
             volumes={
                 DATA_GUEST_PATH: Volume.named(
                     f"{spec.name}-data",
@@ -104,6 +156,7 @@ class MicrosandboxEngine:
                     size_mib=DATA_MIB,
                 )
             },
+            ports=port_bindings(host_ports),
             network=Network(policy=phone_network_policy()),
             detached=True,
         )
@@ -119,12 +172,24 @@ class MicrosandboxEngine:
         stored = await self._stored("stop", name)
         await sdk_answer("stop", stored.stop(), COMMAND_TIMEOUT_SECONDS)
 
+    async def remove(self, name: str) -> None:
+        stored = await self._stored("remove", name)
+        if stored.status not in STOPPED_STATUSES:
+            await sdk_answer("remove", stored.stop(), COMMAND_TIMEOUT_SECONDS)
+        await sdk_answer("remove", self.sandboxes.remove(name), COMMAND_TIMEOUT_SECONDS)
+
     async def state(self, name: str) -> PhoneState:
         try:
             stored = await self._stored("get", name)
         except SandboxMissing:
             return "missing"
         return state_of(stored.status)
+
+    async def replacement_reason(self, spec: PhoneSpec) -> str | None:
+        return replacement_reason(await self._config(spec.name), spec)
+
+    async def host_port(self, name: str, guest_port: int) -> int:
+        return loopback_port(await self._config(name), guest_port)
 
     async def run(
         self, name: str, program: Program, *, stdin: str | None, timeout_seconds: float

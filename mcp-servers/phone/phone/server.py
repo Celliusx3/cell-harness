@@ -16,10 +16,11 @@ from phone.clock import SYSTEM
 from phone.config import ConfigError, load
 from phone.engines.microsandbox import MicrosandboxEngine
 from phone.services.apps import Apps
+from phone.services.live_screen import LiveScreen
 from phone.services.machine import Machine
 from phone.services.screen import Screen
 from phone.services.touch import Touch
-from phone.tools import Phone, apps, screenshot, touch
+from phone.tools import Phone, apps, phone_page, screenshot, touch
 
 logger = logging.getLogger("phone")
 
@@ -44,7 +45,7 @@ PHONE_INSTRUCTIONS = (
 def build(phone: Phone) -> MCPServer:
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[None]:
-        async with phone.machine.serving():
+        async with phone.machine.serving(), phone.live_screen.serving():
             yield
 
     server = MCPServer(
@@ -53,6 +54,7 @@ def build(phone: Phone) -> MCPServer:
     screenshot.register(server, phone)
     apps.register(server, phone)
     touch.register(server, phone)
+    phone_page.register(server, phone)
     return server
 
 
@@ -74,6 +76,7 @@ def main() -> None:
         screen=Screen(engine=engine, name=config.name),
         apps=Apps(engine=engine, name=config.name, files_dir=config.files_dir),
         touch=Touch(engine=engine, name=config.name),
+        live_screen=LiveScreen(engine=engine, name=config.name, machine=machine, clock=SYSTEM),
         clock=SYSTEM,
     )
     server = build(phone)

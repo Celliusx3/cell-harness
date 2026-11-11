@@ -18,5 +18,5 @@ SCREENSHOT_DESCRIPTION = (
 def register(server: MCPServer, phone: Phone) -> None:
     @server.tool(name="screenshot", description=SCREENSHOT_DESCRIPTION)
     async def screenshot() -> ImageContent:
-        async with phone_for_one_call(phone.machine):
+        async with phone_for_one_call(phone):
             return await screen_now(phone)

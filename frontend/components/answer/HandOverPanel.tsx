@@ -10,6 +10,7 @@ import { handOverOf } from "@/components/answer/handOver";
 import { BADGE, FADE_ABOVE, OPTION } from "@/components/answer/QuestionPanel";
 import { useClientTool } from "@/components/answer/useClientTool";
 import { releaseControl } from "@/components/computer/screen";
+import { COMPUTER_SCREEN } from "@/components/computer/server";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import type { HandOverAnswer } from "@/lib/types";
 
@@ -49,7 +50,7 @@ export function HandOverPanel({
   const answer = async (finished: boolean) => {
     setProblem(null);
     setPhase("working");
-    await releaseControl().catch(() => undefined);
+    await releaseControl(COMPUTER_SCREEN).catch(() => undefined);
     try {
       await send({ kind: "shared", data: { finished } });
     } catch (err: unknown) {

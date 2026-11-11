@@ -18,7 +18,16 @@ class Engine(Protocol):
 
     async def stop(self, name: str) -> None: ...
 
+    async def remove(self, name: str) -> None:
+        """Remove the phone, running or not; its data volume stays."""
+
     async def state(self, name: str) -> PhoneState: ...
+
+    async def replacement_reason(self, spec: PhoneSpec) -> str | None:
+        """Why the phone lacks the spec's published ports or network rules, or None."""
+
+    async def host_port(self, name: str, guest_port: int) -> int:
+        """The loopback port on the Mac that `guest_port` is published on."""
 
     async def run(
         self, name: str, program: Program, *, stdin: str | None, timeout_seconds: float

@@ -1,6 +1,6 @@
 # 08 You watch the phone on the Computer page and take control
 
-**Status.** open
+**Status.** done
 
 **What to build.** The phone image starts scrcpy's server half on the phone.
 `mcp-servers/phone/services/live_screen.py` publishes its stream on loopback
