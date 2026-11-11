@@ -8,7 +8,8 @@ DENO_VERSION=2.8.3
 DENO_ZIP=deno-aarch64-apple-darwin.zip
 DENO_SHA256=88b350be928fdba0e5d8142ff7c101a17133426371e3cf5ed0e0f74e62476f6c
 DENO_RELEASE="https://github.com/denoland/deno/releases/download/v$DENO_VERSION"
-SERVERS="computer"
+SERVERS="computer phone"
+PHONE_KERNEL_SHA256=190ec544fd7ef96a89abdb88159fc16906623e58a0297e133f3cc9978c341343
 BUILD="$(pwd)/build"
 BUNDLE="$(pwd)/build/bundle"
 UV_PYTHON="$BUILD/uv-python"
@@ -45,10 +46,16 @@ for server in $SERVERS; do
     uv pip install --python "$BUNDLE/python/bin/python3" --target "$BUNDLE/servers/$server" --no-deps "../mcp-servers/$server"
 done
 
+PHONE_KERNEL="${PHONE_KERNEL:?set PHONE_KERNEL to the libkrunfw.5.dylib from the phone-kernel release or mcp-servers/phone/kernel/build}"
+echo "$PHONE_KERNEL_SHA256  $PHONE_KERNEL" | shasum -a 256 -c -
+mkdir -p "$BUNDLE/servers/phone-kernel"
+cp "$PHONE_KERNEL" "$BUNDLE/servers/phone-kernel/libkrunfw.5.dylib"
+
 mkdir -p "$BUNDLE/app/backend" "$BUNDLE/app/desktop" "$BUNDLE/app/.agents/skills"
 rsync -a --exclude __pycache__ ../backend/harness/ "$BUNDLE/app/backend/harness/"
 cp config.json "$BUNDLE/app/desktop/config.json"
 cp -R ../.agents/skills/create-skill "$BUNDLE/app/.agents/skills/create-skill"
+cp -R ../.agents/skills/use-the-phone "$BUNDLE/app/.agents/skills/use-the-phone"
 
 if [ ! -f build/pages/server.js ]; then
     ./scripts/build-pages.sh

@@ -1,0 +1,90 @@
+name: phone
+
+on:
+  push:
+    paths:
+      - mcp-servers/phone/kernel/**
+      - mcp-servers/phone/image/**
+      - .github/workflows/phone.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  IMAGE: ghcr.io/celliusx3/cell-harness/phone
+  CONTEXT: mcp-servers/phone/image
+
+jobs:
+  kernel:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q build-essential flex bison bc cpio libelf-dev libssl-dev python3-pyelftools curl git
+      - run: mcp-servers/phone/kernel/bundle "$RUNNER_TEMP/libkrunfw" kernel-out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kernel
+          path: |
+            kernel-out/kernel.c
+            kernel-out/libkrunfw-source.tar.gz
+
+  dylib:
+    needs: kernel
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kernel
+          path: kernel-out
+      - run: mcp-servers/phone/kernel/link kernel-out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dylib
+          path: |
+            kernel-out/libkrunfw.5.dylib
+            kernel-out/libkrunfw.5.dylib.sha256
+
+  release:
+    needs: [kernel, dylib]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: assets
+          merge-multiple: true
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="phone-kernel-${GITHUB_SHA::12}"
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Phone kernel ${GITHUB_SHA::12}" \
+            --notes "libkrunfw.5.dylib with Android's binder, and the GPL-2.0 source it was built from." \
+            assets/libkrunfw.5.dylib assets/libkrunfw.5.dylib.sha256 assets/libkrunfw-source.tar.gz
+          echo "Phone kernel: $tag sha256 $(cat assets/libkrunfw.5.dylib.sha256)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  image:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ env.CONTEXT }}
+          platforms: linux/arm64
+          tags: ${{ env.IMAGE }}:sha-${{ github.sha }}
+          push: true
+      - env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          echo "Phone image: $IMAGE@$DIGEST" | tee -a "$GITHUB_STEP_SUMMARY"

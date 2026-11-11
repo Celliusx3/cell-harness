@@ -54,7 +54,8 @@
       "icon": "build/icon.svg.png",
       "category": "public.app-category.productivity",
       "signIgnore": [
-        "/servers/computer/microsandbox/_bundled/bin/msb$"
+        "/servers/computer/microsandbox/_bundled/bin/msb$",
+        "/servers/phone/microsandbox/_bundled/bin/msb$"
       ]
     },
     "dmg": {

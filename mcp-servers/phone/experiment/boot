@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Boots the phone image in a microsandbox microVM on the binder kernel, and saves a screenshot.
+set -euo pipefail
+
+NAME=phone-experiment
+MEMORY_MIB=2048
+CPUS=2
+BOOT_SECONDS=180
+
+msb="${MSB:?set MSB to the msb binary from microsandbox 0.7.13}"
+export MSB_LIBKRUNFW_PATH="${MSB_LIBKRUNFW_PATH:?set it to the libkrunfw.5.dylib that kernel/build made}"
+export MSB_HOME="${MSB_HOME:?set it to a short folder, under 104 bytes with its socket}"
+image_archive="${1:?usage: boot <phone image tar> <output folder>}"
+out="${2:?usage: boot <phone image tar> <output folder>}"
+mkdir -p "$out"
+
+android() { "$msb" exec "$NAME" -- /usr/local/bin/android "$@"; }
+booted() { android getprop sys.boot_completed 2> /dev/null | grep -qx 1; }
+
+"$msb" load -q -i "$image_archive"
+"$msb" rm -f "$NAME" > /dev/null 2>&1 || true
+"$msb" create -q -n "$NAME" -m "$MEMORY_MIB" -c "$CPUS" cell-harness-phone:dev
+"$msb" exec -d "$NAME" -- /usr/local/bin/phone-start
+
+started=$SECONDS
+until booted; do
+  if (( SECONDS - started > BOOT_SECONDS )); then
+    "$msb" exec "$NAME" -- cat /run/phone/state || true
+    echo "boot: Android did not finish booting within ${BOOT_SECONDS}s" >&2
+    exit 1
+  fi
+  sleep 3
+done
+echo "boot: sys.boot_completed=1 after $(( SECONDS - started ))s"
+
+android screencap -p > "$out/home.png"
+file "$out/home.png"

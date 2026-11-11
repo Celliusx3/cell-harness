@@ -19,3 +19,4 @@ One file per thing a person can see in the browser chat. Add a file when a featu
 - [mcp-servers.md](mcp-servers.md): the MCP servers page: every server, its state and its keys, all added, edited, restarted and removed live
 - [computer.md](computer.md): the Computer page: the shared computer's live screen, control on open, a terminal and files
 - [hand-over.md](hand-over.md): a "Needs you" card when a bot needs a step only you should do on the computer
+- [phone.md](phone.md): the bots' shared Android phone: its tools, its APK installs, its idle stop, and its screen on the Computer page

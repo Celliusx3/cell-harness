@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# On a Mac: libkrunfw.5.dylib with Android's binder, its kernel built in Docker.
+set -euo pipefail
+
+BUILD_VOLUME=cell-harness-phone-kernel
+BUILDER=fedora:42
+
+here="$(cd "$(dirname "$0")" && pwd)"
+out="${1:?usage: build <output folder>}"
+mkdir -p "$out"
+
+# The kernel tree has names that differ only by case, so it is built on a volume, not on the Mac's disk.
+docker volume create "$BUILD_VOLUME" > /dev/null
+docker run --rm --platform linux/arm64 \
+  -v "$here:/kernel:ro" -v "$BUILD_VOLUME:/build" -v "$out:/out" \
+  "$BUILDER" bash -c "
+    set -euo pipefail
+    dnf install -y -q 'dnf-command(builddep)' python3-pyelftools curl git
+    dnf builddep -y -q kernel
+    /kernel/bundle /build/libkrunfw /out
+  "
+
+"$here/link" "$out"

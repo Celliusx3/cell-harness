@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Runs one command inside Android, as Android's root shell would, with Android's own environment.
+set -euo pipefail
+launcher="$(pgrep -o -x unshare || true)"
+pid="$([ -n "$launcher" ] && pgrep -o -P "$launcher" || true)"
+[ -n "$pid" ] || { echo "android: Android is not running" >&2; exit 1; }
+android_environment='z=$(pidof zygote64) && export $(tr "\0" " " < "/proc/$z/environ")'
+exec nsenter --target "$pid" --mount --pid --ipc --uts --net --root --wd=/ -- \
+  /system/bin/sh -c "$android_environment; $*"

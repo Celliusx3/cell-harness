@@ -89,8 +89,16 @@ them end to end, then measured the lighter options:
 | The same, resumed from its snapshot | 3.0–3.2 GB | |
 | Redroid 15 in a Lima VM, idle / with a page open | 0.8 / 1.25 GB | the VM costs the Mac its whole limit once touched |
 | A slimmed Redroid 13 ([kindling](https://github.com/juan52878911/kindling)) | 803 MiB | one source; the floor is ~345 MiB of system processes |
+| Redroid 13 in a microsandbox microVM, idle / with an app open | 0.76 / 0.89 GiB | measured in the guest, 2026-11-11; the Mac holds 0.44–1.28 GiB as macOS reclaims pages ([experiment](./specs/android-phone/experiment.md)) |
 
 Android 15's compatibility definition requires 816 MB on a phone; Android Go's 512 MB
 applies only to 8.1–10, which Redroid cannot boot on current kernels. Every option
 costs more than the desktop's 0.6 GB, so mobile websites go through phase 17's
 browser and a phone waits until a bot needs a native app.
+
+**Revisited 2026-11-11 (#65).** Selling native-app use reopened it. Redroid 13
+in a microsandbox microVM, on a libkrunfw rebuilt with binder, measured 0.76 GiB
+idle and 0.89 GiB with an app open (the row above). One phone every bot shares
+fits on an 8 GB Mac beside the desktop, so that is built; a phone per bot is
+still no. [docs/specs/android-phone/](./specs/android-phone/spec.md) has the
+spec and the experiment.
