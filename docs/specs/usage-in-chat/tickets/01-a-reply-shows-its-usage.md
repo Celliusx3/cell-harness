@@ -1,6 +1,6 @@
 # 01 · A reply shows its turn's usage on hover or tap
 
-**Status.** open
+**Status.** done
 
 **What to build.** The frontend `Usage` type gains `cached_input_tokens: number | null`. A new pure file adds up one turn's `AssistantItem` usages under the strict rules. A step without usage means no figures. Cache figures show only when every step reported them. It also formats counts (48.2k, 1.2M) and the hit rate. Each ended turn's answer block shows that line on hover, and on tap on touch screens.
 

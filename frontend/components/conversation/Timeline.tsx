@@ -19,8 +19,10 @@ import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import type { ApprovalMode } from "@/lib/types";
 import { ToolCard } from "@/components/conversation/ToolCard";
+import { ReplyUsage } from "@/components/conversation/ReplyUsage";
 import { progressOf } from "@/components/conversation/turnProgress";
 import { turnRows } from "@/components/conversation/turnRows";
+import { turnUsage } from "@/components/conversation/usage";
 
 function scrollParent(node: HTMLElement | null): HTMLElement | null {
   for (let step = node?.parentElement ?? null; step; step = step.parentElement) {
@@ -93,26 +95,28 @@ export function Timeline({
       {rows.map((row) => {
         if (row.kind === "item") return <Item key={row.item.key} item={row.item} {...shared} />;
         return (
-          <BotBlock key={row.key} speaker={row.speaker ?? host}>
-            {row.parts.map((part) =>
-              part.kind === "item" ? (
-                <Item key={part.item.key} item={part.item} {...shared} />
-              ) : (
-                <Activity
-                  key={part.key}
-                  progress={part.turn === openTurn ? progress : null}
-                  tools={part.items.filter((item) => item.kind === "tool").length}
-                  failed={
-                    part.items.filter((item) => item.kind === "tool" && item.error !== null).length
-                  }
-                >
-                  {part.items.map((item) => (
-                    <Item key={item.key} item={item} {...shared} />
-                  ))}
-                </Activity>
-              ),
-            )}
-          </BotBlock>
+          <ReplyUsage key={row.key} usage={row.turn === openTurn ? null : usageOf(items, row.turn)}>
+            <BotBlock speaker={row.speaker ?? host}>
+              {row.parts.map((part) =>
+                part.kind === "item" ? (
+                  <Item key={part.item.key} item={part.item} {...shared} />
+                ) : (
+                  <Activity
+                    key={part.key}
+                    progress={part.turn === openTurn ? progress : null}
+                    tools={part.items.filter((item) => item.kind === "tool").length}
+                    failed={
+                      part.items.filter((item) => item.kind === "tool" && item.error !== null).length
+                    }
+                  >
+                    {part.items.map((item) => (
+                      <Item key={item.key} item={item} {...shared} />
+                    ))}
+                  </Activity>
+                ),
+              )}
+            </BotBlock>
+          </ReplyUsage>
         );
       })}
       {sending !== null && <PlainBubble content={sending} />}
@@ -122,6 +126,12 @@ export function Timeline({
       ))}
       <div ref={floor} />
     </div>
+  );
+}
+
+function usageOf(items: TimelineItem[], turn: number) {
+  return turnUsage(
+    items.flatMap((item) => (item.kind === "assistant" && item.turn === turn ? [item.usage] : [])),
   );
 }
 

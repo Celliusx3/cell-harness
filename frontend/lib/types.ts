@@ -24,6 +24,7 @@ export interface ToolCall {
 export interface Usage {
   input_tokens: number;
   output_tokens: number;
+  cached_input_tokens: number | null;
 }
 
 export interface UserMessage {
