@@ -16,13 +16,13 @@ from phone import server
 def test_a_refused_config_exits_two_and_says_why(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    monkeypatch.delenv("PHONE_IMAGE", raising=False)
+    monkeypatch.delenv("PHONE_KERNEL", raising=False)
 
     with caplog.at_level(logging.ERROR, logger="phone"), pytest.raises(SystemExit) as exit:
         server.main()
 
     assert exit.value.code == 2
-    assert "phone refusing to start: PHONE_IMAGE is not set" in caplog.text
+    assert "phone refusing to start: PHONE_KERNEL is not set" in caplog.text
 
 
 def test_the_kernel_is_set_and_then_the_server_runs_on_stdio(

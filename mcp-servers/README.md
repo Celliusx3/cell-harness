@@ -87,12 +87,13 @@ In the Mac app: command `python3`, arguments `-c`,
 The phone is added the same way, named `phone`. Its kernel is the
 `libkrunfw.5.dylib` from the latest `phone-kernel-*` release (or
 `mcp-servers/phone/kernel/build <folder>`), and `PHONE_KERNEL_SHA256` is that
-release's digest; its image is the one the `phone` workflow printed, pinned by
-digest. In `make dev`: command `uv`, arguments `run`, `--quiet`, `--project`,
-`../mcp-servers/phone`, `phone`, settings `PHONE_IMAGE`, `PHONE_KERNEL`,
-`PHONE_KERNEL_SHA256`, `PHONE_FILES_DIR=~/.harness/files`. In the Mac app:
-command `python3`, arguments `-c`, `from phone.server import main; main()`,
-settings `PYTHONPATH=../../servers/phone`, `PHONE_IMAGE`,
+release's digest. The image is the one the `phone` workflow published, pinned
+by digest in `phone/config.py`; `PHONE_IMAGE` overrides it. In `make dev`:
+command `uv`, arguments `run`, `--quiet`, `--project`, `../mcp-servers/phone`,
+`phone`, settings `PHONE_KERNEL`, `PHONE_KERNEL_SHA256`,
+`PHONE_FILES_DIR=~/.harness/files`. In the Mac app: command `python3`,
+arguments `-c`, `from phone.server import main; main()`, settings
+`PYTHONPATH=../../servers/phone`,
 `PHONE_KERNEL=../../servers/phone-kernel/libkrunfw.5.dylib`, `PHONE_KERNEL_SHA256`,
 `PHONE_FILES_DIR=~/Library/Application Support/Cell Harness/files`,
 `MSB_HOME=~/.cell-harness/msb`.

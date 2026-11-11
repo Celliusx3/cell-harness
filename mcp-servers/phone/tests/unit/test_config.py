@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from phone.config import IMAGE as PUBLISHED_IMAGE
 from phone.config import ConfigError, load
 
 IMAGE = "ghcr.io/celliusx3/cell-harness/phone@sha256:" + "1" * 64
@@ -43,9 +44,7 @@ def test_the_name_can_be_overridden(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "variable", ["PHONE_IMAGE", "PHONE_KERNEL", "PHONE_KERNEL_SHA256", "PHONE_FILES_DIR"]
-)
+@pytest.mark.parametrize("variable", ["PHONE_KERNEL", "PHONE_KERNEL_SHA256", "PHONE_FILES_DIR"])
 def test_a_required_setting_left_out_is_refused_by_name(tmp_path: Path, variable: str) -> None:
     env = {**settings(tmp_path), variable: "  "}
 
@@ -114,3 +113,10 @@ def test_the_pin_is_read_without_case_or_spaces_mattering(tmp_path: Path) -> Non
     env = settings(tmp_path)
 
     assert load({**env, "PHONE_KERNEL_SHA256": f" {env['PHONE_KERNEL_SHA256'].upper()} "})
+
+
+def test_without_an_image_set_the_phone_runs_the_published_one_by_digest(tmp_path: Path) -> None:
+    env = {**settings(tmp_path), "PHONE_IMAGE": " "}
+
+    assert load(env).image == PUBLISHED_IMAGE
+    assert PUBLISHED_IMAGE.startswith("ghcr.io/celliusx3/cell-harness/phone@sha256:")

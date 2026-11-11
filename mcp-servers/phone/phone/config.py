@@ -9,6 +9,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+IMAGE = (
+    "ghcr.io/celliusx3/cell-harness/phone"
+    "@sha256:a7197a22b48916e6574fe815fb502593a60e23aea71e82eeab520feedef7e192"
+)
 NAME = "cell-harness-phone"
 IDLE_MINUTES = 10
 
@@ -87,7 +91,7 @@ def pinned_kernel(path: Path, pin: str) -> Path:
 
 def load(env: Mapping[str, str] | None = None) -> Config:
     src = os.environ if env is None else env
-    image = required_value(src, "PHONE_IMAGE", "the phone's image, pinned by digest")
+    image = src.get("PHONE_IMAGE", "").strip() or IMAGE
     kernel = required_value(src, "PHONE_KERNEL", "the libkrunfw.5.dylib built with binder")
     pin = required_value(src, "PHONE_KERNEL_SHA256", "the SHA-256 of the kernel's release")
     files = required_value(src, "PHONE_FILES_DIR", "the folder the chat files are kept in")
