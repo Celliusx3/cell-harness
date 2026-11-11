@@ -11,7 +11,7 @@ from pathlib import Path
 
 IMAGE = (
     "ghcr.io/celliusx3/cell-harness/phone"
-    "@sha256:a7197a22b48916e6574fe815fb502593a60e23aea71e82eeab520feedef7e192"
+    "@sha256:f678ec0f58ae66d3baf47b2ac30fef1d1d0c30ebedb0ba82a143d34b3950401c"
 )
 NAME = "cell-harness-phone"
 IDLE_MINUTES = 10
