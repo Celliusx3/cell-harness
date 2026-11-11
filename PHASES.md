@@ -17,7 +17,7 @@ not scheduling. Paths are relative to `backend/harness/` unless noted.
 
 ## Status
 
-**Done: phases 1–9 and 11, and twenty-six insertions:** 1 code mode, 2 places from
+**Done: phases 1–9 and 11, and twenty-seven insertions:** 1 code mode, 2 places from
 Instagram reels, 3 skills (8.1–8.2), 4 select-then-call (`tool_reference`),
 5 Discord, 6 MCP Apps, 7 markets, 8 `get_location`, 9 memory, 10 web search
 (`exa`), 11 approvals, 12 skill upload, 13 tap an answer (`ask_user`, build
@@ -68,7 +68,12 @@ modes (each chat is in Ask, today's rule, or Auto, which runs every call with no
 approval card; a picker in the message box and `/mode` in every channel switch it,
 the bot is told the mode and told when it changes, and a subagent starts in its
 chat's mode; new chats start in `approval.default_mode`; plan first is #60; spec in
-`docs/specs/chat-modes/`). Their plans
+`docs/specs/chat-modes/`), 27 old images hidden in blocks for the prompt cache (#56:
+a request carries up to 600 images or 20 MB, and past that the adapter asks for the
+oldest 20 images or 10 MB to be hidden; the turn logs an `images/hidden` event that
+never comes back and sends again; each reply's usage keeps its cached tokens; the
+chat id as OpenRouter's `session_id` is ticket 04, left open; spec in
+`docs/specs/prompt-cache/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made
