@@ -1,6 +1,6 @@
 # 02 · The chat's header shows its totals
 
-**Status.** open
+**Status.** done
 
 **What to build.** `usage.ts` gains the chat's totals under the lenient rules. It adds every `AssistantItem` after the last clear. A missing cache figure counts as 0, and a missing usage adds nothing. A figure no step reported reads "not reported". `ChatHeader` shows the totals on the line under the bot's name, beside the chat's state. PHASES.md records the insertion, and the spec's last check closes #62.
 

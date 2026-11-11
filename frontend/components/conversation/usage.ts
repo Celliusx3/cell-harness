@@ -20,6 +20,20 @@ export function turnUsage(steps: (Usage | null)[]): TurnUsage | null {
   };
 }
 
+/** A chat's steps added up: one with no usage adds nothing, one with no cache figure adds 0 cached. */
+export function chatUsage(steps: (Usage | null)[]): TurnUsage | null {
+  if (steps.length === 0) return null;
+  const reported = steps.filter((usage) => usage !== null);
+  if (reported.length === 0) return { kind: "not_reported" };
+  const cached = reported.map((usage) => usage.cached_input_tokens);
+  return {
+    kind: "reported",
+    input: sum(reported.map((usage) => usage.input_tokens)),
+    output: sum(reported.map((usage) => usage.output_tokens)),
+    cached: cached.some((count) => count !== null) ? sum(cached.map((count) => count ?? 0)) : null,
+  };
+}
+
 export function usageLine(usage: TurnUsage): string {
   if (usage.kind === "not_reported") return "usage not reported";
   const said = `${tokens(usage.input)} in · ${tokens(usage.output)} out`;

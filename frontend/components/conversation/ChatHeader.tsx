@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { BotAvatar } from "@/components/conversation/BotAvatar";
 import type { Speaker } from "@/components/conversation/timelineItems";
+import { type TurnUsage, usageLine } from "@/components/conversation/usage";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ interface ChatHeaderProps {
   chat: Speaker | null;
   editHref: string | null;
   elapsed: string | null;
+  usage: TurnUsage | null;
   canCompact: boolean;
   onCompact(): void;
   onClear(): void;
@@ -36,6 +38,7 @@ export function ChatHeader({
   chat,
   editHref,
   elapsed,
+  usage,
   canCompact,
   onCompact,
   onClear,
@@ -45,7 +48,15 @@ export function ChatHeader({
       {chat !== null && <BotAvatar speaker={chat} />}
       <div className="flex min-w-0 flex-col">
         <h1 className="truncate text-sm font-semibold leading-tight">{chat?.name ?? ""}</h1>
-        <ChatState elapsed={elapsed} />
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-ink-soft">
+          <ChatState elapsed={elapsed} />
+          {usage !== null && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="truncate">{usageLine(usage)}</span>
+            </>
+          )}
+        </div>
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
         {editHref !== null && (

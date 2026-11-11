@@ -18,6 +18,7 @@ import { Timeline } from "@/components/conversation/Timeline";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { type Conversation, useConversation } from "@/components/conversation/useConversation";
 import { useElapsed } from "@/components/conversation/useElapsed";
+import { chatUsage } from "@/components/conversation/usage";
 import { useTimeline } from "@/components/conversation/useTimeline";
 import { listBots, listGroups } from "@/lib/api";
 import { type AppEvent, useAppEvent } from "@/lib/appEvents";
@@ -42,6 +43,10 @@ export default function ConversationPage({
   const waiting = useMemo(
     () => (conversation.running ? null : waitingCall(items, openTurn)),
     [conversation.running, items, openTurn],
+  );
+  const usage = useMemo(
+    () => chatUsage(items.flatMap((item) => (item.kind === "assistant" ? [item.usage] : []))),
+    [items],
   );
   const elapsed = useElapsed(conversation.running || conversation.sending !== null);
   const [folded, setFolded] = useState<string | null>(null);
@@ -69,6 +74,7 @@ export default function ConversationPage({
         chat={host ?? speakerOf(group)}
         editHref={host === null ? null : `/bots/${id}`}
         elapsed={elapsed}
+        usage={usage}
         canCompact={!conversation.running}
         onCompact={() => void conversation.compact()}
         onClear={() => void conversation.clear()}
