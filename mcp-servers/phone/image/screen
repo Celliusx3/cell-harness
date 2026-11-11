@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Android's VNC server and the relay the Computer page opens: `view <token>`, `control <token>`, `release`.
+set -euo pipefail
+
+VNC_PACKAGE=net.christianbeier.droidvnc_ng
+VNC_APK=/opt/phone/droidvnc-ng.apk
+VNC_PORT=5900
+GATEWAY_PORT=6080
+WORK=/run/phone/screen
+TARGETS="$WORK/targets"
+TOKEN_PATTERN='^[A-Za-z0-9_-]{1,64}$'
+
+answers() { (echo > "/dev/tcp/127.0.0.1/$1") > /dev/null 2>&1; }
+
+access_key() {
+  android "sed -n 's/.*defaults_access_key\">\([0-9a-f]*\)<.*/\1/p' /data/data/$VNC_PACKAGE/shared_prefs/${VNC_PACKAGE}_preferences.xml 2>/dev/null"
+}
+
+install_vnc() {
+  android "pm path $VNC_PACKAGE" > /dev/null 2>&1 && return 1
+  base64 -w 0 "$VNC_APK" | android "base64 -d | pm install -S $(stat -c %s "$VNC_APK")" > /dev/null
+  android "appops set $VNC_PACKAGE PROJECT_MEDIA allow; pm grant $VNC_PACKAGE android.permission.POST_NOTIFICATIONS"
+  android "settings put secure enabled_accessibility_services $VNC_PACKAGE/.InputService; settings put secure accessibility_enabled 1"
+  android "am start -W -n $VNC_PACKAGE/.MainActivity > /dev/null; sleep 2"
+}
+
+start_vnc() {
+  answers "$VNC_PORT" && return
+  local key extra="$VNC_PACKAGE.EXTRA" fresh=no
+  install_vnc && fresh=yes
+  key="$(access_key)"
+  [ -n "$key" ] || { echo "phone-screen: droidVNC-NG has no access key" >&2; exit 1; }
+  android "am start-foreground-service -n $VNC_PACKAGE/.MainService -a $VNC_PACKAGE.ACTION_START \
+    --es ${extra}_ACCESS_KEY $key --es ${extra}_INTERFACE lo --ei ${extra}_PORT $VNC_PORT \
+    --ez ${extra}_VIEW_ONLY false" > /dev/null
+  for _ in $(seq 1 50); do
+    if answers "$VNC_PORT"; then
+      [ "$fresh" = no ] || android "input keyevent KEYCODE_HOME"
+      return
+    fi
+    sleep 0.2
+  done
+  echo "phone-screen: Android's VNC server did not start" >&2
+  exit 1
+}
+
+start_gateway() {
+  answers "$GATEWAY_PORT" && return
+  mkdir -p "$TARGETS"
+  nohup websockify --heartbeat=30 --web=/usr/share/novnc --token-plugin=TokenFile \
+    --token-source="$TARGETS" "0.0.0.0:$GATEWAY_PORT" < /dev/null > "$WORK/gateway.log" 2>&1 &
+  for _ in $(seq 1 50); do answers "$GATEWAY_PORT" && return; sleep 0.1; done
+  echo "phone-screen: the relay did not start" >&2
+  exit 1
+}
+
+publish() {
+  local kind="$1" token="$2"
+  [[ "$token" =~ $TOKEN_PATTERN ]] || { echo "phone-screen: a token is 1 to 64 letters, digits, '_' or '-'" >&2; exit 2; }
+  mkdir -p "$TARGETS"
+  printf '%s: 127.0.0.1:%s\n' "$token" "$VNC_PORT" > "$WORK/$kind.next"
+  mv "$WORK/$kind.next" "$TARGETS/$kind"
+}
+
+revoke() {
+  mkdir -p "$TARGETS"
+  : > "$WORK/control.next"
+  mv "$WORK/control.next" "$TARGETS/control"
+}
+
+case "${1:-}" in
+  view|control) start_vnc; publish "$1" "${2:-}"; start_gateway ;;
+  release) revoke ;;
+  *) echo "usage: $0 view|control <token> | release" >&2; exit 2 ;;
+esac

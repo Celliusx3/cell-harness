@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PC screen</title>
+    <style>
+      html, body, #screen { margin: 0; width: 100%; height: 100%; background: #111; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="screen"></div>
+    <script type="module">
+      import RFB from "./core/rfb.js";
+
+      const query = new URLSearchParams(location.search);
+      const socket = new URL(query.get("path") ?? "websockify", location.href);
+      socket.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      const rfb = new RFB(document.getElementById("screen"), socket.href);
+      rfb.viewOnly = query.get("view_only") !== "0";
+      rfb.scaleViewport = true;
+      rfb.focusOnClick = !rfb.viewOnly;
+
+      rfb.addEventListener("clipboard", (event) => {
+        navigator.clipboard?.writeText(event.detail.text).catch(() => {});
+      });
+      document.addEventListener("paste", (event) => {
+        const text = event.clipboardData?.getData("text/plain");
+        if (text && !rfb.viewOnly) rfb.clipboardPasteFrom(text);
+      });
+      rfb.addEventListener("disconnect", () => setTimeout(() => location.reload(), 2000));
+    </script>
+  </body>
+</html>
