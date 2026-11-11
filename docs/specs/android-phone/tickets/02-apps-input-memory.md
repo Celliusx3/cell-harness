@@ -1,6 +1,6 @@
 # 02 An APK installs and opens, a tap and typing work, and memory is measured
 
-**Status.** open
+**Status.** done
 
 **What to build.** `mcp-servers/phone/experiment/drive` installs a sample APK
 with `pm install`, opens it, taps a button, types into a field, and takes a
