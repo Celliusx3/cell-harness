@@ -55,7 +55,8 @@
       "category": "public.app-category.productivity",
       "signIgnore": [
         "/servers/computer/microsandbox/_bundled/bin/msb$",
-        "/servers/phone/microsandbox/_bundled/bin/msb$"
+        "/servers/phone/microsandbox/_bundled/bin/msb$",
+        "/servers/phone-kernel/libkrunfw.5.dylib$"
       ]
     },
     "dmg": {
