@@ -15,9 +15,11 @@ import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
 import { ModePicker } from "@/components/conversation/ModePicker";
 import { Timeline } from "@/components/conversation/Timeline";
+import { UsageButton } from "@/components/conversation/UsageButton";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { type Conversation, useConversation } from "@/components/conversation/useConversation";
 import { useElapsed } from "@/components/conversation/useElapsed";
+import { chatUsage } from "@/components/conversation/usage";
 import { useTimeline } from "@/components/conversation/useTimeline";
 import { listBots, listGroups } from "@/lib/api";
 import { type AppEvent, useAppEvent } from "@/lib/appEvents";
@@ -42,6 +44,10 @@ export default function ConversationPage({
   const waiting = useMemo(
     () => (conversation.running ? null : waitingCall(items, openTurn)),
     [conversation.running, items, openTurn],
+  );
+  const usage = useMemo(
+    () => chatUsage(items.flatMap((item) => (item.kind === "assistant" ? [item.usage] : []))),
+    [items],
   );
   const elapsed = useElapsed(conversation.running || conversation.sending !== null);
   const [folded, setFolded] = useState<string | null>(null);
@@ -116,6 +122,7 @@ export default function ConversationPage({
             running={conversation.running}
             onSend={(prompt, files) => void conversation.send(prompt, files)}
             onStop={() => void conversation.stop()}
+            usage={<UsageButton usage={usage} />}
             modePicker={
               conversation.mode !== null && (
                 <ModePicker

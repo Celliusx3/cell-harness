@@ -20,6 +20,8 @@ interface Props {
   initialDraft?: string;
   /** The chat's mode picker, on its own line under the box; a chat not made yet has none. */
   modePicker?: ReactNode;
+  /** The chat's usage button, beside Attach; a chat not made yet has none. */
+  usage?: ReactNode;
 }
 
 /** The composer, with the files attached to the next message; while a turn runs, a moving bar, and Stop until a reply is typed. */
@@ -31,6 +33,7 @@ export function Composer({
   autoFocus,
   initialDraft,
   modePicker,
+  usage,
 }: Props) {
   const [draft, setDraft] = useState(initialDraft ?? "");
   const [dragging, setDragging] = useState(false);
@@ -114,6 +117,7 @@ export function Composer({
           >
             <Paperclip size={16} />
           </button>
+          {usage}
           <textarea
             ref={box}
             autoFocus={autoFocus}
