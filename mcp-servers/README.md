@@ -29,6 +29,7 @@ which saves it in `mcp.json` and starts it at once.
 | [places](./places) | Resolve a described place to a real POI via Google Places API (New) |
 | [markets](./markets) | Investment research data — quotes, history, fundamentals, filings, news — for US stocks/ETFs, crypto and Bursa Malaysia, from free sources |
 | [computer](./computer) | A Linux desktop with Chrome in a microVM that ships with the app (our own PC image, built in `computer/image/`, run by microsandbox, or by Docker with `COMPUTER_ENGINE=docker`), shared by every bot, reaching only public addresses and the skills' own Mac programs: page tools and `shell` for the model (chat files and skill folders mounted at their own paths; a Mac program a skill declares is started, and its address and token handed to commands under the name the skill gives), and the live screen, control, terminal and files for the person's Computer page. Needs virtualization (Apple Silicon, KVM on Linux, or the Windows Hypervisor Platform), or Docker running for the docker engine |
+| [phone](./phone) | One Android phone (Redroid 13, no Google Play) in a microVM on a kernel of our own with binder, shared by every bot, reaching only public addresses: `screenshot`, `install_app` (an APK from the chat's files), `open_app`, `tap`, `swipe`, `type_text` and `press_key`. Off until a bot uses it, stopped when idle, its apps kept on a disk of its own. Apple Silicon Macs only |
 
 `places` began as the third-party `@cablate/mcp-google-map` and
 was replaced, which is worth recording because the reason generalises: **it
@@ -82,6 +83,19 @@ In the Mac app: command `python3`, arguments `-c`,
 `COMPUTER_FILES_DIR=~/Library/Application Support/Cell Harness/files`,
 `COMPUTER_SKILLS_DIRS=../.agents/skills`, `COMPUTER_NAME=cell-harness-app-computer`,
 `MSB_HOME=~/.cell-harness/msb`. A PC that cannot start shows why on its row.
+
+The phone is added the same way, named `phone`. Its kernel is the
+`libkrunfw.5.dylib` from the latest `phone-kernel-*` release (or
+`mcp-servers/phone/kernel/build <folder>`), and `PHONE_KERNEL_SHA256` is that
+release's digest; its image is the one the `phone` workflow printed, pinned by
+digest. In `make dev`: command `uv`, arguments `run`, `--quiet`, `--project`,
+`../mcp-servers/phone`, `phone`, settings `PHONE_IMAGE`, `PHONE_KERNEL`,
+`PHONE_KERNEL_SHA256`, `PHONE_FILES_DIR=~/.harness/files`. In the Mac app:
+command `python3`, arguments `-c`, `from phone.server import main; main()`,
+settings `PYTHONPATH=../../servers/phone`, `PHONE_IMAGE`,
+`PHONE_KERNEL=../../servers/phone-kernel/libkrunfw.5.dylib`, `PHONE_KERNEL_SHA256`,
+`PHONE_FILES_DIR=~/Library/Application Support/Cell Harness/files`,
+`MSB_HOME=~/.cell-harness/msb`.
 
 ### Three things that will bite you
 
