@@ -7,8 +7,14 @@ from collections.abc import Awaitable
 from dataclasses import dataclass
 
 from microsandbox import (
+    Action,
+    DestGroup,
+    Destination,
     ExecTimeoutError,
     MicrosandboxError,
+    Network,
+    NetworkPolicy,
+    Rule,
     SandboxNotFoundError,
     SandboxStatus,
 )
@@ -29,6 +35,15 @@ from phone.models.phone import LABEL, PhoneSpec, PhoneState, Program
 CREATE_TIMEOUT_SECONDS = 300.0
 MEMORY_MIB = 2048
 CPUS = 2
+
+
+def phone_network_policy() -> NetworkPolicy:
+    """DNS and public addresses only: never the Mac, its loopback, or the person's own network."""
+    return NetworkPolicy(
+        default_egress=Action.DENY,
+        default_ingress=Action.ALLOW,
+        rules=(*Rule.allow_dns(), Rule.allow(destination=Destination.group(DestGroup.PUBLIC))),
+    )
 
 
 class SandboxMissing(EngineError):
@@ -76,6 +91,7 @@ class MicrosandboxEngine:
             memory=MEMORY_MIB,
             cpus=CPUS,
             labels={LABEL: spec.name},
+            network=Network(policy=phone_network_policy()),
             detached=True,
         )
         await sdk_answer("create", made, CREATE_TIMEOUT_SECONDS)

@@ -7,7 +7,13 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from microsandbox import ExecTimeoutError, MicrosandboxError, SandboxNotFoundError, SandboxStatus
+from microsandbox import (
+    ExecTimeoutError,
+    MicrosandboxError,
+    Network,
+    SandboxNotFoundError,
+    SandboxStatus,
+)
 
 
 @dataclass(frozen=True)
@@ -19,6 +25,7 @@ class CreateCall:
     memory: int
     cpus: int
     labels: Mapping[str, str]
+    network: Network
     detached: bool
 
 
@@ -133,10 +140,11 @@ class FakeSandboxes:
         memory: int,
         cpus: int,
         labels: Mapping[str, str],
+        network: Network,
         detached: bool,
     ) -> FakeRunningSandbox:
         self.calls.append("create")
-        self.created.append(CreateCall(name, image, memory, cpus, labels, detached))
+        self.created.append(CreateCall(name, image, memory, cpus, labels, network, detached))
         self.stored[name] = FakeStoredSandbox(self, SandboxStatus.RUNNING, image)
         return FakeRunningSandbox(self)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Protocol
 
-from microsandbox import SandboxStatus
+from microsandbox import Network, SandboxStatus
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from phone.models.errors import EngineError
@@ -68,6 +68,7 @@ class Sandboxes(Protocol):
         memory: int,
         cpus: int,
         labels: Mapping[str, str],
+        network: Network,
         detached: bool,
     ) -> RunningSandbox: ...
 

@@ -14,7 +14,7 @@ namespaces() {
   mkdir -p "$STATE"
   grep -qw binder /proc/filesystems || fail "the kernel has no binderfs"
   echo booting > "$STATE/state"
-  exec unshare --mount --pid --fork --kill-child --ipc --uts --net --propagation private -- "$0" --android
+  exec unshare --mount --pid --fork --kill-child --ipc --uts --propagation private -- "$0" --android
 }
 
 mount_android() {
