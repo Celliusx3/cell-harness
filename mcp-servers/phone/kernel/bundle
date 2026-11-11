@@ -17,7 +17,7 @@ git -C "$work" fetch --quiet origin "$LIBKRUNFW_REVISION"
 git -C "$work" checkout --quiet --force "$LIBKRUNFW_REVISION"
 cat "$here/config-android" >> "$work/config-libkrunfw_aarch64"
 
-make -C "$work" -j"$(nproc)" kernel.c
+(cd "$work" && make -j"$(nproc)" kernel.c)
 cp "$work/kernel.c" "$out/kernel.c"
 tar --anchored --exclude ./.git --exclude './linux-*' --exclude ./kernel.c \
   -czf "$out/libkrunfw-source.tar.gz" -C "$work" .
