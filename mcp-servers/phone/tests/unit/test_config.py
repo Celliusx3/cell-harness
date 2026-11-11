@@ -14,7 +14,9 @@ IMAGE = "ghcr.io/celliusx3/cell-harness/phone@sha256:" + "1" * 64
 def settings(tmp_path: Path) -> dict[str, str]:
     kernel = tmp_path / "libkrunfw.5.dylib"
     kernel.write_bytes(b"\x00")
-    return {"PHONE_IMAGE": IMAGE, "PHONE_KERNEL": str(kernel)}
+    files = tmp_path / "files"
+    files.mkdir(exist_ok=True)
+    return {"PHONE_IMAGE": IMAGE, "PHONE_KERNEL": str(kernel), "PHONE_FILES_DIR": str(files)}
 
 
 def test_the_image_and_kernel_set_load_under_the_shared_name(tmp_path: Path) -> None:
@@ -33,7 +35,7 @@ def test_the_name_can_be_overridden(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("variable", ["PHONE_IMAGE", "PHONE_KERNEL"])
+@pytest.mark.parametrize("variable", ["PHONE_IMAGE", "PHONE_KERNEL", "PHONE_FILES_DIR"])
 def test_a_required_setting_left_out_is_refused_by_name(tmp_path: Path, variable: str) -> None:
     env = {**settings(tmp_path), variable: "  "}
 
@@ -51,3 +53,17 @@ def test_a_name_microsandbox_would_not_take_is_refused(tmp_path: Path, name: str
 def test_a_kernel_that_is_not_an_existing_file_is_refused(tmp_path: Path, kernel: str) -> None:
     with pytest.raises(ConfigError, match="PHONE_KERNEL=.* is not a file that exists"):
         load({**settings(tmp_path), "PHONE_KERNEL": str(tmp_path / kernel)})
+
+
+def test_the_chat_files_folder_loads_resolved(tmp_path: Path) -> None:
+    env = {**settings(tmp_path), "PHONE_FILES_DIR": str(tmp_path / "files" / ".." / "files")}
+
+    assert load(env).files_dir == (tmp_path / "files").resolve()
+
+
+@pytest.mark.parametrize("files", ["missing", "libkrunfw.5.dylib"])
+def test_chat_files_that_are_not_an_existing_folder_are_refused(tmp_path: Path, files: str) -> None:
+    env = {**settings(tmp_path), "PHONE_FILES_DIR": str(tmp_path / files)}
+
+    with pytest.raises(ConfigError, match="PHONE_FILES_DIR=.* is not a folder that exists"):
+        load(env)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+from collections.abc import Mapping
 from pathlib import Path
 
 from mcp.server import MCPServer
@@ -13,38 +14,56 @@ from phone.config import Config
 from phone.models.command import CommandResult
 from phone.models.phone import PhoneSpec, PhoneState, Program
 from phone.server import build
+from phone.services.apps import LIST_PACKAGES, Apps
 from phone.services.machine import BOOT_COMPLETED, Machine
 from phone.services.screen import SCREENSHOT, Screen
+from phone.services.touch import Touch
 from phone.tools import Phone
 
 NAME = "cell-harness-phone"
 IMAGE = "ghcr.io/celliusx3/cell-harness/phone@sha256:" + "0" * 64
 KERNEL = Path("/opt/cell-harness/libkrunfw.5.dylib")
+FILES_DIR = Path("/tmp/cell-harness-files")
+INSTALL = "base64 -d | pm install"
+INSTALLED_RESULT = CommandResult(0, "Success\n", "")
 BOOT_POLLS = 2
 PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 )
 SCREENSHOT_RESULT = CommandResult(0, base64.b64encode(PNG).decode() + "\n", "")
-CONFIG = Config(image=IMAGE, name=NAME, kernel=KERNEL)
+CONFIG = Config(image=IMAGE, name=NAME, kernel=KERNEL, files_dir=FILES_DIR)
 
 
 class FakeEngine:
-    """A phone that boots after `boot_polls_needed` looks, and shows `screen` when asked."""
+    """A phone that boots after `boot_polls_needed` looks, shows `screen`, and records commands.
+
+    A `pm install` adds `installs` to its third-party packages; `answers` gives a command's
+    result in place of the phone's own.
+    """
 
     def __init__(
         self,
         state: PhoneState,
         *,
+        installs: str | None = None,
         boot_polls_needed: int = BOOT_POLLS,
         screen: CommandResult = SCREENSHOT_RESULT,
+        packages: frozenset[str] = frozenset(),
+        answers: Mapping[str, CommandResult] | None = None,
     ) -> None:
         self.phone_state: PhoneState = state
+        self.installs = installs
         self.boot_polls_needed = boot_polls_needed
         self.screen = screen
+        self.packages = packages
+        self.answers: Mapping[str, CommandResult] = answers or {}
         self.created = 0
         self.started = 0
         self.boot_polls = 0
         self.specs: list[PhoneSpec] = []
+        self.commands: list[str] = []
+        self.stdins: list[str | None] = []
+        self.timeouts: list[float] = []
 
     async def create(self, spec: PhoneSpec) -> None:
         self.specs.append(spec)
@@ -67,7 +86,21 @@ class FakeEngine:
             return CommandResult(0, "1\n" if booted else "0\n", "")
         if program == SCREENSHOT:
             return self.screen
-        raise AssertionError(f"the fake phone does not know {program.argv}")
+        helper, command = program.argv
+        assert (helper, program.env) == ("android", {})
+        self.commands.append(command)
+        self.stdins.append(stdin)
+        self.timeouts.append(timeout_seconds)
+        return self.answers.get(command) or self._answer(command)
+
+    def _answer(self, command: str) -> CommandResult:
+        if command == LIST_PACKAGES:
+            listed = "".join(f"package:{package}\n" for package in sorted(self.packages))
+            return CommandResult(0, listed, "")
+        if command.startswith(INSTALL):
+            self.packages = self.packages | {self.installs} if self.installs else self.packages
+            return INSTALLED_RESULT
+        return CommandResult(0, "", "")
 
     async def launch(self, name: str, program: Program) -> CommandResult:
         raise AssertionError(f"the fake phone launches nothing: {program.argv}")
@@ -89,5 +122,15 @@ def machine_over(engine: FakeEngine) -> Machine:
     return Machine(engine=engine, config=CONFIG, clock=Ticking().clock)
 
 
-def phone_server(engine: FakeEngine) -> MCPServer:
-    return build(Phone(machine=machine_over(engine), screen=Screen(engine=engine, name=NAME)))
+def phone_over(engine: FakeEngine, files_dir: Path = FILES_DIR) -> Phone:
+    return Phone(
+        machine=machine_over(engine),
+        screen=Screen(engine=engine, name=NAME),
+        apps=Apps(engine=engine, name=NAME, files_dir=files_dir),
+        touch=Touch(engine=engine, name=NAME),
+        clock=Ticking().clock,
+    )
+
+
+def phone_server(engine: FakeEngine, files_dir: Path = FILES_DIR) -> MCPServer:
+    return build(phone_over(engine, files_dir))

@@ -5,7 +5,7 @@ from __future__ import annotations
 from mcp.server import MCPServer
 from mcp.types import ImageContent
 
-from phone.tools import Phone, phone_for_one_call
+from phone.tools import Phone, phone_for_one_call, screen_now
 
 SCREENSHOT_DESCRIPTION = (
     "Take a screenshot of the phone: one Android phone shared by every bot, with no Google "
@@ -19,5 +19,4 @@ def register(server: MCPServer, phone: Phone) -> None:
     @server.tool(name="screenshot", description=SCREENSHOT_DESCRIPTION)
     async def screenshot() -> ImageContent:
         async with phone_for_one_call(phone.machine):
-            shot = await phone.screen.screenshot()
-        return ImageContent(type="image", data=shot.image, mime_type=shot.mime_type)
+            return await screen_now(phone)

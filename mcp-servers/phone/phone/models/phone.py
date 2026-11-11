@@ -25,3 +25,8 @@ class Program:
 
     argv: tuple[str, ...]
     env: Mapping[str, str]
+
+
+def android(command: str) -> Program:
+    """`command` run in Android's root shell, through the image's `android` helper."""
+    return Program(argv=("android", command), env={})

@@ -22,6 +22,7 @@ class Config:
     image: str
     name: str
     kernel: Path
+    files_dir: Path
 
 
 def required_value(src: Mapping[str, str], variable: str, what: str) -> str:
@@ -50,12 +51,22 @@ def existing_file(variable: str, raw: str) -> Path:
     return path
 
 
+def existing_folder(variable: str, raw: str) -> Path:
+    """`raw` as an absolute path to a folder that exists, or a refusal naming `variable`."""
+    path = Path(raw).expanduser().resolve()
+    if not path.is_dir():
+        raise ConfigError(f"{variable}={raw!r} is not a folder that exists")
+    return path
+
+
 def load(env: Mapping[str, str] | None = None) -> Config:
     src = os.environ if env is None else env
     image = required_value(src, "PHONE_IMAGE", "the phone's image, pinned by digest")
     kernel = required_value(src, "PHONE_KERNEL", "the libkrunfw.5.dylib built with binder")
+    files = required_value(src, "PHONE_FILES_DIR", "the folder the chat files are kept in")
     return Config(
         image=image,
         name=sandbox_name(src.get("PHONE_NAME", "").strip() or NAME),
         kernel=existing_file("PHONE_KERNEL", kernel),
+        files_dir=existing_folder("PHONE_FILES_DIR", files),
     )

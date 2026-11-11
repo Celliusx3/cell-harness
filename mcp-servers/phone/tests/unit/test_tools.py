@@ -1,4 +1,4 @@
-"""The one tool through a real MCP client, in-process, and how its failures read."""
+"""The screenshot tool through a real MCP client, in-process, and how its failures read."""
 
 from __future__ import annotations
 
@@ -18,8 +18,11 @@ DESCRIPTION = (
 )
 INSTRUCTIONS = (
     "You have a phone: one Android phone, shared by every bot, with apps installed from APK files "
-    "and no Google Play. See its screen with phone__screenshot."
+    "and no Google Play. See its screen with phone__screenshot; install an APK from this chat's "
+    "files with phone__install_app, open it with phone__open_app, and act with phone__tap, "
+    "phone__swipe, phone__type_text and phone__press_key. Each action returns a new screenshot."
 )
+TOOLS = ["screenshot", "install_app", "open_app", "tap", "swipe", "type_text", "press_key"]
 
 
 def text_of(result: CallToolResult) -> str:
@@ -31,12 +34,13 @@ async def screenshot_of(engine: FakeEngine) -> CallToolResult:
         return await client.call_tool("screenshot", {})
 
 
-async def test_the_only_tool_is_the_screenshot_with_no_arguments() -> None:
+async def test_the_screenshot_is_listed_first_with_no_arguments() -> None:
     async with Client(phone_server(FakeEngine(state="running"))) as client:
         listed = await client.list_tools()
 
-    [tool] = listed.tools
-    assert (tool.name, tool.description) == ("screenshot", SCREENSHOT_DESCRIPTION)
+    assert [tool.name for tool in listed.tools] == TOOLS
+    tool = listed.tools[0]
+    assert tool.description == SCREENSHOT_DESCRIPTION
     assert tool.input_schema.get("properties", {}) == {}
 
 

@@ -1,9 +1,9 @@
 # 04 A bot installs an APK from the chat, opens it, taps and types
 
-**Status.** open
+**Status.** done
 
 **What to build.** Tools `install_app` (an APK from the chat's files),
-`open_app`, `tap`, `type_text` and `press_key` in `mcp-servers/phone/`. Each
+`open_app`, `tap`, `swipe`, `type_text` and `press_key` in `mcp-servers/phone/`. Each
 ends with a screenshot. A failure is an `error: …` result, never a raise. A
 skill under `.agents/skills/` tells the bot how to use them.
 
