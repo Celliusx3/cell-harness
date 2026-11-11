@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from importlib import resources
 
 from mcp.server import MCPServer
@@ -40,7 +42,14 @@ PHONE_INSTRUCTIONS = (
 
 
 def build(phone: Phone) -> MCPServer:
-    server = MCPServer(name="phone", version="0.1.0", instructions=PHONE_INSTRUCTIONS)
+    @asynccontextmanager
+    async def lifespan(_: MCPServer) -> AsyncIterator[None]:
+        async with phone.machine.serving():
+            yield
+
+    server = MCPServer(
+        name="phone", version="0.1.0", instructions=PHONE_INSTRUCTIONS, lifespan=lifespan
+    )
     screenshot.register(server, phone)
     apps.register(server, phone)
     touch.register(server, phone)

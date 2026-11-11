@@ -1,4 +1,4 @@
-"""The one phone: made or started on first use, then waited on until Android has booted."""
+"""The one phone: made or started on first use, waited on until Android boots, stopped when idle."""
 
 from __future__ import annotations
 
@@ -34,12 +34,25 @@ class Machine:
         self._clock = clock
         self._lock = asyncio.Lock()
         self._booted = False
+        self._idle: asyncio.Task[None] | None = None
+
+    @asynccontextmanager
+    async def serving(self) -> AsyncIterator[None]:
+        """The server's lifespan: the phone is left running on the way out, its idle stop not."""
+        try:
+            yield
+        finally:
+            self._cancel_idle_stop()
 
     @asynccontextmanager
     async def in_use(self) -> AsyncIterator[None]:
-        """One tool call: the phone is running and Android has booted for its length."""
-        await self._ensure_running()
-        yield
+        """One tool call: the booted phone for its length, and the idle stop restarts after."""
+        self._cancel_idle_stop()
+        try:
+            await self._ensure_running()
+            yield
+        finally:
+            self._restart_idle_stop()
 
     async def _ensure_running(self) -> None:
         async with self._lock:
@@ -72,3 +85,24 @@ class Machine:
             name, BOOT_COMPLETED, stdin=None, timeout_seconds=COMMAND_TIMEOUT_SECONDS
         )
         return completed.stdout.strip() == "1"
+
+    def _restart_idle_stop(self) -> None:
+        self._cancel_idle_stop()
+        self._idle = asyncio.create_task(self._stop_when_idle())
+
+    def _cancel_idle_stop(self) -> None:
+        if self._idle is not None:
+            self._idle.cancel()
+            self._idle = None
+
+    async def _stop_when_idle(self) -> None:
+        await self._clock.sleep(self._config.idle_minutes * 60)
+        self._idle = None
+        async with self._lock:
+            name, minutes = self._config.name, self._config.idle_minutes
+            logger.info("stopping the phone %s after %d idle minutes", name, minutes)
+            self._booted = False
+            try:
+                await self._engine.stop(name)
+            except EngineError as err:
+                logger.warning("idle stop of the phone %s did not happen: %s", name, err)

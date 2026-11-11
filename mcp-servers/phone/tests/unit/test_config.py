@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -67,3 +68,24 @@ def test_chat_files_that_are_not_an_existing_folder_are_refused(tmp_path: Path, 
 
     with pytest.raises(ConfigError, match="PHONE_FILES_DIR=.* is not a folder that exists"):
         load(env)
+
+
+def test_the_idle_minutes_default_to_ten_and_can_be_set(tmp_path: Path) -> None:
+    assert load(settings(tmp_path)).idle_minutes == 10
+    assert load({**settings(tmp_path), "PHONE_IDLE_MINUTES": " 1 "}).idle_minutes == 1
+
+
+@pytest.mark.parametrize(
+    ("raw", "refusal"),
+    [
+        ("ten", "PHONE_IDLE_MINUTES='ten' is not a whole number"),
+        ("1.5", "PHONE_IDLE_MINUTES='1.5' is not a whole number"),
+        ("0", "PHONE_IDLE_MINUTES=0 must be greater than zero"),
+        ("-3", "PHONE_IDLE_MINUTES=-3 must be greater than zero"),
+    ],
+)
+def test_idle_minutes_that_are_not_a_positive_whole_number_are_refused(
+    tmp_path: Path, raw: str, refusal: str
+) -> None:
+    with pytest.raises(ConfigError, match=re.escape(refusal)):
+        load({**settings(tmp_path), "PHONE_IDLE_MINUTES": raw})

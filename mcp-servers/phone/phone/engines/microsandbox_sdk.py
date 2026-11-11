@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Protocol
 
-from microsandbox import Network, SandboxStatus
+from microsandbox import MountConfig, Network, SandboxStatus
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from phone.models.errors import EngineError
@@ -56,6 +56,8 @@ class StoredSandbox(Protocol):
 
     async def connect(self) -> RunningSandbox: ...
 
+    async def stop(self) -> None: ...
+
 
 class Sandboxes(Protocol):
     """The lifecycle calls of `microsandbox.Sandbox`, the SDK's entry point."""
@@ -68,6 +70,7 @@ class Sandboxes(Protocol):
         memory: int,
         cpus: int,
         labels: Mapping[str, str],
+        volumes: Mapping[str, MountConfig],
         network: Network,
         detached: bool,
     ) -> RunningSandbox: ...

@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from microsandbox import (
     ExecTimeoutError,
     MicrosandboxError,
+    MountConfig,
     Network,
     SandboxNotFoundError,
     SandboxStatus,
@@ -25,6 +26,7 @@ class CreateCall:
     memory: int
     cpus: int
     labels: Mapping[str, str]
+    volumes: Mapping[str, MountConfig]
     network: Network
     detached: bool
 
@@ -116,6 +118,10 @@ class FakeStoredSandbox:
     async def connect(self) -> FakeRunningSandbox:
         return FakeRunningSandbox(self.vms)
 
+    async def stop(self) -> None:
+        self.vms.calls.append("stop")
+        self.status = SandboxStatus.STOPPED
+
 
 @dataclass
 class FakeSandboxes:
@@ -140,11 +146,14 @@ class FakeSandboxes:
         memory: int,
         cpus: int,
         labels: Mapping[str, str],
+        volumes: Mapping[str, MountConfig],
         network: Network,
         detached: bool,
     ) -> FakeRunningSandbox:
         self.calls.append("create")
-        self.created.append(CreateCall(name, image, memory, cpus, labels, network, detached))
+        self.created.append(
+            CreateCall(name, image, memory, cpus, labels, volumes, network, detached)
+        )
         self.stored[name] = FakeStoredSandbox(self, SandboxStatus.RUNNING, image)
         return FakeRunningSandbox(self)
 

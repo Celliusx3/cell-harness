@@ -31,7 +31,8 @@ PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 )
 SCREENSHOT_RESULT = CommandResult(0, base64.b64encode(PNG).decode() + "\n", "")
-CONFIG = Config(image=IMAGE, name=NAME, kernel=KERNEL, files_dir=FILES_DIR)
+CONFIG = Config(image=IMAGE, name=NAME, kernel=KERNEL, files_dir=FILES_DIR, idle_minutes=10)
+IDLE_SECONDS = CONFIG.idle_minutes * 60
 
 
 class FakeEngine:
@@ -59,6 +60,7 @@ class FakeEngine:
         self.answers: Mapping[str, CommandResult] = answers or {}
         self.created = 0
         self.started = 0
+        self.stopped = 0
         self.boot_polls = 0
         self.specs: list[PhoneSpec] = []
         self.commands: list[str] = []
@@ -73,6 +75,10 @@ class FakeEngine:
     async def start(self, name: str) -> None:
         self.started += 1
         self.phone_state = "running"
+
+    async def stop(self, name: str) -> None:
+        self.stopped += 1
+        self.phone_state = "stopped"
 
     async def state(self, name: str) -> PhoneState:
         return self.phone_state
@@ -107,30 +113,63 @@ class FakeEngine:
 
 
 class Ticking:
-    """Time that jumps forward by whatever is slept, so no test waits."""
+    """Time that jumps forward by whatever is slept, so no test waits; the idle stop never comes."""
 
     def __init__(self) -> None:
         self.now = 0.0
         self.clock = Clock(now=lambda: self.now, sleep=self.sleep)
 
     async def sleep(self, seconds: float) -> None:
+        if seconds >= IDLE_SECONDS:
+            await asyncio.Event().wait()
         self.now += seconds
         await asyncio.sleep(0)
 
 
-def machine_over(engine: FakeEngine) -> Machine:
-    return Machine(engine=engine, config=CONFIG, clock=Ticking().clock)
+class Dial:
+    """Time that moves only when a test turns it."""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+        self.sleepers: list[tuple[float, asyncio.Future[None]]] = []
+        self.clock = Clock(now=lambda: self.now, sleep=self.sleep)
+
+    async def sleep(self, seconds: float) -> None:
+        wake: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        self.sleepers.append((self.now + seconds, wake))
+        await wake
+
+    async def turn(self, seconds: float) -> None:
+        await settle()
+        self.now += seconds
+        for at, wake in self.sleepers:
+            if at <= self.now and not wake.done():
+                wake.set_result(None)
+        await settle()
 
 
-def phone_over(engine: FakeEngine, files_dir: Path = FILES_DIR) -> Phone:
+async def settle() -> None:
+    for _ in range(20):
+        await asyncio.sleep(0)
+
+
+def machine_over(engine: FakeEngine, clock: Clock | None = None) -> Machine:
+    return Machine(engine=engine, config=CONFIG, clock=Ticking().clock if clock is None else clock)
+
+
+def phone_over(engine: FakeEngine, *, files_dir: Path, clock: Clock) -> Phone:
     return Phone(
-        machine=machine_over(engine),
+        machine=Machine(engine=engine, config=CONFIG, clock=clock),
         screen=Screen(engine=engine, name=NAME),
         apps=Apps(engine=engine, name=NAME, files_dir=files_dir),
         touch=Touch(engine=engine, name=NAME),
-        clock=Ticking().clock,
+        clock=clock,
     )
 
 
-def phone_server(engine: FakeEngine, files_dir: Path = FILES_DIR) -> MCPServer:
-    return build(phone_over(engine, files_dir))
+def phone_server(
+    engine: FakeEngine, *, files_dir: Path = FILES_DIR, clock: Clock | None = None
+) -> MCPServer:
+    return build(
+        phone_over(engine, files_dir=files_dir, clock=Ticking().clock if clock is None else clock)
+    )

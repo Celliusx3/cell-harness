@@ -1,6 +1,6 @@
 # 05 The phone stops when idle and keeps its apps
 
-**Status.** open
+**Status.** done
 
 **What to build.** The phone's idle stop in `mcp-servers/phone/`, ten minutes
 by default, set by `PHONE_IDLE_MINUTES`. Android's data lives on a named volume,

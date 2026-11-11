@@ -65,6 +65,15 @@ async def test_a_started_phone_runs_its_images_command_again() -> None:
     assert vms.launches == [IMAGE_COMMAND, IMAGE_COMMAND]
 
 
+async def test_stopping_goes_by_name_and_leaves_a_stopped_phone() -> None:
+    vms, engine = await made()
+
+    await engine.stop(NAME)
+
+    assert await engine.state(NAME) == "stopped"
+    assert vms.calls == ["create", "stop"]
+
+
 async def test_an_image_with_no_command_is_refused() -> None:
     _, engine = engine_of(FakeImages(entrypoint=None, cmd=None))
 

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 NAME = "cell-harness-phone"
+IDLE_MINUTES = 10
 
 SANDBOX_NAME_PATTERN = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_.-]+")
 
@@ -23,6 +24,7 @@ class Config:
     name: str
     kernel: Path
     files_dir: Path
+    idle_minutes: int
 
 
 def required_value(src: Mapping[str, str], variable: str, what: str) -> str:
@@ -59,6 +61,17 @@ def existing_folder(variable: str, raw: str) -> Path:
     return path
 
 
+def idle_minutes(raw: str) -> int:
+    """`raw` as the phone's idle minutes, IDLE_MINUTES when unset, or a refusal."""
+    try:
+        minutes = int(raw) if raw else IDLE_MINUTES
+    except ValueError as err:
+        raise ConfigError(f"PHONE_IDLE_MINUTES={raw!r} is not a whole number") from err
+    if minutes <= 0:
+        raise ConfigError(f"PHONE_IDLE_MINUTES={minutes} must be greater than zero")
+    return minutes
+
+
 def load(env: Mapping[str, str] | None = None) -> Config:
     src = os.environ if env is None else env
     image = required_value(src, "PHONE_IMAGE", "the phone's image, pinned by digest")
@@ -69,4 +82,5 @@ def load(env: Mapping[str, str] | None = None) -> Config:
         name=sandbox_name(src.get("PHONE_NAME", "").strip() or NAME),
         kernel=existing_file("PHONE_KERNEL", kernel),
         files_dir=existing_folder("PHONE_FILES_DIR", files),
+        idle_minutes=idle_minutes(src.get("PHONE_IDLE_MINUTES", "").strip()),
     )

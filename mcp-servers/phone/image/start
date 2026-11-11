@@ -4,6 +4,9 @@ set -euo pipefail
 
 ROOT=/android
 STATE=/run/phone
+DATA_DISK=/var/lib/phone-data
+ANDROID_DATA="$DATA_DISK/android"
+SYSTEM_UID=1000
 WIDTH="${PHONE_WIDTH:-720}"
 HEIGHT="${PHONE_HEIGHT:-1280}"
 DPI="${PHONE_DPI:-320}"
@@ -13,6 +16,7 @@ fail() { echo "phone-start: $*" >&2; echo "failed: $*" > "$STATE/state"; exit 1;
 namespaces() {
   mkdir -p "$STATE"
   grep -qw binder /proc/filesystems || fail "the kernel has no binderfs"
+  mountpoint -q "$DATA_DISK" || fail "the phone's data disk is not mounted at $DATA_DISK"
   echo booting > "$STATE/state"
   exec unshare --mount --pid --fork --kill-child --ipc --uts --propagation private -- "$0" --android
 }
@@ -34,7 +38,10 @@ mount_android() {
     chmod 0666 "$ROOT/dev/binderfs/$device"
     ln -sf "binderfs/$device" "$ROOT/dev/$device"
   done
-  mount -t tmpfs -o mode=0771,uid=1000,gid=1000 tmpfs "$ROOT/data"
+  mkdir -p "$ANDROID_DATA"
+  chown "$SYSTEM_UID:$SYSTEM_UID" "$ANDROID_DATA"
+  chmod 0771 "$ANDROID_DATA"
+  mount --bind "$ANDROID_DATA" "$ROOT/data"
 }
 
 boot_android() {

@@ -12,11 +12,14 @@ from microsandbox import (
     Destination,
     ExecTimeoutError,
     MicrosandboxError,
+    NamedVolumeMode,
     Network,
     NetworkPolicy,
     Rule,
     SandboxNotFoundError,
     SandboxStatus,
+    Volume,
+    VolumeKind,
 )
 
 from phone.engines.microsandbox_sdk import (
@@ -35,6 +38,8 @@ from phone.models.phone import LABEL, PhoneSpec, PhoneState, Program
 CREATE_TIMEOUT_SECONDS = 300.0
 MEMORY_MIB = 2048
 CPUS = 2
+DATA_GUEST_PATH = "/var/lib/phone-data"
+DATA_MIB = 16384
 
 
 def phone_network_policy() -> NetworkPolicy:
@@ -91,6 +96,14 @@ class MicrosandboxEngine:
             memory=MEMORY_MIB,
             cpus=CPUS,
             labels={LABEL: spec.name},
+            volumes={
+                DATA_GUEST_PATH: Volume.named(
+                    f"{spec.name}-data",
+                    mode=NamedVolumeMode.ENSURE_EXISTS,
+                    kind=VolumeKind.DISK,
+                    size_mib=DATA_MIB,
+                )
+            },
             network=Network(policy=phone_network_policy()),
             detached=True,
         )
@@ -101,6 +114,10 @@ class MicrosandboxEngine:
         started = self.sandboxes.start(name, detached=True)
         await sdk_answer("start", started, COMMAND_TIMEOUT_SECONDS)
         await self._run_image_command(name)
+
+    async def stop(self, name: str) -> None:
+        stored = await self._stored("stop", name)
+        await sdk_answer("stop", stored.stop(), COMMAND_TIMEOUT_SECONDS)
 
     async def state(self, name: str) -> PhoneState:
         try:
