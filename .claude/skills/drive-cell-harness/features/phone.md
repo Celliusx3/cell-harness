@@ -1,12 +1,13 @@
 # Phone
 
-Every bot shares one Android phone (Redroid 13, no Google Play) in a microsandbox microVM on a kernel of our own with binder, from the `phone` MCP server. The bots use it through `phone__screenshot`, `phone__install_app`, `phone__open_app`, `phone__tap`, `phone__swipe`, `phone__type_text` and `phone__press_key`, each answering with a new screenshot; the `use-the-phone` skill tells them how. The person watches it and takes control on the Computer page, through droidVNC-NG inside Android and the same noVNC relay as the PC.
+Every bot shares one Android phone (Redroid 13, no Google Play) in a microsandbox microVM on a kernel of our own with binder, from the `phone` MCP server. The bots use it through `phone__list_elements` (the screen as text) and `phone__screenshot`, `phone__install_app`, `phone__open_app`, `phone__open_url`, `phone__tap`, `phone__double_tap`, `phone__long_press`, `phone__swipe`, `phone__type_text` and `phone__press_key`, each action answering with a new screenshot, and manage apps with `phone__list_apps`, `phone__foreground_app`, `phone__terminate_app`, `phone__uninstall_app` and `phone__clear_app_data`; the `use-the-phone` skill tells them how. The person watches it and takes control on the Computer page, through droidVNC-NG inside Android and the same noVNC relay as the PC.
 
 ## Sub-features
 
 - The first phone call starts the phone (about 8 s from stopped, longer the first time it is made) and waits for Android; later calls take under a second.
 - `phone__install_app` takes the full path of an APK attached to the chat and answers "Installed <package>."; a file outside the chat's files is refused.
-- `phone__type_text` types ASCII only; other text is refused in words.
+- `phone__type_text` types ASCII only; other text is refused in words. There is no clipboard tool: a bot pastes into a note and reads it back with `phone__list_elements`.
+- `phone__long_press` waits a second for Android's menu (Copy, Paste, Share) before its screenshot. A link a bot opens goes to the app that claims it, otherwise the browser; Pinduoduo's open in the browser, which offers to open the app.
 - The phone reaches the public internet only, never the Mac or the person's network.
 - After 10 minutes with no phone call (`PHONE_IDLE_MINUTES`), the phone stops; its apps and their data stay on its own disk.
 - On the Computer page, the "Phone" panel beside the PC's screen opens watching: "Watching only. Press Take control to use your keyboard and mouse." "Take control" makes it "You have control until HH:MM" with "Release", for 15 minutes; a bot's phone call meanwhile answers "A person has the phone: …". Leaving the page and coming back while you hold it shows your hold again, with Release.

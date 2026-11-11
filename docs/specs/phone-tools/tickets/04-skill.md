@@ -1,6 +1,6 @@
 # 04 The skill and the docs name the new tools
 
-**Status.** open
+**Status.** done
 
 **What to build.** `.agents/skills/use-the-phone/SKILL.md` tells a bot to read
 `list_elements` before a screenshot when it needs words or a target, to
