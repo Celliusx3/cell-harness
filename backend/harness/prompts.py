@@ -175,7 +175,13 @@ COMPACTION_INSTRUCTION = "\n".join(_COMPACTION_INSTRUCTION_LINES)
 
 PRUNED = "[old tool result cleared to save context; call the tool again if you still need it]"
 
-IMAGE_NOT_SHOWN = "[an earlier image, no longer shown: only the newest images are kept]"
+IMAGE_NOT_SHOWN = "[an image that could not be shown]"
+
+IMAGE_HIDDEN = (
+    "[This image was removed to reduce the request size and is no longer visible. "
+    "Do not make claims about its contents from memory. If needed, retrieve it again "
+    "with an available tool or ask the user to attach it again.]"
+)
 
 IMAGES_FOLLOW = "[images from this result: {count}, shown in the message after the tool results]"
 

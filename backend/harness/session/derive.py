@@ -11,6 +11,8 @@ from harness.prompts import (
     BOT_MESSAGE_REQUEST,
     BOT_MESSAGE_RESULT,
     CUT_NOTE,
+    IMAGE_HIDDEN,
+    IMAGE_NOT_SHOWN,
     NO_RESPONSE,
     PRUNED,
     SPEAKER_TAG,
@@ -76,7 +78,7 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
 def without_images(messages: Sequence[Message]) -> list[Message]:
     """`messages` with every image a note instead."""
     return [
-        first_images_noted(message, len(images_of(message)))
+        first_images_noted(message, len(images_of(message)), IMAGE_NOT_SHOWN)
         if isinstance(message, (UserMessage, ToolMessage))
         else message
         for message in messages
@@ -124,7 +126,7 @@ def _with_images_hidden(log: tuple[SessionEvent, ...], through: int) -> tuple[Se
             continue
         count = min(left, len(images_of(event.message)))
         left -= count
-        noted = first_images_noted(event.message, count)
+        noted = first_images_noted(event.message, count, IMAGE_HIDDEN)
         hidden.append(event.model_copy(update={"message": noted}))
     return tuple(hidden)
 

@@ -13,7 +13,7 @@ from harness.llm import (
     UserMessage,
     images_of,
 )
-from harness.prompts import IMAGE_NOT_SHOWN
+from harness.prompts import IMAGE_HIDDEN, IMAGE_NOT_SHOWN
 from harness.session.derive import derive_messages, without_images
 from harness.session.images import ImagesHidden
 from harness.session.models import (
@@ -55,9 +55,12 @@ def shown(messages: list[Message]) -> list[Image]:
     return [image for message in messages for image in images_of(message)]
 
 
-def test_the_image_note_is_worded_as_written() -> None:
-    assert IMAGE_NOT_SHOWN == (
-        "[an earlier image, no longer shown: only the newest images are kept]"
+def test_the_image_notes_are_worded_as_written() -> None:
+    assert IMAGE_NOT_SHOWN == "[an image that could not be shown]"
+    assert IMAGE_HIDDEN == (
+        "[This image was removed to reduce the request size and is no longer visible. "
+        "Do not make claims about its contents from memory. If needed, retrieve it again "
+        "with an available tool or ask the user to attach it again.]"
     )
 
 
@@ -76,8 +79,8 @@ def test_a_hide_notes_the_log_s_first_images_across_person_and_result() -> None:
 
     person, _, result = derive_messages([*events, ImagesHidden(turn=0, through=2)])
 
-    assert person == UserMessage(content=f"look\n{IMAGE_NOT_SHOWN}")
-    assert result.content == (Text(text="shot"), Text(text=IMAGE_NOT_SHOWN), THIRD)
+    assert person == UserMessage(content=f"look\n{IMAGE_HIDDEN}")
+    assert result.content == (Text(text="shot"), Text(text=IMAGE_HIDDEN), THIRD)
 
 
 def test_a_hidden_image_in_a_result_becomes_the_note_in_its_place() -> None:
@@ -85,7 +88,7 @@ def test_a_hidden_image_in_a_result_becomes_the_note_in_its_place() -> None:
 
     _, _, result = derive_messages([*events, ImagesHidden(turn=0, through=1)])
 
-    assert result.content == (Text(text="shot"), Text(text=IMAGE_NOT_SHOWN), SECOND)
+    assert result.content == (Text(text="shot"), Text(text=IMAGE_HIDDEN), SECOND)
 
 
 def test_the_person_s_hidden_images_are_dropped_with_a_line_each() -> None:
@@ -93,9 +96,7 @@ def test_the_person_s_hidden_images_are_dropped_with_a_line_each() -> None:
 
     person = derive_messages([*events, ImagesHidden(turn=0, through=2)])[0]
 
-    assert person == UserMessage(
-        content=f"look\n{IMAGE_NOT_SHOWN}\n{IMAGE_NOT_SHOWN}", images=(THIRD,)
-    )
+    assert person == UserMessage(content=f"look\n{IMAGE_HIDDEN}\n{IMAGE_HIDDEN}", images=(THIRD,))
 
 
 def test_a_smaller_hide_after_a_larger_one_brings_nothing_back() -> None:
