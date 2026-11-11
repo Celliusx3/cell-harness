@@ -1,4 +1,4 @@
-/** Token usage added up from the logged `assistant/message` events, as one line of text. */
+/** A chat's token usage, added up from its logged `assistant/message` events. */
 
 import type { Usage } from "@/lib/types";
 
@@ -6,14 +6,7 @@ export type UsageSummary =
   | { kind: "reported"; input: number; output: number; cached: number | null }
   | { kind: "not_reported" };
 
-/** A turn's steps added up: none reported if one step has no usage, cache only if every step has it. */
-export function turnUsage(steps: (Usage | null)[]): UsageSummary | null {
-  if (steps.length === 0) return null;
-  const reported = steps.filter((usage) => usage !== null);
-  if (reported.length < steps.length) return { kind: "not_reported" };
-  const cached = reported.flatMap((usage) => usage.cached_input_tokens ?? []);
-  return summary(reported, cached.length === reported.length ? sum(cached) : null);
-}
+const NOT_REPORTED = "not reported";
 
 /** A chat's steps added up: one with no usage adds nothing, one with no cache figure adds 0 cached. */
 export function chatUsage(steps: (Usage | null)[]): UsageSummary | null {
@@ -21,37 +14,34 @@ export function chatUsage(steps: (Usage | null)[]): UsageSummary | null {
   const reported = steps.filter((usage) => usage !== null);
   if (reported.length === 0) return { kind: "not_reported" };
   const cached = reported.flatMap((usage) => usage.cached_input_tokens ?? []);
-  return summary(reported, cached.length > 0 ? sum(cached) : null);
-}
-
-export function usageLine(usage: UsageSummary): string {
-  if (usage.kind === "not_reported") return "usage not reported";
-  const said = `${tokens(usage.input)} in · ${tokens(usage.output)} out`;
-  if (usage.cached === null) return `${said} · cache not reported`;
-  return `${said} · ${tokens(usage.cached)} cached (${hitRate(usage.cached, usage.input)})`;
-}
-
-function summary(reported: Usage[], cached: number | null): UsageSummary {
   return {
     kind: "reported",
     input: sum(reported.map((usage) => usage.input_tokens)),
     output: sum(reported.map((usage) => usage.output_tokens)),
-    cached,
+    cached: cached.length > 0 ? sum(cached) : null,
   };
 }
 
+/** The summary as label and value rows, "not reported" where a figure is missing. */
+export function usageRows(usage: UsageSummary): [string, string][] {
+  if (usage.kind === "not_reported") {
+    return ["Input", "Cached", "Output", "Cache hit rate"].map((label) => [label, NOT_REPORTED]);
+  }
+  const { input, output, cached } = usage;
+  return [
+    ["Input", tokens(input)],
+    ["Cached", cached === null ? NOT_REPORTED : tokens(cached)],
+    ["Output", tokens(output)],
+    ["Cache hit rate", cached === null ? NOT_REPORTED : hitRate(cached, input)],
+  ];
+}
+
 function tokens(count: number): string {
-  if (count < 1_000) return String(count);
-  if (count < 999_950) return `${shortened(count / 1_000)}k`;
-  return `${shortened(count / 1_000_000)}M`;
+  return count.toLocaleString("en-US");
 }
 
 function hitRate(cached: number, input: number): string {
   return input === 0 ? "0%" : `${Math.round((cached / input) * 100)}%`;
-}
-
-function shortened(value: number): string {
-  return value.toFixed(1).replace(/\.0$/, "");
 }
 
 function sum(counts: number[]): number {

@@ -73,12 +73,11 @@ a request carries up to 600 images or 20 MB, and past that the adapter asks for 
 oldest 20 images or 10 MB to be hidden; the turn logs an `images/hidden` event that
 never comes back and sends again; each reply's usage keeps its cached tokens; the
 chat id as OpenRouter's `session_id` is ticket 04, left open; spec in
-`docs/specs/prompt-cache/`), 28 token usage in the chat (#62: hovering a finished
-reply, or tapping it on a phone, shows its turn's input, output and cached tokens
-and hit rate, "cache not reported" unless every step reported it and "usage not
-reported" if one step reported none; the header shows the chat's totals since the
-last clear, a missing cache figure counted as 0; helpers are left out until #55;
-added up in the browser from the log; spec in `docs/specs/usage-in-chat/`). Their plans
+`docs/specs/prompt-cache/`), 28 token usage in the chat (#62: a gauge icon beside the attach button opens,
+on hover or click, the chat's input, cached and output tokens and its cache hit
+rate since the last clear; a missing cache figure counts as 0, and "not reported"
+when no step reported one; helpers are left out until #55; added up in the
+browser from the log; spec in `docs/specs/usage-in-chat/`). Their plans
 were deleted once built; read them with `git show f9865e4:PHASES.md`.
 
 **Open:** 10, begun (bots, each with its own instructions and one chat, made

@@ -15,6 +15,7 @@ import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
 import { ModePicker } from "@/components/conversation/ModePicker";
 import { Timeline } from "@/components/conversation/Timeline";
+import { UsageButton } from "@/components/conversation/UsageButton";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { type Conversation, useConversation } from "@/components/conversation/useConversation";
 import { useElapsed } from "@/components/conversation/useElapsed";
@@ -74,7 +75,6 @@ export default function ConversationPage({
         chat={host ?? speakerOf(group)}
         editHref={host === null ? null : `/bots/${id}`}
         elapsed={elapsed}
-        usage={usage}
         canCompact={!conversation.running}
         onCompact={() => void conversation.compact()}
         onClear={() => void conversation.clear()}
@@ -122,6 +122,7 @@ export default function ConversationPage({
             running={conversation.running}
             onSend={(prompt, files) => void conversation.send(prompt, files)}
             onStop={() => void conversation.stop()}
+            usage={<UsageButton usage={usage} />}
             modePicker={
               conversation.mode !== null && (
                 <ModePicker
