@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 from pathlib import Path
@@ -31,6 +32,7 @@ def test_the_kernel_is_set_and_then_the_server_runs_on_stdio(
     kernel.write_bytes(b"\x00")
     monkeypatch.setenv("PHONE_IMAGE", "example/phone:1")
     monkeypatch.setenv("PHONE_KERNEL", str(kernel))
+    monkeypatch.setenv("PHONE_KERNEL_SHA256", hashlib.sha256(b"\x00").hexdigest())
     monkeypatch.setenv("PHONE_FILES_DIR", str(tmp_path))
     monkeypatch.delenv(server.KERNEL_VARIABLE, raising=False)
     monkeypatch.delenv(server.MSB_VARIABLE, raising=False)

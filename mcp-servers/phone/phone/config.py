@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 from collections.abc import Mapping
@@ -72,15 +73,28 @@ def idle_minutes(raw: str) -> int:
     return minutes
 
 
+def pinned_kernel(path: Path, pin: str) -> Path:
+    """`path`, or a refusal unless its SHA-256 is the one PHONE_KERNEL_SHA256 pins."""
+    expected = pin.strip().lower()
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != expected:
+        raise ConfigError(
+            f"PHONE_KERNEL is not the kernel PHONE_KERNEL_SHA256 pins: {path} is {actual}, "
+            f"the pin is {expected}"
+        )
+    return path
+
+
 def load(env: Mapping[str, str] | None = None) -> Config:
     src = os.environ if env is None else env
     image = required_value(src, "PHONE_IMAGE", "the phone's image, pinned by digest")
     kernel = required_value(src, "PHONE_KERNEL", "the libkrunfw.5.dylib built with binder")
+    pin = required_value(src, "PHONE_KERNEL_SHA256", "the SHA-256 of the kernel's release")
     files = required_value(src, "PHONE_FILES_DIR", "the folder the chat files are kept in")
     return Config(
         image=image,
         name=sandbox_name(src.get("PHONE_NAME", "").strip() or NAME),
-        kernel=existing_file("PHONE_KERNEL", kernel),
+        kernel=pinned_kernel(existing_file("PHONE_KERNEL", kernel), pin),
         files_dir=existing_folder("PHONE_FILES_DIR", files),
         idle_minutes=idle_minutes(src.get("PHONE_IDLE_MINUTES", "").strip()),
     )

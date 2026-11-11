@@ -1,39 +1,23 @@
 #!/usr/bin/env bash
-# Builds libkrunfw.5.dylib with Android's binder, at the revision microsandbox 0.7.13 pins.
+# On a Mac: libkrunfw.5.dylib with Android's binder, its kernel built in Docker.
 set -euo pipefail
 
-LIBKRUNFW_REPO=https://github.com/superradcompany/libkrunfw.git
-LIBKRUNFW_REVISION=56bf194627a07996dc4ce21211fe86ada4c76080
 BUILD_VOLUME=cell-harness-phone-kernel
 BUILDER=fedora:42
 
 here="$(cd "$(dirname "$0")" && pwd)"
 out="${1:?usage: build <output folder>}"
-work="$out/libkrunfw"
-
 mkdir -p "$out"
-if [ ! -d "$work/.git" ]; then
-  git clone --quiet "$LIBKRUNFW_REPO" "$work"
-fi
-git -C "$work" fetch --quiet origin "$LIBKRUNFW_REVISION"
-git -C "$work" checkout --quiet --force "$LIBKRUNFW_REVISION"
-cat "$here/config-android" >> "$work/config-libkrunfw_aarch64"
 
 # The kernel tree has names that differ only by case, so it is built on a volume, not on the Mac's disk.
 docker volume create "$BUILD_VOLUME" > /dev/null
 docker run --rm --platform linux/arm64 \
-  -v "$work:/source:ro" -v "$BUILD_VOLUME:/build" -v "$out:/out" \
+  -v "$here:/kernel:ro" -v "$BUILD_VOLUME:/build" -v "$out:/out" \
   "$BUILDER" bash -c "
     set -euo pipefail
-    dnf install -y -q 'dnf-command(builddep)' python3-pyelftools curl rsync
+    dnf install -y -q 'dnf-command(builddep)' python3-pyelftools curl git
     dnf builddep -y -q kernel
-    rsync -a --delete --exclude .git --exclude tarballs --exclude 'linux-*' /source/ /build/
-    cd /build && make -j\$(nproc) kernel.c
-    cp kernel.c /out/kernel.c
+    /kernel/bundle /build/libkrunfw /out
   "
 
-cp "$out/kernel.c" "$work/kernel.c"
-touch "$work/kernel.c"
-make -C "$work" libkrunfw.5.dylib
-cp "$work/libkrunfw.5.dylib" "$out/libkrunfw.5.dylib"
-echo "$out/libkrunfw.5.dylib"
+"$here/link" "$out"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -10,14 +11,20 @@ import pytest
 from phone.config import ConfigError, load
 
 IMAGE = "ghcr.io/celliusx3/cell-harness/phone@sha256:" + "1" * 64
+KERNEL_BYTES = b"\x00"
 
 
 def settings(tmp_path: Path) -> dict[str, str]:
     kernel = tmp_path / "libkrunfw.5.dylib"
-    kernel.write_bytes(b"\x00")
+    kernel.write_bytes(KERNEL_BYTES)
     files = tmp_path / "files"
     files.mkdir(exist_ok=True)
-    return {"PHONE_IMAGE": IMAGE, "PHONE_KERNEL": str(kernel), "PHONE_FILES_DIR": str(files)}
+    return {
+        "PHONE_IMAGE": IMAGE,
+        "PHONE_KERNEL": str(kernel),
+        "PHONE_KERNEL_SHA256": hashlib.sha256(KERNEL_BYTES).hexdigest(),
+        "PHONE_FILES_DIR": str(files),
+    }
 
 
 def test_the_image_and_kernel_set_load_under_the_shared_name(tmp_path: Path) -> None:
@@ -36,7 +43,9 @@ def test_the_name_can_be_overridden(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("variable", ["PHONE_IMAGE", "PHONE_KERNEL", "PHONE_FILES_DIR"])
+@pytest.mark.parametrize(
+    "variable", ["PHONE_IMAGE", "PHONE_KERNEL", "PHONE_KERNEL_SHA256", "PHONE_FILES_DIR"]
+)
 def test_a_required_setting_left_out_is_refused_by_name(tmp_path: Path, variable: str) -> None:
     env = {**settings(tmp_path), variable: "  "}
 
@@ -89,3 +98,19 @@ def test_idle_minutes_that_are_not_a_positive_whole_number_are_refused(
 ) -> None:
     with pytest.raises(ConfigError, match=re.escape(refusal)):
         load({**settings(tmp_path), "PHONE_IDLE_MINUTES": raw})
+
+
+def test_a_kernel_that_is_not_the_pinned_one_is_refused(tmp_path: Path) -> None:
+    env = settings(tmp_path)
+    Path(env["PHONE_KERNEL"]).write_bytes(b"\x01")
+
+    with pytest.raises(
+        ConfigError, match="PHONE_KERNEL is not the kernel PHONE_KERNEL_SHA256 pins"
+    ):
+        load(env)
+
+
+def test_the_pin_is_read_without_case_or_spaces_mattering(tmp_path: Path) -> None:
+    env = settings(tmp_path)
+
+    assert load({**env, "PHONE_KERNEL_SHA256": f" {env['PHONE_KERNEL_SHA256'].upper()} "})

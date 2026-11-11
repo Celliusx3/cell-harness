@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# On a Mac: links the kernel.c that bundle made into libkrunfw.5.dylib.
+set -euo pipefail
+
+LIBKRUNFW_REPO=https://github.com/superradcompany/libkrunfw.git
+LIBKRUNFW_REVISION=56bf194627a07996dc4ce21211fe86ada4c76080
+
+out="${1:?usage: link <folder holding kernel.c>}"
+work="$out/libkrunfw"
+
+if [ ! -d "$work/.git" ]; then
+  git clone --quiet "$LIBKRUNFW_REPO" "$work"
+fi
+git -C "$work" fetch --quiet origin "$LIBKRUNFW_REVISION"
+git -C "$work" checkout --quiet --force "$LIBKRUNFW_REVISION"
+cp "$out/kernel.c" "$work/kernel.c"
+make -C "$work" libkrunfw.5.dylib
+cp "$work/libkrunfw.5.dylib" "$out/libkrunfw.5.dylib"
+shasum -a 256 "$out/libkrunfw.5.dylib" | cut -d' ' -f1 > "$out/libkrunfw.5.dylib.sha256"
+echo "$out/libkrunfw.5.dylib $(cat "$out/libkrunfw.5.dylib.sha256")"
