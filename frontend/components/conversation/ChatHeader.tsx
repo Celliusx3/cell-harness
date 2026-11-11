@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { BotAvatar } from "@/components/conversation/BotAvatar";
 import type { Speaker } from "@/components/conversation/timelineItems";
-import { type TurnUsage, usageLine } from "@/components/conversation/usage";
+import { type UsageSummary, usageLine } from "@/components/conversation/usage";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,7 @@ interface ChatHeaderProps {
   chat: Speaker | null;
   editHref: string | null;
   elapsed: string | null;
-  usage: TurnUsage | null;
+  usage: UsageSummary | null;
   canCompact: boolean;
   onCompact(): void;
   onClear(): void;

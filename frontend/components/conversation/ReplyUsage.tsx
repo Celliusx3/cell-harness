@@ -2,10 +2,10 @@
 
 import { type ReactNode, useState } from "react";
 
-import { type TurnUsage, usageLine } from "@/components/conversation/usage";
+import { type UsageSummary, usageLine } from "@/components/conversation/usage";
 
 /** A reply with its turn's usage under it, shown on hover, or on tap where nothing hovers. */
-export function ReplyUsage({ usage, children }: { usage: TurnUsage | null; children: ReactNode }) {
+export function ReplyUsage({ usage, children }: { usage: UsageSummary | null; children: ReactNode }) {
   const [tapped, setTapped] = useState(false);
   if (usage === null) return <>{children}</>;
   const onTap = () => {
