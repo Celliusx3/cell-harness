@@ -6,11 +6,11 @@ import pytest
 
 from phone.models.command import CommandResult
 from phone.services.touch import KEYCODES, Key, Touch, TouchError
-from tests.fakes import NAME, FakeEngine
+from tests.fakes import NAME, FakeEngine, Ticking
 
 
 def touch_over(engine: FakeEngine) -> Touch:
-    return Touch(engine=engine, name=NAME)
+    return Touch(engine=engine, name=NAME, clock=Ticking().clock)
 
 
 async def test_a_tap_is_input_tap_at_the_point() -> None:
@@ -19,6 +19,24 @@ async def test_a_tap_is_input_tap_at_the_point() -> None:
     await touch_over(engine).tap(0, 1279)
 
     assert engine.commands == ["input tap 0 1279"]
+
+
+async def test_a_long_press_is_a_swipe_that_stays_put_for_a_second() -> None:
+    engine = FakeEngine(state="running")
+
+    await touch_over(engine).long_press(300, 232)
+
+    assert engine.commands == ["input swipe 300 232 300 232 1000"]
+
+
+async def test_a_double_tap_is_two_taps_a_tenth_of_a_second_apart() -> None:
+    engine = FakeEngine(state="running")
+    time = Ticking()
+
+    await Touch(engine=engine, name=NAME, clock=time.clock).double_tap(5, 6)
+
+    assert engine.commands == ["input tap 5 6", "input tap 5 6"]
+    assert time.now == pytest.approx(0.1)
 
 
 async def test_a_swipe_is_input_swipe_over_three_hundred_milliseconds() -> None:
@@ -66,6 +84,11 @@ async def test_text_that_is_not_printable_ascii_is_refused(text: str) -> None:
         ("enter", "KEYCODE_ENTER"),
         ("delete", "KEYCODE_DEL"),
         ("recent_apps", "KEYCODE_APP_SWITCH"),
+        ("paste", "KEYCODE_PASTE"),
+        ("tab", "KEYCODE_TAB"),
+        ("search", "KEYCODE_SEARCH"),
+        ("volume_up", "KEYCODE_VOLUME_UP"),
+        ("volume_down", "KEYCODE_VOLUME_DOWN"),
     ],
 )
 async def test_a_key_is_its_android_keyevent(key: Key, code: str) -> None:

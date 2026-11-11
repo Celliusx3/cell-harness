@@ -1,6 +1,6 @@
 # 03 A bot reads the screen as a list of elements
 
-**Status.** open
+**Status.** done
 
 **What to build.** The image's `android` helper runs each command with the
 environment of Android's zygote, so `uiautomator` starts. `list_elements` dumps

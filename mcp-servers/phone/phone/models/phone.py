@@ -32,3 +32,9 @@ class Program:
 def android(command: str) -> Program:
     """`command` run in Android's root shell, through the image's `android` helper."""
     return Program(argv=("android", command), env={})
+
+
+def sh_quoted(text: str) -> str:
+    """`text` as one single-quoted word for the sh that runs an `android` command."""
+    escaped = text.replace("'", "'\\''")
+    return f"'{escaped}'"

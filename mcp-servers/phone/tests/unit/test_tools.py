@@ -18,15 +18,27 @@ DESCRIPTION = (
 )
 INSTRUCTIONS = (
     "You have a phone: one Android phone, shared by every bot, with apps installed from APK files "
-    "and no Google Play. See its screen with phone__screenshot; install an APK from this chat's "
-    "files with phone__install_app, open it with phone__open_app, and act with phone__tap, "
-    "phone__swipe, phone__type_text and phone__press_key. Each action returns a new screenshot."
+    "and no Google Play. Read its screen as text with phone__list_elements, or see it with "
+    "phone__screenshot. Install an APK from this chat's files with phone__install_app, open apps "
+    "with phone__open_app or links with phone__open_url, and act with phone__tap, "
+    "phone__double_tap, phone__long_press, phone__swipe, phone__type_text and phone__press_key. "
+    "phone__list_apps, phone__foreground_app, phone__terminate_app, phone__uninstall_app and "
+    "phone__clear_app_data manage apps. Each action returns a new screenshot."
 )
 TOOLS = [
     "screenshot",
+    "list_elements",
     "install_app",
     "open_app",
+    "open_url",
+    "list_apps",
+    "foreground_app",
+    "terminate_app",
+    "uninstall_app",
+    "clear_app_data",
     "tap",
+    "double_tap",
+    "long_press",
     "swipe",
     "type_text",
     "press_key",

@@ -16,11 +16,12 @@ from phone.clock import SYSTEM
 from phone.config import ConfigError, load
 from phone.engines.microsandbox import MicrosandboxEngine
 from phone.services.apps import Apps
+from phone.services.elements import Elements
 from phone.services.live_screen import LiveScreen
 from phone.services.machine import Machine
 from phone.services.screen import Screen
 from phone.services.touch import Touch
-from phone.tools import Phone, apps, phone_page, screenshot, touch
+from phone.tools import Phone, apps, elements, manage_apps, phone_page, screenshot, touch
 
 logger = logging.getLogger("phone")
 
@@ -35,10 +36,12 @@ def packaged_msb() -> str:
 
 PHONE_INSTRUCTIONS = (
     "You have a phone: one Android phone, shared by every bot, with apps installed from APK "
-    "files and no Google Play. See its screen with phone__screenshot; install an APK from this "
-    "chat's files with phone__install_app, open it with phone__open_app, and act with "
-    "phone__tap, phone__swipe, phone__type_text and phone__press_key. Each action returns a new "
-    "screenshot."
+    "files and no Google Play. Read its screen as text with phone__list_elements, or see it with "
+    "phone__screenshot. Install an APK from this chat's files with phone__install_app, open apps "
+    "with phone__open_app or links with phone__open_url, and act with phone__tap, "
+    "phone__double_tap, phone__long_press, phone__swipe, phone__type_text and phone__press_key. "
+    "phone__list_apps, phone__foreground_app, phone__terminate_app, phone__uninstall_app and "
+    "phone__clear_app_data manage apps. Each action returns a new screenshot."
 )
 
 
@@ -52,7 +55,9 @@ def build(phone: Phone) -> MCPServer:
         name="phone", version="0.1.0", instructions=PHONE_INSTRUCTIONS, lifespan=lifespan
     )
     screenshot.register(server, phone)
+    elements.register(server, phone)
     apps.register(server, phone)
+    manage_apps.register(server, phone)
     touch.register(server, phone)
     phone_page.register(server, phone)
     return server
@@ -75,7 +80,8 @@ def main() -> None:
         machine=machine,
         screen=Screen(engine=engine, name=config.name),
         apps=Apps(engine=engine, name=config.name, files_dir=config.files_dir),
-        touch=Touch(engine=engine, name=config.name),
+        touch=Touch(engine=engine, name=config.name, clock=SYSTEM),
+        elements=Elements(engine=engine, name=config.name),
         live_screen=LiveScreen(engine=engine, name=config.name, machine=machine, clock=SYSTEM),
         clock=SYSTEM,
     )

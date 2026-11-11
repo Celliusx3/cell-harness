@@ -12,6 +12,7 @@ from mcp.types import ImageContent
 from phone.clock import Clock
 from phone.models.errors import EngineError
 from phone.services.apps import AppError, Apps
+from phone.services.elements import Elements, ElementsError
 from phone.services.live_screen import LiveScreen
 from phone.services.machine import Machine
 from phone.services.screen import Screen, ScreenError
@@ -27,12 +28,13 @@ HELD_BY_PERSON = (
 
 @dataclass(frozen=True)
 class Phone:
-    """What the tools reach: the machine, its screen, its apps, its input and its live screen."""
+    """What the tools reach: the machine, its screen, apps, input, elements and live screen."""
 
     machine: Machine
     screen: Screen
     apps: Apps
     touch: Touch
+    elements: Elements
     live_screen: LiveScreen
     clock: Clock
 
@@ -54,7 +56,7 @@ async def machine_for_one_call(machine: Machine) -> AsyncIterator[None]:
             yield
     except EngineError as err:
         raise ToolError(f"The phone is not available: {err}") from err
-    except (ScreenError, AppError, TouchError) as err:
+    except (ScreenError, AppError, TouchError, ElementsError) as err:
         raise ToolError(str(err)) from err
 
 

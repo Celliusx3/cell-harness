@@ -16,6 +16,7 @@ from phone.models.command import CommandResult
 from phone.models.phone import PhoneSpec, PhoneState, Program
 from phone.server import build
 from phone.services.apps import LIST_PACKAGES, Apps
+from phone.services.elements import Elements
 from phone.services.live_screen import SCREEN_PROGRAM, LiveScreen
 from phone.services.machine import BOOT_COMPLETED, GATEWAY_PORT, Machine
 from phone.services.screen import SCREENSHOT, Screen
@@ -192,7 +193,8 @@ def phone_over(engine: FakeEngine, *, files_dir: Path, clock: Clock) -> Phone:
         machine=machine,
         screen=Screen(engine=engine, name=NAME),
         apps=Apps(engine=engine, name=NAME, files_dir=files_dir),
-        touch=Touch(engine=engine, name=NAME),
+        touch=Touch(engine=engine, name=NAME, clock=clock),
+        elements=Elements(engine=engine, name=NAME),
         live_screen=LiveScreen(engine=engine, name=NAME, machine=machine, clock=clock),
         clock=clock,
     )

@@ -1,6 +1,6 @@
 # 01 Long-press, double-tap, more keys, and opening a link
 
-**Status.** open
+**Status.** done
 
 **What to build.** In `mcp-servers/phone/`: `long_press(x, y)` (a swipe in
 place for 1 s), `double_tap(x, y)` (two taps 100 ms apart), `press_key` gains

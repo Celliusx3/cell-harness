@@ -1,4 +1,4 @@
-"""The input tools: tap, swipe, type and press a key, each answered with the screen after."""
+"""The input tools: tap, press, swipe, type and press a key, each answered with the screen after."""
 
 from __future__ import annotations
 
@@ -25,8 +25,19 @@ TYPE_TEXT_DESCRIPTION = (
     "Type text into the field that has focus; tap the field first. Only ASCII letters, digits, "
     "spaces and punctuation can be typed. Returns a screenshot."
 )
+DOUBLE_TAP_DESCRIPTION = (
+    "Tap twice quickly at x, y, in the pixels of the latest screenshot, to zoom or to select a "
+    "word. Returns a screenshot."
+)
+MENU_SECONDS = 1.0
+LONG_PRESS_DESCRIPTION = (
+    "Press and hold the phone's screen at x, y for one second, in the pixels of the latest "
+    "screenshot, to open a menu such as Paste or a context menu. Returns a screenshot."
+)
 PRESS_KEY_DESCRIPTION = (
-    "Press one of the phone's keys: back, home, enter, delete or recent_apps. Returns a screenshot."
+    "Press one of the phone's keys: back, home, enter, delete, recent_apps, paste, tab, search, "
+    "volume_up or volume_down. paste puts in the text that was last copied on the phone. Returns "
+    "a screenshot."
 )
 
 Pixel = Annotated[int, Field(ge=0)]
@@ -38,6 +49,19 @@ def register(server: MCPServer, phone: Phone) -> None:
     async def tap(x: Pixel, y: Pixel) -> ImageContent:
         async with phone_for_one_call(phone):
             await phone.touch.tap(x, y)
+            return await screen_after_action(phone)
+
+    @server.tool(name="double_tap", description=DOUBLE_TAP_DESCRIPTION)
+    async def double_tap(x: Pixel, y: Pixel) -> ImageContent:
+        async with phone_for_one_call(phone):
+            await phone.touch.double_tap(x, y)
+            return await screen_after_action(phone)
+
+    @server.tool(name="long_press", description=LONG_PRESS_DESCRIPTION)
+    async def long_press(x: Pixel, y: Pixel) -> ImageContent:
+        async with phone_for_one_call(phone):
+            await phone.touch.long_press(x, y)
+            await phone.clock.sleep(MENU_SECONDS)
             return await screen_after_action(phone)
 
     @server.tool(name="swipe", description=SWIPE_DESCRIPTION)

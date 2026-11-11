@@ -1,4 +1,4 @@
-"""The app tools: install an APK from the chat's files, and open an app by its package."""
+"""The app tools: install an APK from the chat's files, open an app by its package, or a link."""
 
 from __future__ import annotations
 
@@ -14,6 +14,11 @@ INSTALL_APP_DESCRIPTION = (
 )
 OPEN_APP_DESCRIPTION = (
     "Open an installed app by its package name, such as com.example.notes. Returns a screenshot."
+)
+OPEN_URL_DESCRIPTION = (
+    "Open a web link on the phone. The app that handles the link opens it, such as Pinduoduo for "
+    "its own links, and otherwise the browser does. Only http and https links. Returns a "
+    "screenshot."
 )
 REINSTALLED = "Reinstalled an app that was already on the phone; its package name is unchanged."
 
@@ -35,4 +40,10 @@ def register(server: MCPServer, phone: Phone) -> None:
     async def open_app(package: str) -> ImageContent:
         async with phone_for_one_call(phone):
             await phone.apps.open(package)
+            return await screen_after_action(phone)
+
+    @server.tool(name="open_url", description=OPEN_URL_DESCRIPTION)
+    async def open_url(url: str) -> ImageContent:
+        async with phone_for_one_call(phone):
+            await phone.apps.open_url(url)
             return await screen_after_action(phone)

@@ -1,6 +1,6 @@
 # 02 A bot manages the phone's apps
 
-**Status.** open
+**Status.** done
 
 **What to build.** `list_apps` (third-party packages), `foreground_app`,
 `terminate_app(package)` (force-stop), `uninstall_app(package)` and
