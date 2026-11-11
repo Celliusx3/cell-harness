@@ -140,7 +140,12 @@ async def test_setup_picks_assistant_a_model_and_a_bot_with_no_model_refuses(app
 
     events = await _say(app, BUILDER_ID)
     assert len(app.provider.requests) == 1
-    assert _last_chunk(events) == {"kind": "failed", "reason": PICK_A_MODEL, "code": None}
+    assert _last_chunk(events) == {
+        "kind": "failed",
+        "reason": PICK_A_MODEL,
+        "code": None,
+        "images_to_hide": None,
+    }
     assert events[-1]["type"] == "turn/end"
 
     removed = await app.client.delete("/api/credentials/first_model")

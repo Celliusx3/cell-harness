@@ -152,6 +152,8 @@ export type SessionEvent =
     }
   /** These results are cleared from the model's view; the log and the screen keep them. */
   | { type: "compaction/prune"; turn: number | null; call_ids: string[] }
+  /** The first `through` images of the chat are hidden from the model; the screen keeps them. */
+  | { type: "images/hidden"; turn: number | null; through: number }
   | ApprovalGrantEvent
   /** The person switched the chat's mode; the latest switch decides what asks. */
   | { type: "approval/mode"; mode: ApprovalMode }

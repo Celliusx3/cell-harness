@@ -5,18 +5,20 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
-from harness.llm import Block, Image, Message, Text, ToolMessage, UserMessage, images_of
+from harness.llm import Block, Message, Text, ToolMessage, UserMessage, images_of
 from harness.prompts import (
     ATTACHED_FILE,
     BOT_MESSAGE_REQUEST,
     BOT_MESSAGE_RESULT,
     CUT_NOTE,
+    IMAGE_HIDDEN,
     IMAGE_NOT_SHOWN,
     NO_RESPONSE,
     PRUNED,
     SPEAKER_TAG,
 )
 from harness.session.compaction import boundary, pruned_ids
+from harness.session.images import ImagesHidden, first_images_noted, hidden_through
 from harness.session.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
@@ -33,8 +35,6 @@ from harness.session.models import (
 from harness.session.speakers import last_speaker, turn_speakers
 
 RESULT_LIMIT = 12_000
-IMAGES_KEPT = 10
-IMAGE_BYTES_KEPT = 12_000_000
 
 BOT_MESSAGE_TEMPLATES: Mapping[BotMessageIntent, str] = {
     "request": BOT_MESSAGE_REQUEST,
@@ -63,6 +63,7 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
     log = tuple(events)
     voices = Voices(turn_speakers(log), _bot_names(log), last_speaker(log))
     pruned = pruned_ids(log)
+    log = _with_images_hidden(log, hidden_through(log))
     messages: list[Message] = []
     start = boundary(log)
     if start is not None:
@@ -71,50 +72,63 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
         messages.append(UserMessage(content=summary.message.content))
         log = log[start + 1 :]
     messages.extend(_as_heard(log, voices, pruned))
-    return _newest_images_only(messages, kept=IMAGES_KEPT, kept_bytes=IMAGE_BYTES_KEPT)
+    return messages
 
 
 def without_images(messages: Sequence[Message]) -> list[Message]:
     """`messages` with every image a note instead."""
-    return _newest_images_only(messages, kept=0, kept_bytes=0)
+    return [
+        first_images_noted(message, len(images_of(message)), IMAGE_NOT_SHOWN)
+        if isinstance(message, (UserMessage, ToolMessage))
+        else message
+        for message in messages
+    ]
 
 
-def _newest_images_only(
-    messages: Sequence[Message], *, kept: int, kept_bytes: int
-) -> list[Message]:
-    """Only the newest images: at most `kept` of them, `kept_bytes` in all; older are notes."""
-    remaining, room, full = kept, kept_bytes, False
-    shown: list[Message] = []
-    for message in reversed(messages):
-        images = images_of(message)
-        keep = 0
-        for image in reversed(images):
-            full = full or remaining == 0 or image.size > room
-            if full:
-                break
-            remaining, room, keep = remaining - 1, room - image.size, keep + 1
-        shown.append(_older_images_dropped(message, len(images) - keep))
-    return shown[::-1]
+def through_hiding(events: Sequence[SessionEvent], count: int) -> int | None:
+    """The smallest hide that shows up to `count` fewer images; `None` when none shows fewer."""
+    lowest, highest = hidden_through(events), _log_image_count(events)
+    shown = _shown_image_count(events, lowest)
+    wanted = min(count, shown - _shown_image_count(events, highest))
+    if wanted <= 0:
+        return None
+    while lowest + 1 < highest:
+        middle = (lowest + highest) // 2
+        if shown - _shown_image_count(events, middle) >= wanted:
+            highest = middle
+        else:
+            lowest = middle
+    return highest
 
 
-def _older_images_dropped(message: Message, dropped: int) -> Message:
-    """`message` with its first `dropped` images each replaced by IMAGE_NOT_SHOWN."""
-    match message:
-        case UserMessage() if dropped:
-            notes = "\n".join([IMAGE_NOT_SHOWN] * dropped)
-            return UserMessage(
-                content=f"{message.content}\n{notes}", images=message.images[dropped:]
-            )
-        case ToolMessage() if dropped:
-            positions = [i for i, block in enumerate(message.content) if isinstance(block, Image)]
-            older = frozenset(positions[:dropped])
-            content = tuple(
-                Text(text=IMAGE_NOT_SHOWN) if index in older else block
-                for index, block in enumerate(message.content)
-            )
-            return ToolMessage(tool_call_id=message.tool_call_id, content=content)
-        case _:
-            return message
+def _shown_image_count(events: Sequence[SessionEvent], through: int) -> int:
+    """How many images the model is shown once the log's first `through` are hidden."""
+    hidden = [*events, ImagesHidden(turn=None, through=through)]
+    return sum(len(images_of(message)) for message in derive_messages(hidden))
+
+
+def _log_image_count(events: Sequence[SessionEvent]) -> int:
+    """Every image the log holds, shown or not."""
+    return sum(
+        len(images_of(event.message))
+        for event in events
+        if isinstance(event, (UserMessageEvent, ToolResultEvent))
+    )
+
+
+def _with_images_hidden(log: tuple[SessionEvent, ...], through: int) -> tuple[SessionEvent, ...]:
+    """`log` with its first `through` images, in log order, each a note instead."""
+    left = through
+    hidden: list[SessionEvent] = []
+    for event in log:
+        if not left or not isinstance(event, (UserMessageEvent, ToolResultEvent)):
+            hidden.append(event)
+            continue
+        count = min(left, len(images_of(event.message)))
+        left -= count
+        noted = first_images_noted(event.message, count, IMAGE_HIDDEN)
+        hidden.append(event.model_copy(update={"message": noted}))
+    return tuple(hidden)
 
 
 def _as_heard(

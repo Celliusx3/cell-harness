@@ -1,4 +1,4 @@
-"""What the model is shown of a history's images: the newest ten, and a note for each older one."""
+"""What the model is shown of a history's images: all of them, but a note for each one hidden."""
 
 from __future__ import annotations
 
@@ -13,13 +13,9 @@ from harness.llm import (
     UserMessage,
     images_of,
 )
-from harness.prompts import IMAGE_NOT_SHOWN
-from harness.session.derive import (
-    IMAGE_BYTES_KEPT,
-    IMAGES_KEPT,
-    derive_messages,
-    without_images,
-)
+from harness.prompts import IMAGE_HIDDEN, IMAGE_NOT_SHOWN
+from harness.session.derive import derive_messages, without_images
+from harness.session.images import ImagesHidden
 from harness.session.models import (
     AssistantMessageEvent,
     SessionEvent,
@@ -35,9 +31,7 @@ FIRST = Image(media_type="image/png", sha256="1" * 64, size=3)
 SECOND = Image(media_type="image/jpeg", sha256="2" * 64, size=3)
 THIRD = Image(media_type="image/webp", sha256="3" * 64, size=3)
 CALL = ToolCall(id="c1", name="srv__snap", arguments="{}")
-PAST_THE_LIMIT = tuple(
-    Image(media_type="image/png", sha256=f"{n:064x}", size=3) for n in range(IMAGES_KEPT + 1)
-)
+MANY = 30
 
 
 def person_then_tool(*, attached: tuple[Image, ...], returned: tuple[Image, ...]) -> list:
@@ -61,62 +55,55 @@ def shown(messages: list[Message]) -> list[Image]:
     return [image for message in messages for image in images_of(message)]
 
 
-def test_the_image_note_is_worded_as_written() -> None:
-    assert IMAGE_NOT_SHOWN == (
-        "[an earlier image, no longer shown: only the newest images are kept]"
+def test_the_image_notes_are_worded_as_written() -> None:
+    assert IMAGE_NOT_SHOWN == "[an image that could not be shown]"
+    assert IMAGE_HIDDEN == (
+        "[This image was removed to reduce the request size and is no longer visible. "
+        "Do not make claims about its contents from memory. If needed, retrieve it again "
+        "with an available tool or ask the user to attach it again.]"
     )
-    assert IMAGES_KEPT == 10
-    assert IMAGE_BYTES_KEPT == 12_000_000
 
 
-def test_images_past_the_byte_budget_become_the_note_even_under_the_count() -> None:
-    big = [
-        Image(media_type="image/png", sha256=f"{n:064x}", size=IMAGE_BYTES_KEPT // 2 + 1)
-        for n in range(3)
-    ]
-    events = person_then_tool(attached=(big[0],), returned=(big[1], big[2]))
-
-    person, _, result = derive_messages(events)
-
-    assert shown([person, result]) == [big[2]]
-    assert person == UserMessage(content=f"look\n{IMAGE_NOT_SHOWN}")
-    assert result.content == (Text(text="shot"), Text(text=IMAGE_NOT_SHOWN), big[2])
-
-
-def test_of_one_image_past_the_limit_only_the_newest_reach_the_model() -> None:
-    oldest, *newest = PAST_THE_LIMIT
-    events = person_then_tool(attached=(oldest,), returned=tuple(newest))
-
-    person, _, result = derive_messages(events)
-
-    assert shown([person, result]) == newest
-    assert person == UserMessage(content=f"look\n{IMAGE_NOT_SHOWN}")
-    assert result.content == (Text(text="shot"), *newest)
-
-
-def test_an_older_image_in_a_result_becomes_the_note_in_its_place() -> None:
-    oldest, *newest = PAST_THE_LIMIT
-    events = person_then_tool(attached=(), returned=PAST_THE_LIMIT)
-
-    _, _, result = derive_messages(events)
-
-    assert result.content == (Text(text="shot"), Text(text=IMAGE_NOT_SHOWN), *newest)
-
-
-def test_the_person_s_older_images_are_dropped_with_a_line_each() -> None:
-    oldest, *newest = PAST_THE_LIMIT
-    events = person_then_tool(attached=PAST_THE_LIMIT, returned=())
-
-    person = derive_messages(events)[0]
-
-    assert person == UserMessage(content=f"look\n{IMAGE_NOT_SHOWN}", images=tuple(newest))
-
-
-def test_up_to_the_limit_every_image_is_shown() -> None:
-    first, *rest = PAST_THE_LIMIT[:IMAGES_KEPT]
+def test_without_a_hide_every_image_is_shown_however_many_or_large() -> None:
+    big = tuple(
+        Image(media_type="image/png", sha256=f"{n:064x}", size=50_000_000) for n in range(MANY)
+    )
+    first, *rest = big
     events = person_then_tool(attached=(first,), returned=tuple(rest))
 
-    assert shown(derive_messages(events)) == [first, *rest]
+    assert shown(derive_messages(events)) == list(big)
+
+
+def test_a_hide_notes_the_log_s_first_images_across_person_and_result() -> None:
+    events = person_then_tool(attached=(FIRST,), returned=(SECOND, THIRD))
+
+    person, _, result = derive_messages([*events, ImagesHidden(turn=0, through=2)])
+
+    assert person == UserMessage(content=f"look\n{IMAGE_HIDDEN}")
+    assert result.content == (Text(text="shot"), Text(text=IMAGE_HIDDEN), THIRD)
+
+
+def test_a_hidden_image_in_a_result_becomes_the_note_in_its_place() -> None:
+    events = person_then_tool(attached=(), returned=(FIRST, SECOND))
+
+    _, _, result = derive_messages([*events, ImagesHidden(turn=0, through=1)])
+
+    assert result.content == (Text(text="shot"), Text(text=IMAGE_HIDDEN), SECOND)
+
+
+def test_the_person_s_hidden_images_are_dropped_with_a_line_each() -> None:
+    events = person_then_tool(attached=(FIRST, SECOND, THIRD), returned=())
+
+    person = derive_messages([*events, ImagesHidden(turn=0, through=2)])[0]
+
+    assert person == UserMessage(content=f"look\n{IMAGE_HIDDEN}\n{IMAGE_HIDDEN}", images=(THIRD,))
+
+
+def test_a_smaller_hide_after_a_larger_one_brings_nothing_back() -> None:
+    events = person_then_tool(attached=(FIRST,), returned=(SECOND, THIRD))
+    hides = [ImagesHidden(turn=0, through=2), ImagesHidden(turn=0, through=1)]
+
+    assert shown(derive_messages([*events, *hides])) == [THIRD]
 
 
 def test_the_same_log_derives_the_same_request() -> None:
