@@ -1,6 +1,6 @@
 # 01 Android boots in a microVM on this Mac
 
-**Status.** open
+**Status.** done
 
 **What to build.** `mcp-servers/phone/kernel/config-android`, a kernel config
 fragment that turns on binder and binderfs. `mcp-servers/phone/kernel/build`

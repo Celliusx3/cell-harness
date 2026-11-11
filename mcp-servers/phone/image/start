@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Adapted from kindling's prototypes/android/image/android-launch.sh (Apache-2.0).
+set -euo pipefail
+
+ROOT=/android
+STATE=/run/phone
+WIDTH="${PHONE_WIDTH:-720}"
+HEIGHT="${PHONE_HEIGHT:-1280}"
+DPI="${PHONE_DPI:-320}"
+
+fail() { echo "phone-start: $*" >&2; echo "failed: $*" > "$STATE/state"; exit 1; }
+
+namespaces() {
+  mkdir -p "$STATE"
+  grep -qw binder /proc/filesystems || fail "the kernel has no binderfs"
+  echo booting > "$STATE/state"
+  exec unshare --mount --pid --fork --kill-child --ipc --uts --net --propagation private -- "$0" --android
+}
+
+mount_android() {
+  mount --bind "$ROOT" "$ROOT"
+  mkdir -p "$ROOT/proc" "$ROOT/sys" "$ROOT/dev" "$ROOT/data"
+  mount -t proc proc "$ROOT/proc"
+  mount -t sysfs -o rw,nosuid,nodev,noexec sysfs "$ROOT/sys"
+  mount -t cgroup2 cgroup2 "$ROOT/sys/fs/cgroup" || true
+  mount -t tmpfs -o mode=0755,nosuid tmpfs "$ROOT/dev"
+  cp -ax /dev/. "$ROOT/dev/" 2>/dev/null || true
+  mkdir -p "$ROOT/dev/pts" "$ROOT/dev/shm" "$ROOT/dev/binderfs"
+  mount -t devpts -o newinstance,ptmxmode=0666,mode=0620,gid=5 devpts "$ROOT/dev/pts"
+  rm -f "$ROOT/dev/ptmx"; ln -s pts/ptmx "$ROOT/dev/ptmx"
+  mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs "$ROOT/dev/shm"
+  mount -t binder binder "$ROOT/dev/binderfs"
+  for device in binder hwbinder vndbinder; do
+    chmod 0666 "$ROOT/dev/binderfs/$device"
+    ln -sf "binderfs/$device" "$ROOT/dev/$device"
+  done
+  mount -t tmpfs -o mode=0771,uid=1000,gid=1000 tmpfs "$ROOT/data"
+}
+
+boot_android() {
+  mount_android
+  cd "$ROOT"
+  mkdir -p .host
+  pivot_root . .host
+  cd /
+  /.host/lib/ld-linux-aarch64.so.1 --library-path /.host/lib/aarch64-linux-gnu /.host/bin/umount -l /.host
+  exec -c /init qemu=1 androidboot.hardware=redroid \
+    "androidboot.redroid_width=$WIDTH" "androidboot.redroid_height=$HEIGHT" \
+    "androidboot.redroid_dpi=$DPI" androidboot.redroid_gpu_mode=guest \
+    androidboot.use_memfd=true ro.setupwizard.mode=DISABLED
+}
+
+case "${1:-}" in
+  --android) boot_android ;;
+  "") namespaces ;;
+  *) echo "usage: $0" >&2; exit 2 ;;
+esac
