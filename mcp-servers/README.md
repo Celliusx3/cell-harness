@@ -85,9 +85,10 @@ In the Mac app: command `python3`, arguments `-c`,
 `MSB_HOME=~/.cell-harness/msb`. A PC that cannot start shows why on its row.
 
 The phone is added the same way, named `phone`. Its kernel is the
-`libkrunfw.5.dylib` from the latest `phone-kernel-*` release (or
-`mcp-servers/phone/kernel/build <folder>`), and `PHONE_KERNEL_SHA256` is that
-release's digest. The image is the one the `phone` workflow published, pinned
+`libkrunfw.5.dylib` from the latest `phone-kernel-*` release, and
+`PHONE_KERNEL_SHA256` is that release's digest; `mcp-servers/phone/kernel/build
+<folder>` builds one here, whose digest differs from GitHub's because the
+compilers do. The image is the one the `phone` workflow published, pinned
 by digest in `phone/config.py`; `PHONE_IMAGE` overrides it. In `make dev`:
 command `uv`, arguments `run`, `--quiet`, `--project`, `../mcp-servers/phone`,
 `phone`, settings `PHONE_KERNEL`, `PHONE_KERNEL_SHA256`,

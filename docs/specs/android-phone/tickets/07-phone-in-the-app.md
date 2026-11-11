@@ -1,6 +1,6 @@
 # 07 The Mac app ships the phone
 
-**Status.** open
+**Status.** done
 
 **What to build.** `desktop/scripts/bundle.sh` adds `phone` to `SERVERS`, and
 bundles the pinned kernel with it. The app's config declares the phone server.

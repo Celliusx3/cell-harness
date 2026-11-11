@@ -1,6 +1,6 @@
 # 06 GitHub builds the phone's kernel and image, and publishes the kernel's source
 
-**Status.** open
+**Status.** done
 
 **What to build.** `.github/workflows/phone.yml` runs
 `mcp-servers/phone/kernel/build` on a macOS arm64 runner, and publishes the
