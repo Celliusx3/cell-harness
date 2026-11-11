@@ -8,13 +8,19 @@ from dataclasses import dataclass, field
 import httpx
 import pytest
 
-from harness.llm import AssistantMessage, Image, UserMessage
+from harness.llm import AssistantMessage, Failed, Image, UserMessage
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runtime.service import Runtime
 from harness.session.images import ImagesHidden
 from harness.session.log import Session
-from harness.session.models import AssistantMessageEvent, TurnEnd, TurnStart, UserMessageEvent
+from harness.session.models import (
+    AssistantChunk,
+    AssistantMessageEvent,
+    TurnEnd,
+    TurnStart,
+    UserMessageEvent,
+)
 from tests.unit.fakes import OneModel
 from tests.unit.helpers import new_session, no_images
 from tests.unit.test_openai_adapter import delta, settings, sse
@@ -143,3 +149,12 @@ async def test_hidden_images_stay_hidden_on_a_model_that_sees_more(provider) -> 
 
     shown = sum(len(message.images) for message in roomy if isinstance(message, UserMessage))
     assert shown == 25 - hide.through
+
+
+async def test_a_hide_leaves_no_failure_in_the_chat(provider) -> None:
+    session = _with_pages(new_session(), range(25))
+
+    await _turn(_runtime(), session, "next")
+
+    chunks = [e.chunk for e in session.events() if isinstance(e, AssistantChunk)]
+    assert [chunk for chunk in chunks if isinstance(chunk, Failed)] == []

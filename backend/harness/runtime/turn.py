@@ -15,6 +15,7 @@ from harness.llm import (
     AssistantMessage,
     Completed,
     Failed,
+    StreamEvent,
     TextChunk,
     ToolCallChunk,
 )
@@ -171,7 +172,7 @@ async def _stream_reply(
             choice.client.stream_completion(messages, choice.model, tools=specs)
         ) as stream:
             async for event in stream:
-                session.append(AssistantChunk(turn=at.turn, step=at.step, chunk=event))
+                _log_chunk(session, event, at=at)
                 if isinstance(event, TextChunk):
                     partial += event.text
                     yield event
@@ -214,6 +215,13 @@ async def _failure_or_retry(
     if failure.code == IMAGES_OVER_LIMIT and _hide_images(session, failure, turn=turn):
         return RetryStep()
     return failure
+
+
+def _log_chunk(session: Session, event: StreamEvent, *, at: TurnStep) -> None:
+    """Log `event`, unless it is the adapter's own refusal of a request it never sent."""
+    if isinstance(event, Failed) and event.images_to_hide is not None:
+        return
+    session.append(AssistantChunk(turn=at.turn, step=at.step, chunk=event))
 
 
 def _hide_images(session: Session, failure: Failed, *, turn: int) -> bool:
