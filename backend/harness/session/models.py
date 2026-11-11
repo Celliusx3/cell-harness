@@ -18,6 +18,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
+from harness.session.images import ImagesHidden
 from harness.tools import ApprovalMode, ToolUi
 
 SESSION_FORMAT_VERSION = 1
@@ -246,6 +247,7 @@ SessionEvent = (
     | CompactionStart
     | CompactionEnd
     | CompactionPrune
+    | ImagesHidden
     | ApprovalGrant
     | ApprovalModeChanged
     | BotInstructionsEvent

@@ -1,6 +1,6 @@
 # 02 · Old images are hidden in logged blocks that never come back
 
-**Status.** open
+**Status.** done
 
 **What to build.** A new session event `ImagesHidden`, type `images/hidden`, with `turn` and `through: int`. It means "the first `through` images of the chat's log are hidden". Images count in log order, across person messages and tool results. The largest `through` in the log wins, so a hide never comes back. Its fold lives beside the event in a new `session/images.py`, as compaction's do.
 

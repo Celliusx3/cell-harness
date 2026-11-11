@@ -48,8 +48,9 @@ class Completed(BaseModel):
     usage: Usage | None = None
 
 
-FailureCode = Literal["context_window_exceeded"]
+FailureCode = Literal["context_window_exceeded", "images_over_limit"]
 CONTEXT_WINDOW_EXCEEDED: FailureCode = "context_window_exceeded"
+IMAGES_OVER_LIMIT: FailureCode = "images_over_limit"
 
 
 class Failed(BaseModel):
@@ -60,6 +61,7 @@ class Failed(BaseModel):
     kind: Literal["failed"] = "failed"
     reason: str
     code: FailureCode | None = None
+    images_to_hide: int | None = None
 
 
 StreamEvent = TextChunk | ToolCallChunk | Completed | Failed

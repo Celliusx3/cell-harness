@@ -13,6 +13,7 @@ from harness.llm.models.messages import (
 )
 from harness.llm.models.stream import (
     CONTEXT_WINDOW_EXCEEDED,
+    IMAGES_OVER_LIMIT,
     Completed,
     Failed,
     StreamEvent,
@@ -24,6 +25,7 @@ from harness.llm.models.tools import ExtraContent, ToolCall, ToolSpec
 
 __all__ = [
     "CONTEXT_WINDOW_EXCEEDED",
+    "IMAGES_OVER_LIMIT",
     "ApplicationMessage",
     "AssistantMessage",
     "Block",

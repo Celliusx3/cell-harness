@@ -9,6 +9,7 @@ import httpx
 from pydantic import ValidationError
 
 from harness.llm.adapters.openai._errors import failure_code
+from harness.llm.adapters.openai._image_limit import image_lengths, images_to_hide
 from harness.llm.adapters.openai._request import openai_messages, request_body
 from harness.llm.adapters.openai._streaming import chunks_of
 from harness.llm.adapters.openai._tool_calls import ToolCallAssembler
@@ -18,6 +19,7 @@ from harness.llm.client import LLMClient
 from harness.llm.models.blocks import Image
 from harness.llm.models.messages import Message, images_of
 from harness.llm.models.stream import (
+    IMAGES_OVER_LIMIT,
     Completed,
     Failed,
     StreamEvent,
@@ -69,6 +71,14 @@ class OpenAIClient(LLMClient):
             tools,
             settings.temperature,
         )
+        to_hide = images_to_hide(image_lengths(body))
+        if to_hide:
+            yield Failed(
+                reason=f"the request carries too many images: {to_hide} must be hidden",
+                code=IMAGES_OVER_LIMIT,
+                images_to_hide=to_hide,
+            )
+            return
 
         accumulated = ""
         usage: Usage | None = None

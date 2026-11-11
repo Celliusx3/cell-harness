@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from harness.llm import (
     CONTEXT_WINDOW_EXCEEDED,
+    IMAGES_OVER_LIMIT,
     ApplicationMessage,
     AssistantMessage,
     Completed,
@@ -30,6 +31,8 @@ from harness.runtime.hooks import GiveUp, Tell
 from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.runtime.tool_run import run_tool_calls
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
+from harness.session.derive import through_hiding
+from harness.session.images import ImagesHidden
 from harness.session.log import Session
 from harness.session.models import (
     ApplicationMessageEvent,
@@ -208,7 +211,20 @@ async def _failure_or_retry(
         runtime, session, turn=turn, trigger="overflow"
     ):
         return RetryStep()
+    if failure.code == IMAGES_OVER_LIMIT and _hide_images(session, failure, turn=turn):
+        return RetryStep()
     return failure
+
+
+def _hide_images(session: Session, failure: Failed, *, turn: int) -> bool:
+    """Log a hide of as many more images as `failure` asks: `True` when one more could go."""
+    if failure.images_to_hide is None:
+        return False
+    through = through_hiding(session.events(), failure.images_to_hide)
+    if through is None:
+        return False
+    session.append(ImagesHidden(turn=turn, through=through))
+    return True
 
 
 def _log_interrupted_reply(session: Session, partial: str, *, turn: int, step: int) -> None:
