@@ -95,3 +95,10 @@ Android 15's compatibility definition requires 816 MB on a phone; Android Go's 5
 applies only to 8.1–10, which Redroid cannot boot on current kernels. Every option
 costs more than the desktop's 0.6 GB, so mobile websites go through phase 17's
 browser and a phone waits until a bot needs a native app.
+
+**Revisited 2026-11-11 (#65).** Selling native-app use reopened it. Redroid 13
+in a microsandbox microVM, on a libkrunfw rebuilt with binder, measured 0.76 GiB
+idle and 0.89 GiB with an app open (the row above). One phone every bot shares
+fits on an 8 GB Mac beside the desktop, so that is built; a phone per bot is
+still no. [docs/specs/android-phone/](./specs/android-phone/spec.md) has the
+spec and the experiment.

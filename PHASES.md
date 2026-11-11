@@ -567,7 +567,7 @@ duplicates one, delivery reaches the chat, and creating a routine asks first. A
 **Later, not phases yet.**
 - A computer per conversation or per agent — the harness must first pass the
   conversation on an MCP call.
-- A phone per bot — declined in the decision gates below.
+- A phone per bot — declined in the decision gates below; one phone every bot shares is built ([docs/specs/android-phone](./docs/specs/android-phone/spec.md)).
 
 ---
 
@@ -581,3 +581,4 @@ duplicates one, delivery reaches the chat, and creating a routine asks first. A
 | Phase 17 | Where the computer runs | ~~This machine, in Docker~~ **This machine, in a microVM that ships with the app** (microsandbox, chosen 2026-11-07 so that people who download the app install nothing; Docker stays as `COMPUTER_ENGINE=docker`). Docker was chosen 2026-10-12 over a Boat cloud computer; on a server, the whole harness moves with it |
 | Phase 19 | Which vision model | **None** — the phase does not start until `llm` points at a model that accepts images |
 | — | A phone per bot | **No** — 0.8–3.2 GB per phone measured against 0.6 GB for the desktop ([docs/rakazo.md §5](./docs/rakazo.md)); mobile websites go through phase 17's browser |
+| — | One phone every bot shares | **Yes** (2026-11-11, #65) — Redroid 13 in a microsandbox microVM on our own kernel with binder holds 0.76 GiB idle and 0.89 GiB with an app open, off until a bot uses it and stopped when idle ([experiment](./docs/specs/android-phone/experiment.md)); apps come from APK files, no Google Play |

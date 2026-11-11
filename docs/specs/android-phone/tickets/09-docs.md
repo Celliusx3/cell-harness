@@ -1,6 +1,6 @@
 # 09 The plan and the docs describe the phone
 
-**Status.** open
+**Status.** done
 
 **What to build.** PHASES.md's "A phone per bot" line becomes "one shared
 phone: yes", with ticket 02's figures. `mcp-servers/README.md` lists the phone
