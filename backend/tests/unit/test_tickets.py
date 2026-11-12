@@ -1,0 +1,64 @@
+"""A ticket whose worker breaks, whose bot is gone, or whose server shuts down."""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import UTC, datetime
+
+from harness.tickets import Ticket, TicketRepository, TicketService, WorkerEnd
+from harness.tools import ApprovalMode
+from tests.unit.fakes import ScriptedClient
+from tests.unit.helpers import durable_service, heard_nowhere, no_bots, run_service
+
+
+def tickets_on(tmp_path, worker) -> TicketService:
+    service = durable_service(tmp_path / "sessions")
+    bots = no_bots(service)
+    return TicketService(
+        TicketRepository(tmp_path / "tickets.json"),
+        bots,
+        run_service(service, ScriptedClient([]), bots=bots),
+        worker=worker,
+        follow=heard_nowhere,
+        now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
+    )
+
+
+async def until_ended(tickets: TicketService, bot_id: str) -> Ticket:
+    for _ in range(200):
+        (ticket,) = tickets.of_bot(bot_id)
+        if ticket.state != "working":
+            return ticket
+        await asyncio.sleep(0.01)
+    raise AssertionError("the ticket never ended")
+
+
+async def test_a_worker_that_breaks_fails_its_ticket_and_a_gone_bot_hears_nothing(
+    tmp_path,
+) -> None:
+    async def broken(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+        raise RuntimeError("kaboom")
+
+    tickets = tickets_on(tmp_path, broken)
+    tickets.accept(bot_id="gone", title="T", task="do it", mode="auto")
+
+    assert (await until_ended(tickets, "gone")).state == "failed"
+    await tickets.aclose()
+
+
+async def test_shutting_down_cancels_a_running_worker_and_leaves_its_ticket_working(
+    tmp_path,
+) -> None:
+    started = asyncio.Event()
+
+    async def hangs(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+        started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    tickets = tickets_on(tmp_path, hangs)
+    tickets.accept(bot_id="b", title="T", task="do it", mode="auto")
+    await started.wait()
+    await tickets.aclose()
+
+    assert [t.state for t in tickets.of_bot("b")] == ["working"]

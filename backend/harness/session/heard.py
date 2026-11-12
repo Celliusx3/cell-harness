@@ -1,4 +1,4 @@
-"""The messages that open a turn without the person typing: another bot's, or schedules due."""
+"""The messages that open a turn without the person typing: a bot's, schedules due, a ticket's."""
 
 from __future__ import annotations
 
@@ -66,4 +66,24 @@ class ScheduleReminderEvent(BaseModel):
     reminders: tuple[ScheduleReminder, ...] = Field(min_length=1)
 
 
-HeardMessage = BotMessage | ScheduleReminders
+class TicketReport(BaseModel):
+    """How a ticket's worker ended: which ticket, its title, and the text its bot is told."""
+
+    model_config = ConfigDict(frozen=True)
+
+    ticket_id: str
+    title: str
+    text: str
+
+
+class TicketReportEvent(BaseModel):
+    """A ticket's worker ending, in the chat of the bot that started it, opening the next turn."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["ticket/report"] = "ticket/report"
+    turn: int
+    report: TicketReport
+
+
+HeardMessage = BotMessage | ScheduleReminders | TicketReport

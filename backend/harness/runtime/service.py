@@ -37,6 +37,8 @@ from harness.session.models import (
     HeardMessage,
     ScheduleReminderEvent,
     ServerInstructionsEvent,
+    TicketReport,
+    TicketReportEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
@@ -238,8 +240,12 @@ def _waiting_call(session: Session, call_id: str) -> ToolCall:
     raise LookupError(f"no unanswered call {call_id!r}")
 
 
-def _opening_event(turn: int, message: HeardMessage) -> BotMessageEvent | ScheduleReminderEvent:
+def _opening_event(
+    turn: int, message: HeardMessage
+) -> BotMessageEvent | ScheduleReminderEvent | TicketReportEvent:
     """The event that logs what opened turn `turn`."""
     if isinstance(message, BotMessage):
         return BotMessageEvent(turn=turn, message=message)
+    if isinstance(message, TicketReport):
+        return TicketReportEvent(turn=turn, report=message)
     return ScheduleReminderEvent(turn=turn, reminders=message.reminders)

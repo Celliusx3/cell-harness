@@ -28,7 +28,9 @@ from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tickets import Ticket, TicketRepository, TicketService, WorkerEnd
 from harness.tools import (
+    ApprovalMode,
     ApprovalService,
     CallOrigin,
     Tool,
@@ -222,6 +224,23 @@ def no_links() -> ChatLinks:
 
 async def heard_nowhere(_run: Run) -> None:
     """A `follow` for an app with no chat app to hear a turn it did not start."""
+
+
+async def no_worker(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+    """A ticket's worker for an app that offers no `ticket_accept`: it never runs."""
+    raise AssertionError(f"a test started ticket {ticket.id} without a worker")
+
+
+def no_tickets(tmp_path: Path, bots: BotService, runs: RunService) -> TicketService:
+    """Tickets kept under `tmp_path`, for an app whose bots are offered no `ticket_accept`."""
+    return TicketService(
+        TicketRepository(tmp_path / "tickets.json"),
+        bots,
+        runs,
+        worker=no_worker,
+        follow=heard_nowhere,
+        now=lambda: datetime.now(UTC),
+    )
 
 
 async def link_to_assistant(chats: ChatRepository, channel: str, chat_id: str) -> None:

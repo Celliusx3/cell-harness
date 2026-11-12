@@ -249,3 +249,16 @@ NOTHING_CAME_BACK = (
     "The script ran but returned nothing and printed nothing, so nothing came "
     "back to you — no data has been fetched."
 )
+
+WORKER_INTRO = (
+    "You are a worker. The orchestrator gave you one ticket, titled {title}, to do on your "
+    "own in the background. Nobody reads your questions, so do not ask any. Do the ticket "
+    "with your tools, then reply with its result in a few sentences. That reply is all the "
+    "orchestrator receives."
+)
+TICKET_REPORT = (
+    '<ticket id="{ticket_id}" title="{title}">\n{text}\n</ticket>\n'
+    "This is the result of the ticket you started with ticket_accept. Tell the user what it "
+    "means for them, in a few sentences."
+)
+TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."

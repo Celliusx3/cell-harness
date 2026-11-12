@@ -47,6 +47,7 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.skills.controller import build_router as build_skills_router
+from harness.tickets import TicketRepository, TicketService
 from harness.tools import ApprovalService
 from harness.tools.approvals_controller import build_router as build_approvals_router
 from harness.tools.client import ClientToolService
@@ -56,6 +57,7 @@ from harness.web.runtime import (
     CLIENT_TOOLS,
     attach_bot_messages,
     attach_schedules,
+    attach_tickets,
     build_runtime,
 )
 
@@ -157,6 +159,7 @@ def create_web_app() -> FastAPI:
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=app_events,
     )
+    subagent_logs = build_subagent_logs(settings)
     runtime = build_runtime(
         settings,
         service,
@@ -165,7 +168,7 @@ def create_web_app() -> FastAPI:
         client_tools,
         approvals,
         bots=bots,
-        subagent_logs=build_subagent_logs(settings),
+        subagent_logs=subagent_logs,
         secrets=secrets,
         images=images,
         files=files,
@@ -179,6 +182,16 @@ def create_web_app() -> FastAPI:
         runtime.tools.tool_service, bots, runs, follow=channels.gateway.follow
     )
     now = functools.partial(datetime.now, UTC)
+    tickets = attach_tickets(
+        runtime.tools.tool_service,
+        runtime,
+        bots,
+        runs,
+        logs=subagent_logs,
+        repository=TicketRepository(settings.tickets.path),
+        follow=channels.gateway.follow,
+        now=now,
+    )
     schedules = ScheduleService(ScheduleRepository(settings.schedules.path), now=now)
     attach_schedules(runtime.tools.tool_service, bots, schedules)
     scheduler = Scheduler(schedules, bots, runs, follow=channels.gateway.follow, now=now)
@@ -193,6 +206,7 @@ def create_web_app() -> FastAPI:
         bots,
         secrets,
         messages,
+        tickets,
         schedules,
         scheduler,
     )
@@ -209,6 +223,7 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
+    tickets: TicketService,
     schedules: ScheduleService,
     scheduler: Scheduler,
 ) -> FastAPI:
@@ -226,6 +241,7 @@ def create_app(
         await gateway.aclose()
         await scheduler.aclose()
         await messages.aclose()
+        await tickets.aclose()
         await runs.aclose()
         await mcp.aclose()
 

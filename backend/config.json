@@ -34,6 +34,9 @@
   "schedules": {
     "path": "~/.harness/schedules.json"
   },
+  "tickets": {
+    "path": "~/.harness/tickets.json"
+  },
   "secrets": {
     "path": "~/.harness/secrets.json"
   },

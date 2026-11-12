@@ -25,6 +25,7 @@ from harness.config.sections import (
     ScheduleSettings,
     SecretSettings,
     SessionSettings,
+    TicketSettings,
     WebSettings,
 )
 
@@ -97,6 +98,7 @@ class Settings(BaseSettings):
     approval: ApprovalSettings = Field(default_factory=ApprovalSettings)
     bots: BotSettings = Field(default_factory=BotSettings)
     schedules: ScheduleSettings = Field(default_factory=ScheduleSettings)
+    tickets: TicketSettings = Field(default_factory=TicketSettings)
     secrets: SecretSettings = Field(default_factory=SecretSettings)
     files: FileSettings = Field(default_factory=FileSettings)
 

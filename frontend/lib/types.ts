@@ -122,6 +122,12 @@ export type SessionEvent =
       turn: number;
       reminders: { schedule_id: string; title: string; prompt: string; occurrence_at: string }[];
     }
+  /** A ticket's worker ended; `text` is its result, or why it has none. */
+  | {
+      type: "ticket/report";
+      turn: number;
+      report: { ticket_id: string; title: string; text: string };
+    }
   /** A schedule of this chat's bot was changed from Settings. */
   | {
       type: "schedule/change";

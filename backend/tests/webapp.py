@@ -45,7 +45,7 @@ from harness.tools.client import ClientToolService
 from harness.web.server import Channels, ChannelServices, create_app
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools as default_client_tools
-from tests.unit.helpers import no_approvals, no_bots, no_skills, run_service
+from tests.unit.helpers import no_approvals, no_bots, no_skills, no_tickets, run_service
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
@@ -61,6 +61,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
         schedules={"path": tmp_path / "schedules.json"},
+        tickets={"path": tmp_path / "tickets.json"},
         secrets={"path": tmp_path / "secrets.json", "encryption_key": TEST_ENCRYPTION_KEY},
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
@@ -248,6 +249,7 @@ def web_app(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
+        no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),
     )
@@ -281,6 +283,7 @@ def web_app_with_telegram(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
+        no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),
     )

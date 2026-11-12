@@ -64,6 +64,17 @@ class ScheduleSettings(BaseModel):
         return value.expanduser()
 
 
+class TicketSettings(BaseModel):
+    """Where every bot's tickets are kept."""
+
+    path: Path = Path.home() / ".harness" / "tickets.json"
+
+    @field_validator("path")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
+
+
 class SecretSettings(BaseModel):
     """Where the API keys bots ask for are kept, and the key that locks them."""
 

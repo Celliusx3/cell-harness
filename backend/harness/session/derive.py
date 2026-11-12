@@ -19,6 +19,7 @@ from harness.prompts import (
     SCHEDULE_REMINDER,
     SCHEDULE_REMINDER_BATCH,
     SPEAKER_TAG,
+    TICKET_REPORT,
 )
 from harness.session.change_notes import after_owed_results, change_message
 from harness.session.compaction import boundary, pruned_ids
@@ -34,6 +35,7 @@ from harness.session.models import (
     ScheduleReminder,
     ScheduleReminderEvent,
     SessionEvent,
+    TicketReportEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
@@ -151,7 +153,7 @@ def _as_heard(
             heard = ()
         if isinstance(event, UserMessageEvent):
             yield _person_message(event)
-        elif isinstance(event, (BotMessageEvent, ScheduleReminderEvent)):
+        elif isinstance(event, (BotMessageEvent, ScheduleReminderEvent, TicketReportEvent)):
             yield _opening_message(event)
         elif isinstance(event, ScheduleChangeEvent):
             yield change_message(event)
@@ -190,10 +192,19 @@ def _person_message(event: UserMessageEvent) -> UserMessage:
     return UserMessage(content=f"{event.message.content}\n\n{lines}", images=event.message.images)
 
 
-def _opening_message(event: BotMessageEvent | ScheduleReminderEvent) -> UserMessage:
+def _opening_message(
+    event: BotMessageEvent | ScheduleReminderEvent | TicketReportEvent,
+) -> UserMessage:
     """A turn's opening that is not the person typing, as the bot hears it."""
     if isinstance(event, BotMessageEvent):
         return _bot_message(event.message)
+    if isinstance(event, TicketReportEvent):
+        report = event.report
+        return UserMessage(
+            content=TICKET_REPORT.format(
+                ticket_id=report.ticket_id, title=report.title, text=report.text
+            )
+        )
     return UserMessage(content=_reminders_text(event.reminders))
 
 

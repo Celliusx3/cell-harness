@@ -19,11 +19,12 @@ from harness.llm import (
 )
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.session.heard import BotMessage as BotMessage
-from harness.session.heard import BotMessageEvent, ScheduleReminderEvent
+from harness.session.heard import BotMessageEvent, ScheduleReminderEvent, TicketReportEvent
 from harness.session.heard import BotMessageIntent as BotMessageIntent
 from harness.session.heard import HeardMessage as HeardMessage
 from harness.session.heard import ScheduleReminder as ScheduleReminder
 from harness.session.heard import ScheduleReminders as ScheduleReminders
+from harness.session.heard import TicketReport as TicketReport
 from harness.session.images import ImagesHidden
 from harness.session.schedule_change import ScheduleChange as ScheduleChange
 from harness.session.schedule_change import ScheduleChangeEvent
@@ -223,6 +224,7 @@ SessionEvent = (
     | UserMessageEvent
     | BotMessageEvent
     | ScheduleReminderEvent
+    | TicketReportEvent
     | ScheduleChangeEvent
     | ApplicationMessageEvent
     | AssistantChunk
