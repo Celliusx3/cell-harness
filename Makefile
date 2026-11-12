@@ -55,12 +55,12 @@ test-unit:
 test-integration:
 	$(BACKEND) pytest tests/integration --no-cov
 
-MCP_SERVERS = mcp-servers/instagram mcp-servers/places mcp-servers/markets mcp-servers/computer mcp-servers/phone
+MCP_SERVERS = mcp-servers/computer mcp-servers/phone
 
 test-mcp-servers:
 	@for s in $(MCP_SERVERS); do (cd $$s && uv run pytest) || exit 1; done
 
-SKILL_SCRIPTS = .agents/skills/translate-comic/scripts
+SKILL_SCRIPTS = $(wildcard .agents/skills/*/scripts)
 
 test-skills:
 	@for s in $(SKILL_SCRIPTS); do (cd $$s && PYTHONDONTWRITEBYTECODE=1 uv run pytest) || exit 1; done

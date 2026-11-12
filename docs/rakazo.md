@@ -31,7 +31,7 @@ view; phase 19 copies the two about screenshots:
 ## 2. The computer image
 
 The PC no longer runs this image. Ours is built from scratch in
-`mcp-servers/computer/image/` (`docs/specs/pc-image/`); this section is kept as the
+`mcp-servers/computer/image/` (`git show db9b326:docs/specs/pc-image/spec.md`); this section is kept as the
 teardown of Rakazo's.
 
 `ghcr.io/elie222/rakazo/computer` (Debian, ~2 GB) runs Xvfb, fluxbox, Chromium and
@@ -90,7 +90,7 @@ them end to end, then measured the lighter options:
 | The same, resumed from its snapshot | 3.0–3.2 GB | |
 | Redroid 15 in a Lima VM, idle / with a page open | 0.8 / 1.25 GB | the VM costs the Mac its whole limit once touched |
 | A slimmed Redroid 13 ([kindling](https://github.com/juan52878911/kindling)) | 803 MiB | one source; the floor is ~345 MiB of system processes |
-| Redroid 13 in a microsandbox microVM, idle / with an app open | 0.76 / 0.89 GiB | measured in the guest, 2026-11-11; the Mac holds 0.44–1.28 GiB as macOS reclaims pages ([experiment](./specs/android-phone/experiment.md)) |
+| Redroid 13 in a microsandbox microVM, idle / with an app open | 0.76 / 0.89 GiB | measured in the guest, 2026-11-11; the Mac holds 0.44–1.28 GiB as macOS reclaims pages (`git show db9b326:docs/specs/android-phone/experiment.md`) |
 
 Android 15's compatibility definition requires 816 MB on a phone; Android Go's 512 MB
 applies only to 8.1–10, which Redroid cannot boot on current kernels. Every option
@@ -101,5 +101,5 @@ browser and a phone waits until a bot needs a native app.
 in a microsandbox microVM, on a libkrunfw rebuilt with binder, measured 0.76 GiB
 idle and 0.89 GiB with an app open (the row above). One phone every bot shares
 fits on an 8 GB Mac beside the desktop, so that is built; a phone per bot is
-still no. [docs/specs/android-phone/](./specs/android-phone/spec.md) has the
-spec and the experiment.
+still no. `git show db9b326:docs/specs/android-phone/spec.md` has the
+spec, and `git show db9b326:docs/specs/android-phone/experiment.md` the experiment.

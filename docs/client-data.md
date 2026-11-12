@@ -223,7 +223,7 @@ is stopped midway.
   dispatch answers `Pending` only in Ask, so in Auto the model's calls and its
   scripts' calls run with no card. Questions such as `get_location` answer
   `Pending` from their own tool, so they still wait. Spec in
-  `docs/specs/chat-modes/`.
+  `git show db9b326:docs/specs/chat-modes/spec.md`.
 - **Three answers, three scopes.** `{"kind": "approved", "scope": "once" |
   "conversation" | "always"}` or `{"kind": "denied"}`, posted to the same
   `POST …/calls/{call_id}/output`. `once` runs the call. `conversation` first

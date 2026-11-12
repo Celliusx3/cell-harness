@@ -1,7 +1,7 @@
 import { ApiError, detailOf, request } from "./api";
 
 /** The one https origin a custom key may be sent to, and how that site takes the key. */
-export interface Destination {
+interface Destination {
   origin: string;
   auth: "bearer" | "header";
   header_name: string | null;

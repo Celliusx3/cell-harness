@@ -11,7 +11,7 @@ export type Attachment =
   | { kind: "uploaded"; key: number; name: string; stored: ChatFile }
   | { kind: "failed"; key: number; name: string; reason: string };
 
-export interface Attachments {
+interface Attachments {
   items: Attachment[];
   /** True while any file is still on its way up. */
   uploading: boolean;

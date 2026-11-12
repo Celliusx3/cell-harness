@@ -5,7 +5,7 @@ import type { Answer, ContentBlock } from "@/lib/types";
 
 export const ASK_USER = "ask_user";
 
-export interface Question {
+interface Question {
   question: string;
   options: string[];
 }

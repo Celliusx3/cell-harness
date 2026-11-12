@@ -29,7 +29,7 @@ export type ServerField = "name" | "command" | "argumentLines" | "settings" | "n
 export type FieldErrors = Partial<Record<ServerField, string[]>>;
 
 /** The request the form makes, or the errors that keep it from being sent. */
-export type Built<Request> = { ok: true; request: Request } | { ok: false; errors: FieldErrors };
+type Built<Request> = { ok: true; request: Request } | { ok: false; errors: FieldErrors };
 
 const FIELD_OF_REQUEST_KEY = new Map<string, ServerField>([
   ["id", "name"],
@@ -55,7 +55,7 @@ export function initialServerForm(server: McpServer | null): ServerForm {
 }
 
 /** One argument per line, as typed; a blank line is dropped. */
-export function parseArgumentLines(text: string): string[] {
+function parseArgumentLines(text: string): string[] {
   return text.split(/\r?\n/).filter((line) => line.trim() !== "");
 }
 
