@@ -163,7 +163,7 @@ has no login. So the microsandbox VM is made with a deny-by-default network: DNS
 public internet, and the Mac only on the ports where the skills' host services
 listen. A PC made with other rules is rebuilt; its home volume keeps the files.
 OpenMausBot's gate and Rakazo's restricted mode block the same addresses.
-`docs/specs/pc-center/spec.md`.
+`git show db9b326:docs/specs/pc-center/spec.md`.
 
 **Prompt assembly cannot raise.** The TypeScript printer degrades an unprintable
 schema to `unknown` rather than raising, because one odd server schema would

@@ -44,11 +44,3 @@ class ChatRepository(Protocol):
     async def chats_of(self, conversation_id: str) -> list[ChatState]:
         """Every chat currently pointing at this conversation."""
         ...
-
-    async def cursor(self, channel: str) -> str:
-        """Where this platform's ingress got to, or `""` if it has not started."""
-        ...
-
-    async def set_cursor(self, channel: str, value: str) -> None:
-        """Record how far the ingress has got."""
-        ...

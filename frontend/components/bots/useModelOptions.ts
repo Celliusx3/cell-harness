@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "@/lib/api";
 import { listCredentials, modelOptions, type ModelOption } from "@/lib/credentials";
 
-export type ModelOptions =
+type ModelOptions =
   | { kind: "loading" }
   | { kind: "loaded"; options: ModelOption[] }
   | { kind: "failed"; message: string };

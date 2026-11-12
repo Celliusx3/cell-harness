@@ -1,8 +1,7 @@
-"""Chat state as one JSON file per chat, plus one cursor file per channel."""
+"""Chat state as one JSON file per chat."""
 
 from __future__ import annotations
 
-import json
 import os
 import re
 from pathlib import Path
@@ -21,9 +20,6 @@ class JsonlChatRepository:
     def _path(self, channel: str, chat_id: str) -> Path:
         return self._root / f"{_safe(channel)}-{_safe(chat_id)}.json"
 
-    def _cursor_path(self, channel: str) -> Path:
-        return self._root / f"{_safe(channel)}-cursor.json"
-
     async def load(self, channel: str, chat_id: str) -> ChatState | None:
         path = self._path(channel, chat_id)
         if not path.exists():
@@ -40,8 +36,6 @@ class JsonlChatRepository:
     async def chats_of(self, conversation_id: str) -> list[ChatState]:
         found: list[ChatState] = []
         for path in sorted(self._root.glob("*-*.json")):
-            if path.name.endswith("-cursor.json"):
-                continue
             try:
                 state = ChatState.model_validate_json(path.read_text(encoding="utf-8"))
             except (OSError, ValueError):
@@ -49,18 +43,6 @@ class JsonlChatRepository:
             if state.conversation_id == conversation_id:
                 found.append(state)
         return found
-
-    async def cursor(self, channel: str) -> str:
-        path = self._cursor_path(channel)
-        if not path.exists():
-            return ""
-        try:
-            return str(json.loads(path.read_text(encoding="utf-8"))["cursor"])
-        except (OSError, ValueError, KeyError, TypeError) as err:
-            raise ChatStateError(f"cannot read cursor at {path}: {err}") from err
-
-    async def set_cursor(self, channel: str, value: str) -> None:
-        _write_atomic(self._root, self._cursor_path(channel), json.dumps({"cursor": value}))
 
 
 def _safe(value: str) -> str:

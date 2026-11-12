@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 const SECOND_MS = 1000;
 
 /** Whole seconds as "m:ss", with minutes uncapped: "0:07", "1:12", "12:05". */
-export function elapsedLabel(milliseconds: number): string {
+function elapsedLabel(milliseconds: number): string {
   const seconds = Math.floor(Math.max(0, milliseconds) / SECOND_MS);
   const minutes = Math.floor(seconds / 60);
   return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;

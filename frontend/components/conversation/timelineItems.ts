@@ -84,13 +84,13 @@ export interface CompactionItem {
   pending: boolean;
 }
 
-export interface InstructionsItem {
+interface InstructionsItem {
   kind: "instructions";
   key: string;
 }
 
 /** The person switched the chat's mode here. */
-export interface ModeItem {
+interface ModeItem {
   kind: "mode";
   key: string;
   mode: ApprovalMode;

@@ -147,7 +147,6 @@ async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None
     await chats.save(ChatState(channel="telegram", chat_id="1", conversation_id="c0"))
     await chats.save(ChatState(channel="discord", chat_id="9", conversation_id="c0"))
     await chats.save(ChatState(channel="telegram", chat_id="2", conversation_id="c1"))
-    await chats.set_cursor("telegram", "77")
 
     found = await chats.chats_of("c0")
     assert sorted((s.channel, s.chat_id) for s in found) == [("discord", "9"), ("telegram", "1")]
