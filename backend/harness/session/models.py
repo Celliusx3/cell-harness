@@ -106,17 +106,30 @@ class ScheduleReminder(BaseModel):
     occurrence_at: datetime
 
 
+class ScheduleReminders(BaseModel):
+    """The schedules due together in one bot's chat, in the order they were made."""
+
+    model_config = ConfigDict(frozen=True)
+
+    reminders: tuple[ScheduleReminder, ...] = Field(min_length=1)
+
+    @property
+    def text(self) -> str:
+        """Their prompts, one per line, as who answers is chosen from."""
+        return "\n".join(reminder.prompt for reminder in self.reminders)
+
+
 class ScheduleReminderEvent(BaseModel):
-    """A schedule falling due in its bot's own chat, opening the turn that acts on it."""
+    """Schedules falling due in their bot's own chat, opening the turn that acts on them."""
 
     model_config = ConfigDict(frozen=True)
 
     type: Literal["schedule/reminder"] = "schedule/reminder"
     turn: int
-    reminder: ScheduleReminder
+    reminders: tuple[ScheduleReminder, ...] = Field(min_length=1)
 
 
-HeardMessage = BotMessage | ScheduleReminder
+HeardMessage = BotMessage | ScheduleReminders
 
 
 class ApplicationMessageEvent(BaseModel):

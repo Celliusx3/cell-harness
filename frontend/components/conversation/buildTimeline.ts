@@ -36,7 +36,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         draft.onUserMessage({
           key: `u${index}`,
           turn: event.turn,
-          content: event.reminder.prompt,
+          content: event.reminders.map((reminder) => reminder.prompt).join("\n"),
           files: [],
         });
         break;

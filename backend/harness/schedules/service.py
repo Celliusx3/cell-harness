@@ -5,13 +5,15 @@ from __future__ import annotations
 import asyncio
 import uuid
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from harness.schedules.models import Delivery, Schedule, SchedulesFile
 from harness.schedules.repository import ScheduleRepository
 from harness.schedules.timing import InvalidRrule, next_after
 
 MAX_TITLE = 120
+HISTORY_RECORDS = 200
+HISTORY_DAYS = 30
 
 Now = Callable[[], datetime]
 
@@ -46,15 +48,14 @@ class ScheduleService:
             created_at=now,
             updated_at=now,
         )
-        stored = self._repository.read()
-        self._repository.write(SchedulesFile(schedules=(*stored.schedules, schedule)))
+        self._change(lambda stored: (*stored, schedule))
         self.changed.set()
         return schedule
 
-    def record_delivery(self, schedule_id: str, scheduled_at: datetime) -> None:
-        """The occurrence due at `scheduled_at` was delivered: move to the next, or end."""
+    def record_delivery(self, schedule_id: str, occurrence_at: datetime) -> None:
+        """The occurrence due at `occurrence_at` was delivered: keep it, then move on, or end."""
         now = self._now()
-        delivery = Delivery(scheduled_at=scheduled_at, delivered_at=now)
+        delivery = Delivery(scheduled_at=occurrence_at, delivered_at=now)
         self._update(schedule_id, lambda schedule: _delivered(schedule, delivery, now))
 
     def end(self, schedule_id: str) -> None:
@@ -66,15 +67,26 @@ class ScheduleService:
         )
 
     def _update(self, schedule_id: str, change: Callable[[Schedule], Schedule]) -> None:
+        self._change(lambda stored: tuple(change(s) if s.id == schedule_id else s for s in stored))
+
+    def _change(self, change: Callable[[tuple[Schedule, ...]], tuple[Schedule, ...]]) -> None:
+        """Every write: read, change, write, with no await between, so no two changes interleave."""
         stored = self._repository.read().schedules
-        changed = tuple(change(s) if s.id == schedule_id else s for s in stored)
-        self._repository.write(SchedulesFile(schedules=changed))
+        self._repository.write(SchedulesFile(schedules=change(stored)))
 
 
 def _delivered(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
     following = next_after(schedule.rrule, now)
     moved = {"status": "ended"} if following is None else {"scheduled_at": following}
-    return schedule.model_copy(update={**moved, "last_delivery": delivery, "updated_at": now})
+    deliveries = _history((*schedule.deliveries, delivery))
+    return schedule.model_copy(update={**moved, "deliveries": deliveries, "updated_at": now})
+
+
+def _history(deliveries: tuple[Delivery, ...]) -> tuple[Delivery, ...]:
+    """The newest `HISTORY_RECORDS`, none more than `HISTORY_DAYS` before the newest."""
+    cutoff = deliveries[-1].delivered_at - timedelta(days=HISTORY_DAYS)
+    recent = tuple(d for d in deliveries if d.delivered_at >= cutoff)
+    return recent[-HISTORY_RECORDS:]
 
 
 def _title(title: str) -> str:

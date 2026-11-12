@@ -242,4 +242,4 @@ def _opening_event(turn: int, message: HeardMessage) -> BotMessageEvent | Schedu
     """The event that logs what opened turn `turn`."""
     if isinstance(message, BotMessage):
         return BotMessageEvent(turn=turn, message=message)
-    return ScheduleReminderEvent(turn=turn, reminder=message)
+    return ScheduleReminderEvent(turn=turn, reminders=message.reminders)

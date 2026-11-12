@@ -6,11 +6,12 @@ import json
 
 from harness.bots import BotNotFound, BotService
 from harness.schedules import InvalidSchedule, Schedule, ScheduleService
-from harness.schedules.timing import utc_text, zone_of
+from harness.schedules.timing import zone_of
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import INVALID_ARGUMENTS, REFUSED, Failure, Ok, ToolOutcome
 from harness.tools.models.tool import Tool
 from harness.tools.native.schedule.models import ScheduleCreateArgs
+from harness.utc import utc_text
 
 SCHEDULE_CREATE = "schedule_create"
 

@@ -1,13 +1,13 @@
 # 04 — Missed times, busy chats and schedules due together
 
-**Status.** open
+**Status.** done
 
 **What to build.** In `schedules/scheduler.py` and `timing.py`:
 - after downtime, the latest missed occurrence only, carrying its due time;
 - a chat that is busy is waited on through 02's start-when-free; a schedule
   whose run is still going is not started again;
-- repeating schedules due together in one chat go as one
-  `[SCHEDULE REMINDER BATCH]` (one-offs alone);
+- schedules due together in one chat go as one
+  `[SCHEDULE REMINDER BATCH]`;
 - the next time is saved after delivery; delivery history kept to 200 runs and
   30 days.
 

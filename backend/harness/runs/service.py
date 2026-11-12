@@ -15,7 +15,7 @@ from harness.runs.chain import discussion_events
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
 from harness.session.log import Session
-from harness.session.models import ApprovalModeChanged, BotMessage, HeardMessage, ToolCallEvent
+from harness.session.models import ApprovalModeChanged, HeardMessage, ToolCallEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools import Approval, ApprovalMode, Failure, Ok
@@ -96,8 +96,7 @@ class RunService:
         """Begin the turn in which a bot's own chat answers a bot's message or a schedule."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        text = message.text if isinstance(message, BotMessage) else message.prompt
-        speaker = self._bots.first_speaker(session, text)
+        speaker = self._bots.first_speaker(session, message.text)
         return self._converse(
             session, self._runtime.hear(message, session=session, bot_id=speaker.id)
         )

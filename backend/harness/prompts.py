@@ -49,6 +49,12 @@ SCHEDULE_REMINDER = (
     "reminder_prompt_json: {reminder_prompt_json}"
 )
 
+SCHEDULE_REMINDER_BATCH = (
+    "[SCHEDULE REMINDER BATCH]\n"
+    "This is a scheduled message from the user\n"
+    "reminders_json: {reminders_json}"
+)
+
 CODE_PROMPT = (
     "\n\nMost of your capabilities are not in your tool list yet. Discover them "
     "with `list_functions`, then read the ones you need with `get_function_details` — from then on "

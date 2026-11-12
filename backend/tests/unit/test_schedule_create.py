@@ -67,7 +67,7 @@ async def test_a_schedule_made_in_chat_is_kept_and_says_when_it_runs_next(
     assert (kept.bot_id, kept.status) == (ASSISTANT_ID, "active")
     assert kept.scheduled_at == datetime(2026, 11, 13, tzinfo=UTC)
     assert kept.created_at == kept.updated_at == THURSDAY
-    assert kept.last_delivery is None
+    assert kept.deliveries == ()
 
 
 @pytest.mark.parametrize(

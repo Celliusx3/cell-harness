@@ -120,7 +120,7 @@ export type SessionEvent =
   | {
       type: "schedule/reminder";
       turn: number;
-      reminder: { schedule_id: string; title: string; prompt: string; occurrence_at: string };
+      reminders: { schedule_id: string; title: string; prompt: string; occurrence_at: string }[];
     }
   | { type: "application/message"; turn: number; message: ApplicationMessage }
   | { type: "step/start"; turn: number; step: number }

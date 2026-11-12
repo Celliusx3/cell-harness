@@ -20,7 +20,7 @@ class Delivery(BaseModel):
 
 
 class Schedule(BaseModel):
-    """A bot's scheduled task; `scheduled_at` is the next undelivered occurrence, or the last."""
+    """A bot's task: its next undelivered occurrence, and its deliveries oldest first."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -33,7 +33,7 @@ class Schedule(BaseModel):
     scheduled_at: datetime
     created_at: datetime
     updated_at: datetime
-    last_delivery: Delivery | None = None
+    deliveries: tuple[Delivery, ...] = ()
 
 
 class SchedulesFile(BaseModel):

@@ -28,16 +28,17 @@ def next_after(text: str, instant: datetime) -> datetime | None:
     return None if following is None else following.astimezone(UTC)
 
 
+def latest_at_or_before(text: str, instant: datetime) -> datetime | None:
+    """The last occurrence of `text` at or before `instant`, in UTC; `None` when none is yet."""
+    latest = _rule(text).before(instant, inc=True)
+    return None if latest is None else latest.astimezone(UTC)
+
+
 def zone_of(text: str) -> ZoneInfo:
     """The zone `text`'s DTSTART names; UTC when it ends in Z."""
     start, _ = _lines(text)
     tzid = _tzid(start)
     return UTC_ZONE if tzid is None else _zone(tzid)
-
-
-def utc_text(instant: datetime) -> str:
-    """`instant` in ISO 8601 UTC, to the second, with a trailing Z."""
-    return instant.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _rule(text: str) -> rrule:

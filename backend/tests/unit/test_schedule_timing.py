@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from harness.schedules.timing import InvalidRrule, next_after, zone_of
+from harness.schedules.timing import InvalidRrule, latest_at_or_before, next_after, zone_of
 
 NEW_YORK_DAILY = "DTSTART;TZID=America/New_York:20260301T090000\nRRULE:FREQ=DAILY"
 
@@ -69,3 +69,15 @@ def test_a_rule_outside_the_bounds_is_a_typed_error(rule: str) -> None:
         next_after(rule, datetime(2026, 11, 12, tzinfo=UTC))
 
     assert raised.value.reason
+
+
+def test_the_latest_occurrence_counts_the_instant_itself_and_is_in_utc() -> None:
+    rule = "DTSTART;TZID=Asia/Singapore:20261112T160000\nRRULE:FREQ=MINUTELY"
+
+    on_the_minute = latest_at_or_before(rule, datetime(2026, 11, 12, 8, 10, tzinfo=UTC))
+    between = latest_at_or_before(rule, datetime(2026, 11, 12, 8, 10, 59, tzinfo=UTC))
+    before_the_start = latest_at_or_before(rule, datetime(2026, 11, 12, 7, 59, tzinfo=UTC))
+
+    assert on_the_minute == between == datetime(2026, 11, 12, 8, 10, tzinfo=UTC)
+    assert on_the_minute is not None and on_the_minute.tzinfo == UTC
+    assert before_the_start is None

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC
 
 from harness.llm import Block, Message, Text, ToolMessage, UserMessage, images_of
 from harness.prompts import (
@@ -18,6 +17,7 @@ from harness.prompts import (
     NO_RESPONSE,
     PRUNED,
     SCHEDULE_REMINDER,
+    SCHEDULE_REMINDER_BATCH,
     SPEAKER_TAG,
 )
 from harness.session.compaction import boundary, pruned_ids
@@ -29,6 +29,7 @@ from harness.session.models import (
     BotMessage,
     BotMessageEvent,
     BotMessageIntent,
+    ScheduleReminder,
     ScheduleReminderEvent,
     SessionEvent,
     ToolResultEvent,
@@ -37,6 +38,7 @@ from harness.session.models import (
     UserMessageEvent,
 )
 from harness.session.speakers import last_speaker, turn_speakers
+from harness.utc import utc_text
 
 RESULT_LIMIT = 12_000
 
@@ -188,14 +190,27 @@ def _opening_message(event: BotMessageEvent | ScheduleReminderEvent) -> UserMess
     """A turn's opening that is not the person typing, as the bot hears it."""
     if isinstance(event, BotMessageEvent):
         return _bot_message(event.message)
-    reminder = event.reminder
-    return UserMessage(
-        content=SCHEDULE_REMINDER.format(
+    return UserMessage(content=_reminders_text(event.reminders))
+
+
+def _reminders_text(reminders: tuple[ScheduleReminder, ...]) -> str:
+    """One reminder on its own, or several as one batch, as the bot hears them."""
+    if len(reminders) == 1:
+        (reminder,) = reminders
+        return SCHEDULE_REMINDER.format(
             schedule_id_json=json.dumps(reminder.schedule_id, ensure_ascii=False),
-            occurrence_at=reminder.occurrence_at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            occurrence_at=utc_text(reminder.occurrence_at),
             reminder_prompt_json=json.dumps(reminder.prompt, ensure_ascii=False),
         )
-    )
+    batch = [
+        {
+            "schedule_id": reminder.schedule_id,
+            "occurrence_at": utc_text(reminder.occurrence_at),
+            "reminder_prompt": reminder.prompt,
+        }
+        for reminder in reminders
+    ]
+    return SCHEDULE_REMINDER_BATCH.format(reminders_json=json.dumps(batch, ensure_ascii=False))
 
 
 def _bot_message(message: BotMessage) -> UserMessage:
