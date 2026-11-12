@@ -131,7 +131,7 @@ export function Composer({
                 submit();
               }
             }}
-            placeholder={running ? "Reply, and it is answered after this turn" : "Send a message"}
+            placeholder={running ? "Reply, and it is read at its next step" : "Send a message"}
             className="max-h-48 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-ink-soft disabled:opacity-60"
           />
           {showsStop ? (

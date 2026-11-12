@@ -96,6 +96,7 @@ def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService)
         no_bots(sessions),
         files_in(tmp_path),
         images_in(tmp_path),
+        JsonlChatRepository(tmp_path / "chats"),
     )
 
 

@@ -114,12 +114,7 @@ class Following:
         cleared = state.model_copy(update={"pending": (), "pending_files": ()})
         await self._repository.save(cleared)
         try:
-            content = self._skills.expand(text)
-        except UnknownSkill as err:
-            logger.warning("queued /%s no longer names a skill; sent as text", err.name)
-            content = text
-        try:
-            await self.turn_for_chat(cleared, content, state.pending_files)
+            await self.turn_for_chat(cleared, expanded(self._skills, text), state.pending_files)
         except GroupEmpty as err:
             logger.warning("queued message dropped, nobody is left to answer it: %s", err)
 
@@ -136,3 +131,12 @@ class Following:
         if state.conversation_id and self._runs.active(state.conversation_id) is not None:
             return
         await asyncio.wait({task})
+
+
+def expanded(skills: SkillService, text: str) -> str:
+    """Queued `text` with a `/name` it opens with expanded, or as typed once no skill has it."""
+    try:
+        return skills.expand(text)
+    except UnknownSkill as err:
+        logger.warning("queued /%s no longer names a skill; sent as text", err.name)
+        return text

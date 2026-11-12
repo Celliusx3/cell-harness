@@ -7,6 +7,7 @@ from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.runtime.events import TurnEvent
+from harness.runtime.inbox import NO_INBOX
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.service import SessionService
@@ -26,7 +27,7 @@ async def run_to_end(
 ) -> TurnEvent | None:
     """Run `turn` on a copy of `runtime` in `session`, flushed by `sessions`; its last event."""
     copy = dataclasses.replace(
-        runtime, guidance=turn.intro + runtime.guidance, checkpoint=sessions.flush
+        runtime, guidance=turn.intro + runtime.guidance, checkpoint=sessions.flush, inbox=NO_INBOX
     )
     last: TurnEvent | None = None
     try:

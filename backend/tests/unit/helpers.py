@@ -24,6 +24,7 @@ from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
+from harness.runtime.inbox import NO_INBOX, Inbox
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import SessionHeader
@@ -112,6 +113,7 @@ def runtime_over(
     context_tokens: int | None = None,
     approvals: ApprovalService | None = None,
     images: ImageService | None = None,
+    inbox: Inbox = NO_INBOX,
 ) -> Runtime:
     """A runtime over `tools`, with no toolset at all when there are none; no `images`, no sight."""
     return Runtime(
@@ -121,6 +123,7 @@ def runtime_over(
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
+        inbox=inbox,
     )
 
 
@@ -173,6 +176,7 @@ def run_service(
     approvals: ApprovalService | None = None,
     bots: BotService | None = None,
     images: ImageService | None = None,
+    inbox: Inbox = NO_INBOX,
 ) -> RunService:
     """Runs over a runtime that checkpoints through `service`, as the server wires it."""
     return RunService(
@@ -184,6 +188,7 @@ def run_service(
             context_tokens=context_tokens,
             approvals=approvals,
             images=images,
+            inbox=inbox,
         ),
         bots or no_bots(service),
         app_events=AppEventService(),

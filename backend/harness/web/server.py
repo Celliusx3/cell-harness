@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import functools
 import time
 import uuid
@@ -19,10 +20,12 @@ from harness.bots.controller import build_router as build_bots_router
 from harness.bots.groups_controller import build_router as build_groups_router
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
+from harness.channels.inbox import ChatInbox
 from harness.channels.link_codes_controller import build_router as build_link_codes_router
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository import ChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.client_controller import build_router as build_client_router
 from harness.channels.web.compact_controller import build_router as build_compact_router
@@ -75,6 +78,11 @@ def build_subagent_logs(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
+def build_chats(settings: Settings) -> JsonlChatRepository:
+    """Every chat's state, beside the conversations."""
+    return JsonlChatRepository(settings.sessions.root.parent / "chats")
+
+
 def build_saved_servers(settings: Settings) -> SavedServerService:
     """Every MCP server, as the person added it on the MCP servers screen, kept in `mcp.path`."""
     return SavedServerService(DiskSavedServerRepository(settings.mcp.path))
@@ -104,6 +112,7 @@ class ChannelServices:
     bots: BotService
     files: ChatFileService
     images: ImageService
+    chats: ChatRepository
 
 
 @dataclass(frozen=True)
@@ -120,7 +129,7 @@ def build_channels(
     settings: Settings, services: ChannelServices, keyring: SecretService
 ) -> Channels:
     """The gateway with the web on it, and the platforms the keyring's tokens will start there."""
-    chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
+    chats = services.chats
     gateway = ChannelGateway(
         chats, services.runs, services.sessions, services.skills, public_url=settings.web.public_url
     )
@@ -163,6 +172,7 @@ def create_web_app() -> FastAPI:
         app_events=app_events,
     )
     subagent_logs = build_subagent_logs(settings)
+    chats = build_chats(settings)
     runtime = build_runtime(
         settings,
         service,
@@ -176,10 +186,13 @@ def create_web_app() -> FastAPI:
         images=images,
         files=files,
     )
+    runtime = dataclasses.replace(runtime, inbox=ChatInbox(chats, skills))
     runs = RunService(service, runtime, bots, app_events=app_events)
     assert runtime.tools is not None
     channels = build_channels(
-        settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
+        settings,
+        ChannelServices(service, runs, skills, client_tools, bots, files, images, chats),
+        secrets,
     )
     messages = attach_bot_messages(
         runtime.tools.tool_service, bots, runs, follow=channels.gateway.follow
