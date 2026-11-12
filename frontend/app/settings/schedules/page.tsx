@@ -116,7 +116,7 @@ function ScheduleItem({ schedule, onPause, onResume, onRunNow, onDelete }: Sched
 }
 
 function Times({ schedule }: { schedule: ScheduleRow }) {
-  const next = schedule.status === "ended" ? null : schedule.scheduled_at;
+  const next = schedule.status === "active" ? schedule.scheduled_at : null;
   const last = schedule.last_occurrence_at;
   return (
     <div className="flex flex-wrap gap-x-4 text-xs text-ink-soft">
