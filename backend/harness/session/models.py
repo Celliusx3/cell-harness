@@ -19,6 +19,8 @@ from harness.llm import (
 )
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.session.images import ImagesHidden
+from harness.session.schedule_change import ScheduleChange as ScheduleChange
+from harness.session.schedule_change import ScheduleChangeEvent
 from harness.tools import ApprovalMode, ToolUi
 
 SESSION_FORMAT_VERSION = 1
@@ -277,6 +279,7 @@ SessionEvent = (
     | UserMessageEvent
     | BotMessageEvent
     | ScheduleReminderEvent
+    | ScheduleChangeEvent
     | ApplicationMessageEvent
     | AssistantChunk
     | AssistantMessageEvent

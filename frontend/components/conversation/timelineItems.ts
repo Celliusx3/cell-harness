@@ -96,6 +96,15 @@ export interface ModeItem {
   mode: ApprovalMode;
 }
 
+export type ScheduleChange = Extract<SessionEvent, { type: "schedule/change" }>["change"];
+
+/** A schedule of this chat's bot was changed from Settings here. */
+export interface ScheduleChangeItem {
+  kind: "scheduleChange";
+  key: string;
+  change: ScheduleChange;
+}
+
 export type TimelineItem =
   | UserItem
   | ScheduledItem
@@ -104,7 +113,8 @@ export type TimelineItem =
   | NoticeItem
   | CompactionItem
   | InstructionsItem
-  | ModeItem;
+  | ModeItem
+  | ScheduleChangeItem;
 
 export interface Timeline {
   items: TimelineItem[];

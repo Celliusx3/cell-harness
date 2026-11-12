@@ -20,6 +20,7 @@ from harness.prompts import (
     SCHEDULE_REMINDER_BATCH,
     SPEAKER_TAG,
 )
+from harness.session.change_notes import after_owed_results, change_message
 from harness.session.compaction import boundary, pruned_ids
 from harness.session.images import ImagesHidden, first_images_noted, hidden_through
 from harness.session.models import (
@@ -29,6 +30,7 @@ from harness.session.models import (
     BotMessage,
     BotMessageEvent,
     BotMessageIntent,
+    ScheduleChangeEvent,
     ScheduleReminder,
     ScheduleReminderEvent,
     SessionEvent,
@@ -66,7 +68,7 @@ class Voices:
 
 def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
     """The conversation as the bot that opened its last turn should see it."""
-    log = tuple(events)
+    log = after_owed_results(tuple(events))
     voices = Voices(turn_speakers(log), _bot_names(log), last_speaker(log))
     pruned = pruned_ids(log)
     log = _with_images_hidden(log, hidden_through(log))
@@ -151,6 +153,8 @@ def _as_heard(
             yield _person_message(event)
         elif isinstance(event, (BotMessageEvent, ScheduleReminderEvent)):
             yield _opening_message(event)
+        elif isinstance(event, ScheduleChangeEvent):
+            yield change_message(event)
         elif isinstance(event, (ApplicationMessageEvent, AssistantMessageEvent, ToolResultEvent)):
             other = voices.other_speaker(event.turn)
             if other is None:

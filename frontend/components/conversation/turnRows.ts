@@ -119,6 +119,7 @@ function isKept(
     case "compaction":
     case "instructions":
     case "mode":
+    case "scheduleChange":
       return true;
   }
 }

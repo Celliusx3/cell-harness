@@ -1,6 +1,6 @@
 # 08 — The bot is told when its schedule changes elsewhere
 
-**Status.** open
+**Status.** done
 
 **What to build.** A change made from the page (07) logs a `schedule/change`
 event in the bot's chat, derived as a user message with the

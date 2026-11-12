@@ -122,6 +122,12 @@ export type SessionEvent =
       turn: number;
       reminders: { schedule_id: string; title: string; prompt: string; occurrence_at: string }[];
     }
+  /** A schedule of this chat's bot was changed from Settings. */
+  | {
+      type: "schedule/change";
+      turn: number;
+      change: { schedule_id: string; title: string; change: "updated" | "deleted" };
+    }
   | { type: "application/message"; turn: number; message: ApplicationMessage }
   | { type: "step/start"; turn: number; step: number }
   | { type: "step/end"; turn: number; step: number }

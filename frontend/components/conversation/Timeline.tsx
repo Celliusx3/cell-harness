@@ -15,6 +15,7 @@ import {
   UserBubble,
 } from "@/components/conversation/Message";
 import { MODE_ICONS, MODE_LABELS } from "@/components/conversation/ModePicker";
+import { ScheduleChangeLine } from "@/components/conversation/ScheduleChangeLine";
 import { ScheduledBubble } from "@/components/conversation/ScheduledBubble";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
@@ -155,6 +156,8 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
       return (
         <ModeLine mode={item.mode} />
       );
+    case "scheduleChange":
+      return <ScheduleChangeLine change={item.change} />;
   }
 }
 
