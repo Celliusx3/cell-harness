@@ -3,6 +3,8 @@
 import { display } from "@/components/conversation/invocation";
 import type {
   NoticeItem,
+  Reminder,
+  ScheduleChange,
   Speaker,
   Timeline,
   TimelineItem,
@@ -74,6 +76,10 @@ export class TimelineDraft {
       invoked: display(content),
       files,
     });
+  }
+
+  onScheduled(key: string, turn: number, reminders: Reminder[]): void {
+    this.items.push({ kind: "scheduled", key, turn, reminders });
   }
 
   addNotice({ key, turn, tone, text }: Notice): void {
@@ -187,6 +193,10 @@ export class TimelineDraft {
 
   onModeSwitch(key: string, mode: ApprovalMode): void {
     this.items.push({ kind: "mode", key, mode });
+  }
+
+  onScheduleChange(key: string, change: ScheduleChange): void {
+    this.items.push({ kind: "scheduleChange", key, change });
   }
 
   /** In a group's chat, each turn's bot; empty in a bot's own chat. */

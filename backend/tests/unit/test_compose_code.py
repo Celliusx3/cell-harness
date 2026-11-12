@@ -24,7 +24,7 @@ from harness.tools import Ok, ToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.web import runtime as composition
-from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, build_runtime
+from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, SCHEDULE_TOOLS, build_runtime
 from tests.unit.helpers import (
     ORIGIN,
     client_tools,
@@ -36,7 +36,8 @@ from tests.unit.helpers import (
 )
 from tests.webapp import files_in, images_in, secrets_in
 
-WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, MESSAGE_BOT, BOT_CREATE)]
+ATTACHED_LATER = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE)
+WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, *ATTACHED_LATER)]
 
 
 @pytest.fixture

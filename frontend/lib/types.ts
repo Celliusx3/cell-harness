@@ -117,6 +117,17 @@ export type SessionEvent =
         intent: "request" | "result";
       };
     }
+  | {
+      type: "schedule/reminder";
+      turn: number;
+      reminders: { schedule_id: string; title: string; prompt: string; occurrence_at: string }[];
+    }
+  /** A schedule of this chat's bot was changed from Settings. */
+  | {
+      type: "schedule/change";
+      turn: number;
+      change: { schedule_id: string; title: string; change: "updated" | "deleted" };
+    }
   | { type: "application/message"; turn: number; message: ApplicationMessage }
   | { type: "step/start"; turn: number; step: number }
   | { type: "step/end"; turn: number; step: number }
@@ -226,39 +237,7 @@ export interface ConversationDetail {
   mode: ApprovalMode;
 }
 
-export interface SkillSummary {
-  name: string;
-  description: string;
-  dir: string;
-  root: string;
-  model_invocable: boolean;
-  user_invocable: boolean;
-  /** In `skills.editable`, so the page may save over it or delete it. */
-  editable: boolean;
-}
-
-export interface SkillIssue {
-  path: string;
-  problem: string;
-}
-
-export interface SkillList {
-  skills: SkillSummary[];
-  problems: SkillIssue[];
-}
-
-export interface SkillFile {
-  name: string;
-  text: string;
-  editable: boolean;
-  files: string[];
-}
-
-/** `GET /api/skills/{name}/files/{path}` */
-export interface BundledFile {
-  path: string;
-  text: string;
-}
+export type { BundledFile, SkillFile, SkillIssue, SkillList, SkillSummary } from "./skillTypes";
 
 /** What the browser answers a client tool with */
 export type ClientAnswer<T> =

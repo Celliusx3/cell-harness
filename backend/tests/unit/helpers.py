@@ -19,7 +19,7 @@ from harness.config.settings import SkillSettings
 from harness.images import DiskImageRepository, ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS
-from harness.runs.service import RunService
+from harness.runs.service import Run, RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.service import Runtime
 from harness.session.log import Session
@@ -217,6 +217,10 @@ def no_links() -> ChatLinks:
     sessions = SessionService(JsonlSessionRepository(NO_LINK_STORAGE / "sessions"))
     chats = JsonlChatRepository(NO_LINK_STORAGE / "chats")
     return ChatLinks(chats, LinkCodes(time.monotonic), no_bots(sessions))
+
+
+async def heard_nowhere(_run: Run) -> None:
+    """A `follow` for an app with no chat app to hear a turn it did not start."""
 
 
 async def link_to_assistant(chats: ChatRepository, channel: str, chat_id: str) -> None:

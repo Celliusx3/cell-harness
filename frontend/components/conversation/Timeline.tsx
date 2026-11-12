@@ -15,6 +15,8 @@ import {
   UserBubble,
 } from "@/components/conversation/Message";
 import { MODE_ICONS, MODE_LABELS } from "@/components/conversation/ModePicker";
+import { ScheduleChangeLine } from "@/components/conversation/ScheduleChangeLine";
+import { ScheduledBubble } from "@/components/conversation/ScheduledBubble";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import type { ApprovalMode } from "@/lib/types";
@@ -129,6 +131,8 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
   switch (item.kind) {
     case "user":
       return <UserBubble item={item} chatId={conversationId} />;
+    case "scheduled":
+      return <ScheduledBubble item={item} />;
     case "assistant":
       return <AssistantBubble item={item} />;
     case "tool": {
@@ -152,6 +156,8 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
       return (
         <ModeLine mode={item.mode} />
       );
+    case "scheduleChange":
+      return <ScheduleChangeLine change={item.change} />;
   }
 }
 

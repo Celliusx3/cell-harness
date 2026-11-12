@@ -17,7 +17,7 @@ from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT, GUIDANCE
-from harness.runs.bot_messages import BotMessages
+from harness.runs.bot_messages import BotMessages, Follow
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
@@ -29,6 +29,7 @@ from harness.runtime.hooks.native.skill_list import SkillListHook
 from harness.runtime.service import Runtime
 from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
+from harness.schedules import ScheduleService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
@@ -55,6 +56,16 @@ from harness.tools.native.files import (
 from harness.tools.native.hand_over import HAND_OVER_TOOL
 from harness.tools.native.location import GET_LOCATION_TOOL
 from harness.tools.native.question import ASK_USER_TOOL
+from harness.tools.native.schedule import (
+    SCHEDULE_CREATE,
+    SCHEDULE_EDIT,
+    SCHEDULE_LIST,
+    SCHEDULE_VIEW,
+    schedule_create_tool,
+    schedule_edit_tool,
+    schedule_list_tool,
+    schedule_view_tool,
+)
 from harness.tools.native.secrets import (
     ASK_FOR_SECRET_TOOL,
     FETCH_WITH_SECRET,
@@ -69,6 +80,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
+from harness.tools.service import Disposer
 from harness.web.bot_models import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")
@@ -77,6 +89,7 @@ CLIENT_TOOLS = ClientToolCatalog(
     (GET_LOCATION_TOOL, ASK_USER_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL)
 )
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
+SCHEDULE_TOOLS = (SCHEDULE_CREATE, SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT)
 DEFAULT_TOOLS = (
     LIST_FUNCTIONS,
     GET_FUNCTION_DETAILS,
@@ -85,6 +98,7 @@ DEFAULT_TOOLS = (
     *SKILL_WRITES,
     BOT_CREATE,
     MESSAGE_BOT,
+    *SCHEDULE_TOOLS,
     RUN_SUBAGENT,
     FETCH_WITH_SECRET,
     SEND_FILE,
@@ -101,6 +115,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         *SKILL_WRITES,
         BOT_CREATE,
         MESSAGE_BOT,
+        *SCHEDULE_TOOLS,
         RUN_SUBAGENT,
         FETCH_WITH_SECRET,
         SEND_FILE,
@@ -220,12 +235,30 @@ def _register_run_subagent(
 
 
 def attach_bot_messages(
-    tool_service: ToolService, sessions: SessionService, bots: BotService, runs: RunService
+    tool_service: ToolService,
+    bots: BotService,
+    runs: RunService,
+    *,
+    follow: Follow,
 ) -> BotMessages:
     """`message_bot` offered from `tool_service`, sending through the `BotMessages` it returns."""
-    messages = BotMessages(sessions, bots, runs)
+    messages = BotMessages(bots, runs, follow=follow)
     tool_service.add_provider(lambda: [message_bot_tool(bots, messages)])
     return messages
+
+
+def attach_schedules(
+    tool_service: ToolService, bots: BotService, schedules: ScheduleService
+) -> Disposer:
+    """The schedule tools offered from `tool_service`; the disposer takes them back."""
+    return tool_service.add_provider(
+        lambda: [
+            schedule_create_tool(bots, schedules),
+            schedule_list_tool(bots, schedules),
+            schedule_view_tool(bots, schedules),
+            schedule_edit_tool(bots, schedules),
+        ]
+    )
 
 
 def default_hooks(skills: SkillService) -> HookChain:

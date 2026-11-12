@@ -20,7 +20,7 @@ from harness.tools import Ok
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
-from harness.web.runtime import DEFAULT_TOOLS, build_runtime
+from harness.web.runtime import DEFAULT_TOOLS, SCHEDULE_TOOLS, build_runtime
 from tests.unit.helpers import (
     ORIGIN,
     client_tools,
@@ -77,7 +77,8 @@ def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
     directory = write_skill(root, "pdf")
     offered = [s.name for s in runtime.tools.specs(sees_images=True)]
     assert SKILL in offered
-    assert offered == [name for name in DEFAULT_TOOLS if name not in (MESSAGE_BOT, BOT_CREATE)]
+    attached_later = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE)
+    assert offered == [name for name in DEFAULT_TOOLS if name not in attached_later]
 
     (directory / "SKILL.md").unlink()
     assert SKILL not in [s.name for s in runtime.tools.specs(sees_images=False)]

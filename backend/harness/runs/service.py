@@ -15,7 +15,14 @@ from harness.runs.chain import discussion_events
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
 from harness.session.log import Session
-from harness.session.models import ApprovalModeChanged, BotMessage, ToolCallEvent
+from harness.session.models import (
+    ApprovalModeChanged,
+    HeardMessage,
+    ScheduleChange,
+    ScheduleChangeEvent,
+    SessionEvent,
+    ToolCallEvent,
+)
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools import Approval, ApprovalMode, Failure, Ok
@@ -92,14 +99,25 @@ class RunService:
             session, self._runtime.run(prompt, session=session, bot_id=speaker.id, files=files)
         )
 
-    def hear(self, session: Session, message: BotMessage) -> Run:
-        """Begin the turn in which a bot's own chat answers another bot's message."""
+    def hear(self, session: Session, message: HeardMessage) -> Run:
+        """Begin the turn in which a bot's own chat answers a bot's message or a schedule."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
         speaker = self._bots.first_speaker(session, message.text)
         return self._converse(
             session, self._runtime.hear(message, session=session, bot_id=speaker.id)
         )
+
+    async def hear_when_free(self, chat_id: str, message: HeardMessage) -> Run:
+        """The turn `message` opens in `chat_id` once no run is in flight there."""
+        while True:
+            running = self._runs.get(chat_id)
+            if running is not None:
+                await settled(running)
+                continue
+            session = await self._service.resume(chat_id)
+            if chat_id not in self._runs:
+                return self.hear(session, message)
 
     def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that answers a client tool for the bot that asked, then the queue's."""
@@ -131,11 +149,15 @@ class RunService:
         session = await self._session_to_switch(conversation_id)
         if self._runtime.approval_mode(session) == mode:
             return
-        session.append(ApprovalModeChanged(mode=mode))
-        await self._service.flush(session)
-        run = self._runs.get(conversation_id)
-        if run is not None:
-            await self._wake(run)
+        await self._append(session, ApprovalModeChanged(mode=mode))
+
+    async def tell_schedule_change(self, chat_id: str, change: ScheduleChange) -> None:
+        """Log `change` for the chat's next step, starting no turn; none in a chat never written."""
+        session = await self._running_or_stored(chat_id)
+        if session is None:
+            return
+        turn = max(session.next_turn() - 1, 0)
+        await self._append(session, ScheduleChangeEvent(turn=turn, change=change))
 
     async def approval_mode(self, conversation_id: str) -> ApprovalMode:
         """The mode the chat's next call runs under."""
@@ -160,6 +182,26 @@ class RunService:
             stored = await self._service.create(conversation_id)
         started = self._runs.get(conversation_id)
         return started.session if started is not None else stored
+
+    async def _running_or_stored(self, conversation_id: str) -> Session | None:
+        """The running turn's log, else the stored one; `None` when the chat was never written."""
+        run = self._runs.get(conversation_id)
+        if run is not None:
+            return run.session
+        try:
+            stored = await self._service.resume(conversation_id)
+        except SessionNotFoundError:
+            return None
+        started = self._runs.get(conversation_id)
+        return started.session if started is not None else stored
+
+    async def _append(self, session: Session, event: SessionEvent) -> None:
+        """Add `event` to `session`, make it durable, and wake whoever watches its running turn."""
+        session.append(event)
+        await self._service.flush(session)
+        run = self._runs.get(session.id)
+        if run is not None:
+            await self._wake(run)
 
     async def stop(self, conversation_id: str) -> bool:
         """End a turn early."""
@@ -241,6 +283,12 @@ class RunService:
     async def _wake(self, run: Run) -> None:
         async with run.condition:
             run.condition.notify_all()
+
+
+async def settled(run: Run) -> None:
+    """Wait until `run` has settled."""
+    async with run.condition:
+        await run.condition.wait_for(lambda: run.settled)
 
 
 def _has_call(session: Session, call_id: str) -> bool:

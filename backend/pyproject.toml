@@ -17,6 +17,7 @@ dependencies = [
     "python-multipart>=0.0.20",
     "cryptography>=50",
     "websockets>=15",
+    "python-dateutil>=3.0,<4",
 ]
 
 [dependency-groups]

@@ -1,7 +1,15 @@
 /** The shapes `buildTimeline` produces */
 
 import type { Invocation } from "@/components/conversation/invocation";
-import type { ApprovalMode, ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
+import type {
+  ApprovalMode,
+  ContentBlock,
+  ChatFile,
+  SessionEvent,
+  ToolCall,
+  ToolUi,
+  Usage,
+} from "@/lib/types";
 
 export interface UserItem {
   kind: "user";
@@ -13,6 +21,16 @@ export interface UserItem {
   invoked: Invocation | null;
   /** What the person attached */
   files: ChatFile[];
+}
+
+export type Reminder = Extract<SessionEvent, { type: "schedule/reminder" }>["reminders"][number];
+
+/** A turn a schedule opened: its reminders, in the order they fired. */
+export interface ScheduledItem {
+  kind: "scheduled";
+  key: string;
+  turn: number;
+  reminders: Reminder[];
 }
 
 export interface AssistantItem {
@@ -78,14 +96,25 @@ export interface ModeItem {
   mode: ApprovalMode;
 }
 
+export type ScheduleChange = Extract<SessionEvent, { type: "schedule/change" }>["change"];
+
+/** A schedule of this chat's bot was changed from Settings here. */
+export interface ScheduleChangeItem {
+  kind: "scheduleChange";
+  key: string;
+  change: ScheduleChange;
+}
+
 export type TimelineItem =
   | UserItem
+  | ScheduledItem
   | AssistantItem
   | ToolItem
   | NoticeItem
   | CompactionItem
   | InstructionsItem
-  | ModeItem;
+  | ModeItem
+  | ScheduleChangeItem;
 
 export interface Timeline {
   items: TimelineItem[];

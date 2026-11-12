@@ -22,6 +22,7 @@ cd backend && HARNESS_CONFIG_LOCAL="$RUN/config.local.json" \
   HARNESS_FILES__ROOT="$RUN/harness/files" \
   HARNESS_APPROVAL__GRANTS_PATH="$RUN/harness/approvals.json" \
   HARNESS_BOTS__PATH="$RUN/harness/bots.json" \
+  HARNESS_SCHEDULES__PATH="$RUN/harness/schedules.json" \
   HARNESS_SECRETS__PATH="$RUN/harness/secrets.json" \
   HARNESS_SECRETS__ENCRYPTION_KEY="$(cat "$RUN/encryption_key")" \
   HARNESS_WEB__PUBLIC_URL="" \
@@ -69,7 +70,7 @@ For a check that needs no real key, run two fake OpenAI-compatible servers on lo
 
 Run both with the Bash tool's `run_in_background`, or keep the `&` and the pid files. Ready when `curl -s localhost:4996/api/bots` prints a JSON list and `curl -s -o /dev/null -w '%{http_code}' localhost:4997` prints `200`. The copy starts with no MCP server; add each one it needs, `computer` too, as in [features/mcp-servers.md](features/mcp-servers.md). The first start of a `uv run --project ../mcp-servers/...` server installs it, so allow a minute.
 
-Why each variable: the sessions root, files root, grants file, bots file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. `HARNESS_CONFIG_LOCAL` points at an empty scratch file, so the copy reads no settings of the person's: it must never be `backend/config.local.json`. Every key the copy holds is in its own keyring, saved there by the step above or on its Credentials page. Never save the person's Telegram or Discord token on the copy: a copy with one answers the person's real chats.
+Why each variable: the sessions root, files root, grants file, bots file, schedules file and secrets file keep the person's `~/.harness` untouched, and helper logs land beside the sessions root (`$RUN/harness/helpers`). The encryption key is the copy's own, kept in `$RUN` so a restart can still open the keys it saved; the server refuses to start without one. `HARNESS_CONFIG_LOCAL` points at an empty scratch file, so the copy reads no settings of the person's: it must never be `backend/config.local.json`. Every key the copy holds is in its own keyring, saved there by the step above or on its Credentials page. Never save the person's Telegram or Discord token on the copy: a copy with one answers the person's real chats.
 
 ## Doctor
 

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 
 import httpx
 import pytest
 
 from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotService
+from harness.schedules import ScheduleRepository, ScheduleService
 from harness.session.models import TurnEnd, UserMessageEvent
 from tests.integration.web_helpers import build, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, completed
@@ -20,6 +22,12 @@ RESEARCHER = {
     "instructions": "Find sources and cite every claim.",
     "model": MODEL_CREDENTIAL,
 }
+
+HOURLY = "DTSTART:20261112T080000Z\nRRULE:FREQ=HOURLY"
+
+
+def _now() -> datetime:
+    return datetime(2026, 11, 12, 8, 0, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -81,6 +89,18 @@ async def test_deleting_removes_the_bot_and_its_chat_for_good(bots) -> None:
     assert bot_id not in _ids((await client.get("/api/bots")).json())
     assert (await client.get("/api/bots/archived")).json() == []
     assert not (tmp_path / "sessions" / f"{bot_id}.jsonl").exists()
+
+
+async def test_deleting_a_bot_deletes_its_schedules_and_no_other(bots) -> None:
+    client, bot_id, tmp_path = bots
+    schedules = ScheduleService(ScheduleRepository(tmp_path / "schedules.json"), now=_now)
+    schedules.create(bot_id, "Check in", "Check in.", HOURLY)
+    kept = schedules.create(ASSISTANT_ID, "Keep", "Keep.", HOURLY)
+
+    deleted = await client.delete(f"/api/bots/{bot_id}")
+
+    assert deleted.status_code == 204
+    assert schedules.schedules() == (kept,)
 
 
 async def test_assistant_can_be_neither_archived_nor_deleted(bots) -> None:

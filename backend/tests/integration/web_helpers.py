@@ -20,7 +20,14 @@ from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import OneModel, PerBotClient
-from tests.unit.helpers import durable_service, no_approvals, no_images, no_skills, run_service
+from tests.unit.helpers import (
+    durable_service,
+    heard_nowhere,
+    no_approvals,
+    no_images,
+    no_skills,
+    run_service,
+)
 from tests.webapp import a_model_saved_in, bots_in, images_in, web_app
 
 ASSISTANT_START = "ASSISTANT"
@@ -105,7 +112,7 @@ def messaging_app(
         checkpoint=service.flush,
     )
     runs = RunService(service, runtime, bots, events=app_events)
-    messages = attach_bot_messages(tool_service, service, bots, runs)
+    messages = attach_bot_messages(tool_service, bots, runs, follow=heard_nowhere)
     secrets = a_model_saved_in(tmp_path)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")

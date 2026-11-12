@@ -27,6 +27,8 @@ from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import (
     channels_of,
     saved_servers_in,
+    scheduler_in,
+    schedules_in,
     secrets_in,
     web_gateway,
     web_mcp,
@@ -69,6 +71,7 @@ def build_on(tmp_path, model: LLMClient):
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
+    schedules = schedules_in(tmp_path)
     app = create_app(
         runs,
         channels_of(gateway, web, secrets_in(tmp_path)),
@@ -79,7 +82,9 @@ def build_on(tmp_path, model: LLMClient):
         no_approvals(),
         bots,
         secrets_in(tmp_path),
-        BotMessages(sessions, bots, runs),
+        BotMessages(bots, runs, follow=gateway.follow),
+        schedules,
+        scheduler_in(schedules, bots, runs, gateway),
     )
     http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return bot, http, gateway, runs

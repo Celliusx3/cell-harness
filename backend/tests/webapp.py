@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -31,6 +33,7 @@ from harness.mcp import (
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
+from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -57,6 +60,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         sessions={"root": tmp_path / "sessions"},
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
+        schedules={"path": tmp_path / "schedules.json"},
         secrets={"path": tmp_path / "secrets.json", "encryption_key": TEST_ENCRYPTION_KEY},
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
@@ -154,6 +158,21 @@ def web_gateway(
     return gateway, web
 
 
+def schedules_in(tmp_path: Path) -> ScheduleService:
+    """Schedules kept in `schedules.json` under `tmp_path`, timed by the wall clock."""
+    return ScheduleService(
+        ScheduleRepository(tmp_path / "schedules.json"), now=functools.partial(datetime.now, UTC)
+    )
+
+
+def scheduler_in(
+    schedules: ScheduleService, bots: BotService, runs: RunService, gateway: ChannelGateway
+) -> Scheduler:
+    """A scheduler over `schedules` on the wall clock, its turns heard through `gateway`."""
+    now = functools.partial(datetime.now, UTC)
+    return Scheduler(schedules, bots, runs, follow=gateway.follow, now=now)
+
+
 def no_platform_channel(platform: ChatPlatform, token: SecretStr) -> Channel:
     """Refused: an app under test never signs in to Telegram or Discord."""
     raise AssertionError(f"a test started a real {platform} channel")
@@ -209,12 +228,14 @@ def web_app(
     bots: BotService | None = None,
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
+    schedules: ScheduleService | None = None,
     make_platform: PlatformChannelMaker = no_platform_channel,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
     bots = bots or bots_in(tmp_path, service)
     secrets = secrets or secrets_in(tmp_path)
+    schedules = schedules or schedules_in(tmp_path)
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots, files=files)
     return create_app(
         runs,
@@ -226,7 +247,9 @@ def web_app(
         approvals or no_approvals(),
         bots,
         secrets,
-        BotMessages(service, bots, runs),
+        BotMessages(bots, runs, follow=gateway.follow),
+        schedules,
+        scheduler_in(schedules, bots, runs, gateway),
     )
 
 
@@ -243,6 +266,7 @@ def web_app_with_telegram(
     """`web_app` with a fake Telegram on the same gateway: the app, the gateway, and the bot."""
     bots = no_bots(service)
     secrets = secrets or secrets_in(tmp_path)
+    schedules = schedules_in(tmp_path)
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots)
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
@@ -256,7 +280,9 @@ def web_app_with_telegram(
         approvals or no_approvals(),
         bots,
         secrets,
-        BotMessages(service, bots, runs),
+        BotMessages(bots, runs, follow=gateway.follow),
+        schedules,
+        scheduler_in(schedules, bots, runs, gateway),
     )
     return app, gateway, bot
 

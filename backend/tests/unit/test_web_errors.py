@@ -17,6 +17,7 @@ from harness.mcp import (
     McpServerTaken,
     McpTimeoutError,
 )
+from harness.schedules import InvalidSchedule, ScheduleBusy, ScheduleNotFound
 from harness.secrets import SecretNotFound, SecretRefused
 from harness.session.repository import (
     SessionCorruptionError,
@@ -36,6 +37,7 @@ PINNED = [
     pytest.param(BotPermanent(ASSISTANT_ID), 409, id="BotPermanent"),
     pytest.param(FileTooLarge("notes.txt", 1024), 413, id="FileTooLarge"),
     pytest.param(GroupEmpty("team"), 409, id="GroupEmpty"),
+    pytest.param(InvalidSchedule("rrule: no occurrence after now"), 422, id="InvalidSchedule"),
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),
     pytest.param(McpNotConnectedError("stub is not connected"), 503, id="McpNotConnectedError"),
@@ -43,6 +45,8 @@ PINNED = [
     pytest.param(McpServerTaken("a server is already named 'exa'"), 409, id="McpServerTaken"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),
     pytest.param(NotApproved("'memory__write_note' is not approved"), 404, id="NotApproved"),
+    pytest.param(ScheduleBusy("s1"), 409, id="ScheduleBusy"),
+    pytest.param(ScheduleNotFound("s1"), 404, id="ScheduleNotFound"),
     pytest.param(SecretNotFound("GITHUB_TOKEN"), 404, id="SecretNotFound"),
     pytest.param(
         SecretRefused("20 keys are already saved; remove one first"), 409, id="SecretRefused"

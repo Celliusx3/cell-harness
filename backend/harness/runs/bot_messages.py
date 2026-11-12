@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Coroutine, Sequence
+from collections.abc import Awaitable, Callable, Coroutine, Sequence
 
 from harness.bots import Bot, BotNotFound, BotService
 from harness.prompts import BOT_DID_NOT_FINISH, BOT_WAITING_ON_USER
-from harness.runs.service import Run, RunService
+from harness.runs.service import Run, RunService, settled
 from harness.session.models import (
     AssistantMessageEvent,
     BotMessage,
@@ -19,21 +19,22 @@ from harness.session.models import (
     TurnStart,
 )
 from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 
 MAX_HOPS = 6
 
+Follow = Callable[[Run], Awaitable[None]]
+
 
 class BotMessages:
     """Delivers each bot's message once the chat it is for is free, and each answer back."""
 
-    def __init__(self, sessions: SessionService, bots: BotService, runs: RunService) -> None:
-        self._sessions = sessions
+    def __init__(self, bots: BotService, runs: RunService, *, follow: Follow) -> None:
         self._bots = bots
         self._runs = runs
+        self._follow = follow
         self._waiting: set[asyncio.Task[None]] = set()
 
     async def send(
@@ -79,10 +80,10 @@ class BotMessages:
 
     async def _ask(self, recipient: Bot, request: BotMessage) -> None:
         """Deliver `request` to `recipient`, then its final reply back to the sender."""
-        run = await self._deliver(self._bots.chat_of(recipient.id), request)
+        run = await self.deliver(self._bots.chat_of(recipient.id), request)
         if run is None:
             return
-        await _settled(run)
+        await settled(run)
         result = BotMessage(
             from_bot_id=recipient.id,
             from_name=recipient.name,
@@ -90,27 +91,17 @@ class BotMessages:
             hop=request.hop + 1,
             intent="result",
         )
-        await self._deliver(self._bots.chat_of(request.from_bot_id), result)
+        await self.deliver(self._bots.chat_of(request.from_bot_id), result)
 
-    async def _deliver(self, chat_id: str, message: BotMessage) -> Run | None:
-        """The turn `message` opens in `chat_id` once no run is in flight there; `None` if gone."""
+    async def deliver(self, chat_id: str, message: BotMessage) -> Run | None:
+        """The turn `message` opens in `chat_id` once it is free, heard by its chat apps."""
         try:
-            while True:
-                running = self._runs.active(chat_id)
-                if running is not None:
-                    await _settled(running)
-                    continue
-                session = await self._sessions.resume(chat_id)
-                if self._runs.active(chat_id) is None:
-                    return self._runs.hear(session, message)
+            run = await self._runs.hear_when_free(chat_id, message)
         except (BotNotFound, SessionNotFoundError) as err:
             logger.warning("bot message dropped, nobody is left to answer it: %s", err)
             return None
-
-
-async def _settled(run: Run) -> None:
-    async with run.condition:
-        await run.condition.wait_for(lambda: run.settled)
+        await self._follow(run)
+        return run
 
 
 def hop_of_last_turn(events: Sequence[SessionEvent]) -> int:

@@ -44,10 +44,8 @@ function turnOf(item: TimelineItem): number | null {
 function oneTurn(items: TimelineItem[], turn: number, shape: TurnShape): Row[] {
   const speaker = shape.speakers.get(turn) ?? null;
   const shown = items.filter((item) => isShown(item, speaker !== null));
-  const asked: Row[] = shown
-    .filter((item) => item.kind === "user")
-    .map((item) => ({ kind: "item", item }));
-  const answer = shown.filter((item) => item.kind !== "user");
+  const asked: Row[] = shown.filter(isAsk).map((item) => ({ kind: "item", item }));
+  const answer = shown.filter((item) => !isAsk(item));
   const first = answer[0];
   if (first === undefined) return asked;
   const said = [...items].reverse().find((item) => item.kind === "assistant" && item.content.trim());
@@ -87,6 +85,10 @@ function partsOf(
   return parts;
 }
 
+function isAsk(item: TimelineItem): boolean {
+  return item.kind === "user" || item.kind === "scheduled";
+}
+
 /** Whether anything of `item` reaches the screen. */
 function isShown(item: TimelineItem, inGroup: boolean): boolean {
   if (item.kind !== "assistant") return true;
@@ -106,6 +108,7 @@ function isKept(
 ): boolean {
   switch (item.kind) {
     case "user":
+    case "scheduled":
       return true;
     case "assistant":
       return item === reply;
@@ -116,6 +119,7 @@ function isKept(
     case "compaction":
     case "instructions":
     case "mode":
+    case "scheduleChange":
       return true;
   }
 }

@@ -68,6 +68,7 @@ def _committed_config_in(tmp_path: Path) -> Path:
         "sessions": {"root": str(tmp_path / "sessions")},
         "files": {**committed["files"], "root": str(tmp_path / "files")},
         "bots": {"path": str(tmp_path / "bots.json")},
+        "schedules": {"path": str(tmp_path / "schedules.json")},
         "secrets": {"path": str(tmp_path / "secrets.json"), "encryption_key": TEST_ENCRYPTION_KEY},
         "approval": {**committed["approval"], "grants_path": str(tmp_path / "approvals.json")},
         "skills": {"roots": [str(tmp_path / "skills")], "editable": str(tmp_path / "skills")},
