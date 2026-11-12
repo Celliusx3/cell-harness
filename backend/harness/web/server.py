@@ -62,7 +62,7 @@ from harness.web.runtime import (
     attach_schedules,
     build_runtime,
 )
-from harness.web.tickets_wiring import attach_tickets
+from harness.web.tickets_wiring import attach_tickets, ticket_workers
 
 
 def build_store(settings: Settings) -> SessionService:
@@ -185,17 +185,18 @@ def create_web_app() -> FastAPI:
         runtime.tools.tool_service, bots, runs, follow=channels.gateway.follow
     )
     now = functools.partial(datetime.now, UTC)
-    tickets = attach_tickets(
-        runtime.tools.tool_service,
-        runtime,
+    tool_service = runtime.tools.tool_service
+    tickets = TicketService(
+        TicketRepository(settings.tickets.path),
         bots,
         runs,
+        worker=ticket_workers(tool_service, runtime, subagent_logs),
         logs=subagent_logs,
-        repository=TicketRepository(settings.tickets.path),
         follow=channels.gateway.follow,
         now=now,
         ids=lambda: uuid.uuid4().hex,
     )
+    attach_tickets(tool_service, tickets)
     schedules = ScheduleService(ScheduleRepository(settings.schedules.path), now=now)
     attach_schedules(runtime.tools.tool_service, bots, schedules)
     scheduler = Scheduler(schedules, bots, runs, follow=channels.gateway.follow, now=now)

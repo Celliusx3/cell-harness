@@ -14,15 +14,16 @@ from harness.tools import ToolOutcome
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT
 
 SHELL_SUFFIX = "__shell"
-WAITING = re.compile(r"setTimeout\([^;]*?,\s*(?:[5-9]\d{3}|[1-9]\d{4,})\s*\)|\bsleep\b")
+LONG_TIMEOUT = re.compile(r"setTimeout\([^;]*?,\s*(?:[5-9]\d{3}|[1-9]\d{4,})\s*\)")
+SLEEP_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*sleep\s+\d", re.MULTILINE)
 
 
 def waits(name: str, arguments: str) -> bool:
-    """Whether a script's code, or a shell's command, waits: `sleep`, or a 5 s+ `setTimeout`."""
+    """Whether a script sets a 5 s+ `setTimeout`, or a shell command runs `sleep <n>`."""
     if name == EXECUTE_TYPESCRIPT:
-        field = "code"
+        field, waiting = "code", LONG_TIMEOUT
     elif name.endswith(SHELL_SUFFIX):
-        field = "command"
+        field, waiting = "command", SLEEP_COMMAND
     else:
         return False
     try:
@@ -30,7 +31,7 @@ def waits(name: str, arguments: str) -> bool:
     except ValueError:
         return False
     text = parsed.get(field) if isinstance(parsed, dict) else None
-    return isinstance(text, str) and WAITING.search(text) is not None
+    return isinstance(text, str) and waiting.search(text) is not None
 
 
 @dataclass(frozen=True)

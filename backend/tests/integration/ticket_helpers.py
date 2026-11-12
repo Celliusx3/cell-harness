@@ -21,7 +21,7 @@ from harness.tickets.repository import TicketRepository
 from harness.tickets.service import TicketService
 from harness.tools import ToolService, Toolset
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE
-from harness.web.tickets_wiring import attach_tickets
+from harness.web.tickets_wiring import attach_tickets, ticket_workers
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
 from tests.unit.helpers import durable_service, heard_nowhere, no_approvals, no_images, no_skills
@@ -61,17 +61,17 @@ def ticketing_app(tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]
     )
     runs = RunService(service, runtime, bots, app_events=app_events)
     worker_logs = SessionService(JsonlSessionRepository(tmp_path / "workers"))
-    tickets = attach_tickets(
-        tool_service,
-        runtime,
+    tickets = TicketService(
+        TicketRepository(tmp_path / "tickets.json"),
         bots,
         runs,
+        worker=ticket_workers(tool_service, runtime, worker_logs),
         logs=worker_logs,
-        repository=TicketRepository(tmp_path / "tickets.json"),
         follow=heard_nowhere,
         now=lambda: datetime.now(UTC),
         ids=functools.partial(next, (f"t{n}" for n in itertools.count(1))),
     )
+    attach_tickets(tool_service, tickets)
     secrets = a_model_saved_in(tmp_path)
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets, tickets=tickets

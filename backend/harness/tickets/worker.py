@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import dataclasses
 from collections.abc import Sequence
-from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.prompts import TICKET_DID_NOT_FINISH, WORKER_INTRO
 from harness.runtime.events import AgentCompleted, TurnEvent
+from harness.runtime.run_to_end import HelperTurn, run_to_end
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import (
@@ -53,20 +52,9 @@ class Workers:
         return await self._turn(ticket, prompt, session)
 
     async def _turn(self, ticket: Ticket, prompt: str, session: Session) -> WorkerEnd:
-        worker = dataclasses.replace(
-            self.runtime,
-            guidance=WORKER_INTRO.format(title=ticket.title) + self.runtime.guidance,
-            checkpoint=self.sessions.flush,
-        )
-        last: TurnEvent | None = None
-        try:
-            async with aclosing(
-                worker.run(prompt, session=session, bot_id=ticket.bot_id)
-            ) as events:
-                async for event in events:
-                    last = event
-        finally:
-            await self.sessions.flush(session)
+        intro = WORKER_INTRO.format(title=ticket.title)
+        turn = HelperTurn(intro=intro, prompt=prompt, bot_id=ticket.bot_id)
+        last = await run_to_end(self.runtime, self.sessions, session, turn)
         return worker_end(last, kept_report(session.events()))
 
 

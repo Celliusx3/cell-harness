@@ -6,14 +6,14 @@ import { getTicket, type TicketDetail } from "@/lib/tickets";
 
 const POLL_MS = 1000;
 const WAITING_POLL_MS = 5000;
-const ENDED: ReadonlySet<string> = new Set(["done", "failed", "dropped", "stopped"]);
+const ENDED: ReadonlySet<string> = new Set(["stopped"]);
 
 export type TicketLoad =
   | { kind: "loading" }
   | { kind: "found"; detail: TicketDetail }
   | { kind: "failed"; message: string };
 
-/** One ticket, read every second while its worker runs, and once more after it stops. */
+/** One ticket, read every second while its worker runs, every 5 s until it is stopped. */
 export function useTicket(id: string | null): TicketLoad {
   const [load, setLoad] = useState<TicketLoad>({ kind: "loading" });
 
@@ -42,7 +42,7 @@ export function useTicket(id: string | null): TicketLoad {
   return load;
 }
 
-/** How long until the next read: soon while it works, slower while it waits, never once it ended. */
+/** How long until the next read: soon while it works, slower otherwise, never once stopped. */
 function nextPollMs(detail: TicketDetail): number | null {
   if (detail.running || detail.ticket.state === "working") return POLL_MS;
   return ENDED.has(detail.ticket.state) ? null : WAITING_POLL_MS;

@@ -29,11 +29,16 @@ def script(code: str) -> str:
     [
         ("execute_typescript", script("await new Promise(r => setTimeout(r, 5000));"), True),
         ("execute_typescript", script("setTimeout(done, 60000)"), True),
-        ("execute_typescript", script("await sleep(10)"), True),
+        ("execute_typescript", script("await sleep(10)"), False),
+        ("execute_typescript", script('const app = "sleep tracker"; return app;'), False),
         ("execute_typescript", script("setTimeout(done, 4999)"), False),
         ("execute_typescript", script("const sleeper = await fs__read_file({})"), False),
         ("computer__shell", json.dumps({"command": "sleep 30 && ls"}), True),
         ("computer__shell", json.dumps({"command": "ls ~/sleepy"}), False),
+        ("computer__shell", json.dumps({"command": "cd app && sleep 5; ls"}), True),
+        ("computer__shell", json.dumps({"command": "(sleep 2) | cat"}), True),
+        ("computer__shell", json.dumps({"command": "echo 'sleep tracker'"}), False),
+        ("computer__shell", json.dumps({"command": "grep sleep notes.txt"}), False),
         ("fs__read_file", json.dumps({"path": "sleep"}), False),
         ("execute_typescript", "not json", False),
     ],
@@ -46,7 +51,7 @@ def test_a_call_waits_when_its_script_or_command_sleeps_or_times_out_long(
 
 async def test_the_hook_refuses_a_waiting_call_with_its_reason() -> None:
     hook = NoWaitHook()
-    waiting = Signature(name="execute_typescript", args=script("await sleep(1)"))
+    waiting = Signature(name="execute_typescript", args=script("setTimeout(go, 9000)"))
     working = Signature(name="execute_typescript", args=script("return 1"))
 
     assert await hook.pre(waiting, ()) == NO_WAIT_REFUSAL
