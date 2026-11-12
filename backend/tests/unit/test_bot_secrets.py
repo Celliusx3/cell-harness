@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotDraft, BotNotFound, BotService
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL
@@ -17,7 +17,10 @@ from tests.webapp import MODEL_CREDENTIAL
 def bots(tmp_path: Path) -> BotService:
     service = durable_service(tmp_path / "sessions")
     return BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=AppEvents()
+        tmp_path / "bots.json",
+        service,
+        assistant_instructions="Be kind.",
+        app_events=AppEventService(),
     )
 
 

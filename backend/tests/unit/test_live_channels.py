@@ -10,7 +10,7 @@ import pytest
 from fastapi import FastAPI
 from pydantic import SecretStr
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.platforms import PlatformChannels
@@ -136,7 +136,10 @@ def keyring(tmp_path: Path) -> SecretService:
 def bots(tmp_path: Path) -> BotService:
     sessions = durable_service(tmp_path / "bot-sessions")
     return BotService(
-        tmp_path / "bots.json", sessions, assistant_instructions="Be kind.", events=AppEvents()
+        tmp_path / "bots.json",
+        sessions,
+        assistant_instructions="Be kind.",
+        app_events=AppEventService(),
     )
 
 

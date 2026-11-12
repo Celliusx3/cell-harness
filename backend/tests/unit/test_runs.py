@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import (
     ASSISTANT_ID,
     Bot,
@@ -19,7 +19,7 @@ from harness.bots import (
     GroupEmpty,
 )
 from harness.prompts import ASSISTANT_INSTRUCTIONS
-from harness.runs.service import RunAlreadyActive
+from harness.runs.run import RunAlreadyActive
 from harness.runs.subscribe import subscribe
 from harness.session.log import Session
 from harness.session.models import (
@@ -193,7 +193,7 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
         Path("/nonexistent/bots.json"),
         service,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
-        events=AppEvents(),
+        app_events=AppEventService(),
     )
     client = SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done"))
     runs = run_service(service, client, replace(echo_tool(), execute=execute), bots=bots)

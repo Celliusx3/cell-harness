@@ -10,7 +10,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import client as adapter_module
@@ -61,7 +61,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
-    runs = RunService(service, runtime, bots, events=AppEvents())
+    runs = RunService(service, runtime, bots, app_events=AppEventService())
     asgi = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     transport = httpx.ASGITransport(app=asgi, client=("127.0.0.1", 50000))
     client = httpx.AsyncClient(

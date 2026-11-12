@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
 from harness.channels.commands import Command, apply
 from harness.channels.gateway import ChannelGateway
@@ -68,7 +68,7 @@ def build(tmp_path, reply: str = "answered"):
         images=no_images(),
         checkpoint=sessions.flush,
     )
-    runs = RunService(sessions, runtime, no_bots(sessions), events=AppEvents())
+    runs = RunService(sessions, runtime, no_bots(sessions), app_events=AppEventService())
     chats = JsonlChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t"), runs, chats
 

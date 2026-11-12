@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotService
 from harness.llm import AssistantMessage, UserMessage
 from harness.runs.bot_messages import MAX_HOPS, final_reply, hop_of_last_turn
@@ -131,7 +131,7 @@ async def test_the_bot_argument_lists_the_active_bots_by_name(tmp_path: Path) ->
         tmp_path / "bots.json",
         durable_service(tmp_path / "sessions"),
         assistant_instructions="A.",
-        events=AppEvents(),
+        app_events=AppEventService(),
     )
     await store.create(BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL))
     gone = await store.create(

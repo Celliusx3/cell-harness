@@ -7,7 +7,7 @@ import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage, Pushing
@@ -35,7 +35,7 @@ def build(tmp_path: Path):
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)
-    runs = RunService(sessions, runtime, bots, events=AppEvents())
+    runs = RunService(sessions, runtime, bots, app_events=AppEventService())
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     web = WebChannel(gateway, bots, files_in(tmp_path), images_in(tmp_path))

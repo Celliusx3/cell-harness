@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 
 from harness.bots import BotNotFound, BotService
 from harness.runs.bot_messages import Follow
-from harness.runs.service import RunService, settled
+from harness.runs.run import settled
+from harness.runs.service import RunService
 from harness.schedules.models import Schedule
 from harness.schedules.service import Now, ScheduleNotFound, ScheduleService
 from harness.schedules.timing import latest_at_or_before

@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 
 from fastapi import FastAPI
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.app_events.controller import build_router as build_app_events_router
 from harness.bots import BotService
 from harness.bots.controller import build_router as build_bots_router
@@ -150,9 +150,12 @@ def create_web_app() -> FastAPI:
         default_mode=settings.approval.default_mode,
     )
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
-    events = AppEvents()
+    app_events = AppEventService()
     bots = BotService(
-        settings.bots.path, service, assistant_instructions=ASSISTANT_INSTRUCTIONS, events=events
+        settings.bots.path,
+        service,
+        assistant_instructions=ASSISTANT_INSTRUCTIONS,
+        app_events=app_events,
     )
     runtime = build_runtime(
         settings,
@@ -167,7 +170,7 @@ def create_web_app() -> FastAPI:
         images=images,
         files=files,
     )
-    runs = RunService(service, runtime, bots, events=events)
+    runs = RunService(service, runtime, bots, app_events=app_events)
     assert runtime.tools is not None
     channels = build_channels(
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
@@ -229,7 +232,7 @@ def create_app(
     relays = RelayService(now=time.monotonic)
     app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
-    app.include_router(build_app_events_router(runs.events))
+    app.include_router(build_app_events_router(runs.app_events))
     app.include_router(build_skills_router(skills))
     app.include_router(build_mcp_servers_router(mcp, saved_servers))
     app.include_router(build_mcp_router(mcp, relays))

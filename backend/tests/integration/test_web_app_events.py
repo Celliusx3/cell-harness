@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 
 import httpx
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import BotService
 from harness.runs.service import RunService
 from tests.integration.test_web_stream import TIMEOUT, served, serving
@@ -45,11 +45,13 @@ async def test_an_open_window_hears_that_a_turn_started_elsewhere(tmp_path) -> N
 
 async def test_an_open_window_hears_that_the_bots_changed(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
-    events = AppEvents()
+    app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Help.", events=events
+        tmp_path / "bots.json", service, assistant_instructions="Help.", app_events=app_events
     )
-    runs = RunService(service, runtime_over(ScriptedClient(completed("hi"))), bots, events=events)
+    runs = RunService(
+        service, runtime_over(ScriptedClient(completed("hi"))), bots, app_events=app_events
+    )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=a_model_saved_in(tmp_path)
     )

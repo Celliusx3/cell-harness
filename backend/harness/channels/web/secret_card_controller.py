@@ -11,7 +11,7 @@ from harness.bots import Bot, BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
 from harness.channels.web.secret_card_schemas import Entered, ModelEntry, SecretEntry
-from harness.runs.service import RunAlreadyActive
+from harness.runs.run import RunAlreadyActive
 from harness.secrets import SECRET_VALUE_RULE, SecretService
 from harness.secrets.credential_effects import CredentialEffects
 from harness.secrets.models.details import CustomDetails

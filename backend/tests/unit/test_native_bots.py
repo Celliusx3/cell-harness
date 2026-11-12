@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import BotService
 from harness.secrets import SecretService
 from harness.secrets.models.details import ModelDetails
@@ -27,7 +27,7 @@ def store(tmp_path: Path) -> BotService:
         tmp_path / "bots.json",
         durable_service(tmp_path / "sessions"),
         assistant_instructions="A.",
-        events=AppEvents(),
+        app_events=AppEventService(),
     )
 
 

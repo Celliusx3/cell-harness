@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService, GroupDraft
 from harness.schedules import ScheduleService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
@@ -28,7 +28,7 @@ def bots(tmp_path: Path) -> BotService:
         tmp_path / "bots.json",
         durable_service(tmp_path / "sessions"),
         assistant_instructions="A.",
-        events=AppEvents(),
+        app_events=AppEventService(),
     )
 
 

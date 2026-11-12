@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotService
 from harness.schedules import ScheduleRepository, ScheduleService
 from harness.session.models import TurnEnd, UserMessageEvent
@@ -34,7 +34,10 @@ def _now() -> datetime:
 async def bots(tmp_path):
     service, runs = build(tmp_path, ScriptedClient(completed("hello")))
     store = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", events=AppEvents()
+        tmp_path / "bots.json",
+        service,
+        assistant_instructions="ASSISTANT",
+        app_events=AppEventService(),
     )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=store, secrets=a_model_saved_in(tmp_path)
@@ -114,7 +117,10 @@ async def test_assistant_can_be_neither_archived_nor_deleted(bots) -> None:
 async def test_archiving_a_bot_stops_its_running_turn_and_keeps_its_chat_whole(tmp_path) -> None:
     service, runs = build(tmp_path, HangingClient("thinking"))
     store = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", events=AppEvents()
+        tmp_path / "bots.json",
+        service,
+        assistant_instructions="ASSISTANT",
+        app_events=AppEventService(),
     )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=store, secrets=a_model_saved_in(tmp_path)
