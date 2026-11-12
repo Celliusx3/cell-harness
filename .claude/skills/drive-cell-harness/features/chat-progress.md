@@ -1,6 +1,6 @@
 # Chat progress
 
-What a person sees from the moment they press send until the turn ends. The design is [the chat redesign spec](../../../../docs/specs/chat-redesign/spec.md).
+What a person sees from the moment they press send until the turn ends. The design is the chat redesign spec, `git show db9b326:docs/specs/chat-redesign/spec.md`.
 
 ## Sub-features
 

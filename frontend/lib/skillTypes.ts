@@ -11,7 +11,7 @@ export interface SkillSummary {
   editable: boolean;
 }
 
-export interface SkillIssue {
+interface SkillIssue {
   path: string;
   problem: string;
 }

@@ -237,7 +237,7 @@ export interface ConversationDetail {
   mode: ApprovalMode;
 }
 
-export type { BundledFile, SkillFile, SkillIssue, SkillList, SkillSummary } from "./skillTypes";
+export type { BundledFile, SkillFile, SkillList, SkillSummary } from "./skillTypes";
 
 /** What the browser answers a client tool with */
 export type ClientAnswer<T> =

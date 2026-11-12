@@ -4,7 +4,7 @@ import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/
 
 const NO_RESPONSE = "NO_RESPONSE";
 
-export type Part =
+type Part =
   | { kind: "item"; item: TimelineItem }
   | { kind: "activity"; key: string; turn: number; items: TimelineItem[] };
 
@@ -13,7 +13,7 @@ export type Row =
   | { kind: "item"; item: TimelineItem }
   | { kind: "answer"; key: string; turn: number; speaker: Speaker | null; parts: Part[] };
 
-export interface TurnShape {
+interface TurnShape {
   /** In a group's chat, the bot that spoke each turn. */
   speakers: ReadonlyMap<number, Speaker>;
   /** Whether a tool's card stays in view. */

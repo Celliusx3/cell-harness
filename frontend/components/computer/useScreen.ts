@@ -12,10 +12,10 @@ import {
 import type { ScreenServer } from "@/components/computer/server";
 
 /** What the person asks of a screen: watch it, hold it, or hand it back. */
-export type ScreenChange = "view" | "control" | "release";
+type ScreenChange = "view" | "control" | "release";
 
 /** A change that did not go through, what was said, and the change to try again. */
-export interface FailedChange {
+interface FailedChange {
   message: string;
   retry: ScreenChange;
 }

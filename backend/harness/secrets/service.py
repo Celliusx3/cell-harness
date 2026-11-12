@@ -100,16 +100,6 @@ class SecretService:
         )
         return existing.details
 
-    def add_or_replace_key(self, name: str, details: CredentialDetails, value: SecretStr) -> None:
-        """Add `name` for `details`; when one of that kind is saved, replace only its key."""
-        existing = self._replaced_by(name, details)
-        if existing is None:
-            self.add_credential(name, details, value)
-            return
-        if existing.details.kind != details.kind:
-            raise SecretRefused(f"a {existing.details.kind} credential is already named {name!r}")
-        self.change_credential(existing.name, existing.details, value)
-
     def secret_named(self, name: str) -> UnsealedSecret | None:
         """The custom key called `name`, unsealed, or `None`; no other kind is ever handed out."""
         sealed_secret = next((s for s in self._repository.sealed_secrets() if s.name == name), None)
@@ -192,14 +182,6 @@ class SecretService:
 
     def _sealed_named(self, name: str) -> SealedSecret | None:
         return next((s for s in self._repository.sealed_secrets() if s.name == name), None)
-
-    def _replaced_by(self, name: str, details: CredentialDetails) -> SealedSecret | None:
-        """What a key for `details` replaces: its platform's one credential, else the one `name`."""
-        if isinstance(details, ChatPlatformDetails):
-            saved = _platform_credential(self._repository.sealed_secrets(), details.kind)
-            if saved is not None:
-                return saved
-        return self._sealed_named(name)
 
     def _sealed_secret(self, name: str, details: CredentialDetails, plaintext: str) -> SealedSecret:
         record_id = os.urandom(RECORD_ID_BYTES).hex()
