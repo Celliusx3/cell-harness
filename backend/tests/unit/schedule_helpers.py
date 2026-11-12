@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from harness.bots import ASSISTANT_ID
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.session.models import ScheduleReminderEvent
 from harness.session.service import SessionService
-from harness.tools import Tool
+from harness.tools import Tool, ToolOutcome
 from tests.unit.gateway_helpers import build, settle
-from tests.unit.helpers import no_bots, no_skills
+from tests.unit.helpers import context_for, no_bots, no_skills
 
 START = datetime.fromisoformat("2026-11-12T08:00:00+00:00")
 
@@ -63,3 +65,11 @@ async def reminder_events(sessions: SessionService, chat_id: str) -> list[Schedu
     """The schedule reminders logged in `chat_id`, oldest first."""
     events = (await sessions.read(chat_id)).events()
     return [e for e in events if isinstance(e, ScheduleReminderEvent)]
+
+
+async def ask(
+    tool: Tool, chat_id: str = ASSISTANT_ID, bot_id: str = ASSISTANT_ID, **arguments: object
+) -> ToolOutcome:
+    """`tool` called by `bot_id` from `chat_id` with `arguments`."""
+    context = context_for(bot_id=bot_id, conversation_id=chat_id)
+    return await tool.invoke(json.dumps(arguments), context=context)

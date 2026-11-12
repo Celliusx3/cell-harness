@@ -1,6 +1,6 @@
 # 05 — List, view, change, pause, resume and delete from chat
 
-**Status.** open
+**Status.** done
 
 **What to build.** `schedule_list`, `schedule_view` and `schedule_edit`
 (update title, prompt or rrule; pause; resume; delete) in

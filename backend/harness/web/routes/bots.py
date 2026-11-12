@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from harness.bots import Bot, BotDraft, BotEdit, BotService
 from harness.runs.service import RunService
+from harness.schedules import ScheduleService
 from harness.secrets import SecretName, SecretNotFound, SecretService
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,9 @@ def _edit_routes(router: APIRouter, bots: BotService, secrets: SecretService) ->
         return bot
 
 
-def _archive_routes(router: APIRouter, bots: BotService, runs: RunService) -> None:
+def _archive_routes(
+    router: APIRouter, bots: BotService, runs: RunService, schedules: ScheduleService
+) -> None:
     """Archiving, restoring and deleting a bot; archiving or deleting one stops its turn."""
 
     async def stop_speaking(bot_id: str) -> None:
@@ -91,13 +94,16 @@ def _archive_routes(router: APIRouter, bots: BotService, runs: RunService) -> No
         bots.archive(bot_id)
         await stop_speaking(bot_id)
         await bots.delete(bot_id)
-        logger.info("bot %s and its chat deleted", bot_id)
+        schedules.delete_of_bot(bot_id)
+        logger.info("bot %s, its chat and its schedules deleted", bot_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def build_router(bots: BotService, runs: RunService, secrets: SecretService) -> APIRouter:
+def build_router(
+    bots: BotService, runs: RunService, secrets: SecretService, schedules: ScheduleService
+) -> APIRouter:
     """Every bot, and the changes a person can make; archiving or deleting one stops its turn."""
     router = APIRouter(prefix="/api/bots", tags=["bots"])
     _edit_routes(router, bots, secrets)
-    _archive_routes(router, bots, runs)
+    _archive_routes(router, bots, runs, schedules)
     return router

@@ -1,8 +1,14 @@
-"""What `schedule_create` is called with."""
+"""What the schedule tools are called with."""
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
+
+MAX_PAGE = 50
+DEFAULT_PAGE = 20
+_ID = "Task id."
 
 
 class ScheduleCreateArgs(BaseModel):
@@ -28,4 +34,61 @@ class ScheduleCreateArgs(BaseModel):
             'Example: "DTSTART;TZID=Asia/Singapore:20260901T080000\\nRRULE:FREQ=WEEKLY;'
             'BYDAY=MO,TU,WE,TH,FR"'
         )
+    )
+
+
+class ScheduleListArgs(BaseModel):
+    """What the model passes to `schedule_list`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    active: bool | None = Field(
+        default=None,
+        description=(
+            "true for active tasks only; false for paused and ended tasks only; "
+            "omitted for all tasks."
+        ),
+    )
+    limit: int = Field(
+        default=DEFAULT_PAGE,
+        ge=1,
+        le=MAX_PAGE,
+        description="Page size from 1 to 50; defaults to 20.",
+    )
+    offset: int = Field(default=0, ge=0, description="Number of tasks to skip; defaults to 0.")
+
+
+class ScheduleViewArgs(BaseModel):
+    """What the model passes to `schedule_view`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(description=_ID)
+
+
+class ScheduleEditArgs(BaseModel):
+    """What the model passes to `schedule_edit`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(description=_ID)
+    action: Literal["update", "delete"] = Field(
+        description="update applies the provided fields, at least one; delete removes the task."
+    )
+    title: str | None = Field(
+        default=None,
+        description=(
+            "New task name of at most 120 characters in the user's language: action plus "
+            "object. Omit timing, status and ids."
+        ),
+    )
+    prompt: str | None = Field(
+        default=None, description="New instruction delivered at each occurrence."
+    )
+    rrule: str | None = Field(
+        default=None, description="New recurrence in the schedule_create rrule format."
+    )
+    active: bool | None = Field(
+        default=None,
+        description="false pauses the task; true resumes it from its next occurrence after now.",
     )

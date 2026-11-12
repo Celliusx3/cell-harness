@@ -56,7 +56,16 @@ from harness.tools.native.files import (
 from harness.tools.native.hand_over import HAND_OVER_TOOL
 from harness.tools.native.location import GET_LOCATION_TOOL
 from harness.tools.native.question import ASK_USER_TOOL
-from harness.tools.native.schedule import SCHEDULE_CREATE, schedule_create_tool
+from harness.tools.native.schedule import (
+    SCHEDULE_CREATE,
+    SCHEDULE_EDIT,
+    SCHEDULE_LIST,
+    SCHEDULE_VIEW,
+    schedule_create_tool,
+    schedule_edit_tool,
+    schedule_list_tool,
+    schedule_view_tool,
+)
 from harness.tools.native.secrets import (
     ASK_FOR_SECRET_TOOL,
     FETCH_WITH_SECRET,
@@ -80,6 +89,7 @@ CLIENT_TOOLS = ClientToolCatalog(
     (GET_LOCATION_TOOL, ASK_USER_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL)
 )
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
+SCHEDULE_TOOLS = (SCHEDULE_CREATE, SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT)
 DEFAULT_TOOLS = (
     LIST_FUNCTIONS,
     GET_FUNCTION_DETAILS,
@@ -88,7 +98,7 @@ DEFAULT_TOOLS = (
     *SKILL_WRITES,
     BOT_CREATE,
     MESSAGE_BOT,
-    SCHEDULE_CREATE,
+    *SCHEDULE_TOOLS,
     RUN_SUBAGENT,
     FETCH_WITH_SECRET,
     SEND_FILE,
@@ -105,7 +115,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         *SKILL_WRITES,
         BOT_CREATE,
         MESSAGE_BOT,
-        SCHEDULE_CREATE,
+        *SCHEDULE_TOOLS,
         RUN_SUBAGENT,
         FETCH_WITH_SECRET,
         SEND_FILE,
@@ -240,8 +250,15 @@ def attach_bot_messages(
 def attach_schedules(
     tool_service: ToolService, bots: BotService, schedules: ScheduleService
 ) -> Disposer:
-    """`schedule_create` offered from `tool_service`; the disposer takes it back."""
-    return tool_service.add_provider(lambda: [schedule_create_tool(bots, schedules)])
+    """The schedule tools offered from `tool_service`; the disposer takes them back."""
+    return tool_service.add_provider(
+        lambda: [
+            schedule_create_tool(bots, schedules),
+            schedule_list_tool(bots, schedules),
+            schedule_view_tool(bots, schedules),
+            schedule_edit_tool(bots, schedules),
+        ]
+    )
 
 
 def default_hooks(skills: SkillService) -> HookChain:

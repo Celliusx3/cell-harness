@@ -238,7 +238,7 @@ def create_app(
     app.include_router(build_credentials_router(secrets, bots, channels.platforms))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
-    app.include_router(build_bots_router(bots, runs, secrets))
+    app.include_router(build_bots_router(bots, runs, secrets, scheduler.schedules))
     app.include_router(build_groups_router(bots))
     app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

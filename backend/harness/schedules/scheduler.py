@@ -44,6 +44,11 @@ class Scheduler:
         self._deliveries: set[asyncio.Task[None]] = set()
         self._chats_in_flight: set[str] = set()
 
+    @property
+    def schedules(self) -> ScheduleService:
+        """The schedules this scheduler delivers."""
+        return self._schedules
+
     def start(self) -> None:
         """Begin the loop, for a server starting up."""
         self._task = asyncio.create_task(self._loop())
