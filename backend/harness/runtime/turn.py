@@ -29,6 +29,7 @@ from harness.runtime.events import (
     TurnEvent,
 )
 from harness.runtime.hooks import GiveUp, Tell
+from harness.runtime.inbox import claim_into
 from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.runtime.tool_run import run_tool_calls
 from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
@@ -74,7 +75,7 @@ async def run_turn(
     try:
         for step in itertools.count():
             at = TurnStep(turn=turn, step=step)
-            _start_step_noting_mode_switch(runtime, session, at)
+            await _open_step(runtime, session, at, bot_id=bot_id)
             await _shrink_history_when_due(runtime, session, turn=turn, bot_id=bot_id)
 
             reply: Completed | Failed | RetryStep | None = None
@@ -87,7 +88,7 @@ async def run_turn(
             assert reply is not None
 
             if isinstance(reply, (RetryStep, Failed)) or not reply.tool_calls:
-                ended = await _outcome_without_tools(runtime, session, reply, at=at)
+                ended = await _outcome_without_tools(runtime, session, reply, at=at, bot_id=bot_id)
                 if ended is None:
                     continue
                 outcome = ended
@@ -128,7 +129,12 @@ async def _shrink_history_when_due(
 
 
 async def _outcome_without_tools(
-    runtime: Runtime, session: Session, reply: Completed | Failed | RetryStep, *, at: TurnStep
+    runtime: Runtime,
+    session: Session,
+    reply: Completed | Failed | RetryStep,
+    *,
+    at: TurnStep,
+    bot_id: str,
 ) -> AgentCompleted | AgentFailed | None:
     """A step whose reply runs no tools: the turn's outcome, or `None` to run another step."""
     if isinstance(reply, RetryStep):
@@ -142,6 +148,9 @@ async def _outcome_without_tools(
         return AgentFailed(reason=decision.reason)
     if isinstance(decision, Tell):
         _tell(session, at.turn, at.step, decision.note)
+        return None
+    if await claim_into(runtime, session, turn=at.turn, bot_id=bot_id):
+        session.append(StepEnd(turn=at.turn, step=at.step))
         return None
     _close(session, at.turn, at.step, "completed")
     return AgentCompleted(text=reply.full_text)
@@ -260,6 +269,13 @@ async def _shrink_history(
             ):
                 shrank = True
     return shrank
+
+
+async def _open_step(runtime: Runtime, session: Session, at: TurnStep, *, bot_id: str) -> None:
+    """Open the step, then, past the first, read in what the person sent since the last."""
+    _start_step_noting_mode_switch(runtime, session, at)
+    if at.step > 0:
+        await claim_into(runtime, session, turn=at.turn, bot_id=bot_id)
 
 
 def _start_step_noting_mode_switch(runtime: Runtime, session: Session, at: TurnStep) -> None:

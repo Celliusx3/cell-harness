@@ -150,13 +150,14 @@ class BotService:
         return bot
 
     def update(self, bot_id: str, edit: BotEdit) -> Bot:
-        """Set an active bot's name, instructions and model; its chat logs the text next turn."""
+        """Set an active bot's name, instructions, model and worker limit; logged next turn."""
         stored = self._read_file()
         bot = self._active_bot_in(stored, bot_id)
         changes = {
             "name": edit.name,
             "instructions": edit.instructions,
             "model_credential": edit.model,
+            "max_workers": bot.max_workers if edit.max_workers is None else edit.max_workers,
         }
         return self._save_bot(stored, bot.model_copy(update=changes))
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import dataclasses
 import functools
 import time
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -18,10 +20,12 @@ from harness.bots.controller import build_router as build_bots_router
 from harness.bots.groups_controller import build_router as build_groups_router
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
+from harness.channels.inbox import ChatInbox
 from harness.channels.link_codes_controller import build_router as build_link_codes_router
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository import ChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.client_controller import build_router as build_client_router
 from harness.channels.web.compact_controller import build_router as build_compact_router
@@ -47,6 +51,9 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.skills.controller import build_router as build_skills_router
+from harness.tickets.controller import build_router as build_tickets_router
+from harness.tickets.repository import TicketRepository
+from harness.tickets.service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.approvals_controller import build_router as build_approvals_router
 from harness.tools.client import ClientToolService
@@ -58,6 +65,7 @@ from harness.web.runtime import (
     attach_schedules,
     build_runtime,
 )
+from harness.web.tickets_wiring import attach_tickets, ticket_workers
 
 
 def build_store(settings: Settings) -> SessionService:
@@ -68,6 +76,11 @@ def build_store(settings: Settings) -> SessionService:
 def build_subagent_logs(settings: Settings) -> SessionService:
     """The subagents' own logs, beside the conversations and never among them."""
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
+
+
+def build_chats(settings: Settings) -> JsonlChatRepository:
+    """Every chat's state, beside the conversations."""
+    return JsonlChatRepository(settings.sessions.root.parent / "chats")
 
 
 def build_saved_servers(settings: Settings) -> SavedServerService:
@@ -99,6 +112,7 @@ class ChannelServices:
     bots: BotService
     files: ChatFileService
     images: ImageService
+    chats: ChatRepository
 
 
 @dataclass(frozen=True)
@@ -115,7 +129,7 @@ def build_channels(
     settings: Settings, services: ChannelServices, keyring: SecretService
 ) -> Channels:
     """The gateway with the web on it, and the platforms the keyring's tokens will start there."""
-    chats = JsonlChatRepository(settings.sessions.root.parent / "chats")
+    chats = services.chats
     gateway = ChannelGateway(
         chats, services.runs, services.sessions, services.skills, public_url=settings.web.public_url
     )
@@ -157,6 +171,8 @@ def create_web_app() -> FastAPI:
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=app_events,
     )
+    subagent_logs = build_subagent_logs(settings)
+    chats = build_chats(settings)
     runtime = build_runtime(
         settings,
         service,
@@ -165,20 +181,35 @@ def create_web_app() -> FastAPI:
         client_tools,
         approvals,
         bots=bots,
-        subagent_logs=build_subagent_logs(settings),
+        subagent_logs=subagent_logs,
         secrets=secrets,
         images=images,
         files=files,
     )
+    runtime = dataclasses.replace(runtime, inbox=ChatInbox(chats, skills))
     runs = RunService(service, runtime, bots, app_events=app_events)
     assert runtime.tools is not None
     channels = build_channels(
-        settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
+        settings,
+        ChannelServices(service, runs, skills, client_tools, bots, files, images, chats),
+        secrets,
     )
     messages = attach_bot_messages(
         runtime.tools.tool_service, bots, runs, follow=channels.gateway.follow
     )
     now = functools.partial(datetime.now, UTC)
+    tool_service = runtime.tools.tool_service
+    tickets = TicketService(
+        TicketRepository(settings.tickets.path),
+        bots,
+        runs,
+        worker=ticket_workers(tool_service, runtime, subagent_logs),
+        logs=subagent_logs,
+        follow=channels.gateway.follow,
+        now=now,
+        ids=lambda: uuid.uuid4().hex,
+    )
+    attach_tickets(tool_service, tickets)
     schedules = ScheduleService(ScheduleRepository(settings.schedules.path), now=now)
     attach_schedules(runtime.tools.tool_service, bots, schedules)
     scheduler = Scheduler(schedules, bots, runs, follow=channels.gateway.follow, now=now)
@@ -193,6 +224,7 @@ def create_web_app() -> FastAPI:
         bots,
         secrets,
         messages,
+        tickets,
         schedules,
         scheduler,
     )
@@ -209,6 +241,7 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
+    tickets: TicketService,
     schedules: ScheduleService,
     scheduler: Scheduler,
 ) -> FastAPI:
@@ -222,10 +255,12 @@ def create_app(
         await channels.platforms.start_saved()
         await gateway.start()
         scheduler.start()
+        tickets.recover()
         yield
         await gateway.aclose()
         await scheduler.aclose()
         await messages.aclose()
+        await tickets.aclose()
         await runs.aclose()
         await mcp.aclose()
 
@@ -246,6 +281,7 @@ def create_app(
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets, schedules))
     app.include_router(build_schedules_router(bots, schedules, scheduler, runs))
+    app.include_router(build_tickets_router(tickets, secrets, bots, client_tools))
     app.include_router(build_groups_router(bots))
     app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

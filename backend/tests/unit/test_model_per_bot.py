@@ -27,9 +27,9 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from tests.bot_models import put_on_model
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, durable_service, new_session, no_images
-from tests.webapp import put_on_model
 
 KEY = "0123456789abcdef0123456789abcdef"
 TRADER_URL = "https://api.trader.example/v1"

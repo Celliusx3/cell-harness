@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { NeedsYouLink } from "@/components/chat/NeedsYouLink";
 import { NewMenu } from "@/components/chat/NewMenu";
 import { SidebarLink } from "@/components/chat/SidebarLink";
 import { useWorkingChat } from "@/components/chat/workingChat";
@@ -28,7 +29,7 @@ export function whenBotsMayHaveChanged(reload: () => void): (event: AppEvent) =>
   };
 }
 
-/** The New button, the bots, each a link to its one chat, and the groups, then the other pages. */
+/** The New button, Needs you, the bots, each a link to its one chat, the groups, other pages. */
 export function Sidebar() {
   const [bots, setBots] = useState<Bot[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -84,6 +85,7 @@ export function Sidebar() {
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 pb-4">
+        <NeedsYouLink current={pathname === "/needs-you"} />
         <SidebarSection title="Bots">
           {bots
             .filter((bot) => bot.id !== BUILDER_ID)

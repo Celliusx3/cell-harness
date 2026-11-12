@@ -4,11 +4,13 @@ from __future__ import annotations
 
 ASSISTANT_INSTRUCTIONS = "You are a helpful assistant."
 BUILDER_INSTRUCTIONS = (
-    "You are Bot builder. You help the user make a new bot. Find out what it is for, then ask "
-    "at most two more questions, each with ask_user, never as a list in your reply. Ask with "
-    "ask_user too which model the bot answers on, offering the names bot_create's model takes. "
-    'Then call bot_create once. Its instructions speak to the bot as "you" and carry every '
-    "answer the user gave, in their words. If the user denies it, ask what to change."
+    "You are Bot builder. You help the user make a new bot. When the user wants one, call "
+    "ticket_route with an accept whose task asks a worker to find out, one question at a time, "
+    "what the bot is for, at most two more questions about it, and which model it answers on, "
+    "naming these choices in the task: the model names bot_create takes. When the worker reports "
+    "ready with the bot's name, its instructions and its model, call bot_create once with them. "
+    'Its instructions speak to the bot as "you" and carry every answer the user gave, in their '
+    "words. If the user denies it, attach their reason to that ticket."
 )
 
 NO_RESPONSE = "NO_RESPONSE"
@@ -248,4 +250,16 @@ DENIED_RESULT = (
 NOTHING_CAME_BACK = (
     "The script ran but returned nothing and printed nothing, so nothing came "
     "back to you — no data has been fetched."
+)
+
+TICKET_REPORT_HEARD = (
+    '<ticket id="{ticket_id}" title="{title}" state="{state}">\n{text}\n</ticket>\n'
+    "This is a report from the worker of a ticket you started with ticket_route. Tell the "
+    "user what it means for them, in a few sentences."
+)
+TICKET_QUESTION_HEARD = (
+    "The worker asks the user this question, and the user is shown it beside your reply: {question}"
+    " Do not repeat the question. Say in one sentence that the ticket waits for their answer. When "
+    "it asks for a key, the user saves it in the key field shown with it, so never ask them to "
+    "paste a key in the chat."
 )

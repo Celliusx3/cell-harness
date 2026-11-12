@@ -72,7 +72,7 @@ sent a [link code](#link-codes) writes into that bot's chat, the same one the
 browser shows. Telegram hears only the replies to what it sent.
 
 `/new` clears the chat in place, like the browser's Clear button; `/stop` cancels the current reply. A message
-sent while it is working is answered next rather than refused — and since phase 6
+sent while it is working is read at its next step rather than refused — and since phase 6
 the browser behaves the same way, because being able to *show* a refusal is not a
 reason to make someone retype what they wrote.
 

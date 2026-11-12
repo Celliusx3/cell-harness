@@ -24,6 +24,7 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     skills_at,
+    worker_of,
 )
 from tests.webapp import files_in, images_in, secrets_in
 
@@ -67,10 +68,11 @@ async def test_the_example_script_it_teaches_runs_as_a_program(tmp_path: Path) -
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
-    assert runtime.tools is not None
+    worker = worker_of(runtime)
+    assert worker.tools is not None
     script = fenced(CREATE_SKILL.read_text(), "ts")
 
-    ran = await runtime.tools.execute(
+    ran = await worker.tools.execute(
         ToolCall(
             id="c1",
             name=EXECUTE_TYPESCRIPT,

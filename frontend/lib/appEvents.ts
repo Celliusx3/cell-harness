@@ -3,7 +3,9 @@ import { useEffect, useRef } from "react";
 export type AppEvent =
   | { type: "app/connected" }
   | { type: "chat/turn-started"; chat_id: string }
-  | { type: "bots/changed" };
+  | { type: "chat/logged"; chat_id: string }
+  | { type: "bots/changed" }
+  | { type: "tickets/changed" };
 
 type AppEventType = AppEvent["type"];
 
@@ -14,7 +16,9 @@ const APP_EVENTS_URL = "/api/app-events";
 const APP_EVENT_TYPES: readonly AppEventType[] = [
   "app/connected",
   "chat/turn-started",
+  "chat/logged",
   "bots/changed",
+  "tickets/changed",
 ];
 
 let listeners: readonly Listener[] = [];
@@ -27,7 +31,7 @@ function isObject(value: unknown): value is { [key: string]: unknown } {
 /** The event `data` carries, if it is an object whose `type` is `type`; null otherwise. */
 function appEventOf(type: AppEventType, data: unknown): AppEvent | null {
   if (!isObject(data) || data.type !== type) return null;
-  if (type === "chat/turn-started") {
+  if (type === "chat/turn-started" || type === "chat/logged") {
     return typeof data.chat_id === "string" ? { type, chat_id: data.chat_id } : null;
   }
   return { type };

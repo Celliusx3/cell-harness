@@ -7,6 +7,8 @@ import type {
   ScheduleChange,
   Speaker,
   Timeline,
+  TicketQuestionItem,
+  TicketResultItem,
   TimelineItem,
 } from "@/components/conversation/timelineItems";
 import type { ApprovalMode, ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
@@ -193,6 +195,14 @@ export class TimelineDraft {
 
   onModeSwitch(key: string, mode: ApprovalMode): void {
     this.items.push({ kind: "mode", key, mode });
+  }
+
+  onTicketQuestion(item: TicketQuestionItem): void {
+    this.items.push(item);
+  }
+
+  onTicketResult(item: TicketResultItem): void {
+    this.items.push(item);
   }
 
   onScheduleChange(key: string, change: ScheduleChange): void {

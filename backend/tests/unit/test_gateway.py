@@ -6,6 +6,8 @@ import asyncio
 import contextlib
 
 from harness.bots import ASSISTANT_ID
+from harness.channels.inbox import ChatInbox
+from harness.runtime.inbox import Claimed
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -145,7 +147,13 @@ async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: as
     return bot, gateway, runs, chats, sessions, conversation
 
 
+async def _past_the_last_check(self: ChatInbox, conversation_id: str) -> Claimed | None:
+    """Claim nothing, as a turn whose last check came before the message did."""
+    return None
+
+
 async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(ChatInbox, "claim", _past_the_last_check)
     first, second = asyncio.Event(), asyncio.Event()
     _, gateway, runs, chats, sessions, conversation = await _queued_behind_a_gated_turn(
         tmp_path, first, second
@@ -194,9 +202,9 @@ async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -
     await settle(runs, gateway)
 
     stored = await sessions.read(conversation)
-    prompts = [e.message.content for e in stored.events() if e.type == "user/message"]
-    assert prompts == ["slow one", "and another"]
-    assert bot.sent == [(CHAT, "first done"), (CHAT, "second done")]
+    said = [(e.turn, e.message.content) for e in stored.events() if e.type == "user/message"]
+    assert said == [(0, "slow one"), (0, "and another")]
+    assert bot.sent == [(CHAT, "first done")]
 
 
 async def test_a_turn_is_delivered_from_its_own_first_event(tmp_path) -> None:

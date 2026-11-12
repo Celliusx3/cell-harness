@@ -1,4 +1,4 @@
-"""A bot's file tools open, unpack and pack only the files of the chat the bot is in."""
+"""The file tools open, unpack and pack only the files of the chat they are called in."""
 
 from __future__ import annotations
 
@@ -20,10 +20,12 @@ from harness.session.service import SessionService
 from harness.tools.native.files import EXTRACT_ARCHIVE, MAKE_ARCHIVE, VIEW_IMAGE
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
+from harness.web.tickets_wiring import ticket_workers
+from tests.bot_models import assistant_on_a_model
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, drain, no_approvals, no_skills
-from tests.webapp import assistant_on_a_model, bots_in, files_in, images_in
+from tests.webapp import bots_in, files_in, images_in
 
 DOT = base64.b64decode(DOT_PNG)
 NOT_THIS_CHAT = "is not a file in this chat"
@@ -43,12 +45,13 @@ def zipped_page() -> bytes:
 async def result_in_chat_s(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tool: str, arguments: dict[str, object]
 ) -> ToolResultEvent:
-    """The logged result of one call to `tool` the model makes in chat `s`."""
+    """The logged result of one call to `tool` made in chat `s` by a worker, offered them all."""
     model = SteppedClient(calls_tool(tool, json.dumps(arguments)), completed("done"))
     monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: model)
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
     bots = bots_in(tmp_path, SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
-    runtime = build_runtime(
+    logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
+    bot = build_runtime(
         Settings(),
         sessions,
         McpService({}),
@@ -56,11 +59,13 @@ async def result_in_chat_s(
         client_tools(),
         no_approvals(),
         bots=bots,
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
+        subagent_logs=logs,
         secrets=assistant_on_a_model(tmp_path, bots),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
+    assert bot.tools is not None
+    runtime = ticket_workers(bot.tools.tool_service, bot, logs).runtime
     session = await sessions.create("s")
     await drain(runtime.run("open it", session=session, bot_id=ASSISTANT_ID))
     (result,) = [e for e in session.events() if isinstance(e, ToolResultEvent)]

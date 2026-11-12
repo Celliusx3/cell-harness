@@ -18,7 +18,7 @@ from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.models import BotInstructionsEvent
 from harness.session.service import SessionService
 from harness.tools.native.bots import BOT_CREATE
-from harness.tools.native.question import ASK_USER
+from harness.tools.native.tickets import TICKET_ROUTE
 from tests.unit.helpers import durable_service
 
 BUILDER = Bot(id=BUILDER_ID, name=BUILDER_NAME, instructions=BUILDER_INSTRUCTIONS)
@@ -64,4 +64,4 @@ async def test_listing_opens_the_builder_s_chat_only_the_first_time(
 
 def test_the_instructions_name_the_tools_by_their_real_names() -> None:
     assert BOT_CREATE in BUILDER_INSTRUCTIONS
-    assert ASK_USER in BUILDER_INSTRUCTIONS
+    assert TICKET_ROUTE in BUILDER_INSTRUCTIONS

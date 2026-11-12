@@ -26,6 +26,9 @@ def _stripped_not_blank(value: str) -> str:
 NonBlankText = Annotated[str, AfterValidator(_stripped_not_blank)]
 
 
+MIN_WORKERS, DEFAULT_WORKERS, MAX_WORKERS = 1, 3, 16
+
+
 class BotDraft(BaseModel):
     """A new bot's name, instructions and model, from the API or a tool call."""
 
@@ -42,17 +45,18 @@ class BotDraft(BaseModel):
 
 
 class BotEdit(BaseModel):
-    """What Edit bot saves: a bot's name and instructions, and its model, `None` for none."""
+    """What Edit bot saves: name, instructions, model (`None`: none), workers (`None`: kept)."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: NonBlankText
     instructions: NonBlankText
     model: SecretName | None
+    max_workers: int | None = Field(default=None, ge=MIN_WORKERS, le=MAX_WORKERS)
 
 
 class Bot(BaseModel):
-    """A name, its instructions, its keys and model credential, and its chat, whose id is its id."""
+    """A name, instructions, keys, model, worker limit, and its chat, whose id is its id."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -62,6 +66,7 @@ class Bot(BaseModel):
     archived: bool = False
     secret_names: tuple[SecretName, ...] = ()
     model_credential: SecretName | None = None
+    max_workers: int = Field(default=DEFAULT_WORKERS, ge=MIN_WORKERS, le=MAX_WORKERS)
 
 
 class GroupDraft(BaseModel):

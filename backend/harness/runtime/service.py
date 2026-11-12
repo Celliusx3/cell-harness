@@ -23,6 +23,7 @@ from harness.runtime.compaction import (
 )
 from harness.runtime.events import AgentPending, TurnEvent
 from harness.runtime.hooks import HookChain
+from harness.runtime.inbox import NO_INBOX, Inbox
 from harness.runtime.models import BotModels, ModelChoice
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
@@ -37,6 +38,8 @@ from harness.session.models import (
     HeardMessage,
     ScheduleReminderEvent,
     ServerInstructionsEvent,
+    TicketReport,
+    TicketReportEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
@@ -67,6 +70,8 @@ class Runtime:
     files: ChatFileService | None = None
     server_instructions: Callable[[], Mapping[str, str]] | None = None
     """Each connected server's instructions now, by server id; `None` means no servers."""
+    inbox: Inbox = NO_INBOX
+    """Where the person's messages sent during a turn wait for its next step."""
 
     def request_messages(
         self, session: Session, context: Sequence[str] = (), *, sees_images: bool
@@ -111,12 +116,25 @@ class Runtime:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = self._open_turn(session, bot_id)
-        images = self.images.of_attachments(files) if await self.sees_images(bot_id) else ()
-        message = UserMessage(content=user_input, images=images)
-        session.append(UserMessageEvent(turn=turn, message=message, files=files))
+        sees_images = await self.sees_images(bot_id)
+        self.log_person(session, user_input, files, turn=turn, sees_images=sees_images)
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
+
+    def log_person(
+        self,
+        session: Session,
+        text: str,
+        files: tuple[ChatFile, ...],
+        *,
+        turn: int,
+        sees_images: bool,
+    ) -> None:
+        """Log what the person sent in `turn`, with its files' images for a model that sees."""
+        images = self.images.of_attachments(files) if sees_images else ()
+        message = UserMessage(content=text, images=images)
+        session.append(UserMessageEvent(turn=turn, message=message, files=files))
 
     async def sees_images(self, bot_id: str) -> bool:
         """Whether `bot_id`'s model can be shown images now; `False` when it has none."""
@@ -238,8 +256,12 @@ def _waiting_call(session: Session, call_id: str) -> ToolCall:
     raise LookupError(f"no unanswered call {call_id!r}")
 
 
-def _opening_event(turn: int, message: HeardMessage) -> BotMessageEvent | ScheduleReminderEvent:
+def _opening_event(
+    turn: int, message: HeardMessage
+) -> BotMessageEvent | ScheduleReminderEvent | TicketReportEvent:
     """The event that logs what opened turn `turn`."""
     if isinstance(message, BotMessage):
         return BotMessageEvent(turn=turn, message=message)
+    if isinstance(message, TicketReport):
+        return TicketReportEvent(turn=turn, report=message)
     return ScheduleReminderEvent(turn=turn, reminders=message.reminders)

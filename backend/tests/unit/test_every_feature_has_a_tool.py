@@ -99,6 +99,21 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/schedules/{schedule_id}/run": NotATool(
         "a bot already doing the task does it at once; running one early is the person's call"
     ),
+    "POST /api/tickets/{ticket_id}/answer": NotATool(
+        "the person's answer to a worker's question; ticket_note sends the bot's own facts"
+    ),
+    "POST /api/tickets/{ticket_id}/approve": NotATool(
+        "allowing a worker's call is the person's call, as on the bot's own approval card"
+    ),
+    "POST /api/tickets/{ticket_id}/secret": NotATool(
+        "the key the person pastes for a worker's question; no model ever sees a key"
+    ),
+    "POST /api/tickets/{ticket_id}/stop": NotATool(
+        "stopping from Needs you is the person's call; ticket_route's stop is the bot's own"
+    ),
+    "POST /api/tickets/{ticket_id}/retry": NotATool(
+        "trying again from Needs you is the person's call; ticket_route attaches the bot's own"
+    ),
     "POST /api/groups": NotATool("not yet: making a group from chat is the next piece"),
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
@@ -132,6 +147,7 @@ CONFIG: dict[str, Tool | NotATool] = {
     "approval": NotATool("what the model must ask before doing; it never edits its own list"),
     "bots": NotATool("where the bots are kept; moving it while running loses them"),
     "schedules": NotATool("where the schedules are kept; moving it while running loses them"),
+    "tickets": NotATool("where the tickets are kept; moving it while running loses them"),
     "secrets": NotATool(
         "where keys are kept and the key that locks them; neither ever passes the model"
     ),

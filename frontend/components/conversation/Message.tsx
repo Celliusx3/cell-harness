@@ -72,7 +72,7 @@ export function QueuedBubble({ content }: { content: string }) {
       <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-surface-sunken/60 px-4 py-2.5 text-sm text-ink-soft">
         {content}
       </div>
-      <span className="text-xs text-ink-soft">queued — answered next</span>
+      <span className="text-xs text-ink-soft">queued — read at its next step</span>
     </div>
   );
 }
@@ -104,18 +104,24 @@ const MARKDOWN: Components = {
   },
 };
 
+const PROSE =
+  "prose prose-sm max-w-none prose-pre:bg-surface-sunken prose-pre:text-ink prose-code:before:content-none prose-code:after:content-none [&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:bg-surface-sunken [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:font-normal";
+
+/** Model-written markdown, drawn the way a bot's reply is. */
+export function MarkdownBody({ content, streaming }: { content: string; streaming: boolean }) {
+  return (
+    <div className={`${PROSE} ${streaming ? "caret" : ""}`}>
+      <Markdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
+        {content}
+      </Markdown>
+    </div>
+  );
+}
+
 export function AssistantBubble({ item }: { item: AssistantItem }) {
   return (
     <div className="flex flex-col gap-1">
-      <div
-        className={`prose prose-sm max-w-none prose-pre:bg-surface-sunken prose-pre:text-ink prose-code:before:content-none prose-code:after:content-none [&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:bg-surface-sunken [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:font-normal ${
-          item.streaming ? "caret" : ""
-        }`}
-      >
-        <Markdown remarkPlugins={[remarkGfm]} components={MARKDOWN}>
-          {item.content}
-        </Markdown>
-      </div>
+      <MarkdownBody content={item.content} streaming={item.streaming} />
       {item.interrupted && (
         <p className="text-xs italic text-ink-soft">
           Stopped part-way — this is the text that had arrived.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import logging
+from collections.abc import Sequence
 
 import httpx
 
@@ -17,13 +18,14 @@ from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
-from harness.prompts import CODE_PROMPT, GUIDANCE
+from harness.prompts import CODE_PROMPT
 from harness.runs.bot_messages import BotMessages, Follow
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
 from harness.runtime.hooks.native.no_progress import NoProgressHook
+from harness.runtime.hooks.native.no_wait import NoWaitHook
 from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
@@ -34,6 +36,7 @@ from harness.schedules import ScheduleService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
+from harness.tickets.prompts import ORCHESTRATOR
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
@@ -81,6 +84,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
+from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
 from harness.tools.service import Disposer
 
 logger = logging.getLogger("harness.web")
@@ -91,22 +95,17 @@ CLIENT_TOOLS = ClientToolCatalog(
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 SCHEDULE_TOOLS = (SCHEDULE_CREATE, SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT)
 DEFAULT_TOOLS = (
-    LIST_FUNCTIONS,
-    GET_FUNCTION_DETAILS,
-    EXECUTE_TYPESCRIPT,
     SKILL,
     *SKILL_WRITES,
     BOT_CREATE,
     MESSAGE_BOT,
     *SCHEDULE_TOOLS,
-    RUN_SUBAGENT,
-    FETCH_WITH_SECRET,
+    TICKET_ROUTE,
+    TICKET_NOTE,
     SEND_FILE,
-    EXTRACT_ARCHIVE,
-    MAKE_ARCHIVE,
     VIEW_IMAGE,
-    *sorted(CLIENT_TOOLS.names),
 )
+WORK_TOOLS = (RUN_SUBAGENT, FETCH_WITH_SECRET, EXTRACT_ARCHIVE, MAKE_ARCHIVE)
 SUBAGENT_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
 SIGHT_TOOLS = frozenset({VIEW_IMAGE})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
@@ -117,6 +116,9 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         MESSAGE_BOT,
         *SCHEDULE_TOOLS,
         RUN_SUBAGENT,
+        TICKET_ROUTE,
+        TICKET_NOTE,
+        TICKET_REPORT,
         FETCH_WITH_SECRET,
         SEND_FILE,
         EXTRACT_ARCHIVE,
@@ -176,9 +178,9 @@ def build_runtime(
         ),
         images=images,
         tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
-        guidance=GUIDANCE,
+        guidance=ORCHESTRATOR,
         checkpoint=store.flush,
-        hooks=default_hooks(skills),
+        hooks=orchestrator_hooks(skills),
         files=files,
         server_instructions=mcp.instructions,
     )
@@ -226,12 +228,20 @@ def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
 def _register_run_subagent(
     tool_service: ToolService, runtime: Runtime, logs: SessionService
 ) -> None:
-    subagent = dataclasses.replace(
-        runtime,
-        tools=Toolset(tool_service, SUBAGENT_TOOLS, sight_tools=SIGHT_TOOLS),
-        guidance=CODE_PROMPT,
-    )
+    subagent = helper_runtime(tool_service, runtime, SUBAGENT_TOOLS)
     tool_service.register(run_subagent_tool(Subagents(subagent, logs)))
+
+
+def helper_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
+    """`runtime` as a subagent or a ticket's worker runs it: offered `tools`, free to wait."""
+    hooks = runtime.hooks
+    kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))
+    return dataclasses.replace(
+        runtime,
+        tools=Toolset(tool_service, tools, sight_tools=SIGHT_TOOLS),
+        guidance=CODE_PROMPT,
+        hooks=dataclasses.replace(hooks, tool_hooks=kept),
+    )
 
 
 def attach_bot_messages(
@@ -267,3 +277,9 @@ def default_hooks(skills: SkillService) -> HookChain:
         (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook()),
         step_hooks=(EmptyReplyHook(), SkillListHook(skills)),
     )
+
+
+def orchestrator_hooks(skills: SkillService) -> HookChain:
+    """`default_hooks` behind the no-wait guard, which only the bot's own turns get."""
+    hooks = default_hooks(skills)
+    return dataclasses.replace(hooks, tool_hooks=(NoWaitHook(), *hooks.tool_hooks))

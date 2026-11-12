@@ -31,6 +31,7 @@ from tests.unit.helpers import (
     no_bots,
     no_images,
     no_skills,
+    no_tickets,
 )
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import (
@@ -76,6 +77,7 @@ def build(tmp_path):
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(no_bots(sessions), runs, follow=gateway.follow),
+        no_tickets(tmp_path, no_bots(sessions), runs),
         schedules,
         scheduler_in(schedules, no_bots(sessions), runs, gateway),
     )
@@ -152,6 +154,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(no_bots(sessions), runs, follow=gateway.follow),
+        no_tickets(tmp_path, no_bots(sessions), runs),
         schedules,
         scheduler_in(schedules, no_bots(sessions), runs, gateway),
     )

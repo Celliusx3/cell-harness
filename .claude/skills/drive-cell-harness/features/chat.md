@@ -6,7 +6,7 @@ A sidebar of bots, then any archived ones, beside the open bot's chat. A person 
 
 - The home page opens Assistant's chat at `/c/assistant`; any chat is at `/c/<id>`.
 - A linked Telegram or Discord direct chat writes into its bot's chat, and a Discord server into Assistant's; their turns show here after a reload.
-- While a turn runs, the box's one button is Stop. Once you type, it becomes Send, and the message is answered after this turn.
+- While a turn runs, the box's one button is Stop. Once you type, it becomes Send, and the message is read at the turn's next step.
 - "Clear chat" is in the header's "More" menu. After a confirm, it wipes the chat in place: the turn stops, every message is deleted, and the model starts fresh. `/new` does the same on Telegram and Discord.
 - `/name` in the box invokes a skill.
 

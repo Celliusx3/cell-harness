@@ -36,6 +36,8 @@ from harness.tools.native.subagent import RUN_SUBAGENT
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
 from harness.web.server import build_store, build_subagent_logs
+from harness.web.tickets_wiring import ticket_workers
+from tests.bot_models import assistant_on_a_model
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import (
     ORIGIN,
@@ -46,14 +48,16 @@ from tests.unit.helpers import (
     no_skills,
     skills_at,
 )
-from tests.webapp import assistant_on_a_model, bots_in, files_in, images_in
+from tests.webapp import bots_in, files_in, images_in
 
 
 @pytest.fixture
-def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """The real object graph, answering through `client`."""
+def compose_both(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """The real object graph answering through `client`: the bot, its worker, and the chats."""
 
-    def build(client, skills: SkillService | None = None) -> tuple[Runtime, SessionService]:
+    def build(
+        client, skills: SkillService | None = None
+    ) -> tuple[Runtime, Runtime, SessionService]:
         monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: client)
         settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
@@ -73,16 +77,30 @@ def compose(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             images=images_in(tmp_path),
             files=files_in(tmp_path),
         )
-        return runtime, sessions
+        assert runtime.tools is not None
+        worker = ticket_workers(runtime.tools.tool_service, runtime, subagent_logs).runtime
+        return runtime, worker, sessions
 
     return build
 
 
-def test_the_bot_is_offered_run_subagent(compose) -> None:
-    runtime, _ = compose(SteppedClient(completed("hi")))
-    assert runtime.tools is not None
+@pytest.fixture
+def compose(compose_both):
+    """The worker's runtime from the real object graph, the one offered `run_subagent`."""
 
-    assert RUN_SUBAGENT in [spec.name for spec in runtime.tools.specs(sees_images=False)]
+    def build(client, skills: SkillService | None = None) -> tuple[Runtime, SessionService]:
+        _, worker, sessions = compose_both(client, skills)
+        return worker, sessions
+
+    return build
+
+
+def test_a_worker_is_offered_run_subagent_and_the_bot_is_not(compose_both) -> None:
+    bot, worker, _ = compose_both(SteppedClient(completed("hi")))
+    assert bot.tools is not None and worker.tools is not None
+
+    assert RUN_SUBAGENT not in [spec.name for spec in bot.tools.specs(sees_images=False)]
+    assert RUN_SUBAGENT in [spec.name for spec in worker.tools.specs(sees_images=False)]
 
 
 async def test_a_script_cannot_reach_run_subagent(compose) -> None:

@@ -8,7 +8,7 @@ import { useClientTool } from "@/components/answer/useClientTool";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import type { Location } from "@/lib/types";
 
-const POSITION_OPTIONS: PositionOptions = {
+export const POSITION_OPTIONS: PositionOptions = {
   enableHighAccuracy: false,
   timeout: 15_000,
   maximumAge: 60_000,
@@ -21,7 +21,7 @@ const REASONS = [
   "TIMEOUT",
 ] as const;
 
-const roundToHundredMetres = (value: number) => Math.round(value * 1000) / 1000;
+export const roundToHundredMetres = (value: number) => Math.round(value * 1000) / 1000;
 
 /** The card for a pending `get_location` call. */
 export function LocationRequest(props: ClientToolProps) {

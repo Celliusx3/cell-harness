@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/client";
+import type { TicketReport } from "./tickets";
 
 /** The wire types, mirroring `backend/harness/session/models.py`. */
 
@@ -122,6 +123,12 @@ export type SessionEvent =
       turn: number;
       reminders: { schedule_id: string; title: string; prompt: string; occurrence_at: string }[];
     }
+  /** A ticket's worker ended its turn; `text` is its summary, `question` one for the person. */
+  | {
+      type: "ticket/report";
+      turn: number;
+      report: TicketReport;
+    }
   /** A schedule of this chat's bot was changed from Settings. */
   | {
       type: "schedule/change";
@@ -193,6 +200,8 @@ export interface Bot {
   instructions: string;
   secret_names: string[];
   model_credential: string | null;
+  /** How many of its workers may run at once, 1 to 16. */
+  max_workers: number;
 }
 
 /** What Edit bot saves: a name, instructions, and the LLM credential the bot answers on, or null for none. */
@@ -200,6 +209,8 @@ export interface BotEdit {
   name: string;
   instructions: string;
   model: string | null;
+  /** The bot's worker limit, 1 to 16; left out, the saved one is kept. */
+  max_workers?: number;
 }
 
 /** Two to six bots sharing one chat, whose id is the group's; they take turns in member order. */

@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, Bot, BotEdit, BotService
+from harness.bots import BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
 from harness.channels.platforms import PlatformChannelMaker, PlatformChannels
@@ -40,12 +40,13 @@ from harness.secrets.models.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tickets.service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.server import Channels, ChannelServices, create_app
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools as default_client_tools
-from tests.unit.helpers import no_approvals, no_bots, no_skills, run_service
+from tests.unit.helpers import no_approvals, no_bots, no_skills, no_tickets, run_service
 from tests.unit.telegram_fakes import FakeBot, telegram_channel
 
 TEST_ENCRYPTION_KEY = "test-encryption-key"
@@ -61,6 +62,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
         schedules={"path": tmp_path / "schedules.json"},
+        tickets={"path": tmp_path / "tickets.json"},
         secrets={"path": tmp_path / "secrets.json", "encryption_key": TEST_ENCRYPTION_KEY},
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
@@ -84,20 +86,6 @@ def a_model_saved_in(tmp_path: Path) -> SecretService:
     return secrets
 
 
-def assistant_on_a_model(tmp_path: Path, bots: BotService) -> SecretService:
-    """`a_model_saved_in`, with Assistant's turns asking that credential."""
-    secrets = a_model_saved_in(tmp_path)
-    put_on_model(bots, ASSISTANT_ID, MODEL_CREDENTIAL)
-    return secrets
-
-
-def put_on_model(bots: BotService, bot_id: str, name: str | None) -> Bot:
-    """Save the bot as Edit bot does, changing only its model to `name`."""
-    bot = bots.active_bot(bot_id)
-    edit = BotEdit(name=bot.name, instructions=bot.instructions, model=name)
-    return bots.update(bot_id, edit)
-
-
 def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService) -> ChannelServices:
     """What `build_channels` wires its channels to: no skills or bots, files under `tmp_path`."""
     return ChannelServices(
@@ -108,6 +96,7 @@ def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService)
         no_bots(sessions),
         files_in(tmp_path),
         images_in(tmp_path),
+        JsonlChatRepository(tmp_path / "chats"),
     )
 
 
@@ -229,6 +218,7 @@ def web_app(
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
     schedules: ScheduleService | None = None,
+    tickets: TicketService | None = None,
     make_platform: PlatformChannelMaker = no_platform_channel,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
@@ -248,6 +238,7 @@ def web_app(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
+        tickets or no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),
     )
@@ -281,6 +272,7 @@ def web_app_with_telegram(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
+        no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),
     )

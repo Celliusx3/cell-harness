@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import time
+import uuid
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import aclosing
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,13 +24,19 @@ from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
+from harness.runtime.inbox import NO_INBOX, Inbox
 from harness.runtime.service import Runtime
 from harness.session.log import Session
 from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tickets.models import Ticket
+from harness.tickets.repository import TicketRepository
+from harness.tickets.service import TicketService
+from harness.tickets.worker import WorkerEnd
 from harness.tools import (
+    ApprovalMode,
     ApprovalService,
     CallOrigin,
     Tool,
@@ -39,6 +47,7 @@ from harness.tools import (
 from harness.tools.client import ClientToolService
 from harness.tools.service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
+from harness.web.tickets_wiring import ticket_workers
 from tests.unit.fakes import OneModel
 
 
@@ -105,6 +114,7 @@ def runtime_over(
     context_tokens: int | None = None,
     approvals: ApprovalService | None = None,
     images: ImageService | None = None,
+    inbox: Inbox = NO_INBOX,
 ) -> Runtime:
     """A runtime over `tools`, with no toolset at all when there are none; no `images`, no sight."""
     return Runtime(
@@ -114,6 +124,7 @@ def runtime_over(
         guidance=guidance,
         hooks=hooks if hooks is not None else HookChain(),
         checkpoint=checkpoint,
+        inbox=inbox,
     )
 
 
@@ -166,6 +177,7 @@ def run_service(
     approvals: ApprovalService | None = None,
     bots: BotService | None = None,
     images: ImageService | None = None,
+    inbox: Inbox = NO_INBOX,
 ) -> RunService:
     """Runs over a runtime that checkpoints through `service`, as the server wires it."""
     return RunService(
@@ -177,6 +189,7 @@ def run_service(
             context_tokens=context_tokens,
             approvals=approvals,
             images=images,
+            inbox=inbox,
         ),
         bots or no_bots(service),
         app_events=AppEventService(),
@@ -224,6 +237,45 @@ async def heard_nowhere(_run: Run) -> None:
     """A `follow` for an app with no chat app to hear a turn it did not start."""
 
 
+@dataclass(frozen=True)
+class FirstTurnOnly:
+    """A ticket's worker that runs each first turn with `first`, and never a next one."""
+
+    first: Callable[[Ticket], Awaitable[WorkerEnd]]
+
+    async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+        return await self.first(ticket)
+
+    async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:
+        raise AssertionError(f"a test resumed ticket {ticket.id} without a worker")
+
+
+async def no_worker(ticket: Ticket) -> WorkerEnd:
+    """A ticket's first turn for an app that offers no `ticket_route`: it never runs."""
+    raise AssertionError(f"a test started ticket {ticket.id} without a worker")
+
+
+def no_tickets(tmp_path: Path, bots: BotService, runs: RunService) -> TicketService:
+    """Tickets kept under `tmp_path`, for an app whose bots are offered no `ticket_route`."""
+    return TicketService(
+        TicketRepository(tmp_path / "tickets.json"),
+        bots,
+        runs,
+        worker=FirstTurnOnly(no_worker),
+        logs=SessionService(JsonlSessionRepository(tmp_path / "workers")),
+        follow=heard_nowhere,
+        now=lambda: datetime.now(UTC),
+        ids=lambda: uuid.uuid4().hex,
+    )
+
+
 async def link_to_assistant(chats: ChatRepository, channel: str, chat_id: str) -> None:
     """Store this chat's link to Assistant."""
     await chats.save(ChatState(channel=channel, chat_id=chat_id, conversation_id=ASSISTANT_ID))
+
+
+def worker_of(bot: Runtime) -> Runtime:
+    """`bot`'s runtime as each ticket's worker runs it, the one offered code mode and work tools."""
+    assert bot.tools is not None
+    logs = SessionService(JsonlSessionRepository(Path("/nonexistent/cell-harness-workers")))
+    return ticket_workers(bot.tools.tool_service, bot, logs).runtime

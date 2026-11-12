@@ -7,6 +7,7 @@ from pathlib import Path
 
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
+from harness.channels.inbox import ChatInbox
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.service import RunService
@@ -31,8 +32,15 @@ async def build(
     approvals: ApprovalService | None = None,
 ):
     sessions = durable_service(tmp_path / "sessions")
-    runs = run_service(sessions, model, *tools, context_tokens=context_tokens, approvals=approvals)
     chats = JsonlChatRepository(tmp_path / "chats")
+    runs = run_service(
+        sessions,
+        model,
+        *tools,
+        context_tokens=context_tokens,
+        approvals=approvals,
+        inbox=ChatInbox(chats, skills),
+    )
     client_tools = client_tools or default_client_tools()
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url=public_url)
     channel, bot = telegram_channel(gateway, ChatAnswers(chats, sessions, gateway, client_tools))

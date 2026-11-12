@@ -22,7 +22,14 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import create_app
 from tests.unit.fakes import OneModel, SteppedClient, completed
-from tests.unit.helpers import client_tools, link_to_assistant, no_approvals, no_images, no_skills
+from tests.unit.helpers import (
+    client_tools,
+    link_to_assistant,
+    no_approvals,
+    no_images,
+    no_skills,
+    no_tickets,
+)
 from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import (
     channels_of,
@@ -83,6 +90,7 @@ def build_on(tmp_path, model: LLMClient):
         bots,
         secrets_in(tmp_path),
         BotMessages(bots, runs, follow=gateway.follow),
+        no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),
     )

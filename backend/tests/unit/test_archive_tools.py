@@ -1,4 +1,4 @@
-"""`extract_archive` and `make_archive`: offered to the main chat as given, never to a script."""
+"""`extract_archive` and `make_archive`: offered to a worker as given, never to a script."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from harness.web.runtime import (
     SUBAGENT_TOOLS,
     build_runtime,
 )
+from harness.web.tickets_wiring import WORKER_TOOLS, ticket_workers
 from tests.unit.archive_fakes import UNPACK_LIMIT
 from tests.unit.helpers import (
     ORIGIN,
@@ -74,8 +75,9 @@ def test_make_archive_says_exactly_the_given_text(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("name", ARCHIVE_TOOLS)
-def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not(name: str) -> None:
-    assert name in DEFAULT_TOOLS
+def test_a_worker_is_offered_it_and_the_main_chat_scripts_and_helpers_are_not(name: str) -> None:
+    assert name in WORKER_TOOLS
+    assert name not in DEFAULT_TOOLS
     assert name in NOT_CALLABLE_FROM_SCRIPTS
     assert name not in SUBAGENT_TOOLS
 
@@ -93,8 +95,9 @@ def test_it_never_asks_for_approval(name: str) -> None:
     assert not approvals.needs_approval(name)
 
 
-async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: Path) -> None:
-    runtime = build_runtime(
+async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path: Path) -> None:
+    logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
+    bot = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
         McpService({}),
@@ -102,11 +105,13 @@ async def test_the_runtime_offers_both_and_a_script_can_call_neither(tmp_path: P
         client_tools(),
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
+        subagent_logs=logs,
         secrets=secrets_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
+    assert bot.tools is not None
+    runtime = ticket_workers(bot.tools.tool_service, bot, logs).runtime
     assert runtime.tools is not None
     offered = [spec.name for spec in runtime.tools.specs(sees_images=False)]
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered

@@ -1,6 +1,7 @@
 /** The shapes `buildTimeline` produces */
 
 import type { Invocation } from "@/components/conversation/invocation";
+import type { TicketAsk } from "@/lib/tickets";
 import type {
   ApprovalMode,
   ContentBlock,
@@ -105,6 +106,30 @@ export interface ScheduleChangeItem {
   change: ScheduleChange;
 }
 
+/** A worker's question in its ticket's report; `latest` when no later report of it follows. */
+export interface TicketQuestionItem {
+  kind: "ticketQuestion";
+  key: string;
+  turn: number;
+  ticketId: string;
+  question: string;
+  ask: TicketAsk;
+  options: string[];
+  secretName: string | null;
+  approvalCallId: string | null;
+  latest: boolean;
+}
+
+/** A worker's result in its ticket's ready report, shown whole in the bot's chat. */
+export interface TicketResultItem {
+  kind: "ticketResult";
+  key: string;
+  turn: number;
+  ticketId: string;
+  title: string;
+  text: string;
+}
+
 export type TimelineItem =
   | UserItem
   | ScheduledItem
@@ -114,7 +139,9 @@ export type TimelineItem =
   | CompactionItem
   | InstructionsItem
   | ModeItem
-  | ScheduleChangeItem;
+  | ScheduleChangeItem
+  | TicketQuestionItem
+  | TicketResultItem;
 
 export interface Timeline {
   items: TimelineItem[];

@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import dataclasses
-from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.prompts import SUBAGENT_INTRO
 from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
+from harness.runtime.run_to_end import HelperTurn, run_to_end
 from harness.runtime.service import Runtime
 from harness.session.models import ApprovalModeChanged
 from harness.session.service import SessionService
@@ -33,18 +32,10 @@ class Subagents:
         """Run `task` for `bot_id` in `mode` in a new session `subagent_id`, and report its end."""
         session = await self.sessions.create(subagent_id)
         session.append(ApprovalModeChanged(mode=mode))
-        subagent = dataclasses.replace(
-            self.runtime,
-            guidance=SUBAGENT_INTRO.format(name=task.name) + self.runtime.guidance,
-            checkpoint=self.sessions.flush,
+        turn = HelperTurn(
+            intro=SUBAGENT_INTRO.format(name=task.name), prompt=task.task, bot_id=bot_id
         )
-        last: TurnEvent | None = None
-        try:
-            async with aclosing(subagent.run(task.task, session=session, bot_id=bot_id)) as events:
-                async for event in events:
-                    last = event
-        finally:
-            await self.sessions.flush(session)
+        last = await run_to_end(self.runtime, self.sessions, session, turn)
         return _subagent_outcome(last)
 
 

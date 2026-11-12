@@ -15,11 +15,15 @@ interface BotFormProps {
   onArchive: (() => Promise<void>) | null;
 }
 
-/** A bot's name, instructions and model, saved whole. */
+const MIN_WORKERS = 1;
+const MAX_WORKERS = 16;
+
+/** A bot's name, instructions, model and worker limit, saved whole. */
 export function BotForm({ initial, models, onSave, onArchive }: BotFormProps) {
   const [name, setName] = useState(initial.name);
   const [instructions, setInstructions] = useState(initial.instructions);
   const [model, setModel] = useState(initial.model_credential ?? NO_MODEL);
+  const [workers, setWorkers] = useState(initial.max_workers);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +41,8 @@ export function BotForm({ initial, models, onSave, onArchive }: BotFormProps) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const modelCredential = model === NO_MODEL ? null : model;
-    void run(() => onSave({ name, instructions, model: modelCredential }), "Could not save the bot.");
+    const edit = { name, instructions, model: modelCredential, max_workers: workers };
+    void run(() => onSave(edit), "Could not save the bot.");
   }
 
   return (
@@ -54,7 +59,12 @@ export function BotForm({ initial, models, onSave, onArchive }: BotFormProps) {
         />
       </div>
 
-      <ModelSelect models={models} value={model} onChange={setModel} />
+      <div className="flex items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <ModelSelect models={models} value={model} onChange={setModel} />
+        </div>
+        <WorkersInput value={workers} onChange={setWorkers} />
+      </div>
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs text-ink-soft" htmlFor="bot-instructions">
@@ -125,4 +135,28 @@ function ModelSelect({ models, value, onChange }: ModelSelectProps) {
       </select>
     </div>
   );
+}
+
+function WorkersInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  return (
+    <div className="flex w-32 flex-col gap-1.5">
+      <label className="text-xs text-ink-soft" htmlFor="bot-workers">
+        Workers at once
+      </label>
+      <input
+        id="bot-workers"
+        type="number"
+        min={MIN_WORKERS}
+        max={MAX_WORKERS}
+        value={value}
+        onChange={(event) => onChange(clampWorkers(Number(event.target.value)))}
+        className="rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+      />
+    </div>
+  );
+}
+
+function clampWorkers(value: number): number {
+  if (!Number.isFinite(value)) return MIN_WORKERS;
+  return Math.min(MAX_WORKERS, Math.max(MIN_WORKERS, Math.round(value)));
 }

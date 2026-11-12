@@ -13,6 +13,7 @@ from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
 from harness.runtime.hooks.native.no_progress import NoProgressHook
+from harness.runtime.hooks.native.no_wait import NoWaitHook
 from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
@@ -23,6 +24,7 @@ from harness.skills import SKILL
 from harness.tools import Ok, ToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
+from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, SCHEDULE_TOOLS, build_runtime
 from tests.unit.helpers import (
@@ -33,10 +35,11 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     no_skills,
+    worker_of,
 )
 from tests.webapp import files_in, images_in, secrets_in
 
-ATTACHED_LATER = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE)
+ATTACHED_LATER = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE, TICKET_ROUTE, TICKET_NOTE)
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, *ATTACHED_LATER)]
 
 
@@ -65,7 +68,7 @@ def compose(tmp_path: Path):
     return build
 
 
-def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> None:
+def test_the_bots_request_carries_its_default_tools_whatever_is_installed(compose) -> None:
     runtime = compose()
 
     assert runtime.tools is not None
@@ -73,7 +76,7 @@ def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> Non
 
 
 async def test_the_three_tools_actually_dispatch(compose) -> None:
-    runtime = compose()
+    runtime = worker_of(compose())
     assert runtime.tools is not None
 
     outcome = await runtime.tools.execute(
@@ -87,8 +90,11 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
     assert isinstance(outcome, Ok)
 
 
-def test_the_prompt_explains_the_three_tools(compose) -> None:
-    assert CODE_PROMPT in compose().guidance
+def test_a_workers_prompt_explains_the_three_tools_and_the_bots_does_not(compose) -> None:
+    bot = compose()
+
+    assert CODE_PROMPT in worker_of(bot).guidance
+    assert CODE_PROMPT not in bot.guidance
 
 
 def test_the_code_prompt_names_each_code_mode_tool() -> None:
@@ -127,6 +133,7 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
     runtime = compose()
 
     assert [type(hook) for hook in runtime.hooks.tool_hooks] == [
+        NoWaitHook,
         ExactFailureHook,
         SameToolFailureHook,
         NoProgressHook,
@@ -135,13 +142,16 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
     assert [type(hook) for hook in runtime.hooks.step_hooks] == [EmptyReplyHook, SkillListHook]
 
 
-async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:
+async def test_every_client_tool_is_registered_not_offered_and_kept_from_scripts(compose) -> None:
     runtime = compose()
     assert runtime.tools is not None
     offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
-    assert CLIENT_TOOLS.names <= offered
+    assert not CLIENT_TOOLS.names & offered
+    assert all(runtime.tools.tool_service.get(name) for name in CLIENT_TOOLS.names)
 
-    listed = await runtime.tools.execute(
+    worker = worker_of(runtime)
+    assert worker.tools is not None
+    listed = await worker.tools.execute(
         ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
         progress=no_progress,
         origin=ORIGIN,

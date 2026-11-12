@@ -19,6 +19,8 @@ from harness.prompts import (
     SCHEDULE_REMINDER,
     SCHEDULE_REMINDER_BATCH,
     SPEAKER_TAG,
+    TICKET_QUESTION_HEARD,
+    TICKET_REPORT_HEARD,
 )
 from harness.session.change_notes import after_owed_results, change_message
 from harness.session.compaction import boundary, pruned_ids
@@ -34,6 +36,8 @@ from harness.session.models import (
     ScheduleReminder,
     ScheduleReminderEvent,
     SessionEvent,
+    TicketReport,
+    TicketReportEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
@@ -151,7 +155,7 @@ def _as_heard(
             heard = ()
         if isinstance(event, UserMessageEvent):
             yield _person_message(event)
-        elif isinstance(event, (BotMessageEvent, ScheduleReminderEvent)):
+        elif isinstance(event, (BotMessageEvent, ScheduleReminderEvent, TicketReportEvent)):
             yield _opening_message(event)
         elif isinstance(event, ScheduleChangeEvent):
             yield change_message(event)
@@ -190,11 +194,25 @@ def _person_message(event: UserMessageEvent) -> UserMessage:
     return UserMessage(content=f"{event.message.content}\n\n{lines}", images=event.message.images)
 
 
-def _opening_message(event: BotMessageEvent | ScheduleReminderEvent) -> UserMessage:
+def _opening_message(
+    event: BotMessageEvent | ScheduleReminderEvent | TicketReportEvent,
+) -> UserMessage:
     """A turn's opening that is not the person typing, as the bot hears it."""
     if isinstance(event, BotMessageEvent):
         return _bot_message(event.message)
+    if isinstance(event, TicketReportEvent):
+        return UserMessage(content=_report_text(event.report))
     return UserMessage(content=_reminders_text(event.reminders))
+
+
+def _report_text(report: TicketReport) -> str:
+    """A worker's report as its bot hears it, then the worker's question when it asks one."""
+    heard = TICKET_REPORT_HEARD.format(
+        ticket_id=report.ticket_id, title=report.title, state=report.state, text=report.text
+    )
+    if report.question is None:
+        return heard
+    return heard + "\n" + TICKET_QUESTION_HEARD.format(question=report.question)
 
 
 def _reminders_text(reminders: tuple[ScheduleReminder, ...]) -> str:

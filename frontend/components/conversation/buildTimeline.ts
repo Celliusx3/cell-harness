@@ -8,6 +8,7 @@ import type { SessionEvent } from "@/lib/types";
 export function buildTimeline(events: SessionEvent[]): Timeline {
   const draft = new TimelineDraft();
   const start = events.map((event) => event.type).lastIndexOf("chat/cleared") + 1;
+  const lastReports = lastReportOfEachTicket(events);
 
   for (const [index, event] of events.entries()) {
     if (index < start) continue;
@@ -30,6 +31,40 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
           content: `Message from ${event.message.from_name}:\n\n${event.message.text}`,
           files: [],
         });
+        break;
+
+      case "ticket/report":
+        if (event.report.state === "ready") {
+          draft.onTicketResult({
+            kind: "ticketResult",
+            key: `r${index}`,
+            turn: event.turn,
+            ticketId: event.report.ticket_id,
+            title: event.report.title,
+            text: event.report.text,
+          });
+        } else {
+          draft.addNotice({
+            key: `r${index}`,
+            turn: event.turn,
+            tone: "note",
+            text: `${event.report.title}: ${event.report.state}`,
+          });
+        }
+        if (event.report.question !== null) {
+          draft.onTicketQuestion({
+            kind: "ticketQuestion",
+            key: `q${index}`,
+            turn: event.turn,
+            ticketId: event.report.ticket_id,
+            question: event.report.question,
+            ask: event.report.ask,
+            options: event.report.options ?? [],
+            secretName: event.report.secret_name,
+            approvalCallId: event.report.approval_call_id,
+            latest: lastReports.get(event.report.ticket_id) === index,
+          });
+        }
         break;
 
       case "schedule/reminder":
@@ -155,4 +190,13 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
   }
 
   return draft.toTimeline();
+}
+
+/** The index of each ticket's last report among `events`. */
+function lastReportOfEachTicket(events: SessionEvent[]): ReadonlyMap<string, number> {
+  return new Map(
+    events.flatMap((event, index): [string, number][] =>
+      event.type === "ticket/report" ? [[event.report.ticket_id, index]] : [],
+    ),
+  );
 }
