@@ -15,6 +15,14 @@ class TurnStartedAppEvent(BaseModel):
     chat_id: str
 
 
+class ChatLoggedAppEvent(BaseModel):
+    """Something was logged in this chat with no turn to stream it."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    type: Literal["chat/logged"] = "chat/logged"
+    chat_id: str
+
+
 class BotsChangedAppEvent(BaseModel):
     """The bots or groups were written."""
 
@@ -29,4 +37,4 @@ class TicketsChangedAppEvent(BaseModel):
     type: Literal["tickets/changed"] = "tickets/changed"
 
 
-AppEvent = TurnStartedAppEvent | BotsChangedAppEvent | TicketsChangedAppEvent
+AppEvent = TurnStartedAppEvent | ChatLoggedAppEvent | BotsChangedAppEvent | TicketsChangedAppEvent

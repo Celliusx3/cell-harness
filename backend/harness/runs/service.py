@@ -5,10 +5,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import aclosing
 
-from harness.app_events import AppEventService, TurnStartedAppEvent
+from harness.app_events import AppEventService, ChatLoggedAppEvent, TurnStartedAppEvent
 from harness.bots import BotService
 from harness.files import ChatFile
 from harness.runs.chain import discussion_events
@@ -137,11 +137,25 @@ class RunService:
 
     async def tell_schedule_change(self, chat_id: str, change: ScheduleChange) -> None:
         """Log `change` for the chat's next step, starting no turn; none in a chat never written."""
+        await self.log_without_turn(
+            chat_id, lambda turn: ScheduleChangeEvent(turn=turn, change=change)
+        )
+
+    async def log_without_turn(self, chat_id: str, logged: Callable[[int], SessionEvent]) -> bool:
+        """Log `logged(last turn)` for the next step, starting no turn; `False` if never written."""
         session = await self._running_or_stored(chat_id)
         if session is None:
-            return
-        turn = max(session.next_turn() - 1, 0)
-        await self._append(session, ScheduleChangeEvent(turn=turn, change=change))
+            return False
+        await self._append(session, logged(max(session.next_turn() - 1, 0)))
+        if chat_id not in self._runs:
+            self._app_events.publish(ChatLoggedAppEvent(chat_id=chat_id))
+        return True
+
+    async def log_when_free(self, chat_id: str, logged: Callable[[int], SessionEvent]) -> bool:
+        """`log_without_turn` once no turn runs in `chat_id`, never between a call and result."""
+        while (running := self._runs.get(chat_id)) is not None:
+            await settled(running)
+        return await self.log_without_turn(chat_id, logged)
 
     async def approval_mode(self, conversation_id: str) -> ApprovalMode:
         """The mode the chat's next call runs under."""

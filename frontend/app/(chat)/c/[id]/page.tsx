@@ -140,6 +140,7 @@ export default function ConversationPage({
 
 function followAppEvent(event: AppEvent, id: string, conversation: Conversation): void {
   if (event.type === "chat/turn-started" && event.chat_id === id) conversation.wake();
+  if (event.type === "chat/logged" && event.chat_id === id) conversation.catchUp();
   if (event.type === "app/connected") conversation.catchUp();
 }
 

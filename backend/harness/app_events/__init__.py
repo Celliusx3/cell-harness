@@ -3,6 +3,7 @@
 from harness.app_events.models import (
     AppEvent,
     BotsChangedAppEvent,
+    ChatLoggedAppEvent,
     TicketsChangedAppEvent,
     TurnStartedAppEvent,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "AppEvent",
     "AppEventService",
     "BotsChangedAppEvent",
+    "ChatLoggedAppEvent",
     "TicketsChangedAppEvent",
     "TurnStartedAppEvent",
 ]

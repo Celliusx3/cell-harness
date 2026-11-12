@@ -14,7 +14,7 @@ from harness.bots import BotNotFound, BotService
 from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.session.log import Session
-from harness.session.models import SessionEvent, TicketReport
+from harness.session.models import SessionEvent, TicketReport, TicketReportEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tickets.models import (
@@ -273,9 +273,15 @@ class TicketService:
         self._runs.app_events.publish(TicketsChangedAppEvent())
 
     async def _deliver(self, bot_id: str, report: TicketReport) -> None:
-        """The turn `report` opens in `bot_id`'s own chat once free, heard by its chat apps."""
+        """The turn `report` opens in `bot_id`'s chat once free; an approval is logged, no turn."""
         try:
-            run = await self._runs.hear_when_free(self._bots.chat_of(bot_id), report)
+            chat_id = self._bots.chat_of(bot_id)
+            if report.ask == "approval":
+                await self._runs.log_when_free(
+                    chat_id, lambda turn: TicketReportEvent(turn=turn, report=report)
+                )
+                return
+            run = await self._runs.hear_when_free(chat_id, report)
         except (BotNotFound, SessionNotFoundError) as err:
             logger.warning("ticket report dropped, nobody is left to hear it: %s", err)
             return

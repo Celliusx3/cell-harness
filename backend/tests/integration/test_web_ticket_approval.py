@@ -39,7 +39,12 @@ async def until_state(world, state: str) -> None:
     raise AssertionError(f"the ticket never reached {state!r}")
 
 
-def asking_world(tmp_path, called: list[str], after: list[list]):
+def asking_world(
+    tmp_path,
+    called: list[str],
+    after: list[list],
+    bot_replies: list[list] | None = None,
+):
     """A worker whose first call, `fetch_with_secret`, asks first; then the steps in `after`."""
 
     def api(request: httpx.Request) -> httpx.Response:
@@ -61,8 +66,7 @@ def asking_world(tmp_path, called: list[str], after: list[list]):
             ASSISTANT_START: [
                 calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
-                completed("The ticket waits for your approval."),
-                completed("Done."),
+                *(bot_replies or [completed("Done.")]),
             ],
         },
         bot_tools=bot_tools,
@@ -79,8 +83,9 @@ async def test_an_allowed_call_runs_and_the_worker_finishes(tmp_path) -> None:
     )
     async with world.client as client:
         await send(client, ASSISTANT_ID, "find a flight to Tokyo")
-        log = await once_said(client, ASSISTANT_ID, "The ticket waits for your approval.")
+        await once_said(client, ASSISTANT_ID, "On it.")
         await until_state(world, "needs_answer")
+        log = await bot_log(client)
         allowed = await client.post(
             "/api/tickets/t1/approve", json={"decision": {"kind": "approved", "scope": "once"}}
         )
@@ -112,7 +117,7 @@ async def test_a_denied_call_is_heard_by_the_worker_which_reports(tmp_path) -> N
     )
     async with world.client as client:
         await send(client, ASSISTANT_ID, "find a flight to Tokyo")
-        await once_said(client, ASSISTANT_ID, "The ticket waits for your approval.")
+        await once_said(client, ASSISTANT_ID, "On it.")
         await until_state(world, "needs_answer")
         denied = await client.post("/api/tickets/t1/approve", json={"decision": {"kind": "denied"}})
         await once_said(client, ASSISTANT_ID, "Done.")
@@ -157,10 +162,49 @@ async def test_a_typed_answer_is_refused_for_a_question_that_asks_for_approval(t
     world = asking_world(tmp_path, called, [completed("Reported.")])
     async with world.client as client:
         await send(client, ASSISTANT_ID, "find a flight to Tokyo")
-        await once_said(client, ASSISTANT_ID, "The ticket waits for your approval.")
+        await once_said(client, ASSISTANT_ID, "On it.")
         await until_state(world, "needs_answer")
         typed = await client.post("/api/tickets/t1/answer", json={"text": "yes go ahead"})
 
     assert typed.status_code == 409
     assert world.tickets.get("t1").state == "needs_answer"
     assert called == []
+
+
+async def bot_log(client) -> list[dict]:
+    return (await client.get(f"/api/conversations/{ASSISTANT_ID}")).json()["events"]
+
+
+async def test_an_approval_is_logged_in_the_bots_chat_without_waking_it(tmp_path) -> None:
+    called: list[str] = []
+    world = asking_world(
+        tmp_path,
+        called,
+        [
+            calls_tool(FETCH_WITH_SECRET, FETCH, id="f2"),
+            report(state="ready", summary="Three flights."),
+            completed("Reported."),
+        ],
+        bot_replies=[completed("Here are the flights.")],
+    )
+    allow = {"decision": {"kind": "approved", "scope": "once"}}
+    async with world.client as client:
+        await send(client, ASSISTANT_ID, "find a flight to Tokyo")
+        await once_said(client, ASSISTANT_ID, "On it.")
+        await until_state(world, "needs_answer")
+        first = await bot_log(client)
+        await client.post("/api/tickets/t1/approve", json=allow)
+        await until_state(world, "needs_answer")
+        second = await bot_log(client)
+        await client.post("/api/tickets/t1/approve", json=allow)
+        done = await once_said(client, ASSISTANT_ID, "Here are the flights.")
+
+    asks = [e["report"]["ask"] for e in of_type(done, "ticket/report")]
+    assert asks == ["approval", "approval", "text"]
+    assert [e["report"]["approval_call_id"] for e in of_type(second, "ticket/report")] == [
+        "f1",
+        "f2",
+    ]
+    assert len(of_type(first, "turn/start")) == len(of_type(second, "turn/start")) == 1
+    assert len(of_type(done, "turn/start")) == 2
+    assert len(called) == 2
