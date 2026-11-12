@@ -13,7 +13,13 @@ from harness.channels.repository import ChatRepository
 from harness.runs.run import Run
 from harness.runs.subscribe import subscribe
 from harness.session.compaction import CompactionEnd
-from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnEnd
+from harness.session.models import (
+    AssistantMessageEvent,
+    TicketReportEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    TurnEnd,
+)
 from harness.tools.client import PendingCall, next_pending
 
 logger = logging.getLogger("harness.channels")
@@ -39,6 +45,11 @@ def _compaction_line(event: CompactionEnd) -> str:
     if event.succeeded:
         return "Conversation compacted to free up context."
     return "Could not compact the conversation right now."
+
+
+def _question_line(title: str, question: str) -> str:
+    """A ticket's question, as a chat with no answer box is sent it."""
+    return f"{title} asks: {question}"
 
 
 class _AppLink(NamedTuple):
@@ -75,6 +86,8 @@ class Replies:
                     await self._send_reply(transport, chat_id, event.message.content)
                 elif isinstance(event, CompactionEnd):
                     await transport.send_message(chat_id, _compaction_line(event))
+                elif isinstance(event, TicketReportEvent):
+                    await self._send_question(transport, chat_id, event)
                 elif isinstance(event, TurnEnd) and event.reason == "pending":
                     await self._remember_asked(channel, chat_id, pending)
                     await self._ask_each(transport, chat_id, run.session.id, pending)
@@ -119,6 +132,14 @@ class Replies:
             logger.warning(
                 "app link %s could not be sent to chat %s", link.url, chat_id, exc_info=True
             )
+
+    async def _send_question(
+        self, transport: Pushing, chat_id: str, event: TicketReportEvent
+    ) -> None:
+        """Send a report's question before the bot's reply, which does not repeat it."""
+        report = event.report
+        if report.question is not None:
+            await transport.send_message(chat_id, _question_line(report.title, report.question))
 
     async def _send_reply(self, transport: Pushing, chat_id: str, text: str) -> None:
         """Send what the model said, unless it said nothing."""

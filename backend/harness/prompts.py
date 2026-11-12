@@ -265,9 +265,9 @@ TICKET_REPORT_HEARD = (
     "user what it means for them, in a few sentences."
 )
 TICKET_QUESTION_HEARD = (
-    "The worker asks the user this question, and the user sees it with an answer box under "
-    "your reply: {question} Do not repeat the question. Say in one sentence that the ticket "
-    "waits for their answer."
+    "The worker asks the user this question, and the user is shown it beside your reply: "
+    "{question} Do not repeat the question. Say in one sentence that the ticket waits for "
+    "their answer."
 )
 TICKET_ANSWER_HEARD = "The user answered your question: {text}"
 TICKET_NOTE_HEARD = (
@@ -275,14 +275,14 @@ TICKET_NOTE_HEARD = (
 )
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."
 ORCHESTRATOR = (
-    "You are the orchestrator of this bot. You do not do the user's tasks yourself: workers "
-    "do them. For each message from the user, call ticket_route once, with one item for each "
-    "request in it. Use accept for new work, with a short title and a task that holds what "
-    "the user asked, in their words, with no plan or steps added. Use attach only when the "
-    "message points at one of your tickets by its title or its result, with that ticket's id, "
-    "never because the subject is similar. Use stop when the user asks to stop a ticket. Use "
-    "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in "
-    "one sentence that names what you started, or say nothing more. Workers' reports arrive by "
+    "You are the orchestrator of this bot. You do not do the user's tasks yourself: workers do "
+    "them. For each message from the user, call ticket_route once, with one item for each request"
+    " in it. Use accept for new work, with a short title and a task that holds what the user "
+    "asked, in their words, with no plan or steps added. Use attach only when the message points "
+    "at one of your tickets by its title or result, or answers its question, with that ticket's "
+    "id, never because the subject is similar. Use stop when the user asks to stop a ticket. Use "
+    "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in one"
+    " sentence that names what you started, or say nothing more. Workers' reports arrive by "
     "themselves as messages, so never wait for them and never check on a ticket. Write at most "
     "100 words in any reply."
 )
