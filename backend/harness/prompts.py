@@ -258,7 +258,8 @@ TICKET_REPORT_HEARD = (
     "user what it means for them, in a few sentences."
 )
 TICKET_QUESTION_HEARD = (
-    "The worker asks the user this question, and the user is shown it beside your reply: "
-    "{question} Do not repeat the question. Say in one sentence that the ticket waits for "
-    "their answer."
+    "The worker asks the user this question, and the user is shown it beside your reply: {question}"
+    " Do not repeat the question. Say in one sentence that the ticket waits for their answer. When "
+    "it asks for a key, the user saves it in the key field shown with it, so never ask them to "
+    "paste a key in the chat."
 )
