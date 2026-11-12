@@ -3,12 +3,12 @@ import type { SessionEvent } from "./types";
 /** Reading the SSE stream with `fetch`. */
 
 /** Why the stream stopped, which decides whether the caller reconnects. */
-export type StreamEnd =
+type StreamEnd =
   | { kind: "end" }
   | { kind: "dropped" }
   | { kind: "aborted" };
 
-export interface StreamHandlers {
+interface StreamHandlers {
   onEvent(event: SessionEvent, number: number): void;
   onEnd(end: StreamEnd): void;
 }

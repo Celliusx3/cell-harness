@@ -6,11 +6,11 @@ did I like in Petaling Jaya?". The notes are Markdown files a person can open
 in Obsidian. There is no limit on how many.
 
 Memory is a capability, so it is an MCP server declared in `config.json`
-(`mcp.servers.memory`), like `places` and `markets`; `backend/harness/` gained
+(`mcp.servers.memory`); `backend/harness/` gained
 one sentence of system prompt and nothing else. The server is
 [Basic Memory](https://github.com/basicmachines-co/basic-memory). A skill,
-`.agents/skills/remember/SKILL.md`, tells the model when to save and when to
-search.
+`remember` (`git show db9b326:.agents/skills/remember/SKILL.md`, since removed),
+told the model when to save and when to search.
 
 ## The three shapes, and why this one
 

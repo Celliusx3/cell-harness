@@ -25,16 +25,12 @@ which saves it in `mcp.json` and starts it at once.
 
 | Server | Capability |
 |---|---|
-| [instagram](./instagram) | Read a shared Instagram reel into text observations a POI can be reasoned from |
-| [places](./places) | Resolve a described place to a real POI via Google Places API (New) |
-| [markets](./markets) | Investment research data — quotes, history, fundamentals, filings, news — for US stocks/ETFs, crypto and Bursa Malaysia, from free sources |
 | [computer](./computer) | A Linux desktop with Chrome in a microVM that ships with the app (our own PC image, built in `computer/image/`, run by microsandbox, or by Docker with `COMPUTER_ENGINE=docker`), shared by every bot, reaching only public addresses and the skills' own Mac programs: page tools and `shell` for the model (chat files and skill folders mounted at their own paths; a Mac program a skill declares is started, and its address and token handed to commands under the name the skill gives), and the live screen, control, terminal and files for the person's Computer page. Needs virtualization (Apple Silicon, KVM on Linux, or the Windows Hypervisor Platform), or Docker running for the docker engine |
 | [phone](./phone) | One Android phone (Redroid 13, no Google Play) in a microVM on a kernel of our own with binder, shared by every bot, reaching only public addresses: `screenshot` and `list_elements` (the screen as text), `install_app` (an APK from the chat's files), `open_app`, `open_url`, `tap`, `double_tap`, `long_press`, `swipe`, `type_text` and `press_key`, and `list_apps`, `foreground_app`, `terminate_app`, `uninstall_app` and `clear_app_data`. Off until a bot uses it, stopped when idle, its apps kept on a disk of its own. Apple Silicon Macs only |
 
-`places` began as the third-party `@cablate/mcp-google-map` and
-was replaced, which is worth recording because the reason generalises: **it
-declared no `outputSchema`**, so it could not populate `structuredContent`, and a
-code-mode script reading its result would get `undefined` — the exact failure
+A third-party server we once used for places was replaced, and the reason
+generalises: **it declared no `outputSchema`**, so it could not populate
+`structuredContent`, and a code-mode script reading its result would get `undefined` — the exact failure
 `docs/mcp-tool-scaling.md` §6 finding 4 measured at *"five failing scripts and a
 cancelled turn."* Its hardcoded Enterprise-tier field masks also cut the free
 allowance by 80% and pulled reviews into the permanent session log. Before
@@ -46,9 +42,8 @@ exception, on purpose. Its `web_search_exa` and `web_fetch_exa` declare no
 `outputSchema` and return prose, and so does every other web-search server we
 found — Tavily's, Brave's, the official `mcp-server-fetch`. It holds because the
 code bridge now hands a script a text result as a string
-(`tools/native/code_mode/tools.py`, `_script_value`) instead of `undefined`, and because
-the `search-web` skill tells the model to call both directly, one at a time,
-never from a script. The day a turn needs the hits as objects, the shape is an
+(`tools/native/code_mode/tools.py`, `_script_value`) instead of `undefined`, and as long as
+the model calls both directly, one at a time, never from a script. The day a turn needs the hits as objects, the shape is an
 own server under this directory on Exa's REST API.
 
 ## Adding one
@@ -58,11 +53,11 @@ Open **Settings → MCP servers** and click **Add server**. For one of ours, in
 
 | Field | Value |
 |---|---|
-| Name | `places` |
+| Name | `computer` |
 | Command | `uv` |
-| Arguments | `run`, `--quiet`, `--project`, `../mcp-servers/places`, `places`, one per line |
-| Settings | `PLACES_MAX_RESULTS=3` |
-| Keys it needs | `GOOGLE_MAPS_API_KEY`, with its value in the hidden field beside it |
+| Arguments | `run`, `--quiet`, `--project`, `../mcp-servers/computer`, `computer`, one per line |
+| Settings | `COMPUTER_ENGINE=microsandbox` |
+| Keys it needs | each key's name, with its value in the hidden field beside it |
 
 It is saved in `mcp.json` (`~/.harness/mcp.json` for `make dev`), owner-only,
 with each key's value in the server's `env`, and starts at once. The list shows
@@ -141,18 +136,17 @@ that changes for its own reasons.
 Two rules that fell out of doing it:
 
 - **`server.py` stays thin.** The harness's own `web/server.py` is documented as
-  "the composition root alone", and the same discipline applies here — the
-  Instagram server's dropped from 372 lines to 75 when the tool bodies moved into
-  `tools/` and the pipeline into `read/`.
+  "the composition root alone", and the same discipline applies here: the
+  tool bodies live in `tools/`, not in `server.py`.
 - **`models.py` is top-level, not under `tools/`.** It looks like an API concern,
-  but putting it there made `media/` and `read/` import *upward* from the surface
-  they feed. Shared vocabulary belongs where everything can reach it — the same
+  but putting it there makes the packages it feeds import *upward* from the
+  surface. Shared vocabulary belongs where everything can reach it — the same
   place `llm/models/` sits in the harness.
 
 ## Writing one
 
 Four properties the harness makes non-negotiable. Each is enforced by a test in
-`instagram/tests/`, which is the place to copy from.
+`computer/tests/`, which is the place to copy from.
 
 1. **Return a pydantic model, so `structuredContent` is populated.** The harness
    passes it through as `Ok.data` and code mode hands it to the model's program as
@@ -177,7 +171,7 @@ internally and return partial results rather than hoping.
 A tool description says what one call does. **How to compose several — across
 servers, in what order, with what judgement — is a skill**: a `SKILL.md` under
 `.agents/skills/` that the model loads when a request matches it.
-`find-place` is the one that teaches the `instagram` → `places` workflow.
+`use-the-phone` is the one that teaches the `phone` server's tools.
 
 ## Targets
 

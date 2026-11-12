@@ -4,7 +4,7 @@ import { ApiError, detailOf, request } from "./api";
 import type { ServerStatus } from "./types";
 
 /** A key a server needs, by name, and whether its value is saved; the value is never sent back. */
-export interface KeyState {
+interface KeyState {
   name: string;
   is_set: boolean;
 }
@@ -21,7 +21,7 @@ export interface McpServer {
 }
 
 /** `GET /api/mcp/servers`: every server, in the order each was added. */
-export interface McpServerList {
+interface McpServerList {
   servers: McpServer[];
 }
 
@@ -103,7 +103,7 @@ export function stateLabel(server: McpServer): string {
 }
 
 /** The names of the keys `server` needs that have no value saved, in the order it lists them. */
-export function missingKeys(server: McpServer): string[] {
+function missingKeys(server: McpServer): string[] {
   return server.keys.filter((key) => !key.is_set).map((key) => key.name);
 }
 

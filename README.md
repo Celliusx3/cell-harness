@@ -5,7 +5,6 @@ Design work for an agent harness of our own, derived from two studied sources.
 | Document | What's in it |
 |---|---|
 | [DESIGN.md](./DESIGN.md) | **The proposal.** What we take from each source, module layout, core contracts, and the open decisions. |
-| [docs/specs/](./docs/specs/) | **The plans.** One folder per feature: its spec and tickets. Open work is GitHub issues. |
 | [docs/deepseek-harness.md](./docs/deepseek-harness.md) | Teardown of `deepseek-ai/deepseek-harness` (256k lines, 227 packages) and three replication tiers. |
 | [docs/cell-bot.md](./docs/cell-bot.md) | Teardown of cell-bot (6.9k lines Python), its feature inventory, and its honest gaps. |
 | [docs/without-cordis.md](./docs/without-cordis.md) | How to get dsh's plugin properties — reversible registration, per-agent scoping, waterfall events — in ~250 lines of Python, and what we give up. |
@@ -77,7 +76,7 @@ sent while it is working is answered next rather than refused — and since phas
 the browser behaves the same way, because being able to *show* a refusal is not a
 reason to make someone retype what they wrote.
 
-`/skills` lists the skills you can type. `/find-place <url>` — any `/name` —
+`/skills` lists the skills you can type. `/use-the-phone` — any `/name` —
 loads that skill for the model before it reads your message, on every channel alike. A `/word` that is neither a command
 nor a skill is answered with the list of what is, never handed to the model.
 
@@ -228,9 +227,7 @@ CLAUDE.md       project rules, loaded into every session
 Subpackages arrive with the phase that needs them; the full intended layout is in
 [DESIGN.md §3](./DESIGN.md).
 
-Status: **phases 1–8 and 10 done.** Type `/find-place <url>` in the browser or
-on a phone and the skill is loaded for the model; paste a public `SKILL.md` on
-the Skills page in Settings and it is used next turn. Seven capabilities not in the
-original arc have shipped since phase 7 — code mode, Instagram → Places, skills,
-tool references, Discord, MCP Apps, markets — each recorded in
-the old phase plan (`git show db9b326:PHASES.md`). Open work is GitHub issues.
+Type `/use-the-phone` in the browser or on a phone and the skill is loaded for
+the model; paste a public `SKILL.md` on the Skills page in Settings and it is used
+next turn. What shipped is recorded in the old phase plan
+(`git show db9b326:PHASES.md`); open work is GitHub issues.

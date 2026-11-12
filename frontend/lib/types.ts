@@ -3,7 +3,7 @@ import type { CallToolResult } from "@modelcontextprotocol/client";
 /** The wire types, mirroring `backend/harness/session/models.py`. */
 
 /** `assistant/chunk` payloads */
-export type StreamEvent =
+type StreamEvent =
   | { kind: "text"; text: string }
   | { kind: "tool_call"; call: ToolCall }
   | {
@@ -27,13 +27,13 @@ export interface Usage {
   cached_input_tokens: number | null;
 }
 
-export interface UserMessage {
+interface UserMessage {
   role: "user";
   content: string;
 }
 
 /** Context the backend injected (the guardrail's note) */
-export interface ApplicationMessage {
+interface ApplicationMessage {
   role: "application";
   content: string;
 }
@@ -57,7 +57,7 @@ export type ContentBlock =
   | { type: "tool_reference"; tool_name: string }
   | ImageBlock;
 
-export interface ToolMessage {
+interface ToolMessage {
   role: "tool";
   tool_call_id: string;
   content: ContentBlock[];
@@ -98,7 +98,7 @@ export type AppToolResult = CallToolResult;
 export type TurnEndReason = "completed" | "failed" | "cancelled" | "pending";
 
 /** Why a compaction ran */
-export type CompactionTrigger = "auto" | "manual" | "overflow";
+type CompactionTrigger = "auto" | "manual" | "overflow";
 
 export type SessionEvent =
   /** `bot_id` is the bot speaking this turn; null in older logs. */
@@ -170,7 +170,7 @@ export type SessionEvent =
 export type ApprovalMode = "ask" | "auto";
 
 /** The person allowed `tool` to run unasked for the rest of this conversation. */
-export interface ApprovalGrantEvent {
+interface ApprovalGrantEvent {
   type: "approval/grant";
   turn: number;
   tool: string;
@@ -237,7 +237,7 @@ export interface SkillSummary {
   editable: boolean;
 }
 
-export interface SkillIssue {
+interface SkillIssue {
   path: string;
   problem: string;
 }
@@ -289,7 +289,7 @@ export interface HandOverAnswer {
 }
 
 /** How long an approval holds */
-export type Scope = "once" | "conversation" | "always";
+type Scope = "once" | "conversation" | "always";
 
 /** What the browser answers an approval gate with */
 export type Decision = { kind: "approved"; scope: Scope } | { kind: "denied" };

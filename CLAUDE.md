@@ -12,9 +12,8 @@ MCP — not a terminal coding harness). Synthesized from
 [cell-bot](./docs/cell-bot.md) for the taste. Target ~10k lines.
 
 Read before writing code: [DESIGN.md](./DESIGN.md) for the contracts, and the
-work's GitHub issue for what it must satisfy; open work lives in the issues, and
-a feature's plan is its spec under [docs/specs/](./docs/specs/). Nothing in this
-file changes when a feature ships.
+work's GitHub issue for what it must satisfy; open work lives in the issues.
+Nothing in this file changes when a feature ships.
 
 Five shapes that hold everywhere:
 
@@ -41,7 +40,7 @@ Five shapes that hold everywhere:
   `COMPUTER_ENGINE=docker` is the other engine). Once it is added, every bot is
   told about it by the server's own instructions. Scripts
   that call tools still run in Deno; the PC is a tool the bot uses.
-  [docs/specs/pc-center/spec.md](./docs/specs/pc-center/spec.md).
+  The network rules' spec: `git show db9b326:docs/specs/pc-center/spec.md`.
 - **Every channel is a client of one gateway** — browser, Telegram, Discord. A
   new platform is one class and one line in `build_channels`.
   [channels/__init__.py](./backend/harness/channels/__init__.py).
@@ -149,11 +148,11 @@ Breaking one is not a style disagreement. The reasoning behind each is in
   deliberately separate, so one server's flake cannot fail the harness's suite.
   If you touched a skill's `scripts/`, so are `make lint-skills` and `make test-skills`.
   If you touched `desktop/`, so is `make test-desktop`.
-- The issue's "Done when" and its spec's checks are met, as tests.
+- The issue's "Done when" is met, as tests.
 - **Every new definition has a caller outside `tests/`.** `grep -rn '\bname\b'
   harness/` — if the only hits are the definition and test files, it belongs in
   `tests/` or does not exist yet.
-- When KISS/YAGNI argues against what an issue or spec calls for, raise it **before**
+- When KISS/YAGNI argues against what an issue calls for, raise it **before**
   building — narrowing an approved plan is a decision to surface, not to take.
 
 ## Docs index
@@ -161,7 +160,6 @@ Breaking one is not a style disagreement. The reasoning behind each is in
 | File | What's in it |
 |------|--------------|
 | [DESIGN.md](./DESIGN.md) | The proposal: what we take from each source, module layout, core contracts, open decisions |
-| [docs/specs/](./docs/specs/) | One folder per feature: its spec and tickets. Open work is GitHub issues; the old phase plan is `git show db9b326:PHASES.md` |
 | [docs/rules.md](./docs/rules.md) | The reasoning behind every rule and invariant above |
 | [docs/prompt-failures.md](./docs/prompt-failures.md) | The ledger behind "Prompt text is code": every model-facing wording that fixed an observed failure, and what the failure was |
 | [docs/coding-principles.md](./docs/coding-principles.md) | Behavioral guidelines (Karpathy): think first, KISS/YAGNI, surgical changes, goal-driven |
