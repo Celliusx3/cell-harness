@@ -99,7 +99,7 @@ export function BotForm({ initial, models, onSave, onArchive }: BotFormProps) {
         <button
           type="submit"
           disabled={busy}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
         >
           Save
         </button>

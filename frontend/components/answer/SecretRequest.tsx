@@ -38,9 +38,9 @@ export function SecretRequest({ item, conversationId, onAnswered }: ClientToolPr
   };
 
   return (
-    <div className="rounded-xl border border-accent/40 bg-accent-soft px-3 py-2.5 text-sm">
+    <div className="rounded-xl border border-attention/40 bg-attention-soft px-3 py-2.5 text-sm">
       <div className="flex items-center gap-2">
-        <KeyRound size={14} className="shrink-0 text-accent" />
+        <KeyRound size={14} className="shrink-0 text-attention" />
         <span className="min-w-0 break-words font-medium">{headline(item, ask, phase)}</span>
       </div>
       {item.result === null && phase === "asking" && (
@@ -60,7 +60,7 @@ export function SecretRequest({ item, conversationId, onAnswered }: ClientToolPr
             <button
               type="submit"
               disabled={!draft}
-              className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+              className="rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
             >
               Save
             </button>

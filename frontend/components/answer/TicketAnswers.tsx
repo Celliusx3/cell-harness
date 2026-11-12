@@ -61,7 +61,7 @@ export function SecretAnswer({ name, disabled, onSend }: Answering & { name: str
       <button
         type="submit"
         disabled={disabled || !draft}
-        className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+        className="rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
       >
         Save
       </button>
@@ -91,7 +91,7 @@ export function LocationAnswer({ disabled, onSend }: Answering) {
         type="button"
         disabled={disabled}
         onClick={share}
-        className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+        className="rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
       >
         Share location
       </button>
@@ -123,7 +123,7 @@ export function ApprovalAnswer({
       {call !== null && (
         <>
           <div className="mt-2 flex items-center gap-2 text-sm">
-            <ShieldQuestion size={14} className="shrink-0 text-accent" />
+            <ShieldQuestion size={14} className="shrink-0 text-attention" />
             <span className="min-w-0 break-words font-medium">{label}</span>
             {server !== null && (
               <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px] text-ink-soft">

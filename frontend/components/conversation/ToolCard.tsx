@@ -211,7 +211,7 @@ function Result({ blocks }: { blocks: ContentBlock[] }) {
 function Block({ label, body, script = false }: { label: string; body: string; script?: boolean }) {
   return (
     <div>
-      <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink-soft">{label}</p>
+      <p className="mb-1 text-xs font-medium text-ink-soft">{fieldLabel(label)}</p>
       {script ? (
         <CodeBlock code={body} language="tsx" className="bg-surface" />
       ) : (
@@ -221,4 +221,9 @@ function Block({ label, body, script = false }: { label: string; body: string; s
       )}
     </div>
   );
+}
+
+function fieldLabel(name: string): string {
+  const words = name.replace(/[_-]+/g, " ").trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

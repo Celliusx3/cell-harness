@@ -14,7 +14,7 @@ export function QuestionRequest({ item }: ClientToolProps) {
     <div
       className={`flex items-start gap-2 text-xs ${answered ? "text-ink" : "text-ink-soft"}`}
     >
-      <MessageCircleQuestionMark size={14} className="mt-px shrink-0 text-accent" />
+      <MessageCircleQuestionMark size={14} className="mt-px shrink-0 text-attention" />
       <span className="min-w-0 break-words">{record(item)}</span>
     </div>
   );

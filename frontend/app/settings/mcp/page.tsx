@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { ServerDialog } from "@/components/mcp/ServerDialog";
 import { ServerRow, type ServerActions } from "@/components/mcp/ServerRow";
 import { ApiError } from "@/lib/api";
@@ -90,14 +91,18 @@ export default function McpServersPage() {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
-        <h1 className="min-w-0 truncate text-sm font-medium">MCP servers</h1>
-        <span className="shrink-0 text-xs text-ink-soft">{servers.length} set up</span>
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-5 md:px-6">
+        <DrawerButton />
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">MCP servers</h1>
+          <p className="text-sm text-ink-soft">Each server gives every bot a set of tools. They run as programs on this machine.</p>
+        </div>
+        <span className="shrink-0 self-end text-xs text-ink-soft">{servers.length} set up</span>
         {canChange === true && (
           <button
             type="button"
             onClick={() => setDialog({ isOpen: true, server: null })}
-            className="ml-auto rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+            className="ml-auto rounded-lg bg-action px-3.5 py-2 text-sm font-medium text-on-action transition hover:opacity-90"
           >
             Add server
           </button>

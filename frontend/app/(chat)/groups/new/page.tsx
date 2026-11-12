@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { refreshSidebar } from "@/components/chat/Sidebar";
 import { ApiError, BUILDER_ID, createGroup, listBots } from "@/lib/api";
 import type { Bot } from "@/lib/types";
@@ -51,7 +52,8 @@ export default function NewGroupPage() {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
+      <header className="flex items-center gap-3 border-b border-line px-4 md:px-6 py-3">
+        <DrawerButton />
         <h1 className="min-w-0 truncate text-sm font-medium">New group</h1>
       </header>
       <form
@@ -101,7 +103,7 @@ export default function NewGroupPage() {
           <button
             type="submit"
             disabled={busy || !ready}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
           >
             Make group
           </button>

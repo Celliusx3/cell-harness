@@ -76,8 +76,15 @@ export function Timeline({
         scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
       pinned.current = slack < 80;
     };
+    const keepPinned = new ResizeObserver(() => {
+      if (pinned.current) floor.current?.scrollIntoView({ block: "end" });
+    });
+    keepPinned.observe(scroller);
     scroller.addEventListener("scroll", onScroll, { passive: true });
-    return () => scroller.removeEventListener("scroll", onScroll);
+    return () => {
+      keepPinned.disconnect();
+      scroller.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   const stays = (item: ToolItem) =>
@@ -101,7 +108,7 @@ export function Timeline({
       {rows.map((row) => {
         if (row.kind === "item") return <Item key={row.item.key} item={row.item} {...shared} />;
         return (
-          <BotBlock key={row.key} speaker={row.speaker ?? host}>
+          <BotBlock key={row.key} speaker={row.speaker ?? host} continues={row.continues}>
             {row.parts.map((part) =>
               part.kind === "item" ? (
                 <Item key={part.item.key} item={part.item} {...shared} />

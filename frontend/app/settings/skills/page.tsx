@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { SkillEditor } from "@/components/skills/SkillEditor";
 import { SkillRows } from "@/components/skills/SkillRows";
 import { ApiError, listSkills, uploadSkill } from "@/lib/api";
@@ -52,9 +53,13 @@ export default function SkillsPage() {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
-        <h1 className="min-w-0 truncate text-sm font-medium">Skills</h1>
-        <span className="shrink-0 text-xs text-ink-soft">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-5 md:px-6">
+        <DrawerButton />
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Skills</h1>
+          <p className="text-sm text-ink-soft">Instructions bots load when a task calls for them.</p>
+        </div>
+        <span className="shrink-0 self-end text-xs text-ink-soft">
           {list.skills.length} loaded
           {list.problems.length > 0 ? ` · ${list.problems.length} not loaded` : ""}
         </span>

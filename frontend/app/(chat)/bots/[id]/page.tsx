@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { BotForm } from "@/components/bots/BotForm";
 import { BotKeys } from "@/components/bots/BotKeys";
 import { BotLinks } from "@/components/bots/BotLinks";
@@ -38,7 +39,8 @@ export default function EditBotPage({
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
+      <header className="flex items-center gap-3 border-b border-line px-4 md:px-6 py-3">
+        <DrawerButton />
         <h1 className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
           <Link href="/bots" className="shrink-0 text-ink-soft transition hover:text-ink">
             Bots

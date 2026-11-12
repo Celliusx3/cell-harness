@@ -77,7 +77,7 @@ export function ServerDialog({ directUrl, server, onClose, onSaved }: ServerDial
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+              className="rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
             >
               {isSaving ? "Saving…" : "Save"}
             </button>

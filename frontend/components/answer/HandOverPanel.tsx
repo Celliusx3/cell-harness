@@ -85,10 +85,10 @@ export function HandOverPanel({
         ref={panel}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="mx-auto max-w-3xl rounded-2xl border border-line bg-surface-raised p-3 shadow-sm outline-none"
+        className="mx-auto max-w-3xl rounded-2xl border border-attention/50 bg-surface-raised p-3 shadow-sm outline-none"
       >
         <div className="flex items-center gap-2 text-sm">
-          <Hand size={14} className="shrink-0 text-accent" />
+          <Hand size={14} className="shrink-0 text-attention" />
           <span className="font-medium">Needs you</span>
         </div>
         {asked === null ? (
@@ -133,13 +133,13 @@ export function HandOverPanel({
 export function HandOverBar({ step, onShow }: { step: string; onShow: () => void }) {
   return (
     <div className={`relative z-10 bg-surface px-4 pt-2 ${FADE_ABOVE}`}>
-      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-line bg-surface-raised px-3 py-1.5 text-sm">
-        <Hand size={14} className="shrink-0 text-accent" />
+      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-attention/50 bg-surface-raised px-3 py-1.5 text-sm">
+        <Hand size={14} className="shrink-0 text-attention" />
         <span className="min-w-0 flex-1 break-words">{`Needs you: ${step}`}</span>
         <button
           type="button"
           onClick={onShow}
-          className="shrink-0 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+          className="shrink-0 rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90"
         >
           Show
         </button>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { ArchivedBots } from "@/components/bots/ArchivedBots";
 import { BotList } from "@/components/bots/BotList";
 import { refreshSidebar, whenBotsMayHaveChanged } from "@/components/chat/Sidebar";
@@ -40,7 +41,8 @@ export default function BotsPage() {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
+      <header className="flex items-center gap-3 border-b border-line px-4 md:px-6 py-3">
+        <DrawerButton />
         <h1 className="min-w-0 truncate text-sm font-medium">Bots</h1>
       </header>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4">

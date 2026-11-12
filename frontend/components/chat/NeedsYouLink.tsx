@@ -19,7 +19,7 @@ export function NeedsYouLink({ current }: { current: boolean }) {
     >
       <Inbox size={16} className="shrink-0" />
       <span className="min-w-0 flex-1 truncate">Needs you</span>
-      <span className="shrink-0 rounded-full bg-accent px-1.5 text-xs font-medium text-white">
+      <span className="shrink-0 rounded-full bg-attention px-1.5 text-xs font-medium text-surface-raised">
         {count}
       </span>
     </Link>

@@ -11,7 +11,14 @@ type Part =
 /** A turn's answer is one block under the bot that gave it, which is null in a bot's own chat. */
 export type Row =
   | { kind: "item"; item: TimelineItem }
-  | { kind: "answer"; key: string; turn: number; speaker: Speaker | null; parts: Part[] };
+  | {
+      kind: "answer";
+      key: string;
+      turn: number;
+      speaker: Speaker | null;
+      continues: boolean;
+      parts: Part[];
+    };
 
 interface TurnShape {
   /** In a group's chat, the bot that spoke each turn. */
@@ -34,7 +41,12 @@ export function turnRows(items: TimelineItem[], shape: TurnShape): Row[] {
     else run.items.push(item);
   }
   if (run !== null) rows.push(...oneTurn(run.items, run.turn, shape));
-  return rows;
+  return rows.map((row, index) => withContinuation(row, rows[index - 1]));
+}
+
+function withContinuation(row: Row, previous: Row | undefined): Row {
+  if (row.kind !== "answer" || previous?.kind !== "answer") return row;
+  return { ...row, continues: row.speaker?.id === previous.speaker?.id };
 }
 
 function turnOf(item: TimelineItem): number | null {
@@ -57,6 +69,7 @@ function oneTurn(items: TimelineItem[], turn: number, shape: TurnShape): Row[] {
       key: `r${first.key}`,
       turn,
       speaker,
+      continues: false,
       parts: partsOf(answer, turn, reply, shape.stays),
     },
   ];

@@ -70,7 +70,7 @@ export function QuestionPanel({
         ref={panel}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="mx-auto max-w-3xl rounded-2xl border border-line bg-surface-raised p-3 shadow-sm outline-none"
+        className="mx-auto max-w-3xl rounded-2xl border border-attention/50 bg-surface-raised p-3 shadow-sm outline-none"
       >
         <p className="break-words text-sm font-medium">
           {asked?.question ?? "This question could not be shown."}
@@ -113,7 +113,7 @@ export function QuestionPanel({
                 onClick={submit}
                 disabled={!draft.trim()}
                 aria-label="Send answer"
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition hover:opacity-90 disabled:opacity-35"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-action text-on-action transition hover:opacity-90 disabled:opacity-35"
               >
                 <ArrowUp size={16} />
               </button>
@@ -145,13 +145,13 @@ export function QuestionBar({
 }) {
   return (
     <div className={`relative z-10 bg-surface px-4 pt-2 ${FADE_ABOVE}`}>
-      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-line bg-surface-raised px-3 py-1.5 text-sm">
-        <MessageCircleQuestionMark size={14} className="shrink-0 text-accent" />
+      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-attention/50 bg-surface-raised px-3 py-1.5 text-sm">
+        <MessageCircleQuestionMark size={14} className="shrink-0 text-attention" />
         <span className="min-w-0 flex-1 break-words">{question}</span>
         <button
           type="button"
           onClick={onAnswer}
-          className="shrink-0 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+          className="shrink-0 rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90"
         >
           Answer
         </button>

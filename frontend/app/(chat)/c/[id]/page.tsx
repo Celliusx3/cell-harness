@@ -13,6 +13,7 @@ import { type Found, useFound } from "@/components/chat/useFound";
 import { announceWorking } from "@/components/chat/workingChat";
 import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
+import { EmptyChat } from "@/components/conversation/EmptyChat";
 import { ModePicker } from "@/components/conversation/ModePicker";
 import { Timeline } from "@/components/conversation/Timeline";
 import { UsageButton } from "@/components/conversation/UsageButton";
@@ -75,6 +76,7 @@ export default function ConversationPage({
         chat={host ?? speakerOf(group)}
         editHref={host === null ? null : `/bots/${id}`}
         elapsed={elapsed}
+        waiting={waiting !== null}
         canCompact={!conversation.running}
         onCompact={() => void conversation.compact()}
         onClear={() => void conversation.clear()}
@@ -83,6 +85,8 @@ export default function ConversationPage({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {conversation.loading ? (
           <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
+        ) : items.length === 0 && conversation.sending === null ? (
+          <EmptyChat speaker={host ?? speakerOf(group)} />
         ) : (
           <Timeline
             items={items}

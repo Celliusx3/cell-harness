@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { Drawer } from "@/components/chat/Drawer";
 import { NeedsYouLink } from "@/components/chat/NeedsYouLink";
 import { NewMenu } from "@/components/chat/NewMenu";
 import { SidebarLink } from "@/components/chat/SidebarLink";
@@ -78,7 +79,7 @@ export function Sidebar() {
   }, [pathname, stale]);
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-line bg-surface-sunken">
+    <Drawer>
       <div className="flex items-center justify-between px-4 py-4">
         <span className="text-sm font-semibold tracking-tight">cell-harness</span>
         <NewMenu />
@@ -121,7 +122,7 @@ export function Sidebar() {
         )}
         <SidebarLink href="/settings" label="Settings" icon={Settings} current={false} />
       </div>
-    </aside>
+    </Drawer>
   );
 }
 

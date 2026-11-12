@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { BotSuggestions } from "@/components/bots/BotSuggestions";
 import { Composer } from "@/components/conversation/Composer";
 import { ApiError, BUILDER_ID, clearConversation, sendMessage } from "@/lib/api";
@@ -39,13 +40,14 @@ export default function NewBotPage() {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
+      <header className="flex items-center gap-3 border-b border-line px-4 md:px-6 py-3">
+        <DrawerButton />
         <h1 className="min-w-0 truncate text-sm font-medium">New bot</h1>
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-6">
         <div className="m-auto flex w-full max-w-3xl flex-col gap-6">
           <div className="flex flex-col items-center gap-2 text-center">
-            <h2 className="font-serif text-4xl tracking-tight">What kind of bot do you want?</h2>
+            <h2 className="font-display text-4xl font-semibold tracking-tight">What kind of bot do you want?</h2>
             <p className="text-sm text-ink-soft">
               Pick a kind and finish the sentence, or describe your own.
             </p>
