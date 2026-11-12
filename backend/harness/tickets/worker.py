@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from harness.prompts import TICKET_DID_NOT_FINISH, WORKER_INTRO
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.run_to_end import HelperTurn, run_to_end
 from harness.runtime.service import Runtime
@@ -13,12 +12,14 @@ from harness.session.log import Session
 from harness.session.models import (
     ApprovalModeChanged,
     SessionEvent,
+    TicketAsk,
     ToolCallEvent,
     ToolResultEvent,
     TurnStart,
 )
 from harness.session.service import SessionService
 from harness.tickets.models import ReportState, Ticket
+from harness.tickets.prompts import TICKET_DID_NOT_FINISH, WORKER_INTRO
 from harness.tools.models.decision import ApprovalMode
 from harness.tools.native.tickets.models import TicketReportArgs
 from harness.tools.native.tickets.report import TICKET_REPORT
@@ -31,6 +32,9 @@ class WorkerEnd:
     state: ReportState
     text: str
     question: str | None
+    ask: TicketAsk = "text"
+    options: tuple[str, ...] | None = None
+    secret_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -86,4 +90,11 @@ def worker_end(ending: TurnEvent | None, kept: TicketReportArgs | None) -> Worke
         return WorkerEnd(state="failed", text=TICKET_DID_NOT_FINISH, question=None)
     if kept is None:
         return WorkerEnd(state="ready", text=ending.text, question=None)
-    return WorkerEnd(state=kept.state, text=kept.summary, question=kept.question)
+    return WorkerEnd(
+        state=kept.state,
+        text=kept.summary,
+        question=kept.question,
+        ask=kept.ask,
+        options=kept.options,
+        secret_name=kept.secret_name,
+    )

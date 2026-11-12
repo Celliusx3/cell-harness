@@ -47,6 +47,9 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
             turn: event.turn,
             ticketId: event.report.ticket_id,
             question: event.report.question,
+            ask: event.report.ask,
+            options: event.report.options ?? [],
+            secretName: event.report.secret_name,
             latest: lastReports.get(event.report.ticket_id) === index,
           });
         }

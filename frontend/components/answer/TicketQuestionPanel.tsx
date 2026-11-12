@@ -3,14 +3,15 @@
 import { ArrowUp, MessageCircleQuestionMark } from "lucide-react";
 import { useState } from "react";
 
+import { ChoiceAnswer, LocationAnswer, SecretAnswer } from "@/components/answer/TicketAnswers";
 import type { TicketQuestionItem } from "@/components/conversation/timelineItems";
 import { useTicket } from "@/components/conversation/useTicket";
 import { ApiError } from "@/lib/api";
-import { answerTicket } from "@/lib/tickets";
+import { answerTicket, saveTicketSecret } from "@/lib/tickets";
 
 type Phase = "asking" | "sending" | "sent";
 
-/** A worker's question, unchanged, with a box that answers its ticket while it waits for one. */
+/** A worker's question, unchanged, with the card its `ask` chooses while its ticket waits. */
 export function TicketQuestionPanel({ item }: { item: TicketQuestionItem }) {
   const load = useTicket(item.ticketId);
   const [phase, setPhase] = useState<Phase>("asking");
@@ -22,7 +23,8 @@ export function TicketQuestionPanel({ item }: { item: TicketQuestionItem }) {
     setPhase("sending");
     setError(null);
     try {
-      await answerTicket(item.ticketId, text);
+      if (item.ask === "secret") await saveTicketSecret(item.ticketId, text);
+      else await answerTicket(item.ticketId, text);
       setPhase("sent");
     } catch (failure) {
       setError(failure instanceof ApiError ? failure.message : "Could not send the answer.");
@@ -37,7 +39,7 @@ export function TicketQuestionPanel({ item }: { item: TicketQuestionItem }) {
         <span className="min-w-0 flex-1">{item.question}</span>
       </p>
       {waits && phase !== "sent" ? (
-        <AnswerBox disabled={phase === "sending"} onSend={(text) => void send(text)} />
+        <Answer item={item} disabled={phase === "sending"} onSend={(text) => void send(text)} />
       ) : (
         <p className="mt-2 text-xs text-ink-soft">
           {load.kind === "loading" && item.latest ? "…" : "Answered"}
@@ -46,6 +48,27 @@ export function TicketQuestionPanel({ item }: { item: TicketQuestionItem }) {
       {error !== null && <p className="mt-2 text-xs text-danger">{error}</p>}
     </div>
   );
+}
+
+function Answer({
+  item,
+  disabled,
+  onSend,
+}: {
+  item: TicketQuestionItem;
+  disabled: boolean;
+  onSend: (text: string) => void;
+}) {
+  switch (item.ask) {
+    case "choice":
+      return <ChoiceAnswer options={item.options} disabled={disabled} onSend={onSend} />;
+    case "secret":
+      return <SecretAnswer name={item.secretName} disabled={disabled} onSend={onSend} />;
+    case "location":
+      return <LocationAnswer disabled={disabled} onSend={onSend} />;
+    case "text":
+      return <AnswerBox disabled={disabled} onSend={onSend} />;
+  }
 }
 
 function AnswerBox({ disabled, onSend }: { disabled: boolean; onSend: (text: string) => void }) {

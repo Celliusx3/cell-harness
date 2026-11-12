@@ -58,6 +58,9 @@ async def test_a_blocked_report_with_a_question_wakes_the_bot_with_it(tmp_path) 
             "state": "blocked",
             "text": "Two airlines need a choice.",
             "question": QUESTION,
+            "ask": "text",
+            "options": None,
+            "secret_name": None,
         }
     ]
     woken = world.model.seen_by[ASSISTANT_START][2]

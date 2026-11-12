@@ -138,11 +138,12 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
     assert [type(hook) for hook in runtime.hooks.step_hooks] == [EmptyReplyHook, SkillListHook]
 
 
-async def test_every_client_tool_is_offered_and_kept_from_scripts(compose) -> None:
+async def test_every_client_tool_is_registered_not_offered_and_kept_from_scripts(compose) -> None:
     runtime = compose()
     assert runtime.tools is not None
     offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
-    assert CLIENT_TOOLS.names <= offered
+    assert not CLIENT_TOOLS.names & offered
+    assert all(runtime.tools.tool_service.get(name) for name in CLIENT_TOOLS.names)
 
     listed = await runtime.tools.execute(
         ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),

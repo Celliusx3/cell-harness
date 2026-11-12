@@ -28,6 +28,9 @@ def ticket_report_tool() -> Tool[TicketReportArgs]:
                 INVALID_ARGUMENTS,
                 f"a question goes only with the state blocked or waiting, not {args.state}",
             )
+        mismatch = ask_mismatch(args)
+        if mismatch is not None:
+            return Failure(INVALID_ARGUMENTS, mismatch)
         if args.state == "progress":
             return Ok("Recorded.")
         return Ok("Reported. End your turn now.")
@@ -35,3 +38,15 @@ def ticket_report_tool() -> Tool[TicketReportArgs]:
     return Tool.from_model(
         name=TICKET_REPORT, description=_DESCRIPTION, args_model=TicketReportArgs, execute=execute
     )
+
+
+def ask_mismatch(args: TicketReportArgs) -> str | None:
+    """Why `args` cannot be asked the way it says; `None` when the way fits the arguments."""
+    if args.ask != "text" and args.question is None:
+        return f"the ask {args.ask} goes only with a question"
+    if (args.ask == "choice") != (args.options is not None):
+        return "options go with the ask choice, and the ask choice needs options"
+    secret = args.ask == "secret"
+    if secret != (args.secret_name is not None) or secret != (args.secret_destination is not None):
+        return "secret_name and secret_destination go with the ask secret, which needs both"
+    return None

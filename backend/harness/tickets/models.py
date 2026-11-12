@@ -7,6 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from harness.secrets import Destination
 from harness.session.heard import ReportState as ReportState
 from harness.tools.models.decision import ApprovalMode
 
@@ -78,3 +79,13 @@ class TicketsFile(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     tickets: tuple[Ticket, ...] = ()
+
+
+class AskedKey(BaseModel):
+    """The key a ticket's question waits for: the bot it is granted to, its name, its one API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    bot_id: str
+    name: str
+    destination: Destination

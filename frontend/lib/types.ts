@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/client";
+import type { TicketAsk } from "./tickets";
 
 /** The wire types, mirroring `backend/harness/session/models.py`. */
 
@@ -132,6 +133,9 @@ export type SessionEvent =
         state: "progress" | "waiting" | "ready" | "blocked" | "failed" | "dropped";
         text: string;
         question: string | null;
+        ask: TicketAsk;
+        options: string[] | null;
+        secret_name: string | null;
       };
     }
   /** A schedule of this chat's bot was changed from Settings. */

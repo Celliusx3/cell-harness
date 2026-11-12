@@ -9,11 +9,12 @@ import pytest
 
 from harness.config.settings import Settings
 from harness.mcp import McpService
-from harness.prompts import CODE_PROMPT, NO_WAIT_REFUSAL, ORCHESTRATOR
+from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.calls import Signature
 from harness.runtime.hooks.native.no_wait import NoWaitHook, waits
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.tickets.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR
 from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, helper_runtime
 from harness.web.tickets_wiring import WORKER_TOOLS
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills

@@ -15,6 +15,7 @@ from harness.runs.subscribe import subscribe
 from harness.session.compaction import CompactionEnd
 from harness.session.models import (
     AssistantMessageEvent,
+    TicketReport,
     TicketReportEvent,
     ToolCallEvent,
     ToolResultEvent,
@@ -47,9 +48,21 @@ def _compaction_line(event: CompactionEnd) -> str:
     return "Could not compact the conversation right now."
 
 
-def _question_line(title: str, question: str) -> str:
-    """A ticket's question, as a chat with no answer box is sent it."""
-    return f"{title} asks: {question}"
+def _question_line(report: TicketReport, question: str) -> str:
+    """A ticket's question and how to answer it, as a chat with no answer box is sent it."""
+    asks = f"{report.title} asks: {question}"
+    match report.ask:
+        case "choice":
+            return f"{asks} ({' / '.join(report.options or ())})"
+        case "secret":
+            return (
+                f"{report.title} needs a key named {report.secret_name}. "
+                "Save it in the app, on the ticket's answer box."
+            )
+        case "location":
+            return f"{asks} (send your location)"
+        case "text":
+            return asks
 
 
 class _AppLink(NamedTuple):
@@ -139,7 +152,7 @@ class Replies:
         """Send a report's question before the bot's reply, which does not repeat it."""
         report = event.report
         if report.question is not None:
-            await transport.send_message(chat_id, _question_line(report.title, report.question))
+            await transport.send_message(chat_id, _question_line(report, report.question))
 
     async def _send_reply(self, transport: Pushing, chat_id: str, text: str) -> None:
         """Send what the model said, unless it said nothing."""

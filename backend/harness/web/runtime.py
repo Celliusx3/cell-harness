@@ -18,7 +18,7 @@ from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
-from harness.prompts import CODE_PROMPT, GUIDANCE, ORCHESTRATOR
+from harness.prompts import CODE_PROMPT, GUIDANCE
 from harness.runs.bot_messages import BotMessages, Follow
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
@@ -36,6 +36,7 @@ from harness.schedules import ScheduleService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
+from harness.tickets.prompts import ORCHESTRATOR
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
@@ -110,7 +111,6 @@ DEFAULT_TOOLS = (
     EXTRACT_ARCHIVE,
     MAKE_ARCHIVE,
     VIEW_IMAGE,
-    *sorted(CLIENT_TOOLS.names),
 )
 SUBAGENT_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
 SIGHT_TOOLS = frozenset({VIEW_IMAGE})

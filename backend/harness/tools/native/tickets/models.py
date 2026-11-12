@@ -6,9 +6,28 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from harness.secrets import Destination, SecretName
+from harness.session.models import TicketAsk
 from harness.tickets.models import ReportState
 
 TICKET_ID = "The id of one of your tickets."
+ASK = (
+    "How the user answers question: text to type it, choice to tap one of options, secret to "
+    "paste a key that is saved under secret_name and never shown to you, location to share "
+    "where they are."
+)
+OPTIONS = "Two to four short answers to tap, only with the ask choice."
+SECRET_NAME = (
+    "The name the key is saved under: lowercase letters, digits and underscores, only with the "
+    "ask secret. Use it with fetch_with_secret."
+)
+SECRET_DESTINATION = (
+    "The one API the key may be sent to, only with the ask secret: its https origin and how it "
+    "takes the key."
+)
+
+Option = Annotated[str, Field(min_length=1)]
+Options = Annotated[tuple[Option, ...], Field(min_length=2, max_length=4)]
 
 
 class AcceptItem(BaseModel):
@@ -100,6 +119,10 @@ class TicketReportArgs(BaseModel):
             "reaches the user unchanged."
         ),
     )
+    ask: TicketAsk = Field(default="text", description=ASK)
+    options: Options | None = Field(default=None, description=OPTIONS)
+    secret_name: SecretName | None = Field(default=None, description=SECRET_NAME)
+    secret_destination: Destination | None = Field(default=None, description=SECRET_DESTINATION)
 
 
 class TicketNoteArgs(BaseModel):

@@ -17,9 +17,9 @@ def _hand_over_tool() -> Tool:
     return {tool.name: tool for tool in client_tools().tools()}[HAND_OVER]
 
 
-def test_the_main_chat_is_offered_hand_over_as_a_client_tool_and_scripts_are_not() -> None:
+def test_hand_over_is_a_client_tool_offered_neither_to_the_main_chat_nor_to_scripts() -> None:
     assert HAND_OVER in CLIENT_TOOLS.names
-    assert HAND_OVER in DEFAULT_TOOLS
+    assert HAND_OVER not in DEFAULT_TOOLS
     assert HAND_OVER in NOT_CALLABLE_FROM_SCRIPTS
 
 

@@ -1,6 +1,7 @@
 /** The shapes `buildTimeline` produces */
 
 import type { Invocation } from "@/components/conversation/invocation";
+import type { TicketAsk } from "@/lib/tickets";
 import type {
   ApprovalMode,
   ContentBlock,
@@ -112,6 +113,9 @@ export interface TicketQuestionItem {
   turn: number;
   ticketId: string;
   question: string;
+  ask: TicketAsk;
+  options: string[];
+  secretName: string | null;
   latest: boolean;
 }
 

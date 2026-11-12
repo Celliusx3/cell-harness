@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from harness.prompts import TICKET_NOTE_HEARD
 from harness.tickets.models import Ticket, TicketNotFound, TicketStopped
+from harness.tickets.prompts import TICKET_NOTE_HEARD
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import INVALID_ARGUMENTS, REFUSED, Failure, Ok, ToolOutcome
 from harness.tools.models.tool import Tool

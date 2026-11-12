@@ -45,10 +45,10 @@ MAX_RESPONSE_BYTES = 1024 * 1024
 TIMEOUT_SECONDS = 30
 
 _FETCH_DESCRIPTION = (
-    "Call an https API with a key the user saved through ask_for_secret. The server adds the "
-    "key, so never put one in the url or the body. Redirects are not followed. The result is "
-    "the status and the body, with the key blanked as [secret]. If there is no saved key, "
-    "call ask_for_secret first."
+    "Call an https API with a key the user saved. The server adds the key, so never put one in "
+    "the url or the body. Redirects are not followed. The result is the status and the body, "
+    "with the key blanked as [secret]. If there is no saved key, ask for it with ticket_report "
+    "and the ask secret, when you are offered ticket_report."
 )
 
 
@@ -92,7 +92,10 @@ def fetch_with_secret_tool(
 def _not_a_custom_key(secrets: SecretService, name: str) -> Failure:
     details = secrets.details_of(name)
     if details is None:
-        return Failure(NO_SECRET, f"no saved key named {name!r}; call ask_for_secret first")
+        return Failure(
+            NO_SECRET,
+            f"no saved key named {name!r}; ask for it with ticket_report and the ask secret",
+        )
     article = "an" if details.kind == "llm" else "a"
     return Failure(
         WRONG_KIND,

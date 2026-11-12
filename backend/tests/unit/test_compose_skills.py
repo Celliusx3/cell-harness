@@ -10,12 +10,13 @@ import pytest
 from harness.config.settings import Settings
 from harness.llm import Message, SystemMessage, ToolCall, UserMessage
 from harness.mcp import McpServer, McpService
-from harness.prompts import GUIDANCE, ORCHESTRATOR
+from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.models import TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL
+from harness.tickets.prompts import ORCHESTRATOR
 from harness.tools import Ok
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS

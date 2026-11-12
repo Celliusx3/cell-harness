@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Response, status
 
-from harness.tickets.models import Ticket
-from harness.tickets.schemas import TicketAnswer, TicketDetail, TicketRow
+from harness.bots import BotService
+from harness.secrets import SecretService
+from harness.tickets.models import Ticket, TicketNotAsking
+from harness.tickets.prompts import SAVED_KEY_ANSWER
+from harness.tickets.schemas import TicketAnswer, TicketDetail, TicketRow, TicketSecret
 from harness.tickets.service import TicketService
 from harness.utc import utc_text
 
@@ -20,8 +23,8 @@ def _row(ticket: Ticket) -> TicketRow:
     )
 
 
-def build_router(tickets: TicketService) -> APIRouter:
-    """List a bot's tickets, and read one with its worker's log."""
+def build_router(tickets: TicketService, secrets: SecretService, bots: BotService) -> APIRouter:
+    """List a bot's tickets, read one with its worker's log, and answer its question."""
     router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
     @router.get("", response_model=list[TicketRow])
@@ -45,11 +48,30 @@ def build_router(tickets: TicketService) -> APIRouter:
         "/{ticket_id}/answer", status_code=status.HTTP_202_ACCEPTED, response_model=TicketRow
     )
     async def answer_ticket(ticket_id: str, body: TicketAnswer) -> TicketRow:
+        if await tickets.asks_for_key(ticket_id):
+            raise TicketNotAsking(ticket_id)
         tickets.answer(ticket_id, body.text)
         return _row(tickets.get(ticket_id))
 
     _person_routes(router, tickets)
+    _secret_route(router, tickets, secrets, bots)
     return router
+
+
+def _secret_route(
+    router: APIRouter, tickets: TicketService, secrets: SecretService, bots: BotService
+) -> None:
+    """The key a ticket's question asks for: saved for its bot, and only its name told."""
+
+    @router.post(
+        "/{ticket_id}/secret", status_code=status.HTTP_202_ACCEPTED, response_model=TicketRow
+    )
+    async def save_ticket_secret(ticket_id: str, body: TicketSecret) -> TicketRow:
+        asked = await tickets.asked_key(ticket_id)
+        secrets.save(asked.name, asked.destination, body.value)
+        bots.allow_secret(asked.bot_id, asked.name)
+        tickets.answer(ticket_id, SAVED_KEY_ANSWER.format(name=asked.name))
+        return _row(tickets.get(ticket_id))
 
 
 def _person_routes(router: APIRouter, tickets: TicketService) -> None:

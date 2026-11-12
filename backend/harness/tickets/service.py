@@ -11,7 +11,6 @@ from typing import Protocol
 
 from harness.app_events import TicketsChangedAppEvent
 from harness.bots import BotNotFound, BotService
-from harness.prompts import TICKET_ANSWER_HEARD, TICKET_RECOVERY_HEARD, TICKET_RETRY_HEARD
 from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.session.models import SessionEvent, TicketReport
@@ -20,6 +19,7 @@ from harness.session.service import SessionService
 from harness.tickets.models import (
     NEEDS_YOU,
     RETRYABLE,
+    AskedKey,
     Ticket,
     TicketNotAsking,
     TicketNotFound,
@@ -30,8 +30,9 @@ from harness.tickets.models import (
     ticket_state,
 )
 from harness.tickets.places import Places
+from harness.tickets.prompts import TICKET_ANSWER_HEARD, TICKET_RECOVERY_HEARD, TICKET_RETRY_HEARD
 from harness.tickets.repository import TicketRepository
-from harness.tickets.worker import WorkerEnd, worker_end, worker_session_id
+from harness.tickets.worker import WorkerEnd, kept_report, worker_end, worker_session_id
 from harness.tools.models.decision import ApprovalMode
 
 logger = logging.getLogger("harness.tickets")
@@ -137,6 +138,25 @@ class TicketService:
             raise TicketNotAsking(ticket_id)
         self._tell(ticket_id, TICKET_ANSWER_HEARD.format(text=text), answer=True)
 
+    async def asks_for_key(self, ticket_id: str) -> bool:
+        """Whether the ticket's question waits for a key, which only its secret box may answer."""
+        try:
+            await self.asked_key(ticket_id)
+        except TicketNotAsking:
+            return False
+        return True
+
+    async def asked_key(self, ticket_id: str) -> AskedKey:
+        """The key the ticket's question waits for; `TicketNotAsking` unless it asks for one."""
+        ticket = self.get(ticket_id)
+        asking = ticket.state == "needs_answer"
+        kept = kept_report(await self.worker_events(ticket_id)) if asking else None
+        if kept is None or kept.secret_name is None or kept.secret_destination is None:
+            raise TicketNotAsking(ticket_id)
+        return AskedKey(
+            bot_id=ticket.bot_id, name=kept.secret_name, destination=kept.secret_destination
+        )
+
     def retry(self, ticket_id: str) -> None:
         """Run a blocked or failed ticket's worker again; `TicketNotRetryable` for any other."""
         if self.get(ticket_id).state not in RETRYABLE:
@@ -175,9 +195,9 @@ class TicketService:
         running.add_done_callback(self._working.discard)
 
     async def _work(self, ticket: Ticket, turn: WorkerTurn, *, answer: bool) -> None:
-        """Run one turn of `ticket`'s worker, then tell the bot how it ended, unless stopped."""
+        """One turn of `ticket`'s worker, its end told to the bot, unless stopped or dropped."""
         end = await self._locked_turn(ticket, turn, answer=answer)
-        if end is None:
+        if end is None or end.state == "dropped":
             return
         report = TicketReport(
             ticket_id=ticket.id,
@@ -185,6 +205,9 @@ class TicketService:
             state=end.state,
             text=end.text,
             question=end.question,
+            ask=end.ask,
+            options=end.options,
+            secret_name=end.secret_name,
         )
         await self._deliver(ticket.bot_id, report)
 

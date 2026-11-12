@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from harness.secrets import SecretValue
 from harness.session.models import SessionEvent
 from harness.tickets.models import TicketState
 
@@ -36,3 +37,11 @@ class TicketAnswer(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     text: str = Field(min_length=1)
+
+
+class TicketSecret(BaseModel):
+    """The key the person pasted for a ticket's question that asks for one."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", hide_input_in_errors=True)
+
+    value: SecretValue

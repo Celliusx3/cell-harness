@@ -24,6 +24,7 @@ from harness.session.heard import BotMessageIntent as BotMessageIntent
 from harness.session.heard import HeardMessage as HeardMessage
 from harness.session.heard import ScheduleReminder as ScheduleReminder
 from harness.session.heard import ScheduleReminders as ScheduleReminders
+from harness.session.heard import TicketAsk as TicketAsk
 from harness.session.heard import TicketReport as TicketReport
 from harness.session.images import ImagesHidden
 from harness.session.schedule_change import ScheduleChange as ScheduleChange

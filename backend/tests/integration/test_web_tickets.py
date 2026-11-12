@@ -51,6 +51,9 @@ async def test_a_ticket_runs_in_the_background_and_its_result_wakes_the_bot(tmp_
             "state": "ready",
             "text": "Three flights found.",
             "question": None,
+            "ask": "text",
+            "options": None,
+            "secret_name": None,
         }
     ]
     worker = await world.worker_logs.read(f"ticket-{ticket.id}")

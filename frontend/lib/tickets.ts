@@ -1,6 +1,9 @@
 import { request } from "./api";
 import type { SessionEvent } from "./types";
 
+/** How the person answers a worker's question: typed, an option tapped, a key pasted, or a location shared. */
+export type TicketAsk = "text" | "choice" | "secret" | "location";
+
 /** How far a ticket has got, as its worker last reported. */
 export type TicketState =
   | "queued"
@@ -49,6 +52,13 @@ export const answerTicket = (id: string, text: string) =>
   request<TicketRow>(`/tickets/${encodeURIComponent(id)}/answer`, {
     method: "POST",
     body: JSON.stringify({ text }),
+  });
+
+/** The key the ticket's question asks for, saved for its bot; only its name reaches the worker. */
+export const saveTicketSecret = (id: string, value: string) =>
+  request<TicketRow>(`/tickets/${encodeURIComponent(id)}/secret`, {
+    method: "POST",
+    body: JSON.stringify({ value }),
   });
 
 const ticketPath = (id: string, action: string) => `/tickets/${encodeURIComponent(id)}${action}`;
