@@ -15,6 +15,7 @@ from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, Bot, BotEdit, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
+from harness.channels.platforms import PlatformChannelMaker, PlatformChannels
 from harness.channels.protocol import Channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
@@ -41,7 +42,6 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
-from harness.web.platforms import PlatformChannelMaker, PlatformChannels
 from harness.web.server import Channels, ChannelServices, create_app
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import client_tools as default_client_tools

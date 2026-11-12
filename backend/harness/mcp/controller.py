@@ -3,90 +3,20 @@
 from __future__ import annotations
 
 import logging
-from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from mcp.server.apps import APP_MIME_TYPE
 from mcp.types import TextResourceContents
-from pydantic import BaseModel, ConfigDict
 
 from harness.mcp import McpService, is_app_visible, ui_resource_uri
+from harness.mcp.csp import build_csp
+from harness.mcp.schemas import AppResource, AppToolCall, ServerList
 from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")
 
 UI_SCHEME = "ui://"
-
-_CSP_DEFAULT_SOURCES = {
-    "script-src": ["'unsafe-inline'"],
-    "style-src": ["'unsafe-inline'"],
-    "img-src": ["data:", "blob:"],
-    "font-src": ["data:"],
-    "media-src": ["data:", "blob:"],
-    "connect-src": [],
-    "frame-src": [],
-}
-_CSP_DOMAIN_KEYS = {
-    "resourceDomains": ("script-src", "style-src", "img-src", "font-src", "media-src"),
-    "connectDomains": ("connect-src",),
-    "frameDomains": ("frame-src",),
-}
-
-
-class AppResource(BaseModel):
-    """An app's HTML and the policy to render it under."""
-
-    model_config = ConfigDict(frozen=True)
-
-    html: str
-    csp: str
-
-
-class ServerList(BaseModel):
-    """The servers this harness is set up with, by namespace."""
-
-    model_config = ConfigDict(frozen=True)
-
-    servers: tuple[str, ...]
-
-
-class AppToolCall(BaseModel):
-    """What the app asks: a tool of its own server, and which app is asking."""
-
-    model_config = ConfigDict(frozen=True)
-
-    arguments: dict[str, object]
-    resource_uri: str
-
-
-def build_csp(meta: dict | None) -> str:
-    """The Content-Security-Policy for one app's iframe, from the resource's `_meta`."""
-    sources = {directive: list(values) for directive, values in _CSP_DEFAULT_SOURCES.items()}
-    ui = meta.get("ui") if isinstance(meta, dict) else None
-    csp = ui.get("csp") if isinstance(ui, dict) else None
-    if isinstance(csp, dict):
-        for key, directives in _CSP_DOMAIN_KEYS.items():
-            for origin in _origins(csp.get(key)):
-                for directive in directives:
-                    sources[directive].append(origin)
-    directives = ["default-src 'none'", "object-src 'none'", "base-uri 'none'"]
-    for directive, values in sources.items():
-        directives.append(f"{directive} {' '.join(values)}" if values else f"{directive} 'none'")
-    return "; ".join(directives)
-
-
-def _origins(values: object) -> list[str]:
-    if not isinstance(values, list):
-        return []
-    origins: list[str] = []
-    for value in values:
-        if not isinstance(value, str):
-            continue
-        parts = urlsplit(value)
-        if parts.scheme in ("https", "wss") and parts.hostname and parts.hostname != "*":
-            origins.append(f"{parts.scheme}://{parts.netloc}")
-    return origins
 
 
 def _server_list_route(router: APIRouter, mcp: McpService) -> None:

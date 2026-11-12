@@ -9,6 +9,7 @@ import logging
 import httpx
 
 from harness.bots import BotService
+from harness.bots.model_choice import CredentialModels, ModelEndpoint
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService
@@ -81,7 +82,6 @@ from harness.tools.native.skills import (
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.tools.service import Disposer
-from harness.web.bot_models import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")
 

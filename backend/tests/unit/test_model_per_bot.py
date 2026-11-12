@@ -10,6 +10,7 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEvents
 from harness.bots import BotDraft, BotService
+from harness.bots.model_choice import CredentialModels, ModelEndpoint
 from harness.config.sections import LLMSettings
 from harness.llm import AssistantMessage, Failed, LLMClient, UserMessage
 from harness.llm.adapters import OpenAISettings
@@ -26,7 +27,6 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.web.bot_models import CredentialModels, ModelEndpoint
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, durable_service, new_session, no_images
 from tests.webapp import put_on_model

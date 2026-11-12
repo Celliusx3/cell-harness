@@ -3,49 +3,24 @@
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
-from pydantic import BaseModel, ConfigDict, SecretStr, ValidationError
+from pydantic import ValidationError
 
 from harness.bots import Bot, BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
+from harness.channels.web.secret_card_schemas import Entered, ModelEntry, SecretEntry
 from harness.runs.service import RunAlreadyActive
-from harness.secrets import SECRET_VALUE_RULE, SecretService, SecretValue
-from harness.secrets.models.details import CustomDetails, ModelDetails
+from harness.secrets import SECRET_VALUE_RULE, SecretService
+from harness.secrets.credential_effects import CredentialEffects
+from harness.secrets.models.details import CustomDetails
 from harness.session.log import Session
 from harness.tools import Ok
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, SavedName, SecretAsk
-from harness.tools.native.secrets.models import AskedDetails
-from harness.web.credential_effects import CredentialEffects
 
 logger = logging.getLogger(__name__)
-
-
-class SecretEntry(BaseModel):
-    """The key the person typed on the card."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid", hide_input_in_errors=True)
-
-    value: SecretValue
-
-
-class ModelEntry(BaseModel):
-    """The key typed on an LLM card, with the endpoint, model and vision as the person left them."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid", hide_input_in_errors=True)
-
-    value: SecretValue
-    details: ModelDetails
-
-
-class Entered(NamedTuple):
-    """What the card saves: what the key is for, and the key."""
-
-    details: AskedDetails
-    value: SecretStr
 
 
 def build_router(

@@ -11,6 +11,7 @@ import pytest
 
 from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
+from harness.bots.model_choice import CredentialModels, ModelEndpoint
 from harness.config.sections import LLMSettings
 from harness.llm import Image
 from harness.llm.adapters import OpenAIClient, OpenAISettings
@@ -20,7 +21,6 @@ from harness.runtime.service import Runtime
 from harness.secrets import SecretService
 from harness.tools import Failure, Ok
 from harness.tools.native.bots import bot_create_tool
-from harness.web.bot_models import CredentialModels, ModelEndpoint
 from tests.integration.web_helpers import settle
 from tests.unit.helpers import context_for, durable_service, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app

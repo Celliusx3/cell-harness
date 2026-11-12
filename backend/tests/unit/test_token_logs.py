@@ -17,7 +17,7 @@ from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.channel import TelegramChannel
-from harness.web.logs import keep_token_urls_out
+from harness.web.http.logs import keep_token_urls_out
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import (
     client_tools,

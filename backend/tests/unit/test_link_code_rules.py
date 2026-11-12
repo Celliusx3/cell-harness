@@ -8,12 +8,12 @@ import httpx
 from fastapi import FastAPI
 
 from harness.bots import ASSISTANT_ID
+from harness.channels.link_codes_controller import build_router
 from harness.channels.links import LINK_CODE_SECONDS, WRONG_GUESSES_BEFORE_SILENCE, LinkCodes
 from harness.channels.protocol import InboundMessage
 from harness.channels.repository import ChatState
 from harness.files import ChatFile
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.web.routes.link_codes import build_router
 from tests.unit.helpers import link_to_assistant
 from tests.unit.link_helpers import World, world
 

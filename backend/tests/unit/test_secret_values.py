@@ -8,10 +8,10 @@ from urllib.parse import quote
 
 import pytest
 
+from harness.channels.web.secret_card_schemas import SecretEntry
 from harness.secrets import Destination, redacted
 from harness.secrets.models.details import CustomDetails, DiscordDetails, TelegramDetails
 from harness.tools.native.secrets import SecretAsk
-from harness.web.routes.secret_card import SecretEntry
 
 MARK = "Q7xZ"
 ORIGIN = "https://api.example.com"

@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from harness.bots import BotService
+from harness.channels.platforms import PlatformChannels
 from harness.secrets.models.details import ChatPlatformDetails, CredentialDetails, CustomDetails
-from harness.web.platforms import PlatformChannels
 
 
 @dataclass(frozen=True)

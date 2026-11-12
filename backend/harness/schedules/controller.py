@@ -6,32 +6,15 @@ import logging
 from dataclasses import dataclass
 
 from fastapi import APIRouter, Response, status
-from pydantic import BaseModel, ConfigDict
 
 from harness.bots import BotService
 from harness.runs.service import RunService
-from harness.schedules import Schedule, Scheduler, ScheduleService, ScheduleStatus, ordered
+from harness.schedules import Schedule, Scheduler, ScheduleService, ordered
+from harness.schedules.schemas import ScheduleRow
 from harness.session.schedule_change import ScheduleChange, ScheduleChangeKind
 from harness.utc import utc_text
 
 logger = logging.getLogger(__name__)
-
-
-class ScheduleRow(BaseModel):
-    """One schedule as the page lists it, its times in ISO UTC."""
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str
-    bot_id: str
-    bot_name: str
-    title: str
-    prompt: str
-    rrule: str
-    status: ScheduleStatus
-    scheduled_at: str
-    last_occurrence_at: str | None
-    created_at: str
 
 
 def _row(schedule: Schedule, bot_names: dict[str, str]) -> ScheduleRow:

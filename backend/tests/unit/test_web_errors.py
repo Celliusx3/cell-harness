@@ -26,7 +26,7 @@ from harness.session.repository import (
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
 from harness.tools import NotApproved
-from harness.web.errors import STATUS_OF, exception_handlers
+from harness.web.http.errors import STATUS_OF, exception_handlers
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_skills
