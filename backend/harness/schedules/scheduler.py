@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Coroutine, Iterable
+from collections.abc import Callable, Coroutine, Iterable
 from datetime import datetime, timedelta
 
 from harness.bots import BotNotFound, BotService
@@ -21,6 +21,16 @@ logger = logging.getLogger("harness.schedules")
 
 MAX_WAIT_SECONDS = 60.0
 DELIVERY_FLOOR_SECONDS = 60
+
+Record = Callable[[str, datetime], None]
+
+
+class ScheduleBusy(RuntimeError):
+    """The schedule's chat already holds a delivery in flight."""
+
+    def __init__(self, schedule_id: str) -> None:
+        super().__init__("This schedule's bot is already running it.")
+        self.schedule_id = schedule_id
 
 
 class Scheduler:
@@ -44,11 +54,6 @@ class Scheduler:
         self._deliveries: set[asyncio.Task[None]] = set()
         self._chats_in_flight: set[str] = set()
 
-    @property
-    def schedules(self) -> ScheduleService:
-        """The schedules this scheduler delivers."""
-        return self._schedules
-
     def start(self) -> None:
         """Begin the loop, for a server starting up."""
         self._task = asyncio.create_task(self._loop())
@@ -65,8 +70,18 @@ class Scheduler:
         """Start one delivery for each bot chat with schedules due now and none in flight."""
         now = self._now()
         for chat_id, due in self._due_by_chat(now).items():
-            self._chats_in_flight.add(chat_id)
-            self._start(self._deliver(chat_id, due, now))
+            heard = ScheduleReminders(reminders=tuple(_reminder(s, now) for s in due))
+            self._start(chat_id, heard, self._schedules.record_delivery)
+
+    def run_now(self, schedule_id: str) -> None:
+        """Deliver the schedule at once, whatever its status, its next time left where it was."""
+        schedule = self._schedules.get(schedule_id)
+        chat_id = self._bots.chat_of(schedule.bot_id)
+        if chat_id in self._chats_in_flight:
+            raise ScheduleBusy(schedule_id)
+        reminder = _reminder_at(schedule, self._now())
+        heard = ScheduleReminders(reminders=(reminder,))
+        self._start(chat_id, heard, self._schedules.record_run_now)
 
     async def _loop(self) -> None:
         while True:
@@ -103,34 +118,38 @@ class Scheduler:
         left = (min(due) - self._now()).total_seconds()
         return min(max(left, 0.0), MAX_WAIT_SECONDS)
 
-    def _start(self, delivery: Coroutine[None, None, None]) -> None:
+    def _start(self, chat_id: str, heard: ScheduleReminders, record: Record) -> None:
+        """Take `chat_id`'s slot and deliver `heard` in it, each delivery kept by `record`."""
+        self._chats_in_flight.add(chat_id)
+        self._spawn(self._deliver(chat_id, heard, record))
+
+    def _spawn(self, delivery: Coroutine[None, None, None]) -> None:
         task = asyncio.create_task(delivery)
         self._deliveries.add(task)
         task.add_done_callback(self._deliveries.discard)
 
-    async def _deliver(self, chat_id: str, due: tuple[Schedule, ...], now: datetime) -> None:
+    async def _deliver(self, chat_id: str, heard: ScheduleReminders, record: Record) -> None:
         """Hold `chat_id`'s slot while its schedules are delivered and their turn runs."""
         try:
-            await self._deliver_in(chat_id, due, now)
+            await self._deliver_in(chat_id, heard, record)
         except Exception:
             logger.exception("delivering schedules into chat %s raised", chat_id)
         finally:
             self._chats_in_flight.discard(chat_id)
             self._schedules.changed.set()
 
-    async def _deliver_in(self, chat_id: str, due: tuple[Schedule, ...], now: datetime) -> None:
+    async def _deliver_in(self, chat_id: str, heard: ScheduleReminders, record: Record) -> None:
         """Open the turn once the chat is free, have its chat apps hear it, save, then wait."""
-        heard = ScheduleReminders(reminders=tuple(_reminder(s, now) for s in due))
         try:
             run = await self._runs.hear_when_free(chat_id, heard)
         except (BotNotFound, SessionNotFoundError) as err:
             logger.warning("schedules in chat %s ended, its bot is gone: %s", chat_id, err)
-            for schedule in due:
-                self._schedules.end(schedule.id)
+            for reminder in heard.reminders:
+                self._schedules.end(reminder.schedule_id)
             return
         await self._follow(run)
         for reminder in heard.reminders:
-            self._schedules.record_delivery(reminder.schedule_id, reminder.occurrence_at)
+            record(reminder.schedule_id, reminder.occurrence_at)
         await settled(run)
 
 
@@ -146,6 +165,11 @@ def _reminder(schedule: Schedule, now: datetime) -> ScheduleReminder:
     """The occurrence a delivery at `now` carries: the latest due, never before `scheduled_at`."""
     latest = latest_at_or_before(schedule.rrule, now)
     occurrence_at = schedule.scheduled_at if latest is None else max(latest, schedule.scheduled_at)
+    return _reminder_at(schedule, occurrence_at)
+
+
+def _reminder_at(schedule: Schedule, occurrence_at: datetime) -> ScheduleReminder:
+    """The reminder that tells the bot `schedule` was due at `occurrence_at`."""
     return ScheduleReminder(
         schedule_id=schedule.id,
         title=schedule.title,

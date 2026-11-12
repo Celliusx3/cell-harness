@@ -1,8 +1,7 @@
 import { Clock } from "lucide-react";
 
 import type { Reminder, ScheduledItem } from "@/components/conversation/timelineItems";
-
-const DUE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+import { localTime } from "@/lib/localTime";
 
 /** A message a schedule sent: on the person's side, outlined so it does not read as typed. */
 export function ScheduledBubble({ item }: { item: ScheduledItem }) {
@@ -26,7 +25,7 @@ function ReminderEntry({ reminder }: { reminder: Reminder }) {
         <span aria-hidden>·</span>
         <span className="break-words font-medium text-ink">{reminder.title}</span>
         <span aria-hidden>·</span>
-        <time dateTime={reminder.occurrence_at}>{DUE.format(new Date(reminder.occurrence_at))}</time>
+        <time dateTime={reminder.occurrence_at}>{localTime(reminder.occurrence_at)}</time>
       </div>
       <p className="whitespace-pre-wrap break-words">{reminder.prompt}</p>
     </div>

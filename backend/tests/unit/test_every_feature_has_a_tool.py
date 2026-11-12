@@ -10,12 +10,13 @@ from harness.mcp import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.native.bots import BOT_CREATE
+from harness.tools.native.schedule import SCHEDULE_EDIT
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE
-from harness.web.runtime import build_runtime
+from harness.web.runtime import attach_schedules, build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
-from tests.webapp import a_model_saved_in, files_in, images_in, web_app
+from tests.webapp import a_model_saved_in, files_in, images_in, schedules_in, web_app
 
 
 class Tool(NamedTuple):
@@ -92,6 +93,12 @@ ROUTES: dict[str, Tool | NotATool] = {
     "DELETE /api/bots/{bot_id}": NotATool(
         "it erases a teammate and its chat for good; only the person does that"
     ),
+    "POST /api/schedules/{schedule_id}/pause": Tool(SCHEDULE_EDIT),
+    "POST /api/schedules/{schedule_id}/resume": Tool(SCHEDULE_EDIT),
+    "DELETE /api/schedules/{schedule_id}": Tool(SCHEDULE_EDIT),
+    "POST /api/schedules/{schedule_id}/run": NotATool(
+        "a bot already doing the task does it at once; running one early is the person's call"
+    ),
     "POST /api/groups": NotATool("not yet: making a group from chat is the next piece"),
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
@@ -153,6 +160,7 @@ def test_every_config_section_names_its_tool_or_a_reason() -> None:
 
 
 def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> None:
+    bots = no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
@@ -160,13 +168,14 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         no_skills(),
         client_tools(),
         no_approvals(),
-        bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
+        bots=bots,
         subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=a_model_saved_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
+    attach_schedules(runtime.tools.tool_service, bots, schedules_in(tmp_path))
 
     offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
     named = {

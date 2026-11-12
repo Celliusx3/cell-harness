@@ -38,6 +38,7 @@ from tests.webapp import (
     channels_of,
     saved_servers_in,
     scheduler_in,
+    schedules_in,
     secrets_in,
     web_gateway,
     web_mcp,
@@ -63,6 +64,7 @@ def build(tmp_path):
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
+    schedules = schedules_in(tmp_path)
     app = create_app(
         runs,
         channels_of(gateway, web, secrets_in(tmp_path)),
@@ -74,7 +76,8 @@ def build(tmp_path):
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(no_bots(sessions), runs, follow=gateway.follow),
-        scheduler_in(tmp_path, no_bots(sessions), runs, gateway),
+        schedules,
+        scheduler_in(schedules, no_bots(sessions), runs, gateway),
     )
     return bot, app, gateway, runs, sessions
 
@@ -137,6 +140,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
     )
     tools = client_tools()
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
+    schedules = schedules_in(tmp_path)
     wired = create_app(
         runs,
         channels_of(gateway, web, secrets_in(tmp_path)),
@@ -148,7 +152,8 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         no_bots(sessions),
         secrets_in(tmp_path),
         BotMessages(no_bots(sessions), runs, follow=gateway.follow),
-        scheduler_in(tmp_path, no_bots(sessions), runs, gateway),
+        schedules,
+        scheduler_in(schedules, no_bots(sessions), runs, gateway),
     )
 
     assert gateway.channels == ["web"]

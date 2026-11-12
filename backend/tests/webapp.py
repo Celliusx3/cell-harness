@@ -158,12 +158,18 @@ def web_gateway(
     return gateway, web
 
 
+def schedules_in(tmp_path: Path) -> ScheduleService:
+    """Schedules kept in `schedules.json` under `tmp_path`, timed by the wall clock."""
+    return ScheduleService(
+        ScheduleRepository(tmp_path / "schedules.json"), now=functools.partial(datetime.now, UTC)
+    )
+
+
 def scheduler_in(
-    tmp_path: Path, bots: BotService, runs: RunService, gateway: ChannelGateway
+    schedules: ScheduleService, bots: BotService, runs: RunService, gateway: ChannelGateway
 ) -> Scheduler:
-    """A scheduler over schedules kept under `tmp_path`, its turns heard through `gateway`."""
+    """A scheduler over `schedules` on the wall clock, its turns heard through `gateway`."""
     now = functools.partial(datetime.now, UTC)
-    schedules = ScheduleService(ScheduleRepository(tmp_path / "schedules.json"), now=now)
     return Scheduler(schedules, bots, runs, follow=gateway.follow, now=now)
 
 
@@ -222,12 +228,14 @@ def web_app(
     bots: BotService | None = None,
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
+    schedules: ScheduleService | None = None,
     make_platform: PlatformChannelMaker = no_platform_channel,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
     client_tools = client_tools or default_client_tools()
     bots = bots or bots_in(tmp_path, service)
     secrets = secrets or secrets_in(tmp_path)
+    schedules = schedules or schedules_in(tmp_path)
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots, files=files)
     return create_app(
         runs,
@@ -240,7 +248,8 @@ def web_app(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
-        scheduler_in(tmp_path, bots, runs, gateway),
+        schedules,
+        scheduler_in(schedules, bots, runs, gateway),
     )
 
 
@@ -257,6 +266,7 @@ def web_app_with_telegram(
     """`web_app` with a fake Telegram on the same gateway: the app, the gateway, and the bot."""
     bots = no_bots(service)
     secrets = secrets or secrets_in(tmp_path)
+    schedules = schedules_in(tmp_path)
     gateway, web = web_gateway(tmp_path, service, runs, skills=skills, bots=bots)
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)
@@ -271,7 +281,8 @@ def web_app_with_telegram(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
-        scheduler_in(tmp_path, bots, runs, gateway),
+        schedules,
+        scheduler_in(schedules, bots, runs, gateway),
     )
     return app, gateway, bot
 

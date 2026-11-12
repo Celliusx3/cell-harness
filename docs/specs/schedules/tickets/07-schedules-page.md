@@ -1,8 +1,8 @@
 # 07 — Settings → Schedules
 
-**Status.** open
+**Status.** done
 
-**What to build.** HTTP routes in `channels/web/` over `ScheduleService`: list,
+**What to build.** HTTP routes in `web/routes/schedules.py` over `ScheduleService`: list,
 pause, resume, run now, delete. A `frontend/app/settings/schedules/page.tsx`
 list page in the shape of the Approvals page, and an entry in `SettingsMenu`.
 Run now delivers at once and leaves the next time where it was.

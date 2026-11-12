@@ -74,6 +74,12 @@ class ScheduleService:
         delivery = Delivery(scheduled_at=occurrence_at, delivered_at=now)
         self._update(schedule_id, lambda schedule: _delivered(schedule, delivery, now))
 
+    def record_run_now(self, schedule_id: str, occurrence_at: datetime) -> None:
+        """A run-now delivery: kept, its next time and status left where they were."""
+        now = self._now()
+        delivery = Delivery(scheduled_at=occurrence_at, delivered_at=now)
+        self._update(schedule_id, lambda schedule: _kept(schedule, delivery, now))
+
     def end(self, schedule_id: str) -> None:
         """End the schedule, its `scheduled_at` left where it was."""
         now = self._now()
@@ -168,11 +174,25 @@ def _resumed(schedule: Schedule, now: datetime) -> Schedule:
     return schedule.model_copy(update={"status": "active", "scheduled_at": first})
 
 
+def _kept(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
+    deliveries = _history((*schedule.deliveries, delivery))
+    return schedule.model_copy(update={"deliveries": deliveries, "updated_at": now})
+
+
+def ordered(schedules: tuple[Schedule, ...], active: bool | None) -> tuple[Schedule, ...]:
+    """Active by `scheduled_at`, then the rest newest made first, narrowed by `active`."""
+    running = sorted((s for s in schedules if s.status == "active"), key=lambda s: s.scheduled_at)
+    rest = sorted((s for s in schedules if s.status != "active"), key=lambda s: s.created_at)
+    if active is True:
+        return tuple(running)
+    newest_first = tuple(reversed(rest))
+    return newest_first if active is False else (*running, *newest_first)
+
+
 def _delivered(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
     following = next_after(schedule.rrule, now)
     moved = {"status": "ended"} if following is None else {"scheduled_at": following}
-    deliveries = _history((*schedule.deliveries, delivery))
-    return schedule.model_copy(update={**moved, "deliveries": deliveries, "updated_at": now})
+    return _kept(schedule, delivery, now).model_copy(update=moved)
 
 
 def _history(deliveries: tuple[Delivery, ...]) -> tuple[Delivery, ...]:

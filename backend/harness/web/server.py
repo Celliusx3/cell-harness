@@ -48,6 +48,7 @@ from harness.web.routes.link_codes import build_router as build_link_codes_route
 from harness.web.routes.mcp import build_router as build_mcp_router
 from harness.web.routes.mcp_servers import build_router as build_mcp_servers_router
 from harness.web.routes.relay import build_router as build_relay_router
+from harness.web.routes.schedules import build_router as build_schedules_router
 from harness.web.routes.secret_card import build_router as build_secret_card_router
 from harness.web.routes.secrets import build_router as build_secrets_router
 from harness.web.routes.skills import build_router as build_skills_router
@@ -189,6 +190,7 @@ def create_web_app() -> FastAPI:
         bots,
         secrets,
         messages,
+        schedules,
         scheduler,
     )
 
@@ -204,6 +206,7 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
+    schedules: ScheduleService,
     scheduler: Scheduler,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
@@ -238,7 +241,8 @@ def create_app(
     app.include_router(build_credentials_router(secrets, bots, channels.platforms))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
-    app.include_router(build_bots_router(bots, runs, secrets, scheduler.schedules))
+    app.include_router(build_bots_router(bots, runs, secrets, schedules))
+    app.include_router(build_schedules_router(bots, schedules, scheduler))
     app.include_router(build_groups_router(bots))
     app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app
