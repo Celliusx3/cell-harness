@@ -7,8 +7,6 @@ from harness.session.service import SessionService
 from harness.tickets.service import TicketService
 from harness.tickets.worker import Workers
 from harness.tools import ToolService
-from harness.tools.native.secrets import FETCH_WITH_SECRET
-from harness.tools.native.subagent import RUN_SUBAGENT
 from harness.tools.native.tickets import (
     TICKET_REPORT,
     ticket_note_tool,
@@ -16,9 +14,9 @@ from harness.tools.native.tickets import (
     ticket_route_tool,
 )
 from harness.tools.service import Disposer
-from harness.web.runtime import SUBAGENT_TOOLS, helper_runtime
+from harness.web.runtime import SUBAGENT_TOOLS, VIEW_IMAGE, WORK_TOOLS, helper_runtime
 
-WORKER_TOOLS = (*SUBAGENT_TOOLS, RUN_SUBAGENT, TICKET_REPORT, FETCH_WITH_SECRET)
+WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)
 
 
 def ticket_workers(tool_service: ToolService, runtime: Runtime, logs: SessionService) -> Workers:

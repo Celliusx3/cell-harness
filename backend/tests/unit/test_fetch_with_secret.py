@@ -30,6 +30,7 @@ from harness.tools.native.secrets.tools import (
     WRONG_ORIGIN,
 )
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
+from harness.web.tickets_wiring import WORKER_TOOLS
 from tests.unit.helpers import context_for, durable_service
 from tests.webapp import bots_in, secrets_in
 
@@ -233,8 +234,9 @@ async def test_each_fetch_closes_its_client(tmp_path) -> None:
     assert transport.closes == 2
 
 
-def test_the_main_chat_is_offered_fetch_and_scripts_and_helpers_are_not() -> None:
-    assert FETCH_WITH_SECRET in DEFAULT_TOOLS
+def test_a_worker_is_offered_fetch_and_the_main_chat_scripts_and_helpers_are_not() -> None:
+    assert FETCH_WITH_SECRET in WORKER_TOOLS
+    assert FETCH_WITH_SECRET not in DEFAULT_TOOLS
     assert FETCH_WITH_SECRET in NOT_CALLABLE_FROM_SCRIPTS
     assert FETCH_WITH_SECRET not in SUBAGENT_TOOLS
 

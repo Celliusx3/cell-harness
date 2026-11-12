@@ -10,7 +10,7 @@ from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.native.tickets import TICKET_ROUTE
-from harness.web.runtime import CLIENT_TOOLS, build_runtime
+from harness.web.runtime import CLIENT_TOOLS, WORK_TOOLS, build_runtime
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import (
@@ -61,3 +61,5 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
     assert not CLIENT_TOOLS.names & bot
     assert not CLIENT_TOOLS.names & worker
     assert all(tool_service.get(name) is not None for name in CLIENT_TOOLS.names)
+    assert not set(WORK_TOOLS) & bot
+    assert set(WORK_TOOLS) <= worker
