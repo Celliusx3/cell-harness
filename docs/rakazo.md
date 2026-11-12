@@ -47,7 +47,8 @@ Measured: 226 MiB with Chrome closed, 522–627 MiB with a shop page open.
 
 ## 3. Feature inventory
 
-The full list, sorted, is [PHASES.md §Build order](../PHASES.md#build-order);
+The full list, sorted, was the old phase plan's build order
+(`git show db9b326:PHASES.md`), and each open row is now a GitHub issue;
 "Where it lands" names its row.
 
 | Rakazo | cell-harness today | Where it lands |

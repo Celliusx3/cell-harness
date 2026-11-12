@@ -237,7 +237,8 @@ and the reason to pay for it in v1.
 
 ## 5. Build order
 
-Owned by [PHASES.md](./PHASES.md). The organizing rule: **every phase is a
+Open work is GitHub issues; the phase plan that ordered it is in git history
+(`git show db9b326:PHASES.md`). The organizing rule: **every phase is a
 capability you can demo.** Infrastructure is never its own phase — it arrives
 inside the first phase that needs it, sized for that one consumer.
 
@@ -402,7 +403,7 @@ From cell-bot:
 
 ---
 
-**Next step:** [PHASES.md §Status](./PHASES.md#status).
+**Next step:** the open GitHub issues.
 
 The one discipline to hold: the loop reads its history from
 `derive_messages(log)`, never a list it accumulated. That is what keeps phases 3,

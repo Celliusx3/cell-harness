@@ -251,6 +251,6 @@ an external constraint: rename, extract or restructure until it is obvious.
 
 ## When the plan and the principles disagree
 
-PHASES.md was reviewed and approved. When KISS/YAGNI argues against something it
-calls for, raise it before building, not after — narrowing an approved plan is a
+An issue's spec is reviewed and approved before it is built. When KISS/YAGNI argues
+against something it calls for, raise it before building, not after — narrowing an approved plan is a
 decision to surface, not one to take quietly and report afterwards.

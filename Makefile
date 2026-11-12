@@ -27,7 +27,7 @@ help:
 	@echo "  make build             frontend production build"
 	@echo "  make app               the Mac app, as desktop/dist-app/Cell Harness-<version>-arm64.dmg"
 	@echo ""
-	@echo "Current phase and its acceptance criteria: PHASES.md"
+	@echo "Open work: gh issue list"
 
 install:
 	cd backend && uv sync
