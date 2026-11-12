@@ -102,6 +102,12 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/tickets/{ticket_id}/answer": NotATool(
         "the person's answer to a worker's question; ticket_note sends the bot's own facts"
     ),
+    "POST /api/tickets/{ticket_id}/stop": NotATool(
+        "stopping from Needs you is the person's call; ticket_route's stop is the bot's own"
+    ),
+    "POST /api/tickets/{ticket_id}/retry": NotATool(
+        "trying again from Needs you is the person's call; ticket_route attaches the bot's own"
+    ),
     "POST /api/groups": NotATool("not yet: making a group from chat is the next piece"),
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"

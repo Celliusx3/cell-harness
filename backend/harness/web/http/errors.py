@@ -25,7 +25,12 @@ from harness.session.repository import (
     SessionNotFoundError,
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
-from harness.tickets.models import TicketNotAsking, TicketNotFound
+from harness.tickets.models import (
+    TicketNotAsking,
+    TicketNotFound,
+    TicketNotRetryable,
+    TicketStopped,
+)
 from harness.tools import NotApproved
 
 ErrorHandler = Callable[[Request, Exception], Awaitable[JSONResponse]]
@@ -55,6 +60,8 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
         SkillShadowed: status.HTTP_409_CONFLICT,
         TicketNotAsking: status.HTTP_409_CONFLICT,
         TicketNotFound: status.HTTP_404_NOT_FOUND,
+        TicketNotRetryable: status.HTTP_409_CONFLICT,
+        TicketStopped: status.HTTP_409_CONFLICT,
         UnreadableFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
         UnsafeFileName: status.HTTP_422_UNPROCESSABLE_CONTENT,
     }

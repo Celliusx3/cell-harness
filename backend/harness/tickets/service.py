@@ -9,17 +9,21 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Protocol
 
+from harness.app_events import TicketsChangedAppEvent
 from harness.bots import BotNotFound, BotService
-from harness.prompts import TICKET_ANSWER_HEARD
+from harness.prompts import TICKET_ANSWER_HEARD, TICKET_RETRY_HEARD
 from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.session.models import SessionEvent, TicketReport
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tickets.models import (
+    NEEDS_YOU,
+    RETRYABLE,
     Ticket,
     TicketNotAsking,
     TicketNotFound,
+    TicketNotRetryable,
     TicketsFile,
     TicketState,
     TicketStopped,
@@ -76,6 +80,11 @@ class TicketService:
         """`bot_id`'s tickets, in the order started."""
         return tuple(t for t in self._repository.read().tickets if t.bot_id == bot_id)
 
+    def needing_you(self) -> tuple[Ticket, ...]:
+        """Every bot's tickets that wait for a person, oldest first."""
+        waiting = (t for t in self._repository.read().tickets if t.state in NEEDS_YOU)
+        return tuple(sorted(waiting, key=lambda t: t.created_at))
+
     def get(self, ticket_id: str) -> Ticket:
         """The ticket with this id; `TicketNotFound` when there is none."""
         found = next((t for t in self._repository.read().tickets if t.id == ticket_id), None)
@@ -106,7 +115,7 @@ class TicketService:
             created_at=self._now(),
         )
         stored = self._repository.read()
-        self._repository.write(TicketsFile(tickets=(*stored.tickets, ticket)))
+        self._save(TicketsFile(tickets=(*stored.tickets, ticket)))
         self._start(ticket, lambda: self._worker.start(ticket, mode=mode), answer=False)
         return ticket
 
@@ -115,6 +124,12 @@ class TicketService:
         if self.get(ticket_id).state != "needs_answer":
             raise TicketNotAsking(ticket_id)
         self._tell(ticket_id, TICKET_ANSWER_HEARD.format(text=text), answer=True)
+
+    def retry(self, ticket_id: str) -> None:
+        """Run a blocked or failed ticket's worker again; `TicketNotRetryable` for any other."""
+        if self.get(ticket_id).state not in RETRYABLE:
+            raise TicketNotRetryable(ticket_id)
+        self._tell(ticket_id, TICKET_RETRY_HEARD, answer=False)
 
     def tell(self, ticket_id: str, prompt: str) -> None:
         """Run the worker's next turn on `prompt` once its turn ends; `TicketStopped` if stopped."""
@@ -206,7 +221,12 @@ class TicketService:
             t.model_copy(update={"state": state}) if t.id == ticket_id else t
             for t in stored.tickets
         )
-        self._repository.write(TicketsFile(tickets=tickets))
+        self._save(TicketsFile(tickets=tickets))
+
+    def _save(self, stored: TicketsFile) -> None:
+        """Write every ticket, and tell the app's pages that tickets changed."""
+        self._repository.write(stored)
+        self._runs.app_events.publish(TicketsChangedAppEvent())
 
     async def _deliver(self, bot_id: str, report: TicketReport) -> None:
         """The turn `report` opens in `bot_id`'s own chat once free, heard by its chat apps."""

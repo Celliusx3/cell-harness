@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 
 from harness.tickets.models import Ticket
 from harness.tickets.schemas import TicketAnswer, TicketDetail, TicketRow
@@ -28,6 +28,10 @@ def build_router(tickets: TicketService) -> APIRouter:
     async def list_tickets(bot_id: str) -> list[TicketRow]:
         return [_row(ticket) for ticket in tickets.of_bot(bot_id)]
 
+    @router.get("/needs-you", response_model=list[TicketRow])
+    async def list_needing_you() -> list[TicketRow]:
+        return [_row(ticket) for ticket in tickets.needing_you()]
+
     @router.get("/{ticket_id}", response_model=TicketDetail)
     async def get_ticket(ticket_id: str) -> TicketDetail:
         ticket = tickets.get(ticket_id)
@@ -44,4 +48,21 @@ def build_router(tickets: TicketService) -> APIRouter:
         tickets.answer(ticket_id, body.text)
         return _row(tickets.get(ticket_id))
 
+    _person_routes(router, tickets)
     return router
+
+
+def _person_routes(router: APIRouter, tickets: TicketService) -> None:
+    """Stopping a ticket, and trying a blocked or failed one again, from the Needs you page."""
+
+    @router.post("/{ticket_id}/stop", status_code=status.HTTP_204_NO_CONTENT)
+    async def stop_ticket(ticket_id: str) -> Response:
+        tickets.stop(ticket_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @router.post(
+        "/{ticket_id}/retry", status_code=status.HTTP_202_ACCEPTED, response_model=TicketRow
+    )
+    async def retry_ticket(ticket_id: str) -> TicketRow:
+        tickets.retry(ticket_id)
+        return _row(tickets.get(ticket_id))

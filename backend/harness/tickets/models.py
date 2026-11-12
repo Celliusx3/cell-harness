@@ -30,6 +30,14 @@ class TicketNotAsking(RuntimeError):
     """The ticket asks no question now, so it has nothing to answer."""
 
 
+NEEDS_YOU: frozenset[TicketState] = frozenset({"needs_answer", "blocked", "failed"})
+RETRYABLE: frozenset[TicketState] = frozenset({"blocked", "failed"})
+
+
+class TicketNotRetryable(RuntimeError):
+    """Only a blocked or failed ticket can be tried again."""
+
+
 class TicketStopped(RuntimeError):
     """The user stopped this ticket, so it takes nothing more."""
 

@@ -289,3 +289,11 @@ TICKET_FOLLOWUP_HEARD = "The user wrote this about your ticket: {text}"
 NO_WAIT_REFUSAL = (
     "Refused: do not wait in your own turn. Workers' reports arrive by themselves as messages."
 )
+TICKET_RETRY_HEARD = (
+    "The user asked you to try this ticket again. Check what you already did before you "
+    "repeat anything."
+)
+TICKET_RECOVERY_HEARD = (
+    "The app restarted while you worked on this ticket. Check your folder and what you already "
+    "did before you repeat anything, then carry on."
+)

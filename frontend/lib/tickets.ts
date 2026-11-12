@@ -50,3 +50,14 @@ export const answerTicket = (id: string, text: string) =>
     method: "POST",
     body: JSON.stringify({ text }),
   });
+
+const ticketPath = (id: string, action: string) => `/tickets/${encodeURIComponent(id)}${action}`;
+
+/** Every bot's tickets that wait for a person: a question, a block or a failure, oldest first. */
+export const listNeedingYou = () => request<TicketRow[]>("/tickets/needs-you");
+
+export const stopTicket = (id: string) => request<void>(ticketPath(id, "/stop"), { method: "POST" });
+
+/** Run a blocked or failed ticket's worker again, in the same chat and folder. */
+export const retryTicket = (id: string) =>
+  request<TicketRow>(ticketPath(id, "/retry"), { method: "POST" });

@@ -22,4 +22,11 @@ class BotsChangedAppEvent(BaseModel):
     type: Literal["bots/changed"] = "bots/changed"
 
 
-AppEvent = TurnStartedAppEvent | BotsChangedAppEvent
+class TicketsChangedAppEvent(BaseModel):
+    """A ticket was started, or its state changed."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    type: Literal["tickets/changed"] = "tickets/changed"
+
+
+AppEvent = TurnStartedAppEvent | BotsChangedAppEvent | TicketsChangedAppEvent

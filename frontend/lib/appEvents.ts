@@ -3,7 +3,8 @@ import { useEffect, useRef } from "react";
 export type AppEvent =
   | { type: "app/connected" }
   | { type: "chat/turn-started"; chat_id: string }
-  | { type: "bots/changed" };
+  | { type: "bots/changed" }
+  | { type: "tickets/changed" };
 
 type AppEventType = AppEvent["type"];
 
@@ -15,6 +16,7 @@ const APP_EVENT_TYPES: readonly AppEventType[] = [
   "app/connected",
   "chat/turn-started",
   "bots/changed",
+  "tickets/changed",
 ];
 
 let listeners: readonly Listener[] = [];
