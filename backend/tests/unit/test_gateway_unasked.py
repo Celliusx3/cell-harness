@@ -30,7 +30,7 @@ async def test_a_bot_message_s_turn_is_followed_by_the_chats_linked_to_it(tmp_pa
     )
     bots = no_bots(sessions)
     await bots.active_bots()
-    messages = BotMessages(sessions, bots, runs, follow=gateway.follow)
+    messages = BotMessages(bots, runs, follow=gateway.follow)
 
     await messages.deliver(ASSISTANT_ID, ANSWERED)
     await settle(runs, gateway)

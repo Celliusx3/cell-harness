@@ -112,7 +112,7 @@ def messaging_app(
         checkpoint=service.flush,
     )
     runs = RunService(service, runtime, bots, events=app_events)
-    messages = attach_bot_messages(tool_service, service, bots, runs, follow=heard_nowhere)
+    messages = attach_bot_messages(tool_service, bots, runs, follow=heard_nowhere)
     secrets = a_model_saved_in(tmp_path)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")

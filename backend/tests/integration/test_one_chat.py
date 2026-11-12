@@ -79,7 +79,7 @@ def build_on(tmp_path, model: LLMClient):
         no_approvals(),
         bots,
         secrets_in(tmp_path),
-        BotMessages(sessions, bots, runs, follow=gateway.follow),
+        BotMessages(bots, runs, follow=gateway.follow),
     )
     http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return bot, http, gateway, runs

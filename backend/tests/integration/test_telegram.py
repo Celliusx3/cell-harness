@@ -72,7 +72,7 @@ def build(tmp_path):
         no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
-        BotMessages(sessions, no_bots(sessions), runs, follow=gateway.follow),
+        BotMessages(no_bots(sessions), runs, follow=gateway.follow),
     )
     return bot, app, gateway, runs, sessions
 
@@ -145,7 +145,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
-        BotMessages(sessions, no_bots(sessions), runs, follow=gateway.follow),
+        BotMessages(no_bots(sessions), runs, follow=gateway.follow),
     )
 
     assert gateway.channels == ["web"]

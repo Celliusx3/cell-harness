@@ -101,6 +101,17 @@ class RunService:
             session, self._runtime.hear(message, session=session, bot_id=speaker.id)
         )
 
+    async def hear_when_free(self, chat_id: str, message: BotMessage) -> Run:
+        """The turn `message` opens in `chat_id` once no run is in flight there."""
+        while True:
+            running = self._runs.get(chat_id)
+            if running is not None:
+                await settled(running)
+                continue
+            session = await self._service.resume(chat_id)
+            if chat_id not in self._runs:
+                return self.hear(session, message)
+
     def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that answers a client tool for the bot that asked, then the queue's."""
         if session.id in self._runs:
@@ -241,6 +252,12 @@ class RunService:
     async def _wake(self, run: Run) -> None:
         async with run.condition:
             run.condition.notify_all()
+
+
+async def settled(run: Run) -> None:
+    """Wait until `run` has settled."""
+    async with run.condition:
+        await run.condition.wait_for(lambda: run.settled)
 
 
 def _has_call(session: Session, call_id: str) -> bool:

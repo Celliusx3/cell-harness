@@ -1,6 +1,6 @@
 # 02 — Start a turn once the chat is free, in one place
 
-**Status.** open
+**Status.** done
 
 **What to build.** A reshaping, no change in behaviour. Move the "wait until no
 run is in flight, then `hear`" loop out of `BotMessages._deliver`

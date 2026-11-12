@@ -165,7 +165,7 @@ def create_web_app() -> FastAPI:
         settings, ChannelServices(service, runs, skills, client_tools, bots, files, images), secrets
     )
     messages = attach_bot_messages(
-        runtime.tools.tool_service, service, bots, runs, follow=channels.gateway.follow
+        runtime.tools.tool_service, bots, runs, follow=channels.gateway.follow
     )
     return create_app(
         runs,
