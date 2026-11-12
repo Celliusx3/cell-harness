@@ -25,6 +25,7 @@ from harness.session.repository import (
     SessionNotFoundError,
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
+from harness.tickets.service import TicketNotFound
 from harness.tools import NotApproved
 from harness.web.http.errors import STATUS_OF, exception_handlers
 from tests.integration.web_helpers import build
@@ -64,6 +65,7 @@ PINNED = [
     pytest.param(SessionNotFoundError("no stored session 'nope'"), 404, id="SessionNotFoundError"),
     pytest.param(SkillNotEditable("pdf", Path("/project/skills")), 409, id="SkillNotEditable"),
     pytest.param(SkillShadowed("notes", Path("/project/skills/notes")), 409, id="SkillShadowed"),
+    pytest.param(TicketNotFound("t1"), 404, id="TicketNotFound"),
     pytest.param(UnreadableFile("'big.txt' is not a text file"), 422, id="UnreadableFile"),
     pytest.param(UnsafeFileName("'..' does not name a file"), 422, id="UnsafeFileName"),
 ]

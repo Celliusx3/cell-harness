@@ -12,16 +12,21 @@ from typing import Protocol
 from harness.bots import BotNotFound, BotService
 from harness.runs.run import Run
 from harness.runs.service import RunService
-from harness.session.models import TicketReport
+from harness.session.models import SessionEvent, TicketReport
 from harness.session.repository import SessionNotFoundError
+from harness.session.service import SessionService
 from harness.tickets.models import Ticket, TicketsFile, TicketState, ticket_state
 from harness.tickets.repository import TicketRepository
-from harness.tickets.worker import WorkerEnd, worker_end
+from harness.tickets.worker import WorkerEnd, worker_end, worker_session_id
 from harness.tools.models.decision import ApprovalMode
 
 logger = logging.getLogger("harness.tickets")
 
 Follow = Callable[[Run], Awaitable[None]]
+
+
+class TicketNotFound(LookupError):
+    """No ticket has this id."""
 
 
 class TicketWorker(Protocol):
@@ -40,6 +45,7 @@ class TicketService:
         runs: RunService,
         *,
         worker: TicketWorker,
+        logs: SessionService,
         follow: Follow,
         now: Callable[[], datetime],
     ) -> None:
@@ -47,13 +53,34 @@ class TicketService:
         self._bots = bots
         self._runs = runs
         self._worker = worker
+        self._logs = logs
         self._follow = follow
         self._now = now
         self._working: set[asyncio.Task[None]] = set()
+        self._running: set[str] = set()
 
     def of_bot(self, bot_id: str) -> tuple[Ticket, ...]:
         """`bot_id`'s tickets, in the order started."""
         return tuple(t for t in self._repository.read().tickets if t.bot_id == bot_id)
+
+    def get(self, ticket_id: str) -> Ticket:
+        """The ticket with this id; `TicketNotFound` when there is none."""
+        found = next((t for t in self._repository.read().tickets if t.id == ticket_id), None)
+        if found is None:
+            raise TicketNotFound(ticket_id)
+        return found
+
+    def is_running(self, ticket_id: str) -> bool:
+        """Whether `ticket_id`'s worker is in flight now."""
+        return ticket_id in self._running
+
+    async def worker_events(self, ticket_id: str) -> tuple[SessionEvent, ...]:
+        """What `ticket_id`'s worker has logged so far; none before it writes anything."""
+        try:
+            session = await self._logs.read(worker_session_id(ticket_id))
+        except SessionNotFoundError:
+            return ()
+        return tuple(session.events())
 
     def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket:
         """A new `working` ticket for `bot_id`, saved, its worker started in the background."""
@@ -80,7 +107,11 @@ class TicketService:
 
     async def _work(self, ticket: Ticket, mode: ApprovalMode) -> None:
         """Run `ticket`'s worker, keep how it ended, then tell the bot."""
-        end = await self._run_worker(ticket, mode)
+        self._running.add(ticket.id)
+        try:
+            end = await self._run_worker(ticket, mode)
+        finally:
+            self._running.discard(ticket.id)
         self._set_state(ticket.id, ticket_state(end.state, end.question))
         report = TicketReport(
             ticket_id=ticket.id,

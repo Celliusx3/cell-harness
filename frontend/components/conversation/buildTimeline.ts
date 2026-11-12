@@ -33,15 +33,11 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         break;
 
       case "ticket/report":
-        draft.onUserMessage({
-          key: `u${index}`,
+        draft.addNotice({
+          key: `r${index}`,
           turn: event.turn,
-          content: [
-            `Message from ${event.report.title}:`,
-            event.report.text,
-            ...(event.report.question === null ? [] : [event.report.question]),
-          ].join("\n\n"),
-          files: [],
+          tone: "note",
+          text: `${event.report.title}: ${event.report.state}`,
         });
         break;
 

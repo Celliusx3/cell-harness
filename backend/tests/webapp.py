@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, Bot, BotEdit, BotService
+from harness.bots import BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
 from harness.channels.platforms import PlatformChannelMaker, PlatformChannels
@@ -40,6 +40,7 @@ from harness.secrets.models.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.tickets.service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.server import Channels, ChannelServices, create_app
@@ -83,20 +84,6 @@ def a_model_saved_in(tmp_path: Path) -> SecretService:
     details = ModelDetails(base_url="https://api.example.com/v1", model="m", vision=True)
     secrets.add_credential(MODEL_CREDENTIAL, details, SecretStr(MODEL_KEY))
     return secrets
-
-
-def assistant_on_a_model(tmp_path: Path, bots: BotService) -> SecretService:
-    """`a_model_saved_in`, with Assistant's turns asking that credential."""
-    secrets = a_model_saved_in(tmp_path)
-    put_on_model(bots, ASSISTANT_ID, MODEL_CREDENTIAL)
-    return secrets
-
-
-def put_on_model(bots: BotService, bot_id: str, name: str | None) -> Bot:
-    """Save the bot as Edit bot does, changing only its model to `name`."""
-    bot = bots.active_bot(bot_id)
-    edit = BotEdit(name=bot.name, instructions=bot.instructions, model=name)
-    return bots.update(bot_id, edit)
 
 
 def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService) -> ChannelServices:
@@ -230,6 +217,7 @@ def web_app(
     secrets: SecretService | None = None,
     files: ChatFileService | None = None,
     schedules: ScheduleService | None = None,
+    tickets: TicketService | None = None,
     make_platform: PlatformChannelMaker = no_platform_channel,
 ) -> FastAPI:
     """The application, wired as `create_web_app` wires it."""
@@ -249,7 +237,7 @@ def web_app(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
-        no_tickets(tmp_path, bots, runs),
+        tickets or no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),
     )

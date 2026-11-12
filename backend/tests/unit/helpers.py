@@ -241,6 +241,7 @@ def no_tickets(tmp_path: Path, bots: BotService, runs: RunService) -> TicketServ
         bots,
         runs,
         worker=no_worker,
+        logs=SessionService(JsonlSessionRepository(tmp_path / "workers")),
         follow=heard_nowhere,
         now=lambda: datetime.now(UTC),
     )

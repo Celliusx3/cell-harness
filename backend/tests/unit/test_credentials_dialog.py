@@ -12,8 +12,9 @@ from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.credentials_controller import build_router
+from tests.bot_models import put_on_model
 from tests.unit.helpers import durable_service
-from tests.webapp import MODEL_CREDENTIAL, no_platforms, put_on_model
+from tests.webapp import MODEL_CREDENTIAL, no_platforms
 
 KEY = "0123456789abcdef0123456789abcdef"
 PAGE = "http://127.0.0.1:4887"

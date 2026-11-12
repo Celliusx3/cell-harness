@@ -36,6 +36,7 @@ from harness.tools.native.subagent import RUN_SUBAGENT
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
 from harness.web.server import build_store, build_subagent_logs
+from tests.bot_models import assistant_on_a_model
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import (
     ORIGIN,
@@ -46,7 +47,7 @@ from tests.unit.helpers import (
     no_skills,
     skills_at,
 )
-from tests.webapp import assistant_on_a_model, bots_in, files_in, images_in
+from tests.webapp import bots_in, files_in, images_in
 
 
 @pytest.fixture

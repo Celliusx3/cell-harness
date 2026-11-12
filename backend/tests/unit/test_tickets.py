@@ -24,6 +24,7 @@ def tickets_on(tmp_path, worker) -> TicketService:
         bots,
         run_service(service, ScriptedClient([]), bots=bots),
         worker=worker,
+        logs=service,
         follow=heard_nowhere,
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
     )
@@ -90,3 +91,17 @@ def test_a_report_sets_its_tickets_state(
 def test_a_progress_report_never_sets_a_tickets_state() -> None:
     with pytest.raises(ValueError):
         ticket_state("progress", None)
+
+
+async def test_a_worker_that_has_written_nothing_has_no_steps(tmp_path) -> None:
+    async def hangs(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    tickets = tickets_on(tmp_path, hangs)
+    ticket = tickets.accept(bot_id="b", title="T", task="do it", mode="auto")
+    await asyncio.sleep(0)
+
+    assert await tickets.worker_events(ticket.id) == ()
+    assert tickets.is_running(ticket.id)
+    await tickets.aclose()

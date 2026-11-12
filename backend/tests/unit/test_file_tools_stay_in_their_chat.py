@@ -20,10 +20,11 @@ from harness.session.service import SessionService
 from harness.tools.native.files import EXTRACT_ARCHIVE, MAKE_ARCHIVE, VIEW_IMAGE
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
+from tests.bot_models import assistant_on_a_model
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, drain, no_approvals, no_skills
-from tests.webapp import assistant_on_a_model, bots_in, files_in, images_in
+from tests.webapp import bots_in, files_in, images_in
 
 DOT = base64.b64decode(DOT_PNG)
 NOT_THIS_CHAT = "is not a file in this chat"

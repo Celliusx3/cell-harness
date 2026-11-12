@@ -33,6 +33,8 @@ def attach_tickets(
 ) -> TicketService:
     """`ticket_accept` and `ticket_report` offered from `tool_service`, run by the service."""
     workers = Workers(helper_runtime(tool_service, runtime, WORKER_TOOLS), logs)
-    tickets = TicketService(repository, bots, runs, worker=workers, follow=follow, now=now)
+    tickets = TicketService(
+        repository, bots, runs, worker=workers, logs=logs, follow=follow, now=now
+    )
     tool_service.add_provider(lambda: [ticket_accept_tool(tickets), ticket_report_tool()])
     return tickets

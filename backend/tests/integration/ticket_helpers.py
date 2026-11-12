@@ -70,6 +70,8 @@ def ticketing_app(tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]
         now=lambda: datetime.now(UTC),
     )
     secrets = a_model_saved_in(tmp_path)
-    app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)
+    app = web_app(
+        tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets, tickets=tickets
+    )
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return Ticketing(client, model, tickets, worker_logs)

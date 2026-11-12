@@ -22,10 +22,11 @@ from harness.runtime.subagents import Subagents
 from harness.tools import ToolService, Toolset
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.web.runtime import context_window
+from tests.bot_models import put_on_model
 from tests.integration.test_web_no_model import PAGE, no_image
 from tests.integration.web_helpers import settle
 from tests.unit.helpers import durable_service, no_approvals, no_images, no_skills
-from tests.webapp import bots_in, put_on_model, secrets_in, web_app
+from tests.webapp import bots_in, secrets_in, web_app
 
 SMALL_HOST = "api.small.example"
 LARGE_HOST = "api.large.example"
