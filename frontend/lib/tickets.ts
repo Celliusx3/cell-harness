@@ -3,6 +3,7 @@ import type { SessionEvent } from "./types";
 
 /** How far a ticket has got, as its worker last reported. */
 export type TicketState =
+  | "queued"
   | "working"
   | "waiting"
   | "needs_answer"
@@ -29,6 +30,7 @@ export interface TicketDetail {
 }
 
 export const TICKET_STATE_LABELS: Record<TicketState, string> = {
+  queued: "Queued",
   working: "Working",
   waiting: "Waiting",
   needs_answer: "Needs you",

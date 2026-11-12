@@ -10,7 +10,15 @@ from pydantic import BaseModel, ConfigDict
 from harness.session.heard import ReportState as ReportState
 
 TicketState = Literal[
-    "working", "waiting", "needs_answer", "blocked", "failed", "done", "dropped", "stopped"
+    "queued",
+    "working",
+    "waiting",
+    "needs_answer",
+    "blocked",
+    "failed",
+    "done",
+    "dropped",
+    "stopped",
 ]
 
 

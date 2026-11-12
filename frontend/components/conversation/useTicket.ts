@@ -6,6 +6,7 @@ import { getTicket, type TicketDetail } from "@/lib/tickets";
 
 const POLL_MS = 1000;
 const WAITING_POLL_MS = 5000;
+const BUSY: ReadonlySet<string> = new Set(["working", "queued"]);
 const ENDED: ReadonlySet<string> = new Set(["stopped"]);
 
 export type TicketLoad =
@@ -44,7 +45,7 @@ export function useTicket(id: string | null): TicketLoad {
 
 /** How long until the next read: soon while it works, slower otherwise, never once stopped. */
 function nextPollMs(detail: TicketDetail): number | null {
-  if (detail.running || detail.ticket.state === "working") return POLL_MS;
+  if (detail.running || BUSY.has(detail.ticket.state)) return POLL_MS;
   return ENDED.has(detail.ticket.state) ? null : WAITING_POLL_MS;
 }
 

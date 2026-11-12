@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime
@@ -24,6 +25,7 @@ from harness.tickets.models import (
     TicketStopped,
     ticket_state,
 )
+from harness.tickets.places import Places
 from harness.tickets.repository import TicketRepository
 from harness.tickets.worker import WorkerEnd, worker_end, worker_session_id
 from harness.tools.models.decision import ApprovalMode
@@ -68,6 +70,7 @@ class TicketService:
         self._locks: dict[str, asyncio.Lock] = {}
         self._working: set[asyncio.Task[None]] = set()
         self._running: set[str] = set()
+        self._places = Places(lambda bot_id: bots.active_bot(bot_id).max_workers)
 
     def of_bot(self, bot_id: str) -> tuple[Ticket, ...]:
         """`bot_id`'s tickets, in the order started."""
@@ -104,22 +107,25 @@ class TicketService:
         )
         stored = self._repository.read()
         self._repository.write(TicketsFile(tickets=(*stored.tickets, ticket)))
-        self._start(ticket, lambda: self._worker.start(ticket, mode=mode))
+        self._start(ticket, lambda: self._worker.start(ticket, mode=mode), answer=False)
         return ticket
 
     def answer(self, ticket_id: str, text: str) -> None:
         """Send the person's answer to the ticket's question; `TicketNotAsking` if it asks none."""
         if self.get(ticket_id).state != "needs_answer":
             raise TicketNotAsking(ticket_id)
-        self.tell(ticket_id, TICKET_ANSWER_HEARD.format(text=text))
+        self._tell(ticket_id, TICKET_ANSWER_HEARD.format(text=text), answer=True)
 
     def tell(self, ticket_id: str, prompt: str) -> None:
         """Run the worker's next turn on `prompt` once its turn ends; `TicketStopped` if stopped."""
+        self._tell(ticket_id, prompt, answer=False)
+
+    def _tell(self, ticket_id: str, prompt: str, *, answer: bool) -> None:
         ticket = self.get(ticket_id)
         if ticket.state == "stopped":
             raise TicketStopped(ticket_id)
         self._set_state(ticket.id, "working")
-        self._start(ticket, lambda: self._worker.resume(ticket, prompt))
+        self._start(ticket, lambda: self._worker.resume(ticket, prompt), answer=answer)
 
     def stop(self, ticket_id: str) -> None:
         """End the ticket for good and cancel its turns; `TicketStopped` if it already is."""
@@ -136,14 +142,14 @@ class TicketService:
             task.cancel()
         await asyncio.gather(*self._working, return_exceptions=True)
 
-    def _start(self, ticket: Ticket, turn: WorkerTurn) -> None:
-        running = asyncio.create_task(self._work(ticket, turn), name=ticket.id)
+    def _start(self, ticket: Ticket, turn: WorkerTurn, *, answer: bool) -> None:
+        running = asyncio.create_task(self._work(ticket, turn, answer=answer), name=ticket.id)
         self._working.add(running)
         running.add_done_callback(self._working.discard)
 
-    async def _work(self, ticket: Ticket, turn: WorkerTurn) -> None:
+    async def _work(self, ticket: Ticket, turn: WorkerTurn, *, answer: bool) -> None:
         """Run one turn of `ticket`'s worker, then tell the bot how it ended, unless stopped."""
-        end = await self._locked_turn(ticket, turn)
+        end = await self._locked_turn(ticket, turn, answer=answer)
         if end is None:
             return
         report = TicketReport(
@@ -155,21 +161,33 @@ class TicketService:
         )
         await self._deliver(ticket.bot_id, report)
 
-    async def _locked_turn(self, ticket: Ticket, turn: WorkerTurn) -> WorkerEnd | None:
+    async def _locked_turn(
+        self, ticket: Ticket, turn: WorkerTurn, *, answer: bool
+    ) -> WorkerEnd | None:
         """The turn's end, run after the one before it and kept; `None` for a stopped ticket."""
         async with self._locks.setdefault(ticket.id, asyncio.Lock()):
             if self._is_stopped(ticket.id):
                 return None
-            self._set_state(ticket.id, "working")
-            self._running.add(ticket.id)
             try:
-                end = await self._run_worker(ticket, turn)
-            finally:
-                self._running.discard(ticket.id)
+                end = await self._placed_turn(ticket, turn, answer=answer)
+            except BotNotFound:
+                logger.warning("ticket %s failed: its bot %s is gone", ticket.id, ticket.bot_id)
+                end = worker_end(None, None)
             if self._is_stopped(ticket.id):
                 return None
             self._set_state(ticket.id, ticket_state(end.state, end.question))
             return end
+
+    async def _placed_turn(self, ticket: Ticket, turn: WorkerTurn, *, answer: bool) -> WorkerEnd:
+        """The turn run in one of its bot's places, `queued` until it has one."""
+        queued = functools.partial(self._set_state, ticket.id, "queued")
+        async with self._places.place(ticket.bot_id, answer=answer, on_wait=queued):
+            self._set_state(ticket.id, "working")
+            self._running.add(ticket.id)
+            try:
+                return await self._run_worker(ticket, turn)
+            finally:
+                self._running.discard(ticket.id)
 
     def _is_stopped(self, ticket_id: str) -> bool:
         return self.get(ticket_id).state == "stopped"
