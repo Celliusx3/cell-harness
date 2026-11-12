@@ -1,6 +1,6 @@
 # 06 — A scheduled message is drawn as one
 
-**Status.** open
+**Status.** done
 
 **What to build.** The browser draws a `schedule/reminder` event as a
 scheduled-message bubble with the schedule's title and due time, not as the
