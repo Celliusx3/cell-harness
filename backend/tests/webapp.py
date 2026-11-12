@@ -226,7 +226,7 @@ def web_app(
         approvals or no_approvals(),
         bots,
         secrets,
-        BotMessages(service, bots, runs),
+        BotMessages(service, bots, runs, follow=gateway.follow),
     )
 
 
@@ -256,7 +256,7 @@ def web_app_with_telegram(
         approvals or no_approvals(),
         bots,
         secrets,
-        BotMessages(service, bots, runs),
+        BotMessages(service, bots, runs, follow=gateway.follow),
     )
     return app, gateway, bot
 

@@ -208,6 +208,12 @@ class ChannelGateway:
         except (RunAlreadyActive, CompactionRefused):
             return None
 
+    async def follow(self, run: Run) -> None:
+        """Have every chat linked to `run`'s conversation hear it, for a turn no chat started."""
+        for state in await self._repository.chats_of(run.conversation_id):
+            if state.channel in self._channels:
+                self._following.begin(state, run)
+
     async def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that carries an answer, followed by the chats that were asked it."""
         states = await self._repository.chats_of(session.id)
