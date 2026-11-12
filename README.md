@@ -5,7 +5,7 @@ Design work for an agent harness of our own, derived from two studied sources.
 | Document | What's in it |
 |---|---|
 | [DESIGN.md](./DESIGN.md) | **The proposal.** What we take from each source, module layout, core contracts, and the open decisions. |
-| [PHASES.md](./PHASES.md) | **The execution plan.** What is done, the build order, and each open phase — deliverables, contracts, and acceptance criteria. |
+| [docs/specs/](./docs/specs/) | **The plans.** One folder per feature: its spec and tickets. Open work is GitHub issues. |
 | [docs/deepseek-harness.md](./docs/deepseek-harness.md) | Teardown of `deepseek-ai/deepseek-harness` (256k lines, 227 packages) and three replication tiers. |
 | [docs/cell-bot.md](./docs/cell-bot.md) | Teardown of cell-bot (6.9k lines Python), its feature inventory, and its honest gaps. |
 | [docs/without-cordis.md](./docs/without-cordis.md) | How to get dsh's plugin properties — reversible registration, per-agent scoping, waterfall events — in ~250 lines of Python, and what we give up. |
@@ -233,5 +233,4 @@ on a phone and the skill is loaded for the model; paste a public `SKILL.md` on
 the Skills page in Settings and it is used next turn. Seven capabilities not in the
 original arc have shipped since phase 7 — code mode, Instagram → Places, skills,
 tool references, Discord, MCP Apps, markets — each recorded in
-[PHASES.md §Status](./PHASES.md#status). Every phase in PHASES.md is a capability
-you can demo. Next is phase 11, long conversations.
+the old phase plan (`git show db9b326:PHASES.md`). Open work is GitHub issues.
