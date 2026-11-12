@@ -9,7 +9,9 @@ from pydantic import BaseModel, ConfigDict
 
 from harness.session.heard import ReportState as ReportState
 
-TicketState = Literal["working", "waiting", "needs_answer", "blocked", "failed", "done", "dropped"]
+TicketState = Literal[
+    "working", "waiting", "needs_answer", "blocked", "failed", "done", "dropped", "stopped"
+]
 
 
 class TicketNotFound(LookupError):
@@ -18,6 +20,10 @@ class TicketNotFound(LookupError):
 
 class TicketNotAsking(RuntimeError):
     """The ticket asks no question now, so it has nothing to answer."""
+
+
+class TicketStopped(RuntimeError):
+    """The user stopped this ticket, so it takes nothing more."""
 
 
 class Ticket(BaseModel):

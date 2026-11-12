@@ -10,7 +10,7 @@ import pytest
 from harness.config.settings import Settings
 from harness.llm import Message, SystemMessage, ToolCall, UserMessage
 from harness.mcp import McpServer, McpService
-from harness.prompts import GUIDANCE
+from harness.prompts import GUIDANCE, ORCHESTRATOR
 from harness.runtime.service import Runtime
 from harness.session.models import TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -20,7 +20,7 @@ from harness.tools import Ok
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
-from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_NOTE
+from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE
 from harness.web.runtime import DEFAULT_TOOLS, SCHEDULE_TOOLS, build_runtime
 from tests.unit.helpers import (
     ORIGIN,
@@ -78,7 +78,7 @@ def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
     directory = write_skill(root, "pdf")
     offered = [s.name for s in runtime.tools.specs(sees_images=True)]
     assert SKILL in offered
-    attached_later = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE, TICKET_ACCEPT, TICKET_NOTE)
+    attached_later = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE, TICKET_ROUTE, TICKET_NOTE)
     assert offered == [name for name in DEFAULT_TOOLS if name not in attached_later]
 
     (directory / "SKILL.md").unlink()
@@ -104,13 +104,14 @@ def test_bot_create_is_offered_exactly_while_an_llm_credential_is_saved(
 async def test_the_first_user_message_lists_the_skills_exactly_while_one_exists(compose) -> None:
     build, root = compose
     runtime = build()
-    alone = [SystemMessage(content=GUIDANCE), UserMessage(content="hi")]
+    guidance = ORCHESTRATOR + " " + GUIDANCE
+    alone = [SystemMessage(content=guidance), UserMessage(content="hi")]
 
     assert await request_of(runtime) == alone
 
     directory = write_skill(root, "pdf")
     system, user = await request_of(runtime)
-    assert system == SystemMessage(content=GUIDANCE)
+    assert system == SystemMessage(content=guidance)
     assert user.content.startswith("hi\n\n<system-reminder>\n")
     assert "\n- pdf: pdf things.\n</system-reminder>" in user.content
 

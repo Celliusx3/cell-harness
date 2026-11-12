@@ -19,14 +19,14 @@ import { MODE_ICONS, MODE_LABELS } from "@/components/conversation/ModePicker";
 import { ScheduleChangeLine } from "@/components/conversation/ScheduleChangeLine";
 import { ScheduledBubble } from "@/components/conversation/ScheduledBubble";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
-import { TicketCard } from "@/components/conversation/TicketCard";
+import { acceptedTickets, TicketCards } from "@/components/conversation/TicketCard";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import type { ApprovalMode } from "@/lib/types";
 import { ToolCard } from "@/components/conversation/ToolCard";
 import { progressOf } from "@/components/conversation/turnProgress";
 import { turnRows } from "@/components/conversation/turnRows";
 
-const TICKET_ACCEPT = "ticket_accept";
+const TICKET_ROUTE = "ticket_route";
 
 function scrollParent(node: HTMLElement | null): HTMLElement | null {
   for (let step = node?.parentElement ?? null; step; step = step.parentElement) {
@@ -81,7 +81,7 @@ export function Timeline({
 
   const stays = (item: ToolItem) =>
     item.call.name in CLIENT_TOOLS ||
-    item.call.name === TICKET_ACCEPT ||
+    (item.call.name === TICKET_ROUTE && acceptedTickets(item).length > 0) ||
     item.ui !== null ||
     item.files.length > 0 ||
     (item.result === null && openTurn === null);
@@ -145,7 +145,8 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
       if (Handler)
         return <Handler item={item} conversationId={conversationId} onAnswered={onAnswered} />;
       if (item.result === null && openTurn === null) return <ApprovalRecord item={item} />;
-      if (item.call.name === TICKET_ACCEPT) return <TicketCard item={item} />;
+      if (item.call.name === TICKET_ROUTE && acceptedTickets(item).length > 0)
+        return <TicketCards item={item} />;
       return <ToolCard item={item} />;
     }
     case "notice":

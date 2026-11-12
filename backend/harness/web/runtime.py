@@ -18,13 +18,14 @@ from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
-from harness.prompts import CODE_PROMPT, GUIDANCE
+from harness.prompts import CODE_PROMPT, GUIDANCE, ORCHESTRATOR
 from harness.runs.bot_messages import BotMessages, Follow
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
 from harness.runtime.hooks.native.no_progress import NoProgressHook
+from harness.runtime.hooks.native.no_wait import NoWaitHook
 from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
@@ -82,7 +83,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
-from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_NOTE, TICKET_REPORT
+from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
 from harness.tools.service import Disposer
 
 logger = logging.getLogger("harness.web")
@@ -102,7 +103,7 @@ DEFAULT_TOOLS = (
     MESSAGE_BOT,
     *SCHEDULE_TOOLS,
     RUN_SUBAGENT,
-    TICKET_ACCEPT,
+    TICKET_ROUTE,
     TICKET_NOTE,
     FETCH_WITH_SECRET,
     SEND_FILE,
@@ -121,7 +122,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         MESSAGE_BOT,
         *SCHEDULE_TOOLS,
         RUN_SUBAGENT,
-        TICKET_ACCEPT,
+        TICKET_ROUTE,
         TICKET_NOTE,
         TICKET_REPORT,
         FETCH_WITH_SECRET,
@@ -183,9 +184,9 @@ def build_runtime(
         ),
         images=images,
         tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
-        guidance=GUIDANCE,
+        guidance=ORCHESTRATOR + " " + GUIDANCE,
         checkpoint=store.flush,
-        hooks=default_hooks(skills),
+        hooks=orchestrator_hooks(skills),
         files=files,
         server_instructions=mcp.instructions,
     )
@@ -238,11 +239,14 @@ def _register_run_subagent(
 
 
 def helper_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
-    """`runtime` as a subagent or a ticket's worker runs it: offered `tools`, nothing else."""
+    """`runtime` as a subagent or a ticket's worker runs it: offered `tools`, free to wait."""
+    hooks = runtime.hooks
+    kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))
     return dataclasses.replace(
         runtime,
         tools=Toolset(tool_service, tools, sight_tools=SIGHT_TOOLS),
         guidance=CODE_PROMPT,
+        hooks=dataclasses.replace(hooks, tool_hooks=kept),
     )
 
 
@@ -279,3 +283,9 @@ def default_hooks(skills: SkillService) -> HookChain:
         (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook()),
         step_hooks=(EmptyReplyHook(), SkillListHook(skills)),
     )
+
+
+def orchestrator_hooks(skills: SkillService) -> HookChain:
+    """`default_hooks` behind the no-wait guard, which only the bot's own turns get."""
+    hooks = default_hooks(skills)
+    return dataclasses.replace(hooks, tool_hooks=(NoWaitHook(), *hooks.tool_hooks))

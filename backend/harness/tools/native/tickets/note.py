@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Protocol
 
 from harness.prompts import TICKET_NOTE_HEARD
-from harness.tickets.models import Ticket, TicketNotFound
+from harness.tickets.models import Ticket, TicketNotFound, TicketStopped
 from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
+from harness.tools.models.outcome import INVALID_ARGUMENTS, REFUSED, Failure, Ok, ToolOutcome
 from harness.tools.models.tool import Tool
 from harness.tools.native.tickets.models import TicketNoteArgs
 
@@ -45,7 +45,10 @@ def ticket_note_tool(tickets: TicketTeller) -> Tool[TicketNoteArgs]:
             return Failure(INVALID_ARGUMENTS, f"no ticket has the id {args.ticket!r}")
         if ticket.bot_id != context.origin.bot_id:
             return Failure(INVALID_ARGUMENTS, f"ticket {args.ticket!r} is not one of yours")
-        tickets.tell(ticket.id, TICKET_NOTE_HEARD.format(text=args.text))
+        try:
+            tickets.tell(ticket.id, TICKET_NOTE_HEARD.format(text=args.text))
+        except TicketStopped:
+            return Failure(REFUSED, f"ticket {ticket.id} was stopped by the user")
         return Ok(f"Sent the note to ticket {ticket.id}.")
 
     return Tool.from_model(

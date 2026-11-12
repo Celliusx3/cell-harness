@@ -6,12 +6,22 @@ import json
 
 from harness.bots import ASSISTANT_ID
 from harness.llm import UserMessage
-from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_REPORT
+from harness.tools.native.tickets import TICKET_REPORT, TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
 from tests.unit.fakes import calls_tool, completed
 
-ACCEPTED = json.dumps({"title": "Cheapest flights to Tokyo", "task": "Find 3 cheap flights."})
+ACCEPTED = json.dumps(
+    {
+        "items": [
+            {
+                "kind": "accept",
+                "title": "Cheapest flights to Tokyo",
+                "task": "Find 3 cheap flights.",
+            }
+        ]
+    }
+)
 QUESTION = "Direct flights only, or are 1-stop flights OK?"
 
 
@@ -29,7 +39,7 @@ async def test_a_blocked_report_with_a_question_wakes_the_bot_with_it(tmp_path) 
                 completed("Asked."),
             ],
             ASSISTANT_START: [
-                calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+                calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
                 completed(QUESTION),
             ],
@@ -64,7 +74,7 @@ async def test_progress_wakes_nobody_and_the_ready_report_ends_the_ticket(tmp_pa
                 completed("Reported."),
             ],
             ASSISTANT_START: [
-                calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+                calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
                 completed("Here are the flights."),
             ],

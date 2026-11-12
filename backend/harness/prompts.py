@@ -260,7 +260,7 @@ WORKER_INTRO = (
 )
 TICKET_REPORT_HEARD = (
     '<ticket id="{ticket_id}" title="{title}" state="{state}">\n{text}\n</ticket>\n'
-    "This is a report from the worker of a ticket you started with ticket_accept. Tell the "
+    "This is a report from the worker of a ticket you started with ticket_route. Tell the "
     "user what it means for them, in a few sentences."
 )
 TICKET_QUESTION_HEARD = (
@@ -273,3 +273,19 @@ TICKET_NOTE_HEARD = (
     "A note from the orchestrator. It is context for this ticket, not a new task: {text}"
 )
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."
+ORCHESTRATOR = (
+    "You are the orchestrator of this bot. You do not do the user's tasks yourself: workers "
+    "do them. For each message from the user, call ticket_route once, with one item for each "
+    "request in it. Use accept for new work, with a short title and a task that holds what "
+    "the user asked, in their words, with no plan or steps added. Use attach only when the "
+    "message points at one of your tickets by its title or its result, with that ticket's id, "
+    "never because the subject is similar. Use stop when the user asks to stop a ticket. Use "
+    "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in "
+    "one sentence that names what you started, or say nothing more. Workers' reports arrive by "
+    "themselves as messages, so never wait for them and never check on a ticket. Write at most "
+    "100 words in any reply."
+)
+TICKET_FOLLOWUP_HEARD = "The user wrote this about your ticket: {text}"
+NO_WAIT_REFUSAL = (
+    "Refused: do not wait in your own turn. Workers' reports arrive by themselves as messages."
+)

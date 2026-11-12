@@ -6,12 +6,22 @@ import json
 
 from harness.bots import ASSISTANT_ID
 from harness.llm import UserMessage
-from harness.tools.native.tickets import TICKET_ACCEPT
+from harness.tools.native.tickets import TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
 from tests.unit.fakes import calls_tool, completed
 
-ACCEPTED = json.dumps({"title": "Cheapest flights to Tokyo", "task": "Find 3 cheap flights."})
+ACCEPTED = json.dumps(
+    {
+        "items": [
+            {
+                "kind": "accept",
+                "title": "Cheapest flights to Tokyo",
+                "task": "Find 3 cheap flights.",
+            }
+        ]
+    }
+)
 
 
 async def test_a_ticket_runs_in_the_background_and_its_result_wakes_the_bot(tmp_path) -> None:
@@ -20,7 +30,7 @@ async def test_a_ticket_runs_in_the_background_and_its_result_wakes_the_bot(tmp_
         {
             WORKER_START: [completed("Three flights found.")],
             ASSISTANT_START: [
-                calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+                calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
                 completed("Here are the flights."),
             ],
@@ -59,7 +69,7 @@ async def test_a_worker_that_fails_ends_its_ticket_as_failed(tmp_path) -> None:
         {
             WORKER_START: [[]],
             ASSISTANT_START: [
-                calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+                calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
                 completed("The ticket failed."),
             ],

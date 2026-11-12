@@ -20,7 +20,7 @@ from harness.session.service import SessionService
 from harness.tickets.repository import TicketRepository
 from harness.tickets.service import TicketService
 from harness.tools import ToolService, Toolset
-from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_NOTE
+from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE
 from harness.web.tickets_wiring import attach_tickets
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
@@ -41,7 +41,7 @@ class Ticketing:
 
 
 def ticketing_app(tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]]]) -> Ticketing:
-    """Assistant offered `ticket_accept`, it and its workers answered from `scripts`."""
+    """Assistant offered `ticket_route`, it and its workers answered from `scripts`."""
     model = PerBotClient(scripts)
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
@@ -55,7 +55,7 @@ def ticketing_app(tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]
     runtime = Runtime(
         models=OneModel(model),
         images=no_images(),
-        tools=Toolset(tool_service, (TICKET_ACCEPT, TICKET_NOTE), sight_tools=frozenset()),
+        tools=Toolset(tool_service, (TICKET_ROUTE, TICKET_NOTE), sight_tools=frozenset()),
         guidance="GUIDE",
         checkpoint=service.flush,
     )

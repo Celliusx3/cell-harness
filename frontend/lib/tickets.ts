@@ -9,7 +9,8 @@ export type TicketState =
   | "blocked"
   | "failed"
   | "done"
-  | "dropped";
+  | "dropped"
+  | "stopped";
 
 /** One row of `GET /api/tickets`, its time ISO UTC. */
 export interface TicketRow {
@@ -35,6 +36,7 @@ export const TICKET_STATE_LABELS: Record<TicketState, string> = {
   failed: "Failed",
   done: "Done",
   dropped: "Dropped",
+  stopped: "Stopped",
 };
 
 export const getTicket = (id: string) =>

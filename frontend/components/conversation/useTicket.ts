@@ -6,7 +6,7 @@ import { getTicket, type TicketDetail } from "@/lib/tickets";
 
 const POLL_MS = 1000;
 const WAITING_POLL_MS = 5000;
-const ENDED: ReadonlySet<string> = new Set(["done", "failed", "dropped"]);
+const ENDED: ReadonlySet<string> = new Set(["done", "failed", "dropped", "stopped"]);
 
 export type TicketLoad =
   | { kind: "loading" }

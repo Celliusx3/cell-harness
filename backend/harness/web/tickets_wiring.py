@@ -1,4 +1,4 @@
-"""The tickets the server composes: `ticket_accept` for every bot, `ticket_report` for workers."""
+"""The tickets the server composes: `ticket_route` for every bot, `ticket_report` for workers."""
 
 from __future__ import annotations
 
@@ -16,9 +16,9 @@ from harness.tickets.worker import Workers
 from harness.tools import ToolService
 from harness.tools.native.tickets import (
     TICKET_REPORT,
-    ticket_accept_tool,
     ticket_note_tool,
     ticket_report_tool,
+    ticket_route_tool,
 )
 from harness.web.runtime import SUBAGENT_TOOLS, helper_runtime
 
@@ -37,12 +37,12 @@ def attach_tickets(
     now: Callable[[], datetime],
     ids: Callable[[], str],
 ) -> TicketService:
-    """`ticket_accept`, `ticket_note` and `ticket_report` offered, run by the service returned."""
+    """`ticket_route`, `ticket_note` and `ticket_report` offered, run by the service returned."""
     workers = Workers(helper_runtime(tool_service, runtime, WORKER_TOOLS), logs)
     tickets = TicketService(
         repository, bots, runs, worker=workers, logs=logs, follow=follow, now=now, ids=ids
     )
     tool_service.add_provider(
-        lambda: [ticket_accept_tool(tickets), ticket_note_tool(tickets), ticket_report_tool()]
+        lambda: [ticket_route_tool(tickets), ticket_note_tool(tickets), ticket_report_tool()]
     )
     return tickets

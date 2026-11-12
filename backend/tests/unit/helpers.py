@@ -245,12 +245,12 @@ class FirstTurnOnly:
 
 
 async def no_worker(ticket: Ticket) -> WorkerEnd:
-    """A ticket's first turn for an app that offers no `ticket_accept`: it never runs."""
+    """A ticket's first turn for an app that offers no `ticket_route`: it never runs."""
     raise AssertionError(f"a test started ticket {ticket.id} without a worker")
 
 
 def no_tickets(tmp_path: Path, bots: BotService, runs: RunService) -> TicketService:
-    """Tickets kept under `tmp_path`, for an app whose bots are offered no `ticket_accept`."""
+    """Tickets kept under `tmp_path`, for an app whose bots are offered no `ticket_route`."""
     return TicketService(
         TicketRepository(tmp_path / "tickets.json"),
         bots,

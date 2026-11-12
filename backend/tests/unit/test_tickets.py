@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harness.tickets.models import ReportState, Ticket, TicketState, ticket_state
+from harness.tickets.models import ReportState, Ticket, TicketState, TicketStopped, ticket_state
 from harness.tickets.repository import TicketRepository
 from harness.tickets.service import TicketService
 from harness.tickets.worker import WorkerEnd
@@ -110,4 +110,27 @@ async def test_a_worker_that_has_written_nothing_has_no_steps(tmp_path) -> None:
 
     assert await tickets.worker_events(ticket.id) == ()
     assert tickets.is_running(ticket.id)
+    await tickets.aclose()
+
+
+async def test_stopping_a_ticket_cancels_its_worker_and_it_takes_nothing_more(tmp_path) -> None:
+    started = asyncio.Event()
+
+    async def hangs(ticket: Ticket) -> WorkerEnd:
+        started.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    tickets = tickets_on(tmp_path, hangs)
+    ticket = tickets.accept(bot_id="b", title="T", task="do it", mode="auto")
+    await started.wait()
+    tickets.stop(ticket.id)
+    await asyncio.sleep(0)
+
+    assert not tickets.is_running(ticket.id)
+    assert tickets.get(ticket.id).state == "stopped"
+    with pytest.raises(TicketStopped):
+        tickets.tell(ticket.id, "go on")
+    with pytest.raises(TicketStopped):
+        tickets.stop(ticket.id)
     await tickets.aclose()

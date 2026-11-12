@@ -21,6 +21,7 @@ from harness.tickets.models import (
     TicketNotFound,
     TicketsFile,
     TicketState,
+    TicketStopped,
     ticket_state,
 )
 from harness.tickets.repository import TicketRepository
@@ -113,10 +114,21 @@ class TicketService:
         self.tell(ticket_id, TICKET_ANSWER_HEARD.format(text=text))
 
     def tell(self, ticket_id: str, prompt: str) -> None:
-        """Run the worker's next turn on `prompt`, once any turn it is in has ended."""
+        """Run the worker's next turn on `prompt` once its turn ends; `TicketStopped` if stopped."""
         ticket = self.get(ticket_id)
+        if ticket.state == "stopped":
+            raise TicketStopped(ticket_id)
         self._set_state(ticket.id, "working")
         self._start(ticket, lambda: self._worker.resume(ticket, prompt))
+
+    def stop(self, ticket_id: str) -> None:
+        """End the ticket for good and cancel its turns; `TicketStopped` if it already is."""
+        if self.get(ticket_id).state == "stopped":
+            raise TicketStopped(ticket_id)
+        self._set_state(ticket_id, "stopped")
+        for task in list(self._working):
+            if task.get_name() == ticket_id:
+                task.cancel()
 
     async def aclose(self) -> None:
         """Cancel every worker still running, for a server shutting down."""
@@ -125,20 +137,15 @@ class TicketService:
         await asyncio.gather(*self._working, return_exceptions=True)
 
     def _start(self, ticket: Ticket, turn: WorkerTurn) -> None:
-        running = asyncio.create_task(self._work(ticket, turn))
+        running = asyncio.create_task(self._work(ticket, turn), name=ticket.id)
         self._working.add(running)
         running.add_done_callback(self._working.discard)
 
     async def _work(self, ticket: Ticket, turn: WorkerTurn) -> None:
-        """Run one turn of `ticket`'s worker after the one before it, keep its end, tell the bot."""
-        async with self._locks.setdefault(ticket.id, asyncio.Lock()):
-            self._set_state(ticket.id, "working")
-            self._running.add(ticket.id)
-            try:
-                end = await self._run_worker(ticket, turn)
-            finally:
-                self._running.discard(ticket.id)
-            self._set_state(ticket.id, ticket_state(end.state, end.question))
+        """Run one turn of `ticket`'s worker, then tell the bot how it ended, unless stopped."""
+        end = await self._locked_turn(ticket, turn)
+        if end is None:
+            return
         report = TicketReport(
             ticket_id=ticket.id,
             title=ticket.title,
@@ -147,6 +154,25 @@ class TicketService:
             question=end.question,
         )
         await self._deliver(ticket.bot_id, report)
+
+    async def _locked_turn(self, ticket: Ticket, turn: WorkerTurn) -> WorkerEnd | None:
+        """The turn's end, run after the one before it and kept; `None` for a stopped ticket."""
+        async with self._locks.setdefault(ticket.id, asyncio.Lock()):
+            if self._is_stopped(ticket.id):
+                return None
+            self._set_state(ticket.id, "working")
+            self._running.add(ticket.id)
+            try:
+                end = await self._run_worker(ticket, turn)
+            finally:
+                self._running.discard(ticket.id)
+            if self._is_stopped(ticket.id):
+                return None
+            self._set_state(ticket.id, ticket_state(end.state, end.question))
+            return end
+
+    def _is_stopped(self, ticket_id: str) -> bool:
+        return self.get(ticket_id).state == "stopped"
 
     async def _run_worker(self, ticket: Ticket, turn: WorkerTurn) -> WorkerEnd:
         """The turn's end; `failed` with the error logged when the worker itself broke."""

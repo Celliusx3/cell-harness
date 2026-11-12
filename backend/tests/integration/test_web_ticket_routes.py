@@ -5,16 +5,26 @@ from __future__ import annotations
 import json
 
 from harness.bots import ASSISTANT_ID
-from harness.tools.native.tickets import TICKET_ACCEPT
+from harness.tools.native.tickets import TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
 from tests.unit.fakes import calls_tool, completed
 
-ACCEPTED = json.dumps({"title": "Cheapest flights to Tokyo", "task": "Find 3 cheap flights."})
+ACCEPTED = json.dumps(
+    {
+        "items": [
+            {
+                "kind": "accept",
+                "title": "Cheapest flights to Tokyo",
+                "task": "Find 3 cheap flights.",
+            }
+        ]
+    }
+)
 SCRIPTS = {
     WORKER_START: [completed("Three flights found.")],
     ASSISTANT_START: [
-        calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+        calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
         completed("On it."),
         completed("Here are the flights."),
     ],

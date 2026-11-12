@@ -7,12 +7,22 @@ import json
 
 from harness.bots import ASSISTANT_ID
 from harness.llm import UserMessage
-from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_NOTE, TICKET_REPORT
+from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
 from tests.unit.fakes import calls_tool, completed
 
-ACCEPTED = json.dumps({"title": "Cheapest flights to Tokyo", "task": "Find 3 cheap flights."})
+ACCEPTED = json.dumps(
+    {
+        "items": [
+            {
+                "kind": "accept",
+                "title": "Cheapest flights to Tokyo",
+                "task": "Find 3 cheap flights.",
+            }
+        ]
+    }
+)
 QUESTION = "Direct flights only, or are 1-stop flights OK?"
 
 
@@ -42,7 +52,7 @@ async def test_an_answer_goes_to_the_worker_and_its_next_report_wakes_the_bot(tm
                 completed("Reported."),
             ],
             ASSISTANT_START: [
-                calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+                calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
                 completed("The ticket waits for your answer."),
                 completed("Here are the flights."),
@@ -76,7 +86,7 @@ async def test_an_answer_to_a_ticket_that_asked_nothing_is_refused(tmp_path) -> 
         {
             WORKER_START: [completed("Three flights found.")],
             ASSISTANT_START: [
-                calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+                calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
                 completed("Here are the flights."),
             ],
@@ -103,7 +113,7 @@ async def test_a_note_from_the_bot_reaches_the_worker_as_context(tmp_path) -> No
                 completed("Reported."),
             ],
             ASSISTANT_START: [
-                calls_tool(TICKET_ACCEPT, ACCEPTED, id="c1"),
+                calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),
                 calls_tool(
                     TICKET_NOTE,
