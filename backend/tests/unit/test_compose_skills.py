@@ -10,7 +10,6 @@ import pytest
 from harness.config.settings import Settings
 from harness.llm import Message, SystemMessage, ToolCall, UserMessage
 from harness.mcp import McpServer, McpService
-from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.models import TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -31,6 +30,7 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     skills_at,
+    worker_of,
 )
 from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, files_in, images_in, secrets_in
 
@@ -105,14 +105,13 @@ def test_bot_create_is_offered_exactly_while_an_llm_credential_is_saved(
 async def test_the_first_user_message_lists_the_skills_exactly_while_one_exists(compose) -> None:
     build, root = compose
     runtime = build()
-    guidance = ORCHESTRATOR + " " + GUIDANCE
-    alone = [SystemMessage(content=guidance), UserMessage(content="hi")]
+    alone = [SystemMessage(content=ORCHESTRATOR), UserMessage(content="hi")]
 
     assert await request_of(runtime) == alone
 
     directory = write_skill(root, "pdf")
     system, user = await request_of(runtime)
-    assert system == SystemMessage(content=guidance)
+    assert system == SystemMessage(content=ORCHESTRATOR)
     assert user.content.startswith("hi\n\n<system-reminder>\n")
     assert "\n- pdf: pdf things.\n</system-reminder>" in user.content
 
@@ -148,7 +147,7 @@ async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:
 async def test_a_script_cannot_reach_it(compose) -> None:
     build, root = compose
     write_skill(root, "pdf")
-    runtime = build()
+    runtime = worker_of(build())
     assert runtime.tools is not None
 
     listed = await runtime.tools.execute(
@@ -204,7 +203,7 @@ def test_every_skill_write_is_offered_before_any_skill_exists(compose) -> None:
 async def test_a_script_cannot_write_a_skill(compose) -> None:
     build, root = compose
     write_skill(root, "pdf")
-    runtime = build()
+    runtime = worker_of(build())
     assert runtime.tools is not None
 
     listed = await runtime.tools.execute(
@@ -276,8 +275,10 @@ async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
     )
     assert isinstance(read, Ok)
     script = read.text.split("\n", 1)[1].rsplit("\n</skill_file>", 1)[0]
+    worker = worker_of(runtime)
+    assert worker.tools is not None
 
-    ran = await runtime.tools.execute(
+    ran = await worker.tools.execute(
         ToolCall(
             id="c3",
             name=EXECUTE_TYPESCRIPT,

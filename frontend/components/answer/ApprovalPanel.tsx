@@ -12,7 +12,7 @@ import { Arguments } from "@/components/conversation/ToolCard";
 import { humanise } from "@/lib/toolName";
 import type { Decision } from "@/lib/types";
 
-const OPTIONS: { label: string; decision: Decision }[] = [
+export const APPROVAL_OPTIONS: { label: string; decision: Decision }[] = [
   { label: "Allow once", decision: { kind: "approved", scope: "once" } },
   { label: "Allow for this conversation", decision: { kind: "approved", scope: "conversation" } },
   { label: "Always allow", decision: { kind: "approved", scope: "always" } },
@@ -49,7 +49,7 @@ export function ApprovalPanel({
       return;
     }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-    const option = OPTIONS.find((_, index) => String(index + 1) === event.key);
+    const option = APPROVAL_OPTIONS.find((_, index) => String(index + 1) === event.key);
     if (option === undefined) return;
     event.preventDefault();
     decide(option.decision);
@@ -78,7 +78,7 @@ export function ApprovalPanel({
         {phase === "asking" ? (
           <>
             <div className="mt-3 flex flex-col gap-2">
-              {OPTIONS.map((option, index) => (
+              {APPROVAL_OPTIONS.map((option, index) => (
                 <button
                   key={option.label}
                   type="button"

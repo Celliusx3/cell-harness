@@ -281,7 +281,7 @@ def create_app(
     app.include_router(build_compact_router(web))
     app.include_router(build_bots_router(bots, runs, secrets, schedules))
     app.include_router(build_schedules_router(bots, schedules, scheduler, runs))
-    app.include_router(build_tickets_router(tickets, secrets, bots))
+    app.include_router(build_tickets_router(tickets, secrets, bots, client_tools))
     app.include_router(build_groups_router(bots))
     app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

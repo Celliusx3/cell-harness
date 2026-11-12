@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from harness.secrets import Destination, SecretName
-from harness.session.models import TicketAsk
+from harness.session.models import ReportAsk
 from harness.tickets.models import ReportState
 
 TICKET_ID = "The id of one of your tickets."
@@ -119,7 +119,7 @@ class TicketReportArgs(BaseModel):
             "reaches the user unchanged."
         ),
     )
-    ask: TicketAsk = Field(default="text", description=ASK)
+    ask: ReportAsk = Field(default="text", description=ASK)
     options: Options | None = Field(default=None, description=OPTIONS)
     secret_name: SecretName | None = Field(default=None, description=SECRET_NAME)
     secret_destination: Destination | None = Field(default=None, description=SECRET_DESTINATION)

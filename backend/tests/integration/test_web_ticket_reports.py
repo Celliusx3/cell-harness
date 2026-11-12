@@ -61,6 +61,8 @@ async def test_a_blocked_report_with_a_question_wakes_the_bot_with_it(tmp_path) 
             "ask": "text",
             "options": None,
             "secret_name": None,
+            "approval_call_id": None,
+            "approval_tool": None,
         }
     ]
     woken = world.model.seen_by[ASSISTANT_START][2]

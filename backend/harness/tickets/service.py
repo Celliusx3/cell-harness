@@ -13,6 +13,7 @@ from harness.app_events import TicketsChangedAppEvent
 from harness.bots import BotNotFound, BotService
 from harness.runs.run import Run
 from harness.runs.service import RunService
+from harness.session.log import Session
 from harness.session.models import SessionEvent, TicketReport
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
@@ -33,6 +34,7 @@ from harness.tickets.places import Places
 from harness.tickets.prompts import TICKET_ANSWER_HEARD, TICKET_RECOVERY_HEARD, TICKET_RETRY_HEARD
 from harness.tickets.repository import TicketRepository
 from harness.tickets.worker import WorkerEnd, kept_report, worker_end, worker_session_id
+from harness.tools import Approval, Failure, Ok
 from harness.tools.models.decision import ApprovalMode
 
 logger = logging.getLogger("harness.tickets")
@@ -47,6 +49,10 @@ class TicketWorker(Protocol):
     async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd: ...
 
     async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd: ...
+
+    async def approve(
+        self, ticket: Ticket, call_id: str, outcome: Ok | Failure | Approval
+    ) -> WorkerEnd: ...
 
 
 class TicketService:
@@ -157,6 +163,19 @@ class TicketService:
             bot_id=ticket.bot_id, name=kept.secret_name, destination=kept.secret_destination
         )
 
+    async def asking_worker(self, ticket_id: str) -> Session:
+        """The log of a worker whose ticket waits for the person; else `TicketNotAsking`."""
+        if self.get(ticket_id).state != "needs_answer":
+            raise TicketNotAsking(ticket_id)
+        return await self._logs.read(worker_session_id(ticket_id))
+
+    def approve(self, ticket_id: str, call_id: str, outcome: Ok | Failure | Approval) -> None:
+        """Run the worker's waiting call `call_id` on the person's decision, as an answer."""
+        ticket = self.get(ticket_id)
+        self._set_state(ticket.id, "working")
+        resumed = functools.partial(self._worker.approve, ticket, call_id, outcome)
+        self._start(ticket, resumed, answer=True)
+
     def retry(self, ticket_id: str) -> None:
         """Run a blocked or failed ticket's worker again; `TicketNotRetryable` for any other."""
         if self.get(ticket_id).state not in RETRYABLE:
@@ -199,17 +218,7 @@ class TicketService:
         end = await self._locked_turn(ticket, turn, answer=answer)
         if end is None or end.state == "dropped":
             return
-        report = TicketReport(
-            ticket_id=ticket.id,
-            title=ticket.title,
-            state=end.state,
-            text=end.text,
-            question=end.question,
-            ask=end.ask,
-            options=end.options,
-            secret_name=end.secret_name,
-        )
-        await self._deliver(ticket.bot_id, report)
+        await self._deliver(ticket.bot_id, end.report(ticket))
 
     async def _locked_turn(
         self, ticket: Ticket, turn: WorkerTurn, *, answer: bool

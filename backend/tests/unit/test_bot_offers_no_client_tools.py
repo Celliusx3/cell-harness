@@ -6,9 +6,12 @@ from pathlib import Path
 
 from harness.config.settings import Settings
 from harness.mcp import McpService
+from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
+from harness.tickets.prompts import ORCHESTRATOR
+from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.tools.native.tickets import TICKET_ROUTE
 from harness.web.runtime import CLIENT_TOOLS, WORK_TOOLS, build_runtime
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
@@ -56,6 +59,7 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
 
     bot = offered(runtime)
     worker = offered(ticket_workers(tool_service, runtime, logs).runtime)
+    code_mode = {LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT}
 
     assert TICKET_ROUTE in bot
     assert not CLIENT_TOOLS.names & bot
@@ -63,3 +67,7 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
     assert all(tool_service.get(name) is not None for name in CLIENT_TOOLS.names)
     assert not set(WORK_TOOLS) & bot
     assert set(WORK_TOOLS) <= worker
+    assert not code_mode & bot
+    assert code_mode <= worker
+    assert runtime.guidance == ORCHESTRATOR
+    assert ticket_workers(tool_service, runtime, logs).runtime.guidance == GUIDANCE

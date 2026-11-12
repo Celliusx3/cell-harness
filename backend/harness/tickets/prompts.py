@@ -41,3 +41,5 @@ TICKET_RECOVERY_HEARD = (
     "did before you repeat anything, then carry on."
 )
 SAVED_KEY_ANSWER = "Saved the key {name}."
+APPROVAL_QUESTION = "Allow {tool}?"
+APPROVAL_WAITING = "The worker waits for the user to allow {tool}."

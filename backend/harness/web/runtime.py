@@ -18,7 +18,7 @@ from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
-from harness.prompts import CODE_PROMPT, GUIDANCE
+from harness.prompts import CODE_PROMPT
 from harness.runs.bot_messages import BotMessages, Follow
 from harness.runs.service import RunService
 from harness.runtime.hooks import HookChain
@@ -95,9 +95,6 @@ CLIENT_TOOLS = ClientToolCatalog(
 SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 SCHEDULE_TOOLS = (SCHEDULE_CREATE, SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT)
 DEFAULT_TOOLS = (
-    LIST_FUNCTIONS,
-    GET_FUNCTION_DETAILS,
-    EXECUTE_TYPESCRIPT,
     SKILL,
     *SKILL_WRITES,
     BOT_CREATE,
@@ -181,7 +178,7 @@ def build_runtime(
         ),
         images=images,
         tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
-        guidance=ORCHESTRATOR + " " + GUIDANCE,
+        guidance=ORCHESTRATOR,
         checkpoint=store.flush,
         hooks=orchestrator_hooks(skills),
         files=files,

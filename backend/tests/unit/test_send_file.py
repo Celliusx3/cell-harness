@@ -48,6 +48,7 @@ from tests.unit.helpers import (
     no_progress,
     no_skills,
     toolset_for,
+    worker_of,
 )
 from tests.webapp import files_in, images_in, secrets_in
 
@@ -228,15 +229,17 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     )
     assert runtime.tools is not None
     assert SEND_FILE in [spec.name for spec in runtime.tools.specs(sees_images=False)]
+    worker = worker_of(runtime)
+    assert worker.tools is not None
 
-    listed = await runtime.tools.execute(
+    listed = await worker.tools.execute(
         ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
         progress=no_progress,
         origin=ORIGIN,
         session=new_session(),
         sees_images=False,
     )
-    ran = await runtime.tools.execute(
+    ran = await worker.tools.execute(
         ToolCall(
             id="c2",
             name=EXECUTE_TYPESCRIPT,

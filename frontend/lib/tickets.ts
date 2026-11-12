@@ -1,8 +1,22 @@
 import { request } from "./api";
-import type { SessionEvent } from "./types";
+import type { Decision, SessionEvent } from "./types";
 
 /** How the person answers a worker's question: typed, an option tapped, a key pasted, or a location shared. */
-export type TicketAsk = "text" | "choice" | "secret" | "location";
+export type TicketAsk = "text" | "choice" | "secret" | "location" | "approval";
+
+/** A ticket's worker ending, as its bot hears it; `approval` asks are built by the host. */
+export interface TicketReport {
+  ticket_id: string;
+  title: string;
+  state: "progress" | "waiting" | "ready" | "blocked" | "failed" | "dropped";
+  text: string;
+  question: string | null;
+  ask: TicketAsk;
+  options: string[] | null;
+  secret_name: string | null;
+  approval_call_id: string | null;
+  approval_tool: string | null;
+}
 
 /** How far a ticket has got, as its worker last reported. */
 export type TicketState =
@@ -59,6 +73,13 @@ export const saveTicketSecret = (id: string, value: string) =>
   request<TicketRow>(`/tickets/${encodeURIComponent(id)}/secret`, {
     method: "POST",
     body: JSON.stringify({ value }),
+  });
+
+/** The person's decision on the call the ticket's worker waits to have allowed. */
+export const approveTicket = (id: string, decision: Decision) =>
+  request<TicketRow>(`/tickets/${encodeURIComponent(id)}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ decision }),
   });
 
 const ticketPath = (id: string, action: string) => `/tickets/${encodeURIComponent(id)}${action}`;

@@ -102,6 +102,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/tickets/{ticket_id}/answer": NotATool(
         "the person's answer to a worker's question; ticket_note sends the bot's own facts"
     ),
+    "POST /api/tickets/{ticket_id}/approve": NotATool(
+        "allowing a worker's call is the person's call, as on the bot's own approval card"
+    ),
     "POST /api/tickets/{ticket_id}/secret": NotATool(
         "the key the person pastes for a worker's question; no model ever sees a key"
     ),

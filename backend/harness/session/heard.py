@@ -9,7 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 BotMessageIntent = Literal["request", "result"]
 ReportState = Literal["progress", "waiting", "ready", "blocked", "failed", "dropped"]
-TicketAsk = Literal["text", "choice", "secret", "location"]
+ReportAsk = Literal["text", "choice", "secret", "location"]
+TicketAsk = Literal["text", "choice", "secret", "location", "approval"]
 
 
 class BotMessage(BaseModel):
@@ -82,6 +83,9 @@ class TicketReport(BaseModel):
     """How the person answers `question`; reports logged before it was asked are typed."""
     options: tuple[str, ...] | None = None
     secret_name: str | None = None
+    approval_call_id: str | None = None
+    """The worker's call that waits for the person's approval, when `ask` is `approval`."""
+    approval_tool: str | None = None
 
 
 class TicketReportEvent(BaseModel):

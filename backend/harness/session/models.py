@@ -22,6 +22,7 @@ from harness.session.heard import BotMessage as BotMessage
 from harness.session.heard import BotMessageEvent, ScheduleReminderEvent, TicketReportEvent
 from harness.session.heard import BotMessageIntent as BotMessageIntent
 from harness.session.heard import HeardMessage as HeardMessage
+from harness.session.heard import ReportAsk as ReportAsk
 from harness.session.heard import ScheduleReminder as ScheduleReminder
 from harness.session.heard import ScheduleReminders as ScheduleReminders
 from harness.session.heard import TicketAsk as TicketAsk

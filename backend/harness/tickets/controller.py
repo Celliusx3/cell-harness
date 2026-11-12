@@ -8,8 +8,16 @@ from harness.bots import BotService
 from harness.secrets import SecretService
 from harness.tickets.models import Ticket, TicketNotAsking
 from harness.tickets.prompts import SAVED_KEY_ANSWER
-from harness.tickets.schemas import TicketAnswer, TicketDetail, TicketRow, TicketSecret
+from harness.tickets.schemas import (
+    TicketAnswer,
+    TicketApproval,
+    TicketDetail,
+    TicketRow,
+    TicketSecret,
+)
 from harness.tickets.service import TicketService
+from harness.tools.client import ClientToolService
+from harness.tools.client.models import RefusalReason
 from harness.utc import utc_text
 
 
@@ -23,7 +31,12 @@ def _row(ticket: Ticket) -> TicketRow:
     )
 
 
-def build_router(tickets: TicketService, secrets: SecretService, bots: BotService) -> APIRouter:
+def build_router(
+    tickets: TicketService,
+    secrets: SecretService,
+    bots: BotService,
+    client_tools: ClientToolService,
+) -> APIRouter:
     """List a bot's tickets, read one with its worker's log, and answer its question."""
     router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
@@ -48,14 +61,38 @@ def build_router(tickets: TicketService, secrets: SecretService, bots: BotServic
         "/{ticket_id}/answer", status_code=status.HTTP_202_ACCEPTED, response_model=TicketRow
     )
     async def answer_ticket(ticket_id: str, body: TicketAnswer) -> TicketRow:
-        if await tickets.asks_for_key(ticket_id):
+        if await tickets.asks_for_key(ticket_id) or client_tools.answerable_calls(
+            await tickets.asking_worker(ticket_id)
+        ):
             raise TicketNotAsking(ticket_id)
         tickets.answer(ticket_id, body.text)
         return _row(tickets.get(ticket_id))
 
     _person_routes(router, tickets)
     _secret_route(router, tickets, secrets, bots)
+    _approval_route(router, tickets, client_tools)
     return router
+
+
+def _approval_route(
+    router: APIRouter, tickets: TicketService, client_tools: ClientToolService
+) -> None:
+    """The person's decision on a worker's call that asks first, taken as the bot's card is."""
+
+    @router.post(
+        "/{ticket_id}/approve", status_code=status.HTTP_202_ACCEPTED, response_model=TicketRow
+    )
+    async def approve_ticket(ticket_id: str, body: TicketApproval) -> TicketRow:
+        worker = await tickets.asking_worker(ticket_id)
+        waiting = client_tools.answerable_calls(worker)
+        if not waiting:
+            raise TicketNotAsking(ticket_id)
+        raw = body.decision.model_dump()
+        accepted = client_tools.accept_by_call_id(worker, waiting[-1].call_id, raw)
+        if isinstance(accepted, RefusalReason):
+            raise TicketNotAsking(ticket_id)
+        tickets.approve(ticket_id, accepted.call_id, accepted.outcome)
+        return _row(tickets.get(ticket_id))
 
 
 def _secret_route(

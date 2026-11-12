@@ -86,3 +86,18 @@ async def test_a_location_says_how_to_send_it(tmp_path) -> None:
     assert await first_line_for(tmp_path, report) == (
         "Flights to Tokyo asks: Where are you? (send your location)"
     )
+
+
+async def test_an_approval_is_given_in_the_app(tmp_path) -> None:
+    report = ASKING.model_copy(
+        update={
+            "ask": "approval",
+            "question": "Allow fetch_with_secret?",
+            "approval_call_id": "f1",
+            "approval_tool": "fetch_with_secret",
+        }
+    )
+
+    assert await first_line_for(tmp_path, report) == (
+        "Flights to Tokyo asks to run fetch_with_secret. Approve it in the app."
+    )

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import dataclasses
+
+from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
 from harness.tickets.service import TicketService
@@ -21,7 +24,8 @@ WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)
 
 def ticket_workers(tool_service: ToolService, runtime: Runtime, logs: SessionService) -> Workers:
     """`runtime` as each ticket's worker runs it, offered `WORKER_TOOLS`, its logs in `logs`."""
-    return Workers(helper_runtime(tool_service, runtime, WORKER_TOOLS), logs)
+    worker = helper_runtime(tool_service, runtime, WORKER_TOOLS)
+    return Workers(dataclasses.replace(worker, guidance=GUIDANCE), logs)
 
 
 def attach_tickets(tool_service: ToolService, tickets: TicketService) -> Disposer:

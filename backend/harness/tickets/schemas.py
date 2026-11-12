@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from harness.secrets import SecretValue
 from harness.session.models import SessionEvent
 from harness.tickets.models import TicketState
+from harness.tools.models.decision import Approval, Denial
 
 
 class TicketRow(BaseModel):
@@ -45,3 +46,11 @@ class TicketSecret(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", hide_input_in_errors=True)
 
     value: SecretValue
+
+
+class TicketApproval(BaseModel):
+    """The person's decision on the call a ticket's worker waits to have allowed."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    decision: Approval | Denial = Field(discriminator="kind")

@@ -1,10 +1,15 @@
 "use client";
 
+import { ShieldQuestion } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
+import { APPROVAL_OPTIONS } from "@/components/answer/ApprovalPanel";
 import { POSITION_OPTIONS, roundToHundredMetres } from "@/components/answer/LocationRequest";
 import { BADGE, OPTION } from "@/components/answer/QuestionPanel";
+import { Arguments } from "@/components/conversation/ToolCard";
+import { humanise } from "@/lib/toolName";
+import type { Decision, ToolCall } from "@/lib/types";
 
 const NOT_SHARED = "The user did not share a location.";
 
@@ -99,5 +104,52 @@ export function LocationAnswer({ disabled, onSend }: Answering) {
         Don&apos;t share
       </button>
     </div>
+  );
+}
+
+/** The call a worker waits to have allowed, with its arguments, and the bot's own four choices. */
+export function ApprovalAnswer({
+  call,
+  disabled,
+  onDecide,
+}: {
+  call: ToolCall | null;
+  disabled: boolean;
+  onDecide: (decision: Decision) => void;
+}) {
+  const { server, label } = humanise(call?.name ?? "");
+  return (
+    <>
+      {call !== null && (
+        <>
+          <div className="mt-2 flex items-center gap-2 text-sm">
+            <ShieldQuestion size={14} className="shrink-0 text-accent" />
+            <span className="min-w-0 break-words font-medium">{label}</span>
+            {server !== null && (
+              <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px] text-ink-soft">
+                {server}
+              </span>
+            )}
+          </div>
+          <div className="mt-2 space-y-2">
+            <Arguments raw={call.arguments} tool={call.name} />
+          </div>
+        </>
+      )}
+      <div className="mt-3 flex flex-col gap-2">
+        {APPROVAL_OPTIONS.map((option, index) => (
+          <button
+            key={option.label}
+            type="button"
+            disabled={disabled}
+            onClick={() => onDecide(option.decision)}
+            className={OPTION}
+          >
+            <span className={BADGE}>{index + 1}</span>{" "}
+            <span className="min-w-0 break-words">{option.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
   );
 }

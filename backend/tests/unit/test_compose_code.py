@@ -35,6 +35,7 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     no_skills,
+    worker_of,
 )
 from tests.webapp import files_in, images_in, secrets_in
 
@@ -67,7 +68,7 @@ def compose(tmp_path: Path):
     return build
 
 
-def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> None:
+def test_the_bots_request_carries_its_default_tools_whatever_is_installed(compose) -> None:
     runtime = compose()
 
     assert runtime.tools is not None
@@ -75,7 +76,7 @@ def test_the_request_carries_three_schemas_whatever_is_installed(compose) -> Non
 
 
 async def test_the_three_tools_actually_dispatch(compose) -> None:
-    runtime = compose()
+    runtime = worker_of(compose())
     assert runtime.tools is not None
 
     outcome = await runtime.tools.execute(
@@ -89,8 +90,11 @@ async def test_the_three_tools_actually_dispatch(compose) -> None:
     assert isinstance(outcome, Ok)
 
 
-def test_the_prompt_explains_the_three_tools(compose) -> None:
-    assert CODE_PROMPT in compose().guidance
+def test_a_workers_prompt_explains_the_three_tools_and_the_bots_does_not(compose) -> None:
+    bot = compose()
+
+    assert CODE_PROMPT in worker_of(bot).guidance
+    assert CODE_PROMPT not in bot.guidance
 
 
 def test_the_code_prompt_names_each_code_mode_tool() -> None:
@@ -145,7 +149,9 @@ async def test_every_client_tool_is_registered_not_offered_and_kept_from_scripts
     assert not CLIENT_TOOLS.names & offered
     assert all(runtime.tools.tool_service.get(name) for name in CLIENT_TOOLS.names)
 
-    listed = await runtime.tools.execute(
+    worker = worker_of(runtime)
+    assert worker.tools is not None
+    listed = await worker.tools.execute(
         ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
         progress=no_progress,
         origin=ORIGIN,

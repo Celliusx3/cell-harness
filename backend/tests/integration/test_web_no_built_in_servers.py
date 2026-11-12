@@ -17,6 +17,7 @@ from harness.config import settings as settings_module
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runs.service import RunService
 from harness.tools.native.code_mode.prompts import LIST_FUNCTIONS
+from harness.tools.native.tickets import TICKET_ROUTE
 from harness.web import server
 from tests.integration.web_helpers import settle
 from tests.webapp import TEST_ENCRYPTION_KEY
@@ -37,6 +38,10 @@ MODEL = {
     "bot_ids": [],
 }
 LIST_CALL = {"index": 0, "id": "call-1", "function": {"name": LIST_FUNCTIONS, "arguments": "{}"}}
+ACCEPT = json.dumps(
+    {"items": [{"kind": "accept", "title": "Look", "task": "List what you can do."}]}
+)
+ROUTE_CALL = {"index": 0, "id": "route-1", "function": {"name": TICKET_ROUTE, "arguments": ACCEPT}}
 STUB_SERVER = {
     "id": "stub",
     "command": sys.executable,
@@ -49,16 +54,35 @@ STUB_SERVER = {
 
 @dataclass
 class FakeProvider:
-    """An OpenAI-compatible endpoint that lists the functions on offer, then says one word."""
+    """An endpoint whose bot routes each message to a worker, who lists the functions on offer."""
 
     requests: list[httpx.Request] = field(default_factory=list)
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
-        asked = json.loads(request.content)["messages"][-1]["role"] == "user"
-        delta = {"tool_calls": [LIST_CALL]} if asked else {"content": "hello"}
+        body = json.loads(request.content)
+        fresh = not any(message["role"] == "tool" for message in body["messages"])
+        offered = {tool["function"]["name"] for tool in body.get("tools", [])}
+        last = body["messages"][-1]
+        typed = last["role"] == "user" and "<ticket id=" not in json.dumps(last)
+        if fresh and LIST_FUNCTIONS in offered:
+            delta: dict[str, object] = {"tool_calls": [LIST_CALL]}
+        elif typed and TICKET_ROUTE in offered:
+            delta = {"tool_calls": [ROUTE_CALL]}
+        else:
+            delta = {"content": "hello"}
         sent = json.dumps({"choices": [{"delta": delta}]})
         return httpx.Response(200, content=f"data: {sent}\n\ndata: [DONE]\n\n".encode())
+
+    def listed_after(self, start: int) -> str | None:
+        """The first request since `start` that carries what `list_functions` said."""
+        for request in self.requests[start:]:
+            body = json.loads(request.content)
+            if any(message["role"] == "tool" for message in body["messages"]):
+                names = {tool["function"]["name"] for tool in body.get("tools", [])}
+                if LIST_FUNCTIONS in names:
+                    return request.content.decode()
+        return None
 
 
 def _committed_config_in(tmp_path: Path) -> Path:
@@ -120,11 +144,17 @@ async def _assistant_on_a_model(client: httpx.AsyncClient) -> None:
 
 
 async def _turn(client: httpx.AsyncClient, runs: RunService, provider: FakeProvider) -> str:
-    """One turn with Assistant; the last request body holds what `list_functions` said."""
+    """One message to Assistant, routed to a worker: the request that holds what it listed."""
+    start = len(provider.requests)
     sent = await client.post(f"/api/conversations/{ASSISTANT_ID}/messages", json={"prompt": "hi"})
     assert sent.status_code == 202, sent.text
     await settle(runs, ASSISTANT_ID)
-    return provider.requests[-1].content.decode()
+    for _ in range(int(TIMEOUT * 10)):
+        listed = provider.listed_after(start)
+        if listed is not None:
+            return listed
+        await asyncio.sleep(0.1)
+    raise AssertionError("no worker listed the functions")
 
 
 async def _connected(client: httpx.AsyncClient, server_id: str) -> dict:

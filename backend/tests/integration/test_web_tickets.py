@@ -54,6 +54,8 @@ async def test_a_ticket_runs_in_the_background_and_its_result_wakes_the_bot(tmp_
             "ask": "text",
             "options": None,
             "secret_name": None,
+            "approval_call_id": None,
+            "approval_tool": None,
         }
     ]
     worker = await world.worker_logs.read(f"ticket-{ticket.id}")

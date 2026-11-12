@@ -50,6 +50,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
             ask: event.report.ask,
             options: event.report.options ?? [],
             secretName: event.report.secret_name,
+            approvalCallId: event.report.approval_call_id,
             latest: lastReports.get(event.report.ticket_id) === index,
           });
         }

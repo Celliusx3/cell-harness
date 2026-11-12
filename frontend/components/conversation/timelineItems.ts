@@ -116,6 +116,7 @@ export interface TicketQuestionItem {
   ask: TicketAsk;
   options: string[];
   secretName: string | null;
+  approvalCallId: string | null;
   latest: boolean;
 }
 
