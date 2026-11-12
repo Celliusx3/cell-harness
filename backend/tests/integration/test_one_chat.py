@@ -27,6 +27,7 @@ from tests.unit.telegram_fakes import telegram_channel
 from tests.webapp import (
     channels_of,
     saved_servers_in,
+    scheduler_in,
     secrets_in,
     web_gateway,
     web_mcp,
@@ -80,6 +81,7 @@ def build_on(tmp_path, model: LLMClient):
         bots,
         secrets_in(tmp_path),
         BotMessages(bots, runs, follow=gateway.follow),
+        scheduler_in(tmp_path, bots, runs, gateway),
     )
     http = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
     return bot, http, gateway, runs

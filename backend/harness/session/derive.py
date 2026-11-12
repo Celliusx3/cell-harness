@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC
 
 from harness.llm import Block, Message, Text, ToolMessage, UserMessage, images_of
 from harness.prompts import (
@@ -15,6 +17,7 @@ from harness.prompts import (
     IMAGE_NOT_SHOWN,
     NO_RESPONSE,
     PRUNED,
+    SCHEDULE_REMINDER,
     SPEAKER_TAG,
 )
 from harness.session.compaction import boundary, pruned_ids
@@ -26,6 +29,7 @@ from harness.session.models import (
     BotMessage,
     BotMessageEvent,
     BotMessageIntent,
+    ScheduleReminderEvent,
     SessionEvent,
     ToolResultEvent,
     TurnEnd,
@@ -143,8 +147,8 @@ def _as_heard(
             heard = ()
         if isinstance(event, UserMessageEvent):
             yield _person_message(event)
-        elif isinstance(event, BotMessageEvent):
-            yield _bot_message(event.message)
+        elif isinstance(event, (BotMessageEvent, ScheduleReminderEvent)):
+            yield _opening_message(event)
         elif isinstance(event, (ApplicationMessageEvent, AssistantMessageEvent, ToolResultEvent)):
             other = voices.other_speaker(event.turn)
             if other is None:
@@ -178,6 +182,20 @@ def _person_message(event: UserMessageEvent) -> UserMessage:
         for file in event.files
     )
     return UserMessage(content=f"{event.message.content}\n\n{lines}", images=event.message.images)
+
+
+def _opening_message(event: BotMessageEvent | ScheduleReminderEvent) -> UserMessage:
+    """A turn's opening that is not the person typing, as the bot hears it."""
+    if isinstance(event, BotMessageEvent):
+        return _bot_message(event.message)
+    reminder = event.reminder
+    return UserMessage(
+        content=SCHEDULE_REMINDER.format(
+            schedule_id_json=json.dumps(reminder.schedule_id, ensure_ascii=False),
+            occurrence_at=reminder.occurrence_at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            reminder_prompt_json=json.dumps(reminder.prompt, ensure_ascii=False),
+        )
+    )
 
 
 def _bot_message(message: BotMessage) -> UserMessage:

@@ -124,6 +124,7 @@ CONFIG: dict[str, Tool | NotATool] = {
     "skills": NotATool("where skills live; skill_save and skill_delete work in the editable one"),
     "approval": NotATool("what the model must ask before doing; it never edits its own list"),
     "bots": NotATool("where the bots are kept; moving it while running loses them"),
+    "schedules": NotATool("where the schedules are kept; moving it while running loses them"),
     "secrets": NotATool(
         "where keys are kept and the key that locks them; neither ever passes the model"
     ),

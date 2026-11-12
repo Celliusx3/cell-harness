@@ -95,6 +95,30 @@ class BotMessageEvent(BaseModel):
     message: BotMessage
 
 
+class ScheduleReminder(BaseModel):
+    """One occurrence of a schedule: which one, its title and instruction, and when it was due."""
+
+    model_config = ConfigDict(frozen=True)
+
+    schedule_id: str
+    title: str
+    prompt: str
+    occurrence_at: datetime
+
+
+class ScheduleReminderEvent(BaseModel):
+    """A schedule falling due in its bot's own chat, opening the turn that acts on it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["schedule/reminder"] = "schedule/reminder"
+    turn: int
+    reminder: ScheduleReminder
+
+
+HeardMessage = BotMessage | ScheduleReminder
+
+
 class ApplicationMessageEvent(BaseModel):
     """Context this process injected into the model-visible history."""
 
@@ -239,6 +263,7 @@ SessionEvent = (
     | StepEnd
     | UserMessageEvent
     | BotMessageEvent
+    | ScheduleReminderEvent
     | ApplicationMessageEvent
     | AssistantChunk
     | AssistantMessageEvent

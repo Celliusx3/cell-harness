@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -31,6 +33,7 @@ from harness.mcp import (
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
+from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -57,6 +60,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         sessions={"root": tmp_path / "sessions"},
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
+        schedules={"path": tmp_path / "schedules.json"},
         secrets={"path": tmp_path / "secrets.json", "encryption_key": TEST_ENCRYPTION_KEY},
         approval={"grants_path": tmp_path / "approvals.json"},
         skills={"roots": [tmp_path / "skills"], "editable": tmp_path / "skills"},
@@ -154,6 +158,15 @@ def web_gateway(
     return gateway, web
 
 
+def scheduler_in(
+    tmp_path: Path, bots: BotService, runs: RunService, gateway: ChannelGateway
+) -> Scheduler:
+    """A scheduler over schedules kept under `tmp_path`, its turns heard through `gateway`."""
+    now = functools.partial(datetime.now, UTC)
+    schedules = ScheduleService(ScheduleRepository(tmp_path / "schedules.json"), now=now)
+    return Scheduler(schedules, bots, runs, follow=gateway.follow, now=now)
+
+
 def no_platform_channel(platform: ChatPlatform, token: SecretStr) -> Channel:
     """Refused: an app under test never signs in to Telegram or Discord."""
     raise AssertionError(f"a test started a real {platform} channel")
@@ -227,6 +240,7 @@ def web_app(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
+        scheduler_in(tmp_path, bots, runs, gateway),
     )
 
 
@@ -257,6 +271,7 @@ def web_app_with_telegram(
         bots,
         secrets,
         BotMessages(bots, runs, follow=gateway.follow),
+        scheduler_in(tmp_path, bots, runs, gateway),
     )
     return app, gateway, bot
 

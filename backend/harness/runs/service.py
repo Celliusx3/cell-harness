@@ -15,7 +15,7 @@ from harness.runs.chain import discussion_events
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
 from harness.session.log import Session
-from harness.session.models import ApprovalModeChanged, BotMessage, ToolCallEvent
+from harness.session.models import ApprovalModeChanged, BotMessage, HeardMessage, ToolCallEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools import Approval, ApprovalMode, Failure, Ok
@@ -92,16 +92,17 @@ class RunService:
             session, self._runtime.run(prompt, session=session, bot_id=speaker.id, files=files)
         )
 
-    def hear(self, session: Session, message: BotMessage) -> Run:
-        """Begin the turn in which a bot's own chat answers another bot's message."""
+    def hear(self, session: Session, message: HeardMessage) -> Run:
+        """Begin the turn in which a bot's own chat answers a bot's message or a schedule."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        speaker = self._bots.first_speaker(session, message.text)
+        text = message.text if isinstance(message, BotMessage) else message.prompt
+        speaker = self._bots.first_speaker(session, text)
         return self._converse(
             session, self._runtime.hear(message, session=session, bot_id=speaker.id)
         )
 
-    async def hear_when_free(self, chat_id: str, message: BotMessage) -> Run:
+    async def hear_when_free(self, chat_id: str, message: HeardMessage) -> Run:
         """The turn `message` opens in `chat_id` once no run is in flight there."""
         while True:
             running = self._runs.get(chat_id)

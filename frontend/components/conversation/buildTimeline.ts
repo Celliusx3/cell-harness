@@ -32,6 +32,15 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         });
         break;
 
+      case "schedule/reminder":
+        draft.onUserMessage({
+          key: `u${index}`,
+          turn: event.turn,
+          content: event.reminder.prompt,
+          files: [],
+        });
+        break;
+
       case "application/message":
         draft.addNotice({
           key: `n${index}`,

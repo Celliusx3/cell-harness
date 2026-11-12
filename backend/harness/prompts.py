@@ -41,6 +41,14 @@ BOT_MESSAGE_RESULT = (
 BOT_WAITING_ON_USER = "{name} is waiting for the user to answer it in its own chat."
 BOT_DID_NOT_FINISH = "{name} stopped before it finished, and has no answer."
 
+SCHEDULE_REMINDER = (
+    "[SCHEDULE REMINDER]\n"
+    "This is a scheduled message from the user\n"
+    "schedule_id_json: {schedule_id_json}\n"
+    "occurrence_at: {occurrence_at}\n"
+    "reminder_prompt_json: {reminder_prompt_json}"
+)
+
 CODE_PROMPT = (
     "\n\nMost of your capabilities are not in your tool list yet. Discover them "
     "with `list_functions`, then read the ones you need with `get_function_details` — from then on "

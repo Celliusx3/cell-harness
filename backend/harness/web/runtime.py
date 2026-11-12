@@ -29,6 +29,7 @@ from harness.runtime.hooks.native.skill_list import SkillListHook
 from harness.runtime.service import Runtime
 from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
+from harness.schedules import ScheduleService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
@@ -55,6 +56,7 @@ from harness.tools.native.files import (
 from harness.tools.native.hand_over import HAND_OVER_TOOL
 from harness.tools.native.location import GET_LOCATION_TOOL
 from harness.tools.native.question import ASK_USER_TOOL
+from harness.tools.native.schedule import SCHEDULE_CREATE, schedule_create_tool
 from harness.tools.native.secrets import (
     ASK_FOR_SECRET_TOOL,
     FETCH_WITH_SECRET,
@@ -69,6 +71,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
+from harness.tools.service import Disposer
 from harness.web.bot_models import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")
@@ -85,6 +88,7 @@ DEFAULT_TOOLS = (
     *SKILL_WRITES,
     BOT_CREATE,
     MESSAGE_BOT,
+    SCHEDULE_CREATE,
     RUN_SUBAGENT,
     FETCH_WITH_SECRET,
     SEND_FILE,
@@ -101,6 +105,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         *SKILL_WRITES,
         BOT_CREATE,
         MESSAGE_BOT,
+        SCHEDULE_CREATE,
         RUN_SUBAGENT,
         FETCH_WITH_SECRET,
         SEND_FILE,
@@ -230,6 +235,13 @@ def attach_bot_messages(
     messages = BotMessages(bots, runs, follow=follow)
     tool_service.add_provider(lambda: [message_bot_tool(bots, messages)])
     return messages
+
+
+def attach_schedules(
+    tool_service: ToolService, bots: BotService, schedules: ScheduleService
+) -> Disposer:
+    """`schedule_create` offered from `tool_service`; the disposer takes it back."""
+    return tool_service.add_provider(lambda: [schedule_create_tool(bots, schedules)])
 
 
 def default_hooks(skills: SkillService) -> HookChain:

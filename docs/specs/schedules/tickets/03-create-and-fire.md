@@ -1,6 +1,6 @@
 # 03 — A schedule made in chat fires in the bot's chat
 
-**Status.** open
+**Status.** done
 
 **What to build.** The thinnest path, end to end.
 - `harness/schedules/`: `models.py` (`Schedule`: id, bot id, title, prompt,

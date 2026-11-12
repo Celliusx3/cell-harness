@@ -7,6 +7,7 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from fastapi import FastAPI
 
@@ -25,6 +26,7 @@ from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
+from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
@@ -49,7 +51,12 @@ from harness.web.routes.relay import build_router as build_relay_router
 from harness.web.routes.secret_card import build_router as build_secret_card_router
 from harness.web.routes.secrets import build_router as build_secrets_router
 from harness.web.routes.skills import build_router as build_skills_router
-from harness.web.runtime import CLIENT_TOOLS, attach_bot_messages, build_runtime
+from harness.web.runtime import (
+    CLIENT_TOOLS,
+    attach_bot_messages,
+    attach_schedules,
+    build_runtime,
+)
 
 
 def build_store(settings: Settings) -> SessionService:
@@ -167,6 +174,10 @@ def create_web_app() -> FastAPI:
     messages = attach_bot_messages(
         runtime.tools.tool_service, bots, runs, follow=channels.gateway.follow
     )
+    now = functools.partial(datetime.now, UTC)
+    schedules = ScheduleService(ScheduleRepository(settings.schedules.path), now=now)
+    attach_schedules(runtime.tools.tool_service, bots, schedules)
+    scheduler = Scheduler(schedules, bots, runs, follow=channels.gateway.follow, now=now)
     return create_app(
         runs,
         channels,
@@ -178,6 +189,7 @@ def create_web_app() -> FastAPI:
         bots,
         secrets,
         messages,
+        scheduler,
     )
 
 
@@ -192,6 +204,7 @@ def create_app(
     bots: BotService,
     secrets: SecretService,
     messages: BotMessages,
+    scheduler: Scheduler,
 ) -> FastAPI:
     """The HTTP surface, mounted from the channel that owns it."""
 
@@ -202,8 +215,10 @@ def create_app(
         await mcp.start()
         await channels.platforms.start_saved()
         await gateway.start()
+        scheduler.start()
         yield
         await gateway.aclose()
+        await scheduler.aclose()
         await messages.aclose()
         await runs.aclose()
         await mcp.aclose()

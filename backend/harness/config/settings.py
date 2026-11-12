@@ -22,6 +22,7 @@ from harness.config.sections import (
     FileSettings,
     LLMSettings,
     McpSettings,
+    ScheduleSettings,
     SecretSettings,
     SessionSettings,
     WebSettings,
@@ -95,6 +96,7 @@ class Settings(BaseSettings):
     skills: SkillSettings = Field(default_factory=SkillSettings)
     approval: ApprovalSettings = Field(default_factory=ApprovalSettings)
     bots: BotSettings = Field(default_factory=BotSettings)
+    schedules: ScheduleSettings = Field(default_factory=ScheduleSettings)
     secrets: SecretSettings = Field(default_factory=SecretSettings)
     files: FileSettings = Field(default_factory=FileSettings)
 

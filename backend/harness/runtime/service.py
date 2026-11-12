@@ -34,6 +34,8 @@ from harness.session.models import (
     ApprovalModeChanged,
     BotMessage,
     BotMessageEvent,
+    HeardMessage,
+    ScheduleReminderEvent,
     ServerInstructionsEvent,
     ToolResultEvent,
     TurnEnd,
@@ -122,12 +124,12 @@ class Runtime:
         return isinstance(choice, ModelChoice) and choice.vision
 
     async def hear(
-        self, message: BotMessage, *, session: Session, bot_id: str
+        self, message: HeardMessage, *, session: Session, bot_id: str
     ) -> AsyncIterator[TurnEvent]:
-        """A turn opened by another bot's message: its events as they happen, then one terminal."""
+        """A turn opened by a bot's message or a schedule: its events, then one terminal."""
         _skip_calls_walked_past(session)
         turn = self._open_turn(session, bot_id)
-        session.append(BotMessageEvent(turn=turn, message=message))
+        session.append(_opening_event(turn, message))
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
@@ -234,3 +236,10 @@ def _waiting_call(session: Session, call_id: str) -> ToolCall:
         if call.id == call_id:
             return call
     raise LookupError(f"no unanswered call {call_id!r}")
+
+
+def _opening_event(turn: int, message: HeardMessage) -> BotMessageEvent | ScheduleReminderEvent:
+    """The event that logs what opened turn `turn`."""
+    if isinstance(message, BotMessage):
+        return BotMessageEvent(turn=turn, message=message)
+    return ScheduleReminderEvent(turn=turn, reminder=message)
