@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 BotMessageIntent = Literal["request", "result"]
+ReportState = Literal["progress", "waiting", "ready", "blocked", "failed", "dropped"]
 
 
 class BotMessage(BaseModel):
@@ -67,13 +68,15 @@ class ScheduleReminderEvent(BaseModel):
 
 
 class TicketReport(BaseModel):
-    """How a ticket's worker ended: which ticket, its title, and the text its bot is told."""
+    """How a ticket's worker ended: which ticket, its title, its state, a summary, a question."""
 
     model_config = ConfigDict(frozen=True)
 
     ticket_id: str
     title: str
+    state: ReportState
     text: str
+    question: str | None
 
 
 class TicketReportEvent(BaseModel):

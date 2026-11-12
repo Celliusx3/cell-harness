@@ -1,11 +1,16 @@
-"""A ticket whose worker breaks, whose bot is gone, or whose server shuts down."""
+"""A ticket's state from its reports, and a ticket whose worker breaks or is shut down."""
 
 from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
 
-from harness.tickets import Ticket, TicketRepository, TicketService, WorkerEnd
+import pytest
+
+from harness.tickets.models import ReportState, Ticket, TicketState, ticket_state
+from harness.tickets.repository import TicketRepository
+from harness.tickets.service import TicketService
+from harness.tickets.worker import WorkerEnd
 from harness.tools import ApprovalMode
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, heard_nowhere, no_bots, run_service
@@ -62,3 +67,26 @@ async def test_shutting_down_cancels_a_running_worker_and_leaves_its_ticket_work
     await tickets.aclose()
 
     assert [t.state for t in tickets.of_bot("b")] == ["working"]
+
+
+@pytest.mark.parametrize(
+    ("state", "question", "expected"),
+    [
+        ("ready", None, "done"),
+        ("blocked", "Which one?", "needs_answer"),
+        ("waiting", "Which one?", "needs_answer"),
+        ("blocked", None, "blocked"),
+        ("waiting", None, "waiting"),
+        ("failed", None, "failed"),
+        ("dropped", None, "dropped"),
+    ],
+)
+def test_a_report_sets_its_tickets_state(
+    state: ReportState, question: str | None, expected: TicketState
+) -> None:
+    assert ticket_state(state, question) == expected
+
+
+def test_a_progress_report_never_sets_a_tickets_state() -> None:
+    with pytest.raises(ValueError):
+        ticket_state("progress", None)

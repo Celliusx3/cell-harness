@@ -3,24 +3,34 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Sequence
 from contextlib import aclosing
 from dataclasses import dataclass
 
 from harness.prompts import TICKET_DID_NOT_FINISH, WORKER_INTRO
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
-from harness.session.models import ApprovalModeChanged
+from harness.session.models import (
+    ApprovalModeChanged,
+    SessionEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    TurnStart,
+)
 from harness.session.service import SessionService
-from harness.tickets.models import Ticket, TicketState
+from harness.tickets.models import ReportState, Ticket
 from harness.tools.models.decision import ApprovalMode
+from harness.tools.native.tickets.models import TicketReportArgs
+from harness.tools.native.tickets.report import TICKET_REPORT
 
 
 @dataclass(frozen=True)
 class WorkerEnd:
-    """How a worker's turn ended: the ticket's state, and the text its bot is told."""
+    """How a worker's turn ended: the state reported, its summary, and any question it asks."""
 
-    state: TicketState
+    state: ReportState
     text: str
+    question: str | None
 
 
 @dataclass(frozen=True)
@@ -48,7 +58,7 @@ class Workers:
                     last = event
         finally:
             await self.sessions.flush(session)
-        return worker_end(last)
+        return worker_end(last, kept_report(session.events()))
 
 
 def worker_session_id(ticket_id: str) -> str:
@@ -56,8 +66,27 @@ def worker_session_id(ticket_id: str) -> str:
     return f"ticket-{ticket_id}"
 
 
-def worker_end(ending: TurnEvent | None) -> WorkerEnd:
-    """`done` with the final reply when the turn completed; `failed` however else it ended."""
-    if isinstance(ending, AgentCompleted):
-        return WorkerEnd(state="done", text=ending.text)
-    return WorkerEnd(state="failed", text=TICKET_DID_NOT_FINISH)
+def kept_report(events: Sequence[SessionEvent]) -> TicketReportArgs | None:
+    """The last report of the last turn that `ticket_report` accepted, `progress` skipped."""
+    asked: dict[str, str] = {}
+    kept: TicketReportArgs | None = None
+    for event in events:
+        if isinstance(event, TurnStart):
+            asked, kept = {}, None
+        elif isinstance(event, ToolCallEvent) and event.call.name == TICKET_REPORT:
+            asked = {**asked, event.call.id: event.call.arguments}
+        elif isinstance(event, ToolResultEvent) and event.error is None:
+            arguments = asked.get(event.message.tool_call_id)
+            report = None if arguments is None else TicketReportArgs.model_validate_json(arguments)
+            if report is not None and report.state != "progress":
+                kept = report
+    return kept
+
+
+def worker_end(ending: TurnEvent | None, kept: TicketReportArgs | None) -> WorkerEnd:
+    """The kept report when the turn completed, else `ready` with its reply; `failed` otherwise."""
+    if not isinstance(ending, AgentCompleted):
+        return WorkerEnd(state="failed", text=TICKET_DID_NOT_FINISH, question=None)
+    if kept is None:
+        return WorkerEnd(state="ready", text=ending.text, question=None)
+    return WorkerEnd(state=kept.state, text=kept.summary, question=kept.question)

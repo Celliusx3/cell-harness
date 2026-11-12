@@ -252,13 +252,18 @@ NOTHING_CAME_BACK = (
 
 WORKER_INTRO = (
     "You are a worker. The orchestrator gave you one ticket, titled {title}, to do on your "
-    "own in the background. Nobody reads your questions, so do not ask any. Do the ticket "
-    "with your tools, then reply with its result in a few sentences. That reply is all the "
-    "orchestrator receives."
+    "own in the background. You cannot talk to the user. Do the ticket with your tools. Then "
+    "call ticket_report once and end your turn. Use the state ready with the result, blocked "
+    "or failed with what stopped you, or dropped when there is nothing to do. When you need a "
+    "decision from the user, use the state blocked and put one concrete question in question. "
+    "Call ticket_report with the state progress only for a step worth recording."
 )
-TICKET_REPORT = (
-    '<ticket id="{ticket_id}" title="{title}">\n{text}\n</ticket>\n'
-    "This is the result of the ticket you started with ticket_accept. Tell the user what it "
-    "means for them, in a few sentences."
+TICKET_REPORT_HEARD = (
+    '<ticket id="{ticket_id}" title="{title}" state="{state}">\n{text}\n</ticket>\n'
+    "This is a report from the worker of a ticket you started with ticket_accept. Tell the "
+    "user what it means for them, in a few sentences."
+)
+TICKET_QUESTION_HEARD = (
+    "The worker asks the user this question. Ask it unchanged, in your own reply: {question}"
 )
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."

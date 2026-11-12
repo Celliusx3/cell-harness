@@ -7,7 +7,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-TicketState = Literal["working", "done", "failed"]
+from harness.session.heard import ReportState as ReportState
+
+TicketState = Literal["working", "waiting", "needs_answer", "blocked", "failed", "done", "dropped"]
 
 
 class Ticket(BaseModel):
@@ -21,6 +23,19 @@ class Ticket(BaseModel):
     task: str
     state: TicketState
     created_at: datetime
+
+
+def ticket_state(state: ReportState, question: str | None) -> TicketState:
+    """The state a ticket takes from its worker's report; `progress` never ends a turn."""
+    match state:
+        case "ready":
+            return "done"
+        case "blocked" | "waiting" if question is not None:
+            return "needs_answer"
+        case "progress":
+            raise ValueError("a progress report never ends a worker's turn")
+        case _:
+            return state
 
 
 class TicketsFile(BaseModel):

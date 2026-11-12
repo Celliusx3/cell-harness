@@ -15,10 +15,11 @@ from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tickets import TicketRepository, TicketService
+from harness.tickets.repository import TicketRepository
+from harness.tickets.service import TicketService
 from harness.tools import ToolService, Toolset
 from harness.tools.native.tickets import TICKET_ACCEPT
-from harness.web.runtime import attach_tickets
+from harness.web.tickets_wiring import attach_tickets
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
 from tests.unit.helpers import durable_service, heard_nowhere, no_approvals, no_images, no_skills

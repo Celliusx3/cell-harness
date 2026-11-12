@@ -14,7 +14,7 @@ from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.session.models import TicketReport
 from harness.session.repository import SessionNotFoundError
-from harness.tickets.models import Ticket, TicketsFile, TicketState
+from harness.tickets.models import Ticket, TicketsFile, TicketState, ticket_state
 from harness.tickets.repository import TicketRepository
 from harness.tickets.worker import WorkerEnd, worker_end
 from harness.tools.models.decision import ApprovalMode
@@ -81,8 +81,14 @@ class TicketService:
     async def _work(self, ticket: Ticket, mode: ApprovalMode) -> None:
         """Run `ticket`'s worker, keep how it ended, then tell the bot."""
         end = await self._run_worker(ticket, mode)
-        self._set_state(ticket.id, end.state)
-        report = TicketReport(ticket_id=ticket.id, title=ticket.title, text=end.text)
+        self._set_state(ticket.id, ticket_state(end.state, end.question))
+        report = TicketReport(
+            ticket_id=ticket.id,
+            title=ticket.title,
+            state=end.state,
+            text=end.text,
+            question=end.question,
+        )
         await self._deliver(ticket.bot_id, report)
 
     async def _run_worker(self, ticket: Ticket, mode: ApprovalMode) -> WorkerEnd:
@@ -91,7 +97,7 @@ class TicketService:
             return await self._worker(ticket, mode=mode)
         except Exception:
             logger.exception("the worker of ticket %s broke", ticket.id)
-            return worker_end(None)
+            return worker_end(None, None)
 
     def _set_state(self, ticket_id: str, state: TicketState) -> None:
         stored = self._repository.read()

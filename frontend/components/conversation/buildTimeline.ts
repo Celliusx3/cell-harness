@@ -36,7 +36,11 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         draft.onUserMessage({
           key: `u${index}`,
           turn: event.turn,
-          content: `Message from ${event.report.title}:\n\n${event.report.text}`,
+          content: [
+            `Message from ${event.report.title}:`,
+            event.report.text,
+            ...(event.report.question === null ? [] : [event.report.question]),
+          ].join("\n\n"),
           files: [],
         });
         break;

@@ -5,8 +5,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import logging
-from collections.abc import Callable
-from datetime import datetime
+from collections.abc import Sequence
 
 import httpx
 
@@ -36,7 +35,6 @@ from harness.schedules import ScheduleService
 from harness.secrets import SecretService
 from harness.session.service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tickets import TicketRepository, TicketService, Workers
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
@@ -84,7 +82,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
-from harness.tools.native.tickets import TICKET_ACCEPT, ticket_accept_tool
+from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_REPORT
 from harness.tools.service import Disposer
 
 logger = logging.getLogger("harness.web")
@@ -123,6 +121,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         *SCHEDULE_TOOLS,
         RUN_SUBAGENT,
         TICKET_ACCEPT,
+        TICKET_REPORT,
         FETCH_WITH_SECRET,
         SEND_FILE,
         EXTRACT_ARCHIVE,
@@ -232,14 +231,15 @@ def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
 def _register_run_subagent(
     tool_service: ToolService, runtime: Runtime, logs: SessionService
 ) -> None:
-    tool_service.register(run_subagent_tool(Subagents(helper_runtime(tool_service, runtime), logs)))
+    subagent = helper_runtime(tool_service, runtime, SUBAGENT_TOOLS)
+    tool_service.register(run_subagent_tool(Subagents(subagent, logs)))
 
 
-def helper_runtime(tool_service: ToolService, runtime: Runtime) -> Runtime:
-    """`runtime` as a subagent or a ticket's worker runs it: code mode and `skill`, nothing else."""
+def helper_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
+    """`runtime` as a subagent or a ticket's worker runs it: offered `tools`, nothing else."""
     return dataclasses.replace(
         runtime,
-        tools=Toolset(tool_service, SUBAGENT_TOOLS, sight_tools=SIGHT_TOOLS),
+        tools=Toolset(tool_service, tools, sight_tools=SIGHT_TOOLS),
         guidance=CODE_PROMPT,
     )
 
@@ -255,24 +255,6 @@ def attach_bot_messages(
     messages = BotMessages(bots, runs, follow=follow)
     tool_service.add_provider(lambda: [message_bot_tool(bots, messages)])
     return messages
-
-
-def attach_tickets(
-    tool_service: ToolService,
-    runtime: Runtime,
-    bots: BotService,
-    runs: RunService,
-    *,
-    logs: SessionService,
-    repository: TicketRepository,
-    follow: Follow,
-    now: Callable[[], datetime],
-) -> TicketService:
-    """`ticket_accept` offered from `tool_service`, its workers run by the service it returns."""
-    workers = Workers(helper_runtime(tool_service, runtime), logs)
-    tickets = TicketService(repository, bots, runs, worker=workers, follow=follow, now=now)
-    tool_service.add_provider(lambda: [ticket_accept_tool(tickets)])
-    return tickets
 
 
 def attach_schedules(

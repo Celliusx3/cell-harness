@@ -35,7 +35,13 @@ async def test_a_ticket_runs_in_the_background_and_its_result_wakes_the_bot(tmp_
     (ticket,) = world.tickets.of_bot(ASSISTANT_ID)
     assert (ticket.title, ticket.state) == ("Cheapest flights to Tokyo", "done")
     assert [e["report"] for e in of_type(log, "ticket/report")] == [
-        {"ticket_id": ticket.id, "title": ticket.title, "text": "Three flights found."}
+        {
+            "ticket_id": ticket.id,
+            "title": ticket.title,
+            "state": "ready",
+            "text": "Three flights found.",
+            "question": None,
+        }
     ]
     worker = await world.worker_logs.read(f"ticket-{ticket.id}")
     assert any(

@@ -47,7 +47,8 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.skills.controller import build_router as build_skills_router
-from harness.tickets import TicketRepository, TicketService
+from harness.tickets.repository import TicketRepository
+from harness.tickets.service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.approvals_controller import build_router as build_approvals_router
 from harness.tools.client import ClientToolService
@@ -57,9 +58,9 @@ from harness.web.runtime import (
     CLIENT_TOOLS,
     attach_bot_messages,
     attach_schedules,
-    attach_tickets,
     build_runtime,
 )
+from harness.web.tickets_wiring import attach_tickets
 
 
 def build_store(settings: Settings) -> SessionService:

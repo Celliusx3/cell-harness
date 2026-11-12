@@ -28,7 +28,10 @@ from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tickets import Ticket, TicketRepository, TicketService, WorkerEnd
+from harness.tickets.models import Ticket
+from harness.tickets.repository import TicketRepository
+from harness.tickets.service import TicketService
+from harness.tickets.worker import WorkerEnd
 from harness.tools import (
     ApprovalMode,
     ApprovalService,
