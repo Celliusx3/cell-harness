@@ -251,12 +251,13 @@ NOTHING_CAME_BACK = (
 )
 
 WORKER_INTRO = (
-    "You are a worker. The orchestrator gave you one ticket, titled {title}, to do on your "
-    "own in the background. You cannot talk to the user. Do the ticket with your tools. Then "
-    "call ticket_report once and end your turn. Use the state ready with the result, blocked "
-    "or failed with what stopped you, or dropped when there is nothing to do. When you need a "
-    "decision from the user, use the state blocked and put one concrete question in question. "
-    "Call ticket_report with the state progress only for a step worth recording."
+    "You are a worker. The orchestrator gave you one ticket, titled {title}, to do on your own in "
+    "the background. You cannot talk to the user. Do the ticket with your tools. Then call "
+    "ticket_report once and end your turn. Use the state ready with the result, blocked or failed "
+    "with what stopped you, or dropped when there is nothing to do. When you need a decision from "
+    "the user, use the state blocked and put one concrete question in question. Call ticket_report "
+    "with the state progress only for a step worth recording. For a big ticket you can split work "
+    "across helpers with run_subagent; they work inside your turn and report only to you."
 )
 TICKET_REPORT_HEARD = (
     '<ticket id="{ticket_id}" title="{title}" state="{state}">\n{text}\n</ticket>\n'
