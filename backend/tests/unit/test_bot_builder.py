@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import (
     BUILDER_ID,
     BUILDER_NAME,
@@ -32,7 +32,10 @@ def service(tmp_path: Path) -> SessionService:
 @pytest.fixture
 def bots(tmp_path: Path, service: SessionService) -> BotService:
     return BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=AppEvents()
+        tmp_path / "bots.json",
+        service,
+        assistant_instructions="Be kind.",
+        app_events=AppEventService(),
     )
 
 

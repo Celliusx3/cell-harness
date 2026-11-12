@@ -11,7 +11,7 @@ import pytest
 from fastapi import FastAPI
 from pydantic import SecretStr
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.platforms import PlatformChannels
@@ -118,7 +118,7 @@ def http(tmp_path: Path, keyring, gateway, started) -> httpx.AsyncClient:
         tmp_path / "bots.json",
         durable_service(tmp_path / "bots"),
         assistant_instructions="Hi.",
-        events=AppEvents(),
+        app_events=AppEventService(),
     )
     app = FastAPI()
     platforms = PlatformChannels(gateway, keyring, started)

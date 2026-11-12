@@ -8,7 +8,7 @@ import json
 import httpx
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import BotService
 from harness.llm import SystemMessage, UserMessage
 from harness.runs.service import RunService
@@ -31,14 +31,14 @@ async def _group(tmp_path, *scripts, extra=()):
     model = SteppedClient(*scripts)
     tools = client_tools()
     service = durable_service(tmp_path / "sessions")
-    app_events = AppEvents()
+    app_events = AppEventService()
     store = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", events=app_events
+        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", app_events=app_events
     )
     runtime = runtime_over(
         model, *tools.tools(), *extra, guidance="GUIDE", checkpoint=service.flush
     )
-    runs = RunService(service, runtime, store, events=app_events)
+    runs = RunService(service, runtime, store, app_events=app_events)
     secrets = a_model_saved_in(tmp_path)
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=store, client_tools=tools, secrets=secrets

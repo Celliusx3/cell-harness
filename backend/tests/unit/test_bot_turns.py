@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotEdit, BotService
 from harness.llm import (
     ApplicationMessage,
@@ -70,13 +70,13 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     tmp_path: Path,
 ) -> None:
     service = durable_service(tmp_path / "sessions")
-    app_events = AppEvents()
+    app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=app_events
+        tmp_path / "bots.json", service, assistant_instructions="Be kind.", app_events=app_events
     )
     client = ScriptedClient(completed("THE SUMMARY"))
     runtime = runtime_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
-    runs = RunService(service, runtime, bots, events=app_events)
+    runs = RunService(service, runtime, bots, app_events=app_events)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
     bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
@@ -89,16 +89,16 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
 
 async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path) -> None:
     service = durable_service(tmp_path / "sessions")
-    app_events = AppEvents()
+    app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=app_events
+        tmp_path / "bots.json", service, assistant_instructions="Be kind.", app_events=app_events
     )
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés"))
     runs = RunService(
         service,
         runtime_over(client, pending_tool(), checkpoint=service.flush),
         bots,
-        events=app_events,
+        app_events=app_events,
     )
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
@@ -114,12 +114,12 @@ async def test_a_chat_from_before_groups_logs_its_bot_s_instructions_no_second_t
     tmp_path: Path,
 ) -> None:
     service = durable_service(tmp_path / "sessions")
-    app_events = AppEvents()
+    app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", events=app_events
+        tmp_path / "bots.json", service, assistant_instructions="Be kind.", app_events=app_events
     )
     runs = RunService(
-        service, runtime_over(ScriptedClient(completed("Hi."))), bots, events=app_events
+        service, runtime_over(ScriptedClient(completed("Hi."))), bots, app_events=app_events
     )
     session = await service.create(ASSISTANT_ID)
     session.append(BotInstructionsEvent(name="Assistant", instructions="Be kind."))

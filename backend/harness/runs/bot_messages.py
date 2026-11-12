@@ -8,7 +8,8 @@ from collections.abc import Awaitable, Callable, Coroutine, Sequence
 
 from harness.bots import Bot, BotNotFound, BotService
 from harness.prompts import BOT_DID_NOT_FINISH, BOT_WAITING_ON_USER
-from harness.runs.service import Run, RunService, settled
+from harness.runs.run import Run, settled
+from harness.runs.service import RunService
 from harness.session.models import (
     AssistantMessageEvent,
     BotMessage,

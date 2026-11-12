@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from harness.app_events import AppEvents, BotsChanged
+from harness.app_events import AppEventService, BotsChangedAppEvent
 from harness.bots import _turn_order, ties
 from harness.bots.models import (
     ASSISTANT_ID,
@@ -40,11 +40,11 @@ class BotService:
         sessions: SessionService,
         *,
         assistant_instructions: str,
-        events: AppEvents,
+        app_events: AppEventService,
     ) -> None:
         self._path = path
         self._sessions = sessions
-        self._events = events
+        self._app_events = app_events
         self._built_ins = (
             Bot(id=ASSISTANT_ID, name=ASSISTANT_NAME, instructions=assistant_instructions),
             Bot(id=BUILDER_ID, name=BUILDER_NAME, instructions=BUILDER_INSTRUCTIONS),
@@ -263,7 +263,7 @@ class BotService:
         with os.fdopen(handle, "w", encoding="utf-8") as file:
             file.write(stored.model_dump_json(indent=2))
         os.replace(temp, self._path)
-        self._events.publish(BotsChanged())
+        self._app_events.publish(BotsChangedAppEvent())
 
     async def _log_instructions(self, session: Session, bot: Bot) -> None:
         session.append(_bot_instructions_event(bot))

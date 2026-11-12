@@ -1,9 +1,9 @@
-"""`AppEvents` puts what is published on every open subscriber's queue."""
+"""`AppEventService` puts what is published on every open subscriber's queue."""
 
 import asyncio
 from collections.abc import AsyncIterator
 
-from harness.app_events import AppEvent, AppEvents, BotsChanged, TurnStarted
+from harness.app_events import AppEvent, AppEventService, BotsChangedAppEvent, TurnStartedAppEvent
 
 TIMEOUT = 1.0
 
@@ -14,25 +14,25 @@ def read(subscriber: AsyncIterator[AppEvent]) -> asyncio.Task[AppEvent]:
 
 
 async def test_every_subscriber_receives_a_published_event():
-    events = AppEvents()
+    events = AppEventService()
     first, second = events.subscribe(), events.subscribe()
     reads = (read(first), read(second))
     await asyncio.sleep(0)
-    events.publish(TurnStarted(chat_id="c1"))
-    assert await asyncio.gather(*reads) == [TurnStarted(chat_id="c1")] * 2
+    events.publish(TurnStartedAppEvent(chat_id="c1"))
+    assert await asyncio.gather(*reads) == [TurnStartedAppEvent(chat_id="c1")] * 2
     await first.aclose()
     await second.aclose()
 
 
 async def test_a_subscriber_that_stops_reading_is_removed():
-    events = AppEvents()
+    events = AppEventService()
     leaving, staying = events.subscribe(), events.subscribe()
     reads = (read(leaving), read(staying))
     await asyncio.sleep(0)
-    events.publish(TurnStarted(chat_id="c1"))
+    events.publish(TurnStartedAppEvent(chat_id="c1"))
     await asyncio.gather(*reads)
     await leaving.aclose()
-    events.publish(BotsChanged())
-    assert await read(staying) == BotsChanged()
+    events.publish(BotsChangedAppEvent())
+    assert await read(staying) == BotsChangedAppEvent()
     assert len(events._queues) == 1
     await staying.aclose()

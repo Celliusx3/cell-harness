@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import BotService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.credentials_controller import build_router
@@ -42,7 +42,7 @@ def http(tmp_path: Path) -> httpx.AsyncClient:
         tmp_path / "bots.json",
         durable_service(tmp_path / "sessions"),
         assistant_instructions="Hi.",
-        events=AppEvents(),
+        app_events=AppEventService(),
     )
     app = FastAPI(exception_handlers=exception_handlers())
     app.include_router(build_router(secrets, bots, no_platforms(secrets)))

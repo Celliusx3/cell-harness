@@ -1,34 +1,15 @@
-"""The app-wide events, and the subscribers they are published to."""
+"""The app's publisher: every open subscriber's queue, and what is published into them."""
 
 from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
-from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
-
-
-class TurnStarted(BaseModel):
-    """A turn began in this chat."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    type: Literal["chat/turn-started"] = "chat/turn-started"
-    chat_id: str
+from harness.app_events.models import AppEvent
 
 
-class BotsChanged(BaseModel):
-    """The bots or groups were written."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-    type: Literal["bots/changed"] = "bots/changed"
-
-
-AppEvent = TurnStarted | BotsChanged
-
-
-class AppEvents:
-    """The app's publisher: every open subscriber's queue, and what is published into them."""
+class AppEventService:
+    """Publishes each app event to every open subscriber."""
 
     def __init__(self) -> None:
         self._queues: tuple[asyncio.Queue[AppEvent], ...] = ()

@@ -11,7 +11,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from pydantic import SecretStr
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, Bot, BotEdit, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
@@ -117,7 +117,7 @@ def bots_in(tmp_path: Path, service: SessionService) -> BotService:
         tmp_path / "bots.json",
         service,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
-        events=AppEvents(),
+        app_events=AppEventService(),
     )
 
 

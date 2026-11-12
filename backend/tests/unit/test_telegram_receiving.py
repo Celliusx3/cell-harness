@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
@@ -47,7 +47,7 @@ def build(tmp_path, *, skills: SkillService):
         checkpoint=sessions.flush,
     )
     bots = no_bots(sessions)
-    runs = RunService(sessions, runtime, bots, events=AppEvents())
+    runs = RunService(sessions, runtime, bots, app_events=AppEventService())
     chats = JsonlChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url="http://t")
     links = ChatLinks(chats, LinkCodes(time.monotonic), bots)

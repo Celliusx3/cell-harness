@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotService
 from harness.llm import StreamEvent
 from harness.runs.bot_messages import BotMessages
@@ -98,9 +98,12 @@ def messaging_app(
     """Assistant and the bots a test makes, each answered from `scripts`."""
     model = PerBotClient(scripts)
     service = durable_service(tmp_path / "sessions")
-    app_events = AppEvents()
+    app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions=ASSISTANT_START, events=app_events
+        tmp_path / "bots.json",
+        service,
+        assistant_instructions=ASSISTANT_START,
+        app_events=app_events,
     )
     tool_service = ToolService(tools, approvals=no_approvals())
     offered = (MESSAGE_BOT, *(tool.name for tool in tools))
@@ -111,7 +114,7 @@ def messaging_app(
         guidance="GUIDE",
         checkpoint=service.flush,
     )
-    runs = RunService(service, runtime, bots, events=app_events)
+    runs = RunService(service, runtime, bots, app_events=app_events)
     messages = attach_bot_messages(tool_service, bots, runs, follow=heard_nowhere)
     secrets = a_model_saved_in(tmp_path)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)

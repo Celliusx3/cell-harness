@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotService
 from harness.bots.model_choice import CredentialModels, ModelEndpoint
 from harness.config.sections import LLMSettings
@@ -162,7 +162,10 @@ def keyring(tmp_path: Path) -> SecretService:
 def bots(tmp_path: Path) -> BotService:
     sessions = durable_service(tmp_path / "s")
     return BotService(
-        tmp_path / "bots.json", sessions, assistant_instructions="Be kind.", events=AppEvents()
+        tmp_path / "bots.json",
+        sessions,
+        assistant_instructions="Be kind.",
+        app_events=AppEventService(),
     )
 
 

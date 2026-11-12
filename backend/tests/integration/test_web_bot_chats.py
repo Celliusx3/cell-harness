@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from harness.app_events import AppEvents
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotService
 from harness.llm import UserMessage
 from harness.session.models import UserMessageEvent
@@ -29,7 +29,10 @@ ROUTES = (
 async def chats(tmp_path):
     service, runs = build(tmp_path, ScriptedClient(completed("hello")))
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", events=AppEvents()
+        tmp_path / "bots.json",
+        service,
+        assistant_instructions="ASSISTANT",
+        app_events=AppEventService(),
     )
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots)
     transport = httpx.ASGITransport(app=app)
