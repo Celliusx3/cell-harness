@@ -12,7 +12,7 @@ from harness.bots import BotNotFound, BotService
 from harness.runs.bot_messages import Follow
 from harness.runs.service import RunService, settled
 from harness.schedules.models import Schedule
-from harness.schedules.service import Now, ScheduleService
+from harness.schedules.service import Now, ScheduleNotFound, ScheduleService
 from harness.schedules.timing import latest_at_or_before
 from harness.session.models import ScheduleReminder, ScheduleReminders
 from harness.session.repository import SessionNotFoundError
@@ -133,7 +133,10 @@ class Scheduler:
         try:
             await self._deliver_in(chat_id, heard, record)
         except Exception:
-            logger.exception("delivering schedules into chat %s raised", chat_id)
+            logger.exception("delivering schedules into chat %s raised; paused them", chat_id)
+            for reminder in heard.reminders:
+                with contextlib.suppress(ScheduleNotFound):
+                    self._schedules.pause(reminder.schedule_id)
         finally:
             self._chats_in_flight.discard(chat_id)
             self._schedules.changed.set()
