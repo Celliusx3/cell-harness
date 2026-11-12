@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel, ValidationError
 
-from harness.web.errors import STATUS_OF
+from harness.web.http.errors import STATUS_OF
 
 LOOPBACK_ADDRESSES = frozenset({"127.0.0.1", "::1"})
 LOOPBACK_HOSTNAMES = frozenset({"localhost", "127.0.0.1", "::1"})

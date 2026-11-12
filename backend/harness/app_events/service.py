@@ -1,4 +1,4 @@
-"""What happened in the app outside any one chat's log, and who is listening for it."""
+"""The app-wide events, and the subscribers they are published to."""
 
 from __future__ import annotations
 

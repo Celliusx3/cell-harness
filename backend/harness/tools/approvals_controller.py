@@ -5,19 +5,11 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Response, status
-from pydantic import BaseModel, ConfigDict
 
 from harness.tools import ApprovalService
+from harness.tools.approvals_schemas import ApprovedTools
 
 logger = logging.getLogger(__name__)
-
-
-class ApprovedTools(BaseModel):
-    """Every tool the person has allowed always."""
-
-    model_config = ConfigDict(frozen=True)
-
-    tools: list[str]
 
 
 def build_router(approvals: ApprovalService) -> APIRouter:

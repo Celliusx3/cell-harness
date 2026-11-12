@@ -5,22 +5,14 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException, Response, status
-from pydantic import BaseModel, ConfigDict
 
 from harness.bots import Bot, BotDraft, BotEdit, BotService
+from harness.bots.schemas import AllowedSecrets
 from harness.runs.service import RunService
 from harness.schedules import ScheduleService
 from harness.secrets import SecretName, SecretNotFound, SecretService
 
 logger = logging.getLogger(__name__)
-
-
-class AllowedSecrets(BaseModel):
-    """The names of the saved keys a bot may use, replacing the list it had."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    names: tuple[str, ...]
 
 
 def _refuse_an_unsaved_model(secrets: SecretService, name: SecretName | None) -> None:

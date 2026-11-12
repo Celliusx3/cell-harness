@@ -11,10 +11,10 @@ import httpx
 from fastapi import FastAPI
 
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServer, SavedServerService
+from harness.mcp.controller import build_router as build_mcp_router
+from harness.mcp.servers_controller import build_router
 from harness.relay import RelayService
-from harness.web.errors import exception_handlers
-from harness.web.routes.mcp import build_router as build_mcp_router
-from harness.web.routes.mcp_servers import build_router
+from harness.web.http.errors import exception_handlers
 from tests.unit.mcp_fakes import FakeFactory, tool
 
 PAGE = "http://127.0.0.1:4887"

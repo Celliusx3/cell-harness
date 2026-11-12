@@ -11,8 +11,8 @@ from fastapi import FastAPI
 from harness.app_events import AppEvents
 from harness.bots import BotService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.web.errors import exception_handlers
-from harness.web.routes.credentials import build_router
+from harness.secrets.credentials_controller import build_router
+from harness.web.http.errors import exception_handlers
 from tests.unit.helpers import durable_service
 from tests.webapp import no_platforms
 

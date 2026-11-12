@@ -12,10 +12,10 @@ from pydantic import SecretStr
 from harness.app_events import AppEvents
 from harness.bots import BotDraft, BotService
 from harness.secrets import Destination, DiskSecretRepository, SecretService
+from harness.secrets.credentials_controller import build_router
 from harness.secrets.models.details import ModelDetails, TelegramDetails
 from harness.secrets.models.sealed import SealedSecret
 from harness.secrets.sealing import sealed
-from harness.web.routes.credentials import build_router
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL, no_platforms
 

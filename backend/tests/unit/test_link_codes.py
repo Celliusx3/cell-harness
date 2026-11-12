@@ -14,6 +14,7 @@ from pydantic import SecretStr
 from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotDraft, BotService
 from harness.channels.gateway import ChannelGateway
+from harness.channels.link_codes_controller import build_router
 from harness.channels.links import LINK_CODE_SECONDS, ChatLinks, LinkCodes
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -21,7 +22,6 @@ from harness.channels.repository import ChatState
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.models.details import TelegramDetails
 from harness.session.models import UserMessageEvent
-from harness.web.routes.link_codes import build_router
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.webapp import MODEL_CREDENTIAL

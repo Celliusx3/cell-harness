@@ -12,6 +12,7 @@ import pytest
 
 from harness.app_events import AppEvents
 from harness.bots import ASSISTANT_ID, BotService
+from harness.bots.model_choice import CredentialModels, ModelEndpoint
 from harness.config.sections import CompactionSettings, LLMSettings
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
@@ -20,7 +21,6 @@ from harness.runtime.service import Runtime
 from harness.runtime.subagents import Subagents
 from harness.tools import ToolService, Toolset
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
-from harness.web.bot_models import CredentialModels, ModelEndpoint
 from harness.web.runtime import context_window
 from tests.integration.test_web_no_model import PAGE, no_image
 from tests.integration.web_helpers import settle

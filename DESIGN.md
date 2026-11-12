@@ -108,7 +108,7 @@ cell_harness/
   mcp/          store.py tool.py repository.py web/   command-loop connections
   runs/         store.py subscribe.py heartbeat.py    outlive-the-connection
   compose/      composition.py config.py     the typed composition root
-  web/          server.py            (the HTTP surface is channels/web/)
+  web/          server.py            (each feature's routes sit beside its service)
 ```
 
 ## 4. Core contracts

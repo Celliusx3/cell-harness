@@ -7,7 +7,6 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
-from pydantic import BaseModel, ConfigDict
 
 from harness.mcp import (
     McpServerNotFound,
@@ -18,8 +17,8 @@ from harness.mcp import (
     ServerDraft,
 )
 from harness.mcp.keys import missing_keys
-from harness.mcp.models.status import Status
-from harness.web.this_mac import (
+from harness.mcp.servers_schemas import KeyState, ServerEntries, ServerEntry
+from harness.web.http.this_mac import (
     cors_headers,
     parsed_body,
     permitted_write_headers,
@@ -29,37 +28,6 @@ from harness.web.this_mac import (
 logger = logging.getLogger("harness.mcp")
 
 REFUSED = (McpServerNotFound, McpServerTaken)
-
-
-class KeyState(BaseModel):
-    """A key a server needs, by name, and whether its value is saved; never the value."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    name: str
-    is_set: bool
-
-
-class ServerEntry(BaseModel):
-    """One server as the screen lists it: how it runs, its keys, and its state."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    id: str
-    command: str
-    args: tuple[str, ...]
-    env: dict[str, str]
-    keys: tuple[KeyState, ...]
-    status: Status
-    error: str
-
-
-class ServerEntries(BaseModel):
-    """Every server, in the order each was added."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    servers: tuple[ServerEntry, ...]
 
 
 def build_router(mcp: McpService, saved: SavedServerService) -> APIRouter:

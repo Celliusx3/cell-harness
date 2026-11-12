@@ -12,46 +12,46 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 
 from harness.app_events import AppEvents
+from harness.app_events.controller import build_router as build_app_events_router
 from harness.bots import BotService
+from harness.bots.controller import build_router as build_bots_router
+from harness.bots.groups_controller import build_router as build_groups_router
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
+from harness.channels.link_codes_controller import build_router as build_link_codes_router
 from harness.channels.links import ChatLinks, LinkCodes
+from harness.channels.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
+from harness.channels.web.client_controller import build_router as build_client_router
+from harness.channels.web.compact_controller import build_router as build_compact_router
+from harness.channels.web.secret_card_controller import build_router as build_secret_card_router
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
+from harness.mcp.controller import build_router as build_mcp_router
+from harness.mcp.servers_controller import build_router as build_mcp_servers_router
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
+from harness.relay.controller import build_router as build_relay_router
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
+from harness.schedules.controller import build_router as build_schedules_router
 from harness.secrets import DiskSecretRepository, SecretService
+from harness.secrets.controller import build_router as build_secrets_router
+from harness.secrets.credential_effects import CredentialEffects
+from harness.secrets.credentials_controller import build_router as build_credentials_router
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
+from harness.skills.controller import build_router as build_skills_router
 from harness.tools import ApprovalService
+from harness.tools.approvals_controller import build_router as build_approvals_router
 from harness.tools.client import ClientToolService
-from harness.web.credential_effects import CredentialEffects
-from harness.web.errors import exception_handlers
-from harness.web.logs import configure_logging
-from harness.web.platforms import PlatformChannels, PlatformChats, platform_channel
-from harness.web.routes.app_events import build_router as build_app_events_router
-from harness.web.routes.approvals import build_router as build_approvals_router
-from harness.web.routes.bots import build_router as build_bots_router
-from harness.web.routes.client import build_router as build_client_router
-from harness.web.routes.compact import build_router as build_compact_router
-from harness.web.routes.credentials import build_router as build_credentials_router
-from harness.web.routes.groups import build_router as build_groups_router
-from harness.web.routes.link_codes import build_router as build_link_codes_router
-from harness.web.routes.mcp import build_router as build_mcp_router
-from harness.web.routes.mcp_servers import build_router as build_mcp_servers_router
-from harness.web.routes.relay import build_router as build_relay_router
-from harness.web.routes.schedules import build_router as build_schedules_router
-from harness.web.routes.secret_card import build_router as build_secret_card_router
-from harness.web.routes.secrets import build_router as build_secrets_router
-from harness.web.routes.skills import build_router as build_skills_router
+from harness.web.http.errors import exception_handlers
+from harness.web.http.logs import configure_logging
 from harness.web.runtime import (
     CLIENT_TOOLS,
     attach_bot_messages,

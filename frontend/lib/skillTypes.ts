@@ -1,4 +1,4 @@
-/** The skill wire types, mirroring `backend/harness/web/routes/skills.py`. */
+/** The skill wire types, mirroring `backend/harness/skills/schemas.py`. */
 
 export interface SkillSummary {
   name: string;
