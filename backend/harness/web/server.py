@@ -242,6 +242,7 @@ def create_app(
         await channels.platforms.start_saved()
         await gateway.start()
         scheduler.start()
+        tickets.recover()
         yield
         await gateway.aclose()
         await scheduler.aclose()

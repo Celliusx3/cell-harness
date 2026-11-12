@@ -11,7 +11,7 @@ from typing import Protocol
 
 from harness.app_events import TicketsChangedAppEvent
 from harness.bots import BotNotFound, BotService
-from harness.prompts import TICKET_ANSWER_HEARD, TICKET_RETRY_HEARD
+from harness.prompts import TICKET_ANSWER_HEARD, TICKET_RECOVERY_HEARD, TICKET_RETRY_HEARD
 from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.session.models import SessionEvent, TicketReport
@@ -113,11 +113,23 @@ class TicketService:
             task=task,
             state="working",
             created_at=self._now(),
+            mode=mode,
         )
         stored = self._repository.read()
         self._save(TicketsFile(tickets=(*stored.tickets, ticket)))
-        self._start(ticket, lambda: self._worker.start(ticket, mode=mode), answer=False)
+        self._start_first(ticket)
         return ticket
+
+    def recover(self) -> None:
+        """After a restart, resume each working ticket with a note and start each queued one."""
+        for ticket in sorted(self._repository.read().tickets, key=lambda t: t.created_at):
+            if ticket.state == "working":
+                self._tell(ticket.id, TICKET_RECOVERY_HEARD, answer=False)
+            elif ticket.state == "queued":
+                self._start_first(ticket)
+
+    def _start_first(self, ticket: Ticket) -> None:
+        self._start(ticket, lambda: self._worker.start(ticket, mode=ticket.mode), answer=False)
 
     def answer(self, ticket_id: str, text: str) -> None:
         """Send the person's answer to the ticket's question; `TicketNotAsking` if it asks none."""

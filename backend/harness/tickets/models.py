@@ -5,9 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from harness.session.heard import ReportState as ReportState
+from harness.tools.models.decision import ApprovalMode
 
 TicketState = Literal[
     "queued",
@@ -43,7 +44,7 @@ class TicketStopped(RuntimeError):
 
 
 class Ticket(BaseModel):
-    """One task a bot handed to a worker: whose, its title and task, and how far it has got."""
+    """One task a bot handed to a worker: whose, its title and task, its state, and its mode."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -53,6 +54,9 @@ class Ticket(BaseModel):
     task: str
     state: TicketState
     created_at: datetime
+    mode: ApprovalMode = Field(
+        default="ask", description="The chat's mode at accept; tickets saved before it ask."
+    )
 
 
 def ticket_state(state: ReportState, question: str | None) -> TicketState:
