@@ -120,6 +120,16 @@ export interface TicketQuestionItem {
   latest: boolean;
 }
 
+/** A worker's result in its ticket's ready report, shown whole in the bot's chat. */
+export interface TicketResultItem {
+  kind: "ticketResult";
+  key: string;
+  turn: number;
+  ticketId: string;
+  title: string;
+  text: string;
+}
+
 export type TimelineItem =
   | UserItem
   | ScheduledItem
@@ -130,7 +140,8 @@ export type TimelineItem =
   | InstructionsItem
   | ModeItem
   | ScheduleChangeItem
-  | TicketQuestionItem;
+  | TicketQuestionItem
+  | TicketResultItem;
 
 export interface Timeline {
   items: TimelineItem[];

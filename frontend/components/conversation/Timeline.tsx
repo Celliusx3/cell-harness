@@ -20,6 +20,7 @@ import { ScheduleChangeLine } from "@/components/conversation/ScheduleChangeLine
 import { ScheduledBubble } from "@/components/conversation/ScheduledBubble";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import { acceptedTickets, TicketCards } from "@/components/conversation/TicketCard";
+import { TicketResult } from "@/components/conversation/TicketResult";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import type { ApprovalMode } from "@/lib/types";
 import { ToolCard } from "@/components/conversation/ToolCard";
@@ -167,6 +168,8 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
       return <ScheduleChangeLine change={item.change} />;
     case "ticketQuestion":
       return <TicketQuestionPanel item={item} />;
+    case "ticketResult":
+      return <TicketResult item={item} />;
   }
 }
 
