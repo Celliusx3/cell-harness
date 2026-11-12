@@ -34,12 +34,23 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         break;
 
       case "ticket/report":
-        draft.addNotice({
-          key: `r${index}`,
-          turn: event.turn,
-          tone: "note",
-          text: `${event.report.title}: ${event.report.state}`,
-        });
+        if (event.report.state === "ready") {
+          draft.onTicketResult({
+            kind: "ticketResult",
+            key: `r${index}`,
+            turn: event.turn,
+            ticketId: event.report.ticket_id,
+            title: event.report.title,
+            text: event.report.text,
+          });
+        } else {
+          draft.addNotice({
+            key: `r${index}`,
+            turn: event.turn,
+            tone: "note",
+            text: `${event.report.title}: ${event.report.state}`,
+          });
+        }
         if (event.report.question !== null) {
           draft.onTicketQuestion({
             kind: "ticketQuestion",
