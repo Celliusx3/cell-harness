@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import time
+import uuid
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import aclosing
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -229,8 +231,21 @@ async def heard_nowhere(_run: Run) -> None:
     """A `follow` for an app with no chat app to hear a turn it did not start."""
 
 
-async def no_worker(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
-    """A ticket's worker for an app that offers no `ticket_accept`: it never runs."""
+@dataclass(frozen=True)
+class FirstTurnOnly:
+    """A ticket's worker that runs each first turn with `first`, and never a next one."""
+
+    first: Callable[[Ticket], Awaitable[WorkerEnd]]
+
+    async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+        return await self.first(ticket)
+
+    async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:
+        raise AssertionError(f"a test resumed ticket {ticket.id} without a worker")
+
+
+async def no_worker(ticket: Ticket) -> WorkerEnd:
+    """A ticket's first turn for an app that offers no `ticket_accept`: it never runs."""
     raise AssertionError(f"a test started ticket {ticket.id} without a worker")
 
 
@@ -240,10 +255,11 @@ def no_tickets(tmp_path: Path, bots: BotService, runs: RunService) -> TicketServ
         TicketRepository(tmp_path / "tickets.json"),
         bots,
         runs,
-        worker=no_worker,
+        worker=FirstTurnOnly(no_worker),
         logs=SessionService(JsonlSessionRepository(tmp_path / "workers")),
         follow=heard_nowhere,
         now=lambda: datetime.now(UTC),
+        ids=lambda: uuid.uuid4().hex,
     )
 
 

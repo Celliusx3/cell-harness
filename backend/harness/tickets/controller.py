@@ -1,11 +1,11 @@
-"""A bot's tickets, and one ticket with its worker's steps, read by polling."""
+"""A bot's tickets, one ticket with its worker's steps read by polling, and its answer box."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from harness.tickets.models import Ticket
-from harness.tickets.schemas import TicketDetail, TicketRow
+from harness.tickets.schemas import TicketAnswer, TicketDetail, TicketRow
 from harness.tickets.service import TicketService
 from harness.utc import utc_text
 
@@ -36,5 +36,12 @@ def build_router(tickets: TicketService) -> APIRouter:
             events=list(await tickets.worker_events(ticket_id)),
             running=tickets.is_running(ticket_id),
         )
+
+    @router.post(
+        "/{ticket_id}/answer", status_code=status.HTTP_202_ACCEPTED, response_model=TicketRow
+    )
+    async def answer_ticket(ticket_id: str, body: TicketAnswer) -> TicketRow:
+        tickets.answer(ticket_id, body.text)
+        return _row(tickets.get(ticket_id))
 
     return router

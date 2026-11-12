@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { getTicket, type TicketDetail } from "@/lib/tickets";
 
 const POLL_MS = 1000;
+const WAITING_POLL_MS = 5000;
+const ENDED: ReadonlySet<string> = new Set(["done", "failed", "dropped"]);
 
 export type TicketLoad =
   | { kind: "loading" }
@@ -24,7 +26,8 @@ export function useTicket(id: string | null): TicketLoad {
         const detail = await getTicket(id);
         if (stopped) return;
         setLoad({ kind: "found", detail });
-        if (detail.running || detail.ticket.state === "working") timer = setTimeout(poll, POLL_MS);
+        const wait = nextPollMs(detail);
+        if (wait !== null) timer = setTimeout(poll, wait);
       } catch (error) {
         if (!stopped) setLoad({ kind: "failed", message: messageOf(error) });
       }
@@ -37,6 +40,12 @@ export function useTicket(id: string | null): TicketLoad {
   }, [id]);
 
   return load;
+}
+
+/** How long until the next read: soon while it works, slower while it waits, never once it ended. */
+function nextPollMs(detail: TicketDetail): number | null {
+  if (detail.running || detail.ticket.state === "working") return POLL_MS;
+  return ENDED.has(detail.ticket.state) ? null : WAITING_POLL_MS;
 }
 
 function messageOf(error: unknown): string {

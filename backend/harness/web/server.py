@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import time
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -193,6 +194,7 @@ def create_web_app() -> FastAPI:
         repository=TicketRepository(settings.tickets.path),
         follow=channels.gateway.follow,
         now=now,
+        ids=lambda: uuid.uuid4().hex,
     )
     schedules = ScheduleService(ScheduleRepository(settings.schedules.path), now=now)
     attach_schedules(runtime.tools.tool_service, bots, schedules)

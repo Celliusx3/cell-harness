@@ -11,9 +11,14 @@ from harness.tickets.models import ReportState, Ticket, TicketState, ticket_stat
 from harness.tickets.repository import TicketRepository
 from harness.tickets.service import TicketService
 from harness.tickets.worker import WorkerEnd
-from harness.tools import ApprovalMode
 from tests.unit.fakes import ScriptedClient
-from tests.unit.helpers import durable_service, heard_nowhere, no_bots, run_service
+from tests.unit.helpers import (
+    FirstTurnOnly,
+    durable_service,
+    heard_nowhere,
+    no_bots,
+    run_service,
+)
 
 
 def tickets_on(tmp_path, worker) -> TicketService:
@@ -23,10 +28,11 @@ def tickets_on(tmp_path, worker) -> TicketService:
         TicketRepository(tmp_path / "tickets.json"),
         bots,
         run_service(service, ScriptedClient([]), bots=bots),
-        worker=worker,
+        worker=FirstTurnOnly(worker),
         logs=service,
         follow=heard_nowhere,
         now=lambda: datetime(2026, 1, 1, tzinfo=UTC),
+        ids=lambda: "t1",
     )
 
 
@@ -42,7 +48,7 @@ async def until_ended(tickets: TicketService, bot_id: str) -> Ticket:
 async def test_a_worker_that_breaks_fails_its_ticket_and_a_gone_bot_hears_nothing(
     tmp_path,
 ) -> None:
-    async def broken(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+    async def broken(ticket: Ticket) -> WorkerEnd:
         raise RuntimeError("kaboom")
 
     tickets = tickets_on(tmp_path, broken)
@@ -57,7 +63,7 @@ async def test_shutting_down_cancels_a_running_worker_and_leaves_its_ticket_work
 ) -> None:
     started = asyncio.Event()
 
-    async def hangs(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+    async def hangs(ticket: Ticket) -> WorkerEnd:
         started.set()
         await asyncio.Event().wait()
         raise AssertionError("unreachable")
@@ -94,7 +100,7 @@ def test_a_progress_report_never_sets_a_tickets_state() -> None:
 
 
 async def test_a_worker_that_has_written_nothing_has_no_steps(tmp_path) -> None:
-    async def hangs(ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+    async def hangs(ticket: Ticket) -> WorkerEnd:
         await asyncio.Event().wait()
         raise AssertionError("unreachable")
 

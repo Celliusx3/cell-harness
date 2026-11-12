@@ -23,7 +23,7 @@ from harness.skills import SKILL
 from harness.tools import Ok, ToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
-from harness.tools.native.tickets import TICKET_ACCEPT
+from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_NOTE
 from harness.web import runtime as composition
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, SCHEDULE_TOOLS, build_runtime
 from tests.unit.helpers import (
@@ -37,7 +37,7 @@ from tests.unit.helpers import (
 )
 from tests.webapp import files_in, images_in, secrets_in
 
-ATTACHED_LATER = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE, TICKET_ACCEPT)
+ATTACHED_LATER = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE, TICKET_ACCEPT, TICKET_NOTE)
 WITHOUT_SKILLS = [name for name in DEFAULT_TOOLS if name not in (SKILL, *ATTACHED_LATER)]
 
 

@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { ApprovalRecord } from "@/components/answer/ApprovalPanel";
+import { TicketQuestionPanel } from "@/components/answer/TicketQuestionPanel";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import { Activity } from "@/components/conversation/Activity";
 import { BotBlock } from "@/components/conversation/BotBlock";
@@ -163,6 +164,8 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
       );
     case "scheduleChange":
       return <ScheduleChangeLine change={item.change} />;
+    case "ticketQuestion":
+      return <TicketQuestionPanel item={item} />;
   }
 }
 

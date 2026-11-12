@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import functools
+import itertools
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -18,7 +20,7 @@ from harness.session.service import SessionService
 from harness.tickets.repository import TicketRepository
 from harness.tickets.service import TicketService
 from harness.tools import ToolService, Toolset
-from harness.tools.native.tickets import TICKET_ACCEPT
+from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_NOTE
 from harness.web.tickets_wiring import attach_tickets
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
@@ -53,7 +55,7 @@ def ticketing_app(tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]
     runtime = Runtime(
         models=OneModel(model),
         images=no_images(),
-        tools=Toolset(tool_service, (TICKET_ACCEPT,), sight_tools=frozenset()),
+        tools=Toolset(tool_service, (TICKET_ACCEPT, TICKET_NOTE), sight_tools=frozenset()),
         guidance="GUIDE",
         checkpoint=service.flush,
     )
@@ -68,6 +70,7 @@ def ticketing_app(tmp_path, scripts: Mapping[str, Sequence[Sequence[StreamEvent]
         repository=TicketRepository(tmp_path / "tickets.json"),
         follow=heard_nowhere,
         now=lambda: datetime.now(UTC),
+        ids=functools.partial(next, (f"t{n}" for n in itertools.count(1))),
     )
     secrets = a_model_saved_in(tmp_path)
     app = web_app(

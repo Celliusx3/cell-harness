@@ -105,6 +105,16 @@ export interface ScheduleChangeItem {
   change: ScheduleChange;
 }
 
+/** A worker's question in its ticket's report; `latest` when no later report of it follows. */
+export interface TicketQuestionItem {
+  kind: "ticketQuestion";
+  key: string;
+  turn: number;
+  ticketId: string;
+  question: string;
+  latest: boolean;
+}
+
 export type TimelineItem =
   | UserItem
   | ScheduledItem
@@ -114,7 +124,8 @@ export type TimelineItem =
   | CompactionItem
   | InstructionsItem
   | ModeItem
-  | ScheduleChangeItem;
+  | ScheduleChangeItem
+  | TicketQuestionItem;
 
 export interface Timeline {
   items: TimelineItem[];

@@ -12,6 +12,14 @@ from harness.session.heard import ReportState as ReportState
 TicketState = Literal["working", "waiting", "needs_answer", "blocked", "failed", "done", "dropped"]
 
 
+class TicketNotFound(LookupError):
+    """No ticket has this id."""
+
+
+class TicketNotAsking(RuntimeError):
+    """The ticket asks no question now, so it has nothing to answer."""
+
+
 class Ticket(BaseModel):
     """One task a bot handed to a worker: whose, its title and task, and how far it has got."""
 

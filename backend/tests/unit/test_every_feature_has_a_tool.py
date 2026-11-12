@@ -99,6 +99,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     "POST /api/schedules/{schedule_id}/run": NotATool(
         "a bot already doing the task does it at once; running one early is the person's call"
     ),
+    "POST /api/tickets/{ticket_id}/answer": NotATool(
+        "the person's answer to a worker's question; ticket_note sends the bot's own facts"
+    ),
     "POST /api/groups": NotATool("not yet: making a group from chat is the next piece"),
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"

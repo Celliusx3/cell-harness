@@ -4,18 +4,25 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import uuid
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Protocol
 
 from harness.bots import BotNotFound, BotService
+from harness.prompts import TICKET_ANSWER_HEARD
 from harness.runs.run import Run
 from harness.runs.service import RunService
 from harness.session.models import SessionEvent, TicketReport
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
-from harness.tickets.models import Ticket, TicketsFile, TicketState, ticket_state
+from harness.tickets.models import (
+    Ticket,
+    TicketNotAsking,
+    TicketNotFound,
+    TicketsFile,
+    TicketState,
+    ticket_state,
+)
 from harness.tickets.repository import TicketRepository
 from harness.tickets.worker import WorkerEnd, worker_end, worker_session_id
 from harness.tools.models.decision import ApprovalMode
@@ -23,16 +30,15 @@ from harness.tools.models.decision import ApprovalMode
 logger = logging.getLogger("harness.tickets")
 
 Follow = Callable[[Run], Awaitable[None]]
-
-
-class TicketNotFound(LookupError):
-    """No ticket has this id."""
+WorkerTurn = Callable[[], Awaitable[WorkerEnd]]
 
 
 class TicketWorker(Protocol):
-    """Runs `ticket`'s task for its bot in `mode` to its end."""
+    """Runs a ticket's first turn in `mode`, and each next turn on the same log, to its end."""
 
-    async def __call__(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd: ...
+    async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd: ...
+
+    async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd: ...
 
 
 class TicketService:
@@ -48,6 +54,7 @@ class TicketService:
         logs: SessionService,
         follow: Follow,
         now: Callable[[], datetime],
+        ids: Callable[[], str],
     ) -> None:
         self._repository = repository
         self._bots = bots
@@ -56,6 +63,8 @@ class TicketService:
         self._logs = logs
         self._follow = follow
         self._now = now
+        self._ids = ids
+        self._locks: dict[str, asyncio.Lock] = {}
         self._working: set[asyncio.Task[None]] = set()
         self._running: set[str] = set()
 
@@ -85,7 +94,7 @@ class TicketService:
     def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket:
         """A new `working` ticket for `bot_id`, saved, its worker started in the background."""
         ticket = Ticket(
-            id=uuid.uuid4().hex,
+            id=self._ids(),
             bot_id=bot_id,
             title=title,
             task=task,
@@ -94,10 +103,20 @@ class TicketService:
         )
         stored = self._repository.read()
         self._repository.write(TicketsFile(tickets=(*stored.tickets, ticket)))
-        running = asyncio.create_task(self._work(ticket, mode))
-        self._working.add(running)
-        running.add_done_callback(self._working.discard)
+        self._start(ticket, lambda: self._worker.start(ticket, mode=mode))
         return ticket
+
+    def answer(self, ticket_id: str, text: str) -> None:
+        """Send the person's answer to the ticket's question; `TicketNotAsking` if it asks none."""
+        if self.get(ticket_id).state != "needs_answer":
+            raise TicketNotAsking(ticket_id)
+        self.tell(ticket_id, TICKET_ANSWER_HEARD.format(text=text))
+
+    def tell(self, ticket_id: str, prompt: str) -> None:
+        """Run the worker's next turn on `prompt`, once any turn it is in has ended."""
+        ticket = self.get(ticket_id)
+        self._set_state(ticket.id, "working")
+        self._start(ticket, lambda: self._worker.resume(ticket, prompt))
 
     async def aclose(self) -> None:
         """Cancel every worker still running, for a server shutting down."""
@@ -105,14 +124,21 @@ class TicketService:
             task.cancel()
         await asyncio.gather(*self._working, return_exceptions=True)
 
-    async def _work(self, ticket: Ticket, mode: ApprovalMode) -> None:
-        """Run `ticket`'s worker, keep how it ended, then tell the bot."""
-        self._running.add(ticket.id)
-        try:
-            end = await self._run_worker(ticket, mode)
-        finally:
-            self._running.discard(ticket.id)
-        self._set_state(ticket.id, ticket_state(end.state, end.question))
+    def _start(self, ticket: Ticket, turn: WorkerTurn) -> None:
+        running = asyncio.create_task(self._work(ticket, turn))
+        self._working.add(running)
+        running.add_done_callback(self._working.discard)
+
+    async def _work(self, ticket: Ticket, turn: WorkerTurn) -> None:
+        """Run one turn of `ticket`'s worker after the one before it, keep its end, tell the bot."""
+        async with self._locks.setdefault(ticket.id, asyncio.Lock()):
+            self._set_state(ticket.id, "working")
+            self._running.add(ticket.id)
+            try:
+                end = await self._run_worker(ticket, turn)
+            finally:
+                self._running.discard(ticket.id)
+            self._set_state(ticket.id, ticket_state(end.state, end.question))
         report = TicketReport(
             ticket_id=ticket.id,
             title=ticket.title,
@@ -122,10 +148,10 @@ class TicketService:
         )
         await self._deliver(ticket.bot_id, report)
 
-    async def _run_worker(self, ticket: Ticket, mode: ApprovalMode) -> WorkerEnd:
-        """The worker's end; `failed` with the error logged when the worker itself broke."""
+    async def _run_worker(self, ticket: Ticket, turn: WorkerTurn) -> WorkerEnd:
+        """The turn's end; `failed` with the error logged when the worker itself broke."""
         try:
-            return await self._worker(ticket, mode=mode)
+            return await turn()
         except Exception:
             logger.exception("the worker of ticket %s broke", ticket.id)
             return worker_end(None, None)

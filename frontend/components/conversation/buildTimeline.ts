@@ -8,6 +8,7 @@ import type { SessionEvent } from "@/lib/types";
 export function buildTimeline(events: SessionEvent[]): Timeline {
   const draft = new TimelineDraft();
   const start = events.map((event) => event.type).lastIndexOf("chat/cleared") + 1;
+  const lastReports = lastReportOfEachTicket(events);
 
   for (const [index, event] of events.entries()) {
     if (index < start) continue;
@@ -39,6 +40,16 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
           tone: "note",
           text: `${event.report.title}: ${event.report.state}`,
         });
+        if (event.report.question !== null) {
+          draft.onTicketQuestion({
+            kind: "ticketQuestion",
+            key: `q${index}`,
+            turn: event.turn,
+            ticketId: event.report.ticket_id,
+            question: event.report.question,
+            latest: lastReports.get(event.report.ticket_id) === index,
+          });
+        }
         break;
 
       case "schedule/reminder":
@@ -164,4 +175,13 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
   }
 
   return draft.toTimeline();
+}
+
+/** The index of each ticket's last report among `events`. */
+function lastReportOfEachTicket(events: SessionEvent[]): ReadonlyMap<string, number> {
+  return new Map(
+    events.flatMap((event, index): [string, number][] =>
+      event.type === "ticket/report" ? [[event.report.ticket_id, index]] : [],
+    ),
+  );
 }

@@ -1,8 +1,8 @@
-"""The tickets routes' response bodies."""
+"""The tickets routes' request and response bodies."""
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from harness.session.models import SessionEvent
 from harness.tickets.models import TicketState
@@ -28,3 +28,11 @@ class TicketDetail(BaseModel):
     ticket: TicketRow
     events: list[SessionEvent]
     running: bool
+
+
+class TicketAnswer(BaseModel):
+    """The person's answer to a ticket's question."""
+
+    model_config = ConfigDict(frozen=True)
+
+    text: str = Field(min_length=1)

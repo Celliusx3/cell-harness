@@ -1,4 +1,4 @@
-"""What `ticket_accept` and `ticket_report` are called with."""
+"""What `ticket_accept`, `ticket_report` and `ticket_note` are called with."""
 
 from __future__ import annotations
 
@@ -48,3 +48,14 @@ class TicketReportArgs(BaseModel):
             "reaches the user unchanged."
         ),
     )
+
+
+class TicketNoteArgs(BaseModel):
+    """What the bot passes to `ticket_note`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    ticket: str = Field(
+        min_length=1, description="The id of one of your tickets, as ticket_accept returned it."
+    )
+    text: str = Field(min_length=1, description="The fact, in at most 100 words.")

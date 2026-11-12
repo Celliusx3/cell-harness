@@ -39,3 +39,10 @@ export const TICKET_STATE_LABELS: Record<TicketState, string> = {
 
 export const getTicket = (id: string) =>
   request<TicketDetail>(`/tickets/${encodeURIComponent(id)}`);
+
+/** The person's answer to the ticket's question; refused unless the ticket needs one. */
+export const answerTicket = (id: string, text: string) =>
+  request<TicketRow>(`/tickets/${encodeURIComponent(id)}/answer`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });

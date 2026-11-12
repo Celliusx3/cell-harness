@@ -264,6 +264,12 @@ TICKET_REPORT_HEARD = (
     "user what it means for them, in a few sentences."
 )
 TICKET_QUESTION_HEARD = (
-    "The worker asks the user this question. Ask it unchanged, in your own reply: {question}"
+    "The worker asks the user this question, and the user sees it with an answer box under "
+    "your reply: {question} Do not repeat the question. Say in one sentence that the ticket "
+    "waits for their answer."
+)
+TICKET_ANSWER_HEARD = "The user answered your question: {text}"
+TICKET_NOTE_HEARD = (
+    "A note from the orchestrator. It is context for this ticket, not a new task: {text}"
 )
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."

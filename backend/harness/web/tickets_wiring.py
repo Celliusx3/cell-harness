@@ -14,7 +14,12 @@ from harness.tickets.repository import TicketRepository
 from harness.tickets.service import TicketService
 from harness.tickets.worker import Workers
 from harness.tools import ToolService
-from harness.tools.native.tickets import TICKET_REPORT, ticket_accept_tool, ticket_report_tool
+from harness.tools.native.tickets import (
+    TICKET_REPORT,
+    ticket_accept_tool,
+    ticket_note_tool,
+    ticket_report_tool,
+)
 from harness.web.runtime import SUBAGENT_TOOLS, helper_runtime
 
 WORKER_TOOLS = (*SUBAGENT_TOOLS, TICKET_REPORT)
@@ -30,11 +35,14 @@ def attach_tickets(
     repository: TicketRepository,
     follow: Follow,
     now: Callable[[], datetime],
+    ids: Callable[[], str],
 ) -> TicketService:
-    """`ticket_accept` and `ticket_report` offered from `tool_service`, run by the service."""
+    """`ticket_accept`, `ticket_note` and `ticket_report` offered, run by the service returned."""
     workers = Workers(helper_runtime(tool_service, runtime, WORKER_TOOLS), logs)
     tickets = TicketService(
-        repository, bots, runs, worker=workers, logs=logs, follow=follow, now=now
+        repository, bots, runs, worker=workers, logs=logs, follow=follow, now=now, ids=ids
     )
-    tool_service.add_provider(lambda: [ticket_accept_tool(tickets), ticket_report_tool()])
+    tool_service.add_provider(
+        lambda: [ticket_accept_tool(tickets), ticket_note_tool(tickets), ticket_report_tool()]
+    )
     return tickets

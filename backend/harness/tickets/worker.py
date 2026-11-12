@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from harness.prompts import TICKET_DID_NOT_FINISH, WORKER_INTRO
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
+from harness.session.log import Session
 from harness.session.models import (
     ApprovalModeChanged,
     SessionEvent,
@@ -40,10 +41,18 @@ class Workers:
     runtime: Runtime
     sessions: SessionService
 
-    async def __call__(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
+    async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
         session = await self.sessions.create(worker_session_id(ticket.id))
         session.append(ApprovalModeChanged(mode=mode))
+        return await self._turn(ticket, ticket.task, session)
+
+    async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:
+        """Run the next turn on `prompt` in `ticket`'s session, under the mode its log holds."""
+        session = await self.sessions.resume(worker_session_id(ticket.id))
+        return await self._turn(ticket, prompt, session)
+
+    async def _turn(self, ticket: Ticket, prompt: str, session: Session) -> WorkerEnd:
         worker = dataclasses.replace(
             self.runtime,
             guidance=WORKER_INTRO.format(title=ticket.title) + self.runtime.guidance,
@@ -52,7 +61,7 @@ class Workers:
         last: TurnEvent | None = None
         try:
             async with aclosing(
-                worker.run(ticket.task, session=session, bot_id=ticket.bot_id)
+                worker.run(prompt, session=session, bot_id=ticket.bot_id)
             ) as events:
                 async for event in events:
                     last = event

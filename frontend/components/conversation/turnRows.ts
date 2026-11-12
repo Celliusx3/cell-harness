@@ -120,6 +120,7 @@ function isKept(
     case "instructions":
     case "mode":
     case "scheduleChange":
+    case "ticketQuestion":
       return true;
   }
 }

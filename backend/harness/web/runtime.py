@@ -82,7 +82,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
-from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_REPORT
+from harness.tools.native.tickets import TICKET_ACCEPT, TICKET_NOTE, TICKET_REPORT
 from harness.tools.service import Disposer
 
 logger = logging.getLogger("harness.web")
@@ -103,6 +103,7 @@ DEFAULT_TOOLS = (
     *SCHEDULE_TOOLS,
     RUN_SUBAGENT,
     TICKET_ACCEPT,
+    TICKET_NOTE,
     FETCH_WITH_SECRET,
     SEND_FILE,
     EXTRACT_ARCHIVE,
@@ -121,6 +122,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         *SCHEDULE_TOOLS,
         RUN_SUBAGENT,
         TICKET_ACCEPT,
+        TICKET_NOTE,
         TICKET_REPORT,
         FETCH_WITH_SECRET,
         SEND_FILE,
