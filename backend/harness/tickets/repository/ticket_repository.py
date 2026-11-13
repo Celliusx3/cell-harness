@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from harness.tickets.models import TicketsFile
+from harness.tickets.domain.models import TicketsFile
 
 
 class TicketRepository:

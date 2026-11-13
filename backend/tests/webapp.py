@@ -40,7 +40,7 @@ from harness.secrets.models.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tickets.service import TicketService
+from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.server import Channels, ChannelServices, create_app

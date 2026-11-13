@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Protocol
 
-from harness.tickets.models import Ticket, TicketNotFound, TicketStopped
-from harness.tickets.prompts import TICKET_FOLLOWUP_HEARD
+from harness.tickets.domain.models import Ticket, TicketNotFound, TicketStopped
+from harness.tickets.domain.prompts import TICKET_FOLLOWUP_HEARD
 from harness.tools.models.context import ToolContext
 from harness.tools.models.decision import ApprovalMode
 from harness.tools.models.outcome import Ok, ToolOutcome

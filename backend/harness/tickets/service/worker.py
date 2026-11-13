@@ -19,8 +19,8 @@ from harness.session.models import (
     TurnStart,
 )
 from harness.session.service import SessionService
-from harness.tickets.models import ReportState, Ticket
-from harness.tickets.prompts import (
+from harness.tickets.domain.models import ReportState, Ticket
+from harness.tickets.domain.prompts import (
     APPROVAL_QUESTION,
     APPROVAL_WAITING,
     TICKET_DID_NOT_FINISH,

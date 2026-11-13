@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.runtime.events import AgentPending
-from harness.tickets.worker import WorkerEnd, worker_end
+from harness.tickets.service.worker import WorkerEnd, worker_end
 
 
 def test_an_approval_pending_end_becomes_a_blocked_approval_report() -> None:

@@ -6,16 +6,16 @@ from fastapi import APIRouter, Response, status
 
 from harness.bots import BotService
 from harness.secrets import SecretService
-from harness.tickets.models import Ticket, TicketNotAsking
-from harness.tickets.prompts import SAVED_KEY_ANSWER
-from harness.tickets.schemas import (
+from harness.tickets.domain.models import Ticket, TicketNotAsking
+from harness.tickets.domain.prompts import SAVED_KEY_ANSWER
+from harness.tickets.router.schemas import (
     TicketAnswer,
     TicketApproval,
     TicketDetail,
     TicketRow,
     TicketSecret,
 )
-from harness.tickets.service import TicketService
+from harness.tickets.service.ticket_service import TicketService
 from harness.tools.client import ClientToolService
 from harness.tools.client.models import RefusalReason
 from harness.utc import utc_text

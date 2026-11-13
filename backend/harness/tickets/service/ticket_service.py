@@ -17,7 +17,7 @@ from harness.session.log import Session
 from harness.session.models import SessionEvent, TicketReport, TicketReportEvent
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
-from harness.tickets.models import (
+from harness.tickets.domain.models import (
     NEEDS_YOU,
     RETRYABLE,
     AskedKey,
@@ -30,10 +30,14 @@ from harness.tickets.models import (
     TicketStopped,
     ticket_state,
 )
-from harness.tickets.places import Places
-from harness.tickets.prompts import TICKET_ANSWER_HEARD, TICKET_RECOVERY_HEARD, TICKET_RETRY_HEARD
-from harness.tickets.repository import TicketRepository
-from harness.tickets.worker import WorkerEnd, kept_report, worker_end, worker_session_id
+from harness.tickets.domain.prompts import (
+    TICKET_ANSWER_HEARD,
+    TICKET_RECOVERY_HEARD,
+    TICKET_RETRY_HEARD,
+)
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.places import Places
+from harness.tickets.service.worker import WorkerEnd, kept_report, worker_end, worker_session_id
 from harness.tools import Approval, Failure, Ok
 from harness.tools.models.decision import ApprovalMode
 

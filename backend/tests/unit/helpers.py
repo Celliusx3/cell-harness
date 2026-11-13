@@ -31,10 +31,10 @@ from harness.session.models import SessionHeader
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.tickets.models import Ticket
-from harness.tickets.repository import TicketRepository
-from harness.tickets.service import TicketService
-from harness.tickets.worker import WorkerEnd
+from harness.tickets.domain.models import Ticket
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import WorkerEnd
 from harness.tools import (
     ApprovalMode,
     ApprovalService,

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from harness.secrets import Destination, SecretName
 from harness.session.models import ReportAsk
-from harness.tickets.models import ReportState
+from harness.tickets.domain.models import ReportState
 
 TICKET_ID = "The id of one of your tickets."
 ASK = (

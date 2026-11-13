@@ -8,10 +8,16 @@ from datetime import UTC, datetime
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.tickets.models import ReportState, Ticket, TicketState, TicketStopped, ticket_state
-from harness.tickets.repository import TicketRepository
-from harness.tickets.service import TicketService
-from harness.tickets.worker import WorkerEnd
+from harness.tickets.domain.models import (
+    ReportState,
+    Ticket,
+    TicketState,
+    TicketStopped,
+    ticket_state,
+)
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import WorkerEnd
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import (
     FirstTurnOnly,

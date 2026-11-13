@@ -18,8 +18,8 @@ from harness.runtime.service import Runtime
 from harness.secrets import SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tickets.repository import TicketRepository
-from harness.tickets.service import TicketService
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService, Tool, ToolService, Toolset
 from harness.tools.client import ClientToolService
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE

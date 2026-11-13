@@ -51,10 +51,10 @@ from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.skills.router.skill_router import build_router as build_skills_router
-from harness.tickets.files_router import build_files_router as build_ticket_files_router
-from harness.tickets.repository import TicketRepository
-from harness.tickets.router import build_router as build_tickets_router
-from harness.tickets.service import TicketService
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.router.file_router import build_files_router as build_ticket_files_router
+from harness.tickets.router.ticket_router import build_router as build_tickets_router
+from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.approvals_router import build_router as build_approvals_router
 from harness.tools.client import ClientToolService

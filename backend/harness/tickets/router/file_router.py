@@ -7,8 +7,8 @@ from fastapi.responses import FileResponse
 
 from harness.files import ChatFileService
 from harness.images import ImageService
-from harness.tickets.service import TicketService
-from harness.tickets.worker import worker_session_id
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import worker_session_id
 from harness.web.http.files import folder_file, logged_image
 
 

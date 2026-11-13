@@ -25,7 +25,7 @@ from harness.session.repository import (
     SessionNotFoundError,
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
-from harness.tickets.models import (
+from harness.tickets.domain.models import (
     TicketNotAsking,
     TicketNotFound,
     TicketNotRetryable,

@@ -10,7 +10,7 @@ from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
-from harness.tickets.prompts import ORCHESTRATOR
+from harness.tickets.domain.prompts import ORCHESTRATOR
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.tools.native.tickets import TICKET_ROUTE
 from harness.web.runtime import CLIENT_TOOLS, WORK_TOOLS, build_runtime

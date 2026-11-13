@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from harness.runtime.hooks.calls import CompletedCall, Signature
 from harness.runtime.hooks.service import ToolHook
-from harness.tickets.prompts import NO_WAIT_REFUSAL
+from harness.tickets.domain.prompts import NO_WAIT_REFUSAL
 from harness.tools import ToolOutcome
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT
 

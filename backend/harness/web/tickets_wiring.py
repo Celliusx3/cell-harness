@@ -7,8 +7,8 @@ import dataclasses
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.service import SessionService
-from harness.tickets.service import TicketService
-from harness.tickets.worker import Workers
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import Workers
 from harness.tools import ToolService
 from harness.tools.native.tickets import (
     TICKET_REPORT,
