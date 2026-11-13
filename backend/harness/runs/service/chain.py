@@ -8,7 +8,7 @@ from contextlib import aclosing
 from harness.bots import GroupService
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
-from harness.session.log import Session
+from harness.session.domain.log import Session
 
 
 async def discussion_events(

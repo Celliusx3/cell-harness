@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from functools import partial
 
 from harness.runs.service.run import Run
-from harness.session.log import Numbered
+from harness.session.domain.log import Numbered
 
 
 async def subscribe(run: Run, *, after: int) -> AsyncIterator[Numbered]:

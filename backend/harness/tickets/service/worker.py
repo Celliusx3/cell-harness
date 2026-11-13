@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from harness.runtime.events import AgentCompleted, AgentPending, TurnEvent
 from harness.runtime.run_to_end import HelperAnswer, HelperTurn, resume_to_end, run_to_end
 from harness.runtime.service import Runtime
+from harness.session.domain.log import Session
 from harness.session.domain.models import (
     ApprovalModeChanged,
     SessionEvent,
@@ -17,7 +18,6 @@ from harness.session.domain.models import (
     ToolResultEvent,
     TurnStart,
 )
-from harness.session.log import Session
 from harness.session.service import SessionService
 from harness.tickets.domain.models import ReportState, Ticket
 from harness.tickets.domain.prompts import (

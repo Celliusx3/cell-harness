@@ -10,7 +10,7 @@ from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import LLMClient
 from harness.runs.service.subscribe import subscribe
-from harness.session.derive import derive_messages
+from harness.session.domain.derive import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,

@@ -28,7 +28,8 @@ from harness.runtime.models import BotModels, ModelChoice
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
-from harness.session.derive import derive_messages, without_images
+from harness.session.domain.derive import derive_messages, without_images
+from harness.session.domain.log import ApprovalModeSwitch, Session
 from harness.session.domain.models import (
     ApprovalGrant,
     ApprovalModeChanged,
@@ -44,8 +45,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import ApprovalModeSwitch, Session
-from harness.session.repair import unanswered
+from harness.session.domain.repair import unanswered
 from harness.tools import Approval, ApprovalMode, Failure, Ok, Toolset
 
 SKIPPED = "SKIPPED"

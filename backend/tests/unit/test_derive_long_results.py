@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import aclosing
 
 from harness.llm import Text, ToolMessage, ToolReference
-from harness.session.derive import RESULT_LIMIT, derive_messages
+from harness.session.domain.derive import RESULT_LIMIT, derive_messages
 from harness.session.domain.models import ToolResultEvent
 from harness.tools import Ok, Tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed

@@ -26,8 +26,8 @@ from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.inbox import NO_INBOX, Inbox
 from harness.runtime.service import Runtime
+from harness.session.domain.log import Session
 from harness.session.domain.models import SessionHeader
-from harness.session.log import Session
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService

@@ -22,7 +22,7 @@ from harness.channels.repository import ChatRepository, ChatState
 from harness.runs.service.run import Run, RunAlreadyActive
 from harness.runs.service.run_service import RunService
 from harness.runtime.compaction import CompactionRefused, check_can_compact
-from harness.session.log import Session
+from harness.session.domain.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.skills import SkillService

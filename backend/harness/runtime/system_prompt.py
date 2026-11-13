@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from harness.prompts import GROUP_NOTE
+from harness.session.domain.log import Session
 from harness.session.domain.models import GroupMembersEvent
-from harness.session.log import Session
 
 
 def system_text(session: Session, guidance: str) -> str:

@@ -13,6 +13,7 @@ from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runtime.service import Runtime
 from harness.session.domain.images import ImagesHidden
+from harness.session.domain.log import Session
 from harness.session.domain.models import (
     AssistantChunk,
     AssistantMessageEvent,
@@ -20,7 +21,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
 from tests.unit.fakes import OneModel
 from tests.unit.helpers import new_session, no_images
 from tests.unit.test_openai_adapter import delta, settings, sse

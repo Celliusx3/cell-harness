@@ -32,9 +32,10 @@ from harness.runtime.hooks import GiveUp, Tell
 from harness.runtime.inbox import claim_into
 from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.runtime.tool_run import run_tool_calls
-from harness.session.derive import through_hiding
 from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
+from harness.session.domain.derive import through_hiding
 from harness.session.domain.images import ImagesHidden
+from harness.session.domain.log import Session
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,
@@ -44,7 +45,6 @@ from harness.session.domain.models import (
     TurnEnd,
     TurnEndReason,
 )
-from harness.session.log import Session
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime

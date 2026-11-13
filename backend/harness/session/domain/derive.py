@@ -22,7 +22,7 @@ from harness.prompts import (
     TICKET_QUESTION_HEARD,
     TICKET_REPORT_HEARD,
 )
-from harness.session.change_notes import after_owed_results, change_message
+from harness.session.domain.change_notes import after_owed_results, change_message
 from harness.session.domain.compaction import boundary, pruned_ids
 from harness.session.domain.images import ImagesHidden, first_images_noted, hidden_through
 from harness.session.domain.models import (
@@ -43,7 +43,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.speakers import last_speaker, turn_speakers
+from harness.session.domain.speakers import last_speaker, turn_speakers
 from harness.utc import utc_text
 
 RESULT_LIMIT = 12_000

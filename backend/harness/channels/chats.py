@@ -5,7 +5,7 @@ from __future__ import annotations
 from harness.bots import ASSISTANT_ID, BotNotFound, BotService
 from harness.channels.protocol import Channel
 from harness.channels.repository import ChatRepository, ChatState
-from harness.session.log import Session
+from harness.session.domain.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 

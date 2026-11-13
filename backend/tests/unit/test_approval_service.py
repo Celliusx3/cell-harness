@@ -8,7 +8,7 @@ import pytest
 
 from harness.llm import AssistantMessage, ToolCall
 from harness.session.domain.models import AssistantMessageEvent, ToolCallEvent, TurnEnd, TurnStart
-from harness.session.repair import REPAIRED, repair
+from harness.session.domain.repair import REPAIRED, repair
 from harness.tools import Approval, ApprovalService
 from harness.tools.client import (
     AcceptedAnswer,

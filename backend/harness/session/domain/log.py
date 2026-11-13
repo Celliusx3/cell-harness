@@ -20,7 +20,7 @@ from harness.session.domain.models import (
     ToolResultEvent,
     TurnStart,
 )
-from harness.session.speakers import last_speaker, turn_speakers
+from harness.session.domain.speakers import last_speaker, turn_speakers
 from harness.tools import ApprovalMode
 
 

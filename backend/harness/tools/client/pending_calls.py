@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from harness.session.domain.log import Session
 from harness.session.domain.models import SessionEvent, ToolCallEvent, ToolResultEvent
-from harness.session.log import Session
 from harness.tools.client.models import PendingCall
 
 

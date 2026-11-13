@@ -13,6 +13,7 @@ from harness.llm import (
 from harness.prompts import SKILL_LIST_INTRO
 from harness.runtime.hooks.native.skill_list import SkillListHook
 from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.log import Session
 from harness.session.domain.models import (
     AssistantMessageEvent,
     StepEnd,
@@ -21,7 +22,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import new_session, no_skills, runtime_over, skills_at
 

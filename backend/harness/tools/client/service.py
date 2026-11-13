@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pydantic import ValidationError
 
 from harness.prompts import DENIED_RESULT
-from harness.session.log import Session
+from harness.session.domain.log import Session
 from harness.tools.client.catalog import ClientToolCatalog
 from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
 from harness.tools.client.pending_calls import pending_calls

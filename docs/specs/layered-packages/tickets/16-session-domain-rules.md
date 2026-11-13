@@ -1,6 +1,6 @@
 # 16. Layer session: domain rules
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

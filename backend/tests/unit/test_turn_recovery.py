@@ -19,6 +19,7 @@ from harness.llm import (
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.service import Runtime
 from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.log import Session
 from harness.session.domain.models import (
     AssistantMessageEvent,
     StepStart,
@@ -28,7 +29,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
 from tests.unit.helpers import cancel_mid_turn, drain, new_session, runtime_over
 
 

@@ -15,7 +15,7 @@ from harness.runs.service.run import RunAlreadyActive
 from harness.secrets import SECRET_VALUE_RULE, SecretService
 from harness.secrets.domain.details import CustomDetails
 from harness.secrets.service.credential_effects import CredentialEffects
-from harness.session.log import Session
+from harness.session.domain.log import Session
 from harness.tools import Ok
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, SavedName, SecretAsk

@@ -19,9 +19,10 @@ from harness.llm import (
 )
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.service import Runtime
-from harness.session.derive import derive_messages, through_hiding
 from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.derive import derive_messages, through_hiding
 from harness.session.domain.images import ImagesHidden, hidden_through
+from harness.session.domain.log import Session
 from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
@@ -30,7 +31,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
 from tests.unit.fakes import OneModel
 from tests.unit.helpers import new_session, no_images
 

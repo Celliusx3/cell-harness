@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 from harness.files import ChatFile
-from harness.session.log import Session
+from harness.session.domain.log import Session
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime

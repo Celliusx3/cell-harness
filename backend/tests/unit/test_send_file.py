@@ -14,8 +14,8 @@ from harness.llm import ToolCall, ToolMessage, text_of
 from harness.mcp import McpService
 from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.service import Runtime
+from harness.session.domain.log import Session
 from harness.session.domain.models import ToolResultEvent
-from harness.session.log import Session
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import (

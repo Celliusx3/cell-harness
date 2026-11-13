@@ -10,7 +10,7 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import Channel
 from harness.channels.repository import ChatRepository
 from harness.runs.service.run import RunAlreadyActive
-from harness.session.log import Session
+from harness.session.domain.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools.client import AcceptedAnswer, ClientToolService, RefusalReason

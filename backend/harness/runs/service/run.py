@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from harness.session.log import Session
+from harness.session.domain.log import Session
 
 
 class RunAlreadyActive(RuntimeError):

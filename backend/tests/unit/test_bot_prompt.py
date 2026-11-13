@@ -15,6 +15,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.prompts import ASSISTANT_INSTRUCTIONS, CODE_PROMPT, GUIDANCE
+from harness.session.domain.log import Session
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     ApprovalGrant,
@@ -29,7 +30,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.log import Session
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import runtime_over
 

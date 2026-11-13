@@ -17,8 +17,8 @@ from harness.session.domain.compaction import (
     CompactionStart,
     CompactionTrigger,
 )
-from harness.session.log import Session
-from harness.session.repair import unanswered
+from harness.session.domain.log import Session
+from harness.session.domain.repair import unanswered
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime

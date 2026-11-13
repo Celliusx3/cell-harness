@@ -12,8 +12,8 @@ from harness.mcp.domain.returned_file import FILES_META
 from harness.mcp.service._result import outcome_of
 from harness.mcp.service.tool import as_tool
 from harness.runtime.service import Runtime
+from harness.session.domain.log import Session
 from harness.session.domain.models import ToolResultEvent
-from harness.session.log import Session
 from harness.tools import EXECUTION_ERROR, Failure, Ok
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed
 from tests.unit.helpers import drain, new_session, no_images, toolset_for
