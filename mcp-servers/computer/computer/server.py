@@ -44,8 +44,8 @@ COMPUTER_INSTRUCTIONS = (
     "type on it with computer__browser_act. Run programs, Python and installs with "
     "computer__shell. Files and website sign-ins on the PC stay there between chats. The "
     "person can watch the PC and take control of it from the Computer page. Before an "
-    "action on a site that sends, posts, pays or deletes something for the person, call "
-    "ask_user with what the action will do, and act only after the person answers yes."
+    "action on a site that sends, posts, pays or deletes something for the person, ask the "
+    "person first, saying what the action will do, and act only after they answer yes."
 )
 
 

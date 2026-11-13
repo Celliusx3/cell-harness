@@ -55,8 +55,8 @@ ACT_DESCRIPTION = (
     "failed one may have taken effect; call browser_read_page before going on, and never repeat "
     "an action that completed. When a page asks for a password, a captcha or a payment, stop: "
     "the person has to do that step. Before a click that sends, posts, pays or deletes "
-    "something for the person, call ask_user with what the click will do, and click only "
-    "after the person answers yes."
+    "something for the person, ask the person first, saying what the click will do, and "
+    "click only after they answer yes."
 )
 
 TERMINAL_SESSION_DESCRIPTION = (
