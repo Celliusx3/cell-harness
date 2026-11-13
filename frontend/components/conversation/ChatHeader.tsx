@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, Pencil } from "lucide-react";
+import { Ellipsis, Monitor, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DrawerButton } from "@/components/chat/Drawer";
@@ -30,9 +30,19 @@ interface ChatHeaderProps {
   waiting: boolean;
   ticketsAtWork: number;
   canCompact: boolean;
+  computer: ComputerToggle | null;
   onCompact(): void;
   onClear(): void;
 }
+
+/** Whether the computer is docked beside the chat, and how to dock or close it. */
+export interface ComputerToggle {
+  docked: boolean;
+  onToggle(): void;
+}
+
+const DOCK_BUTTON =
+  "hidden h-9 shrink-0 items-center gap-2 rounded-[10px] border px-3.5 text-[13px] font-medium transition lg:inline-flex";
 
 /** The chat's avatar, name and state, with a link to edit the bot and a menu to compact or clear. */
 export function ChatHeader({
@@ -42,6 +52,7 @@ export function ChatHeader({
   waiting,
   ticketsAtWork,
   canCompact,
+  computer,
   onCompact,
   onClear,
 }: ChatHeaderProps) {
@@ -54,6 +65,7 @@ export function ChatHeader({
         <ChatState elapsed={elapsed} waiting={waiting} ticketsAtWork={ticketsAtWork} />
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        {computer !== null && <DockButton computer={computer} />}
         {editHref !== null && (
           <Link href={editHref} aria-label="Edit bot" title="Edit bot" className={ICON_BUTTON}>
             <Pencil size={16} />
@@ -62,6 +74,25 @@ export function ChatHeader({
         <ChatMenu canCompact={canCompact} onCompact={onCompact} onClear={onClear} />
       </div>
     </header>
+  );
+}
+
+function DockButton({ computer }: { computer: ComputerToggle }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={computer.docked}
+      title={computer.docked ? "Close the computer" : "Show the computer beside the chat"}
+      onClick={computer.onToggle}
+      className={
+        computer.docked
+          ? `${DOCK_BUTTON} border-accent bg-accent-soft text-accent`
+          : `${DOCK_BUTTON} border-line text-ink-soft hover:bg-surface-sunken hover:text-ink`
+      }
+    >
+      <Monitor size={16} />
+      Computer
+    </button>
   );
 }
 

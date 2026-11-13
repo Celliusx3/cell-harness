@@ -12,6 +12,7 @@ Every bot shares one Linux desktop with Chrome (Rakazo's image, a Docker contain
 - A `computer__browser_navigate` tool card has "Open app": a watch-only preview made of screenshots.
 - `computer__shell` runs a command for a bot (it asks once per chat). The chat's files and the skills shipped with the app sit at their own Mac paths inside the computer. Every loaded skill names its folder; a skill in the editable folder is in the computer only where that folder is mounted, as the Mac app mounts it read-only. A skill can declare a Mac program in its `SKILL.md` metadata (`host-service`, `host-service-env`); the computer starts it and hands each command its address and token as `<NAME>_ADDR` and `<NAME>_TOKEN`, under the name the skill gives. A command still running after 15 seconds answers `running`; the same call again waits on.
 - The page pings `keep_awake` every minute, so the 10-minute idle stop waits while it is open.
+- In a chat, the header's "Computer" button (wide screens only, once `computer` is added) docks the computer beside the chat, watching, not controlling: tabs "Screen", "Terminal" (only while holding control) and "Files", with Take control and "Open full screen", which goes to `/computer`. Pressing the button again closes it; the dock opens closed on every visit.
 
 ## How to get to it (user POV)
 

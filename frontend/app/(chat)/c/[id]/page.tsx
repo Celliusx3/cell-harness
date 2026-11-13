@@ -11,6 +11,8 @@ import { QuestionBar, QuestionPanel } from "@/components/answer/QuestionPanel";
 import { refreshSidebar } from "@/components/chat/Sidebar";
 import { type Found, useFound } from "@/components/chat/useFound";
 import { announceWorking } from "@/components/chat/workingChat";
+import { ComputerDock } from "@/components/computer/ComputerDock";
+import { useComputerAdded } from "@/components/computer/useComputerAdded";
 import { ChatHeader } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
 import { EmptyChat } from "@/components/conversation/EmptyChat";
@@ -54,6 +56,8 @@ export default function ConversationPage({
   const elapsed = useElapsed(conversation.running || conversation.sending !== null);
   const tickets = useChatTickets(id);
   const [folded, setFolded] = useState<string | null>(null);
+  const [docked, setDocked] = useState(false);
+  const computerAdded = useComputerAdded() === "yes";
   const wasRunning = useRef(false);
 
   useEffect(() => {
@@ -73,75 +77,81 @@ export default function ConversationPage({
   }
 
   return (
-    <>
-      <ChatHeader
-        chat={host ?? speakerOf(group)}
-        editHref={host === null ? null : `/bots/${id}`}
-        elapsed={elapsed}
-        waiting={waiting !== null || tickets.needsAnswer}
-        ticketsAtWork={tickets.atWork}
-        canCompact={!conversation.running}
-        onCompact={() => void conversation.compact()}
-        onClear={() => void conversation.clear()}
-      />
+    <div className="flex min-h-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ChatHeader
+          chat={host ?? speakerOf(group)}
+          editHref={host === null ? null : `/bots/${id}`}
+          elapsed={elapsed}
+          waiting={waiting !== null || tickets.needsAnswer}
+          ticketsAtWork={tickets.atWork}
+          canCompact={!conversation.running}
+          computer={
+            computerAdded ? { docked, onToggle: () => setDocked((open) => !open) } : null
+          }
+          onCompact={() => void conversation.compact()}
+          onClear={() => void conversation.clear()}
+        />
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {conversation.loading ? (
-          <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
-        ) : items.length === 0 && conversation.sending === null ? (
-          <EmptyChat speaker={host ?? speakerOf(group)} />
-        ) : (
-          <Timeline
-            items={items}
-            openTurn={openTurn}
-            speakers={speakers}
-            host={host}
-            sending={conversation.sending}
-            queued={conversation.queued}
-            elapsed={elapsed}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {conversation.loading ? (
+            <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
+          ) : items.length === 0 && conversation.sending === null ? (
+            <EmptyChat speaker={host ?? speakerOf(group)} />
+          ) : (
+            <Timeline
+              items={items}
+              openTurn={openTurn}
+              speakers={speakers}
+              host={host}
+              sending={conversation.sending}
+              queued={conversation.queued}
+              elapsed={elapsed}
+              onAnswered={conversation.wake}
+            />
+          )}
+        </div>
+
+        {conversation.error && (
+          <p className="border-t border-danger/30 bg-danger-soft px-6 py-2 text-sm text-danger">
+            {conversation.error}
+          </p>
+        )}
+
+        {waiting !== null && folded !== waiting.item.call.id ? (
+          <WaitingPanel
+            key={waiting.item.call.id}
+            waiting={waiting}
+            conversationId={id}
             onAnswered={conversation.wake}
+            onSkip={() => setFolded(waiting.item.call.id)}
           />
+        ) : (
+          <>
+            {waiting !== null && (
+              <WaitingBar waiting={waiting} onUnfold={() => setFolded(null)} />
+            )}
+            <Composer
+              autoFocus
+              chatId={id}
+              running={conversation.running}
+              onSend={(prompt, files) => void conversation.send(prompt, files)}
+              onStop={() => void conversation.stop()}
+              usage={<UsageButton usage={usage} />}
+              modePicker={
+                conversation.mode !== null && (
+                  <ModePicker
+                    mode={conversation.mode}
+                    onPick={(mode) => void conversation.switchMode(mode)}
+                  />
+                )
+              }
+            />
+          </>
         )}
       </div>
-
-      {conversation.error && (
-        <p className="border-t border-danger/30 bg-danger-soft px-6 py-2 text-sm text-danger">
-          {conversation.error}
-        </p>
-      )}
-
-      {waiting !== null && folded !== waiting.item.call.id ? (
-        <WaitingPanel
-          key={waiting.item.call.id}
-          waiting={waiting}
-          conversationId={id}
-          onAnswered={conversation.wake}
-          onSkip={() => setFolded(waiting.item.call.id)}
-        />
-      ) : (
-        <>
-          {waiting !== null && (
-            <WaitingBar waiting={waiting} onUnfold={() => setFolded(null)} />
-          )}
-          <Composer
-            autoFocus
-            chatId={id}
-            running={conversation.running}
-            onSend={(prompt, files) => void conversation.send(prompt, files)}
-            onStop={() => void conversation.stop()}
-            usage={<UsageButton usage={usage} />}
-            modePicker={
-              conversation.mode !== null && (
-                <ModePicker
-                  mode={conversation.mode}
-                  onPick={(mode) => void conversation.switchMode(mode)}
-                />
-              )
-            }
-          />
-        </>
-      )}
-    </>
+      {computerAdded && docked && <ComputerDock />}
+    </div>
   );
 }
 

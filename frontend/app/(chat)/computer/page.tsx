@@ -9,9 +9,9 @@ import { DrawerButton } from "@/components/chat/Drawer";
 import { FilesPanel } from "@/components/computer/FilesPanel";
 import { PhonePanel } from "@/components/computer/PhonePanel";
 import { BUTTON, ScreenControls, ScreenNotices } from "@/components/computer/ScreenControls";
-import { COMPUTER_SCREEN, SERVER } from "@/components/computer/server";
+import { COMPUTER_SCREEN } from "@/components/computer/server";
+import { useComputerAdded } from "@/components/computer/useComputerAdded";
 import { useScreen } from "@/components/computer/useScreen";
-import { listServers } from "@/lib/api";
 
 const TerminalPanel = dynamic(
   () => import("@/components/computer/TerminalPanel").then((m) => m.TerminalPanel),
@@ -20,25 +20,9 @@ const TerminalPanel = dynamic(
 
 type Panel = "terminal" | "files";
 
-type Added = "checking" | "yes" | "no";
-
 /** The computer once the `computer` server is added, and a way to add it before. */
 export default function ComputerPage() {
-  const [added, setAdded] = useState<Added>("checking");
-
-  useEffect(() => {
-    let cancelled = false;
-    listServers()
-      .then(({ servers }) => {
-        if (!cancelled) setAdded(servers.includes(SERVER) ? "yes" : "no");
-      })
-      .catch(() => {
-        if (!cancelled) setAdded("yes");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const added = useComputerAdded();
 
   if (added === "yes") return <ComputerScreen />;
   return (

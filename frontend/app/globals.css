@@ -9,18 +9,18 @@
   --font-display: var(--font-space-grotesk), var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --color-surface: oklch(93.9% 0.008 74);
-  --color-surface-raised: oklch(98.5% 0.003 85);
-  --color-surface-sunken: oklch(90.9% 0.012 72);
-  --color-line: oklch(88.3% 0.013 71);
-  --color-ink: oklch(22.6% 0.014 42);
-  --color-ink-soft: oklch(49.5% 0.019 52);
-  --color-accent: oklch(49.3% 0.09 83);
-  --color-accent-soft: oklch(93.3% 0.029 88);
-  --color-attention: oklch(39.1% 0.125 18);
-  --color-attention-soft: oklch(92.5% 0.02 10);
-  --color-danger: oklch(51.5% 0.162 38);
-  --color-danger-soft: oklch(94.3% 0.026 52);
+  --color-surface: #f4f4f5;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #eaeaec;
+  --color-line: #e1e1e4;
+  --color-ink: #18181b;
+  --color-ink-soft: #5b5b63;
+  --color-accent: #2563eb;
+  --color-accent-soft: #e3ebfd;
+  --color-attention: #b45309;
+  --color-attention-soft: #fdefdc;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fde4e4;
 
   --animate-progress-slide: progress-slide 1.6s ease-in-out infinite;
 
@@ -40,18 +40,18 @@
    rules outrank `@layer theme`, so these apply only when the query matches. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-surface: oklch(18.2% 0.008 48);
-    --color-surface-raised: oklch(21.8% 0.01 53);
-    --color-surface-sunken: oklch(16.2% 0.007 56);
-    --color-line: oklch(29.2% 0.015 54);
-    --color-ink: oklch(93.5% 0.011 63);
-    --color-ink-soft: oklch(70.1% 0.02 57);
-    --color-accent: oklch(78.6% 0.102 84);
-    --color-accent-soft: oklch(27.3% 0.027 81);
-    --color-attention: oklch(72.6% 0.106 12);
-    --color-attention-soft: oklch(27% 0.047 10);
-    --color-danger: oklch(73.4% 0.138 44);
-    --color-danger-soft: oklch(27.5% 0.044 42);
+    --color-surface: #0b0b0c;
+    --color-surface-raised: #141416;
+    --color-surface-sunken: #08080a;
+    --color-line: #26262a;
+    --color-ink: #ededef;
+    --color-ink-soft: #a1a1aa;
+    --color-accent: #6ea1ff;
+    --color-accent-soft: #15213a;
+    --color-attention: #f5a524;
+    --color-attention-soft: #33240c;
+    --color-danger: #f87171;
+    --color-danger-soft: #3a1818;
   }
 }
 
