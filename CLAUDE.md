@@ -43,7 +43,7 @@ Five shapes that hold everywhere:
   The network rules' spec: `git show db9b326:docs/specs/pc-center/spec.md`.
 - **Every channel is a client of one gateway** — browser, Telegram, Discord. A
   new platform is one class and one line in `build_channels`.
-  [channels/__init__.py](./backend/harness/channels/__init__.py).
+  [web/server.py](./backend/harness/web/server.py).
 
 ```sh
 cp backend/config.local.example.json backend/config.local.json   # set secrets.encryption_key
