@@ -69,7 +69,7 @@ through `tools/call` every second. Its resource declares no CSP; the HTML is one
 inline module script, 428 KB. Needs Node on `PATH`; the first start downloads.
 
 Two things it exposed here: every public app names its tools in kebab-case
-(`get-system-info`), which `mcp/tool.py` used to *drop*; and nothing yet hides an
+(`get-system-info`), which `mcp/service/tool.py` used to *drop*; and nothing yet hides an
 app-only tool from the model.
 
 ## 4. How real hosts handle what the view sends

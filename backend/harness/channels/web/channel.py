@@ -7,7 +7,7 @@ import asyncio
 from fastapi import APIRouter
 
 from harness.bots import BotService
-from harness.channels.gateway import ChannelGateway
+from harness.channels.service.gateway import ChannelGateway
 from harness.channels.web.routes import build_router
 from harness.files import ChatFileService
 from harness.images import ImageService

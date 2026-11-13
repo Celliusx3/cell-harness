@@ -12,9 +12,9 @@ from harness.llm import (
 )
 from harness.prompts import SKILL_LIST_INTRO
 from harness.runtime.hooks.native.skill_list import SkillListHook
-from harness.session.compaction import CompactionEnd
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.log import Session
+from harness.session.domain.models import (
     AssistantMessageEvent,
     StepEnd,
     StepStart,

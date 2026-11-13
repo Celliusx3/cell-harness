@@ -10,9 +10,9 @@ import pytest
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
-from harness.channels.gateway import ChannelGateway
-from harness.channels.links import ChatLinks, LinkCodes
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
+from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.channels.telegram.batching import (
     BATCH_DELAY_SECONDS,
     FAST_DELAY_SECONDS,
@@ -20,11 +20,11 @@ from harness.channels.telegram.batching import (
     SPLIT_DELAY_SECONDS,
     batch_delay,
 )
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import link_to_assistant, no_bots, no_images, no_skills, skills_at

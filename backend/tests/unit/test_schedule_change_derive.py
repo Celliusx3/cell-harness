@@ -6,8 +6,8 @@ import json
 
 from harness.llm import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.prompts import SCHEDULE_CHANGE
-from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.derive import derive_messages
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ScheduleChange,
     ScheduleChangeEvent,
@@ -62,3 +62,11 @@ def test_a_change_with_nothing_owed_stays_where_it_was_logged() -> None:
     told, said = derive_messages([CHANGE, later])
 
     assert (told.content.startswith("[SCHEDULE CHANGE]"), said.content) == (True, "Hi")
+
+
+def test_a_change_held_behind_a_call_is_told_right_after_its_result() -> None:
+    later = UserMessageEvent(turn=1, message=UserMessage(content="Hi"))
+
+    told = derive_messages([ASKED, CHANGE, ANSWERED, later])
+
+    assert [m.content for m in told[2:]] == [derive_messages([CHANGE])[0].content, "Hi"]

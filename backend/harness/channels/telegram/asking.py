@@ -7,8 +7,8 @@ import json
 from pydantic import ValidationError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
-from harness.channels.protocol import Pushing
-from harness.channels.text import split_message
+from harness.channels.domain.protocol import Pushing
+from harness.channels.domain.text import split_message
 from harness.tools.client import PendingCall
 from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.question import ASK_USER, Question

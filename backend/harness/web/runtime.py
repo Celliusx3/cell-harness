@@ -18,8 +18,8 @@ from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
-from harness.runs.bot_messages import BotMessages, Follow
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages, Follow
+from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
@@ -33,9 +33,9 @@ from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
 from harness.schedules import ScheduleService
 from harness.secrets import SecretService
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tickets.prompts import ORCHESTRATOR
+from harness.tickets.domain.prompts import ORCHESTRATOR
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
@@ -84,7 +84,7 @@ from harness.tools.native.skills import (
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
-from harness.tools.service import Disposer
+from harness.tools.service.tool_service import Disposer
 from harness.web.model_choice import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")

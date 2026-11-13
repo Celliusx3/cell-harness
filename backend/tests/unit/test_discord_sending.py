@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import discord
 
 from harness.channels.discord.channel import MAX_MESSAGE_CHARS
-from harness.channels.gateway import ChannelGateway
+from harness.channels.service.gateway import ChannelGateway
 from tests.unit.discord_fakes import FakeMessageable, discord_channel
 from tests.unit.helpers import no_skills
 

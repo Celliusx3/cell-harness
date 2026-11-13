@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from harness.tickets.places import Occupancy, PlaceKind, freed, place_for, taken
+from harness.tickets.service.places import Occupancy, PlaceKind, freed, place_for, taken
 
 
 @pytest.mark.parametrize(

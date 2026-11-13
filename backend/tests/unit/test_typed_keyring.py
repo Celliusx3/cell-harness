@@ -13,15 +13,15 @@ from harness.secrets import (
     DiskSecretRepository,
     SecretService,
 )
-from harness.secrets.models.details import (
+from harness.secrets.domain.details import (
     CustomDetails,
     DiscordDetails,
     ModelDetails,
     TelegramDetails,
 )
-from harness.secrets.models.errors import SecretRefused
-from harness.secrets.models.sealed import SealedSecret
-from harness.secrets.sealing import sealed
+from harness.secrets.domain.errors import SecretRefused
+from harness.secrets.domain.sealed import SealedSecret
+from harness.secrets.service.sealing import sealed
 
 KEY = "0123456789abcdef0123456789abcdef"
 GITHUB = Destination(origin="https://api.github.com", auth="bearer")

@@ -8,7 +8,7 @@ from harness.llm import Completed, ToolCall, ToolCallChunk, ToolMessage
 from harness.runtime.events import AgentCompleted, AgentPending
 from harness.runtime.hooks import HookChain, ToolHook
 from harness.sandbox import Bridge, BridgeError
-from harness.session.models import (
+from harness.session.domain.models import (
     ApprovalGrant,
     ToolResultEvent,
     TurnEnd,
@@ -22,7 +22,7 @@ from harness.tools import (
     Toolset,
 )
 from harness.tools.client import AcceptedAnswer, ClientToolCatalog, ClientToolService
-from harness.tools.models.decision import DENIED
+from harness.tools.domain.decision import DENIED
 from tests.unit.approval_fakes import WRITE, approvals_asking_for, note_writer, runtime_offering
 from tests.unit.code_fakes import FakeRunner, build, tool
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed

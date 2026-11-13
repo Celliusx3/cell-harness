@@ -6,14 +6,14 @@ import json
 
 import discord
 
-from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import ASK_BY_LINK as DISCORD_ASK
 from harness.channels.discord.channel import NO_ANSWER_PAGE as DISCORD_NO_PAGE
-from harness.channels.gateway import ChannelGateway
-from harness.channels.replies import answer_url
+from harness.channels.service.client import ChatAnswers
+from harness.channels.service.gateway import ChannelGateway
+from harness.channels.service.replies import answer_url
 from harness.channels.telegram.asking import ASK, ASK_BY_LINK, NO_ANSWER_PAGE, SHARE_LABEL
 from harness.runtime.service import SKIPPED
-from harness.session.models import ToolResultEvent, TurnEnd
+from harness.session.domain.models import ToolResultEvent, TurnEnd
 from harness.tools.client import PendingCall, RefusalReason
 from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.secrets import ASK_FOR_SECRET

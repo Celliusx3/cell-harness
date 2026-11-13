@@ -7,7 +7,7 @@ from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending
 from harness.runtime.inbox import NO_INBOX, Claimed
 from harness.runtime.run_to_end import HelperTurn, run_to_end
 from harness.runtime.service import Runtime
-from harness.session.log import Session
+from harness.session.domain.log import Session
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed, echo_tool, pending_tool
 from tests.unit.helpers import drain, durable_service, new_session, no_images, runtime_over
 

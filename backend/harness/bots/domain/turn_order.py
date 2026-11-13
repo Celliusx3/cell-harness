@@ -7,14 +7,14 @@ from collections.abc import Sequence
 from typing import NamedTuple, Protocol
 
 from harness.bots.domain.models import Bot
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
     TurnEnd,
     TurnStart,
     UserMessageEvent,
 )
-from harness.skills.invocation import display
+from harness.skills.domain.invocation import display
 
 EVERYONE = "everyone"
 MAX_TURNS_FROM_MENTIONS = 6

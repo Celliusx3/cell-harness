@@ -8,8 +8,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
-from harness.tools.models.decision import Approval
-from harness.tools.models.outcome import Failure, Ok
+from harness.tools.domain.decision import Approval
+from harness.tools.domain.outcome import Failure, Ok
 
 DECLINED = "DECLINED"
 UNAVAILABLE = "UNAVAILABLE"

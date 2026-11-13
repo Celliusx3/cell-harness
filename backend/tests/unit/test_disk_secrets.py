@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from harness.secrets import Destination, DiskSecretRepository
-from harness.secrets.models.sealed import SealedSecret
+from harness.secrets.domain.sealed import SealedSecret
 
 PLAINTEXT = "sk-live-PLAINTEXT-Q7xZ"
 GITHUB = SealedSecret(

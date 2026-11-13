@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.client import ChatAnswers
+from harness.channels.service.client import ChatAnswers
 from tests.unit.helpers import client_tools
 from tests.unit.link_helpers import World, prompts_in, world
 from tests.unit.telegram_fakes import (

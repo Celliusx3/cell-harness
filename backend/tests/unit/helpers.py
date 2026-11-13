@@ -14,27 +14,27 @@ from pathlib import Path
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
-from harness.channels.links import ChatLinks, LinkCodes
-from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.repository import ChatRepository, ChatState
+from harness.channels.repository.chat_repository import ChatRepository, ChatState
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.config.settings import SkillSettings
 from harness.images import DiskImageRepository, ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS
-from harness.runs.run import Run
-from harness.runs.service import RunService
+from harness.runs.service.run import Run
+from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.inbox import NO_INBOX, Inbox
 from harness.runtime.service import Runtime
-from harness.session.log import Session
-from harness.session.models import SessionHeader
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.domain.log import Session
+from harness.session.domain.models import SessionHeader
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
-from harness.tickets.models import Ticket
-from harness.tickets.repository import TicketRepository
-from harness.tickets.service import TicketService
-from harness.tickets.worker import WorkerEnd
+from harness.tickets.domain.models import Ticket
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import WorkerEnd
 from harness.tools import (
     ApprovalMode,
     ApprovalService,
@@ -45,7 +45,7 @@ from harness.tools import (
     Toolset,
 )
 from harness.tools.client import ClientToolService
-from harness.tools.service import ToolProvider
+from harness.tools.service.tool_service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
 from harness.web.tickets_wiring import ticket_workers
 from tests.unit.fakes import OneModel

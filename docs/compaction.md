@@ -21,7 +21,7 @@ The shape is Claude Code's, with dsh's events:
 ## The events
 
 Three, added to the closed `SessionEvent` union like `application/message` was
-in phase 9 (`session/compaction.py`):
+in phase 9 (`session/domain/compaction.py`):
 
 - `compaction/start { turn, trigger: auto|manual|overflow, tokens }` — a
   compaction is being attempted. `turn` is `null` for a manual one on an idle
@@ -42,7 +42,7 @@ truncate.
 
 ## How `derive_messages` honours them
 
-`session/derive.py`, the one place model history is produced:
+`session/domain/derive.py`, the one place model history is produced:
 
 - the last `compaction/end` **with a message** is the boundary — derivation
   starts there, that message in the user role (where Claude Code and the phase-9

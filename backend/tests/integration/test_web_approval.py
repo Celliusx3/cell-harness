@@ -5,13 +5,13 @@ from __future__ import annotations
 import httpx
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.protocol import InboundMessage
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.domain.protocol import InboundMessage
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.llm import StreamEvent
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
-from harness.tools.models.decision import DENIED
+from harness.tools.domain.decision import DENIED
 from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import assistant_chat, events_from, settle
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed

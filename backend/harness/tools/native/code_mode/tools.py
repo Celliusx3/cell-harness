@@ -9,15 +9,15 @@ from collections.abc import Callable
 from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
 from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import (
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import (
     EXECUTION_ERROR,
     Failure,
     Ok,
     Pending,
     ToolOutcome,
 )
-from harness.tools.models.tool import Tool
+from harness.tools.domain.tool import Tool
 from harness.tools.native.code_mode._typescript import declarations
 from harness.tools.native.code_mode.models import DetailsArgs, ExecuteArgs, NoArgs
 from harness.tools.native.code_mode.prompts import (
@@ -29,7 +29,7 @@ from harness.tools.native.code_mode.prompts import (
     LIST_FUNCTIONS,
     LIST_FUNCTIONS_DESCRIPTION,
 )
-from harness.tools.service import ToolService
+from harness.tools.service.tool_service import ToolService
 
 AvailableTools = Callable[[], list[Tool]]
 

@@ -7,7 +7,7 @@ import logging
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.session.repository import SessionNotFoundError
+from harness.session.repository.session_repository import SessionNotFoundError
 from tests.unit.discord_fakes import BOT_ID, build, message, settle
 from tests.unit.helpers import link_to_assistant
 

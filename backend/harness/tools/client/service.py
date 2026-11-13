@@ -7,14 +7,14 @@ from collections.abc import Callable
 from pydantic import ValidationError
 
 from harness.prompts import DENIED_RESULT
-from harness.session.log import Session
-from harness.tools.approvals import ApprovalService
+from harness.session.domain.log import Session
 from harness.tools.client.catalog import ClientToolCatalog
 from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
 from harness.tools.client.pending_calls import pending_calls
-from harness.tools.models.decision import DENIED, Approval, parse_decision
-from harness.tools.models.outcome import Failure
-from harness.tools.models.tool import Tool
+from harness.tools.domain.decision import DENIED, Approval, parse_decision
+from harness.tools.domain.outcome import Failure
+from harness.tools.domain.tool import Tool
+from harness.tools.service.approval_service import ApprovalService
 
 
 class ClientToolService:

@@ -24,11 +24,11 @@ from harness.llm import (
     ToolReference,
     UserMessage,
 )
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.compaction import CompactionEnd
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.log import Session
+from harness.session.domain.models import (
     ApplicationMessageEvent,
     ApprovalGrant,
     AssistantMessageEvent,
@@ -41,7 +41,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tools import Ok
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool
 from tests.unit.helpers import durable_service, new_session, runtime_over

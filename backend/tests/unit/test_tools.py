@@ -15,7 +15,7 @@ from harness.tools import (
     ToolService,
     Toolset,
 )
-from harness.tools.service import DuplicateToolError
+from harness.tools.service.tool_service import DuplicateToolError
 from tests.unit.fakes import echo_tool, raising_tool
 from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_progress, toolset_for
 

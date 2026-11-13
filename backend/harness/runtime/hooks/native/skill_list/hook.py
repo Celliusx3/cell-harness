@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from harness.runtime.hooks.service import StepHook
 from harness.skills import SkillService
-from harness.skills.prompt import available_skills
+from harness.skills.service.prompt import available_skills
 
 
 @dataclass(frozen=True)

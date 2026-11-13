@@ -18,9 +18,9 @@ from harness.llm import (
 )
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.service import Runtime
-from harness.session.compaction import CompactionEnd
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.log import Session
+from harness.session.domain.models import (
     AssistantMessageEvent,
     StepStart,
     ToolCallEvent,

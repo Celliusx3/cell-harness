@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from harness.tickets.models import Ticket, TicketNotFound
+from harness.tickets.domain.models import Ticket, TicketNotFound
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.tickets import ticket_note_tool
 from tests.unit.helpers import context_for

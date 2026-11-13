@@ -8,8 +8,8 @@ from typing import NamedTuple
 from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.config.settings import Settings
 from harness.mcp import McpService
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.tools.native.bots import BOT_CREATE
 from harness.tools.native.schedule import SCHEDULE_EDIT
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE

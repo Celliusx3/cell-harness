@@ -15,9 +15,9 @@ from harness.llm import (
     text_of,
 )
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
-from harness.session.derive import derive_messages
-from harness.session.log import Session
-from harness.session.models import ToolCallEvent, ToolResultEvent, TurnEnd
+from harness.session.domain.derive import derive_messages
+from harness.session.domain.log import Session
+from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnEnd
 from tests.unit.fakes import SteppedClient, calls_tool, echo_tool, hanging_tool
 from tests.unit.helpers import new_session, runtime_over, unanswered_calls
 

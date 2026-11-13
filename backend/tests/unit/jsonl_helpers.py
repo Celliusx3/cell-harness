@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.llm import AssistantMessage, TextChunk, UserMessage
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantChunk,
     AssistantMessageEvent,
     SessionHeader,
@@ -14,7 +14,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.repositories.jsonl import JsonlSessionRepository
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 
 
 def header(session_id: str = "s") -> SessionHeader:

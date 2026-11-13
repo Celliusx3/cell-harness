@@ -7,7 +7,7 @@ import pytest
 from harness.bots import Bot
 from harness.bots.domain.turn_order import MAX_TURNS_FROM_MENTIONS, MENTION_TURN_ORDER, is_mentioned
 from harness.llm import AssistantMessage, UserMessage
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
     TurnEnd,
@@ -15,7 +15,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.skills.invocation import MARKER
+from harness.skills.domain.invocation import MARKER
 
 R = Bot(id="r", name="Researcher", instructions="Cite.")
 W = Bot(id="w", name="Writer", instructions="Write.")

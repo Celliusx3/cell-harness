@@ -11,7 +11,7 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import SystemMessage, UserMessage
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.tools.native.question import ASK_USER
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, hanging_tool

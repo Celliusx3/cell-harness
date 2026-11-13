@@ -192,7 +192,7 @@ all — only the signatures do, and only until something asks for more.
 Three of the five we already owned:
 
 1. `tools/list` JSON arrives from the server.
-2. Namespaced `{server}__{tool}` — `namespaced()` in `mcp/tool.py`.
+2. Namespaced `{server}__{tool}` — `namespaced()` in `mcp/service/tool.py`.
 3. Split apart again; the schema is carried **verbatim**.
 4. **New:** JSON Schema → a `declare function`. Four rules (`string`→`string`,
    `integer`/`number`→`number`, `enum`→union, absent-from-`required`→`?`), plus
@@ -253,7 +253,7 @@ Four properties, verified against Deno 2.8.3 in
 | a script cannot read the filesystem | `readTextFileSync` throws |
 | a runaway or cancelled script leaves no process | proved by pid |
 
-That last one matters because there is no SDK here to reap the child — `mcp/service.py`
+That last one matters because there is no SDK here to reap the child — `mcp/service/mcp_service.py`
 never kills anything because the MCP transport does it. Here a `finally` must.
 
 **Every call goes through `ToolService.dispatch`.** A script reaches exactly what
@@ -455,7 +455,7 @@ the gate is a sequence, not a wall, and it is the step the 4B model skipped.
 Scripts never pass through the toolset and are unaffected;
 `execute_typescript` remains, for the workloads §6 was right about.
 
-**Bounded.** Only the `MAX_TOOLS_SELECTED` (8, in `tools/toolset.py`) most recently
+**Bounded.** Only the `MAX_TOOLS_SELECTED` (8, in `tools/service/toolset.py`) most recently
 selected tools are promoted; a re-read moves a tool back to the front, and one that fell off is
 refused like one never read and re-read at the same one-miss cost. Without
 that, reads accumulate for the life of a conversation and a long one that
@@ -493,7 +493,7 @@ wants.
   message no assistant message asked for, which a provider **rejects**), and
   nested cards. Trigger: a script slow enough that the silence hurts.
 - **A result cap.** The cheap alternative to code mode for large results, which
-  `mcp/tool.py` already says belongs in the toolset. Claude Code caps at
+  `mcp/service/tool.py` already says belongs in the toolset. Claude Code caps at
   25K tokens and spills to disk; DeepSeek caps per tool and reports `truncated`.
   Trigger: one result blowing the window, without the round-trip problem.
 - **Per-tool timeout in the tool service's dispatch.** `code.timeout_seconds` bounds a whole

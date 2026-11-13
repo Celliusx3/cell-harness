@@ -7,8 +7,13 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from harness.llm import ToolCall, text_of
-from harness.session.log import Session
-from harness.session.models import AssistantMessageEvent, ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.domain.log import Session
+from harness.session.domain.models import (
+    AssistantMessageEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    TurnStart,
+)
 from harness.tools import BLOCKED
 
 

@@ -13,11 +13,11 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
-from harness.channels.gateway import ChannelGateway
-from harness.channels.links import LinkCodes
-from harness.channels.platforms import PlatformChannelMaker, PlatformChannels
-from harness.channels.protocol import Channel
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.domain.protocol import Channel
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
+from harness.channels.service.links import LinkCodes
+from harness.channels.service.platforms import PlatformChannelMaker, PlatformChannels
 from harness.channels.web.channel import WebChannel
 from harness.config.sections import FileSettings
 from harness.config.settings import Settings
@@ -32,15 +32,15 @@ from harness.mcp import (
     open_stdio_client,
 )
 from harness.prompts import ASSISTANT_INSTRUCTIONS
-from harness.runs.bot_messages import BotMessages
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.models.details import ChatPlatform, ModelDetails
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.secrets.domain.details import ChatPlatform, ModelDetails
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
-from harness.tickets.service import TicketService
+from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.web.server import Channels, ChannelServices, create_app

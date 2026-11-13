@@ -15,8 +15,8 @@ from harness.llm import (
     UserMessage,
 )
 from harness.prompts import ASSISTANT_INSTRUCTIONS, CODE_PROMPT, GUIDANCE
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.log import Session
+from harness.session.domain.models import (
     ApplicationMessageEvent,
     ApprovalGrant,
     AssistantMessageEvent,

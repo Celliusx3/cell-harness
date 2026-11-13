@@ -8,8 +8,8 @@ Docker. What it does is in the `computer` row of
 computer/
   server.py, config.py, clock.py   the composition root and its settings
   models/      the data types, one subject per file
-  engine.py    the Engine interface, as secrets/repository.py is
-  engines/     docker.py and microsandbox.py, as secrets/repositories/disk.py is
+  engine.py    the Engine interface, as secrets/repository/secret_repository.py is
+  engines/     docker.py and microsandbox.py, as secrets/repository/disk_secret_repository.py is
   services/    the PC, its shell, browser, files, screen and Mac programs
   startup/     whether this machine can run a PC
   tools/       what the model calls

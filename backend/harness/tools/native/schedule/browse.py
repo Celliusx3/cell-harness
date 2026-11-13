@@ -6,9 +6,9 @@ import json
 
 from harness.bots import GroupService
 from harness.schedules import ScheduleNotFound, ScheduleService, ordered
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import Ok, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import Ok, ToolOutcome
+from harness.tools.domain.tool import Tool
 from harness.tools.native.schedule.models import ScheduleListArgs, ScheduleViewArgs
 from harness.tools.native.schedule.shared import IN_A_GROUP, in_a_group, not_found, own, task
 

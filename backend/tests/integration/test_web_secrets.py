@@ -14,7 +14,7 @@ from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID, BotDraft
 from harness.llm import StreamEvent
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.secrets import SECRET_VALUE_RULE, Destination, SecretRefused, SecretService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService

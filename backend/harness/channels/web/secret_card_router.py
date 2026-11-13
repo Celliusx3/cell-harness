@@ -11,11 +11,11 @@ from harness.bots import Bot, BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.routes import chat_router
 from harness.channels.web.secret_card_schemas import Entered, ModelEntry, SecretEntry
-from harness.runs.run import RunAlreadyActive
+from harness.runs.service.run import RunAlreadyActive
 from harness.secrets import SECRET_VALUE_RULE, SecretService
-from harness.secrets.credential_effects import CredentialEffects
-from harness.secrets.models.details import CustomDetails
-from harness.session.log import Session
+from harness.secrets.domain.details import CustomDetails
+from harness.secrets.service.credential_effects import CredentialEffects
+from harness.session.domain.log import Session
 from harness.tools import Ok
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, SavedName, SecretAsk

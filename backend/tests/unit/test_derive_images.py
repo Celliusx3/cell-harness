@@ -14,9 +14,9 @@ from harness.llm import (
     images_of,
 )
 from harness.prompts import IMAGE_HIDDEN, IMAGE_NOT_SHOWN
-from harness.session.derive import derive_messages, without_images
-from harness.session.images import ImagesHidden
-from harness.session.models import (
+from harness.session.domain.derive import derive_messages, without_images
+from harness.session.domain.images import ImagesHidden
+from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
     ToolCallEvent,
@@ -24,8 +24,8 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 
 FIRST = Image(media_type="image/png", sha256="1" * 64, size=3)
 SECOND = Image(media_type="image/jpeg", sha256="2" * 64, size=3)

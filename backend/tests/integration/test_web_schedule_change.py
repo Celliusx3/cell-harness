@@ -14,11 +14,16 @@ import pytest
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.llm import AssistantMessage, Message, StreamEvent, ToolMessage, UserMessage
 from harness.prompts import SCHEDULE_CHANGE
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.schedules import Schedule, ScheduleService
-from harness.session.models import ScheduleChange, ScheduleChangeEvent, ToolCallEvent, TurnStart
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.domain.models import (
+    ScheduleChange,
+    ScheduleChangeEvent,
+    ToolCallEvent,
+    TurnStart,
+)
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.tools.native.schedule import schedule_edit_tool
 from tests.integration.web_helpers import send, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool

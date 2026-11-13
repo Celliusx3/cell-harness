@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from harness.channels.commands import CLEARED, NOTHING_TO_STOP, STOPPED, Command
+from harness.channels.service.commands import CLEARED, NOTHING_TO_STOP, STOPPED, Command
 from tests.unit.discord_fakes import FakeInteraction, build, message, settle
 from tests.unit.fakes import HangingClient
 from tests.unit.helpers import link_to_assistant

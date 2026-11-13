@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 
 from harness.bots import Bot, BotDraft, BotEdit, BotService
 from harness.bots.router.schemas import AllowedSecrets
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.schedules import ScheduleService
 from harness.secrets import SecretName, SecretNotFound, SecretService
 

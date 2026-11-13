@@ -8,8 +8,8 @@ from contextlib import aclosing
 
 from harness.runtime.events import ToolProgress, ToolResult
 from harness.runtime.hooks import HookChain, ToolHook
-from harness.session.models import ApplicationMessageEvent, ToolResultEvent, TurnEnd
-from harness.session.repair import REPAIRED
+from harness.session.domain.models import ApplicationMessageEvent, ToolResultEvent, TurnEnd
+from harness.session.domain.repair import REPAIRED
 from harness.tools import Approval, Ok, Tool, ToolOutcome
 from tests.unit.approval_fakes import WRITE, approvals_asking_for, note_writer, runtime_offering
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed, reporting_tool

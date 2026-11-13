@@ -6,9 +6,9 @@ import dataclasses
 
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
-from harness.session.service import SessionService
-from harness.tickets.service import TicketService
-from harness.tickets.worker import Workers
+from harness.session.service.session_service import SessionService
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import Workers
 from harness.tools import ToolService
 from harness.tools.native.tickets import (
     TICKET_REPORT,
@@ -16,7 +16,7 @@ from harness.tools.native.tickets import (
     ticket_report_tool,
     ticket_route_tool,
 )
-from harness.tools.service import Disposer
+from harness.tools.service.tool_service import Disposer
 from harness.web.runtime import SUBAGENT_TOOLS, VIEW_IMAGE, WORK_TOOLS, helper_runtime
 
 WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)

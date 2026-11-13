@@ -1,0 +1,142 @@
+"""What happens after a turn starts: someone sees it to its end, then drains."""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+
+from harness.bots import GroupEmpty
+from harness.channels.domain.protocol import Channel, Pushing, RunningChannel
+from harness.channels.repository.chat_repository import ChatRepository, ChatState
+from harness.channels.service.chat_tasks import ChatKey, ChatTasks
+from harness.channels.service.chats import session_for, state_of
+from harness.channels.service.replies import Replies
+from harness.files import ChatFile
+from harness.runs.service.run import Run, RunAlreadyActive
+from harness.runs.service.run_service import RunService
+from harness.session.service.session_service import SessionService
+from harness.skills import SkillService, UnknownSkill
+
+logger = logging.getLogger("harness.channels")
+
+QUEUE_JOIN = "\n"
+
+
+class Following:
+    """Follows every turn to its end for every chat that maps to it."""
+
+    def __init__(
+        self,
+        repository: ChatRepository,
+        runs: RunService,
+        sessions: SessionService,
+        skills: SkillService,
+        channels: dict[str, RunningChannel],
+        tasks: ChatTasks,
+        replies: Replies,
+    ) -> None:
+        self._repository = repository
+        self._runs = runs
+        self._sessions = sessions
+        self._skills = skills
+        self._channels = channels
+        self._replies = replies
+        self._tasks = tasks
+
+    def _platform(self, key: ChatKey) -> Channel | None:
+        """The platform `key`'s chat is on, or `None`, said in one line, once it has left."""
+        running = self._channels.get(key.channel)
+        if running is None:
+            logger.info("%s has left; chat %s is followed no further", *key)
+            return None
+        return running.channel
+
+    async def turn_for_chat(
+        self, state: ChatState, text: str, files: tuple[ChatFile, ...]
+    ) -> Run | None:
+        """Resolve this chat's conversation and begin a turn in it."""
+        session = await session_for(self._repository, self._sessions, state)
+        try:
+            return self.begin(state, self._runs.start(session, text, files=files))
+        except RunAlreadyActive:
+            await self.queue(state, text, files)
+            return None
+
+    async def queue(self, state: ChatState, text: str, files: tuple[ChatFile, ...]) -> None:
+        """Hold `text` and its `files` until the turn running in this chat's conversation ends."""
+        await self._repository.save(
+            state.model_copy(
+                update={
+                    "pending": (*state.pending, text),
+                    "pending_files": (*state.pending_files, *files),
+                }
+            )
+        )
+        key = ChatKey(state.channel, state.chat_id)
+        running = self._runs.active(state.conversation_id)
+        if running is not None and not self._is_followed_elsewhere(key):
+            self._tasks.start(key, self._wait_out(key, running))
+
+    def _is_followed_elsewhere(self, key: ChatKey) -> bool:
+        """Whether another task of this chat's will drain its queue."""
+        task = self._tasks.get(key)
+        return task is not None and not task.done() and task is not asyncio.current_task()
+
+    def begin(self, state: ChatState, run: Run) -> Run:
+        key = ChatKey(state.channel, state.chat_id)
+        self._tasks.start(key, self._follow(key, run))
+        return run
+
+    async def _follow(self, key: ChatKey, run: Run) -> None:
+        """See this turn to its end, then start whatever queued behind it."""
+        transport = self._platform(key)
+        if transport is None:
+            return
+        if isinstance(transport, Pushing):
+            await self._replies.deliver(transport, key.channel, key.chat_id, run)
+        await self._wait_out(key, run)
+
+    async def _wait_out(self, key: ChatKey, run: Run) -> None:
+        """Wait, sending nothing, for `run` to settle, then start whatever queued behind it."""
+        async with run.condition:
+            await run.condition.wait_for(lambda: run.settled)
+        await self._drain(*key)
+
+    async def _drain(self, channel: str, chat_id: str) -> None:
+        """Run whatever queued during the last turn, as one turn."""
+        platform = self._platform(ChatKey(channel, chat_id))
+        if platform is None:
+            return
+        state = await state_of(self._repository, platform, chat_id, self._runs.bots)
+        if not state.conversation_id or not state.pending:
+            return
+        text = QUEUE_JOIN.join(state.pending)
+        cleared = state.model_copy(update={"pending": (), "pending_files": ()})
+        await self._repository.save(cleared)
+        try:
+            await self.turn_for_chat(cleared, expanded(self._skills, text), state.pending_files)
+        except GroupEmpty as err:
+            logger.warning("queued message dropped, nobody is left to answer it: %s", err)
+
+    async def drained(self, channel: str, chat_id: str) -> None:
+        """Wait while this chat is between turns."""
+        key = ChatKey(channel, chat_id)
+        task = self._tasks.get(key)
+        if task is None:
+            return
+        platform = self._platform(key)
+        if platform is None:
+            return
+        state = await state_of(self._repository, platform, chat_id, self._runs.bots)
+        if state.conversation_id and self._runs.active(state.conversation_id) is not None:
+            return
+        await asyncio.wait({task})
+
+
+def expanded(skills: SkillService, text: str) -> str:
+    """Queued `text` with a `/name` it opens with expanded, or as typed once no skill has it."""
+    try:
+        return skills.expand(text)
+    except UnknownSkill as err:
+        logger.warning("queued /%s no longer names a skill; sent as text", err.name)
+        return text

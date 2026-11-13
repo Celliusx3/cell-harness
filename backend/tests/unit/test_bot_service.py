@@ -22,9 +22,9 @@ from harness.bots import (
     BotService,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
-from harness.session.models import BotInstructionsEvent
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.domain.models import BotInstructionsEvent
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL
 

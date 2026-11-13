@@ -7,7 +7,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
-from harness.session.models import ScheduleReminderEvent, TurnEnd
+from harness.session.domain.models import ScheduleReminderEvent, TurnEnd
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool
 from tests.unit.gateway_helpers import settle
 from tests.unit.schedule_helpers import delivered, reminder_events, tick_and_settle, world

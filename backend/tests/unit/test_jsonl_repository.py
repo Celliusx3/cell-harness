@@ -5,13 +5,13 @@ from __future__ import annotations
 import pytest
 
 from harness.llm import ToolCall, ToolMessage
-from harness.session.models import (
+from harness.session.domain.models import (
     ToolCallEvent,
     ToolResultEvent,
     TurnStart,
 )
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.repository import SessionNotFoundError
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.repository.session_repository import SessionNotFoundError
 from harness.tools import ToolUi
 from tests.unit.jsonl_helpers import a_turn, header, repository
 
@@ -140,8 +140,8 @@ async def test_stored_count_tracks_appends(store) -> None:
 
 
 async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None:
-    from harness.channels.repositories.jsonl import JsonlChatRepository
-    from harness.channels.repository import ChatState
+    from harness.channels.repository.chat_repository import ChatState
+    from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 
     chats = JsonlChatRepository(tmp_path / "chats")
     await chats.save(ChatState(channel="telegram", chat_id="1", conversation_id="c0"))
@@ -154,8 +154,8 @@ async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None
 
 
 async def test_files_that_are_not_chats_do_not_break_the_lookup(tmp_path) -> None:
-    from harness.channels.repositories.jsonl import JsonlChatRepository
-    from harness.channels.repository import ChatState
+    from harness.channels.repository.chat_repository import ChatState
+    from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 
     chats = JsonlChatRepository(tmp_path / "chats")
     await chats.save(ChatState(channel="discord", chat_id="9", conversation_id="c0"))

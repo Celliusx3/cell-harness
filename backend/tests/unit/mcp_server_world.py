@@ -11,8 +11,8 @@ import httpx
 from fastapi import FastAPI
 
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServer, SavedServerService
-from harness.mcp.router import build_router as build_mcp_router
-from harness.mcp.servers_router import build_router
+from harness.mcp.router.mcp_router import build_router as build_mcp_router
+from harness.mcp.router.server_router import build_router
 from harness.relay import RelayService
 from harness.web.http.errors import exception_handlers
 from tests.unit.mcp_fakes import FakeFactory, tool

@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from harness.llm import Text, ToolCall, ToolMessage
-from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools import Failure, Ok, Pending
 from harness.tools.client import (
     DECLINED,

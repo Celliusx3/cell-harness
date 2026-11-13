@@ -8,7 +8,7 @@ from contextlib import aclosing
 from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
 from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
-from harness.session.models import ToolResultEvent
+from harness.session.domain.models import ToolResultEvent
 from harness.tools import Ok, Tool, ToolService, Toolset
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
@@ -16,7 +16,7 @@ from harness.tools.native.code_mode import (
     LIST_FUNCTIONS,
     code_mode_tools,
 )
-from harness.tools.toolset import MAX_TOOLS_SELECTED
+from harness.tools.service.toolset import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed, echo_tool
 from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_images, no_progress

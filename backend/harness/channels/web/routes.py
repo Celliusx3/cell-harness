@@ -10,19 +10,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFi
 from fastapi.responses import FileResponse, StreamingResponse
 
 from harness.bots import ChatMembers
-from harness.channels.commands import (
+from harness.channels.domain.protocol import InboundMessage
+from harness.channels.service.commands import (
     ModeChoice,
     ModeCommand,
     mode_command,
     mode_usage_reply,
     unknown_skill,
 )
-from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage, SetMode
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService
-from harness.session.log import Session
-from harness.session.service import SessionService
+from harness.session.domain.log import Session
+from harness.session.service.session_service import SessionService
 from harness.skills import UnknownSkill
 from harness.web.http.files import folder_file, logged_image
 

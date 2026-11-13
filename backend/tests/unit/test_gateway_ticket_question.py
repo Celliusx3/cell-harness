@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID
-from harness.session.models import TicketReport
+from harness.session.domain.models import TicketReport
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.gateway_helpers import CHAT, build, settle
 from tests.unit.helpers import no_skills

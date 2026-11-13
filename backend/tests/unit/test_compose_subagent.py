@@ -21,11 +21,11 @@ from harness.llm import (
 from harness.mcp import McpServer, McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.service import Runtime
-from harness.session.compaction import CompactionEnd
-from harness.session.models import TurnStart
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.models import TurnStart
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.skills import SKILL, SkillService
 from harness.tools import Ok
 from harness.tools.native.code_mode import LIST_FUNCTIONS

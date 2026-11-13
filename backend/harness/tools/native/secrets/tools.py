@@ -9,9 +9,9 @@ import httpx
 from harness.bots import BotNotFound, BotService
 from harness.secrets import Destination, SecretService, UnsealedSecret, redacted
 from harness.tools.client import ClientTool
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import Failure, Ok, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import Failure, Ok, ToolOutcome
+from harness.tools.domain.tool import Tool
 from harness.tools.native.secrets.models import FetchArgs, SavedName, SecretAsk
 
 ASK_FOR_SECRET = "ask_for_secret"

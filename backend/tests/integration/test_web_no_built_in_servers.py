@@ -15,7 +15,7 @@ from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
 from harness.config import settings as settings_module
 from harness.llm.adapters.openai import client as adapter_module
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.tools.native.code_mode.prompts import LIST_FUNCTIONS
 from harness.tools.native.tickets import TICKET_ROUTE
 from harness.web import server

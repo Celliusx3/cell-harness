@@ -44,7 +44,7 @@ passed explicitly. Reserve defaults for genuinely-absent optionals
 tests, MCP servers, frontend. The number is where a module still reads top to
 bottom in one sitting, and it is the size the repo was refactored to in
 `9c9cb0f`. A file that needs more has two responsibilities; find the seam
-(`channels/chat_tasks.py` came out of the gateway this way, and the `/name`
+(`channels/service/chat_tasks.py` came out of the gateway this way, and the `/name`
 tests out of `test_gateway.py`). Never raise the cap or exempt a file — the
 first exemption is the last time the rule means anything.
 

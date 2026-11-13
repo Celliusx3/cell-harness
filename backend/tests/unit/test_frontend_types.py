@@ -10,8 +10,8 @@ from typing import get_args
 import pytest
 
 from harness.llm import Block, StreamEvent
-from harness.session.models import SessionEvent, TurnEndReason
-from harness.skills.invocation import MARKER
+from harness.session.domain.models import SessionEvent, TurnEndReason
+from harness.skills.domain.invocation import MARKER
 
 _FRONTEND = Path(__file__).resolve().parents[3] / "frontend"
 _TYPES_TS = _FRONTEND / "lib" / "types.ts"

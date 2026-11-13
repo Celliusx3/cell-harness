@@ -8,9 +8,9 @@ from pydantic import Field, create_model
 
 from harness.bots import BotDraft, BotService
 from harness.secrets import SecretService
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
+from harness.tools.domain.tool import Tool
 
 BOT_CREATE = "bot_create"
 

@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from harness.runtime.subagents import Subagents
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.tools import ApprovalMode, ApprovalService, CallOrigin, Ok, Tool, ToolContext
 from harness.tools.native.subagent import (
     SubagentReply,

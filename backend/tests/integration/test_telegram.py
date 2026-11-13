@@ -11,17 +11,17 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
-from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import InboundMessage
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.domain.protocol import InboundMessage
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
 from harness.config.settings import Settings
-from harness.runs.bot_messages import BotMessages
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService
-from harness.secrets.models.details import TelegramDetails
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.secrets.domain.details import TelegramDetails
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import (

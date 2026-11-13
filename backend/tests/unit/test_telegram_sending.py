@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from telegram.error import BadRequest
 
-from harness.channels.gateway import ChannelGateway
+from harness.channels.domain.text import split_message as split_at
+from harness.channels.service.gateway import ChannelGateway
 from harness.channels.telegram.channel import MAX_MESSAGE_CHARS
-from harness.channels.text import split_message as split_at
 from tests.unit.helpers import no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
@@ -18,6 +18,12 @@ def split_message(text: str) -> list[str]:
 
 def test_a_short_reply_is_one_message() -> None:
     assert split_message("hello") == ["hello"]
+
+
+def test_a_reply_exactly_at_the_limit_is_one_message() -> None:
+    body = ("word " * MAX_MESSAGE_CHARS)[:MAX_MESSAGE_CHARS]
+
+    assert split_message(body) == [body]
 
 
 def test_a_long_reply_is_split_within_the_limit() -> None:

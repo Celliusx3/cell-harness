@@ -14,7 +14,7 @@ from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EmptyReplyHook
 from harness.runtime.service import Runtime
 from harness.runtime.turn import NO_TERMINAL
-from harness.session.models import (
+from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,

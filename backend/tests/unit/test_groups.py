@@ -20,12 +20,12 @@ from harness.bots import (
     GroupService,
 )
 from harness.llm import ToolCall
-from harness.session.models import (
+from harness.session.domain.models import (
     GroupMembersEvent,
     ToolCallEvent,
     TurnStart,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL
 

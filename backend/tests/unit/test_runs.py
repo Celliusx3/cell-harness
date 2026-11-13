@@ -18,16 +18,16 @@ from harness.bots import (
     GroupEmpty,
     GroupService,
 )
-from harness.runs.run import RunAlreadyActive
-from harness.runs.subscribe import subscribe
-from harness.session.log import Session
-from harness.session.models import (
+from harness.runs.service.run import RunAlreadyActive
+from harness.runs.service.subscribe import subscribe
+from harness.session.domain.log import Session
+from harness.session.domain.models import (
     ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tools import Ok, ToolContext, ToolOutcome
 from tests.unit.fakes import (
     EchoArgs,

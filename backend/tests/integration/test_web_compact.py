@@ -5,8 +5,8 @@ from __future__ import annotations
 import httpx
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.protocol import InboundMessage
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.domain.protocol import InboundMessage
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, link_to_assistant, no_skills, run_service

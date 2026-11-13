@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from harness.schedules.timing import InvalidRrule, latest_at_or_before, next_after, zone_of
+from harness.schedules.domain.timing import InvalidRrule, latest_at_or_before, next_after, zone_of
 
 NEW_YORK_DAILY = "DTSTART;TZID=America/New_York:20260301T090000\nRRULE:FREQ=DAILY"
 

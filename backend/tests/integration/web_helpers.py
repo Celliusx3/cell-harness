@@ -12,10 +12,10 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import StreamEvent
-from harness.runs.bot_messages import BotMessages
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages

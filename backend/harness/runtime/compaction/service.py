@@ -11,14 +11,14 @@ from harness.prompts import COMPACTION_INSTRUCTION
 from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
 from harness.runtime.compaction.prompt import summary_message
 from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
-from harness.session.compaction import (
+from harness.session.domain.compaction import (
     CompactionEnd,
     CompactionPrune,
     CompactionStart,
     CompactionTrigger,
 )
-from harness.session.log import Session
-from harness.session.repair import unanswered
+from harness.session.domain.log import Session
+from harness.session.domain.repair import unanswered
 
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime

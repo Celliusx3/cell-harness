@@ -9,16 +9,16 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import LLMClient
-from harness.runs.subscribe import subscribe
-from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.runs.service.subscribe import subscribe
+from harness.session.domain.derive import derive_messages
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
     UserMessageEvent,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -110,6 +110,21 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
 
     items = await asyncio.wait_for(collected, timeout=5)
     assert items == list(enumerate(session.events()))
+
+
+async def test_a_subscriber_hears_the_turn_while_it_is_still_running(service) -> None:
+    runs = run_service(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
+    session = await service.create(ASSISTANT_ID)
+    run = runs.start(session, "go")
+    stream = subscribe(run, after=0)
+    try:
+        first = await asyncio.wait_for(anext(stream), timeout=2)
+        running = not run.settled
+    finally:
+        await stream.aclose()
+        await runs.stop(session.id)
+
+    assert (first.number, running) == (0, True)
 
 
 async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:

@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from harness.channels.client import ChatAnswers
-from harness.channels.gateway import ChannelGateway
-from harness.channels.inbox import ChatInbox
-from harness.channels.protocol import InboundMessage
-from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.runs.service import RunService
+from harness.channels.domain.protocol import InboundMessage
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.client import ChatAnswers
+from harness.channels.service.gateway import ChannelGateway
+from harness.channels.service.inbox import ChatInbox
+from harness.runs.service.run_service import RunService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService

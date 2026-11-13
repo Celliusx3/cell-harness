@@ -5,9 +5,9 @@ from __future__ import annotations
 from harness.bots.domain.models import Bot, BotNotFound, ChatMembers, Group, GroupDraft, GroupEmpty
 from harness.bots.domain.turn_order import TurnOrder
 from harness.bots.service.bot_service import BotService, bot_instructions_event
-from harness.session.log import Session
-from harness.session.models import GroupMembersEvent
-from harness.session.service import SessionService
+from harness.session.domain.log import Session
+from harness.session.domain.models import GroupMembersEvent
+from harness.session.service.session_service import SessionService
 
 
 class GroupService:

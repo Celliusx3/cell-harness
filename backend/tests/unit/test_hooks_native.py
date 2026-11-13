@@ -9,8 +9,8 @@ from harness.runtime.hooks.native.no_progress import NO_PROGRESS_BLOCK_AT
 from harness.runtime.hooks.native.same_tool_failure import (
     SAME_TOOL_FAILURE_BLOCK_AT,
 )
-from harness.session.log import Session
-from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.domain.log import Session
+from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools import BLOCKED, EXECUTION_ERROR, REFUSED, Failure, Ok
 from harness.web.runtime import default_hooks
 from tests.unit.helpers import new_session, no_skills

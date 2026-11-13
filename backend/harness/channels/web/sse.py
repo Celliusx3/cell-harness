@@ -6,9 +6,9 @@ import asyncio
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import suppress
 
-from harness.runs.run import Run
-from harness.runs.subscribe import subscribe
-from harness.session.log import Numbered, Session
+from harness.runs.service.run import Run
+from harness.runs.service.subscribe import subscribe
+from harness.session.domain.log import Numbered, Session
 
 MEDIA_TYPE = "text/event-stream"
 

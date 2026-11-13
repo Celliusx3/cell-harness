@@ -12,9 +12,9 @@ from harness.llm import AssistantMessage, Failed, Image, UserMessage
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runtime.service import Runtime
-from harness.session.images import ImagesHidden
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.images import ImagesHidden
+from harness.session.domain.log import Session
+from harness.session.domain.models import (
     AssistantChunk,
     AssistantMessageEvent,
     TurnEnd,

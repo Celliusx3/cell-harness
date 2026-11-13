@@ -8,14 +8,14 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, GroupService
-from harness.channels.gateway import ChannelGateway
+from harness.channels.service.gateway import ChannelGateway
 from harness.config.settings import Settings
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService
-from harness.secrets.models.details import DiscordDetails, TelegramDetails
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.secrets.domain.details import DiscordDetails, TelegramDetails
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.web.server import build_channels
 from tests.unit.fakes import OneModel, ScriptedClient
 from tests.unit.helpers import no_bots, no_images

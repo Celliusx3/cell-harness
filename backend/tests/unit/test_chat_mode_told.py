@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.llm import UserMessage
-from harness.session.models import ApplicationMessageEvent, ApprovalModeChanged
+from harness.session.domain.models import ApplicationMessageEvent, ApprovalModeChanged
 from tests.unit.fakes import SteppedClient, completed, echo_tool
 from tests.unit.helpers import drain, new_session, runtime_over
 

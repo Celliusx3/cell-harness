@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 
 from harness.files import ChatFileService
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
+from harness.tools.domain.tool import Tool
 from harness.tools.native.files import _descriptions
 from harness.tools.native.files._archive import ArchiveError, extract_archive, pack_archive
 from harness.tools.native.files._chat_paths import paths_in_chat

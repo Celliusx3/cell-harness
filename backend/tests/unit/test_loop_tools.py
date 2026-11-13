@@ -15,8 +15,8 @@ from harness.llm import (
 )
 from harness.runtime.events import AgentCompleted, ToolProgress, ToolResult
 from harness.runtime.service import Runtime
-from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.derive import derive_messages
+from harness.session.domain.models import (
     StepEnd,
     StepStart,
     ToolResultEvent,

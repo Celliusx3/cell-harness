@@ -9,10 +9,10 @@ import pytest
 
 from harness.app_events import TicketsChangedAppEvent
 from harness.bots import ASSISTANT_ID
-from harness.tickets.models import Ticket, TicketNotRetryable, TicketsFile
-from harness.tickets.repository import TicketRepository
-from harness.tickets.service import TicketService
-from harness.tickets.worker import WorkerEnd
+from harness.tickets.domain.models import Ticket, TicketNotRetryable, TicketsFile
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import WorkerEnd
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import FirstTurnOnly, durable_service, heard_nowhere, no_bots, run_service
 

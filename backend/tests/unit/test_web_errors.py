@@ -19,13 +19,13 @@ from harness.mcp import (
 )
 from harness.schedules import InvalidSchedule, ScheduleBusy, ScheduleNotFound
 from harness.secrets import SecretNotFound, SecretRefused
-from harness.session.repository import (
+from harness.session.repository.session_repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
     SessionNotFoundError,
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
-from harness.tickets.models import (
+from harness.tickets.domain.models import (
     TicketNotAsking,
     TicketNotFound,
     TicketNotRetryable,

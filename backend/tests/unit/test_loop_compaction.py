@@ -22,8 +22,8 @@ from harness.llm import (
 )
 from harness.prompts import SUMMARY_OPEN
 from harness.runtime.service import Runtime
-from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.derive import derive_messages
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
     TurnEnd,

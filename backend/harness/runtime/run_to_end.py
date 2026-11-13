@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from harness.runtime.events import TurnEvent
 from harness.runtime.inbox import NO_INBOX
 from harness.runtime.service import Runtime
-from harness.session.log import Session
-from harness.session.service import SessionService
+from harness.session.domain.log import Session
+from harness.session.service.session_service import SessionService
 from harness.tools import Approval, Failure, Ok
 
 

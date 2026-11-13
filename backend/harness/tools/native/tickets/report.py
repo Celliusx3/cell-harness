@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
+from harness.tools.domain.tool import Tool
 from harness.tools.native.tickets.models import TicketReportArgs
 
 TICKET_REPORT = "ticket_report"

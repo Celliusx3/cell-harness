@@ -15,7 +15,7 @@ from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotService, GroupServ
 from harness.config.sections import CompactionSettings, LLMSettings
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.runtime.subagents import Subagents
 from harness.tools import ToolService, Toolset

@@ -7,7 +7,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
-from harness.tools.models.tool import NAMESPACE_SEPARATOR, Tool
+from harness.tools.domain.tool import NAMESPACE_SEPARATOR, Tool
 
 logger = logging.getLogger("harness.tools.code")
 

@@ -13,7 +13,7 @@ from starlette.websockets import WebSocketDisconnect
 from websockets.sync.server import Server, ServerConnection, serve
 
 from harness.relay import RELAY_TTL_SECONDS, RelayService, Upstream
-from harness.relay.router import build_router
+from harness.relay.router.relay_router import build_router
 
 GREETING = b"RFB 003.008\n"
 

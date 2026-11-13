@@ -7,8 +7,8 @@ from pathlib import Path
 from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.tools.native.subagent import RUN_SUBAGENT
 from harness.tools.native.tickets import TICKET_REPORT
 from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, helper_runtime

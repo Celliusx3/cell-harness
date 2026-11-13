@@ -11,7 +11,7 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.schedules import ScheduleRepository, ScheduleService
-from harness.session.models import TurnEnd, UserMessageEvent
+from harness.session.domain.models import TurnEnd, UserMessageEvent
 from tests.integration.web_helpers import build, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills

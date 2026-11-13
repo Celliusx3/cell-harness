@@ -8,11 +8,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 from harness.bots import ASSISTANT_ID
-from harness.tickets.models import Ticket
-from harness.tickets.repository import TicketRepository
-from harness.tickets.service import TicketService
-from harness.tickets.worker import WorkerEnd
-from harness.tools.models.decision import ApprovalMode
+from harness.tickets.domain.models import Ticket
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.ticket_service import TicketService
+from harness.tickets.service.worker import WorkerEnd
+from harness.tools.domain.decision import ApprovalMode
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, heard_nowhere, run_service
 from tests.webapp import bots_in

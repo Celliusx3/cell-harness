@@ -6,10 +6,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.llm import SystemMessage
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
-from harness.tickets.models import Ticket
-from harness.tickets.worker import WorkerEnd, Workers, worker_session_id
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
+from harness.tickets.domain.models import Ticket
+from harness.tickets.service.worker import WorkerEnd, Workers, worker_session_id
 from harness.tools import ApprovalService, Ok, Tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
 from tests.unit.helpers import runtime_over

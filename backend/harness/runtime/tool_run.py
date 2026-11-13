@@ -14,9 +14,9 @@ from harness.files import ChatFile, ChatFileService
 from harness.llm import ApplicationMessage, Text, ToolCall, ToolMessage, text_of
 from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.events import ToolPending, ToolProgress, ToolResult
-from harness.session.log import Session
-from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
-from harness.session.repair import unknown_result
+from harness.session.domain.log import Session
+from harness.session.domain.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
+from harness.session.domain.repair import unknown_result
 from harness.tools import BLOCKED, CallOrigin, Failure, Ok, Pending, ToolOutcome
 
 if TYPE_CHECKING:

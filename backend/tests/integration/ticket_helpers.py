@@ -13,13 +13,13 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import StreamEvent
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import SecretService
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
-from harness.tickets.repository import TicketRepository
-from harness.tickets.service import TicketService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
+from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService, Tool, ToolService, Toolset
 from harness.tools.client import ClientToolService
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE
