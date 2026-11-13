@@ -125,8 +125,6 @@ export interface TicketResultItem {
   kind: "ticketResult";
   key: string;
   turn: number;
-  ticketId: string;
-  title: string;
   text: string;
 }
 

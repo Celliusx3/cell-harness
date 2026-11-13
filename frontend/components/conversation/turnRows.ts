@@ -57,7 +57,7 @@ function oneTurn(items: TimelineItem[], turn: number, shape: TurnShape): Row[] {
   const speaker = shape.speakers.get(turn) ?? null;
   const shown = items.filter((item) => isShown(item, speaker !== null));
   const asked: Row[] = shown.filter(isAsk).map((item) => ({ kind: "item", item }));
-  const answer = shown.filter((item) => !isAsk(item));
+  const answer = reportsLast(shown.filter((item) => !isAsk(item)));
   const first = answer[0];
   if (first === undefined) return asked;
   const said = [...items].reverse().find((item) => item.kind === "assistant" && item.content.trim());
@@ -96,6 +96,12 @@ function partsOf(
     parts.splice(foldAt, 0, { kind: "activity", key: `w${turn}`, turn, items: folded });
   }
   return parts;
+}
+
+/** A worker's result or question after the bot's own words, which introduce it. */
+function reportsLast(items: TimelineItem[]): TimelineItem[] {
+  const isReport = (item: TimelineItem) => item.kind === "ticketResult" || item.kind === "ticketQuestion";
+  return [...items.filter((item) => !isReport(item)), ...items.filter(isReport)];
 }
 
 function isAsk(item: TimelineItem): boolean {

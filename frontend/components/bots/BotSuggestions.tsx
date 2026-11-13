@@ -1,6 +1,6 @@
 "use client";
 
-import { BADGE, OPTION } from "@/components/answer/QuestionPanel";
+import { BADGE, OPTION } from "@/components/answer/answerStyles";
 
 interface BotSuggestion {
   label: string;

@@ -7,7 +7,7 @@ import type { KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { handOverOf } from "@/components/answer/handOver";
-import { BADGE, FADE_ABOVE, OPTION } from "@/components/answer/QuestionPanel";
+import { BADGE, FADE_ABOVE, OPTION } from "@/components/answer/answerStyles";
 import { useClientTool } from "@/components/answer/useClientTool";
 import { releaseControl } from "@/components/computer/screen";
 import { COMPUTER_SCREEN } from "@/components/computer/server";

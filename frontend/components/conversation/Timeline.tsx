@@ -19,7 +19,7 @@ import { MODE_ICONS, MODE_LABELS } from "@/components/conversation/ModePicker";
 import { ScheduleChangeLine } from "@/components/conversation/ScheduleChangeLine";
 import { ScheduledBubble } from "@/components/conversation/ScheduledBubble";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
-import { acceptedTickets, TicketCards } from "@/components/conversation/TicketCard";
+import { acceptedTickets, TicketLines } from "@/components/conversation/TicketLine";
 import { TicketResult } from "@/components/conversation/TicketResult";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import type { ApprovalMode } from "@/lib/types";
@@ -154,7 +154,7 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
         return <Handler item={item} conversationId={conversationId} onAnswered={onAnswered} />;
       if (item.result === null && openTurn === null) return <ApprovalRecord item={item} />;
       if (item.call.name === TICKET_ROUTE && acceptedTickets(item).length > 0)
-        return <TicketCards item={item} />;
+        return <TicketLines item={item} />;
       return <ToolCard item={item} />;
     }
     case "notice":

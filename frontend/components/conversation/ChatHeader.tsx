@@ -28,6 +28,7 @@ interface ChatHeaderProps {
   editHref: string | null;
   elapsed: string | null;
   waiting: boolean;
+  ticketsAtWork: number;
   canCompact: boolean;
   onCompact(): void;
   onClear(): void;
@@ -39,6 +40,7 @@ export function ChatHeader({
   editHref,
   elapsed,
   waiting,
+  ticketsAtWork,
   canCompact,
   onCompact,
   onClear,
@@ -49,7 +51,7 @@ export function ChatHeader({
       {chat !== null && <BotAvatar speaker={chat} />}
       <div className="flex min-w-0 flex-col">
         <h1 className="truncate text-sm font-semibold leading-tight">{chat?.name ?? ""}</h1>
-        <ChatState elapsed={elapsed} waiting={waiting} />
+        <ChatState elapsed={elapsed} waiting={waiting} ticketsAtWork={ticketsAtWork} />
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
         {editHref !== null && (
@@ -63,16 +65,29 @@ export function ChatHeader({
   );
 }
 
-function ChatState({ elapsed, waiting }: { elapsed: string | null; waiting: boolean }) {
+interface ChatStateProps {
+  elapsed: string | null;
+  waiting: boolean;
+  ticketsAtWork: number;
+}
+
+function ChatState({ elapsed, waiting, ticketsAtWork }: ChatStateProps) {
   if (waiting) return <span className="text-xs font-medium text-attention">Waiting for you</span>;
-  if (elapsed === null) return <span className="text-xs text-ink-soft">Ready</span>;
+  if (elapsed !== null) return <WorkingState label={`Working · ${elapsed}`} />;
+  if (ticketsAtWork > 0) {
+    return <WorkingState label={`Working on ${ticketsAtWork} ${ticketsAtWork === 1 ? "thing" : "things"}`} />;
+  }
+  return <span className="text-xs text-ink-soft">Ready</span>;
+}
+
+function WorkingState({ label }: { label: string }) {
   return (
-    <span className="flex items-center gap-1.5 text-xs tabular-nums text-ink-soft">
+    <span className="flex items-center gap-1.5 text-xs tabular-nums text-accent">
       <span
         aria-hidden
         className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent motion-reduce:animate-none"
       />
-      Working · {elapsed}
+      {label}
     </span>
   );
 }

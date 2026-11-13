@@ -1,70 +1,77 @@
 "use client";
 
-import { ArrowUp, MessageCircleQuestionMark } from "lucide-react";
+import { Check } from "lucide-react";
 import { useState } from "react";
 
-import {
-  ApprovalAnswer,
-  ChoiceAnswer,
-  LocationAnswer,
-  SecretAnswer,
-} from "@/components/answer/TicketAnswers";
+import { AnswerList } from "@/components/answer/AnswerList";
+import { ApprovalAnswer, LocationAnswer, SecretAnswer } from "@/components/answer/TicketAnswers";
 import type { TicketQuestionItem } from "@/components/conversation/timelineItems";
 import { useTicket } from "@/components/conversation/useTicket";
 import { ApiError } from "@/lib/api";
 import { answerTicket, approveTicket, saveTicketSecret } from "@/lib/tickets";
 import type { Decision, SessionEvent, ToolCall } from "@/lib/types";
 
-type Phase = "asking" | "sending" | "sent";
+type Phase = { kind: "asking" } | { kind: "sending" } | { kind: "sent"; answer: string };
 
-/** A worker's question, unchanged, with the card its `ask` chooses while its ticket waits. */
+/** A worker's question in its bot's voice, with the answer its `ask` chooses while its ticket waits. */
 export function TicketQuestionPanel({ item }: { item: TicketQuestionItem }) {
   const load = useTicket(item.ticketId);
-  const [phase, setPhase] = useState<Phase>("asking");
+  const [phase, setPhase] = useState<Phase>({ kind: "asking" });
   const [error, setError] = useState<string | null>(null);
   const waits =
     item.latest && load.kind === "found" && load.detail.ticket.state === "needs_answer";
 
-  const post = async (sent: () => Promise<unknown>) => {
-    setPhase("sending");
+  const post = async (sent: () => Promise<unknown>, answer: string) => {
+    setPhase({ kind: "sending" });
     setError(null);
     try {
       await sent();
-      setPhase("sent");
+      setPhase({ kind: "sent", answer });
     } catch (failure) {
       setError(failure instanceof ApiError ? failure.message : "Could not send the answer.");
-      setPhase("asking");
+      setPhase({ kind: "asking" });
     }
   };
 
   return (
-    <div className="rounded-2xl border border-attention/50 bg-surface-raised p-3 shadow-sm">
-      <p className="flex items-start gap-2 break-words text-sm font-medium">
-        <MessageCircleQuestionMark size={15} className="mt-0.5 shrink-0 text-attention" />
-        <span className="min-w-0 flex-1">{item.question}</span>
-      </p>
-      {waits && phase !== "sent" ? (
+    <div
+      className={`space-y-3 border-l-[3px] pl-3 text-sm ${waits && phase.kind !== "sent" ? "border-attention" : "border-line"}`}
+    >
+      <p className="break-words">{item.question}</p>
+      {waits && phase.kind !== "sent" ? (
         <Answer
           item={item}
           call={load.kind === "found" ? waitingCall(load.detail.events, item.approvalCallId) : null}
-          disabled={phase === "sending"}
+          disabled={phase.kind === "sending"}
           onSend={(text) =>
-            void post(() =>
-              item.ask === "secret"
-                ? saveTicketSecret(item.ticketId, text)
-                : answerTicket(item.ticketId, text),
-            )
+            void (item.ask === "secret"
+              ? post(() => saveTicketSecret(item.ticketId, text), "Key saved")
+              : post(() => answerTicket(item.ticketId, text), text))
           }
-          onDecide={(decision) => void post(() => approveTicket(item.ticketId, decision))}
+          onDecide={(decision) =>
+            void post(() => approveTicket(item.ticketId, decision), decisionLabel(decision))
+          }
         />
       ) : (
-        <p className="mt-2 text-xs text-ink-soft">
-          {load.kind === "loading" && item.latest ? "…" : "Answered"}
-        </p>
+        <Answered phase={phase} loading={load.kind === "loading" && item.latest} />
       )}
-      {error !== null && <p className="mt-2 text-xs text-danger">{error}</p>}
+      {error !== null && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
+}
+
+function Answered({ phase, loading }: { phase: Phase; loading: boolean }) {
+  if (loading) return <p className="text-xs text-ink-soft">…</p>;
+  return (
+    <p className="flex items-center gap-1.5 text-sm text-ink-soft">
+      <Check size={14} className="shrink-0 text-accent" />
+      <span className="min-w-0 break-words">{phase.kind === "sent" ? phase.answer : "Answered"}</span>
+    </p>
+  );
+}
+
+function decisionLabel(decision: Decision): string {
+  return decision.kind === "denied" ? "Denied" : "Allowed";
 }
 
 function waitingCall(events: SessionEvent[], callId: string | null): ToolCall | null {
@@ -90,49 +97,12 @@ function Answer({
   switch (item.ask) {
     case "approval":
       return <ApprovalAnswer call={call} disabled={disabled} onDecide={onDecide} />;
-    case "choice":
-      return <ChoiceAnswer options={item.options} disabled={disabled} onSend={onSend} />;
     case "secret":
       return <SecretAnswer name={item.secretName} disabled={disabled} onSend={onSend} />;
     case "location":
       return <LocationAnswer disabled={disabled} onSend={onSend} />;
+    case "choice":
     case "text":
-      return <AnswerBox disabled={disabled} onSend={onSend} />;
+      return <AnswerList options={item.options} disabled={disabled} autoFocus={false} onAnswer={onSend} />;
   }
-}
-
-function AnswerBox({ disabled, onSend }: { disabled: boolean; onSend: (text: string) => void }) {
-  const [draft, setDraft] = useState("");
-  const submit = () => {
-    const text = draft.trim();
-    if (text && !disabled) onSend(text);
-  };
-  return (
-    <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-surface p-1 pl-3 transition focus-within:border-accent">
-      <input
-        type="text"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-            event.preventDefault();
-            submit();
-          }
-        }}
-        aria-label="Your answer"
-        placeholder="Your answer"
-        className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-ink-soft"
-      />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={disabled || !draft.trim()}
-        aria-label="Send answer"
-        title="Send answer"
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-action text-on-action transition hover:opacity-90 disabled:opacity-35"
-      >
-        <ArrowUp size={16} />
-      </button>
-    </div>
-  );
 }

@@ -32,3 +32,15 @@ export function useNeedingYou(): { needing: NeedingYou; reload: () => void } {
 
   return { needing, reload };
 }
+
+/** One chat with tickets that wait for a person, in the order its first one started waiting. */
+export interface ChatNeedingYou {
+  botId: string;
+  tickets: TicketRow[];
+}
+
+export function chatsNeedingYou(tickets: TicketRow[]): ChatNeedingYou[] {
+  const byBot = new Map<string, TicketRow[]>();
+  for (const ticket of tickets) byBot.set(ticket.bot_id, [...(byBot.get(ticket.bot_id) ?? []), ticket]);
+  return [...byBot].map(([botId, rows]) => ({ botId, tickets: rows }));
+}
