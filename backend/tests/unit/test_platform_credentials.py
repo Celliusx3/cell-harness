@@ -13,9 +13,9 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotRepository, BotService
-from harness.channels.gateway import ChannelGateway
 from harness.channels.platforms import PlatformChannels
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
 from harness.secrets import DiskSecretRepository, SecretRefused, SecretService
 from harness.secrets.domain.details import ChatPlatform, DiscordDetails, TelegramDetails
 from harness.secrets.router.credential_router import build_router

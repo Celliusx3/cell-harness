@@ -9,8 +9,8 @@ import discord
 from harness.bots import ASSISTANT_ID
 from harness.channels.discord.channel import ASK_BY_LINK as DISCORD_ASK
 from harness.channels.discord.channel import OPEN_LABEL
-from harness.channels.gateway import ChannelGateway
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
 from harness.channels.telegram.asking import ASK_BY_LINK
 from harness.session.domain.models import TurnEnd
 from harness.tools.native.hand_over import HAND_OVER

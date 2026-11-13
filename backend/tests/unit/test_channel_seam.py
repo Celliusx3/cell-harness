@@ -13,8 +13,8 @@ from harness.channels.domain.protocol import (
     InboundMessage,
     UnknownChannelError,
 )
-from harness.channels.gateway import ChannelGateway
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository

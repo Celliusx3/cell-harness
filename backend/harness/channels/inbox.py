@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from harness.channels.following import QUEUE_JOIN, expanded
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
+from harness.channels.service.following import QUEUE_JOIN, expanded
 from harness.runtime.inbox import Claimed
 from harness.skills import SkillService
 

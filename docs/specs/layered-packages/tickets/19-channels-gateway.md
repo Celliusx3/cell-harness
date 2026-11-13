@@ -1,6 +1,6 @@
 # 19. Layer channels: the gateway
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

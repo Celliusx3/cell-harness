@@ -8,7 +8,7 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, GroupService
-from harness.channels.gateway import ChannelGateway
+from harness.channels.service.gateway import ChannelGateway
 from harness.config.settings import Settings
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime

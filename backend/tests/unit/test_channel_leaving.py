@@ -10,8 +10,8 @@ import pytest
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage, TokenRefused
-from harness.channels.gateway import ChannelGateway
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
 from harness.llm import LLMClient
 from harness.tools import Tool
 from harness.tools.client import PendingCall

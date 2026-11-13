@@ -18,8 +18,8 @@ from harness.channels.commands import (
 from harness.channels.commands import apply as apply_command
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.domain.text import split_message
-from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, link_or_receive
+from harness.channels.service.gateway import ChannelGateway
 from harness.skills import UnknownSkill
 from harness.tools.client import PendingCall
 

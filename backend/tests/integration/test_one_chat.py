@@ -12,8 +12,8 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.gateway import ChannelGateway
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
 from harness.llm import LLMClient, Message, StreamEvent, ToolSpec
 from harness.runs.service.bot_messages import BotMessages
 from harness.runs.service.run_service import RunService

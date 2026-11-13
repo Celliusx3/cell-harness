@@ -10,8 +10,8 @@ from pathlib import Path
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.channels.domain.protocol import InboundMessage, Pushing
-from harness.channels.gateway import ChannelGateway
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.gateway import ChannelGateway
 from harness.channels.web.channel import WebChannel
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime

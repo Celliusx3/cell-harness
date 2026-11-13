@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import get_args
 
-from harness.channels.gateway import ChannelGateway
+from harness.channels.service.gateway import ChannelGateway
 from harness.skills import Skill
 from harness.tools import ApprovalMode
 

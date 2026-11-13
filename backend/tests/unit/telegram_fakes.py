@@ -7,8 +7,8 @@ from types import SimpleNamespace
 from telegram import ReplyKeyboardRemove
 
 from harness.channels.client import ChatAnswers
-from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks
+from harness.channels.service.gateway import ChannelGateway
 from harness.channels.telegram.channel import TelegramChannel
 from tests.unit.helpers import client_tools, no_links
 

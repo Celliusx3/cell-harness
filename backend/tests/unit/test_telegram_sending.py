@@ -5,7 +5,7 @@ from __future__ import annotations
 from telegram.error import BadRequest
 
 from harness.channels.domain.text import split_message as split_at
-from harness.channels.gateway import ChannelGateway
+from harness.channels.service.gateway import ChannelGateway
 from harness.channels.telegram.channel import MAX_MESSAGE_CHARS
 from tests.unit.helpers import no_skills
 from tests.unit.telegram_fakes import telegram_channel

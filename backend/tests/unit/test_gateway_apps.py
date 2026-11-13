@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.replies import app_url
+from harness.channels.service.replies import app_url
 from harness.tools import Ok, Tool, ToolContext, ToolOutcome, ToolUi
 from tests.unit.fakes import (
     EchoArgs,

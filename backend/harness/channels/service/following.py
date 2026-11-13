@@ -6,11 +6,11 @@ import asyncio
 import logging
 
 from harness.bots import GroupEmpty
-from harness.channels.chat_tasks import ChatKey, ChatTasks
-from harness.channels.chats import session_for, state_of
 from harness.channels.domain.protocol import Channel, Pushing, RunningChannel
-from harness.channels.replies import Replies
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
+from harness.channels.service.chat_tasks import ChatKey, ChatTasks
+from harness.channels.service.chats import session_for, state_of
+from harness.channels.service.replies import Replies
 from harness.files import ChatFile
 from harness.runs.service.run import Run, RunAlreadyActive
 from harness.runs.service.run_service import RunService

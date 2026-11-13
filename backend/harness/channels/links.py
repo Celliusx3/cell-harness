@@ -8,10 +8,10 @@ from collections.abc import Callable
 from typing import NamedTuple
 
 from harness.bots import ASSISTANT_ID, Bot, BotNotFound, BotService
-from harness.channels.chats import bot_written_to
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.gateway import ChannelGateway
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
+from harness.channels.service.chats import bot_written_to
+from harness.channels.service.gateway import ChannelGateway
 from harness.secrets.domain.details import ChatPlatform
 
 logger = logging.getLogger("harness.channels")
