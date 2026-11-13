@@ -5,7 +5,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Callable
 
-from harness.relay.models import OpenRelay, Upstream
+from harness.relay.domain.models import OpenRelay, Upstream
 
 RELAY_TTL_SECONDS = 60 * 60
 RELAY_ID_BYTES = 24

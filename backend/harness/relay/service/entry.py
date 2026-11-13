@@ -8,8 +8,8 @@ from urllib.parse import urlsplit
 from mcp.types import CallToolResult
 from pydantic import ValidationError
 
-from harness.relay.models import RelayEntry, Target, Upstream, with_query
-from harness.relay.service import RelayService
+from harness.relay.domain.models import RelayEntry, Target, Upstream, with_query
+from harness.relay.service.relay_service import RelayService
 
 logger = logging.getLogger("harness.relay")
 
