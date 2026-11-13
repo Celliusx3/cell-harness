@@ -254,8 +254,9 @@ NOTHING_CAME_BACK = (
 
 TICKET_REPORT_HEARD = (
     '<ticket id="{ticket_id}" title="{title}" state="{state}">\n{text}\n</ticket>\n'
-    "This is a report from the worker of a ticket you started with ticket_route. Tell the "
-    "user what it means for them, in a few sentences."
+    "This is a report from the worker of a ticket you started with ticket_route. The user can "
+    "open the whole report under the ticket's line in the chat, so do not repeat it. Tell them "
+    "its gist and what it means for them, in one or two sentences."
 )
 TICKET_QUESTION_HEARD = (
     "The worker asks the user this question, and the user is shown it beside your reply: {question}"

@@ -98,10 +98,10 @@ function partsOf(
   return parts;
 }
 
-/** A worker's result or question after the bot's own words, which introduce it. */
+/** A worker's question after the bot's own words, which introduce it. */
 function reportsLast(items: TimelineItem[]): TimelineItem[] {
-  const isReport = (item: TimelineItem) => item.kind === "ticketResult" || item.kind === "ticketQuestion";
-  return [...items.filter((item) => !isReport(item)), ...items.filter(isReport)];
+  const isQuestion = (item: TimelineItem) => item.kind === "ticketQuestion";
+  return [...items.filter((item) => !isQuestion(item)), ...items.filter(isQuestion)];
 }
 
 function isAsk(item: TimelineItem): boolean {
@@ -110,6 +110,7 @@ function isAsk(item: TimelineItem): boolean {
 
 /** Whether anything of `item` reaches the screen. */
 function isShown(item: TimelineItem, inGroup: boolean): boolean {
+  if (item.kind === "ticketResult") return false;
   if (item.kind !== "assistant") return true;
   const text = item.content.trim();
   if (!text) return false;

@@ -5,11 +5,15 @@ import type { SessionEvent, ToolCall } from "@/lib/types";
 
 const BOOKKEEPING: ReadonlySet<string> = new Set(["ticket_report", "ticket_note"]);
 
+const ANSWER_HEARD = "The user answered your question: ";
+
 export interface TicketWork {
   /** Each tool call the worker made, as a person reads it. */
   steps: string[];
   /** The worker's current step: the tool it runs, or whether it is thinking or writing. */
   now: string;
+  /** The person's answers to the worker's questions, in order. */
+  answers: string[];
 }
 
 export function ticketWork(events: SessionEvent[]): TicketWork {
@@ -21,7 +25,12 @@ export function ticketWork(events: SessionEvent[]): TicketWork {
   );
   const running = calls.filter((call) => !answered.has(call.id)).at(-1);
   const now = running === undefined ? idleStep(events) : lowerFirst(stepLabel(running));
-  return { steps: calls.map(stepLabel), now };
+  const answers = events.flatMap((event) =>
+    event.type === "user/message" && event.message.content.startsWith(ANSWER_HEARD)
+      ? [event.message.content.slice(ANSWER_HEARD.length)]
+      : [],
+  );
+  return { steps: calls.map(stepLabel), now, answers };
 }
 
 /** A call's own `description` when it gives one, else the tool's name in words. */

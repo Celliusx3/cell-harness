@@ -8,11 +8,12 @@ import { listTickets, type TicketRow, type TicketState } from "@/lib/tickets";
 const AT_WORK: ReadonlySet<TicketState> = new Set(["queued", "working", "waiting"]);
 
 export interface ChatTickets {
+  tickets: TicketRow[];
   atWork: number;
   needsAnswer: boolean;
 }
 
-/** How many of a chat's tickets are at work and whether one waits for an answer, read again on every ticket change. */
+/** A chat's tickets, how many are at work and whether one waits for an answer, read again on every ticket change. */
 export function useChatTickets(chatId: string): ChatTickets {
   const [tickets, setTickets] = useState<TicketRow[]>([]);
 
@@ -28,6 +29,7 @@ export function useChatTickets(chatId: string): ChatTickets {
   });
 
   return {
+    tickets,
     atWork: tickets.filter((ticket) => AT_WORK.has(ticket.state)).length,
     needsAnswer: tickets.some((ticket) => ticket.state === "needs_answer"),
   };

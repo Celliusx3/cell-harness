@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-
+import { TicketFold } from "@/components/conversation/TicketFold";
+import type { TicketReports } from "@/components/conversation/ticketReports";
 import { ticketWork, type TicketWork } from "@/components/conversation/ticketWork";
-import type { ToolItem } from "@/components/conversation/timelineItems";
 import { elapsedLabel } from "@/components/conversation/useElapsed";
 import { useTicket } from "@/components/conversation/useTicket";
 import {
@@ -16,37 +15,15 @@ import {
 } from "@/components/ui/trace";
 import type { TicketRow, TicketState } from "@/lib/tickets";
 
-const ACCEPTED = /^\d+\. accepted ticket ([^,\s]+), titled (.+)$/gm;
-
 const AT_WORK: ReadonlySet<TicketState> = new Set(["queued", "working", "waiting"]);
 
-interface Accepted {
+export interface Accepted {
   id: string;
   title: string;
 }
 
-/** A `ticket_route` call: one line for each ticket it accepted, in the order they started. */
-export function TicketLines({ item }: { item: ToolItem }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {acceptedTickets(item).map((ticket) => (
-        <TicketLine key={ticket.id} accepted={ticket} />
-      ))}
-    </div>
-  );
-}
-
-/** The tickets a `ticket_route` call accepted, from its result's numbered lines. */
-export function acceptedTickets(item: ToolItem): Accepted[] {
-  if (item.error !== null) return [];
-  const text = (item.result ?? []).flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
-  return [...text.matchAll(ACCEPTED)].flatMap(([, id, title]) =>
-    id !== undefined && title !== undefined ? [{ id, title }] : [],
-  );
-}
-
-/** One ticket as its bot's thinking: what its worker does now, folded to its steps once it ends. */
-function TicketLine({ accepted }: { accepted: Accepted }) {
+/** One ticket as its bot's thinking: what its worker does now, opening to its result, questions and steps. */
+export function TicketLine({ accepted, reports }: { accepted: Accepted; reports: TicketReports }) {
   const load = useTicket(accepted.id);
   if (load.kind !== "found") {
     return <Line title={accepted.title} status="pending" detail={load.kind === "failed" ? load.message : "starting"} />;
@@ -58,20 +35,8 @@ function TicketLine({ accepted }: { accepted: Accepted }) {
       <TraceCollapsibleTrigger>
         <TicketSummary ticket={ticket} work={work} atWork={running || AT_WORK.has(ticket.state)} />
       </TraceCollapsibleTrigger>
-      <TraceCollapsibleContent className="space-y-1.5 border-line pl-3 text-xs text-ink-soft">
-        {work.steps.length > 0 && (
-          <ol className="space-y-0.5">
-            {work.steps.map((step, index) => (
-              <li key={index} className="flex gap-2">
-                <span className="w-4 shrink-0 tabular-nums">{index + 1}</span>
-                <span className="min-w-0 break-words text-ink">{step}</span>
-              </li>
-            ))}
-          </ol>
-        )}
-        <Link href={`/t/${encodeURIComponent(ticket.id)}`} className="inline-block text-accent hover:text-ink">
-          Full log
-        </Link>
+      <TraceCollapsibleContent className="border-line pl-3">
+        <TicketFold ticketId={ticket.id} reports={reports} work={work} />
       </TraceCollapsibleContent>
     </TraceCollapsible>
   );

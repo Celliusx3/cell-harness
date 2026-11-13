@@ -39,6 +39,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
             kind: "ticketResult",
             key: `r${index}`,
             turn: event.turn,
+            ticketId: event.report.ticket_id,
             text: event.report.text,
           });
         }
