@@ -5,7 +5,7 @@ import type { Screen } from "@/components/computer/useScreen";
 export const BUTTON =
   "rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink disabled:opacity-40";
 
-function clockTime(at: Date): string {
+export function clockTime(at: Date): string {
   return at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
