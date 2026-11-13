@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 
-from harness.images.models import ImageFile
+from harness.images.domain.models import ImageFile
 
 BLOBS = "blobs"
 FOLDER_MODE = 0o700

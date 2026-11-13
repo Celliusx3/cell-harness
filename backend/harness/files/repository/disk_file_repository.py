@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from harness.files.repository import is_plain_name
+from harness.files.repository.file_repository import is_plain_name
 
 FOLDER_MODE = 0o700
 TOKEN_BYTES = 16

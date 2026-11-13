@@ -1,6 +1,6 @@
 # 04. Layer files and images
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

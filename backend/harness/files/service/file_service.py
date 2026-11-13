@@ -6,8 +6,8 @@ import mimetypes
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from harness.files.models import ChatFile
-from harness.files.repository import ChatFileRepository, is_plain_name
+from harness.files.domain.models import ChatFile
+from harness.files.repository.file_repository import ChatFileRepository, is_plain_name
 
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
 

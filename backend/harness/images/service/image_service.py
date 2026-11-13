@@ -8,8 +8,8 @@ import re
 from pathlib import Path
 
 from harness.files import ChatFile
-from harness.images.models import ImageFile
-from harness.images.repository import KEPT_MEDIA_TYPES, ImageRepository
+from harness.images.domain.models import ImageFile
+from harness.images.repository.image_repository import KEPT_MEDIA_TYPES, ImageRepository
 from harness.llm import Block, Image, Text
 from harness.prompts import IMAGE_TOO_LARGE
 from harness.tools import ReturnedImage

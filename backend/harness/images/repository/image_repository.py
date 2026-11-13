@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from harness.images.models import ImageFile
+from harness.images.domain.models import ImageFile
 
 KEPT_MEDIA_TYPES: frozenset[str] = frozenset({"image/png", "image/jpeg", "image/webp", "image/gif"})
 
