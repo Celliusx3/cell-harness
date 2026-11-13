@@ -61,10 +61,10 @@ export function ApprovalPanel({
         ref={panel}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="mx-auto max-w-3xl rounded-2xl border border-line bg-surface-raised p-3 shadow-sm outline-none"
+        className="mx-auto max-w-3xl rounded-2xl border border-attention/50 bg-surface-raised p-3 shadow-sm outline-none"
       >
         <div className="flex items-center gap-2 text-sm">
-          <ShieldQuestion size={14} className="shrink-0 text-accent" />
+          <ShieldQuestion size={14} className="shrink-0 text-attention" />
           <span className="min-w-0 break-words font-medium">{label}</span>
           {server !== null && (
             <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px] text-ink-soft">
@@ -72,7 +72,7 @@ export function ApprovalPanel({
             </span>
           )}
         </div>
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 max-h-48 space-y-2 overflow-y-auto">
           <Arguments raw={item.call.arguments} tool={item.call.name} />
         </div>
         {phase === "asking" ? (
@@ -111,13 +111,13 @@ export function ApprovalPanel({
 export function ApprovalBar({ item, onReview }: { item: ToolItem; onReview: () => void }) {
   return (
     <div className={`relative z-10 bg-surface px-4 pt-2 ${FADE_ABOVE}`}>
-      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-line bg-surface-raised px-3 py-1.5 text-sm">
-        <ShieldQuestion size={14} className="shrink-0 text-accent" />
+      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-attention/50 bg-surface-raised px-3 py-1.5 text-sm">
+        <ShieldQuestion size={14} className="shrink-0 text-attention" />
         <span className="min-w-0 flex-1 break-words">{`${approvalTitle(item)} wants to run`}</span>
         <button
           type="button"
           onClick={onReview}
-          className="shrink-0 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+          className="shrink-0 rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90"
         >
           Review
         </button>
@@ -130,7 +130,7 @@ export function ApprovalBar({ item, onReview }: { item: ToolItem; onReview: () =
 export function ApprovalRecord({ item }: { item: ToolItem }) {
   return (
     <div className="flex items-start gap-2 text-xs text-ink-soft">
-      <ShieldQuestion size={14} className="mt-px shrink-0 text-accent" />
+      <ShieldQuestion size={14} className="mt-px shrink-0 text-attention" />
       <span className="min-w-0 break-words">{`${approvalTitle(item)} · waiting for you`}</span>
     </div>
   );

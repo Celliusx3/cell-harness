@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { ApiError, listApprovals, revokeApproval } from "@/lib/api";
 import { humanise } from "@/lib/toolName";
 
@@ -38,9 +39,13 @@ export default function ApprovalsPage() {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-line px-6 py-3">
-        <h1 className="min-w-0 truncate text-sm font-medium">Approvals</h1>
-        <span className="shrink-0 text-xs text-ink-soft">{tools.length} allowed always</span>
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-5 md:px-6">
+        <DrawerButton />
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Approvals</h1>
+          <p className="text-sm text-ink-soft">Tools you chose to always allow. Remove one to be asked again.</p>
+        </div>
+        <span className="shrink-0 self-end text-xs text-ink-soft">{tools.length} allowed always</span>
       </header>
 
       {error && (

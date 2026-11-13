@@ -148,7 +148,7 @@ export function Composer({
               disabled={!canSend}
               aria-label="Send"
               title={attachments.uploading ? "Waiting for files to finish uploading" : undefined}
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition hover:opacity-90 disabled:opacity-35"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-action text-on-action transition hover:opacity-90 disabled:opacity-35"
             >
               <ArrowUp size={16} />
             </button>

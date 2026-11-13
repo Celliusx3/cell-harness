@@ -38,9 +38,9 @@ export function TicketQuestionPanel({ item }: { item: TicketQuestionItem }) {
   };
 
   return (
-    <div className="rounded-2xl border border-line bg-surface-raised p-3 shadow-sm">
+    <div className="rounded-2xl border border-attention/50 bg-surface-raised p-3 shadow-sm">
       <p className="flex items-start gap-2 break-words text-sm font-medium">
-        <MessageCircleQuestionMark size={15} className="mt-0.5 shrink-0 text-accent" />
+        <MessageCircleQuestionMark size={15} className="mt-0.5 shrink-0 text-attention" />
         <span className="min-w-0 flex-1">{item.question}</span>
       </p>
       {waits && phase !== "sent" ? (
@@ -129,7 +129,7 @@ function AnswerBox({ disabled, onSend }: { disabled: boolean; onSend: (text: str
         disabled={disabled || !draft.trim()}
         aria-label="Send answer"
         title="Send answer"
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition hover:opacity-90 disabled:opacity-35"
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-action text-on-action transition hover:opacity-90 disabled:opacity-35"
       >
         <ArrowUp size={16} />
       </button>

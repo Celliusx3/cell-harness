@@ -72,16 +72,16 @@ export function LocationRequest(props: ClientToolProps) {
   }, [pending]);
 
   return (
-    <div className="rounded-xl border border-accent/40 bg-accent-soft px-3 py-2.5 text-sm">
+    <div className="rounded-xl border border-attention/40 bg-attention-soft px-3 py-2.5 text-sm">
       <div className="flex items-center gap-2">
-        <MapPin size={14} className="shrink-0 text-accent" />
+        <MapPin size={14} className="shrink-0 text-attention" />
         <span className="font-medium">{headline(item, pending, phase)}</span>
       </div>
       {pending && phase === "asking" && (
         <div className="mt-2 flex gap-2">
           <button
             onClick={share}
-            className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+            className="rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90"
           >
             Share location
           </button>

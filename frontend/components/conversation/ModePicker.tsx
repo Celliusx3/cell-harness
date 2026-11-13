@@ -117,7 +117,7 @@ export function ModePicker({ mode, onPick }: Props) {
                 setConfirming(false);
                 onPick("auto");
               }}
-              className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+              className="rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90"
             >
               Switch to Auto
             </button>

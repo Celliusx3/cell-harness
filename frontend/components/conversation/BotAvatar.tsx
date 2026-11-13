@@ -14,7 +14,7 @@ export function BotAvatar({ speaker }: { speaker: Speaker }) {
     <span
       aria-hidden
       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-      style={{ backgroundColor: `oklch(60% 0.13 ${hueOf(speaker.id)})` }}
+      style={{ backgroundColor: `oklch(48% 0.08 ${hueOf(speaker.id)})` }}
     >
       {speaker.name.trim().charAt(0).toUpperCase() || "?"}
     </span>

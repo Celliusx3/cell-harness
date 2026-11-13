@@ -118,7 +118,7 @@ export function SkillEditor({ name, editable, onSaved, onDeleted }: SkillEditorP
           type="button"
           onClick={save}
           disabled={busy || !editable || target === "" || text.trim() === ""}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
         >
           Save
         </button>

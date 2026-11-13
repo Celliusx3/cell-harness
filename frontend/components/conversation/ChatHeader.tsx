@@ -3,6 +3,7 @@
 import { Ellipsis, Pencil } from "lucide-react";
 import Link from "next/link";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { BotAvatar } from "@/components/conversation/BotAvatar";
 import type { Speaker } from "@/components/conversation/timelineItems";
 import {
@@ -26,6 +27,7 @@ interface ChatHeaderProps {
   chat: Speaker | null;
   editHref: string | null;
   elapsed: string | null;
+  waiting: boolean;
   canCompact: boolean;
   onCompact(): void;
   onClear(): void;
@@ -36,16 +38,18 @@ export function ChatHeader({
   chat,
   editHref,
   elapsed,
+  waiting,
   canCompact,
   onCompact,
   onClear,
 }: ChatHeaderProps) {
   return (
-    <header className="flex min-h-14 items-center gap-3 border-b border-line px-6 py-2.5">
+    <header className="flex min-h-14 items-center gap-3 border-b border-line px-4 md:px-6 py-2.5">
+      <DrawerButton />
       {chat !== null && <BotAvatar speaker={chat} />}
       <div className="flex min-w-0 flex-col">
         <h1 className="truncate text-sm font-semibold leading-tight">{chat?.name ?? ""}</h1>
-        <ChatState elapsed={elapsed} />
+        <ChatState elapsed={elapsed} waiting={waiting} />
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
         {editHref !== null && (
@@ -59,7 +63,8 @@ export function ChatHeader({
   );
 }
 
-function ChatState({ elapsed }: { elapsed: string | null }) {
+function ChatState({ elapsed, waiting }: { elapsed: string | null; waiting: boolean }) {
+  if (waiting) return <span className="text-xs font-medium text-attention">Waiting for you</span>;
   if (elapsed === null) return <span className="text-xs text-ink-soft">Ready</span>;
   return (
     <span className="flex items-center gap-1.5 text-xs tabular-nums text-ink-soft">

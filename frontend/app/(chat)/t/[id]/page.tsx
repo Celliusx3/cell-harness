@@ -2,6 +2,7 @@
 
 import { use } from "react";
 
+import { DrawerButton } from "@/components/chat/Drawer";
 import { Timeline } from "@/components/conversation/Timeline";
 import { useTicket } from "@/components/conversation/useTicket";
 import { useTimeline } from "@/components/conversation/useTimeline";
@@ -23,7 +24,8 @@ export default function TicketPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <>
-      <header className="flex min-h-14 items-center gap-3 border-b border-line px-6 py-2.5">
+      <header className="flex min-h-14 items-center gap-3 border-b border-line px-4 md:px-6 py-2.5">
+        <DrawerButton />
         <div className="flex min-w-0 flex-col">
           <h1 className="truncate text-sm font-semibold leading-tight">
             {detail?.ticket.title ?? ""}
