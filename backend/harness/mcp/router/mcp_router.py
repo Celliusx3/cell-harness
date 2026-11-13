@@ -11,7 +11,7 @@ from mcp.types import TextResourceContents
 
 from harness.mcp import McpService, is_app_visible, ui_resource_uri
 from harness.mcp.domain.csp import build_csp
-from harness.mcp.schemas import AppResource, AppToolCall, ServerList
+from harness.mcp.router.schemas import AppResource, AppToolCall, ServerList
 from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")

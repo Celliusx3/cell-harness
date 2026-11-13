@@ -17,7 +17,7 @@ from harness.mcp import (
     ServerDraft,
 )
 from harness.mcp.domain.keys import missing_keys
-from harness.mcp.servers_schemas import KeyState, ServerEntries, ServerEntry
+from harness.mcp.router.server_schemas import KeyState, ServerEntries, ServerEntry
 from harness.web.http.this_mac import (
     cors_headers,
     parsed_body,

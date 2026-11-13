@@ -34,8 +34,8 @@ from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
-from harness.mcp.router import build_router as build_mcp_router
-from harness.mcp.servers_router import build_router as build_mcp_servers_router
+from harness.mcp.router.mcp_router import build_router as build_mcp_router
+from harness.mcp.router.server_router import build_router as build_mcp_servers_router
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.relay.router.relay_router import build_router as build_relay_router

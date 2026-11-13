@@ -1,6 +1,6 @@
 # 11. Layer mcp: service and router
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

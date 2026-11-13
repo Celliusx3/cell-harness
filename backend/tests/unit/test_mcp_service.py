@@ -7,7 +7,7 @@ import asyncio
 import pytest
 
 from harness.mcp import McpConnectionError, McpNotConnectedError, McpService, McpTimeoutError
-from harness.mcp import _connection as connection_module
+from harness.mcp.service import _connection as connection_module
 from tests.unit.mcp_fakes import FakeFactory, html_resource, servers, tool
 
 
