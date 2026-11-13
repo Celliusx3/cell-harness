@@ -6,9 +6,9 @@ import logging
 from collections.abc import Callable
 
 from harness.channels.chats import state_of
+from harness.channels.domain.protocol import Channel
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import Channel
-from harness.channels.repository import ChatRepository
+from harness.channels.repository.chat_repository import ChatRepository
 from harness.runs.service.run import RunAlreadyActive
 from harness.session.domain.log import Session
 from harness.session.repository.session_repository import SessionNotFoundError

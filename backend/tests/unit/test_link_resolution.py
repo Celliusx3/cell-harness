@@ -9,7 +9,7 @@ import pytest
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.client import ChatAnswers
-from harness.channels.repository import ChatState
+from harness.channels.repository.chat_repository import ChatState
 from tests.unit.discord_fakes import discord_channel, message
 from tests.unit.helpers import client_tools
 from tests.unit.link_helpers import World, prompts_in, world

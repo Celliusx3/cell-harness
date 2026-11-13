@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID, BotNotFound, BotService
-from harness.channels.protocol import Channel
-from harness.channels.repository import ChatRepository, ChatState
+from harness.channels.domain.protocol import Channel
+from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.session.domain.log import Session
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService

@@ -6,7 +6,7 @@ import os
 import re
 from pathlib import Path
 
-from harness.channels.repository import ChatState, ChatStateError
+from harness.channels.repository.chat_repository import ChatState, ChatStateError
 
 _SAFE = re.compile(r"[^A-Za-z0-9_-]")
 

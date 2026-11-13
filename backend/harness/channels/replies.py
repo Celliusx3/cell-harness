@@ -8,8 +8,8 @@ import logging
 from typing import NamedTuple
 from urllib.parse import quote
 
-from harness.channels.protocol import Pushing
-from harness.channels.repository import ChatRepository
+from harness.channels.domain.protocol import Pushing
+from harness.channels.repository.chat_repository import ChatRepository
 from harness.runs.service.run import Run
 from harness.runs.service.subscribe import subscribe
 from harness.session.domain.compaction import CompactionEnd

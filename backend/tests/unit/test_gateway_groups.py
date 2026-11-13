@@ -7,7 +7,7 @@ import logging
 
 from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService, GroupDraft
-from harness.channels.protocol import InboundMessage
+from harness.channels.domain.protocol import InboundMessage
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
 from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.webapp import MODEL_CREDENTIAL, web_gateway

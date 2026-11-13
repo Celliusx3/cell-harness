@@ -12,7 +12,7 @@ from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.llm import LLMClient
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime

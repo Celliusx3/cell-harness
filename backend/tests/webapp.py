@@ -13,11 +13,11 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
+from harness.channels.domain.protocol import Channel
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
 from harness.channels.platforms import PlatformChannelMaker, PlatformChannels
-from harness.channels.protocol import Channel
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.config.sections import FileSettings
 from harness.config.settings import Settings

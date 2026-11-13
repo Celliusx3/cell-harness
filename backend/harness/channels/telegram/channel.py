@@ -28,9 +28,10 @@ from telegram.ext import (
 from harness.channels.client import ChatAnswers
 from harness.channels.commands import apply as apply_command
 from harness.channels.commands import unknown_skill
+from harness.channels.domain.protocol import InboundMessage, TokenRefused
+from harness.channels.domain.text import split_message
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, link_or_receive
-from harness.channels.protocol import InboundMessage, TokenRefused
 from harness.channels.telegram import commands
 from harness.channels.telegram.asking import (
     BUTTONS,
@@ -41,7 +42,6 @@ from harness.channels.telegram.asking import (
 )
 from harness.channels.telegram.batching import JOIN, Batch, batch_delay
 from harness.channels.telegram.private import private_chat_id
-from harness.channels.text import split_message
 from harness.skills import UnknownSkill
 from harness.tools.client import PendingCall
 from harness.tools.native.location import GET_LOCATION

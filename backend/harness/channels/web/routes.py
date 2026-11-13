@@ -17,7 +17,7 @@ from harness.channels.commands import (
     mode_usage_reply,
     unknown_skill,
 )
-from harness.channels.protocol import InboundMessage
+from harness.channels.domain.protocol import InboundMessage
 from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage, SetMode
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService

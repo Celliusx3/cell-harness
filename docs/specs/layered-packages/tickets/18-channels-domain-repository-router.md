@@ -1,6 +1,6 @@
 # 18. Layer channels: domain, repository and router
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

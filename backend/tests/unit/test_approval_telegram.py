@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.protocol import InboundMessage
+from harness.channels.domain.protocol import InboundMessage
 from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
 from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk

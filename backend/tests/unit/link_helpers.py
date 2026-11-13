@@ -10,7 +10,7 @@ from harness.app_events import AppEventService
 from harness.bots import Bot, BotDraft, BotRepository, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.runs.service.run_service import RunService
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService

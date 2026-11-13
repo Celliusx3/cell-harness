@@ -6,9 +6,9 @@ import asyncio
 from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
+from harness.channels.domain.protocol import InboundMessage
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import InboundMessage
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.llm import Completed, ToolCall, ToolCallChunk
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import PendingCall

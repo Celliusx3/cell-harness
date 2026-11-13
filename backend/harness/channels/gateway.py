@@ -7,8 +7,7 @@ import logging
 
 from harness.channels.chat_tasks import ChatTasks
 from harness.channels.chats import state_of
-from harness.channels.following import Following
-from harness.channels.protocol import (
+from harness.channels.domain.protocol import (
     Channel,
     ChannelDisposer,
     DuplicateChannelError,
@@ -17,8 +16,9 @@ from harness.channels.protocol import (
     RunningChannel,
     UnknownChannelError,
 )
+from harness.channels.following import Following
 from harness.channels.replies import Replies
-from harness.channels.repository import ChatRepository, ChatState
+from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.runs.service.run import Run, RunAlreadyActive
 from harness.runs.service.run_service import RunService
 from harness.runtime.compaction import CompactionRefused, check_can_compact

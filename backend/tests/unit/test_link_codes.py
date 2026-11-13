@@ -13,12 +13,12 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
+from harness.channels.domain.protocol import InboundMessage
 from harness.channels.gateway import ChannelGateway
-from harness.channels.link_codes_router import build_router
 from harness.channels.links import LINK_CODE_SECONDS, ChatLinks, LinkCodes
-from harness.channels.protocol import InboundMessage
-from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.repository import ChatState
+from harness.channels.repository.chat_repository import ChatState
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.router.link_code_router import build_router
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import TelegramDetails
 from harness.session.domain.models import UserMessageEvent

@@ -11,9 +11,9 @@ from pydantic import SecretStr
 
 from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import DiscordChannel
+from harness.channels.domain.protocol import Channel, ChannelDisposer
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks
-from harness.channels.protocol import Channel, ChannelDisposer
 from harness.channels.telegram.channel import TelegramChannel
 from harness.secrets import SecretService
 from harness.secrets.domain.details import ChatPlatform

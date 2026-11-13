@@ -7,8 +7,8 @@ from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.commands import CLEARED, Command, apply, skills_reply, unknown_skill
-from harness.channels.protocol import InboundMessage
-from harness.channels.repository import ChatState
+from harness.channels.domain.protocol import InboundMessage
+from harness.channels.repository.chat_repository import ChatState
 from harness.skills import Skill
 from tests.unit.fakes import (
     ScriptedClient,

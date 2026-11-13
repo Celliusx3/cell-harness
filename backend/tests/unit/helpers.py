@@ -15,8 +15,8 @@ from pathlib import Path
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.channels.links import ChatLinks, LinkCodes
-from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.channels.repository import ChatRepository, ChatState
+from harness.channels.repository.chat_repository import ChatRepository, ChatState
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.config.settings import SkillSettings
 from harness.images import DiskImageRepository, ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage

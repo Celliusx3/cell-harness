@@ -11,9 +11,9 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.channels.domain.protocol import InboundMessage
 from harness.channels.gateway import ChannelGateway
-from harness.channels.protocol import InboundMessage
-from harness.channels.repositories.jsonl import JsonlChatRepository
+from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.config.settings import Settings
 from harness.runs.service.bot_messages import BotMessages
 from harness.runs.service.run_service import RunService
