@@ -110,7 +110,11 @@ class TicketReportArgs(BaseModel):
     )
     summary: str = Field(
         min_length=1,
-        description="What you did or found, in a few sentences, for the orchestrator.",
+        description=(
+            "With ready, the result itself, whole, as the user should read it: every item, "
+            "number and link they asked for, since the user sees nothing else. With blocked or "
+            "failed, what stopped you. With progress, the step you finished."
+        ),
     )
     question: str | None = Field(
         default=None,

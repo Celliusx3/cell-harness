@@ -8,7 +8,6 @@ import type {
   Speaker,
   Timeline,
   TicketQuestionItem,
-  TicketResultItem,
   TimelineItem,
 } from "@/components/conversation/timelineItems";
 import type { ApprovalMode, ContentBlock, ChatFile, ToolCall, ToolUi, Usage } from "@/lib/types";
@@ -198,10 +197,6 @@ export class TimelineDraft {
   }
 
   onTicketQuestion(item: TicketQuestionItem): void {
-    this.items.push(item);
-  }
-
-  onTicketResult(item: TicketResultItem): void {
     this.items.push(item);
   }
 

@@ -34,15 +34,6 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         break;
 
       case "ticket/report":
-        if (event.report.state === "ready") {
-          draft.onTicketResult({
-            kind: "ticketResult",
-            key: `r${index}`,
-            turn: event.turn,
-            ticketId: event.report.ticket_id,
-            text: event.report.text,
-          });
-        }
         if (event.report.question !== null) {
           draft.onTicketQuestion({
             kind: "ticketQuestion",

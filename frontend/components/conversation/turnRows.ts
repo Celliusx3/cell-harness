@@ -110,7 +110,6 @@ function isAsk(item: TimelineItem): boolean {
 
 /** Whether anything of `item` reaches the screen. */
 function isShown(item: TimelineItem, inGroup: boolean): boolean {
-  if (item.kind === "ticketResult") return false;
   if (item.kind !== "assistant") return true;
   const text = item.content.trim();
   if (!text) return false;
@@ -141,7 +140,6 @@ function isKept(
     case "mode":
     case "scheduleChange":
     case "ticketQuestion":
-    case "ticketResult":
       return true;
   }
 }

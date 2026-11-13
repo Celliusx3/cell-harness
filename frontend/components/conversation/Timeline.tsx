@@ -180,8 +180,6 @@ function Item({ item, openTurn, conversationId, source, onAnswered, reports }: I
       return <ScheduleChangeLine change={item.change} />;
     case "ticketQuestion":
       return <TicketQuestionPanel item={item} />;
-    case "ticketResult":
-      return null;
   }
 }
 

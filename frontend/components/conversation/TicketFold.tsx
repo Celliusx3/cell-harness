@@ -1,12 +1,11 @@
 import Link from "next/link";
 
-import { MarkdownBody } from "@/components/conversation/Message";
 import type { TicketReports } from "@/components/conversation/ticketReports";
 import type { TicketWork } from "@/components/conversation/ticketWork";
 
 const HEADING = "mb-1 text-xs font-medium text-ink-soft";
 
-/** What a ticket's line opens to: its result, what it asked and was told, its steps and a way to its full log. */
+/** What a ticket's line opens to: what it asked and was told, its steps and a way to its full log. */
 export function TicketFold({
   ticketId,
   reports,
@@ -18,7 +17,6 @@ export function TicketFold({
 }) {
   return (
     <div className="space-y-3 py-1">
-      {reports.result !== null && <MarkdownBody content={reports.result} streaming={false} />}
       {reports.questions.map((question, index) => (
         <div key={index} className="text-sm">
           <p className={HEADING}>Asked you</p>

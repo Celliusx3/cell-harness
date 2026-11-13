@@ -26,7 +26,7 @@ ORCHESTRATOR = (
     "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in one"
     " sentence that names what you started, or say nothing more. Workers' reports arrive by "
     "themselves as messages, so never wait for them and never check on a ticket. Write at most "
-    "100 words in any reply."
+    "100 words in any reply, except a reply that gives the user a worker's report."
 )
 TICKET_FOLLOWUP_HEARD = "The user wrote this about your ticket: {text}"
 NO_WAIT_REFUSAL = (
