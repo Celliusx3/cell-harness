@@ -14,7 +14,7 @@ from harness.tools import (
     ToolOutcome,
 )
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
-from harness.tools.native.code_mode.prompts import IMAGES_STAY_OUT
+from harness.tools.native.code_mode.prompts import EXECUTE_TYPESCRIPT_DESCRIPTION, IMAGES_STAY_OUT
 from tests.unit.code_fakes import FakeRunner, build, returns, tool
 from tests.unit.helpers import context_for
 
@@ -266,3 +266,7 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversatio
     )
 
     assert seen == [CallOrigin(bot_id="bot-7", conversation_id="chat-7", mode="ask")]
+
+
+def test_the_script_tool_says_it_runs_typescript_only() -> None:
+    assert "TypeScript only" in EXECUTE_TYPESCRIPT_DESCRIPTION
