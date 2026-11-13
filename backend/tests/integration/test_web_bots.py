@@ -15,7 +15,7 @@ from harness.bots import (
     GroupService,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, runtime_over

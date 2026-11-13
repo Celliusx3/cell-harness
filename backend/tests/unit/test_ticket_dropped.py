@@ -6,7 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 
 from harness.bots import ASSISTANT_ID
-from harness.runs.run import Run
+from harness.runs.service.run import Run
 from harness.tickets.domain.models import Ticket
 from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.service.ticket_service import TicketService

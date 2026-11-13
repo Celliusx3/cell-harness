@@ -39,8 +39,8 @@ from harness.mcp.router.server_router import build_router as build_mcp_servers_r
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.relay.router.relay_router import build_router as build_relay_router
-from harness.runs.bot_messages import BotMessages
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.schedules.router.schedule_router import build_router as build_schedules_router
 from harness.secrets import DiskSecretRepository, SecretService

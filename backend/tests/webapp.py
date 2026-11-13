@@ -32,8 +32,8 @@ from harness.mcp import (
     open_stdio_client,
 )
 from harness.prompts import ASSISTANT_INSTRUCTIONS
-from harness.runs.bot_messages import BotMessages
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import ChatPlatform, ModelDetails

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
 from harness.llm import UserMessage
-from harness.runs.bot_messages import hop_of_last_turn
+from harness.runs.service.bot_messages import hop_of_last_turn
 from harness.session.derive import derive_messages
 from harness.session.models import (
     BotMessage,

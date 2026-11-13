@@ -15,7 +15,7 @@ from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import client as adapter_module
 from harness.mcp import McpService
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.native.files import VIEW_IMAGE

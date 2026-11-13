@@ -18,8 +18,8 @@ from harness.bots import (
     GroupEmpty,
     GroupService,
 )
-from harness.runs.run import RunAlreadyActive
-from harness.runs.subscribe import subscribe
+from harness.runs.service.run import RunAlreadyActive
+from harness.runs.service.subscribe import subscribe
 from harness.session.log import Session
 from harness.session.models import (
     ToolCallEvent,

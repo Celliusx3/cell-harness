@@ -18,8 +18,8 @@ from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
-from harness.runs.bot_messages import BotMessages, Follow
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages, Follow
+from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from fastapi import APIRouter, Response, status
 
 from harness.bots import BotService
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.schedules import Schedule, Scheduler, ScheduleService, ordered
 from harness.schedules.router.schemas import ScheduleRow
 from harness.session.schedule_change import ScheduleChange, ScheduleChangeKind

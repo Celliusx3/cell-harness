@@ -15,7 +15,7 @@ from harness.config.sections import LLMSettings
 from harness.llm import Image
 from harness.llm.adapters import OpenAIClient, OpenAISettings
 from harness.llm.adapters.openai import client as adapter_module
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import SecretService
 from harness.tools import Failure, Ok

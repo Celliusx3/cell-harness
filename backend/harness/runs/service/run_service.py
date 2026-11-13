@@ -11,8 +11,8 @@ from contextlib import aclosing
 from harness.app_events import AppEventService, ChatLoggedAppEvent, TurnStartedAppEvent
 from harness.bots import BotService, GroupService
 from harness.files import ChatFile
-from harness.runs.chain import discussion_events
-from harness.runs.run import Run, RunAlreadyActive, settled
+from harness.runs.service.chain import discussion_events
+from harness.runs.service.run import Run, RunAlreadyActive, settled
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
 from harness.session.log import Session

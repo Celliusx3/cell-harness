@@ -10,7 +10,7 @@ import httpx
 
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from tests.integration.test_web_stream import TIMEOUT, served, serving
 from tests.integration.web_helpers import assistant_chat
 from tests.unit.fakes import ScriptedClient, SteppedClient, completed

@@ -10,7 +10,7 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService
 from harness.llm import AssistantMessage, UserMessage
-from harness.runs.bot_messages import MAX_HOPS, final_reply, hop_of_last_turn
+from harness.runs.service.bot_messages import MAX_HOPS, final_reply, hop_of_last_turn
 from harness.session.derive import derive_messages
 from harness.session.models import (
     AssistantMessageEvent,

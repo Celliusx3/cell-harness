@@ -13,7 +13,7 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import StreamEvent
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import SecretService
 from harness.session.repositories.jsonl import JsonlSessionRepository

@@ -15,8 +15,8 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.config.settings import Settings
-from harness.runs.bot_messages import BotMessages
-from harness.runs.service import RunService
+from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService
 from harness.secrets.domain.details import TelegramDetails

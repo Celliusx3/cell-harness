@@ -14,7 +14,7 @@ from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
 from harness.config import settings as settings_module
 from harness.llm.adapters.openai import client as adapter_module
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.web import server
 from tests.integration.web_helpers import settle
 from tests.webapp import TEST_ENCRYPTION_KEY

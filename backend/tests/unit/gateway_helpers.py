@@ -10,7 +10,7 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.inbox import ChatInbox
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.skills import SkillService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService

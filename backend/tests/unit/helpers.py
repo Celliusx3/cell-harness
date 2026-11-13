@@ -21,8 +21,8 @@ from harness.config.settings import SkillSettings
 from harness.images import DiskImageRepository, ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS
-from harness.runs.run import Run
-from harness.runs.service import RunService
+from harness.runs.service.run import Run
+from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.inbox import NO_INBOX, Inbox
 from harness.runtime.service import Runtime

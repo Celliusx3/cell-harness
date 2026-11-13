@@ -15,7 +15,7 @@ import uvicorn
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.web import sse as sse_module
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService

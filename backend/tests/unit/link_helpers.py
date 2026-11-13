@@ -11,7 +11,7 @@ from harness.bots import Bot, BotDraft, BotRepository, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient, completed

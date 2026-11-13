@@ -11,8 +11,8 @@ from typing import Protocol
 
 from harness.app_events import TicketsChangedAppEvent
 from harness.bots import BotNotFound, BotService
-from harness.runs.run import Run
-from harness.runs.service import RunService
+from harness.runs.service.run import Run
+from harness.runs.service.run_service import RunService
 from harness.session.log import Session
 from harness.session.models import SessionEvent, TicketReport, TicketReportEvent
 from harness.session.repository import SessionNotFoundError

@@ -8,7 +8,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.llm import StreamEvent
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.models.decision import DENIED

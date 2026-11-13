@@ -24,7 +24,7 @@ from harness.llm import (
     ToolReference,
     UserMessage,
 )
-from harness.runs.service import RunService
+from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
 from harness.session.log import Session

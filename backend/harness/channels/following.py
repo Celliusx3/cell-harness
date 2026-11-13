@@ -12,8 +12,8 @@ from harness.channels.protocol import Channel, Pushing, RunningChannel
 from harness.channels.replies import Replies
 from harness.channels.repository import ChatRepository, ChatState
 from harness.files import ChatFile
-from harness.runs.run import Run, RunAlreadyActive
-from harness.runs.service import RunService
+from harness.runs.service.run import Run, RunAlreadyActive
+from harness.runs.service.run_service import RunService
 from harness.session.service import SessionService
 from harness.skills import SkillService, UnknownSkill
 
