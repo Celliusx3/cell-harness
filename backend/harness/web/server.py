@@ -14,49 +14,49 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 
 from harness.app_events import AppEventService
-from harness.app_events.controller import build_router as build_app_events_router
-from harness.bots import BotService
-from harness.bots.controller import build_router as build_bots_router
-from harness.bots.groups_controller import build_router as build_groups_router
+from harness.app_events.router import build_router as build_app_events_router
+from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots.router.bot_router import build_router as build_bots_router
+from harness.bots.router.group_router import build_router as build_groups_router
 from harness.channels.client import ChatAnswers
 from harness.channels.gateway import ChannelGateway
 from harness.channels.inbox import ChatInbox
-from harness.channels.link_codes_controller import build_router as build_link_codes_router
+from harness.channels.link_codes_router import build_router as build_link_codes_router
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.repository import ChatRepository
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.client_controller import build_router as build_client_router
-from harness.channels.web.compact_controller import build_router as build_compact_router
-from harness.channels.web.secret_card_controller import build_router as build_secret_card_router
+from harness.channels.web.client_router import build_router as build_client_router
+from harness.channels.web.compact_router import build_router as build_compact_router
+from harness.channels.web.secret_card_router import build_router as build_secret_card_router
 from harness.config.settings import Settings, load
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
-from harness.mcp.controller import build_router as build_mcp_router
-from harness.mcp.servers_controller import build_router as build_mcp_servers_router
+from harness.mcp.router import build_router as build_mcp_router
+from harness.mcp.servers_router import build_router as build_mcp_servers_router
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
-from harness.relay.controller import build_router as build_relay_router
+from harness.relay.router import build_router as build_relay_router
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
-from harness.schedules.controller import build_router as build_schedules_router
+from harness.schedules.router import build_router as build_schedules_router
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.controller import build_router as build_secrets_router
 from harness.secrets.credential_effects import CredentialEffects
-from harness.secrets.credentials_controller import build_router as build_credentials_router
+from harness.secrets.credentials_router import build_router as build_credentials_router
+from harness.secrets.router import build_router as build_secrets_router
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.skills.controller import build_router as build_skills_router
-from harness.tickets.controller import build_router as build_tickets_router
-from harness.tickets.files_controller import build_files_router as build_ticket_files_router
+from harness.skills.router import build_router as build_skills_router
+from harness.tickets.files_router import build_files_router as build_ticket_files_router
 from harness.tickets.repository import TicketRepository
+from harness.tickets.router import build_router as build_tickets_router
 from harness.tickets.service import TicketService
 from harness.tools import ApprovalService
-from harness.tools.approvals_controller import build_router as build_approvals_router
+from harness.tools.approvals_router import build_router as build_approvals_router
 from harness.tools.client import ClientToolService
 from harness.web.http.errors import exception_handlers
 from harness.web.http.logs import configure_logging
@@ -167,7 +167,7 @@ def create_web_app() -> FastAPI:
     client_tools = ClientToolService(CLIENT_TOOLS, approvals)
     app_events = AppEventService()
     bots = BotService(
-        settings.bots.path,
+        BotRepository(settings.bots.path),
         service,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=app_events,
@@ -188,7 +188,13 @@ def create_web_app() -> FastAPI:
         files=files,
     )
     runtime = dataclasses.replace(runtime, inbox=ChatInbox(chats, skills))
-    runs = RunService(service, runtime, bots, app_events=app_events)
+    runs = RunService(
+        service,
+        runtime,
+        bots,
+        GroupService(bots, service, MENTION_TURN_ORDER),
+        app_events=app_events,
+    )
     assert runtime.tools is not None
     channels = build_channels(
         settings,
@@ -212,7 +218,7 @@ def create_web_app() -> FastAPI:
     )
     attach_tickets(tool_service, tickets)
     schedules = ScheduleService(ScheduleRepository(settings.schedules.path), now=now)
-    attach_schedules(runtime.tools.tool_service, bots, schedules)
+    attach_schedules(runtime.tools.tool_service, runs.groups, schedules)
     scheduler = Scheduler(schedules, bots, runs, follow=channels.gateway.follow, now=now)
     return create_app(
         runs,
@@ -284,6 +290,6 @@ def create_app(
     app.include_router(build_schedules_router(bots, schedules, scheduler, runs))
     app.include_router(build_tickets_router(tickets, secrets, bots, client_tools))
     app.include_router(build_ticket_files_router(tickets, web.files, web.images))
-    app.include_router(build_groups_router(bots))
+    app.include_router(build_groups_router(runs.groups))
     app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

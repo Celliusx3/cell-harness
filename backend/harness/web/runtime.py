@@ -9,8 +9,7 @@ from collections.abc import Sequence
 
 import httpx
 
-from harness.bots import BotService
-from harness.bots.model_choice import CredentialModels, ModelEndpoint
+from harness.bots import BotService, GroupService
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService
@@ -86,6 +85,7 @@ from harness.tools.native.skills import (
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
 from harness.tools.service import Disposer
+from harness.web.model_choice import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")
 
@@ -258,15 +258,15 @@ def attach_bot_messages(
 
 
 def attach_schedules(
-    tool_service: ToolService, bots: BotService, schedules: ScheduleService
+    tool_service: ToolService, groups: GroupService, schedules: ScheduleService
 ) -> Disposer:
     """The schedule tools offered from `tool_service`; the disposer takes them back."""
     return tool_service.add_provider(
         lambda: [
-            schedule_create_tool(bots, schedules),
-            schedule_list_tool(bots, schedules),
-            schedule_view_tool(bots, schedules),
-            schedule_edit_tool(bots, schedules),
+            schedule_create_tool(groups, schedules),
+            schedule_list_tool(groups, schedules),
+            schedule_view_tool(groups, schedules),
+            schedule_edit_tool(groups, schedules),
         ]
     )
 

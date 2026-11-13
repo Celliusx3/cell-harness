@@ -6,7 +6,14 @@ import asyncio
 from pathlib import Path
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotEdit, BotService
+from harness.bots import (
+    ASSISTANT_ID,
+    MENTION_TURN_ORDER,
+    BotEdit,
+    BotRepository,
+    BotService,
+    GroupService,
+)
 from harness.llm import (
     ApplicationMessage,
     AssistantMessage,
@@ -18,6 +25,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.runs.service import RunService
+from harness.runtime.service import Runtime
 from harness.session.compaction import CompactionEnd
 from harness.session.log import Session
 from harness.session.models import (
@@ -33,6 +41,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from harness.session.service import SessionService
 from harness.tools import Ok
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool
 from tests.unit.helpers import durable_service, new_session, runtime_over
@@ -40,6 +49,14 @@ from tests.unit.helpers import durable_service, new_session, runtime_over
 
 def _logged(session: Session) -> list[str]:
     return [e.instructions for e in session.events() if isinstance(e, BotInstructionsEvent)]
+
+
+def _runs(
+    service: SessionService, runtime: Runtime, bots: BotService, app_events: AppEventService
+) -> RunService:
+    """Runs over `runtime` for `bots`, wired the way the server wires them."""
+    groups = GroupService(bots, service, MENTION_TURN_ORDER)
+    return RunService(service, runtime, bots, groups, app_events=app_events)
 
 
 def test_the_last_instructions_logged_prompt_the_turn_even_behind_a_compaction() -> None:
@@ -72,11 +89,14 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", app_events=app_events
+        BotRepository(tmp_path / "bots.json"),
+        service,
+        assistant_instructions="Be kind.",
+        app_events=app_events,
     )
     client = ScriptedClient(completed("THE SUMMARY"))
     runtime = runtime_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
-    runs = RunService(service, runtime, bots, app_events=app_events)
+    runs = _runs(service, runtime, bots, app_events)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
     bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
@@ -91,14 +111,14 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", app_events=app_events
+        BotRepository(tmp_path / "bots.json"),
+        service,
+        assistant_instructions="Be kind.",
+        app_events=app_events,
     )
     client = SteppedClient(calls_tool("ask", '{"value": "?"}', id="c1"), completed("cafés"))
-    runs = RunService(
-        service,
-        runtime_over(client, pending_tool(), checkpoint=service.flush),
-        bots,
-        app_events=app_events,
+    runs = _runs(
+        service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots, app_events
     )
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
@@ -116,11 +136,12 @@ async def test_a_chat_from_before_groups_logs_its_bot_s_instructions_no_second_t
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Be kind.", app_events=app_events
+        BotRepository(tmp_path / "bots.json"),
+        service,
+        assistant_instructions="Be kind.",
+        app_events=app_events,
     )
-    runs = RunService(
-        service, runtime_over(ScriptedClient(completed("Hi."))), bots, app_events=app_events
-    )
+    runs = _runs(service, runtime_over(ScriptedClient(completed("Hi."))), bots, app_events)
     session = await service.create(ASSISTANT_ID)
     session.append(BotInstructionsEvent(name="Assistant", instructions="Be kind."))
 

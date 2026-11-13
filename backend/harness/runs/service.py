@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import aclosing
 
 from harness.app_events import AppEventService, ChatLoggedAppEvent, TurnStartedAppEvent
-from harness.bots import BotService
+from harness.bots import BotService, GroupService
 from harness.files import ChatFile
 from harness.runs.chain import discussion_events
 from harness.runs.run import Run, RunAlreadyActive, settled
@@ -39,12 +39,14 @@ class RunService:
         service: SessionService,
         runtime: Runtime,
         bots: BotService,
+        groups: GroupService,
         *,
         app_events: AppEventService,
     ) -> None:
         self._service = service
         self._runtime = runtime
         self._bots = bots
+        self._groups = groups
         self._app_events = app_events
         self._runs: dict[str, Run] = {}
 
@@ -52,6 +54,11 @@ class RunService:
     def bots(self) -> BotService:
         """Who answers in each chat — for a chat app finding whether its linked bot still does."""
         return self._bots
+
+    @property
+    def groups(self) -> GroupService:
+        """Who is in each chat and speaks next — for a route or tool that must tell a group's."""
+        return self._groups
 
     @property
     def app_events(self) -> AppEventService:
@@ -78,7 +85,7 @@ class RunService:
         """Begin the discussion the person's message opens; `GroupEmpty` when nobody can answer."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        speaker = self._bots.first_speaker(session, prompt)
+        speaker = self._groups.first_speaker(session, prompt)
         return self._converse(
             session, self._runtime.run(prompt, session=session, bot_id=speaker.id, files=files)
         )
@@ -87,7 +94,7 @@ class RunService:
         """Begin the turn in which a bot's own chat answers a bot's message or a schedule."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        speaker = self._bots.first_speaker(session, message.text)
+        speaker = self._groups.first_speaker(session, message.text)
         return self._converse(
             session, self._runtime.hear(message, session=session, bot_id=speaker.id)
         )
@@ -107,7 +114,7 @@ class RunService:
         """Begin the turn that answers a client tool for the bot that asked, then the queue's."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        bot = self._bots.asker(session, call_id)
+        bot = self._groups.asker(session, call_id)
         return self._converse(
             session, self._runtime.resume(call_id, outcome, session=session, bot_id=bot.id)
         )
@@ -218,7 +225,7 @@ class RunService:
         """Run `opening` and the discussion after it on a task this service owns."""
         run = self._begin(session)
         run._inner = asyncio.create_task(
-            self._stream(run, discussion_events(self._runtime, self._bots, session, opening))
+            self._stream(run, discussion_events(self._runtime, self._groups, session, opening))
         )
         run._outer = asyncio.create_task(self._drive(run))
         return run

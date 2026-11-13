@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import BotService
+from harness.bots import BotRepository, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import LinkCodes
 from harness.channels.platforms import PlatformChannelMaker, PlatformChannels
@@ -103,7 +103,7 @@ def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService)
 def bots_in(tmp_path: Path, service: SessionService) -> BotService:
     """Assistant and any bot a test makes, kept in a bots file under `tmp_path`."""
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=AppEventService(),

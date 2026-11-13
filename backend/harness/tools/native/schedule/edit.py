@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from harness.bots import BotService
+from harness.bots import GroupService
 from harness.schedules import InvalidSchedule, Schedule, ScheduleNotFound, ScheduleService
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
@@ -23,11 +23,11 @@ _NOTHING_TO_UPDATE = Failure(
 )
 
 
-def schedule_edit_tool(bots: BotService, schedules: ScheduleService) -> Tool[ScheduleEditArgs]:
+def schedule_edit_tool(groups: GroupService, schedules: ScheduleService) -> Tool[ScheduleEditArgs]:
     """The tool that changes or deletes one of the calling bot's schedules, from its own chat."""
 
     async def execute(args: ScheduleEditArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(bots, context.origin.conversation_id):
+        if in_a_group(groups, context.origin.conversation_id):
             return IN_A_GROUP
         try:
             own(schedules, context.origin.bot_id, args.id)

@@ -27,6 +27,7 @@ NonBlankText = Annotated[str, AfterValidator(_stripped_not_blank)]
 
 
 MIN_WORKERS, DEFAULT_WORKERS, MAX_WORKERS = 1, 3, 16
+KEY_KIND, MODEL_KIND = "custom", "llm"
 
 
 class BotDraft(BaseModel):
@@ -67,6 +68,29 @@ class Bot(BaseModel):
     secret_names: tuple[SecretName, ...] = ()
     model_credential: SecretName | None = None
     max_workers: int = Field(default=DEFAULT_WORKERS, ge=MIN_WORKERS, le=MAX_WORKERS)
+
+    def holds_key(self, name: str) -> bool:
+        """Whether the saved key `name` is one of the keys this bot may use."""
+        return name in self.secret_names
+
+    def serves(self, name: str, kind: str) -> bool:
+        """Whether the credential `name` of `kind` is one of its keys or its model; else no."""
+        if kind == KEY_KIND:
+            return self.holds_key(name)
+        return kind == MODEL_KIND and self.model_credential == name
+
+    def with_key(self, name: str, *, held: bool) -> Bot:
+        """This bot with the key `name` among its keys, last, or off them."""
+        kept = tuple(key for key in self.secret_names if key != name)
+        return self.model_copy(update={"secret_names": (*kept, name) if held else kept})
+
+    def without_credential(self, name: str) -> Bot:
+        """This bot with the credential `name` off its keys and off its model."""
+        return self.with_key(name, held=False).model_copy(
+            update={
+                "model_credential": None if self.model_credential == name else self.model_credential
+            }
+        )
 
 
 class GroupDraft(BaseModel):

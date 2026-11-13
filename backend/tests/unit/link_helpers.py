@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from harness.app_events import AppEventService
-from harness.bots import Bot, BotDraft, BotService
+from harness.bots import Bot, BotDraft, BotRepository, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -35,7 +35,7 @@ async def world(tmp_path: Path, reply: str = "hi") -> World:
     """Real stores under `tmp_path`, a model that always says `reply`, and no channel yet."""
     sessions = durable_service(tmp_path / "sessions")
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         sessions,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),

@@ -18,8 +18,8 @@ from harness.bots import (
     BotEdit,
     BotNotFound,
     BotPermanent,
+    BotRepository,
     BotService,
-    ChatMembers,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.models import BotInstructionsEvent
@@ -40,7 +40,7 @@ def service(tmp_path: Path) -> SessionService:
 @pytest.fixture
 def bots(tmp_path: Path, service: SessionService) -> BotService:
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),
@@ -51,7 +51,7 @@ async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
     tmp_path: Path, service: SessionService
 ) -> None:
     missing = BotService(
-        tmp_path / "no" / "bots.json",
+        BotRepository(tmp_path / "no" / "bots.json"),
         service,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),
@@ -72,24 +72,6 @@ async def test_listing_opens_assistant_s_chat_only_the_first_time(
     assert list(chat.events()) == [
         BotInstructionsEvent(name="Assistant", instructions="Be kind.", bot_id=ASSISTANT_ID)
     ]
-
-
-async def test_a_chat_belongs_to_the_bot_whose_chat_it_is(bots: BotService) -> None:
-    made = await bots.create(
-        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
-    )
-
-    assert bots.members_of_chat("c0") == ChatMembers(group=None, bots=(made,))
-    with pytest.raises(BotNotFound):
-        bots.members_of_chat("c9")
-
-
-async def test_a_bot_answers_in_the_chat_that_belongs_to_it(bots: BotService) -> None:
-    made = await bots.create(
-        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
-    )
-
-    assert bots.members_of_chat(bots.chat_of(made.id)).bots == (made,)
 
 
 def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotService) -> None:

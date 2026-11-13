@@ -12,12 +12,12 @@ from fastapi import FastAPI
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.platforms import PlatformChannels
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.secrets import DiskSecretRepository, SecretRefused, SecretService
-from harness.secrets.credentials_controller import build_router
+from harness.secrets.credentials_router import build_router
 from harness.secrets.models.details import ChatPlatform, DiscordDetails, TelegramDetails
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, no_skills, run_service
@@ -115,7 +115,7 @@ def started() -> Started:
 @pytest.fixture
 def http(tmp_path: Path, keyring, gateway, started) -> httpx.AsyncClient:
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         durable_service(tmp_path / "bots"),
         assistant_instructions="Hi.",
         app_events=AppEventService(),

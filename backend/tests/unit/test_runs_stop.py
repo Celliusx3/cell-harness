@@ -7,7 +7,7 @@ import asyncio
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotDraft, BotService
+from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import LLMClient
 from harness.runs.subscribe import subscribe
 from harness.session.derive import derive_messages
@@ -114,7 +114,7 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
 
 async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),

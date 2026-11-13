@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.repository import ChatRepository, ChatState
@@ -176,10 +176,12 @@ def run_service(
     context_tokens: int | None = None,
     approvals: ApprovalService | None = None,
     bots: BotService | None = None,
+    groups: GroupService | None = None,
     images: ImageService | None = None,
     inbox: Inbox = NO_INBOX,
 ) -> RunService:
     """Runs over a runtime that checkpoints through `service`, as the server wires it."""
+    answering = bots or no_bots(service)
     return RunService(
         service,
         runtime_over(
@@ -191,7 +193,8 @@ def run_service(
             images=images,
             inbox=inbox,
         ),
-        bots or no_bots(service),
+        answering,
+        groups or GroupService(answering, service, MENTION_TURN_ORDER),
         app_events=AppEventService(),
     )
 
@@ -204,7 +207,7 @@ def no_images() -> ImageService:
 def no_bots(service: SessionService) -> BotService:
     """Only Assistant, over a bots file that cannot exist."""
     return BotService(
-        Path("/nonexistent/cell-harness-bots.json"),
+        BotRepository(Path("/nonexistent/cell-harness-bots.json")),
         service,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=AppEventService(),

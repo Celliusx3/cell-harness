@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import StreamEvent
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
@@ -100,7 +100,7 @@ def messaging_app(
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions=ASSISTANT_START,
         app_events=app_events,
@@ -114,7 +114,13 @@ def messaging_app(
         guidance="GUIDE",
         checkpoint=service.flush,
     )
-    runs = RunService(service, runtime, bots, app_events=app_events)
+    runs = RunService(
+        service,
+        runtime,
+        bots,
+        GroupService(bots, service, MENTION_TURN_ORDER),
+        app_events=app_events,
+    )
     messages = attach_bot_messages(tool_service, bots, runs, follow=heard_nowhere)
     secrets = a_model_saved_in(tmp_path)
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)

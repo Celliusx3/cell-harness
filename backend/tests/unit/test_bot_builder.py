@@ -12,6 +12,7 @@ from harness.bots import (
     BUILDER_NAME,
     Bot,
     BotPermanent,
+    BotRepository,
     BotService,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
@@ -32,7 +33,7 @@ def service(tmp_path: Path) -> SessionService:
 @pytest.fixture
 def bots(tmp_path: Path, service: SessionService) -> BotService:
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),

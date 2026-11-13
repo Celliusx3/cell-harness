@@ -11,13 +11,13 @@ from fastapi import FastAPI
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.platforms import PlatformChannels
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.credentials_controller import build_router
+from harness.secrets.credentials_router import build_router
 from harness.secrets.models.details import TelegramDetails
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
@@ -136,7 +136,7 @@ def keyring(tmp_path: Path) -> SecretService:
 def bots(tmp_path: Path) -> BotService:
     sessions = durable_service(tmp_path / "bot-sessions")
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         sessions,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),

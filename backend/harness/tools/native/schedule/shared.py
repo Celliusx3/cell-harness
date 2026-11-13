@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.bots import BotNotFound, BotService
+from harness.bots import BotNotFound, GroupService
 from harness.schedules import Schedule, ScheduleNotFound, ScheduleService
 from harness.schedules.timing import zone_of
 from harness.tools.models.outcome import INVALID_ARGUMENTS, REFUSED, Failure
@@ -11,10 +11,10 @@ from harness.utc import utc_text
 IN_A_GROUP = Failure(REFUSED, "schedules work only in your own chat, not in a group chat")
 
 
-def in_a_group(bots: BotService, chat_id: str) -> bool:
+def in_a_group(groups: GroupService, chat_id: str) -> bool:
     """Whether `chat_id` is a group's chat, or no bot's own chat at all."""
     try:
-        return bots.members_of_chat(chat_id).group is not None
+        return groups.members_of_chat(chat_id).group is not None
     except BotNotFound:
         return True
 

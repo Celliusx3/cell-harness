@@ -9,8 +9,17 @@ from pathlib import Path
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService, GroupDraft
+from harness.bots import (
+    ASSISTANT_ID,
+    BUILDER_ID,
+    MENTION_TURN_ORDER,
+    BotRepository,
+    BotService,
+    GroupDraft,
+    GroupService,
+)
 from harness.schedules import ScheduleService
+from harness.session.service import SessionService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.schedule import SCHEDULE_CREATE, schedule_create_tool
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
@@ -23,13 +32,24 @@ WEEKDAYS = "DTSTART;TZID=Asia/Singapore:20260901T080000\nRRULE:FREQ=WEEKLY;BYDAY
 
 
 @pytest.fixture
-def bots(tmp_path: Path) -> BotService:
+def sessions(tmp_path: Path) -> SessionService:
+    return durable_service(tmp_path / "sessions")
+
+
+@pytest.fixture
+def bots(tmp_path: Path, sessions: SessionService) -> BotService:
     return BotService(
-        tmp_path / "bots.json",
-        durable_service(tmp_path / "sessions"),
+        BotRepository(tmp_path / "bots.json"),
+        sessions,
         assistant_instructions="A.",
         app_events=AppEventService(),
     )
+
+
+@pytest.fixture
+async def groups(bots: BotService, sessions: SessionService) -> GroupService:
+    await bots.active_bots()
+    return GroupService(bots, sessions, MENTION_TURN_ORDER)
 
 
 @pytest.fixture
@@ -38,19 +58,18 @@ def schedules(tmp_path: Path) -> ScheduleService:
 
 
 async def call(
-    bots: BotService, schedules: ScheduleService, chat_id: str = ASSISTANT_ID, **arguments: str
+    groups: GroupService, schedules: ScheduleService, chat_id: str = ASSISTANT_ID, **arguments: str
 ):
-    await bots.active_bots()
-    tool = schedule_create_tool(bots, schedules)
+    tool = schedule_create_tool(groups, schedules)
     context = context_for(bot_id=ASSISTANT_ID, conversation_id=chat_id)
     return await tool.invoke(json.dumps(arguments), context=context)
 
 
 async def test_a_schedule_made_in_chat_is_kept_and_says_when_it_runs_next(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     outcome = await call(
-        bots, schedules, title="Check the deployment", prompt=" Check it. ", rrule=WEEKDAYS
+        groups, schedules, title="Check the deployment", prompt=" Check it. ", rrule=WEEKDAYS
     )
 
     assert isinstance(outcome, Ok)
@@ -82,9 +101,9 @@ async def test_a_schedule_made_in_chat_is_kept_and_says_when_it_runs_next(
     ],
 )
 async def test_a_bad_rrule_is_a_typed_failure_and_nothing_is_kept(
-    bots: BotService, schedules: ScheduleService, rrule: str
+    groups: GroupService, bots: BotService, schedules: ScheduleService, rrule: str
 ) -> None:
-    outcome = await call(bots, schedules, title="Remind me", prompt="Remind me.", rrule=rrule)
+    outcome = await call(groups, schedules, title="Remind me", prompt="Remind me.", rrule=rrule)
 
     assert isinstance(outcome, Failure)
     assert outcome.code == INVALID_ARGUMENTS
@@ -93,11 +112,11 @@ async def test_a_bad_rrule_is_a_typed_failure_and_nothing_is_kept(
 
 
 async def test_a_rule_with_no_occurrence_after_now_is_refused(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     past = "DTSTART:20260101T000000Z\nRRULE:FREQ=DAILY;COUNT=1"
 
-    outcome = await call(bots, schedules, title="Remind me", prompt="Remind me.", rrule=past)
+    outcome = await call(groups, schedules, title="Remind me", prompt="Remind me.", rrule=past)
 
     assert outcome == Failure(INVALID_ARGUMENTS, "rrule: no occurrence after now")
     assert schedules.schedules() == ()
@@ -107,9 +126,9 @@ async def test_a_rule_with_no_occurrence_after_now_is_refused(
     ("title", "prompt"), [("  ", "Remind me."), ("x" * 121, "Remind me."), ("Remind me", " ")]
 )
 async def test_a_blank_or_long_title_or_a_blank_prompt_is_refused(
-    bots: BotService, schedules: ScheduleService, title: str, prompt: str
+    groups: GroupService, bots: BotService, schedules: ScheduleService, title: str, prompt: str
 ) -> None:
-    outcome = await call(bots, schedules, title=title, prompt=prompt, rrule=WEEKDAYS)
+    outcome = await call(groups, schedules, title=title, prompt=prompt, rrule=WEEKDAYS)
 
     assert isinstance(outcome, Failure)
     assert outcome.code == INVALID_ARGUMENTS
@@ -117,13 +136,13 @@ async def test_a_blank_or_long_title_or_a_blank_prompt_is_refused(
 
 
 async def test_a_schedule_asked_for_in_a_group_chat_is_refused(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     draft = GroupDraft(name="Launch", member_ids=(ASSISTANT_ID, BUILDER_ID))
-    group = await bots.create_group(draft)
+    group = await groups.create_group(draft)
 
     outcome = await call(
-        bots, schedules, group.id, title="Remind me", prompt="Remind me.", rrule=WEEKDAYS
+        groups, schedules, group.id, title="Remind me", prompt="Remind me.", rrule=WEEKDAYS
     )
 
     assert outcome == Failure(REFUSED, "schedules work only in your own chat, not in a group chat")

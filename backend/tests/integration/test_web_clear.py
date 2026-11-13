@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import Message, StreamEvent, ToolSpec
 from harness.runs.service import RunService
 from tests.integration.web_helpers import assistant_chat, settle
@@ -24,10 +24,17 @@ async def assistant(tmp_path):
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     store = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="ASSISTANT", app_events=app_events
+        BotRepository(tmp_path / "bots.json"),
+        service,
+        assistant_instructions="ASSISTANT",
+        app_events=app_events,
     )
     runs = RunService(
-        service, runtime_over(model, checkpoint=service.flush), store, app_events=app_events
+        service,
+        runtime_over(model, checkpoint=service.flush),
+        store,
+        GroupService(store, service, MENTION_TURN_ORDER),
+        app_events=app_events,
     )
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)
     transport = httpx.ASGITransport(app=app)

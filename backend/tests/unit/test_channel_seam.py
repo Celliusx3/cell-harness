@@ -6,7 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID
+from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.channels.commands import Command, apply
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import (
@@ -68,7 +68,13 @@ def build(tmp_path, reply: str = "answered"):
         images=no_images(),
         checkpoint=sessions.flush,
     )
-    runs = RunService(sessions, runtime, no_bots(sessions), app_events=AppEventService())
+    runs = RunService(
+        sessions,
+        runtime,
+        no_bots(sessions),
+        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER),
+        app_events=AppEventService(),
+    )
     chats = JsonlChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t"), runs, chats
 

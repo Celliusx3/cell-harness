@@ -72,8 +72,11 @@ backend/harness/
   runs/         a turn that outlives its connection — service, subscribe
   channels/     every way in and out — telegram/, discord/, web/, and per-chat state
   web/          server, runtime — the composition root; http/ is what every route shares
-                a feature's routes sit beside its service: controller.py + schemas.py,
-                <page>_controller.py when its package serves a second page
+                a feature's routes sit beside its service: router.py + schemas.py,
+                <page>_router.py when its package serves a second page; a feature
+                with a service per page splits into domain/, repository/, service/,
+                router/ — <name>_service.py, <name>_router.py — as bots/ does
+  bots/         bots and groups, layered; domain/ holds the models and turn order
   config/       one Settings: config.json + config.local.json + env
   prompts.py    every prompt the harness writes; a tool's description stays with its tool
 backend/tests/  unit/ and integration/

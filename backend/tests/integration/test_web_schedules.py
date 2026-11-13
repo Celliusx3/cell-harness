@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.bots.models import ASSISTANT_NAME
+from harness.bots.domain.models import ASSISTANT_NAME
 from harness.runs.service import RunService
 from harness.schedules import ScheduleService
 from tests.integration.web_helpers import settle

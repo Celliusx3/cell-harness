@@ -13,6 +13,7 @@ import pytest
 import uvicorn
 
 from harness.app_events import AppEventService
+from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.web import sse as sse_module
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
@@ -70,7 +71,13 @@ async def served(
         tools=toolset_for(*tools),
         checkpoint=service.flush,
     )
-    runs = RunService(service, runtime, no_bots(service), app_events=AppEventService())
+    runs = RunService(
+        service,
+        runtime,
+        no_bots(service),
+        GroupService(no_bots(service), service, MENTION_TURN_ORDER),
+        app_events=AppEventService(),
+    )
     async with (
         serving(web_app(tmp_path, service, runs, skills=no_skills())) as base_url,
         httpx.AsyncClient(base_url=base_url, timeout=TIMEOUT) as http,

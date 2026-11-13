@@ -7,7 +7,7 @@ import logging
 
 from fastapi import APIRouter, Request, Response, status
 
-from harness.bots import Bot, BotNotFound, BotService, served_bots
+from harness.bots import Bot, BotNotFound, BotService
 from harness.channels.platforms import PlatformChannels
 from harness.secrets import SavedCredential, SecretNotFound, SecretRefused, SecretService
 from harness.secrets.credential_effects import CredentialEffects
@@ -92,7 +92,7 @@ def build_router(
 
 
 def _credential_entry(credential: SavedCredential, active: tuple[Bot, ...]) -> CredentialEntry:
-    served = served_bots(active, credential.name, credential.details.kind)
+    served = tuple(bot for bot in active if bot.serves(credential.name, credential.details.kind))
     return CredentialEntry(
         name=credential.name,
         details=credential.details,

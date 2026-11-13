@@ -9,8 +9,17 @@ from pathlib import Path
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService, GroupDraft
+from harness.bots import (
+    ASSISTANT_ID,
+    BUILDER_ID,
+    MENTION_TURN_ORDER,
+    BotRepository,
+    BotService,
+    GroupDraft,
+    GroupService,
+)
 from harness.schedules import ScheduleService
+from harness.session.service import SessionService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.schedule import (
     SCHEDULE_EDIT,
@@ -40,13 +49,24 @@ ONE_OFF = "DTSTART:20261112T081000Z\nRRULE:FREQ=DAILY;COUNT=1"
 
 
 @pytest.fixture
-def bots(tmp_path: Path) -> BotService:
+def sessions(tmp_path: Path) -> SessionService:
+    return durable_service(tmp_path / "sessions")
+
+
+@pytest.fixture
+def bots(tmp_path: Path, sessions: SessionService) -> BotService:
     return BotService(
-        tmp_path / "bots.json",
-        durable_service(tmp_path / "sessions"),
+        BotRepository(tmp_path / "bots.json"),
+        sessions,
         assistant_instructions="A.",
         app_events=AppEventService(),
     )
+
+
+@pytest.fixture
+async def groups(bots: BotService, sessions: SessionService) -> GroupService:
+    await bots.active_bots()
+    return GroupService(bots, sessions, MENTION_TURN_ORDER)
 
 
 @pytest.fixture
@@ -59,9 +79,8 @@ def schedules(tmp_path: Path, clock: Clock) -> ScheduleService:
     return schedules_in(tmp_path, clock)
 
 
-async def edit(bots: BotService, schedules: ScheduleService, **arguments: object):
-    await bots.active_bots()
-    return await ask(schedule_edit_tool(bots, schedules), **arguments)
+async def edit(groups: GroupService, schedules: ScheduleService, **arguments: object):
+    return await ask(schedule_edit_tool(groups, schedules), **arguments)
 
 
 async def test_pausing_stops_a_due_run(tmp_path: Path) -> None:
@@ -71,7 +90,12 @@ async def test_pausing_stops_a_due_run(tmp_path: Path) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
 
     paused = await ask(
-        schedule_edit_tool(no_bots(sessions), schedules), id=made.id, action="update", active=False
+        schedule_edit_tool(
+            GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER), schedules
+        ),
+        id=made.id,
+        action="update",
+        active=False,
     )
     clock.advance(timedelta(hours=2))
     await tick_and_settle(scheduler, runs, gateway)
@@ -85,7 +109,9 @@ async def test_resuming_runs_at_the_next_time_after_the_edit(tmp_path: Path) -> 
     _, gateway, runs, sessions, clock, schedules, scheduler = await world(
         tmp_path, ScriptedClient(completed("Done."))
     )
-    tool = schedule_edit_tool(no_bots(sessions), schedules)
+    tool = schedule_edit_tool(
+        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER), schedules
+    )
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
     await ask(tool, id=made.id, action="update", active=False)
     clock.advance(timedelta(hours=2, minutes=30))
@@ -103,25 +129,25 @@ async def test_resuming_runs_at_the_next_time_after_the_edit(tmp_path: Path) -> 
 
 
 async def test_resuming_with_no_occurrence_left_is_a_typed_failure(
-    bots: BotService, schedules: ScheduleService, clock: Clock
+    groups: GroupService, bots: BotService, schedules: ScheduleService, clock: Clock
 ) -> None:
     made = schedules.create(ASSISTANT_ID, "Once", "Once.", ONE_OFF)
     schedules.pause(made.id)
     clock.advance(timedelta(hours=1))
 
-    outcome = await edit(bots, schedules, id=made.id, action="update", active=True)
+    outcome = await edit(groups, schedules, id=made.id, action="update", active=True)
 
     assert outcome == Failure(INVALID_ARGUMENTS, "rrule: no occurrence after now")
     assert schedules.get(made.id).status == "paused"
 
 
 async def test_a_new_rrule_moves_scheduled_at(
-    bots: BotService, schedules: ScheduleService, clock: Clock
+    groups: GroupService, bots: BotService, schedules: ScheduleService, clock: Clock
 ) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
     clock.advance(timedelta(minutes=5))
 
-    outcome = await edit(bots, schedules, id=made.id, action="update", rrule=DAILY)
+    outcome = await edit(groups, schedules, id=made.id, action="update", rrule=DAILY)
 
     assert isinstance(outcome, Ok)
     kept = schedules.get(made.id)
@@ -131,12 +157,12 @@ async def test_a_new_rrule_moves_scheduled_at(
 
 
 async def test_a_new_rrule_on_an_ended_schedule_makes_it_active(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     made = schedules.create(ASSISTANT_ID, "Once", "Once.", ONE_OFF)
     schedules.end(made.id)
 
-    outcome = await edit(bots, schedules, id=made.id, action="update", rrule=HOURLY)
+    outcome = await edit(groups, schedules, id=made.id, action="update", rrule=HOURLY)
 
     assert isinstance(outcome, Ok)
     assert json.loads(outcome.text)["status"] == "active"
@@ -144,11 +170,11 @@ async def test_a_new_rrule_on_an_ended_schedule_makes_it_active(
 
 
 async def test_a_bad_new_rrule_is_a_typed_failure_and_nothing_changes(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
 
-    outcome = await edit(bots, schedules, id=made.id, action="update", rrule="RRULE:FREQ=DAILY")
+    outcome = await edit(groups, schedules, id=made.id, action="update", rrule="RRULE:FREQ=DAILY")
 
     assert isinstance(outcome, Failure)
     assert outcome.message.startswith("rrule: ")
@@ -156,12 +182,12 @@ async def test_a_bad_new_rrule_is_a_typed_failure_and_nothing_changes(
 
 
 async def test_a_title_only_update_keeps_scheduled_at(
-    bots: BotService, schedules: ScheduleService, clock: Clock
+    groups: GroupService, bots: BotService, schedules: ScheduleService, clock: Clock
 ) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
     clock.advance(timedelta(minutes=5))
 
-    outcome = await edit(bots, schedules, id=made.id, action="update", title=" Look in ")
+    outcome = await edit(groups, schedules, id=made.id, action="update", title=" Look in ")
 
     assert isinstance(outcome, Ok)
     kept = schedules.get(made.id)
@@ -171,31 +197,33 @@ async def test_a_title_only_update_keeps_scheduled_at(
 
 
 async def test_a_blank_prompt_is_refused_with_its_field(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
 
-    outcome = await edit(bots, schedules, id=made.id, action="update", prompt=" ")
+    outcome = await edit(groups, schedules, id=made.id, action="update", prompt=" ")
 
     assert outcome == Failure(INVALID_ARGUMENTS, "prompt: must not be empty")
 
 
-async def test_delete_removes_it(bots: BotService, schedules: ScheduleService) -> None:
+async def test_delete_removes_it(
+    groups: GroupService, bots: BotService, schedules: ScheduleService
+) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
     kept = schedules.create(ASSISTANT_ID, "Keep", "Keep.", HOURLY)
 
-    outcome = await edit(bots, schedules, id=made.id, action="delete")
+    outcome = await edit(groups, schedules, id=made.id, action="delete")
 
     assert outcome == Ok(json.dumps({"id": made.id, "deleted": True}))
     assert schedules.schedules() == (kept,)
 
 
 async def test_an_empty_update_is_a_typed_failure(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
 
-    outcome = await edit(bots, schedules, id=made.id, action="update")
+    outcome = await edit(groups, schedules, id=made.id, action="update")
 
     assert outcome == Failure(
         INVALID_ARGUMENTS, "update needs at least one of title, prompt, rrule, active"
@@ -204,12 +232,12 @@ async def test_an_empty_update_is_a_typed_failure(
 
 @pytest.mark.parametrize("action", ["update", "delete"])
 async def test_an_unknown_or_another_bot_s_id_is_a_typed_failure(
-    bots: BotService, schedules: ScheduleService, action: str
+    groups: GroupService, bots: BotService, schedules: ScheduleService, action: str
 ) -> None:
     theirs = schedules.create(BUILDER_ID, "Theirs", "Theirs.", HOURLY)
 
-    unknown = await edit(bots, schedules, id="nope", action=action, title="X")
-    other = await edit(bots, schedules, id=theirs.id, action=action, title="X")
+    unknown = await edit(groups, schedules, id="nope", action=action, title="X")
+    other = await edit(groups, schedules, id=theirs.id, action=action, title="X")
 
     assert unknown == Failure(INVALID_ARGUMENTS, "no schedule with id 'nope'")
     assert other == Failure(INVALID_ARGUMENTS, f"no schedule with id {theirs.id!r}")
@@ -225,14 +253,14 @@ async def test_an_unknown_or_another_bot_s_id_is_a_typed_failure(
     ],
 )
 async def test_every_tool_is_refused_in_a_group_chat(
-    bots: BotService, schedules: ScheduleService, make, arguments: dict
+    groups: GroupService, bots: BotService, schedules: ScheduleService, make, arguments: dict
 ) -> None:
     await bots.active_bots()
-    group = await bots.create_group(
+    group = await groups.create_group(
         GroupDraft(name="Launch", member_ids=(ASSISTANT_ID, BUILDER_ID))
     )
 
-    outcome = await ask(make(bots, schedules), group.id, **arguments)
+    outcome = await ask(make(groups, schedules), group.id, **arguments)
 
     assert outcome == Failure(REFUSED, "schedules work only in your own chat, not in a group chat")
 

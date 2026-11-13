@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import BotService
+from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.runs.service import RunService
 from tests.integration.test_web_stream import TIMEOUT, served, serving
 from tests.integration.web_helpers import assistant_chat
@@ -47,10 +47,17 @@ async def test_an_open_window_hears_that_the_bots_changed(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", service, assistant_instructions="Help.", app_events=app_events
+        BotRepository(tmp_path / "bots.json"),
+        service,
+        assistant_instructions="Help.",
+        app_events=app_events,
     )
     runs = RunService(
-        service, runtime_over(ScriptedClient(completed("hi"))), bots, app_events=app_events
+        service,
+        runtime_over(ScriptedClient(completed("hi"))),
+        bots,
+        GroupService(bots, service, MENTION_TURN_ORDER),
+        app_events=app_events,
     )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=a_model_saved_in(tmp_path)
