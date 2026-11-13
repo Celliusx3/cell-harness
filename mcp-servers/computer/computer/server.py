@@ -43,7 +43,10 @@ COMPUTER_INSTRUCTIONS = (
     "with computer__browser_navigate, read it with computer__browser_read_page, and click or "
     "type on it with computer__browser_act. Run programs, Python and installs with "
     "computer__shell. Files and website sign-ins on the PC stay there between chats. The "
-    "person can watch the PC and take control of it from the Computer page. Before an "
+    "person can watch the PC and take control of it from the Computer page. When a site asks "
+    "for a password, a captcha or a payment, or shows a check that you are human, such as "
+    '"Just a moment...", stop and ask the person to do that step on the Computer page. Do not '
+    "install tools or fetch the site another way to get past it. Before an "
     "action on a site that sends, posts, pays or deletes something for the person, ask the "
     "person first, saying what the action will do, and act only after they answer yes."
 )

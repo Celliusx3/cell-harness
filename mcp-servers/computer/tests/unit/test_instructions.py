@@ -34,3 +34,8 @@ def test_the_instructions_tell_the_bot_to_ask_before_an_action_it_cannot_undo() 
     assert "ask the person first" in COMPUTER_INSTRUCTIONS
     for action in ("sends", "posts", "pays", "deletes"):
         assert action in COMPUTER_INSTRUCTIONS
+
+
+def test_the_instructions_tell_the_bot_to_stop_at_a_human_check_and_not_get_round_it() -> None:
+    assert "check that you are human" in COMPUTER_INSTRUCTIONS
+    assert "Do not install tools or fetch the site another way" in COMPUTER_INSTRUCTIONS

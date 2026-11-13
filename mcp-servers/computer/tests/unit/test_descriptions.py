@@ -124,6 +124,10 @@ def test_act_asks_the_person_before_a_click_it_cannot_undo() -> None:
         assert action in ACT_DESCRIPTION
 
 
+def test_act_stops_at_a_check_that_the_bot_is_human() -> None:
+    assert "check that you are human" in ACT_DESCRIPTION
+
+
 def test_a_held_screen_tells_the_bot_to_wait_for_the_person() -> None:
     assert "taken control" in HELD_BY_PERSON
     assert " ".join(HELD_BY_PERSON.split()) == HELD_BY_PERSON
