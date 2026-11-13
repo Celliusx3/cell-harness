@@ -14,7 +14,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.skills.invocation import display
+from harness.skills.domain.invocation import display
 
 EVERYONE = "everyone"
 MAX_TURNS_FROM_MENTIONS = 6

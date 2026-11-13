@@ -1,6 +1,6 @@
 # 06. Layer skills
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.skills import InvalidSkill, parse
-from harness.skills.catalog import SkillCatalog
+from harness.skills.repository.catalog import SkillCatalog
 
 MINIMAL = (
     "---\nname: pdf\ndescription: Extract text from PDFs. Use when handling PDFs.\n---\n"
@@ -208,7 +208,7 @@ def test_an_unchanged_file_is_not_reparsed(tmp_path, monkeypatch) -> None:
     skills = SkillCatalog([root])
     skills()
 
-    from harness.skills import catalog as catalog_module
+    from harness.skills.repository import catalog as catalog_module
 
     def boom(*_args, **_kwargs):
         raise AssertionError("parsed again")

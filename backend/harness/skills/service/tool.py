@@ -6,10 +6,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, create_model
 
-from harness.skills import resources
-from harness.skills.models import Skill
-from harness.skills.prompt import instructions
-from harness.skills.service import SkillService
+from harness.skills.domain.models import Skill
+from harness.skills.service import resources
+from harness.skills.service.prompt import instructions
+from harness.skills.service.skill_service import SkillService
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Tool, ToolContext, ToolOutcome
 
 SKILL = "skill"

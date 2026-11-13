@@ -50,7 +50,7 @@ from harness.secrets.router import build_router as build_secrets_router
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService
-from harness.skills.router import build_router as build_skills_router
+from harness.skills.router.skill_router import build_router as build_skills_router
 from harness.tickets.files_router import build_files_router as build_ticket_files_router
 from harness.tickets.repository import TicketRepository
 from harness.tickets.router import build_router as build_tickets_router

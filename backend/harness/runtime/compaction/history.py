@@ -8,7 +8,7 @@ from harness.llm import text_of
 from harness.session.compaction import pruned_ids, tail_start
 from harness.session.models import SessionEvent, ToolCallEvent, ToolResultEvent, UserMessageEvent
 from harness.skills import SKILL
-from harness.skills.invocation import MARKER, display
+from harness.skills.domain.invocation import MARKER, display
 
 PRUNE_KEEP = 3
 

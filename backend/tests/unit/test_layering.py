@@ -14,7 +14,11 @@ SESSION = HARNESS / "session"
 SANDBOX = HARNESS / "sandbox"
 
 PURE = ("models", "log", "derive", "repair")
-CIRCULAR_IMPORT_RISK = ("harness.session.models", "harness.tools.client", "harness.skills.tool")
+CIRCULAR_IMPORT_RISK = (
+    "harness.session.models",
+    "harness.tools.client",
+    "harness.skills.service.tool",
+)
 STORAGE = ("repository", "repositories", "service")
 OUTER_LAYERS = ("repository", "service", "router")
 IO_MODULES = frozenset(

@@ -15,7 +15,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.skills.invocation import MARKER
+from harness.skills.domain.invocation import MARKER
 
 R = Bot(id="r", name="Researcher", instructions="Cite.")
 W = Bot(id="w", name="Writer", instructions="Write.")

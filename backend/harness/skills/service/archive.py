@@ -9,7 +9,7 @@ from typing import NamedTuple
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.skills.models import SKILL_FILE, InvalidSkill, valid_name
+from harness.skills.domain.models import SKILL_FILE, InvalidSkill, valid_name
 
 MAX_ARCHIVE_BYTES = 5 * 1024 * 1024
 MAX_UNPACKED_BYTES = 30 * 1024 * 1024

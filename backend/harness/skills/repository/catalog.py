@@ -6,7 +6,7 @@ import logging
 from collections.abc import Sequence
 from pathlib import Path
 
-from harness.skills.models import (
+from harness.skills.domain.models import (
     MAX_DESCRIPTION_CHARS,
     SKILL_FILE,
     InvalidSkill,

@@ -9,7 +9,8 @@ from pathlib import Path
 import httpx
 import pytest
 
-from harness.skills import archive, skill_tool
+from harness.skills import skill_tool
+from harness.skills.service import archive
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import skills_at

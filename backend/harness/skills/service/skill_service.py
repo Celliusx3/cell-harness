@@ -10,11 +10,8 @@ import zipfile
 from pathlib import Path
 
 from harness.config.settings import SkillSettings
-from harness.skills import archive, resources
-from harness.skills.archive import ArchivePlan
-from harness.skills.catalog import SkillCatalog
-from harness.skills.invocation import parse
-from harness.skills.models import (
+from harness.skills.domain.invocation import parse
+from harness.skills.domain.models import (
     SKILL_FILE,
     InvalidSkill,
     Skill,
@@ -22,10 +19,13 @@ from harness.skills.models import (
     UnknownSkill,
     valid_name,
 )
-from harness.skills.models import (
+from harness.skills.domain.models import (
     parse as parse_file,
 )
-from harness.skills.prompt import instructions
+from harness.skills.repository.catalog import SkillCatalog
+from harness.skills.service import archive, resources
+from harness.skills.service.archive import ArchivePlan
+from harness.skills.service.prompt import instructions
 
 
 class SkillNotFound(LookupError):

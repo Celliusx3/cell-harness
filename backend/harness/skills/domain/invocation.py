@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.skills.models import valid_name
+from harness.skills.domain.models import valid_name
 
 SKILL_TAG_OPEN = '<skill name="'
 MARKER = "\n\n" + SKILL_TAG_OPEN

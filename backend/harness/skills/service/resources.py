@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import PurePosixPath
 
-from harness.skills import archive
-from harness.skills.models import SKILL_FILE, InvalidSkill, Skill
+from harness.skills.domain.models import SKILL_FILE, InvalidSkill, Skill
+from harness.skills.service import archive
 
 MAX_RESOURCE_BYTES = 64 * 1024
 _LIST_DEPTH = 3

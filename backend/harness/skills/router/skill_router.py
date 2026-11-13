@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, UploadFile, status
 
 from harness.skills import SkillNotFound, SkillService
-from harness.skills.schemas import (
+from harness.skills.router.schemas import (
     BundledFile,
     SkillFile,
     SkillIssue,

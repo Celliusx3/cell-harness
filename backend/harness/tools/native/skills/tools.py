@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
-from harness.skills.models import InvalidSkill
-from harness.skills.service import SkillNotEditable, SkillNotFound, SkillService, SkillShadowed
+from harness.skills.domain.models import InvalidSkill
+from harness.skills.service.skill_service import (
+    SkillNotEditable,
+    SkillNotFound,
+    SkillService,
+    SkillShadowed,
+)
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import (
     INVALID_ARGUMENTS,

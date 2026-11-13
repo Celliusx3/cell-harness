@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from harness.prompts import SKILL_LIST_INTRO
-from harness.skills.catalog import read_body
-from harness.skills.invocation import SKILL_TAG_OPEN
-from harness.skills.models import Skill
-from harness.skills.resources import listing
+from harness.skills.domain.invocation import SKILL_TAG_OPEN
+from harness.skills.domain.models import Skill
+from harness.skills.repository.catalog import read_body
+from harness.skills.service.resources import listing
 
 MAX_LISTED_FILES = 20
 
