@@ -11,10 +11,10 @@ from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
 
 from harness.mcp.client import McpClient, McpClientFactory
-from harness.mcp.models.commands import Command, ResourceReadCommand, ToolCallCommand
-from harness.mcp.models.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
-from harness.mcp.models.server import McpServer
-from harness.mcp.models.status import ServerStatus, Status
+from harness.mcp.domain.commands import Command, ResourceReadCommand, ToolCallCommand
+from harness.mcp.domain.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
+from harness.mcp.domain.server import McpServer
+from harness.mcp.domain.status import ServerStatus, Status
 from harness.mcp.tool import build_tools
 from harness.tools import Tool
 

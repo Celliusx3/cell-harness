@@ -10,7 +10,7 @@ from mcp.types import CallToolResult
 from mcp.types import Tool as McpTool
 
 from harness.mcp._result import outcome_of
-from harness.mcp.models.errors import McpNotConnectedError, McpTimeoutError
+from harness.mcp.domain.errors import McpNotConnectedError, McpTimeoutError
 from harness.tools import (
     EXECUTION_ERROR,
     NAMESPACE_SEPARATOR,

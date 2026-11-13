@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from harness.mcp.models.saved import SavedServer
+from harness.mcp.domain.saved import SavedServer
 
 
 class SavedServerRepository(Protocol):

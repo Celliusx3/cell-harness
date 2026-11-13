@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from harness.mcp.models.errors import McpServerNotFound, McpServerTaken
-from harness.mcp.models.saved import SavedServer, ServerDraft
-from harness.mcp.repository import SavedServerRepository
+from harness.mcp.domain.errors import McpServerNotFound, McpServerTaken
+from harness.mcp.domain.saved import SavedServer, ServerDraft
+from harness.mcp.repository.saved_server_repository import SavedServerRepository
 
 
 class SavedServerService:

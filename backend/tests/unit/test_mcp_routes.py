@@ -11,7 +11,7 @@ import httpx
 import pytest
 from mcp.types import CallToolResult, ImageContent, TextContent
 
-from harness.mcp.csp import build_csp
+from harness.mcp.domain.csp import build_csp
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_skills

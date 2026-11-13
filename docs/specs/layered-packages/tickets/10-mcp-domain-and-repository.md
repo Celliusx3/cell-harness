@@ -1,6 +1,6 @@
 # 10. Layer mcp: domain and repository
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

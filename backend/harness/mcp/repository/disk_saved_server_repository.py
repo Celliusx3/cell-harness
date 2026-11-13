@@ -7,7 +7,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from harness.mcp.models.saved import SavedServer, SavedServersFile
+from harness.mcp.domain.saved import SavedServer, SavedServersFile
 
 FILE_MODE = 0o600
 

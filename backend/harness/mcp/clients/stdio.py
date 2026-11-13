@@ -14,8 +14,8 @@ from mcp.server.apps import APP_MIME_TYPE, EXTENSION_ID
 
 from harness.mcp.client import McpClient
 from harness.mcp.clients.stderr_tail import StderrTail, tee_stderr
-from harness.mcp.models.errors import McpConnectionError
-from harness.mcp.models.server import McpServer
+from harness.mcp.domain.errors import McpConnectionError
+from harness.mcp.domain.server import McpServer
 
 
 @asynccontextmanager

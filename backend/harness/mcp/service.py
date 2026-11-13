@@ -11,10 +11,10 @@ from mcp.types import Tool as McpTool
 from harness.mcp._connection import Connection
 from harness.mcp.client import McpClientFactory
 from harness.mcp.clients.stdio import open_stdio_client
-from harness.mcp.keys import missing_keys
-from harness.mcp.models.errors import McpNotConnectedError, McpServerNotFound, McpServerTaken
-from harness.mcp.models.server import McpServer
-from harness.mcp.models.status import ServerStatus
+from harness.mcp.domain.errors import McpNotConnectedError, McpServerNotFound, McpServerTaken
+from harness.mcp.domain.keys import missing_keys
+from harness.mcp.domain.server import McpServer
+from harness.mcp.domain.status import ServerStatus
 from harness.mcp.tool import can_write, namespaced
 from harness.tools import Tool
 

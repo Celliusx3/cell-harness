@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.mcp.models.status import Status
+from harness.mcp.domain.status import Status
 
 
 class KeyState(BaseModel):

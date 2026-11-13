@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 from pydantic import ValidationError
 
-from harness.mcp.models.returned_file import FILES_META, ReturnedFile
+from harness.mcp.domain.returned_file import FILES_META, ReturnedFile
 from harness.tools import (
     EXECUTION_ERROR,
     Failure,
