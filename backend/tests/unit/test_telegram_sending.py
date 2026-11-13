@@ -20,6 +20,12 @@ def test_a_short_reply_is_one_message() -> None:
     assert split_message("hello") == ["hello"]
 
 
+def test_a_reply_exactly_at_the_limit_is_one_message() -> None:
+    body = ("word " * MAX_MESSAGE_CHARS)[:MAX_MESSAGE_CHARS]
+
+    assert split_message(body) == [body]
+
+
 def test_a_long_reply_is_split_within_the_limit() -> None:
     parts = split_message("word " * 2000)
 

@@ -22,6 +22,7 @@ CIRCULAR_IMPORT_RISK = (
 PORT = "repository/session_repository"
 SERVICE = "service/session_service"
 STORAGE = (PORT, "repository/jsonl_session_repository", SERVICE)
+STORAGE_LAYERS = ("repository", "service")
 OUTER_LAYERS = ("repository", "service", "router")
 IO_MODULES = frozenset(
     (
@@ -53,7 +54,7 @@ def session_imports(name: str) -> list[str]:
 @pytest.mark.parametrize("name", PURE)
 def test_a_pure_module_knows_nothing_about_storage(name: str) -> None:
     for imported in session_imports(name):
-        assert imported.split("/")[0] not in {s.split("/")[0] for s in STORAGE}, (
+        assert imported.split("/")[0] not in STORAGE_LAYERS, (
             f"{name}.py imports {imported!r}. What a conversation is must not "
             f"depend on where it is kept — that is what keeps the backend swappable."
         )

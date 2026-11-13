@@ -174,3 +174,19 @@ async def test_deleting_an_unknown_skill_is_a_404(api) -> None:
     client, _, _ = api
     async with client:
         assert (await client.delete("/api/skills/nope")).status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/api/skills/nope"),
+        ("GET", "/api/skills/nope/files/a.md"),
+        ("DELETE", "/api/skills/nope"),
+    ],
+)
+async def test_an_unknown_skill_is_a_404_naming_it(api, method, path) -> None:
+    client, _, _ = api
+    async with client:
+        response = await client.request(method, path)
+
+    assert (response.status_code, response.json()) == (404, {"detail": "no skill named 'nope'"})

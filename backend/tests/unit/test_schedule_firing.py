@@ -15,6 +15,7 @@ from harness.session.domain.models import (
     BotMessageEvent,
     ScheduleReminder,
     ScheduleReminderEvent,
+    ScheduleReminders,
     TurnStart,
 )
 from tests.unit.fakes import ScriptedClient, completed
@@ -130,3 +131,14 @@ def test_a_turn_a_schedule_opens_is_hop_zero() -> None:
     ]
 
     assert hop_of_last_turn(events) == 0
+
+
+def test_each_due_schedule_s_reminder_is_on_its_own_line() -> None:
+    due = ScheduleReminders(
+        reminders=tuple(
+            ScheduleReminder(schedule_id=f"s{n}", title="T", prompt=f"Do {n}.", occurrence_at=NOW)
+            for n in (1, 2)
+        )
+    )
+
+    assert due.text.splitlines() == ["Do 1.", "Do 2."]

@@ -8,9 +8,15 @@ from pathlib import Path
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import BotDraft, BotRepository, BotService
+from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import AssistantMessage, UserMessage
-from harness.runs.service.bot_messages import MAX_HOPS, final_reply, hop_of_last_turn
+from harness.runs.service.bot_messages import (
+    MAX_HOPS,
+    BotMessages,
+    final_reply,
+    hop_of_last_turn,
+)
+from harness.runs.service.run import Run
 from harness.session.domain.derive import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
@@ -22,10 +28,11 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.tools import Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.bots import MESSAGE_BOT, message_bot_tool
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
-from tests.unit.helpers import durable_service
+from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
+from tests.unit.helpers import durable_service, no_bots, run_service, until
 from tests.webapp import MODEL_CREDENTIAL
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"
@@ -143,6 +150,25 @@ async def test_the_bot_argument_lists_the_active_bots_by_name(tmp_path: Path) ->
 
     assert schema["properties"]["bot"]["enum"] == ["Assistant", "Bot builder", "Researcher"]
     assert sorted(schema["required"]) == ["bot", "message"]
+
+
+async def unfollowed(run: Run) -> None:
+    raise AssertionError("nothing was delivered")
+
+
+async def test_a_name_no_active_bot_has_is_refused_naming_it(tmp_path: Path) -> None:
+    sessions = durable_service(tmp_path / "sessions")
+    client = SteppedClient(calls_tool("hang", '{"value": "x"}'))
+    runs = run_service(sessions, client, hanging_tool())
+    session = await sessions.create(ASSISTANT_ID)
+    runs.start(session, "go")
+    await until(lambda: runs.session_of_call("c1") is not None, what="the call to be made")
+    messages = BotMessages(no_bots(sessions), runs, follow=unfollowed)
+
+    sent = await messages.send("c1", from_bot_id=ASSISTANT_ID, to_name="Gone", text="hi")
+    await runs.stop(session.id)
+
+    assert sent == Failure(INVALID_ARGUMENTS, "no bot is named 'Gone'")
 
 
 def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:

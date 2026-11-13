@@ -80,7 +80,7 @@ async def test_changing_or_removing_a_credential_nobody_saved_is_a_404(
         removed = await http.delete("/api/credentials/nope")
 
     assert (changed.status_code, removed.status_code) == (404, 404)
-    assert "'nope'" in removed.json()["detail"]
+    assert [changed.json(), removed.json()] == [{"detail": "no saved key named 'nope'"}] * 2
 
 
 async def test_ticking_a_bot_nobody_made_saves_nothing(http: httpx.AsyncClient) -> None:

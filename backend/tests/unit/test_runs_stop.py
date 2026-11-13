@@ -112,6 +112,21 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
     assert items == list(enumerate(session.events()))
 
 
+async def test_a_subscriber_hears_the_turn_while_it_is_still_running(service) -> None:
+    runs = run_service(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
+    session = await service.create(ASSISTANT_ID)
+    run = runs.start(session, "go")
+    stream = subscribe(run, after=0)
+    try:
+        first = await asyncio.wait_for(anext(stream), timeout=2)
+        running = not run.settled
+    finally:
+        await stream.aclose()
+        await runs.stop(session.id)
+
+    assert (first.number, running) == (0, True)
+
+
 async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
     bots = BotService(
         BotRepository(tmp_path / "bots.json"),

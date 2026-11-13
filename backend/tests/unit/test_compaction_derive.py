@@ -18,6 +18,7 @@ from harness.session.domain.compaction import (
     boundary,
     open_start,
     pruned_ids,
+    tail_start,
 )
 from harness.session.domain.derive import derive_messages
 from harness.session.domain.models import (
@@ -102,6 +103,13 @@ def test_the_last_boundary_wins() -> None:
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="between")))
     session.append(CompactionEnd(turn=None, message=ApplicationMessage(content="second")))
     assert derive_messages(session.events()) == [UserMessage(content="second")]
+
+
+def test_the_tail_starts_on_the_event_right_after_the_boundary() -> None:
+    after = UserMessageEvent(turn=1, message=UserMessage(content="next"))
+    events = [CompactionEnd(turn=None, message=ApplicationMessage(content="SUMMARY")), after]
+
+    assert events[tail_start(events) :] == [after]
 
 
 def test_a_pruned_result_is_a_placeholder_to_the_model_and_itself_in_the_log() -> None:
