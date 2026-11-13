@@ -20,7 +20,7 @@ from harness.bots import (
     GroupService,
 )
 from harness.llm import ToolCall
-from harness.session.models import (
+from harness.session.domain.models import (
     GroupMembersEvent,
     ToolCallEvent,
     TurnStart,

@@ -8,7 +8,7 @@ from contextlib import aclosing
 from harness.llm import Text, ToolCall, ToolMessage, ToolReference, text_of
 from harness.llm.adapters.openai._request import openai_messages
 from harness.runtime.service import Runtime
-from harness.session.models import ToolResultEvent
+from harness.session.domain.models import ToolResultEvent
 from harness.tools import Ok, Tool, ToolService, Toolset
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,

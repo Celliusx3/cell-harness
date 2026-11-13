@@ -5,7 +5,7 @@ from __future__ import annotations
 from harness.llm import AssistantMessage, Completed, ToolCall, ToolCallChunk, ToolMessage
 from harness.runtime.events import AgentCompleted, AgentPending
 from harness.runtime.service import SKIPPED
-from harness.session.models import ToolResultEvent, TurnEnd
+from harness.session.domain.models import ToolResultEvent, TurnEnd
 from harness.tools import Ok
 from tests.unit.fakes import (
     SteppedClient,

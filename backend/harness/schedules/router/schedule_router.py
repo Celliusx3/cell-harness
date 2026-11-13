@@ -11,7 +11,7 @@ from harness.bots import BotService
 from harness.runs.service.run_service import RunService
 from harness.schedules import Schedule, Scheduler, ScheduleService, ordered
 from harness.schedules.router.schemas import ScheduleRow
-from harness.session.schedule_change import ScheduleChange, ScheduleChangeKind
+from harness.session.domain.schedule_change import ScheduleChange, ScheduleChangeKind
 from harness.utc import utc_text
 
 logger = logging.getLogger(__name__)

@@ -7,8 +7,8 @@ import dataclasses
 
 from harness.mcp import McpService
 from harness.runtime.service import Runtime
+from harness.session.domain.models import ServerInstructionsEvent
 from harness.session.log import Session
-from harness.session.models import ServerInstructionsEvent
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, new_session, runtime_over
 from tests.unit.mcp_fakes import FakeFactory, servers

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from harness.llm import ToolCall, ToolMessage
-from harness.session.models import SessionEvent, ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.domain.models import SessionEvent, ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tickets.service.worker import kept_report
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.tickets import TICKET_REPORT, ticket_report_tool

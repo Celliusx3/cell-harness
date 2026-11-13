@@ -12,7 +12,7 @@ from harness.channels.discord.channel import OPEN_LABEL
 from harness.channels.gateway import ChannelGateway
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.telegram.asking import ASK_BY_LINK
-from harness.session.models import TurnEnd
+from harness.session.domain.models import TurnEnd
 from harness.tools.native.hand_over import HAND_OVER
 from tests.unit import discord_fakes
 from tests.unit.fakes import SteppedClient, calls_tool, completed

@@ -6,7 +6,7 @@ import pytest
 
 from harness.llm import UserMessage
 from harness.session.derive import derive_messages
-from harness.session.models import TurnEnd, TurnStart, UserMessageEvent
+from harness.session.domain.models import TurnEnd, TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService

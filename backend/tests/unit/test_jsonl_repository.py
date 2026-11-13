@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harness.llm import ToolCall, ToolMessage
-from harness.session.models import (
+from harness.session.domain.models import (
     ToolCallEvent,
     ToolResultEvent,
     TurnStart,

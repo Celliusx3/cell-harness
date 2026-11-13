@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from harness.files import ChatFileService
 from harness.images import ImageService
 from harness.llm import images_of
-from harness.session.models import SessionEvent, ToolResultEvent, UserMessageEvent
+from harness.session.domain.models import SessionEvent, ToolResultEvent, UserMessageEvent
 
 INLINE_TYPES = frozenset({"image/png", "image/jpeg", "image/webp", "image/gif"})
 NO_SNIFFING = {"X-Content-Type-Options": "nosniff"}

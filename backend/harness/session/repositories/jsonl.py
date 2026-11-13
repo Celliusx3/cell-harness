@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pydantic import TypeAdapter, ValidationError
 
-from harness.session.models import SESSION_FORMAT_VERSION, SessionEvent, SessionHeader
+from harness.session.domain.models import SESSION_FORMAT_VERSION, SessionEvent, SessionHeader
 from harness.session.repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,

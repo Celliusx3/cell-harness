@@ -12,7 +12,7 @@ import pytest
 
 from harness.llm import Failed, SystemMessage
 from harness.runtime.subagents import Subagents
-from harness.session.models import TurnEnd, UserMessageEvent
+from harness.session.domain.models import TurnEnd, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import Ok, ToolContext, ToolOutcome

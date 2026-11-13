@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID
 from harness.runs.service.bot_messages import BotMessages
-from harness.session.models import BotMessage
+from harness.session.domain.models import BotMessage
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.gateway_helpers import CHAT, build, settle
 from tests.unit.helpers import no_bots, no_skills

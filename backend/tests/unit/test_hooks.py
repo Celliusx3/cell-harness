@@ -21,7 +21,7 @@ from harness.runtime.hooks import (
     completed_calls,
 )
 from harness.runtime.hooks import service as service_module
-from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tools import BLOCKED, Ok, ToolOutcome
 from tests.unit.helpers import new_session
 

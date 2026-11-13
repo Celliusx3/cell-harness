@@ -6,7 +6,7 @@ import asyncio
 
 from harness.app_events import ChatLoggedAppEvent
 from harness.bots import ASSISTANT_ID
-from harness.session.models import (
+from harness.session.domain.models import (
     TicketReport,
     TicketReportEvent,
     ToolCallEvent,

@@ -12,8 +12,8 @@ from harness.channels.protocol import Pushing
 from harness.channels.repository import ChatRepository
 from harness.runs.service.run import Run
 from harness.runs.service.subscribe import subscribe
-from harness.session.compaction import CompactionEnd
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.models import (
     AssistantMessageEvent,
     TicketReport,
     TicketReportEvent,

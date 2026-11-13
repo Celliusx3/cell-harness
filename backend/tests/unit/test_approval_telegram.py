@@ -7,7 +7,7 @@ from harness.channels.protocol import InboundMessage
 from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
 from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
-from harness.session.models import ApprovalGrant, ToolResultEvent, TurnEnd
+from harness.session.domain.models import ApprovalGrant, ToolResultEvent, TurnEnd
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
 from harness.tools.domain.decision import DENIED

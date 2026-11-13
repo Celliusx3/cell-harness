@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from harness.llm import ApplicationMessage
 
 if TYPE_CHECKING:
-    from harness.session.models import SessionEvent
+    from harness.session.domain.models import SessionEvent
 
 CompactionTrigger = Literal["auto", "manual", "overflow"]
 

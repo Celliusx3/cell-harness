@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 
 from harness.llm import ToolReference
-from harness.session.models import (
+from harness.session.domain.models import (
     ApprovalGrant,
     ApprovalModeChanged,
     AssistantMessageEvent,

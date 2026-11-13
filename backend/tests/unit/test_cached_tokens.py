@@ -9,7 +9,7 @@ import httpx
 from harness.llm import Usage
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runtime.service import Runtime
-from harness.session.models import AssistantMessageEvent
+from harness.session.domain.models import AssistantMessageEvent
 from tests.unit.fakes import OneModel
 from tests.unit.helpers import new_session, no_images
 from tests.unit.test_openai_adapter import client_over, collect, delta, sse

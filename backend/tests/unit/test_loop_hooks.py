@@ -10,7 +10,7 @@ from harness.runtime.events import AgentCompleted, ToolResult, TurnEvent
 from harness.runtime.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
 from harness.session.derive import derive_messages
-from harness.session.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
+from harness.session.domain.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.tools import BLOCKED, Ok, ToolOutcome
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool, raising_tool
 from tests.unit.helpers import drain, new_session, runtime_over, unanswered_calls

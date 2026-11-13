@@ -11,7 +11,8 @@ from harness.llm import (
     UserMessage,
 )
 from harness.prompts import PRUNED
-from harness.session.compaction import (
+from harness.session.derive import derive_messages
+from harness.session.domain.compaction import (
     CompactionEnd,
     CompactionPrune,
     CompactionStart,
@@ -19,8 +20,7 @@ from harness.session.compaction import (
     open_start,
     pruned_ids,
 )
-from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
     ToolResultEvent,

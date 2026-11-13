@@ -17,15 +17,15 @@ from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
 from harness.runtime.service import Runtime
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import ModelDetails
-from harness.session.compaction import CompactionEnd
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.models import (
     AssistantChunk,
     AssistantMessageEvent,
     TurnEnd,
     TurnStart,
     UserMessageEvent,
 )
+from harness.session.log import Session
 from harness.web.model_choice import CredentialModels, ModelEndpoint
 from tests.bot_models import put_on_model
 from tests.unit.fakes import ScriptedClient, completed

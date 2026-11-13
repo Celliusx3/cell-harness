@@ -11,7 +11,7 @@ from harness.prompts import COMPACTION_INSTRUCTION
 from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
 from harness.runtime.compaction.prompt import summary_message
 from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
-from harness.session.compaction import (
+from harness.session.domain.compaction import (
     CompactionEnd,
     CompactionPrune,
     CompactionStart,

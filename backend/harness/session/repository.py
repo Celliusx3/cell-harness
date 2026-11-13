@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
-from harness.session.models import SessionEvent, SessionHeader
+from harness.session.domain.models import SessionEvent, SessionHeader
 
 
 class SessionNotFoundError(RuntimeError):

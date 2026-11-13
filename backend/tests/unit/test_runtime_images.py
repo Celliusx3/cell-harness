@@ -12,7 +12,7 @@ from harness.images import IMAGE_MAX_BYTES, ImageService
 from harness.llm import Image, Message, UserMessage, images_of
 from harness.prompts import ATTACHED_FILE, IMAGE_NOT_SHOWN
 from harness.runtime.compaction import run_compaction
-from harness.session.models import UserMessageEvent
+from harness.session.domain.models import UserMessageEvent
 from tests.mcp_stub import DOT_PNG
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, new_session, runtime_over

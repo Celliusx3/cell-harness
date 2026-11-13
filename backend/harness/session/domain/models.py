@@ -17,19 +17,19 @@ from harness.llm import (
     Usage,
     UserMessage,
 )
-from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
-from harness.session.heard import BotMessage as BotMessage
-from harness.session.heard import BotMessageEvent, ScheduleReminderEvent, TicketReportEvent
-from harness.session.heard import BotMessageIntent as BotMessageIntent
-from harness.session.heard import HeardMessage as HeardMessage
-from harness.session.heard import ReportAsk as ReportAsk
-from harness.session.heard import ScheduleReminder as ScheduleReminder
-from harness.session.heard import ScheduleReminders as ScheduleReminders
-from harness.session.heard import TicketAsk as TicketAsk
-from harness.session.heard import TicketReport as TicketReport
-from harness.session.images import ImagesHidden
-from harness.session.schedule_change import ScheduleChange as ScheduleChange
-from harness.session.schedule_change import ScheduleChangeEvent
+from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionStart
+from harness.session.domain.heard import BotMessage as BotMessage
+from harness.session.domain.heard import BotMessageEvent, ScheduleReminderEvent, TicketReportEvent
+from harness.session.domain.heard import BotMessageIntent as BotMessageIntent
+from harness.session.domain.heard import HeardMessage as HeardMessage
+from harness.session.domain.heard import ReportAsk as ReportAsk
+from harness.session.domain.heard import ScheduleReminder as ScheduleReminder
+from harness.session.domain.heard import ScheduleReminders as ScheduleReminders
+from harness.session.domain.heard import TicketAsk as TicketAsk
+from harness.session.domain.heard import TicketReport as TicketReport
+from harness.session.domain.images import ImagesHidden
+from harness.session.domain.schedule_change import ScheduleChange as ScheduleChange
+from harness.session.domain.schedule_change import ScheduleChangeEvent
 from harness.tools import ApprovalMode, ToolUi
 
 SESSION_FORMAT_VERSION = 1

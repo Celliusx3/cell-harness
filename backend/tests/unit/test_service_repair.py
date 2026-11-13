@@ -12,7 +12,7 @@ from harness.llm import UserMessage, text_of
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
 from harness.session.derive import derive_messages
-from harness.session.models import ToolCallEvent, TurnEnd, TurnStart, UserMessageEvent
+from harness.session.domain.models import ToolCallEvent, TurnEnd, TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from tests.unit.fakes import (

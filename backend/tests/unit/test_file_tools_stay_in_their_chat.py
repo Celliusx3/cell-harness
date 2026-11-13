@@ -14,7 +14,7 @@ import pytest
 from harness.bots import ASSISTANT_ID
 from harness.config.settings import Settings
 from harness.mcp import McpService
-from harness.session.models import ToolResultEvent
+from harness.session.domain.models import ToolResultEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools.native.files import EXTRACT_ARCHIVE, MAKE_ARCHIVE, VIEW_IMAGE

@@ -15,8 +15,7 @@ from harness.runs.service.chain import discussion_events
 from harness.runs.service.run import Run, RunAlreadyActive, settled
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.models import (
     ApprovalModeChanged,
     HeardMessage,
     ScheduleChange,
@@ -24,6 +23,7 @@ from harness.session.models import (
     SessionEvent,
     ToolCallEvent,
 )
+from harness.session.log import Session
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools import Approval, ApprovalMode, Failure, Ok

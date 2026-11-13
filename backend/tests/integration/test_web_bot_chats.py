@@ -8,7 +8,7 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.llm import UserMessage
-from harness.session.models import UserMessageEvent
+from harness.session.domain.models import UserMessageEvent
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_skills

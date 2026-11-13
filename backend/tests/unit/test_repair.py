@@ -5,7 +5,7 @@ from __future__ import annotations
 from harness.llm import AssistantMessage, ToolCall, ToolMessage, UserMessage, text_of
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
     StepEnd,

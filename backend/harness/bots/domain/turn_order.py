@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from typing import NamedTuple, Protocol
 
 from harness.bots.domain.models import Bot
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
     TurnEnd,

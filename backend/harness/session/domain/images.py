@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from harness.llm import Image, Text, ToolMessage, UserMessage
 
 if TYPE_CHECKING:
-    from harness.session.models import SessionEvent
+    from harness.session.domain.models import SessionEvent
 
 
 class ImagesHidden(BaseModel):

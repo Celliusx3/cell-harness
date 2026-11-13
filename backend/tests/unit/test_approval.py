@@ -8,7 +8,7 @@ from harness.llm import Completed, ToolCall, ToolCallChunk, ToolMessage
 from harness.runtime.events import AgentCompleted, AgentPending
 from harness.runtime.hooks import HookChain, ToolHook
 from harness.sandbox import Bridge, BridgeError
-from harness.session.models import (
+from harness.session.domain.models import (
     ApprovalGrant,
     ToolResultEvent,
     TurnEnd,

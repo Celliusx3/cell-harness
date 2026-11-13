@@ -31,9 +31,9 @@ from harness.runtime.compaction.history import PRUNE_KEEP
 from harness.runtime.compaction.service import COMPACT_AT
 from harness.runtime.models import NoModel
 from harness.runtime.service import Runtime
-from harness.session.compaction import CompactionEnd, CompactionPrune, CompactionStart
 from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionStart
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
     ToolResultEvent,

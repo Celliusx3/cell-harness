@@ -6,8 +6,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from harness.session.domain.models import ChatCleared, SessionHeader
 from harness.session.log import Session
-from harness.session.models import ChatCleared, SessionHeader
 from harness.session.repair import repair
 from harness.session.repository import SessionRepository
 

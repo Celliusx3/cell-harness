@@ -5,7 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from harness.secrets import SecretValue
-from harness.session.models import SessionEvent
+from harness.session.domain.models import SessionEvent
 from harness.tickets.domain.models import TicketState
 from harness.tools.domain.decision import Approval, Denial
 

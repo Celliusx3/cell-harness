@@ -11,7 +11,7 @@ from harness.config.settings import Settings
 from harness.llm import Message, SystemMessage, ToolCall, UserMessage
 from harness.mcp import McpServer, McpService
 from harness.runtime.service import Runtime
-from harness.session.models import TurnStart, UserMessageEvent
+from harness.session.domain.models import TurnStart, UserMessageEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SKILL

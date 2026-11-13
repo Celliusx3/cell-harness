@@ -23,9 +23,9 @@ from harness.prompts import (
     TICKET_REPORT_HEARD,
 )
 from harness.session.change_notes import after_owed_results, change_message
-from harness.session.compaction import boundary, pruned_ids
-from harness.session.images import ImagesHidden, first_images_noted, hidden_through
-from harness.session.models import (
+from harness.session.domain.compaction import boundary, pruned_ids
+from harness.session.domain.images import ImagesHidden, first_images_noted, hidden_through
+from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
     BotInstructionsEvent,

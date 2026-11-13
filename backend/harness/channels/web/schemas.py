@@ -6,7 +6,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from harness.session.models import SessionEvent
+from harness.session.domain.models import SessionEvent
 from harness.tools import ApprovalMode
 
 

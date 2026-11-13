@@ -11,7 +11,7 @@ from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import LLMClient
 from harness.runs.service.subscribe import subscribe
 from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
     ToolResultEvent,

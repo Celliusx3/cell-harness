@@ -6,8 +6,8 @@ from harness.llm import AssistantMessage, ToolCall
 from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.hooks import GiveUp, Tell
 from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY
+from harness.session.domain.models import AssistantMessageEvent, TurnStart
 from harness.session.log import Session
-from harness.session.models import AssistantMessageEvent, TurnStart
 from tests.unit.test_hooks_native import GUARD, call, turn
 
 

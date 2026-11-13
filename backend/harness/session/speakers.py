@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from harness.session.models import SessionEvent, TurnStart
+from harness.session.domain.models import SessionEvent, TurnStart
 
 
 def turn_speakers(events: Sequence[SessionEvent]) -> Mapping[int, str]:

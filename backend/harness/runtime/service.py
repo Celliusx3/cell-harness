@@ -29,8 +29,7 @@ from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
 from harness.session.derive import derive_messages, without_images
-from harness.session.log import ApprovalModeSwitch, Session
-from harness.session.models import (
+from harness.session.domain.models import (
     ApprovalGrant,
     ApprovalModeChanged,
     BotMessage,
@@ -45,6 +44,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from harness.session.log import ApprovalModeSwitch, Session
 from harness.session.repair import unanswered
 from harness.tools import Approval, ApprovalMode, Failure, Ok, Toolset
 

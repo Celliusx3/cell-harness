@@ -13,9 +13,9 @@ HARNESS = pathlib.Path(__file__).resolve().parents[2] / "harness"
 SESSION = HARNESS / "session"
 SANDBOX = HARNESS / "sandbox"
 
-PURE = ("models", "log", "derive", "repair")
+PURE = ("domain/models", "log", "derive", "repair")
 CIRCULAR_IMPORT_RISK = (
-    "harness.session.models",
+    "harness.session.domain.models",
     "harness.tools.client",
     "harness.skills.service.tool",
 )

@@ -7,7 +7,7 @@ import json
 from harness.llm import AssistantMessage, ToolCall, ToolMessage, UserMessage
 from harness.prompts import SCHEDULE_CHANGE
 from harness.session.derive import derive_messages
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ScheduleChange,
     ScheduleChangeEvent,

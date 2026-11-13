@@ -21,7 +21,7 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.repository import ChatState
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import TelegramDetails
-from harness.session.models import UserMessageEvent
+from harness.session.domain.models import UserMessageEvent
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.webapp import MODEL_CREDENTIAL

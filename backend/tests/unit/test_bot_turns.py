@@ -26,9 +26,8 @@ from harness.llm import (
 )
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.compaction import CompactionEnd
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.models import (
     ApplicationMessageEvent,
     ApprovalGrant,
     AssistantMessageEvent,
@@ -41,6 +40,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from harness.session.log import Session
 from harness.session.service import SessionService
 from harness.tools import Ok
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool

@@ -6,8 +6,8 @@ from collections.abc import Sequence
 
 from harness.llm import ToolCall, ToolMessage
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
-from harness.session.compaction import CompactionEnd, open_start
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd, open_start
+from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
     ToolResultEvent,

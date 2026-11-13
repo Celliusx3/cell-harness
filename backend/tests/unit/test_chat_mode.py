@@ -8,7 +8,7 @@ from pathlib import Path
 from harness.bots import ASSISTANT_ID
 from harness.llm import ToolCall, text_of
 from harness.sandbox import Bridge, BridgeError
-from harness.session.models import ApprovalModeChanged, ChatCleared, ToolResultEvent, TurnEnd
+from harness.session.domain.models import ApprovalModeChanged, ChatCleared, ToolResultEvent, TurnEnd
 from harness.tools import (
     ApprovalMode,
     ApprovalService,

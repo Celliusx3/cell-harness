@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
-from harness.session.models import ScheduleReminderEvent
+from harness.session.domain.models import ScheduleReminderEvent
 from harness.session.service import SessionService
 from harness.tools import Tool, ToolOutcome
 from tests.unit.gateway_helpers import build, settle

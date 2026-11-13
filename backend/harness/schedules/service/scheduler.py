@@ -15,7 +15,7 @@ from harness.runs.service.run_service import RunService
 from harness.schedules.domain.models import Schedule
 from harness.schedules.domain.timing import latest_at_or_before
 from harness.schedules.service.schedule_service import Now, ScheduleNotFound, ScheduleService
-from harness.session.models import ScheduleReminder, ScheduleReminders
+from harness.session.domain.models import ScheduleReminder, ScheduleReminders
 from harness.session.repository import SessionNotFoundError
 
 logger = logging.getLogger("harness.schedules")

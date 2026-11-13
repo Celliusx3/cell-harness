@@ -13,7 +13,7 @@ from harness.images import IMAGE_MAX_BYTES
 from harness.llm import Image, ToolCall
 from harness.mcp import McpService
 from harness.runtime.service import Runtime
-from harness.session.models import ToolResultEvent
+from harness.session.domain.models import ToolResultEvent
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok

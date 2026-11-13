@@ -20,13 +20,13 @@ from harness.bots import (
 )
 from harness.runs.service.run import RunAlreadyActive
 from harness.runs.service.subscribe import subscribe
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.models import (
     ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
     TurnStart,
 )
+from harness.session.log import Session
 from harness.session.service import SessionService
 from harness.tools import Ok, ToolContext, ToolOutcome
 from tests.unit.fakes import (

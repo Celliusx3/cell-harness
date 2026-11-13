@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 from harness.llm import UserMessage
 from harness.prompts import SCHEDULE_CHANGE
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantMessageEvent,
     ScheduleChangeEvent,
     SessionEvent,

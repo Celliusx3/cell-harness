@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from harness.secrets import Destination
-from harness.session.heard import ReportState as ReportState
+from harness.session.domain.heard import ReportState as ReportState
 from harness.tools.domain.decision import ApprovalMode
 
 TicketState = Literal[

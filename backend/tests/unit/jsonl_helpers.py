@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.llm import AssistantMessage, TextChunk, UserMessage
-from harness.session.models import (
+from harness.session.domain.models import (
     AssistantChunk,
     AssistantMessageEvent,
     SessionHeader,

@@ -8,7 +8,7 @@ import pytest
 
 from harness.llm import ToolCall, ToolMessage
 from harness.runtime.events import AgentCompleted
-from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tickets.service.worker import kept_report, worker_end
 from harness.tools import Failure, Ok
 from harness.tools.domain.outcome import INVALID_ARGUMENTS

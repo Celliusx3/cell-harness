@@ -8,14 +8,14 @@ from harness.llm import Completed, TextChunk, ToolCall, ToolCallChunk, text_of
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
 from harness.runtime.hooks import HookChain, ToolHook
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
     ToolCallEvent,
     ToolResultEvent,
     TurnEnd,
 )
+from harness.session.log import Session
 from tests.unit.fakes import (
     HangingClient,
     SteppedClient,

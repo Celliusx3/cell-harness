@@ -16,7 +16,7 @@ from harness.bots import (
     BotService,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
-from harness.session.models import BotInstructionsEvent
+from harness.session.domain.models import BotInstructionsEvent
 from harness.session.service import SessionService
 from harness.tools.native.bots import BOT_CREATE
 from harness.tools.native.tickets import TICKET_ROUTE

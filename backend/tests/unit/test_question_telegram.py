@@ -7,7 +7,7 @@ import json
 from harness.bots import ASSISTANT_ID
 from harness.channels.telegram.asking import ASK_BY_LINK
 from harness.channels.telegram.channel import STALE_TAP
-from harness.session.models import ToolResultEvent, TurnEnd
+from harness.session.domain.models import ToolResultEvent, TurnEnd
 from harness.tools.native.question import ASK_USER
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle

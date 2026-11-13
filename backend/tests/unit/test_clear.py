@@ -23,9 +23,8 @@ from harness.llm import (
 from harness.runtime.compaction import CompactionRefused, check_can_compact
 from harness.runtime.compaction.history import PRUNE_KEEP
 from harness.runtime.compaction.service import NOTHING
-from harness.session.compaction import CompactionEnd
-from harness.session.log import Numbered, Session
-from harness.session.models import (
+from harness.session.domain.compaction import CompactionEnd
+from harness.session.domain.models import (
     ApprovalGrant,
     BotInstructionsEvent,
     ChatCleared,
@@ -33,6 +32,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from harness.session.log import Numbered, Session
 from harness.session.service import SessionService
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, run_service, runtime_over

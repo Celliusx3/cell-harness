@@ -14,8 +14,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.session.derive import derive_messages
-from harness.session.log import Session
-from harness.session.models import (
+from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,
     AssistantMessageEvent,
@@ -24,6 +23,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from harness.session.log import Session
 from tests.unit.helpers import new_session
 
 

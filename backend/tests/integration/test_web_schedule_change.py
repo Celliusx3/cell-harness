@@ -16,7 +16,12 @@ from harness.llm import AssistantMessage, Message, StreamEvent, ToolMessage, Use
 from harness.prompts import SCHEDULE_CHANGE
 from harness.runs.service.run_service import RunService
 from harness.schedules import Schedule, ScheduleService
-from harness.session.models import ScheduleChange, ScheduleChangeEvent, ToolCallEvent, TurnStart
+from harness.session.domain.models import (
+    ScheduleChange,
+    ScheduleChangeEvent,
+    ToolCallEvent,
+    TurnStart,
+)
 from harness.session.repository import SessionNotFoundError
 from harness.session.service import SessionService
 from harness.tools.native.schedule import schedule_edit_tool
