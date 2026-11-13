@@ -9,9 +9,9 @@ import pytest
 from fastapi import FastAPI
 
 from harness.app_events import AppEventService
-from harness.bots import BotDraft, BotService
+from harness.bots import BotDraft, BotRepository, BotService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.credentials_controller import build_router
+from harness.secrets.credentials_router import build_router
 from tests.bot_models import put_on_model
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL, no_platforms
@@ -39,7 +39,7 @@ def secrets(tmp_path: Path) -> SecretService:
 @pytest.fixture
 def bots(tmp_path: Path) -> BotService:
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         durable_service(tmp_path / "sessions"),
         assistant_instructions="Be kind.",
         app_events=AppEventService(),

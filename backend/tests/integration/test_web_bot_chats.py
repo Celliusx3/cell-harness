@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.llm import UserMessage
 from harness.session.models import UserMessageEvent
 from tests.integration.web_helpers import build
@@ -29,7 +29,7 @@ ROUTES = (
 async def chats(tmp_path):
     service, runs = build(tmp_path, ScriptedClient(completed("hello")))
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions="ASSISTANT",
         app_events=AppEventService(),

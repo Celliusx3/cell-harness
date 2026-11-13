@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotService
+from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -71,10 +71,19 @@ def build_on(tmp_path, model: LLMClient):
     )
     app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json", sessions, assistant_instructions="ASSISTANT", app_events=app_events
+        BotRepository(tmp_path / "bots.json"),
+        sessions,
+        assistant_instructions="ASSISTANT",
+        app_events=app_events,
     )
     runtime = Runtime(models=OneModel(model), images=no_images(), checkpoint=sessions.flush)
-    runs = RunService(sessions, runtime, bots, app_events=app_events)
+    runs = RunService(
+        sessions,
+        runtime,
+        bots,
+        GroupService(bots, sessions, MENTION_TURN_ORDER),
+        app_events=app_events,
+    )
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())
     channel, bot = telegram_channel(gateway)
     gateway.register(channel)

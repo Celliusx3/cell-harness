@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from harness.app_events import AppEventService
-from harness.bots import BotDraft, BotService, GroupDraft
+from harness.bots import BotDraft, BotRepository, BotService, GroupDraft
 from harness.channels.protocol import InboundMessage
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
 from tests.unit.helpers import durable_service, no_skills, run_service
@@ -18,7 +18,7 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
 ) -> None:
     service = durable_service(tmp_path / "sessions")
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),
@@ -33,7 +33,7 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
     writer = await bots.create(
         BotDraft(name="Writer", instructions="Post.", model=MODEL_CREDENTIAL)
     )
-    group = await bots.create_group(
+    group = await runs.groups.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
     await gateway.receive(InboundMessage(channel="web", chat_id=group.id, text="go"))

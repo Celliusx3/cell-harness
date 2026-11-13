@@ -8,7 +8,7 @@ import httpx
 from fastapi import FastAPI
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.link_codes_controller import build_router
+from harness.channels.link_codes_router import build_router
 from harness.channels.links import LINK_CODE_SECONDS, WRONG_GUESSES_BEFORE_SILENCE, LinkCodes
 from harness.channels.protocol import InboundMessage
 from harness.channels.repository import ChatState

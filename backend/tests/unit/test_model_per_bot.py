@@ -9,8 +9,7 @@ import pytest
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import BotDraft, BotService
-from harness.bots.model_choice import CredentialModels, ModelEndpoint
+from harness.bots import BotDraft, BotRepository, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import AssistantMessage, Failed, LLMClient, UserMessage
 from harness.llm.adapters import OpenAISettings
@@ -27,6 +26,7 @@ from harness.session.models import (
     TurnStart,
     UserMessageEvent,
 )
+from harness.web.model_choice import CredentialModels, ModelEndpoint
 from tests.bot_models import put_on_model
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import drain, durable_service, new_session, no_images
@@ -162,7 +162,7 @@ def keyring(tmp_path: Path) -> SecretService:
 def bots(tmp_path: Path) -> BotService:
     sessions = durable_service(tmp_path / "s")
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         sessions,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),

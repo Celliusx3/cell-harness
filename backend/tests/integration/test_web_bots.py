@@ -6,7 +6,14 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
+from harness.bots import (
+    ASSISTANT_ID,
+    BUILDER_ID,
+    MENTION_TURN_ORDER,
+    BotRepository,
+    BotService,
+    GroupService,
+)
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.runs.service import RunService
 from tests.integration.web_helpers import settle
@@ -29,10 +36,19 @@ async def bots(tmp_path):
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     store = BotService(
-        tmp_path / "bots.json", service, assistant_instructions=ASSISTANT, app_events=app_events
+        BotRepository(tmp_path / "bots.json"),
+        service,
+        assistant_instructions=ASSISTANT,
+        app_events=app_events,
     )
     runtime = runtime_over(model, guidance=GUIDE, checkpoint=service.flush)
-    runs = RunService(service, runtime, store, app_events=app_events)
+    runs = RunService(
+        service,
+        runtime,
+        store,
+        GroupService(store, service, MENTION_TURN_ORDER),
+        app_events=app_events,
+    )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), bots=store, secrets=a_model_saved_in(tmp_path)
     )

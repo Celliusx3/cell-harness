@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import BotService
+from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import StreamEvent
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
@@ -62,7 +62,7 @@ def ticketing_app(
     service = durable_service(tmp_path / "sessions")
     app_events = AppEventService()
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions=ASSISTANT_START,
         app_events=app_events,
@@ -79,7 +79,13 @@ def ticketing_app(
         guidance="GUIDE",
         checkpoint=service.flush,
     )
-    runs = RunService(service, runtime, bots, app_events=app_events)
+    runs = RunService(
+        service,
+        runtime,
+        bots,
+        GroupService(bots, service, MENTION_TURN_ORDER),
+        app_events=app_events,
+    )
     worker_logs = SessionService(JsonlSessionRepository(tmp_path / "workers"))
     tickets = TicketService(
         TicketRepository(tmp_path / "tickets.json"),

@@ -12,9 +12,9 @@ from fastapi import FastAPI
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotDraft, BotService
+from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.channels.gateway import ChannelGateway
-from harness.channels.link_codes_controller import build_router
+from harness.channels.link_codes_router import build_router
 from harness.channels.links import LINK_CODE_SECONDS, ChatLinks, LinkCodes
 from harness.channels.protocol import InboundMessage
 from harness.channels.repositories.jsonl import JsonlChatRepository
@@ -112,7 +112,7 @@ def test_a_chat_that_guesses_wrong_five_times_is_ignored() -> None:
 async def world(tmp_path: Path):
     sessions = durable_service(tmp_path / "sessions")
     bots = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         sessions,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),

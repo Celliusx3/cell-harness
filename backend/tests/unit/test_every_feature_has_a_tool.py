@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import NamedTuple
 
+from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.session.repositories.jsonl import JsonlSessionRepository
@@ -176,7 +177,8 @@ def test_every_config_section_names_its_tool_or_a_reason() -> None:
 
 
 def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> None:
-    bots = no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
+    bot_chats = SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))
+    bots = no_bots(bot_chats)
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
@@ -191,7 +193,11 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
-    attach_schedules(runtime.tools.tool_service, bots, schedules_in(tmp_path))
+    attach_schedules(
+        runtime.tools.tool_service,
+        GroupService(bots, bot_chats, MENTION_TURN_ORDER),
+        schedules_in(tmp_path),
+    )
 
     offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
     named = {

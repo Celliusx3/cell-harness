@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID
+from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.llm import AssistantMessage, Message, StreamEvent, ToolMessage, UserMessage
 from harness.prompts import SCHEDULE_CHANGE
 from harness.runs.service import RunService
@@ -60,7 +60,7 @@ async def page_of(tmp_path: Path) -> AsyncIterator[Callable[..., Awaitable[Page]
         schedules = schedules_in(tmp_path, Clock(START))
         made = schedules.create(bot_id, TITLE, "Check it.", DAILY)
         model = SteppedClient(*scripts(made.id))
-        edit = schedule_edit_tool(bots, schedules)
+        edit = schedule_edit_tool(GroupService(bots, sessions, MENTION_TURN_ORDER), schedules)
         runs = run_service(sessions, model, gated_tool(release), edit, bots=bots)
         app = web_app(
             tmp_path,

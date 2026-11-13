@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
+from harness.bots import ASSISTANT_ID, BUILDER_ID, MENTION_TURN_ORDER, GroupService
 from harness.schedules import ScheduleService
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.schedule import schedule_list_tool, schedule_view_tool
@@ -22,10 +22,11 @@ DAILY = "DTSTART:20261112T060000Z\nRRULE:FREQ=DAILY"
 
 
 @pytest.fixture
-async def bots(tmp_path: Path) -> BotService:
-    found = no_bots(durable_service(tmp_path / "sessions"))
+async def groups(tmp_path: Path) -> GroupService:
+    sessions = durable_service(tmp_path / "sessions")
+    found = no_bots(sessions)
     await found.active_bots()
-    return found
+    return GroupService(found, sessions, MENTION_TURN_ORDER)
 
 
 @pytest.fixture
@@ -48,12 +49,12 @@ def _titles(listed: dict) -> list[str]:
 
 
 async def test_a_bot_lists_only_its_own_schedules(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, schedules: ScheduleService
 ) -> None:
     mine = schedules.create(ASSISTANT_ID, "Mine", "Mine.", HOURLY)
     schedules.create(BUILDER_ID, "Theirs", "Theirs.", HOURLY)
 
-    listed = _listed(await ask(schedule_list_tool(bots, schedules)))
+    listed = _listed(await ask(schedule_list_tool(groups, schedules)))
 
     assert [item["id"] for item in listed["items"]] == [mine.id]
     assert listed["items"][0]["last_occurrence_at"] is None
@@ -61,7 +62,7 @@ async def test_a_bot_lists_only_its_own_schedules(
 
 
 async def test_active_come_first_by_next_time_then_paused_and_ended_newest_first(
-    bots: BotService, schedules: ScheduleService, clock: Clock
+    groups: GroupService, schedules: ScheduleService, clock: Clock
 ) -> None:
     paused = schedules.create(ASSISTANT_ID, "Paused", "P.", HOURLY)
     schedules.pause(paused.id)
@@ -73,31 +74,31 @@ async def test_active_come_first_by_next_time_then_paused_and_ended_newest_first
     ended = schedules.create(ASSISTANT_ID, "Ended", "E.", HOURLY)
     schedules.end(ended.id)
 
-    listed = _listed(await ask(schedule_list_tool(bots, schedules)))
+    listed = _listed(await ask(schedule_list_tool(groups, schedules)))
 
     assert _titles(listed) == ["Hourly", "Daily", "Ended", "Paused"]
 
 
 async def test_the_active_filter_picks_active_or_the_rest(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, schedules: ScheduleService
 ) -> None:
     schedules.create(ASSISTANT_ID, "Running", "R.", HOURLY)
     paused = schedules.create(ASSISTANT_ID, "Paused", "P.", HOURLY)
     schedules.pause(paused.id)
-    tool = schedule_list_tool(bots, schedules)
+    tool = schedule_list_tool(groups, schedules)
 
     assert _titles(_listed(await ask(tool, active=True))) == ["Running"]
     assert _titles(_listed(await ask(tool, active=False))) == ["Paused"]
 
 
 async def test_limit_and_offset_page_through_with_total_and_shown(
-    bots: BotService, schedules: ScheduleService, clock: Clock
+    groups: GroupService, schedules: ScheduleService, clock: Clock
 ) -> None:
     for n in range(5):
         schedules.create(ASSISTANT_ID, f"Task {n}", "Do it.", HOURLY)
         clock.advance(timedelta(seconds=1))
 
-    listed = _listed(await ask(schedule_list_tool(bots, schedules), limit=2, offset=4))
+    listed = _listed(await ask(schedule_list_tool(groups, schedules), limit=2, offset=4))
 
     assert (listed["shown"], listed["total"], listed["limit"], listed["offset"]) == (1, 5, 2, 4)
     assert len(listed["items"]) == 1
@@ -105,9 +106,9 @@ async def test_limit_and_offset_page_through_with_total_and_shown(
 
 @pytest.mark.parametrize("arguments", [{"limit": 0}, {"limit": 51}, {"offset": -1}])
 async def test_a_page_out_of_bounds_is_a_typed_failure(
-    bots: BotService, schedules: ScheduleService, arguments: dict
+    groups: GroupService, schedules: ScheduleService, arguments: dict
 ) -> None:
-    outcome = await ask(schedule_list_tool(bots, schedules), **arguments)
+    outcome = await ask(schedule_list_tool(groups, schedules), **arguments)
 
     assert isinstance(outcome, Failure)
     assert outcome.code == INVALID_ARGUMENTS
@@ -121,7 +122,12 @@ async def test_a_view_after_a_delivery_shows_the_last_occurrence(tmp_path: Path)
     clock.advance(timedelta(hours=1, seconds=30))
     await tick_and_settle(scheduler, runs, gateway)
 
-    outcome = await ask(schedule_view_tool(no_bots(sessions), schedules), id=made.id)
+    outcome = await ask(
+        schedule_view_tool(
+            GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER), schedules
+        ),
+        id=made.id,
+    )
 
     shown = _listed(outcome)
     assert shown["id"] == made.id
@@ -130,10 +136,10 @@ async def test_a_view_after_a_delivery_shows_the_last_occurrence(tmp_path: Path)
 
 
 async def test_another_bot_s_schedule_is_not_found(
-    bots: BotService, schedules: ScheduleService
+    groups: GroupService, schedules: ScheduleService
 ) -> None:
     theirs = schedules.create(BUILDER_ID, "Theirs", "Theirs.", HOURLY)
 
-    outcome = await ask(schedule_view_tool(bots, schedules), id=theirs.id)
+    outcome = await ask(schedule_view_tool(groups, schedules), id=theirs.id)
 
     assert outcome == Failure(INVALID_ARGUMENTS, f"no schedule with id {theirs.id!r}")

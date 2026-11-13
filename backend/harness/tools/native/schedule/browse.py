@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from harness.bots import BotService
+from harness.bots import GroupService
 from harness.schedules import ScheduleNotFound, ScheduleService, ordered
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import Ok, ToolOutcome
@@ -22,11 +22,11 @@ _LIST_DESCRIPTION = (
 _VIEW_DESCRIPTION = "View one of your scheduled tasks by id."
 
 
-def schedule_list_tool(bots: BotService, schedules: ScheduleService) -> Tool[ScheduleListArgs]:
+def schedule_list_tool(groups: GroupService, schedules: ScheduleService) -> Tool[ScheduleListArgs]:
     """The tool that pages through the calling bot's schedules, from its own chat only."""
 
     async def execute(args: ScheduleListArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(bots, context.origin.conversation_id):
+        if in_a_group(groups, context.origin.conversation_id):
             return IN_A_GROUP
         listed = ordered(schedules.of_bot(context.origin.bot_id), args.active)
         page = listed[args.offset : args.offset + args.limit]
@@ -47,11 +47,11 @@ def schedule_list_tool(bots: BotService, schedules: ScheduleService) -> Tool[Sch
     )
 
 
-def schedule_view_tool(bots: BotService, schedules: ScheduleService) -> Tool[ScheduleViewArgs]:
+def schedule_view_tool(groups: GroupService, schedules: ScheduleService) -> Tool[ScheduleViewArgs]:
     """The tool that shows one of the calling bot's schedules, from its own chat only."""
 
     async def execute(args: ScheduleViewArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(bots, context.origin.conversation_id):
+        if in_a_group(groups, context.origin.conversation_id):
             return IN_A_GROUP
         try:
             found = own(schedules, context.origin.bot_id, args.id)

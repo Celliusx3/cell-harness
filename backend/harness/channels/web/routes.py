@@ -81,7 +81,7 @@ def chat_router(web: WebChannel, *, tag: str) -> APIRouter:
     """A router under `/api/conversations` whose every route 404s an id no bot or group has."""
 
     async def answering(conversation_id: str) -> ChatMembers:
-        return web.bots.members_of_chat(conversation_id)
+        return web.runs.groups.members_of_chat(conversation_id)
 
     return APIRouter(prefix="/api/conversations", tags=[tag], dependencies=[Depends(answering)])
 

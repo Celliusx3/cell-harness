@@ -9,7 +9,7 @@ import pytest
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import BotService
+from harness.bots import BotRepository, BotService
 from harness.secrets import SecretService
 from harness.secrets.models.details import ModelDetails
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
@@ -24,7 +24,7 @@ CONFIG = Path(__file__).resolve().parents[2] / "config.json"
 @pytest.fixture
 def store(tmp_path: Path) -> BotService:
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         durable_service(tmp_path / "sessions"),
         assistant_instructions="A.",
         app_events=AppEventService(),

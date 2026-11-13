@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import BotDraft, BotService
+from harness.bots import BotDraft, BotRepository, BotService
 from harness.llm import AssistantMessage, UserMessage
 from harness.runs.bot_messages import MAX_HOPS, final_reply, hop_of_last_turn
 from harness.session.derive import derive_messages
@@ -128,7 +128,7 @@ def test_an_answer_reads_as_one_to_pass_on_and_not_send_back() -> None:
 
 async def test_the_bot_argument_lists_the_active_bots_by_name(tmp_path: Path) -> None:
     store = BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         durable_service(tmp_path / "sessions"),
         assistant_instructions="A.",
         app_events=AppEventService(),

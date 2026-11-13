@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from harness.bots import BotService
+from harness.bots import GroupService
 from harness.schedules import InvalidSchedule, ScheduleService
 from harness.tools.models.context import ToolContext
 from harness.tools.models.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
@@ -23,11 +23,13 @@ _DESCRIPTION = (
 )
 
 
-def schedule_create_tool(bots: BotService, schedules: ScheduleService) -> Tool[ScheduleCreateArgs]:
+def schedule_create_tool(
+    groups: GroupService, schedules: ScheduleService
+) -> Tool[ScheduleCreateArgs]:
     """The tool that makes a schedule for the calling bot, from its own chat only."""
 
     async def execute(args: ScheduleCreateArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(bots, context.origin.conversation_id):
+        if in_a_group(groups, context.origin.conversation_id):
             return IN_A_GROUP
         try:
             made = schedules.create(context.origin.bot_id, args.title, args.prompt, args.rrule)

@@ -8,7 +8,17 @@ import pytest
 from pydantic import ValidationError
 
 from harness.app_events import AppEventService
-from harness.bots import BotDraft, BotEdit, BotNotFound, BotService, ChatMembers, GroupDraft
+from harness.bots import (
+    MENTION_TURN_ORDER,
+    BotDraft,
+    BotEdit,
+    BotNotFound,
+    BotRepository,
+    BotService,
+    ChatMembers,
+    GroupDraft,
+    GroupService,
+)
 from harness.llm import ToolCall
 from harness.session.models import (
     GroupMembersEvent,
@@ -30,11 +40,16 @@ def service(tmp_path: Path) -> SessionService:
 @pytest.fixture
 def bots(tmp_path: Path, service: SessionService) -> BotService:
     return BotService(
-        tmp_path / "bots.json",
+        BotRepository(tmp_path / "bots.json"),
         service,
         assistant_instructions="Be kind.",
         app_events=AppEventService(),
     )
+
+
+@pytest.fixture
+def groups(bots: BotService, service: SessionService) -> GroupService:
+    return GroupService(bots, service, MENTION_TURN_ORDER)
 
 
 @pytest.mark.parametrize(
@@ -52,7 +67,7 @@ def test_a_group_is_named_and_has_two_to_six_different_bots(draft: dict) -> None
 
 
 async def test_a_group_s_chat_holds_its_members_from_the_start(
-    bots: BotService, service: SessionService
+    groups: GroupService, bots: BotService, service: SessionService
 ) -> None:
     researcher = await bots.create(
         BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
@@ -61,11 +76,11 @@ async def test_a_group_s_chat_holds_its_members_from_the_start(
         BotDraft(name="Writer", instructions="Write.", model=MODEL_CREDENTIAL)
     )
 
-    group = await bots.create_group(
+    group = await groups.create_group(
         GroupDraft(name=" Launch ", member_ids=(writer.id, researcher.id))
     )
 
-    assert bots.groups() == (group,)
+    assert groups.groups() == (group,)
     assert group.name == "Launch"
     chat = await service.read(group.id)
     assert list(chat.events()) == [
@@ -73,7 +88,7 @@ async def test_a_group_s_chat_holds_its_members_from_the_start(
     ]
 
 
-async def test_a_group_takes_only_active_bots(bots: BotService) -> None:
+async def test_a_group_takes_only_active_bots(groups: GroupService, bots: BotService) -> None:
     researcher = await bots.create(
         BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
     )
@@ -83,11 +98,13 @@ async def test_a_group_takes_only_active_bots(bots: BotService) -> None:
     bots.archive(writer.id)
 
     with pytest.raises(BotNotFound):
-        await bots.create_group(GroupDraft(name="Launch", member_ids=(researcher.id, writer.id)))
-    assert bots.groups() == ()
+        await groups.create_group(GroupDraft(name="Launch", member_ids=(researcher.id, writer.id)))
+    assert groups.groups() == ()
 
 
-async def test_a_group_s_chat_is_answered_by_its_active_members_in_order(bots: BotService) -> None:
+async def test_a_group_s_chat_is_answered_by_its_active_members_in_order(
+    groups: GroupService, bots: BotService
+) -> None:
     researcher = await bots.create(
         BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
     )
@@ -97,24 +114,24 @@ async def test_a_group_s_chat_is_answered_by_its_active_members_in_order(bots: B
     editor = await bots.create(
         BotDraft(name="Editor", instructions="Edit.", model=MODEL_CREDENTIAL)
     )
-    group = await bots.create_group(
+    group = await groups.create_group(
         GroupDraft(name="Launch", member_ids=(editor.id, researcher.id, writer.id))
     )
 
     bots.archive(researcher.id)
     await bots.delete(writer.id)
 
-    assert bots.members_of_chat(group.id) == ChatMembers(group=group, bots=(editor,))
+    assert groups.members_of_chat(group.id) == ChatMembers(group=group, bots=(editor,))
 
 
-async def test_changing_a_bot_keeps_every_group(bots: BotService) -> None:
+async def test_changing_a_bot_keeps_every_group(groups: GroupService, bots: BotService) -> None:
     researcher = await bots.create(
         BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
     )
     writer = await bots.create(
         BotDraft(name="Writer", instructions="Write.", model=MODEL_CREDENTIAL)
     )
-    group = await bots.create_group(
+    group = await groups.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
 
@@ -124,11 +141,11 @@ async def test_changing_a_bot_keeps_every_group(bots: BotService) -> None:
     )
     await bots.create(BotDraft(name="Editor", instructions="Edit.", model=MODEL_CREDENTIAL))
 
-    assert bots.groups() == (group,)
+    assert groups.groups() == (group,)
 
 
 async def test_the_bot_that_asked_a_call_is_the_one_that_answers_it(
-    bots: BotService, service: SessionService
+    groups: GroupService, bots: BotService, service: SessionService
 ) -> None:
     researcher = await bots.create(
         BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
@@ -136,18 +153,18 @@ async def test_the_bot_that_asked_a_call_is_the_one_that_answers_it(
     writer = await bots.create(
         BotDraft(name="Writer", instructions="Write.", model=MODEL_CREDENTIAL)
     )
-    group = await bots.create_group(
+    group = await groups.create_group(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
     chat = await service.read(group.id)
     chat.append(TurnStart(turn=0, bot_id=writer.id))
     chat.append(ToolCallEvent(turn=0, step=0, call=ASK))
 
-    assert bots.asker(chat, "c1") == writer
+    assert groups.asker(chat, "c1") == writer
 
 
 async def test_a_call_from_before_groups_is_answered_by_the_chat_s_only_bot(
-    bots: BotService, service: SessionService
+    groups: GroupService, bots: BotService, service: SessionService
 ) -> None:
     researcher = await bots.create(
         BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
@@ -156,4 +173,26 @@ async def test_a_call_from_before_groups_is_answered_by_the_chat_s_only_bot(
     chat.append(TurnStart(turn=0))
     chat.append(ToolCallEvent(turn=0, step=0, call=ASK))
 
-    assert bots.asker(chat, "c1") == researcher
+    assert groups.asker(chat, "c1") == researcher
+
+
+async def test_a_chat_belongs_to_the_bot_whose_chat_it_is(
+    groups: GroupService, bots: BotService
+) -> None:
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
+
+    assert groups.members_of_chat("c0") == ChatMembers(group=None, bots=(made,))
+    with pytest.raises(BotNotFound):
+        groups.members_of_chat("c9")
+
+
+async def test_a_bot_answers_in_the_chat_that_belongs_to_it(
+    groups: GroupService, bots: BotService
+) -> None:
+    made = await bots.create(
+        BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)
+    )
+
+    assert groups.members_of_chat(bots.chat_of(made.id)).bots == (made,)
