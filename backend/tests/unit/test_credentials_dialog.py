@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.credentials_router import build_router
+from harness.secrets.router.credential_router import build_router
 from tests.bot_models import put_on_model
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL, no_platforms

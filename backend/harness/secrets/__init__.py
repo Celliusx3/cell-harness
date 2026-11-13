@@ -13,7 +13,7 @@ from harness.secrets.domain.secret import (
     UnsealedSecret,
 )
 from harness.secrets.repository.disk_secret_repository import DiskSecretRepository
-from harness.secrets.service import SecretService
+from harness.secrets.service.secret_service import SecretService
 
 __all__ = [
     "SECRET_VALUE_RULE",

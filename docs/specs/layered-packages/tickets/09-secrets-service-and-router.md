@@ -1,6 +1,6 @@
 # 09. Layer secrets: service and router
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

@@ -13,8 +13,8 @@ from harness.channels.web.routes import chat_router
 from harness.channels.web.secret_card_schemas import Entered, ModelEntry, SecretEntry
 from harness.runs.run import RunAlreadyActive
 from harness.secrets import SECRET_VALUE_RULE, SecretService
-from harness.secrets.credential_effects import CredentialEffects
 from harness.secrets.domain.details import CustomDetails
+from harness.secrets.service.credential_effects import CredentialEffects
 from harness.session.log import Session
 from harness.tools import Ok
 from harness.tools.client import ClientToolService

@@ -10,14 +10,14 @@ from fastapi import APIRouter, Request, Response, status
 from harness.bots import Bot, BotNotFound, BotService
 from harness.channels.platforms import PlatformChannels
 from harness.secrets import SavedCredential, SecretNotFound, SecretRefused, SecretService
-from harness.secrets.credential_effects import CredentialEffects
-from harness.secrets.credentials_schemas import (
+from harness.secrets.router.credential_schemas import (
     BotRef,
     CredentialChange,
     CredentialEntry,
     CredentialList,
     NewCredential,
 )
+from harness.secrets.service.credential_effects import CredentialEffects
 from harness.web.http.this_mac import (
     cors_headers,
     parsed_body,

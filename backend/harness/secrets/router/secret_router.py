@@ -6,7 +6,7 @@ from fastapi import APIRouter
 
 from harness.bots import Bot, BotService
 from harness.secrets import SecretService, SecretSummary
-from harness.secrets.schemas import AllowedBot, SavedKey
+from harness.secrets.router.schemas import AllowedBot, SavedKey
 
 
 def build_router(secrets: SecretService, bots: BotService) -> APIRouter:

@@ -44,9 +44,9 @@ from harness.runs.service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.schedules.router.schedule_router import build_router as build_schedules_router
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.credential_effects import CredentialEffects
-from harness.secrets.credentials_router import build_router as build_credentials_router
-from harness.secrets.router import build_router as build_secrets_router
+from harness.secrets.router.credential_router import build_router as build_credentials_router
+from harness.secrets.router.secret_router import build_router as build_secrets_router
+from harness.secrets.service.credential_effects import CredentialEffects
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService

@@ -24,7 +24,7 @@ from harness.secrets.domain.secret import (
     UnsealedSecret,
 )
 from harness.secrets.repository.secret_repository import SecretRepository
-from harness.secrets.sealing import sealed, unsealed
+from harness.secrets.service.sealing import sealed, unsealed
 
 RECORD_ID_BYTES = 12
 MAX_SECRETS = 100
