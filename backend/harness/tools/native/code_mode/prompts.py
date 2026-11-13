@@ -24,8 +24,6 @@ EXECUTE_TYPESCRIPT_DESCRIPTION = (
     "program saves round trips: many calls at once, a loop over many items, or "
     "a large result to filter before you see it. A single call is a direct tool "
     "call, not a program.\n"
-    "- It runs TypeScript only. Python and shell commands run through a tool for running "
-    "commands, when you are offered one.\n"
     "- When you do write one, write ONE script that does the whole batch. "
     "Several calls in one script cost one round-trip; several scripts cost one "
     "each.\n"
