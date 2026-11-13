@@ -10,7 +10,7 @@ from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID
 from harness.secrets import SecretService
-from harness.secrets.models.details import ChatPlatform, ModelDetails
+from harness.secrets.domain.details import ChatPlatform, ModelDetails
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool

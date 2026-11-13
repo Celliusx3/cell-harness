@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from harness.secrets.models.destination import Destination
+from harness.secrets.domain.destination import Destination
 
 THIS_COMPUTER = frozenset({"localhost", "127.0.0.1", "::1"})
 

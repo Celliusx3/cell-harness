@@ -13,8 +13,8 @@ from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService
 from harness.secrets import Destination, DiskSecretRepository, SecretService
 from harness.secrets.credentials_router import build_router
-from harness.secrets.models.details import ModelDetails, TelegramDetails
-from harness.secrets.models.sealed import SealedSecret
+from harness.secrets.domain.details import ModelDetails, TelegramDetails
+from harness.secrets.domain.sealed import SealedSecret
 from harness.secrets.sealing import sealed
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL, no_platforms

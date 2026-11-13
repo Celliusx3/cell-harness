@@ -7,7 +7,7 @@ from typing import NamedTuple
 from pydantic import BaseModel, ConfigDict, SecretStr
 
 from harness.secrets import SecretValue
-from harness.secrets.models.details import ModelDetails
+from harness.secrets.domain.details import ModelDetails
 from harness.tools.native.secrets.models import AskedDetails
 
 

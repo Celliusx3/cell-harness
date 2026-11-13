@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.secrets.masking import last_four
+from harness.secrets.domain.masking import last_four
 
 
 def test_a_key_of_eight_or_more_shows_its_last_four_characters() -> None:

@@ -12,7 +12,7 @@ from harness.channels.chats import bot_written_to
 from harness.channels.gateway import ChannelGateway
 from harness.channels.protocol import InboundMessage
 from harness.channels.repository import ChatRepository, ChatState
-from harness.secrets.models.details import ChatPlatform
+from harness.secrets.domain.details import ChatPlatform
 
 logger = logging.getLogger("harness.channels")
 

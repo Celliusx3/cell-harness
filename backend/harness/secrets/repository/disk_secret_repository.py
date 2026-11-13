@@ -7,7 +7,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from harness.secrets.models.sealed import SealedSecret, SecretsFile
+from harness.secrets.domain.sealed import SealedSecret, SecretsFile
 
 FILE_MODE = 0o600
 

@@ -12,7 +12,7 @@ from pydantic import SecretStr
 
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
 from harness.secrets import Destination, SecretService
-from harness.secrets.models.details import (
+from harness.secrets.domain.details import (
     CredentialDetails,
     DiscordDetails,
     ModelDetails,

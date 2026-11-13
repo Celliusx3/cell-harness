@@ -1,6 +1,6 @@
 # 08. Layer secrets: domain and repository
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

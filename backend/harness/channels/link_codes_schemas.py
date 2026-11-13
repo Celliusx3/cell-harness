@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.secrets.models.details import ChatPlatform
+from harness.secrets.domain.details import ChatPlatform
 
 
 class LinkCodeRequest(BaseModel):

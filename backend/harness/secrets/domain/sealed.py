@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
-from harness.secrets.models.details import CredentialDetails
-from harness.secrets.models.secret import SecretName
+from harness.secrets.domain.details import CredentialDetails
+from harness.secrets.domain.secret import SecretName
 
 
 class SealedSecret(BaseModel):

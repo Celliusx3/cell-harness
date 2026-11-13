@@ -10,7 +10,7 @@ import pytest
 
 from harness.channels.web.secret_card_schemas import SecretEntry
 from harness.secrets import Destination, redacted
-from harness.secrets.models.details import CustomDetails, DiscordDetails, TelegramDetails
+from harness.secrets.domain.details import CustomDetails, DiscordDetails, TelegramDetails
 from harness.tools.native.secrets import SecretAsk
 
 MARK = "Q7xZ"

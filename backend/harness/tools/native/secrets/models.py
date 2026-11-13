@@ -7,8 +7,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, model_validator
 
 from harness.secrets import Destination, SecretName
-from harness.secrets.models.destination import SecretAuth
-from harness.secrets.models.details import (
+from harness.secrets.domain.destination import SecretAuth
+from harness.secrets.domain.details import (
     CustomDetails,
     DiscordDetails,
     ModelDetails,

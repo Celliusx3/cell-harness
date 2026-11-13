@@ -11,7 +11,7 @@ from pydantic import SecretStr
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
 from harness.secrets import SecretService
-from harness.secrets.models.details import ModelDetails
+from harness.secrets.domain.details import ModelDetails
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS

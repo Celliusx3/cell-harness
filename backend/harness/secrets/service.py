@@ -6,24 +6,24 @@ import os
 
 from pydantic import SecretStr
 
-from harness.secrets.masking import last_four
-from harness.secrets.models.destination import Destination
-from harness.secrets.models.details import (
+from harness.secrets.domain.destination import Destination
+from harness.secrets.domain.details import (
     ChatPlatform,
     ChatPlatformDetails,
     CredentialDetails,
     CustomDetails,
     ModelDetails,
 )
-from harness.secrets.models.errors import SecretNotFound, SecretRefused
-from harness.secrets.models.sealed import SealedSecret
-from harness.secrets.models.secret import (
+from harness.secrets.domain.errors import SecretNotFound, SecretRefused
+from harness.secrets.domain.masking import last_four
+from harness.secrets.domain.sealed import SealedSecret
+from harness.secrets.domain.secret import (
     SavedCredential,
     SecretSummary,
     UnsealedModelCredential,
     UnsealedSecret,
 )
-from harness.secrets.repository import SecretRepository
+from harness.secrets.repository.secret_repository import SecretRepository
 from harness.secrets.sealing import sealed, unsealed
 
 RECORD_ID_BYTES = 12

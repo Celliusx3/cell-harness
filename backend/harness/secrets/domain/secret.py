@@ -7,8 +7,8 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, SecretStr
 
-from harness.secrets.models.destination import Destination
-from harness.secrets.models.details import CredentialDetails, ModelDetails
+from harness.secrets.domain.destination import Destination
+from harness.secrets.domain.details import CredentialDetails, ModelDetails
 
 SecretName = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]{0,39}$")]
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from harness.bots import BotService
 from harness.channels.platforms import PlatformChannels
-from harness.secrets.models.details import ChatPlatformDetails, CredentialDetails, CustomDetails
+from harness.secrets.domain.details import ChatPlatformDetails, CredentialDetails, CustomDetails
 
 
 @dataclass(frozen=True)

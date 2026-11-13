@@ -16,7 +16,7 @@ from harness.llm.adapters import OpenAISettings
 from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
 from harness.runtime.service import Runtime
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.models.details import ModelDetails
+from harness.secrets.domain.details import ModelDetails
 from harness.session.compaction import CompactionEnd
 from harness.session.log import Session
 from harness.session.models import (

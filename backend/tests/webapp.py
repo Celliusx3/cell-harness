@@ -36,7 +36,7 @@ from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.models.details import ChatPlatform, ModelDetails
+from harness.secrets.domain.details import ChatPlatform, ModelDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.skills import SkillService

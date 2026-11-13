@@ -11,7 +11,7 @@ from harness.bots import BotNotFound, BotService
 from harness.channels.link_codes_schemas import IssuedLinkCode, LinkCodeRequest
 from harness.channels.links import LINK_CODE_SECONDS, LinkCodes
 from harness.secrets import SecretService
-from harness.secrets.models.details import ChatPlatform
+from harness.secrets.domain.details import ChatPlatform
 
 logger = logging.getLogger(__name__)
 

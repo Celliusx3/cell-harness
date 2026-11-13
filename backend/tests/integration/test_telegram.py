@@ -19,7 +19,7 @@ from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService
-from harness.secrets.models.details import TelegramDetails
+from harness.secrets.domain.details import TelegramDetails
 from harness.session.repositories.jsonl import JsonlSessionRepository
 from harness.session.service import SessionService
 from harness.web.server import build_channels, create_app

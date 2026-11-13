@@ -5,7 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from harness.secrets import SavedCredential, SecretName, SecretValue
-from harness.secrets.models.details import ChatPlatformDetails, CredentialDetails, ModelDetails
+from harness.secrets.domain.details import ChatPlatformDetails, CredentialDetails, ModelDetails
 
 PLATFORM_SERVES_NO_BOTS = "a Telegram or Discord credential serves no bots; tick none"
 MODEL_PICKED_IN_EDIT_BOT = "a bot's model is picked in Edit bot; tick none"
