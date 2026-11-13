@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from harness.schedules.models import SchedulesFile
+from harness.schedules.domain.models import SchedulesFile
 
 
 class ScheduleRepository:

@@ -42,7 +42,7 @@ from harness.relay.router.relay_router import build_router as build_relay_router
 from harness.runs.bot_messages import BotMessages
 from harness.runs.service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
-from harness.schedules.router import build_router as build_schedules_router
+from harness.schedules.router.schedule_router import build_router as build_schedules_router
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.credential_effects import CredentialEffects
 from harness.secrets.credentials_router import build_router as build_credentials_router

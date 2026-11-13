@@ -7,9 +7,9 @@ import uuid
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
-from harness.schedules.models import Delivery, Schedule, SchedulesFile
-from harness.schedules.repository import ScheduleRepository
-from harness.schedules.timing import InvalidRrule, next_after
+from harness.schedules.domain.models import Delivery, Schedule, SchedulesFile
+from harness.schedules.domain.timing import InvalidRrule, next_after
+from harness.schedules.repository.schedule_repository import ScheduleRepository
 
 MAX_TITLE = 120
 HISTORY_RECORDS = 200

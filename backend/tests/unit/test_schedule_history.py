@@ -6,7 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
-from harness.schedules.service import HISTORY_RECORDS
+from harness.schedules.service.schedule_service import HISTORY_RECORDS
 from tests.unit.schedule_helpers import START, Clock, schedules_in
 
 EVERY_MINUTE = "DTSTART:20261112T080000Z\nRRULE:FREQ=MINUTELY"
