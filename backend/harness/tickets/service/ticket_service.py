@@ -39,7 +39,7 @@ from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.service.places import Places
 from harness.tickets.service.worker import WorkerEnd, kept_report, worker_end, worker_session_id
 from harness.tools import Approval, Failure, Ok
-from harness.tools.models.decision import ApprovalMode
+from harness.tools.domain.decision import ApprovalMode
 
 logger = logging.getLogger("harness.tickets")
 

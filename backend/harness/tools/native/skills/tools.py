@@ -9,15 +9,15 @@ from harness.skills.service.skill_service import (
     SkillService,
     SkillShadowed,
 )
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import (
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import (
     INVALID_ARGUMENTS,
     REFUSED,
     Failure,
     Ok,
     ToolOutcome,
 )
-from harness.tools.models.tool import Tool
+from harness.tools.domain.tool import Tool
 from harness.tools.native.skills.models import DeleteArgs, SaveArgs, WriteFileArgs
 
 SKILL_SAVE = "skill_save"

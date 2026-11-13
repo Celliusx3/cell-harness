@@ -1,9 +1,9 @@
 """Tools, and the machinery that offers and runs them."""
 
 from harness.tools.approvals import ApprovalService, NotApproved
-from harness.tools.models.context import CallOrigin, ToolContext
-from harness.tools.models.decision import Approval, ApprovalMode
-from harness.tools.models.outcome import (
+from harness.tools.domain.context import CallOrigin, ToolContext
+from harness.tools.domain.decision import Approval, ApprovalMode
+from harness.tools.domain.outcome import (
     BLOCKED,
     EXECUTION_ERROR,
     INVALID_ARGUMENTS,
@@ -16,7 +16,7 @@ from harness.tools.models.outcome import (
     ToolOutcome,
     ToolUi,
 )
-from harness.tools.models.tool import NAMESPACE_SEPARATOR, Tool
+from harness.tools.domain.tool import NAMESPACE_SEPARATOR, Tool
 from harness.tools.service import ToolService
 from harness.tools.toolset import Toolset
 

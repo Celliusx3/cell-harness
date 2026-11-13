@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from harness.secrets import SecretValue
 from harness.session.models import SessionEvent
 from harness.tickets.domain.models import TicketState
-from harness.tools.models.decision import Approval, Denial
+from harness.tools.domain.decision import Approval, Denial
 
 
 class TicketRow(BaseModel):

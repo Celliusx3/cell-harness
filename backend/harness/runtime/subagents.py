@@ -10,7 +10,7 @@ from harness.runtime.run_to_end import HelperTurn, run_to_end
 from harness.runtime.service import Runtime
 from harness.session.models import ApprovalModeChanged
 from harness.session.service import SessionService
-from harness.tools.models.decision import ApprovalMode
+from harness.tools.domain.decision import ApprovalMode
 from harness.tools.native.subagent import (
     SubagentOutcome,
     SubagentReply,

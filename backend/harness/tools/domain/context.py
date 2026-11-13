@@ -6,7 +6,7 @@ from collections.abc import Awaitable
 from dataclasses import dataclass
 from typing import Protocol
 
-from harness.tools.models.decision import ApprovalMode
+from harness.tools.domain.decision import ApprovalMode
 
 
 class ToolProgressReporter(Protocol):

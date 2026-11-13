@@ -6,10 +6,10 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from harness.llm import ToolCall, ToolSpec
-from harness.tools.models.context import CallOrigin, ToolProgressReporter
-from harness.tools.models.decision import ApprovalMode
-from harness.tools.models.outcome import REFUSED, Failure, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import CallOrigin, ToolProgressReporter
+from harness.tools.domain.decision import ApprovalMode
+from harness.tools.domain.outcome import REFUSED, Failure, ToolOutcome
+from harness.tools.domain.tool import Tool
 from harness.tools.service import ToolService
 
 MAX_TOOLS_SELECTED = 8

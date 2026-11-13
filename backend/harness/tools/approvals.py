@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.tools.models.decision import ApprovalMode
+from harness.tools.domain.decision import ApprovalMode
 
 
 class NotApproved(LookupError):

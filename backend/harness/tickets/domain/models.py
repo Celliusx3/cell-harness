@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from harness.secrets import Destination
 from harness.session.heard import ReportState as ReportState
-from harness.tools.models.decision import ApprovalMode
+from harness.tools.domain.decision import ApprovalMode
 
 TicketState = Literal[
     "queued",

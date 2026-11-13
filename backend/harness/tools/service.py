@@ -7,9 +7,9 @@ from collections.abc import Callable, Iterable
 
 from harness.llm import ToolCall
 from harness.tools.approvals import ApprovalService
-from harness.tools.models.context import CallOrigin, ToolContext, ToolProgressReporter
-from harness.tools.models.outcome import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import CallOrigin, ToolContext, ToolProgressReporter
+from harness.tools.domain.outcome import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
+from harness.tools.domain.tool import Tool
 
 logger = logging.getLogger("harness.tools")
 

@@ -12,9 +12,9 @@ from harness.tools.approvals import ApprovalService
 from harness.tools.client.catalog import ClientToolCatalog
 from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReason
 from harness.tools.client.pending_calls import pending_calls
-from harness.tools.models.decision import DENIED, Approval, parse_decision
-from harness.tools.models.outcome import Failure
-from harness.tools.models.tool import Tool
+from harness.tools.domain.decision import DENIED, Approval, parse_decision
+from harness.tools.domain.outcome import Failure
+from harness.tools.domain.tool import Tool
 
 
 class ClientToolService:

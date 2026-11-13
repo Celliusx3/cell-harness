@@ -6,9 +6,9 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import EXECUTION_ERROR, Failure, Ok, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import EXECUTION_ERROR, Failure, Ok, ToolOutcome
+from harness.tools.domain.tool import Tool
 from harness.tools.native.clock.models import ClockArgs
 
 Now = Callable[[], datetime]

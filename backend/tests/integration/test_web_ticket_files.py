@@ -12,7 +12,7 @@ from harness.files import ChatFile
 from harness.llm import ToolMessage
 from harness.session.models import ToolResultEvent
 from harness.tickets.service.worker import worker_session_id
-from harness.tools.models.outcome import ReturnedImage
+from harness.tools.domain.outcome import ReturnedImage
 from harness.tools.native.tickets import TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, Ticketing, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, once_said, send

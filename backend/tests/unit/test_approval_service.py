@@ -17,7 +17,7 @@ from harness.tools.client import (
     ClientToolService,
     RefusalReason,
 )
-from harness.tools.models.decision import Denial
+from harness.tools.domain.decision import Denial
 from harness.tools.native.location.models import NoArgs
 from tests.unit.helpers import new_session
 

@@ -11,7 +11,7 @@ from harness.runtime.events import AgentCompleted
 from harness.session.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tickets.service.worker import kept_report, worker_end
 from harness.tools import Failure, Ok
-from harness.tools.models.outcome import INVALID_ARGUMENTS
+from harness.tools.domain.outcome import INVALID_ARGUMENTS
 from harness.tools.native.tickets import TICKET_REPORT, ticket_report_tool
 from tests.unit.helpers import context_for
 

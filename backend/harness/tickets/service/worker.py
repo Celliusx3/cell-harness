@@ -27,7 +27,7 @@ from harness.tickets.domain.prompts import (
     WORKER_INTRO,
 )
 from harness.tools import Approval, Failure, Ok
-from harness.tools.models.decision import ApprovalMode
+from harness.tools.domain.decision import ApprovalMode
 from harness.tools.native.tickets.models import TicketReportArgs
 from harness.tools.native.tickets.report import TICKET_REPORT
 

@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pydantic import BaseModel, ValidationError
 
 from harness.llm import ToolSpec
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import EXECUTION_ERROR, INVALID_ARGUMENTS, Failure, ToolOutcome
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import EXECUTION_ERROR, INVALID_ARGUMENTS, Failure, ToolOutcome
 
 NAMESPACE_SEPARATOR = "__"
 

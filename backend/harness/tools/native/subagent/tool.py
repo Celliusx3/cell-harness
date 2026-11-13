@@ -6,10 +6,10 @@ import asyncio
 from collections.abc import Sequence
 from typing import Protocol
 
-from harness.tools.models.context import ToolContext
-from harness.tools.models.decision import ApprovalMode
-from harness.tools.models.outcome import Ok, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.decision import ApprovalMode
+from harness.tools.domain.outcome import Ok, ToolOutcome
+from harness.tools.domain.tool import Tool
 from harness.tools.native.subagent.models import (
     SubagentArgs,
     SubagentOutcome,

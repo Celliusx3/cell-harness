@@ -12,9 +12,9 @@ from harness.tools.client.models import (
     SharedAnswer,
     UnavailableAnswer,
 )
-from harness.tools.models.context import ToolContext
-from harness.tools.models.outcome import Failure, Ok, Pending, ToolOutcome
-from harness.tools.models.tool import Tool
+from harness.tools.domain.context import ToolContext
+from harness.tools.domain.outcome import Failure, Ok, Pending, ToolOutcome
+from harness.tools.domain.tool import Tool
 
 _ASK_INSTEAD = "ask them in words instead"
 
