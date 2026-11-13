@@ -1,6 +1,6 @@
 # 02. Layer app_events
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator
 
-from harness.app_events.models import AppEvent
+from harness.app_events.domain.models import AppEvent
 
 
 class AppEventService:

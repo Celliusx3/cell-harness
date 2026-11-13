@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 
 from harness.app_events import AppEventService
-from harness.app_events.router import build_router as build_app_events_router
+from harness.app_events.router.app_event_router import build_router as build_app_events_router
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.bots.router.bot_router import build_router as build_bots_router
 from harness.bots.router.group_router import build_router as build_groups_router
