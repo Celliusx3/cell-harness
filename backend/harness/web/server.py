@@ -56,8 +56,8 @@ from harness.tickets.router.file_router import build_files_router as build_ticke
 from harness.tickets.router.ticket_router import build_router as build_tickets_router
 from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService
-from harness.tools.approvals_router import build_router as build_approvals_router
 from harness.tools.client import ClientToolService
+from harness.tools.router.approval_router import build_router as build_approvals_router
 from harness.web.http.errors import exception_handlers
 from harness.web.http.logs import configure_logging
 from harness.web.runtime import (

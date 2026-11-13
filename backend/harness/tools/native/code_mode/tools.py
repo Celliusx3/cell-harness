@@ -29,7 +29,7 @@ from harness.tools.native.code_mode.prompts import (
     LIST_FUNCTIONS,
     LIST_FUNCTIONS_DESCRIPTION,
 )
-from harness.tools.service import ToolService
+from harness.tools.service.tool_service import ToolService
 
 AvailableTools = Callable[[], list[Tool]]
 

@@ -84,7 +84,7 @@ from harness.tools.native.skills import (
 )
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
-from harness.tools.service import Disposer
+from harness.tools.service.tool_service import Disposer
 from harness.web.model_choice import CredentialModels, ModelEndpoint
 
 logger = logging.getLogger("harness.web")

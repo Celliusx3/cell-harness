@@ -6,10 +6,10 @@ import logging
 from collections.abc import Callable, Iterable
 
 from harness.llm import ToolCall
-from harness.tools.approvals import ApprovalService
 from harness.tools.domain.context import CallOrigin, ToolContext, ToolProgressReporter
 from harness.tools.domain.outcome import UNKNOWN_TOOL, Failure, Pending, ToolOutcome
 from harness.tools.domain.tool import Tool
+from harness.tools.service.approval_service import ApprovalService
 
 logger = logging.getLogger("harness.tools")
 

@@ -16,7 +16,7 @@ from harness.tools.native.tickets import (
     ticket_report_tool,
     ticket_route_tool,
 )
-from harness.tools.service import Disposer
+from harness.tools.service.tool_service import Disposer
 from harness.web.runtime import SUBAGENT_TOOLS, VIEW_IMAGE, WORK_TOOLS, helper_runtime
 
 WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)

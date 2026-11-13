@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, Response, status
 
 from harness.tools import ApprovalService
-from harness.tools.approvals_schemas import ApprovedTools
+from harness.tools.router.approval_schemas import ApprovedTools
 
 logger = logging.getLogger(__name__)
 

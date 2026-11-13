@@ -16,7 +16,7 @@ from harness.tools.native.code_mode import (
     LIST_FUNCTIONS,
     code_mode_tools,
 )
-from harness.tools.toolset import MAX_TOOLS_SELECTED
+from harness.tools.service.toolset import MAX_TOOLS_SELECTED
 from tests.unit.code_fakes import FakeRunner
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed, echo_tool
 from tests.unit.helpers import ORIGIN, new_session, no_approvals, no_images, no_progress

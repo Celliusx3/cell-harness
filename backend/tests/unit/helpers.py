@@ -45,7 +45,7 @@ from harness.tools import (
     Toolset,
 )
 from harness.tools.client import ClientToolService
-from harness.tools.service import ToolProvider
+from harness.tools.service.tool_service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
 from harness.web.tickets_wiring import ticket_workers
 from tests.unit.fakes import OneModel
