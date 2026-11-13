@@ -1,5 +1,6 @@
 "use client";
 
+import { isStoppable } from "@/components/conversation/StopTicketButton";
 import { TicketFold } from "@/components/conversation/TicketFold";
 import type { TicketReports } from "@/components/conversation/ticketReports";
 import { ticketWork, type TicketWork } from "@/components/conversation/ticketWork";
@@ -36,7 +37,7 @@ export function TicketLine({ accepted, reports }: { accepted: Accepted; reports:
         <TicketSummary ticket={ticket} work={work} atWork={running || AT_WORK.has(ticket.state)} />
       </TraceCollapsibleTrigger>
       <TraceCollapsibleContent className="border-line pl-3">
-        <TicketFold ticketId={ticket.id} reports={reports} work={work} />
+        <TicketFold ticketId={ticket.id} reports={reports} work={work} stoppable={isStoppable(ticket.state)} />
       </TraceCollapsibleContent>
     </TraceCollapsible>
   );
