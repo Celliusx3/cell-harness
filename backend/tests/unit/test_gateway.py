@@ -6,7 +6,7 @@ import asyncio
 import contextlib
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.inbox import ChatInbox
+from harness.channels.service.inbox import ChatInbox
 from harness.runtime.inbox import Claimed
 from tests.unit.fakes import (
     ScriptedClient,

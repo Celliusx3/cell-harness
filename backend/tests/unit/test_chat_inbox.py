@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from harness.channels.inbox import ChatInbox
 from harness.channels.repository.chat_repository import ChatState
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.inbox import ChatInbox
 from harness.files import ChatFile
 from harness.runtime.inbox import Claimed
 from tests.unit.helpers import no_skills

@@ -25,13 +25,13 @@ from telegram.ext import (
     filters,
 )
 
-from harness.channels.client import ChatAnswers
-from harness.channels.commands import apply as apply_command
-from harness.channels.commands import unknown_skill
 from harness.channels.domain.protocol import InboundMessage, TokenRefused
 from harness.channels.domain.text import split_message
-from harness.channels.links import ChatLinks, link_or_receive
+from harness.channels.service.client import ChatAnswers
+from harness.channels.service.commands import apply as apply_command
+from harness.channels.service.commands import unknown_skill
 from harness.channels.service.gateway import ChannelGateway
+from harness.channels.service.links import ChatLinks, link_or_receive
 from harness.channels.telegram import commands
 from harness.channels.telegram.asking import (
     BUTTONS,

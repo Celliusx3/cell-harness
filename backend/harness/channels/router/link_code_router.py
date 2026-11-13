@@ -8,8 +8,8 @@ import logging
 from fastapi import APIRouter, HTTPException, status
 
 from harness.bots import BotNotFound, BotService
-from harness.channels.links import LINK_CODE_SECONDS, LinkCodes
 from harness.channels.router.link_code_schemas import IssuedLinkCode, LinkCodeRequest
+from harness.channels.service.links import LINK_CODE_SECONDS, LinkCodes
 from harness.secrets import SecretService
 from harness.secrets.domain.details import ChatPlatform
 

@@ -18,14 +18,14 @@ from harness.app_events.router.app_event_router import build_router as build_app
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.bots.router.bot_router import build_router as build_bots_router
 from harness.bots.router.group_router import build_router as build_groups_router
-from harness.channels.client import ChatAnswers
-from harness.channels.inbox import ChatInbox
-from harness.channels.links import ChatLinks, LinkCodes
-from harness.channels.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.channels.repository.chat_repository import ChatRepository
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.channels.router.link_code_router import build_router as build_link_codes_router
+from harness.channels.service.client import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
+from harness.channels.service.inbox import ChatInbox
+from harness.channels.service.links import ChatLinks, LinkCodes
+from harness.channels.service.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.client_router import build_router as build_client_router
 from harness.channels.web.compact_router import build_router as build_compact_router

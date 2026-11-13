@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.commands import Command
+from harness.channels.service.commands import Command
 from tests.unit.discord_fakes import BOT_ID, FakeInteraction, discord_channel, message
 from tests.unit.link_helpers import World, prompts_in, world
 from tests.webapp import idle

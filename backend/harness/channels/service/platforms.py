@@ -9,11 +9,11 @@ from typing import assert_never, get_args
 
 from pydantic import SecretStr
 
-from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.domain.protocol import Channel, ChannelDisposer
-from harness.channels.links import ChatLinks
+from harness.channels.service.client import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
+from harness.channels.service.links import ChatLinks
 from harness.channels.telegram.channel import TelegramChannel
 from harness.secrets import SecretService
 from harness.secrets.domain.details import ChatPlatform

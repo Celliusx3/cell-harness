@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from harness.bots import BotService
-from harness.channels.platforms import PlatformChannels
+from harness.channels.service.platforms import PlatformChannels
 from harness.secrets.domain.details import ChatPlatformDetails, CredentialDetails, CustomDetails
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.channels.commands import ChatCommand, Command, command_words, mode_command
+from harness.channels.service.commands import ChatCommand, Command, command_words, mode_command
 
 _NAMES = {
     "/new": Command.NEW,

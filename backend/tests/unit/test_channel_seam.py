@@ -7,13 +7,13 @@ from datetime import UTC, datetime
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
-from harness.channels.commands import Command, apply
 from harness.channels.domain.protocol import (
     DuplicateChannelError,
     InboundMessage,
     UnknownChannelError,
 )
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.service.commands import Command, apply
 from harness.channels.service.gateway import ChannelGateway
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime

@@ -6,9 +6,9 @@ import json
 
 import discord
 
-from harness.channels.client import ChatAnswers
 from harness.channels.discord.channel import ASK_BY_LINK as DISCORD_ASK
 from harness.channels.discord.channel import NO_ANSWER_PAGE as DISCORD_NO_PAGE
+from harness.channels.service.client import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.replies import answer_url
 from harness.channels.telegram.asking import ASK, ASK_BY_LINK, NO_ANSWER_PAGE, SHARE_LABEL

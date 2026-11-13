@@ -8,7 +8,7 @@ import logging
 from fastapi import APIRouter, Request, Response, status
 
 from harness.bots import Bot, BotNotFound, BotService
-from harness.channels.platforms import PlatformChannels
+from harness.channels.service.platforms import PlatformChannels
 from harness.secrets import SavedCredential, SecretNotFound, SecretRefused, SecretService
 from harness.secrets.router.credential_schemas import (
     BotRef,
