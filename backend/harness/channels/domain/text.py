@@ -5,9 +5,6 @@ from __future__ import annotations
 
 def split_message(text: str, limit: int) -> list[str]:
     """One reply as one or more messages, each within `limit` characters."""
-    if len(text) <= limit:
-        return [text]
-
     parts: list[str] = []
     rest = text
     while len(rest) > limit:
