@@ -65,19 +65,19 @@ The Mac app's command is in [mcp-servers/README.md](./mcp-servers/README.md).
 ```
 backend/harness/
   llm/          the model seam — messages, stream vocabulary, adapters/
-  session/      the event log, its models, repository/, service, repair
   runtime/      the turn loop, its events, and hooks/ — the chain + native/<hook>/
-  tools/        service, toolset, approvals, models/, client/, native/<tool>/
   sandbox/      the Runner seam + deno.py — runs a script, imports nothing else
-  runs/         a turn that outlives its connection — service, subscribe
-  channels/     every way in and out — telegram/, discord/, web/, and per-chat state
   web/          server, runtime — the composition root; http/ is what every route shares
-                a feature's routes sit beside its service: router.py + schemas.py,
-                <page>_router.py when its package serves a second page; a feature
-                with a service per page splits into domain/, repository/, service/,
-                router/ — <name>_service.py, <name>_router.py — as bots/ does
-  bots/         bots and groups, layered; domain/ holds the models and turn order
   config/       one Settings: config.json + config.local.json + env
+  <feature>/    every other package, in up to four layers, each left out when empty:
+                  domain/      data and rules that only compute; imports no other layer, no I/O
+                  repository/  the storage port, <name>_repository.py, and its backends
+                  service/     what acts — <name>_service.py, schedulers, workers, tools
+                  router/      <name>_router.py + schemas.py, <page>_router.py for a second page
+                features: app_events bots channels files images mcp relay runs
+                schedules secrets session skills tickets tools
+                a folder that is its own subject keeps its shape: channels/telegram/,
+                discord/, web/; tools/client/, tools/native/<tool>/
   prompts.py    every prompt the harness writes; a tool's description stays with its tool
 backend/tests/  unit/ and integration/
 mcp-servers/    the capabilities we build — one uv project each, own tests

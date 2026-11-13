@@ -44,7 +44,7 @@ import json, os, sys
 from pathlib import Path
 import httpx
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.models.details import ModelDetails
+from harness.secrets.domain.details import ModelDetails
 copy = httpx.Client(base_url="http://127.0.0.1:4996", headers={"origin": "http://localhost:4997"})
 if any(c["details"]["kind"] == "llm" for c in copy.get("/api/credentials").json()["credentials"]):
     sys.exit(0)

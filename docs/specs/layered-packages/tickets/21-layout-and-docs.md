@@ -1,6 +1,6 @@
 # 21. Describe the layered layout
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

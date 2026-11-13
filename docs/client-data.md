@@ -3,7 +3,7 @@
 The first case is location. "What's near me?" needs coordinates only the
 person's device has; the server has nothing to compute from. This note is the
 prior art, the shape chosen, and why — the reasoning behind `tools/client/`,
-`tools/native/location/`, `web/routes/client.py`, `channels/client.py` and
+`tools/native/location/`, `web/routes/client.py`, `channels/service/client.py` and
 `Pushing.ask_client`.
 
 ## 1. The four shapes in the wild
@@ -103,7 +103,7 @@ datum:
 **The acceptance criterion.** A second datum is `tools/native/<x>/{models,
 tool}.py`, one entry in `CLIENT_TOOLS` (`web/runtime.py`), and one entry in the
 browser's handler map — and no line in `tools/client/`, `routes/client.py`,
-`channels/client.py`, `Replies`, the loop or the run service. `test_client_tools.py` proves the spine on
+`channels/service/client.py`, `Replies`, the loop or the run service. `test_client_tools.py` proves the spine on
 a throwaway declaration so that stays true without a second real tool.
 
 ## 3. One request, three deliveries
@@ -197,7 +197,7 @@ kept precise.
 
 A tool on `approval.tools` in `config.json` (`memory__write_note`,
 `skill_save`), or a connected server's tool whose name does not read, does not
-run when the model calls it. `can_write` in `mcp/tool.py` decides the second
+run when the model calls it. `can_write` in `mcp/service/tool.py` decides the second
 from the tool's own name alone: a name with a read verb (get, list, search,
 find, read, fetch) runs, every other name asks. A server's annotations are not
 consulted, because a public server's marks cannot be trusted; honouring them
