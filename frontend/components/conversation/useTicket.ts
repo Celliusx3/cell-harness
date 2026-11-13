@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useAppEvent } from "@/lib/appEvents";
 import { getTicket, type TicketDetail } from "@/lib/tickets";
 
 const POLL_MS = 1000;
@@ -14,9 +15,14 @@ export type TicketLoad =
   | { kind: "found"; detail: TicketDetail }
   | { kind: "failed"; message: string };
 
-/** One ticket, read every second while its worker runs, every 5 s until it is stopped. */
+/** One ticket, read every second while its worker runs, every 5 s until it is stopped, and on every ticket change. */
 export function useTicket(id: string | null): TicketLoad {
   const [load, setLoad] = useState<TicketLoad>({ kind: "loading" });
+  const [changes, setChanges] = useState(0);
+
+  useAppEvent((event) => {
+    if (event.type === "tickets/changed") setChanges((count) => count + 1);
+  });
 
   useEffect(() => {
     if (id === null) return;
@@ -38,7 +44,7 @@ export function useTicket(id: string | null): TicketLoad {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [id]);
+  }, [id, changes]);
 
   return load;
 }

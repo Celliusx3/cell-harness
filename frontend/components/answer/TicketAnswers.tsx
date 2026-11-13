@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { APPROVAL_OPTIONS } from "@/components/answer/ApprovalPanel";
 import { POSITION_OPTIONS, roundToHundredMetres } from "@/components/answer/LocationRequest";
-import { BADGE, OPTION } from "@/components/answer/QuestionPanel";
+import { BADGE, OPTION } from "@/components/answer/answerStyles";
 import { Arguments } from "@/components/conversation/ToolCard";
 import { humanise } from "@/lib/toolName";
 import type { Decision, ToolCall } from "@/lib/types";
@@ -16,26 +16,6 @@ const NOT_SHARED = "The user did not share a location.";
 interface Answering {
   disabled: boolean;
   onSend: (text: string) => void;
-}
-
-/** A worker's options, one tap each, drawn like the assistant's own question. */
-export function ChoiceAnswer({ options, disabled, onSend }: Answering & { options: string[] }) {
-  return (
-    <div className="mt-3 flex flex-col gap-2">
-      {options.map((label, index) => (
-        <button
-          key={index}
-          type="button"
-          disabled={disabled}
-          onClick={() => onSend(label)}
-          className={OPTION}
-        >
-          <span className={BADGE}>{index + 1}</span>{" "}
-          <span className="min-w-0 break-words">{label}</span>
-        </button>
-      ))}
-    </div>
-  );
 }
 
 /** The key a worker asks for, pasted here, saved under its name, and never shown again. */

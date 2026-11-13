@@ -19,8 +19,8 @@ import { MODE_ICONS, MODE_LABELS } from "@/components/conversation/ModePicker";
 import { ScheduleChangeLine } from "@/components/conversation/ScheduleChangeLine";
 import { ScheduledBubble } from "@/components/conversation/ScheduledBubble";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
-import { acceptedTickets, TicketCards } from "@/components/conversation/TicketCard";
-import { TicketResult } from "@/components/conversation/TicketResult";
+import { acceptedTickets, TicketLines } from "@/components/conversation/TicketLines";
+import { ticketReports, type TicketReports } from "@/components/conversation/ticketReports";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import type { ApprovalMode } from "@/lib/types";
 import { ToolCard } from "@/components/conversation/ToolCard";
@@ -42,6 +42,7 @@ interface ItemProps {
   openTurn: number | null;
   conversationId: string;
   onAnswered: () => void;
+  reports: ReadonlyMap<string, TicketReports>;
 }
 
 /** Renders timeline items, from the snapshot and the live stream alike. */
@@ -93,7 +94,7 @@ export function Timeline({
     item.ui !== null ||
     item.files.length > 0 ||
     (item.result === null && openTurn === null);
-  const shared = { openTurn, conversationId, onAnswered };
+  const shared = { openTurn, conversationId, onAnswered, reports: ticketReports(items) };
   const rows = turnRows(items, { speakers, stays });
   const progress = progressOf(rows, items, openTurn, sending);
   const isStarting = progress?.kind === "starting";
@@ -140,7 +141,7 @@ export function Timeline({
   );
 }
 
-function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
+function Item({ item, openTurn, conversationId, onAnswered, reports }: ItemProps) {
   switch (item.kind) {
     case "user":
       return <UserBubble item={item} chatId={conversationId} />;
@@ -154,7 +155,7 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
         return <Handler item={item} conversationId={conversationId} onAnswered={onAnswered} />;
       if (item.result === null && openTurn === null) return <ApprovalRecord item={item} />;
       if (item.call.name === TICKET_ROUTE && acceptedTickets(item).length > 0)
-        return <TicketCards item={item} />;
+        return <TicketLines item={item} chatId={conversationId} reports={reports} />;
       return <ToolCard item={item} />;
     }
     case "notice":
@@ -176,7 +177,7 @@ function Item({ item, openTurn, conversationId, onAnswered }: ItemProps) {
     case "ticketQuestion":
       return <TicketQuestionPanel item={item} />;
     case "ticketResult":
-      return <TicketResult item={item} />;
+      return null;
   }
 }
 

@@ -1,26 +1,16 @@
 "use client";
 
-import { ArrowUp, MessageCircleQuestionMark } from "lucide-react";
+import { MessageCircleQuestionMark } from "lucide-react";
 import type { KeyboardEvent } from "react";
-import { useEffect, useRef, useState } from "react";
 
+import { AnswerList } from "@/components/answer/AnswerList";
+import { FADE_ABOVE } from "@/components/answer/answerStyles";
 import { questionOf } from "@/components/answer/question";
 import { useClientTool } from "@/components/answer/useClientTool";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import type { Answer } from "@/lib/types";
 
-export const FADE_ABOVE =
-  "before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-8 before:bg-gradient-to-t before:from-surface before:to-transparent before:content-['']";
-
-export const OPTION =
-  "flex w-full items-start gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm font-medium transition hover:bg-surface-sunken";
-
-export const BADGE =
-  "flex size-5 shrink-0 items-center justify-center rounded-md border border-line bg-surface-sunken text-xs text-ink-soft";
-
-const OPTION_KEY = /^[1-9]$/;
-
-/** A waiting question answered by an option, its number key or typed text; skipped only when `onSkip` is given. */
+/** A waiting question answered from one list of options and the person's own words; skipped only when `onSkip` is given. */
 export function QuestionPanel({
   item,
   conversationId,
@@ -33,91 +23,32 @@ export function QuestionPanel({
   onSkip?: () => void;
 }) {
   const { phase, send } = useClientTool<Answer>({ item, conversationId, onAnswered });
-  const [draft, setDraft] = useState("");
-  const panel = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLInputElement>(null);
   const asked = questionOf(item);
 
-  useEffect(() => {
-    panel.current?.focus();
-  }, []);
-
-  const answer = (choice: string) => void send({ kind: "shared", data: { choice } });
-
-  const submit = () => {
-    const text = draft.trim();
-    if (text) answer(text);
-  };
-
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (phase !== "asking") return;
-    if (event.key === "Escape" && onSkip !== undefined && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      onSkip();
-      return;
-    }
-    if (event.target === input.current || asked === null) return;
-    if (event.metaKey || event.ctrlKey || event.altKey || !OPTION_KEY.test(event.key)) return;
-    const option = asked.options[Number(event.key) - 1];
-    if (option === undefined) return;
+    if (phase !== "asking" || onSkip === undefined) return;
+    if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
     event.preventDefault();
-    answer(option);
+    onSkip();
   };
 
   return (
     <div className={`relative bg-surface px-4 pb-5 pt-2 ${FADE_ABOVE}`}>
       <div
-        ref={panel}
-        tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="mx-auto max-w-3xl rounded-2xl border border-attention/50 bg-surface-raised p-3 shadow-sm outline-none"
+        className="mx-auto max-w-3xl rounded-2xl border border-attention/50 bg-surface-raised p-3 shadow-sm"
       >
-        <p className="break-words text-sm font-medium">
+        <p className="mb-3 break-words text-sm font-medium">
           {asked?.question ?? "This question could not be shown."}
         </p>
         {phase === "asking" ? (
           <>
-            {asked !== null && (
-              <div className="mt-3 flex flex-col gap-2">
-                {asked.options.map((label, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => answer(label)}
-                    className={OPTION}
-                  >
-                    <span className={BADGE}>{index + 1}</span>{" "}
-                    <span className="min-w-0 break-words">{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-surface p-1 pl-3 transition focus-within:border-accent">
-              <input
-                ref={input}
-                type="text"
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                    event.preventDefault();
-                    submit();
-                  }
-                }}
-                aria-label="Type your own answer"
-                placeholder="Type your own answer"
-                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-ink-soft"
-              />
-              <button
-                type="button"
-                onClick={submit}
-                disabled={!draft.trim()}
-                aria-label="Send answer"
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-action text-on-action transition hover:opacity-90 disabled:opacity-35"
-              >
-                <ArrowUp size={16} />
-              </button>
-            </div>
+            <AnswerList
+              options={asked?.options ?? []}
+              disabled={false}
+              autoFocus
+              onAnswer={(choice) => void send({ kind: "shared", data: { choice } })}
+            />
             {onSkip !== undefined && (
               <div className="mt-2 flex items-center gap-1.5 text-xs text-ink-soft">
                 <button type="button" onClick={onSkip} className="transition hover:text-ink">
@@ -128,7 +59,7 @@ export function QuestionPanel({
             )}
           </>
         ) : (
-          <p className="mt-2 text-xs text-ink-soft">Sent. Waiting for the assistant…</p>
+          <p className="text-xs text-ink-soft">Sent. Waiting for the assistant…</p>
         )}
       </div>
     </div>

@@ -3,12 +3,12 @@
 import { Inbox } from "lucide-react";
 import Link from "next/link";
 
-import { useNeedingYou } from "@/components/chat/useNeedingYou";
+import { chatsNeedingYou, useNeedingYou } from "@/components/chat/useNeedingYou";
 
-/** The sidebar's link to the tickets that wait for a person, with their count; hidden at none. */
+/** The sidebar's link to the chats with work that waits for a person, with their count; hidden at none. */
 export function NeedsYouLink({ current }: { current: boolean }) {
   const { needing } = useNeedingYou();
-  const count = needing.kind === "loaded" ? needing.tickets.length : 0;
+  const count = needing.kind === "loaded" ? chatsNeedingYou(needing.tickets).length : 0;
   if (count === 0) return null;
   return (
     <Link

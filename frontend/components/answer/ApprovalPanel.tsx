@@ -5,7 +5,7 @@ import type { KeyboardEvent } from "react";
 import { useEffect, useRef } from "react";
 
 import { approvalTitle } from "@/components/answer/approval";
-import { BADGE, FADE_ABOVE, OPTION } from "@/components/answer/QuestionPanel";
+import { BADGE, FADE_ABOVE, OPTION } from "@/components/answer/answerStyles";
 import { useClientTool } from "@/components/answer/useClientTool";
 import type { ToolItem } from "@/components/conversation/timelineItems";
 import { Arguments } from "@/components/conversation/ToolCard";

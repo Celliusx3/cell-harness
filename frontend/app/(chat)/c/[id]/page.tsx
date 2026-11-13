@@ -19,6 +19,7 @@ import { Timeline } from "@/components/conversation/Timeline";
 import { UsageButton } from "@/components/conversation/UsageButton";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 import { type Conversation, useConversation } from "@/components/conversation/useConversation";
+import { useChatTickets } from "@/components/conversation/useChatTickets";
 import { useElapsed } from "@/components/conversation/useElapsed";
 import { chatUsage } from "@/components/conversation/usage";
 import { useTimeline } from "@/components/conversation/useTimeline";
@@ -51,6 +52,7 @@ export default function ConversationPage({
     [items],
   );
   const elapsed = useElapsed(conversation.running || conversation.sending !== null);
+  const tickets = useChatTickets(id);
   const [folded, setFolded] = useState<string | null>(null);
   const wasRunning = useRef(false);
 
@@ -76,7 +78,8 @@ export default function ConversationPage({
         chat={host ?? speakerOf(group)}
         editHref={host === null ? null : `/bots/${id}`}
         elapsed={elapsed}
-        waiting={waiting !== null}
+        waiting={waiting !== null || tickets.needsAnswer}
+        ticketsAtWork={tickets.atWork}
         canCompact={!conversation.running}
         onCompact={() => void conversation.compact()}
         onClear={() => void conversation.clear()}

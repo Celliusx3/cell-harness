@@ -57,7 +57,7 @@ function oneTurn(items: TimelineItem[], turn: number, shape: TurnShape): Row[] {
   const speaker = shape.speakers.get(turn) ?? null;
   const shown = items.filter((item) => isShown(item, speaker !== null));
   const asked: Row[] = shown.filter(isAsk).map((item) => ({ kind: "item", item }));
-  const answer = shown.filter((item) => !isAsk(item));
+  const answer = reportsLast(shown.filter((item) => !isAsk(item)));
   const first = answer[0];
   if (first === undefined) return asked;
   const said = [...items].reverse().find((item) => item.kind === "assistant" && item.content.trim());
@@ -98,12 +98,19 @@ function partsOf(
   return parts;
 }
 
+/** A worker's question after the bot's own words, which introduce it. */
+function reportsLast(items: TimelineItem[]): TimelineItem[] {
+  const isQuestion = (item: TimelineItem) => item.kind === "ticketQuestion";
+  return [...items.filter((item) => !isQuestion(item)), ...items.filter(isQuestion)];
+}
+
 function isAsk(item: TimelineItem): boolean {
   return item.kind === "user" || item.kind === "scheduled";
 }
 
 /** Whether anything of `item` reaches the screen. */
 function isShown(item: TimelineItem, inGroup: boolean): boolean {
+  if (item.kind === "ticketResult") return false;
   if (item.kind !== "assistant") return true;
   const text = item.content.trim();
   if (!text) return false;

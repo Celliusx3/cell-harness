@@ -4,13 +4,26 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { DrawerButton } from "@/components/chat/Drawer";
-import { useNeedingYou } from "@/components/chat/useNeedingYou";
+import { chatsNeedingYou, type ChatNeedingYou, useNeedingYou } from "@/components/chat/useNeedingYou";
+import { BotAvatar } from "@/components/conversation/BotAvatar";
 import { ApiError, listBots } from "@/lib/api";
-import { retryTicket, stopTicket, TICKET_STATE_LABELS, type TicketRow } from "@/lib/tickets";
+import {
+  retryTicket,
+  stopTicket,
+  TICKET_STATE_LABELS,
+  type TicketRow,
+  type TicketState,
+} from "@/lib/tickets";
 
 const RETRYABLE: ReadonlySet<string> = new Set(["blocked", "failed"]);
 
-/** Every ticket that waits for a person, across bots, each with stop and, if stuck, retry. */
+const NEEDS_LABELS: Partial<Record<TicketState, string>> = {
+  needs_answer: "asks you something",
+  blocked: "is stuck",
+  failed: "failed",
+};
+
+/** Every chat with work that waits for a person, its tickets under it, each with stop and, if stuck, retry. */
 export default function NeedsYouPage() {
   const { needing, reload } = useNeedingYou();
   const botNames = useBotNames();
@@ -52,14 +65,14 @@ export default function NeedsYouPage() {
           <p className="text-sm text-ink-soft">Nothing needs you.</p>
         )}
         {needing.kind === "loaded" && needing.tickets.length > 0 && (
-          <ul className="max-w-2xl divide-y divide-line rounded-xl border border-line bg-surface-sunken">
-            {needing.tickets.map((ticket) => (
-              <TicketItem
-                key={ticket.id}
-                ticket={ticket}
-                botName={botNames.get(ticket.bot_id) ?? ticket.bot_id}
-                onRetry={() => void act(() => retryTicket(ticket.id), "Could not retry.")}
-                onStop={() => stop(ticket)}
+          <ul className="max-w-2xl divide-y divide-line rounded-xl border border-line bg-surface-raised">
+            {chatsNeedingYou(needing.tickets).map((chat) => (
+              <ChatItem
+                key={chat.botId}
+                chat={chat}
+                botName={botNames.get(chat.botId) ?? chat.botId}
+                onRetry={(ticket) => void act(() => retryTicket(ticket.id), "Could not retry.")}
+                onStop={stop}
               />
             ))}
           </ul>
@@ -79,29 +92,37 @@ function useBotNames(): ReadonlyMap<string, string> {
   return names;
 }
 
-interface TicketItemProps {
-  ticket: TicketRow;
+interface ChatItemProps {
+  chat: ChatNeedingYou;
   botName: string;
-  onRetry: () => void;
-  onStop: () => void;
+  onRetry: (ticket: TicketRow) => void;
+  onStop: (ticket: TicketRow) => void;
 }
 
-function TicketItem({ ticket, botName, onRetry, onStop }: TicketItemProps) {
+function ChatItem({ chat, botName, onRetry, onStop }: ChatItemProps) {
   return (
-    <li className="flex flex-col gap-2 px-3 py-3 text-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={`/t/${encodeURIComponent(ticket.id)}`} className="break-words font-medium hover:underline">
-          {ticket.title}
-        </Link>
-        <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[11px] text-ink-soft">
-          {TICKET_STATE_LABELS[ticket.state]}
-        </span>
-        <span className="text-xs text-ink-soft">{botName}</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {RETRYABLE.has(ticket.state) && <RowButton label="Retry" onClick={onRetry} />}
-        <RowButton label="Stop" onClick={onStop} />
-      </div>
+    <li className="flex flex-col gap-2 px-4 py-3 text-sm">
+      <Link
+        href={`/c/${encodeURIComponent(chat.botId)}`}
+        className="flex items-center gap-2.5 font-semibold hover:text-accent"
+      >
+        <BotAvatar speaker={{ id: chat.botId, name: botName }} />
+        <span className="min-w-0 break-words">{botName}</span>
+      </Link>
+      <ul className="flex flex-col gap-2 pl-[38px]">
+        {chat.tickets.map((ticket) => (
+          <li key={ticket.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="min-w-0 break-words">{ticket.title}</span>
+            <span className={`text-xs ${ticket.state === "needs_answer" ? "text-attention" : "text-danger"}`}>
+              · {NEEDS_LABELS[ticket.state] ?? TICKET_STATE_LABELS[ticket.state]}
+            </span>
+            <span className="ml-auto flex gap-2">
+              {RETRYABLE.has(ticket.state) && <RowButton label="Retry" onClick={() => onRetry(ticket)} />}
+              <RowButton label="Stop" onClick={() => onStop(ticket)} />
+            </span>
+          </li>
+        ))}
+      </ul>
     </li>
   );
 }

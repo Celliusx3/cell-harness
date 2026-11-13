@@ -58,6 +58,10 @@ export const TICKET_STATE_LABELS: Record<TicketState, string> = {
   stopped: "Stopped",
 };
 
+/** One bot's tickets, oldest first. */
+export const listTickets = (botId: string) =>
+  request<TicketRow[]>(`/tickets?bot_id=${encodeURIComponent(botId)}`);
+
 export const getTicket = (id: string) =>
   request<TicketDetail>(`/tickets/${encodeURIComponent(id)}`);
 

@@ -120,13 +120,12 @@ export interface TicketQuestionItem {
   latest: boolean;
 }
 
-/** A worker's result in its ticket's ready report, shown whole in the bot's chat. */
+/** A worker's result in its ticket's ready report, read under its ticket's line. */
 export interface TicketResultItem {
   kind: "ticketResult";
   key: string;
   turn: number;
   ticketId: string;
-  title: string;
   text: string;
 }
 
