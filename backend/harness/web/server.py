@@ -52,6 +52,7 @@ from harness.session.service import SessionService
 from harness.skills import SkillService
 from harness.skills.controller import build_router as build_skills_router
 from harness.tickets.controller import build_router as build_tickets_router
+from harness.tickets.files_controller import build_files_router as build_ticket_files_router
 from harness.tickets.repository import TicketRepository
 from harness.tickets.service import TicketService
 from harness.tools import ApprovalService
@@ -282,6 +283,7 @@ def create_app(
     app.include_router(build_bots_router(bots, runs, secrets, schedules))
     app.include_router(build_schedules_router(bots, schedules, scheduler, runs))
     app.include_router(build_tickets_router(tickets, secrets, bots, client_tools))
+    app.include_router(build_ticket_files_router(tickets, web.files, web.images))
     app.include_router(build_groups_router(bots))
     app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

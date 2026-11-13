@@ -10,8 +10,9 @@ import { CodeBlock } from "@/components/conversation/CodeBlock";
 import { FileList } from "@/components/conversation/FileList";
 import type { Invocation } from "@/components/conversation/invocation";
 import type { AssistantItem, UserItem } from "@/components/conversation/timelineItems";
+import type { FileSource } from "@/lib/api";
 
-export function UserBubble({ item, chatId }: { item: UserItem; chatId: string }) {
+export function UserBubble({ item, source }: { item: UserItem; source: FileSource }) {
   const said = item.invoked ? (
     <InvokedBubble item={item} invoked={item.invoked} />
   ) : (
@@ -21,7 +22,7 @@ export function UserBubble({ item, chatId }: { item: UserItem; chatId: string })
   return (
     <div className="flex flex-col gap-1.5">
       <div className="ml-auto max-w-[80%]">
-        <FileList chatId={chatId} files={item.files} align="end" />
+        <FileList source={source} files={item.files} align="end" />
       </div>
       {said}
     </div>

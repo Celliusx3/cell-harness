@@ -22,6 +22,7 @@ import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import { acceptedTickets, TicketLines } from "@/components/conversation/TicketLines";
 import { ticketReports, type TicketReports } from "@/components/conversation/ticketReports";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
+import type { FileSource } from "@/lib/api";
 import type { ApprovalMode } from "@/lib/types";
 import { ToolCard } from "@/components/conversation/ToolCard";
 import { progressOf } from "@/components/conversation/turnProgress";
@@ -41,6 +42,7 @@ interface ItemProps {
   item: TimelineItem;
   openTurn: number | null;
   conversationId: string;
+  source: FileSource;
   onAnswered: () => void;
   reports: ReadonlyMap<string, TicketReports>;
 }
@@ -55,6 +57,7 @@ export function Timeline({
   queued,
   elapsed,
   onAnswered,
+  source,
 }: {
   items: TimelineItem[];
   openTurn: number | null;
@@ -64,6 +67,7 @@ export function Timeline({
   queued: string[];
   elapsed: string | null;
   onAnswered: () => void;
+  source: FileSource;
 }) {
   const floor = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
@@ -94,7 +98,7 @@ export function Timeline({
     item.ui !== null ||
     item.files.length > 0 ||
     (item.result === null && openTurn === null);
-  const shared = { openTurn, conversationId, onAnswered, reports: ticketReports(items) };
+  const shared = { openTurn, conversationId, source, onAnswered, reports: ticketReports(items) };
   const rows = turnRows(items, { speakers, stays });
   const progress = progressOf(rows, items, openTurn, sending);
   const isStarting = progress?.kind === "starting";
@@ -141,10 +145,10 @@ export function Timeline({
   );
 }
 
-function Item({ item, openTurn, conversationId, onAnswered, reports }: ItemProps) {
+function Item({ item, openTurn, conversationId, source, onAnswered, reports }: ItemProps) {
   switch (item.kind) {
     case "user":
-      return <UserBubble item={item} chatId={conversationId} />;
+      return <UserBubble item={item} source={source} />;
     case "scheduled":
       return <ScheduledBubble item={item} />;
     case "assistant":
@@ -156,7 +160,7 @@ function Item({ item, openTurn, conversationId, onAnswered, reports }: ItemProps
       if (item.result === null && openTurn === null) return <ApprovalRecord item={item} />;
       if (item.call.name === TICKET_ROUTE && acceptedTickets(item).length > 0)
         return <TicketLines item={item} chatId={conversationId} reports={reports} />;
-      return <ToolCard item={item} />;
+      return <ToolCard item={item} source={source} />;
     }
     case "notice":
       return (
