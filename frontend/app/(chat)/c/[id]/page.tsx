@@ -108,6 +108,7 @@ export default function ConversationPage({
               queued={conversation.queued}
               elapsed={elapsed}
               onAnswered={conversation.wake}
+              source={{ kind: "chat", id }}
             />
           )}
         </div>

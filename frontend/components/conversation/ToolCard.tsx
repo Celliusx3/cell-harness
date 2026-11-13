@@ -8,7 +8,7 @@ import { useState } from "react";
 import { CodeBlock } from "@/components/conversation/CodeBlock";
 import { FileList } from "@/components/conversation/FileList";
 import type { ToolItem } from "@/components/conversation/timelineItems";
-import { imageUrl } from "@/lib/api";
+import { imageUrl, type FileSource } from "@/lib/api";
 import { humanise } from "@/lib/toolName";
 import type { ContentBlock, ImageBlock } from "@/lib/types";
 
@@ -16,7 +16,7 @@ import type { ContentBlock, ImageBlock } from "@/lib/types";
 const SCRIPT_FIELDS: Record<string, string> = { execute_typescript: "code" };
 
 /** One tool call, collapsed to a line until asked to open. */
-export function ToolCard({ item }: { item: ToolItem }) {
+export function ToolCard({ item, source }: { item: ToolItem; source: FileSource }) {
   const [open, setOpen] = useState(false);
   const { id: conversationId } = useParams<{ id: string }>();
   const status = statusOf(item);
@@ -59,13 +59,13 @@ export function ToolCard({ item }: { item: ToolItem }) {
 
       {images.length > 0 && (
         <div className="border-t border-line px-3 py-2">
-          <ResultImages conversationId={conversationId} images={images} />
+          <ResultImages source={source} images={images} />
         </div>
       )}
 
       {item.files.length > 0 && (
         <div className="border-t border-line px-3 py-2">
-          <FileList chatId={conversationId} files={item.files} align="start" />
+          <FileList source={source} files={item.files} align="start" />
         </div>
       )}
 
@@ -123,19 +123,19 @@ function StatusNote({ status }: { status: ToolStatus }) {
 }
 
 /** The images a result showed the model, as thumbnails that open full size in a new tab. */
-function ResultImages({ conversationId, images }: { conversationId: string; images: ImageBlock[] }) {
+function ResultImages({ source, images }: { source: FileSource; images: ImageBlock[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {images.map((image, index) => (
         <a
           key={`${index}-${image.sha256}`}
-          href={imageUrl(conversationId, image.sha256)}
+          href={imageUrl(source, image.sha256)}
           target="_blank"
           rel="noopener noreferrer"
           className="block overflow-hidden rounded-lg border border-line bg-surface transition hover:opacity-90"
         >
           <img
-            src={imageUrl(conversationId, image.sha256)}
+            src={imageUrl(source, image.sha256)}
             alt={`An image the tool returned (${image.media_type})`}
             loading="lazy"
             className="size-24 object-cover"

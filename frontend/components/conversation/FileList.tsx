@@ -2,7 +2,7 @@
 
 import { FileIcon } from "lucide-react";
 
-import { fileUrl } from "@/lib/api";
+import { fileUrl, type FileSource } from "@/lib/api";
 import type { ChatFile } from "@/lib/types";
 
 /** The types the backend serves inline, so a thumbnail can show them. */
@@ -11,14 +11,14 @@ const SHOWN_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif
 const isShown = (file: ChatFile) => SHOWN_TYPES.has(file.media_type);
 
 interface Props {
-  /** The chat whose folder holds the files. */
-  chatId: string;
+  /** Whose folder holds the files. */
+  source: FileSource;
   files: ChatFile[];
   align: "start" | "end";
 }
 
 /** Files in a message or a result: images as thumbnails that open full size, the rest as downloads. */
-export function FileList({ chatId, files, align }: Props) {
+export function FileList({ source, files, align }: Props) {
   const images = files.filter(isShown);
   const others = files.filter((file) => !isShown(file));
   const justify = align === "end" ? "justify-end" : "justify-start";
@@ -30,14 +30,14 @@ export function FileList({ chatId, files, align }: Props) {
           {images.map((file) => (
             <a
               key={file.path}
-              href={fileUrl(chatId, file.path)}
+              href={fileUrl(source, file.path)}
               target="_blank"
               rel="noopener noreferrer"
               title={file.name}
               className="block overflow-hidden rounded-lg border border-line bg-surface transition hover:opacity-90"
             >
               <img
-                src={fileUrl(chatId, file.path)}
+                src={fileUrl(source, file.path)}
                 alt={file.name}
                 loading="lazy"
                 className="size-24 object-cover"
@@ -51,7 +51,7 @@ export function FileList({ chatId, files, align }: Props) {
           {others.map((file) => (
             <a
               key={file.path}
-              href={fileUrl(chatId, file.path)}
+              href={fileUrl(source, file.path)}
               download={file.name}
               className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium hover:bg-accent-soft"
             >

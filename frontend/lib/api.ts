@@ -80,13 +80,21 @@ export const uploadFile = (id: string, file: File) => {
   return request<ChatFile>(`/conversations/${id}/files`, { method: "POST", body });
 };
 
-/** Where the browser reads a file in a chat's folder: an image is shown, anything else downloads. */
-export const fileUrl = (id: string, path: string) =>
-  `/api/conversations/${encodeURIComponent(id)}/file?path=${encodeURIComponent(path)}`;
+/** Whose folder and log a timeline's files and images come from: a chat's, or a ticket's worker's. */
+export type FileSource = { kind: "chat"; id: string } | { kind: "ticket"; id: string };
 
-/** Where the browser reads an image a chat showed the model, by the hash it is kept under. */
-export const imageUrl = (id: string, sha256: string) =>
-  `/api/conversations/${encodeURIComponent(id)}/images/${encodeURIComponent(sha256)}`;
+const sourceRoot = (source: FileSource): string =>
+  source.kind === "chat"
+    ? `/api/conversations/${encodeURIComponent(source.id)}`
+    : `/api/tickets/${encodeURIComponent(source.id)}`;
+
+/** Where the browser reads a file in `source`'s folder: an image is shown, anything else downloads. */
+export const fileUrl = (source: FileSource, path: string): string =>
+  `${sourceRoot(source)}/file?path=${encodeURIComponent(path)}`;
+
+/** Where the browser reads an image `source`'s log showed the model, by the hash it is kept under. */
+export const imageUrl = (source: FileSource, sha256: string): string =>
+  `${sourceRoot(source)}/images/${encodeURIComponent(sha256)}`;
 
 export const stopRun = (id: string) =>
   request<void>(`/conversations/${id}/run`, { method: "DELETE" });

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
@@ -21,12 +21,10 @@ from harness.channels.protocol import InboundMessage
 from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage, SetMode
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService
-from harness.images import is_sha256
-from harness.llm import images_of
 from harness.session.log import Session
-from harness.session.models import SessionEvent, ToolResultEvent, UserMessageEvent
 from harness.session.service import SessionService
 from harness.skills import UnknownSkill
+from harness.web.http.files import folder_file, logged_image
 
 if TYPE_CHECKING:
     from harness.channels.web.channel import WebChannel
@@ -34,8 +32,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger("harness.web")
 
 UPLOAD_CHUNK_BYTES = 1024 * 1024
-INLINE_TYPES = frozenset({"image/png", "image/jpeg", "image/webp", "image/gif"})
-NO_SNIFFING = {"X-Content-Type-Options": "nosniff"}
 
 
 def _unknown_skill(web: WebChannel, err: UnknownSkill) -> HTTPException:
@@ -79,16 +75,6 @@ def _attached_files(files: ChatFileService, chat_id: str, paths: list[str]) -> t
 async def _chunks(upload: UploadFile) -> AsyncIterator[bytes]:
     while chunk := await upload.read(UPLOAD_CHUNK_BYTES):
         yield chunk
-
-
-def _log_shows_image(events: Sequence[SessionEvent], sha256: str) -> bool:
-    """Whether one of `events` shows the model the image kept under `sha256`."""
-    return any(
-        image.sha256 == sha256
-        for event in events
-        if isinstance(event, (UserMessageEvent, ToolResultEvent))
-        for image in images_of(event.message)
-    )
 
 
 def chat_router(web: WebChannel, *, tag: str) -> APIRouter:
@@ -176,41 +162,13 @@ def _file_routes(router: APIRouter, web: WebChannel) -> None:
     @router.get("/{conversation_id}/file")
     async def read_file(conversation_id: str, path: str) -> FileResponse:
         """A file in this chat's folder: an image shown in place, anything else downloaded."""
-        stored = web.files.file_at(conversation_id, path)
-        if stored is None:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail=f"{path} is not a file here", headers=NO_SNIFFING
-            )
-        shown = "inline" if stored.media_type in INLINE_TYPES else "attachment"
-        return FileResponse(
-            stored.path,
-            media_type=stored.media_type,
-            filename=stored.name,
-            content_disposition_type=shown,
-            headers=NO_SNIFFING,
-        )
+        return folder_file(web.files, conversation_id, path)
 
     @router.get("/{conversation_id}/images/{sha256}")
     async def read_image(conversation_id: str, sha256: str) -> FileResponse:
         """An image this chat's log shows the model, shown in place, by the hash it is kept by."""
-        missing = HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail=f"{sha256} is not an image in this chat",
-            headers=NO_SNIFFING,
-        )
-        if not is_sha256(sha256):
-            raise missing
         session = await _chat_session(web, conversation_id)
-        stored = web.images.file_of(sha256) if _log_shows_image(session.events(), sha256) else None
-        if stored is None:
-            raise missing
-        return FileResponse(
-            stored.path,
-            media_type=stored.media_type,
-            filename=stored.path.name,
-            content_disposition_type="inline",
-            headers=NO_SNIFFING,
-        )
+        return logged_image(web.images, session.events(), sha256)
 
 
 def _turn_routes(router: APIRouter, web: WebChannel) -> None:

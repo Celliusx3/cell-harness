@@ -20,12 +20,13 @@ _DESCRIPTION = (
     "descriptions. When one matches, call this first and follow what it returns. A skill "
     "may name bundled files; read one by passing its relative `path`. A TypeScript file "
     "under a skill's scripts/ is a program, not a function "
-    "you can call by name: read it by `path`, then pass its text as the code to "
-    "execute_typescript. A script in another language runs only through a tool for "
+    "you can call by name: when you are offered execute_typescript, read it by `path`, then "
+    "pass its text as the code to execute_typescript. A script in another language runs "
+    "only through a tool for "
     "running commands, when you are offered one: from the folder the skill names, where its "
     "scripts already are; only when that folder is not in your computer, read the script by "
-    "`path` and write it there yourself. Without such a tool, follow the instructions with "
-    "the capabilities you have."
+    "`path` and write it there yourself. Without the tool a script needs, follow the "
+    "instructions with the capabilities you have."
 )
 
 

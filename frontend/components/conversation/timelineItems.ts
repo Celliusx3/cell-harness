@@ -120,15 +120,6 @@ export interface TicketQuestionItem {
   latest: boolean;
 }
 
-/** A worker's result in its ticket's ready report, read under its ticket's line. */
-export interface TicketResultItem {
-  kind: "ticketResult";
-  key: string;
-  turn: number;
-  ticketId: string;
-  text: string;
-}
-
 export type TimelineItem =
   | UserItem
   | ScheduledItem
@@ -139,8 +130,7 @@ export type TimelineItem =
   | InstructionsItem
   | ModeItem
   | ScheduleChangeItem
-  | TicketQuestionItem
-  | TicketResultItem;
+  | TicketQuestionItem;
 
 export interface Timeline {
   items: TimelineItem[];
