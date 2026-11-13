@@ -15,8 +15,8 @@ from harness.bots import ASSISTANT_ID
 from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.session.domain.models import ToolResultEvent
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.tools.native.files import EXTRACT_ARCHIVE, MAKE_ARCHIVE, VIEW_IMAGE
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime

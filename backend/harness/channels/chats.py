@@ -6,8 +6,8 @@ from harness.bots import ASSISTANT_ID, BotNotFound, BotService
 from harness.channels.protocol import Channel
 from harness.channels.repository import ChatRepository, ChatState
 from harness.session.domain.log import Session
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 
 
 async def state_of(

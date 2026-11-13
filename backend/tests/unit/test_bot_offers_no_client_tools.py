@@ -8,8 +8,8 @@ from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.tickets.domain.prompts import ORCHESTRATOR
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.tools.native.tickets import TICKET_ROUTE

@@ -18,7 +18,7 @@ from harness.session.domain.models import (
     ToolResultEvent,
     TurnStart,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tickets.domain.models import ReportState, Ticket
 from harness.tickets.domain.prompts import (
     APPROVAL_QUESTION,

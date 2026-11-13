@@ -18,7 +18,7 @@ from harness.session.domain.models import (
     TurnEnd,
     UserMessageEvent,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,

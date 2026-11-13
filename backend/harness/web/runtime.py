@@ -33,7 +33,7 @@ from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
 from harness.schedules import ScheduleService
 from harness.secrets import SecretService
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
 from harness.tickets.domain.prompts import ORCHESTRATOR
 from harness.tools import ApprovalService, ToolService, Toolset

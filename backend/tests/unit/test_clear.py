@@ -33,7 +33,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, run_service, runtime_over
 from tests.unit.test_compaction_service import tool_turn

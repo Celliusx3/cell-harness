@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.repository import (
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.repository.session_repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
     SessionNotFoundError,

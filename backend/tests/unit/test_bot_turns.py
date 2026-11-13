@@ -41,7 +41,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tools import Ok
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool
 from tests.unit.helpers import durable_service, new_session, runtime_over

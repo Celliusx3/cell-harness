@@ -20,8 +20,8 @@ from harness.bots.repository.bot_repository import BotRepository
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.domain.log import Session
 from harness.session.domain.models import BotInstructionsEvent
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 
 
 class BotService:

@@ -37,8 +37,8 @@ from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import ChatPlatform, ModelDetails
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService

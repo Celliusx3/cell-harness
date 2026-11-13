@@ -9,7 +9,7 @@ from uuid import uuid4
 from harness.session.domain.log import Session
 from harness.session.domain.models import ChatCleared, SessionHeader
 from harness.session.domain.repair import repair
-from harness.session.repository import SessionRepository
+from harness.session.repository.session_repository import SessionRepository
 
 
 class SessionService:

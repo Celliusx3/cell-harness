@@ -24,8 +24,8 @@ from harness.session.domain.models import (
     SessionEvent,
     ToolCallEvent,
 )
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.tools import Approval, ApprovalMode, Failure, Ok
 
 logger = logging.getLogger("harness.runs")

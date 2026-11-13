@@ -16,8 +16,8 @@ from harness.llm import StreamEvent
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import SecretService
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService, Tool, ToolService, Toolset

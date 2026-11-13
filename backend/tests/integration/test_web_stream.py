@@ -17,8 +17,8 @@ from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.web import sse as sse_module
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from tests.integration.web_helpers import assistant_chat
 from tests.unit.fakes import (
     OneModel,

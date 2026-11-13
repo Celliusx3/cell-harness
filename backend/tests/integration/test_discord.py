@@ -14,8 +14,8 @@ from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService
 from harness.secrets.domain.details import DiscordDetails, TelegramDetails
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.web.server import build_channels
 from tests.unit.fakes import OneModel, ScriptedClient
 from tests.unit.helpers import no_bots, no_images

@@ -1,6 +1,6 @@
 # 17. Layer session: storage and service
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

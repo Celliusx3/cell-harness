@@ -19,7 +19,7 @@ from harness.session.domain.models import (
     TurnEndReason,
     TurnStart,
 )
-from harness.session.repository import SessionNotFoundError
+from harness.session.repository.session_repository import SessionNotFoundError
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 
 logger = logging.getLogger("harness.runs")

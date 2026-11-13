@@ -15,8 +15,8 @@ from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.channels.web.channel import WebChannel
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import no_bots, no_images, no_skills
 from tests.webapp import files_in, images_in

@@ -14,7 +14,7 @@ from harness.channels.repository import ChatRepository, ChatState
 from harness.files import ChatFile
 from harness.runs.service.run import Run, RunAlreadyActive
 from harness.runs.service.run_service import RunService
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService, UnknownSkill
 
 logger = logging.getLogger("harness.channels")

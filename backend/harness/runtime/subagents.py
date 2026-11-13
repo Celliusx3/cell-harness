@@ -9,7 +9,7 @@ from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, Tu
 from harness.runtime.run_to_end import HelperTurn, run_to_end
 from harness.runtime.service import Runtime
 from harness.session.domain.models import ApprovalModeChanged
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tools.domain.decision import ApprovalMode
 from harness.tools.native.subagent import (
     SubagentOutcome,

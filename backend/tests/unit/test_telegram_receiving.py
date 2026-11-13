@@ -22,9 +22,9 @@ from harness.channels.telegram.batching import (
 )
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import link_to_assistant, no_bots, no_images, no_skills, skills_at

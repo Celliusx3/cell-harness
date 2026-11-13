@@ -14,7 +14,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.repositories.jsonl import JsonlSessionRepository
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 
 
 def header(session_id: str = "s") -> SessionHeader:

@@ -19,7 +19,7 @@ from harness.bots import (
     GroupService,
 )
 from harness.schedules import ScheduleService
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.schedule import (
     SCHEDULE_EDIT,

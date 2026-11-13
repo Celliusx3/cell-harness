@@ -23,8 +23,8 @@ from harness.runs.service.run import Run, RunAlreadyActive
 from harness.runs.service.run_service import RunService
 from harness.runtime.compaction import CompactionRefused, check_can_compact
 from harness.session.domain.log import Session
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from harness.tools import Approval, ApprovalMode, Failure, Ok
 

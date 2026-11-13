@@ -47,8 +47,8 @@ from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.router.credential_router import build_router as build_credentials_router
 from harness.secrets.router.secret_router import build_router as build_secrets_router
 from harness.secrets.service.credential_effects import CredentialEffects
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from harness.skills.router.skill_router import build_router as build_skills_router
 from harness.tickets.repository.ticket_repository import TicketRepository

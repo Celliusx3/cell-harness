@@ -19,7 +19,9 @@ CIRCULAR_IMPORT_RISK = (
     "harness.tools.client",
     "harness.skills.service.tool",
 )
-STORAGE = ("repository", "repositories", "service")
+PORT = "repository/session_repository"
+SERVICE = "service/session_service"
+STORAGE = (PORT, "repository/jsonl_session_repository", SERVICE)
 OUTER_LAYERS = ("repository", "service", "router")
 IO_MODULES = frozenset(
     (
@@ -45,13 +47,13 @@ def session_imports(name: str) -> list[str]:
         node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module
     ]
     prefix = "harness.session."
-    return [m.removeprefix(prefix).split(".")[0] for m in modules if m.startswith(prefix)]
+    return [m.removeprefix(prefix).replace(".", "/") for m in modules if m.startswith(prefix)]
 
 
 @pytest.mark.parametrize("name", PURE)
 def test_a_pure_module_knows_nothing_about_storage(name: str) -> None:
     for imported in session_imports(name):
-        assert imported not in STORAGE, (
+        assert imported.split("/")[0] not in {s.split("/")[0] for s in STORAGE}, (
             f"{name}.py imports {imported!r}. What a conversation is must not "
             f"depend on where it is kept — that is what keeps the backend swappable."
         )
@@ -76,8 +78,9 @@ def test_a_pure_module_does_no_io(name: str) -> None:
 
 
 def test_the_service_depends_on_the_port_not_the_backend() -> None:
-    assert "repositories" not in session_imports("service")
-    assert "repository" in session_imports("service")
+    imported = session_imports(SERVICE)
+    assert [m for m in imported if m.startswith("repository/") and m != PORT] == []
+    assert PORT in imported
 
 
 def test_every_named_module_exists() -> None:
@@ -87,8 +90,11 @@ def test_every_named_module_exists() -> None:
 
 
 def test_at_least_one_backend_exists() -> None:
-    backends = [p for p in (SESSION / "repositories").glob("*.py") if p.stem != "__init__"]
-    assert backends, "session/repositories/ holds no backend"
+    port = pathlib.PurePosixPath(PORT).name
+    backends = [
+        p for p in (SESSION / "repository").glob("*.py") if p.stem not in ("__init__", port)
+    ]
+    assert backends, "session/repository/ holds no backend"
 
 
 def test_the_sandbox_imports_nothing_from_the_harness() -> None:

@@ -16,8 +16,8 @@ from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
 from harness.session.domain.models import ToolResultEvent
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.tools import (
     INVALID_ARGUMENTS,
     ApprovalService,

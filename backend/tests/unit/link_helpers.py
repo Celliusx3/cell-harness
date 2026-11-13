@@ -12,8 +12,8 @@ from harness.channels.gateway import ChannelGateway
 from harness.channels.links import ChatLinks, LinkCodes
 from harness.channels.repositories.jsonl import JsonlChatRepository
 from harness.runs.service.run_service import RunService
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.webapp import MODEL_CREDENTIAL

@@ -13,8 +13,8 @@ from harness.config.settings import Settings
 from harness.images import ImageService
 from harness.mcp import McpService
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.web import server
 from harness.web.runtime import build_runtime
 from harness.web.server import build_channels

@@ -10,8 +10,8 @@ from harness.session.domain.models import (
     ToolResultEvent,
     TurnStart,
 )
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.repository import SessionNotFoundError
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.repository.session_repository import SessionNotFoundError
 from harness.tools import ToolUi
 from tests.unit.jsonl_helpers import a_turn, header, repository
 

@@ -24,8 +24,8 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 
 FIRST = Image(media_type="image/png", sha256="1" * 64, size=3)
 SECOND = Image(media_type="image/jpeg", sha256="2" * 64, size=3)

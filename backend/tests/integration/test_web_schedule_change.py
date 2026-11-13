@@ -22,8 +22,8 @@ from harness.session.domain.models import (
     ToolCallEvent,
     TurnStart,
 )
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.tools.native.schedule import schedule_edit_tool
 from tests.integration.web_helpers import send, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool

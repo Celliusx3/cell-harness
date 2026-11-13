@@ -28,8 +28,8 @@ from harness.runtime.inbox import NO_INBOX, Inbox
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
 from harness.session.domain.models import SessionHeader
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from harness.tickets.domain.models import Ticket
 from harness.tickets.repository.ticket_repository import TicketRepository

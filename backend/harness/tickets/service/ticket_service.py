@@ -15,8 +15,8 @@ from harness.runs.service.run import Run
 from harness.runs.service.run_service import RunService
 from harness.session.domain.log import Session
 from harness.session.domain.models import SessionEvent, TicketReport, TicketReportEvent
-from harness.session.repository import SessionNotFoundError
-from harness.session.service import SessionService
+from harness.session.repository.session_repository import SessionNotFoundError
+from harness.session.service.session_service import SessionService
 from harness.tickets.domain.models import (
     NEEDS_YOU,
     RETRYABLE,

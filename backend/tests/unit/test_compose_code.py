@@ -18,8 +18,8 @@ from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
 from harness.runtime.service import Runtime
-from harness.session.repositories.jsonl import JsonlSessionRepository
-from harness.session.service import SessionService
+from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
+from harness.session.service.session_service import SessionService
 from harness.skills import SKILL
 from harness.tools import Ok, ToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT

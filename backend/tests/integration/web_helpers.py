@@ -15,7 +15,7 @@ from harness.llm import StreamEvent
 from harness.runs.service.bot_messages import BotMessages
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.session.service import SessionService
+from harness.session.service.session_service import SessionService
 from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
