@@ -1,0 +1,15 @@
+== main d6de1662, with #145, try 1
+front turn calls ticket_route {"items":[{"kind":"accept","title":"Download content from example.com","task":"Help download https://example.com/"}]}
+  -> ok: 1. accepted ticket a47318c7a016486aaea92e798ce99f8f, titled Download content from example.com
+bot says: I've started work on downloading content from https://example.com/.
+(front turn ends)
+== main d6de1662, with #145, try 2
+front turn calls ticket_route {"items":[{"kind":"accept","title":"Download https://example.com/","task":"https://example.com/ can u help me download this?"}]}
+  -> ok: 1. accepted ticket 0b22d4ee50124b3bb75d376dd5120fcd, titled Download https://example.com/
+bot says: I've started a ticket to help you download from https://example.com/.
+(front turn ends)
+== main d6de1662, with #145, try 3
+front turn calls ticket_route {"items":[{"kind":"accept","title":"Download https://example.com/","task":"help me download https://example.com/"}]}
+  -> ok: 1. accepted ticket d72b4800254343ad9c23370726970ed3, titled Download https://example.com/
+bot says: I started a ticket to help you download https://example.com/.
+(front turn ends)
