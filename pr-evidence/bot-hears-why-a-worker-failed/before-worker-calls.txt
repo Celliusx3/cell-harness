@@ -1,0 +1,6 @@
+turn/start {"type": "turn/start", "turn": 0, "bot_id": "assistant"}
+[s0] CALL extract_archive {"path":"run137-before/harness/files/assistant/woj08HMTB-TEWr_VB1FPpA/broken-page.zip"}
+   -> ok '1 files, in order:\nrun137-before/harness/files/assistant/woj08HMTB-TEWr_VB1FPpA/broken-page-files/001.png' 
+[s1] CALL view_image {"path":"run137-before/harness/files/assistant/woj08HMTB-TEWr_VB1FPpA/broken-page-files/001.png"}
+   -> ok 'The image at run137-before/harness/files/assistant/woj08HMTB-TEWr_VB1FPpA/broken-page-files/001.png ' 
+turn/end {"type": "turn/end", "turn": 0, "reason": "failed"}
