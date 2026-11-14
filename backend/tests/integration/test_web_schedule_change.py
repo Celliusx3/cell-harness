@@ -25,6 +25,7 @@ from harness.session.domain.models import (
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
 from harness.tools.native.schedule import schedule_edit_tool
+from tests.bot_models import save_chat_of
 from tests.integration.web_helpers import send, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool
 from tests.unit.helpers import durable_service, no_skills, run_service
@@ -61,7 +62,7 @@ async def page_of(tmp_path: Path) -> AsyncIterator[Callable[..., Awaitable[Page]
         release = asyncio.Event()
         sessions = durable_service(tmp_path / "sessions")
         bots = bots_in(tmp_path, sessions)
-        await bots.open_active_bots()
+        await save_chat_of(sessions, bots, ASSISTANT_ID)
         schedules = schedules_in(tmp_path, Clock(START))
         made = schedules.create(bot_id, TITLE, "Check it.", DAILY)
         model = SteppedClient(*scripts(made.id))

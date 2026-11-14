@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import httpx
 import pytest
 
@@ -80,6 +82,16 @@ async def test_assistant_is_there_from_the_first_start(bots) -> None:
         (ASSISTANT_ID, "Assistant", ASSISTANT),
         (BUILDER_ID, "Bot builder", BUILDER_INSTRUCTIONS),
     ]
+
+
+async def test_listing_the_bots_saves_no_chat(bots, tmp_path: Path) -> None:
+    client, _, _ = bots
+
+    listed = await client.get("/api/bots")
+
+    assert listed.status_code == 200, listed.text
+    assert [b["id"] for b in listed.json()] == [ASSISTANT_ID, BUILDER_ID]
+    assert sorted(path.name for path in (tmp_path / "sessions").glob("*.jsonl")) == []
 
 
 async def test_a_new_bot_has_a_chat_that_opens_with_its_instructions(bots) -> None:

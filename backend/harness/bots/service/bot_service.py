@@ -20,7 +20,6 @@ from harness.bots.repository.bot_repository import BotRepository
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.domain.log import Session
 from harness.session.domain.models import BotInstructionsEvent
-from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
 
 
@@ -45,15 +44,8 @@ class BotService:
         self._built_in_ids = frozenset(bot.id for bot in self._built_ins)
 
     async def open_active_bots(self) -> tuple[Bot, ...]:
-        """The built-ins, then the active others in the order made; opens a built-in's chat once."""
-        bots = self.active_bots()
-        for bot in bots[: len(self._built_ins)]:
-            try:
-                await self._sessions.read(self.chat_of(bot.id))
-            except SessionNotFoundError:
-                session = await self._sessions.create(self.chat_of(bot.id))
-                await self._log_instructions(session, bot)
-        return bots
+        """The built-ins, then the active others in the order made; creates no chat."""
+        return self.active_bots()
 
     def active_bots(self) -> tuple[Bot, ...]:
         """The active bots, built-ins first, read without opening any chat."""

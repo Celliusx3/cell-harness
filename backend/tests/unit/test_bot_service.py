@@ -23,7 +23,6 @@ from harness.bots import (
 )
 from harness.bots.domain.models import DEFAULT_MAX_WORKERS
 from harness.prompts import BUILDER_INSTRUCTIONS
-from harness.session.domain.models import BotInstructionsEvent
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
 from tests.unit.helpers import durable_service
@@ -61,18 +60,6 @@ async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
     assert await missing.open_active_bots() == (KIND, BUILDER)
     with pytest.raises(BotNotFound):
         missing.active_bot("any-conversation")
-
-
-async def test_listing_opens_assistant_s_chat_only_the_first_time(
-    bots: BotService, service: SessionService
-) -> None:
-    await bots.open_active_bots()
-    await bots.open_active_bots()
-
-    chat = await service.read(ASSISTANT_ID)
-    assert list(chat.events()) == [
-        BotInstructionsEvent(name="Assistant", instructions="Be kind.", bot_id=ASSISTANT_ID)
-    ]
 
 
 def test_the_file_is_read_on_every_call(tmp_path: Path, bots: BotService) -> None:

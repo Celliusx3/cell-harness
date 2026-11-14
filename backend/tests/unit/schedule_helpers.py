@@ -12,6 +12,7 @@ from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.session.domain.models import ScheduleReminderEvent
 from harness.session.service.session_service import SessionService
 from harness.tools import Tool, ToolOutcome
+from tests.bot_models import save_chat_of
 from tests.unit.gateway_helpers import build, settle
 from tests.unit.helpers import context_for, no_bots, no_skills
 
@@ -37,10 +38,10 @@ def schedules_in(tmp_path: Path, clock: Clock) -> ScheduleService:
 
 
 async def world(tmp_path: Path, client, *tools: Tool):
-    """A gateway, its runs and chats, and a scheduler over schedules timed by a clock at START."""
+    """A gateway, runs, Assistant's saved chat, and a scheduler on a clock at START."""
     bot, gateway, runs, _, sessions = await build(tmp_path, client, *tools, skills=no_skills())
     bots = no_bots(sessions)
-    await bots.open_active_bots()
+    await save_chat_of(sessions, bots, ASSISTANT_ID)
     clock = Clock(START)
     schedules = schedules_in(tmp_path, clock)
     scheduler = Scheduler(schedules, bots, runs, follow=gateway.follow, now=clock)

@@ -1,6 +1,6 @@
 # 05. Listing bots creates no chat
 
-**Status.** open
+**Status.** done
 
 ## What to build
 
