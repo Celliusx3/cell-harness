@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.chat_repository import ChatState
-from harness.channels.router.link_code_router import build_router
+from harness.channels.router.link_code_router import LinkCodeRouter
 from harness.channels.service.links import (
     LINK_CODE_SECONDS,
     WRONG_GUESSES_BEFORE_SILENCE,
@@ -196,7 +196,7 @@ async def _ask(linked: World, tmp_path: Path, bot_id: str, body: object) -> http
         DiskSecretRepository(tmp_path / "secrets.json"), encryption_key="k" * 32
     )
     app = FastAPI()
-    app.include_router(build_router(linked.codes, linked.bots, keyring))
+    app.include_router(LinkCodeRouter(linked.codes, linked.bots, keyring).router)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as http:
         return await http.post(f"/api/bots/{bot_id}/link-codes", json=body)

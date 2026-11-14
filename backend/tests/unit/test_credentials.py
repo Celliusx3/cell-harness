@@ -14,7 +14,7 @@ from harness.bots import BotDraft, BotRepository, BotService
 from harness.secrets import Destination, DiskSecretRepository, SecretService
 from harness.secrets.domain.details import ModelDetails, TelegramDetails
 from harness.secrets.domain.sealed import SealedSecret
-from harness.secrets.router.credential_router import build_router
+from harness.secrets.router.credential_router import CredentialRouter
 from harness.secrets.service.sealing import sealed
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL, no_platforms
@@ -55,7 +55,7 @@ def _add_sealed(tmp_path: Path, name: str, details, value: str) -> None:
 
 async def _listed(secrets: SecretService, bots: BotService) -> httpx.Response:
     app = FastAPI()
-    app.include_router(build_router(secrets, bots, no_platforms(secrets)))
+    app.include_router(CredentialRouter(secrets, bots, no_platforms(secrets)).router)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as http:
         return await http.get("/api/credentials")

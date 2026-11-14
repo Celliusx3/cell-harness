@@ -18,7 +18,7 @@ from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.platforms import PlatformChannels
 from harness.secrets import DiskSecretRepository, SecretRefused, SecretService
 from harness.secrets.domain.details import ChatPlatform, DiscordDetails, TelegramDetails
-from harness.secrets.router.credential_router import build_router
+from harness.secrets.router.credential_router import CredentialRouter
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, no_skills, run_service
 
@@ -122,7 +122,7 @@ def http(tmp_path: Path, keyring, gateway, started) -> httpx.AsyncClient:
     )
     app = FastAPI()
     platforms = PlatformChannels(gateway, keyring, started)
-    app.include_router(build_router(keyring, bots, platforms))
+    app.include_router(CredentialRouter(keyring, bots, platforms).router)
     transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
     return httpx.AsyncClient(
         transport=transport, base_url="http://127.0.0.1:4886", headers={"origin": PAGE}

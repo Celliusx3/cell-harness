@@ -23,37 +23,47 @@ from harness.tools.native.secrets import ASK_FOR_SECRET, SavedName, SecretAsk
 logger = logging.getLogger(__name__)
 
 
-def build_router(
-    web: WebChannel,
-    client_tools: ClientToolService,
-    secrets: SecretService,
-    effects: CredentialEffects,
-) -> APIRouter:
+class SecretCardRouter:
     """The card's save: the key is stored by its kind, the waiting call gets its name."""
-    router = chat_router(web, tag="secrets")
 
-    @router.post(
-        "/{conversation_id}/calls/{call_id}/secret", status_code=status.HTTP_204_NO_CONTENT
-    )
-    async def save_secret(conversation_id: str, call_id: str, request: Request) -> Response:
-        if web.runs.active(conversation_id) is not None:
+    def __init__(
+        self,
+        web: WebChannel,
+        client_tools: ClientToolService,
+        secrets: SecretService,
+        effects: CredentialEffects,
+    ) -> None:
+        self._web = web
+        self._client_tools = client_tools
+        self._secrets = secrets
+        self._effects = effects
+        self.router: APIRouter = chat_router(web, tag="secrets")
+        self.router.add_api_route(
+            "/{conversation_id}/calls/{call_id}/secret",
+            self.save_secret,
+            methods=["POST"],
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+
+    async def save_secret(self, conversation_id: str, call_id: str, request: Request) -> Response:
+        if self._web.runs.active(conversation_id) is not None:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
-        session = await web.sessions.resume(conversation_id)
-        ask = _waiting_ask(client_tools, session, call_id)
+        session = await self._web.sessions.resume(conversation_id)
+        ask = self._waiting_ask(session, call_id)
         entered = _entered(ask, await request.body())
         match entered.details:
             case CustomDetails(destination=destination):
-                bot = _asker(web, session, call_id)
-                secrets.save(ask.name, destination, entered.value)
-                web.bots.allow_secret(bot.id, ask.name)
+                bot = self._asker(session, call_id)
+                self._secrets.save(ask.name, destination, entered.value)
+                self._web.bots.allow_secret(bot.id, ask.name)
             case details:
-                secrets.add_credential(ask.name, details, entered.value)
-                await effects.added(ask.name, details, ())
+                self._secrets.add_credential(ask.name, details, entered.value)
+                await self._effects.added(ask.name, details, ())
         try:
             saved = SavedName(name=ask.name, kind=ask.kind)
-            await web.gateway.resume(session, call_id, Ok(content=saved.model_dump_json()))
+            await self._web.gateway.resume(session, call_id, Ok(content=saved.model_dump_json()))
         except RunAlreadyActive as err:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"call {call_id!r} was already answered"
@@ -61,32 +71,28 @@ def build_router(
         logger.info("%s key %r for %s saved by the browser", ask.kind, ask.name, conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    return router
+    def _asker(self, session: Session, call_id: str) -> Bot:
+        """The bot whose turn asked for `call_id`, which a website key is tied to; a 409 if none."""
+        try:
+            return self._web.runs.groups.calling_bot(session, call_id)
+        except BotNotFound as err:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
 
-
-def _asker(web: WebChannel, session: Session, call_id: str) -> Bot:
-    """The bot whose turn asked for `call_id`, which a website key is tied to; a 409 if none."""
-    try:
-        return web.runs.groups.calling_bot(session, call_id)
-    except BotNotFound as err:
-        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
-
-
-def _waiting_ask(client_tools: ClientToolService, session: Session, call_id: str) -> SecretAsk:
-    """The `ask_for_secret` call `call_id` still waiting in `session`; a 404 for any other."""
-    asked = next(
-        (
-            pending
-            for pending in client_tools.answerable_calls(session)
-            if pending.call_id == call_id and pending.name == ASK_FOR_SECRET
-        ),
-        None,
-    )
-    if asked is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, detail=f"call {call_id!r} is not waiting for a key"
+    def _waiting_ask(self, session: Session, call_id: str) -> SecretAsk:
+        """The `ask_for_secret` call `call_id` still waiting in `session`; a 404 for any other."""
+        asked = next(
+            (
+                pending
+                for pending in self._client_tools.answerable_calls(session)
+                if pending.call_id == call_id and pending.name == ASK_FOR_SECRET
+            ),
+            None,
         )
-    return SecretAsk.model_validate_json(asked.arguments)
+        if asked is None:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, detail=f"call {call_id!r} is not waiting for a key"
+            )
+        return SecretAsk.model_validate_json(asked.arguments)
 
 
 def _entered(ask: SecretAsk, raw: bytes) -> Entered:

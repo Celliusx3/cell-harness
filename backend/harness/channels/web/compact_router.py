@@ -14,18 +14,27 @@ from harness.runtime.compaction import CompactionRefused
 logger = logging.getLogger("harness.web")
 
 
-def build_router(web: WebChannel) -> APIRouter:
-    router = chat_router(web, tag="compaction")
+class CompactRouter:
+    """The person's ask to compact a chat now, refused while it runs a turn."""
 
-    @router.post("/{conversation_id}/compact", status_code=status.HTTP_202_ACCEPTED)
-    async def compact(conversation_id: str) -> Response:
-        if web.runs.active(conversation_id) is not None:
+    def __init__(self, web: WebChannel) -> None:
+        self._web = web
+        self.router: APIRouter = chat_router(web, tag="compaction")
+        self.router.add_api_route(
+            "/{conversation_id}/compact",
+            self.compact,
+            methods=["POST"],
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+
+    async def compact(self, conversation_id: str) -> Response:
+        if self._web.runs.active(conversation_id) is not None:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
-        session = await web.sessions.resume(conversation_id)
+        session = await self._web.sessions.resume(conversation_id)
         try:
-            web.gateway.compact(session, ())
+            self._web.gateway.compact(session, ())
         except CompactionRefused as err:
             raise HTTPException(status.HTTP_409_CONFLICT, detail=err.reason) from err
         except RunAlreadyActive as err:
@@ -34,5 +43,3 @@ def build_router(web: WebChannel) -> APIRouter:
             ) from err
         logger.info("conversation %s compacted by the browser", conversation_id)
         return Response(status_code=status.HTTP_202_ACCEPTED)
-
-    return router

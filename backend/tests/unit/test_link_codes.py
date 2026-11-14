@@ -16,7 +16,7 @@ from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.chat_repository import ChatState
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
-from harness.channels.router.link_code_router import build_router
+from harness.channels.router.link_code_router import LinkCodeRouter
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import LINK_CODE_SECONDS, ChatLinks, LinkCodes
 from harness.secrets import DiskSecretRepository, SecretService
@@ -220,7 +220,7 @@ def keyring(tmp_path: Path) -> SecretService:
 
 async def _ask_for_code(world, keyring, bot_id: str, platform: str) -> httpx.Response:
     app = FastAPI()
-    app.include_router(build_router(world["codes"], world["bots"], keyring))
+    app.include_router(LinkCodeRouter(world["codes"], world["bots"], keyring).router)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as http:
         return await http.post(f"/api/bots/{bot_id}/link-codes", json={"platform": platform})

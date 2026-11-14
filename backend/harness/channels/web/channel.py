@@ -8,7 +8,7 @@ from fastapi import APIRouter
 
 from harness.bots import BotService
 from harness.channels.service.gateway import ChannelGateway
-from harness.channels.web.routes import build_router
+from harness.channels.web.routes import ConversationRouter
 from harness.files import ChatFileService
 from harness.images import ImageService
 
@@ -33,7 +33,7 @@ class WebChannel:
         self.bots = bots
         self.files = files
         self.images = images
-        self.router: APIRouter = build_router(self)
+        self.router: APIRouter = ConversationRouter(self).router
 
     def conversation_for(self, chat_id: str) -> str:
         """A browser chat is named by the conversation it writes into."""

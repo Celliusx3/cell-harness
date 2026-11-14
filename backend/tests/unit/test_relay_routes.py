@@ -13,7 +13,7 @@ from starlette.websockets import WebSocketDisconnect
 from websockets.sync.server import Server, ServerConnection, serve
 
 from harness.relay import RELAY_TTL_SECONDS, RelayService, Upstream
-from harness.relay.router.relay_router import build_router
+from harness.relay.router.relay_router import RelayRouter
 
 GREETING = b"RFB 003.008\n"
 
@@ -92,7 +92,7 @@ def relays(now: Now) -> RelayService:
 @pytest.fixture
 def client(relays: RelayService) -> Iterator[TestClient]:
     app = FastAPI()
-    app.include_router(build_router(relays))
+    app.include_router(RelayRouter(relays).router)
     with TestClient(app) as client:
         yield client
 

@@ -9,16 +9,20 @@ from harness.secrets import SecretService, SecretSummary
 from harness.secrets.router.schemas import AllowedBot, SavedKey
 
 
-def build_router(secrets: SecretService, bots: BotService) -> APIRouter:
+class SecretRouter:
     """List the keyring's custom keys, each with the bots allowed to use it."""
-    router = APIRouter(prefix="/api/secrets", tags=["secrets"])
 
-    @router.get("", response_model=list[SavedKey])
-    async def list_secrets() -> list[SavedKey]:
-        active = await bots.open_active_bots()
-        return [_saved_key(summary, active) for summary in secrets.summaries()]
+    def __init__(self, secrets: SecretService, bots: BotService) -> None:
+        self._secrets = secrets
+        self._bots = bots
+        self.router: APIRouter = APIRouter(prefix="/api/secrets", tags=["secrets"])
+        self.router.add_api_route(
+            "", self.list_secrets, methods=["GET"], response_model=list[SavedKey]
+        )
 
-    return router
+    async def list_secrets(self) -> list[SavedKey]:
+        active = await self._bots.open_active_bots()
+        return [_saved_key(summary, active) for summary in self._secrets.summaries()]
 
 
 def _saved_key(summary: SecretSummary, bots: tuple[Bot, ...]) -> SavedKey:

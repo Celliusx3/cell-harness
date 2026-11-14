@@ -18,7 +18,7 @@ from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.platforms import PlatformChannels
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import TelegramDetails
-from harness.secrets.router.credential_router import build_router
+from harness.secrets.router.credential_router import CredentialRouter
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
 
@@ -173,7 +173,7 @@ async def _app_with_platforms(
     platforms = PlatformChannels(gateway, keyring, factory)
     await gateway.start()
     app = FastAPI()
-    app.include_router(build_router(keyring, bots, platforms))
+    app.include_router(CredentialRouter(keyring, bots, platforms).router)
     return app, gateway, factory.started
 
 
