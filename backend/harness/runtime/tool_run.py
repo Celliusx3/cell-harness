@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from harness.files import ChatFile, ChatFileService
 from harness.llm import ApplicationMessage, Text, ToolCall, ToolMessage, text_of
-from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
+from harness.prompts import HANDED_OVER, NOT_HANDED_OVER, NOT_RUN_AFTER_TURN_END
 from harness.runtime.events import ToolPending, ToolProgress, ToolResult
 from harness.session.domain.crash_repair import unknown_result
 from harness.session.domain.log import Session
@@ -41,6 +41,12 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
         error=None if isinstance(outcome, Ok) else outcome.code,
         ui=outcome.ui if isinstance(outcome, Ok) else None,
     )
+
+
+def _not_run_result(call_id: str, ended_by: str, *, turn: int, step: int) -> ToolResultEvent:
+    """The result of a call that did not run because `ended_by` ended the turn before it."""
+    refusal = Failure(BLOCKED, NOT_RUN_AFTER_TURN_END.format(tool=ended_by))
+    return settled_result(call_id, refusal, turn=turn, step=step)
 
 
 @dataclass(frozen=True)
@@ -100,9 +106,18 @@ async def run_tool_calls(
     owed = list(calls)
     # Providers want the `tool` messages directly behind the `assistant` that asked.
     notes: list[str] = []
+    ended_by: str | None = None
     try:
         for call in calls:
             session.append(ToolCallEvent(turn=turn, step=step, call=call))
+            if ended_by is not None:
+                skipped = _not_run_result(call.id, ended_by, turn=turn, step=step)
+                session.append(skipped)
+                owed.remove(call)
+                yield ToolResult(
+                    tool_call_id=call.id, name=call.name, content=text_of(skipped.message.content)
+                )
+                continue
             if runtime.checkpoint is not None:
                 await runtime.checkpoint(session)
             async with aclosing(
@@ -122,6 +137,8 @@ async def run_tool_calls(
                         continue
                     if isinstance(event, (ToolResult, ToolPending)):
                         owed.remove(call)
+                        ends = isinstance(event, ToolResult) and event.ends_turn
+                        ended_by = call.name if ends else ended_by
                     yield event
         if notes:
             session.append(

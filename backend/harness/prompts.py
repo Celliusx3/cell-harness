@@ -236,6 +236,11 @@ TOOL_OUTCOME_UNKNOWN = (
     "it took effect, or ask the user."
 )
 
+NOT_RUN_AFTER_TURN_END = (
+    "not run: {tool} ended your turn earlier in this step, so nothing after it runs. If you "
+    "asked the user something, wait for their answer before you do this."
+)
+
 SKIPPED_RESULT = (
     f"{ERROR_PREFIX}the user continued without answering this; do not ask again "
     "unless they return to it, and do not wait for it."
