@@ -6,6 +6,7 @@ import json
 
 from harness.bots import ASSISTANT_ID
 from harness.llm import UserMessage
+from harness.tickets.domain.prompts import TICKET_TURN_FAILED
 from harness.tools.native.tickets import TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
@@ -87,7 +88,6 @@ async def test_a_worker_that_fails_ends_its_ticket_as_failed(tmp_path) -> None:
     (ticket,) = world.tickets.of_bot(ASSISTANT_ID)
     assert ticket.state == "failed"
     (report,) = of_type(log, "ticket/report")
-    assert (
-        report["report"]["text"]
-        == "The worker's turn did not finish, so this ticket has no result."
+    assert report["report"]["text"] == TICKET_TURN_FAILED.format(
+        reason="stream ended without a terminal event"
     )

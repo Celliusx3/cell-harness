@@ -21,6 +21,10 @@ TICKET_NOTE_HEARD = (
     "A note from the orchestrator. It is context for this ticket, not a new task: {text}"
 )
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."
+TICKET_TURN_FAILED = (
+    "The worker's turn failed, so this ticket has no result. Tell the user this reason as it is, "
+    "and do not guess at another: {reason}"
+)
 ORCHESTRATOR_INTRO = (
     "You are the orchestrator of this bot. You do not do the user's tasks yourself: workers do "
     "them. For each message from the user, call ticket_route once, with one item for each request"

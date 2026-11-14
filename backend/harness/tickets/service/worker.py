@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from harness.runtime.events import AgentCompleted, AgentPending, TurnEvent
+from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
 from harness.runtime.run_to_end import HelperAnswer, HelperTurn, resume_to_end, run_to_end
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
@@ -25,6 +25,7 @@ from harness.tickets.domain.prompts import (
     APPROVAL_QUESTION,
     APPROVAL_WAITING,
     TICKET_DID_NOT_FINISH,
+    TICKET_TURN_FAILED,
     WORKER_INTRO,
 )
 from harness.tools import Approval, Failure, Ok
@@ -144,6 +145,10 @@ def worker_end(ending: TurnEvent | None, kept: TicketReportArgs | None) -> Worke
             ask="approval",
             approval_call_id=ending.tool_call_id,
             approval_tool=ending.name,
+        )
+    if isinstance(ending, AgentFailed):
+        return WorkerEnd(
+            state="failed", text=TICKET_TURN_FAILED.format(reason=ending.reason), question=None
         )
     if not isinstance(ending, AgentCompleted):
         return WorkerEnd(state="failed", text=TICKET_DID_NOT_FINISH, question=None)
