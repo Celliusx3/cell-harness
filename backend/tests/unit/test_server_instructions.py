@@ -10,7 +10,7 @@ from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
 from harness.session.domain.models import ServerInstructionsEvent
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import drain, new_session, runtime_over
+from tests.unit.helpers import drain, new_session, runtime_over, toolset_for
 from tests.unit.mcp_fakes import FakeFactory, servers
 
 PC = "You have a PC."
@@ -33,7 +33,9 @@ def logged(session: Session) -> list[ServerInstructionsEvent]:
 
 def runtime_with(client: ScriptedClient, store: McpService) -> Runtime:
     return dataclasses.replace(
-        runtime_over(client, guidance="GUIDE"), server_instructions=store.instructions
+        runtime_over(client, guidance="GUIDE"),
+        tools=toolset_for(can_reach_servers=True),
+        server_instructions=store.instructions,
     )
 
 
@@ -111,3 +113,20 @@ def test_the_prompt_holds_each_server_s_latest_instructions_as_a_paragraph() -> 
     system = runtime.request_messages(session, sees_images=False)[0]
 
     assert system.content == f"GUIDE\n\n{PC}\n\nFind places."
+
+
+async def test_a_runtime_that_cannot_reach_server_tools_is_not_told_about_servers() -> None:
+    factory = FakeFactory()
+    factory.client.instructions = PC
+    store = await connected(factory, "computer")
+    client = ScriptedClient(completed("ok"))
+    session = new_session()
+    runtime = dataclasses.replace(
+        runtime_with(client, store), tools=toolset_for(can_reach_servers=False)
+    )
+
+    await drain(runtime.run("hi", session=session, bot_id="s"))
+
+    assert logged(session) == []
+    assert client.seen[0].content == "GUIDE"
+    await store.aclose()

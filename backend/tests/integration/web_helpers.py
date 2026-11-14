@@ -110,7 +110,7 @@ def messaging_app(
     runtime = Runtime(
         models=OneModel(model),
         images=no_images(),
-        tools=Toolset(tool_service, offered, sight_tools=frozenset()),
+        tools=Toolset(tool_service, offered, sight_tools=frozenset(), can_reach_servers=True),
         guidance="GUIDE",
         checkpoint=service.flush,
     )

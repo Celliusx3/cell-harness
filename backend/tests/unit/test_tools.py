@@ -179,7 +179,12 @@ def test_a_provider_disposer_removes_exactly_its_source() -> None:
 
 def offering(*tools: Tool, default: tuple[str, ...]) -> Toolset:
     """A toolset with a chosen `default_tools` that offers every tool it was given."""
-    return Toolset(ToolService(tools, approvals=no_approvals()), default, sight_tools=frozenset())
+    return Toolset(
+        ToolService(tools, approvals=no_approvals()),
+        default,
+        sight_tools=frozenset(),
+        can_reach_servers=True,
+    )
 
 
 async def test_a_registered_tool_outside_the_offer_is_refused_by_name() -> None:

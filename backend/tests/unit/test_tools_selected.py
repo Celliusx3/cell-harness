@@ -39,7 +39,7 @@ def toolset(*tools: Tool) -> Toolset:
         tool_service=tool_service, runner=FakeRunner(), withheld=frozenset()
     ):
         tool_service.register(made)
-    return Toolset(tool_service, DEFAULTS, sight_tools=frozenset())
+    return Toolset(tool_service, DEFAULTS, sight_tools=frozenset(), can_reach_servers=True)
 
 
 def named(built: Toolset, tools_selected: tuple[str, ...]) -> list[str]:

@@ -37,9 +37,10 @@ Five shapes that hold everywhere:
   and keep their own tests and 80% gate (`make test-skills`).
 - **Every bot works on one PC.** A Linux desktop with Chrome and a shell, run by
   the `computer` server in a microVM that ships inside the app (microsandbox;
-  `COMPUTER_ENGINE=docker` is the other engine). Once it is added, every bot is
-  told about it by the server's own instructions. Scripts
-  that call tools still run in Deno; the PC is a tool the bot uses.
+  `COMPUTER_ENGINE=docker` is the other engine). Once it is added, every bot's
+  workers are told about it by the server's own instructions; the bot itself only
+  routes, and is told about no server. Scripts
+  that call tools still run in Deno; the PC is a tool the workers use.
   The network rules' spec: `git show db9b326:docs/specs/pc-center/spec.md`.
 - **Every channel is a client of one gateway** — browser, Telegram, Discord. A
   new platform is one class and one line in `build_channels`.

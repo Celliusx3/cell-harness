@@ -131,6 +131,7 @@ async def test_a_script_reaches_a_real_tool_through_a_real_toolset() -> None:
         tool_service,
         (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT),
         sight_tools=frozenset(),
+        can_reach_servers=True,
     )
 
     async def run(name: str, arguments: str) -> ToolOutcome:

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from harness.llm import ToolCall, ToolSpec
+from harness.prompts import NOT_YOUR_TOOL
 from harness.tools.domain.context import CallOrigin, ToolProgressReporter
 from harness.tools.domain.decision import ApprovalMode
 from harness.tools.domain.outcome import REFUSED, Failure, ToolOutcome
@@ -34,10 +35,12 @@ class Toolset:
         default_tools: Sequence[str],
         *,
         sight_tools: frozenset[str],
+        can_reach_servers: bool,
     ) -> None:
         self.tool_service = tool_service
         self._default_tools = tuple(default_tools)
         self._sight_tools = sight_tools
+        self.can_reach_servers = can_reach_servers
 
     @property
     def default_mode(self) -> ApprovalMode:
@@ -80,7 +83,7 @@ class Toolset:
         """Run one of the model's own calls if it was offered, unasked if allowed for the chat."""
         offered = self._offered_tools(session.tools_selected(), sees_images)
         if call.name not in {tool.name for tool in offered}:
-            return Failure(REFUSED, _not_offered_message(call.name))
+            return Failure(REFUSED, _not_offered_message(call.name, self.can_reach_servers))
         return await self.tool_service.dispatch(
             call,
             progress=progress,
@@ -97,7 +100,9 @@ class Toolset:
         )
 
 
-def _not_offered_message(name: str) -> str:
+def _not_offered_message(name: str, can_reach_servers: bool) -> str:
+    if not can_reach_servers:
+        return NOT_YOUR_TOOL.format(name=name)
     return (
         f"{name!r} is not in your tool list. Select it by reading its schema with "
         "get_function_details — then it is, and you can call it directly. "

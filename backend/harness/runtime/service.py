@@ -202,9 +202,9 @@ class Runtime:
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
         if self.server_instructions is not None:
-            for event in _changed_instructions(
-                session.server_instructions(), self.server_instructions()
-            ):
+            reachable = self.tools is not None and self.tools.can_reach_servers
+            current = self.server_instructions() if reachable else {}
+            for event in _changed_instructions(session.server_instructions(), current):
                 session.append(event)
         return turn
 
