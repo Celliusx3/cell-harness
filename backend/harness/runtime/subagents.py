@@ -30,13 +30,18 @@ class Subagents:
         self, subagent_id: str, task: SubagentTask, *, bot_id: str, mode: ApprovalMode
     ) -> SubagentOutcome:
         """Run `task` for `bot_id` in `mode` in a new session `subagent_id`, and report its end."""
-        session = await self.sessions.create(subagent_id)
+        session = await self.sessions.create(subagent_session_id(subagent_id))
         session.append(ApprovalModeChange(mode=mode))
         turn = HelperTurn(
             intro=SUBAGENT_INTRO.format(name=task.name), prompt=task.task, bot_id=bot_id
         )
         last = await run_to_end(self.runtime, self.sessions, session, turn)
         return _subagent_outcome(last)
+
+
+def subagent_session_id(subagent_id: str) -> str:
+    """The id of the session the subagent `subagent_id` logs its steps in: its own id."""
+    return subagent_id
 
 
 def _subagent_outcome(ending: TurnEvent | None) -> SubagentOutcome:

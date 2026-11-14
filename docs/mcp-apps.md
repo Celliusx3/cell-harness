@@ -115,10 +115,10 @@ consent, and is not part of the conversation the model sees.
   same error mapping — the anyio task-affinity constraint in `_connection.py`
   applies to every request kind.
 - **Two browser endpoints, `harness/web/routes/mcp.py`.**
-  `GET /api/mcp/{server}/resources?uri=` returns the HTML and a CSP string the
+  `GET /api/mcp/{server_id}/resources?uri=` returns the HTML and a CSP string the
   harness composed (spec defaults, widened only by the https origins the
   resource declared — values are parsed as URLs and only their origin kept).
-  `POST /api/mcp/{server}/tools/{name}` **proxies** the call to the app's own
+  `POST /api/mcp/{server_id}/tools/{name}` **proxies** the call to the app's own
   server — by the server's name, resolved from the server's published list,
   the `CallToolResult` returned verbatim (`_meta`, image blocks and all). Not
   the tool service's dispatch: that is the model's and a script's path, with a menu to

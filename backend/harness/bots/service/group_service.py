@@ -41,13 +41,20 @@ class GroupService:
         own = next((bot for bot in active if self._bots.chat_of(bot.id) == chat_id), None)
         if own is not None:
             return ChatMembers(group=None, bots=(own,))
-        group = next((group for group in self._bots.groups() if group.id == chat_id), None)
+        group = next(
+            (group for group in self._bots.groups() if self.chat_of_group(group.id) == chat_id),
+            None,
+        )
         if group is None:
             raise BotNotFound(chat_id)
         by_id = {bot.id: bot for bot in active}
         return ChatMembers(
             group=group, bots=tuple(by_id[bot_id] for bot_id in group.member_ids if bot_id in by_id)
         )
+
+    def chat_of_group(self, group_id: str) -> str:
+        """The id of the one chat the group talks in, which is the group's own id."""
+        return group_id
 
     def calling_bot(self, session: Session, call_id: str) -> Bot:
         """The member whose turn asked for `call_id`; the chat's only bot in an older log."""

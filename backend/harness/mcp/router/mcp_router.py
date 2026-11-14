@@ -28,21 +28,21 @@ class McpRouter:
         self.router: APIRouter = APIRouter(prefix="/api/mcp", tags=["mcp"])
         self.router.add_api_route("", self.list_servers, methods=["GET"], response_model=ServerList)
         self.router.add_api_route(
-            "/{server}/resources", self.read_app, methods=["GET"], response_model=AppResource
+            "/{server_id}/resources", self.read_app, methods=["GET"], response_model=AppResource
         )
-        self.router.add_api_route("/{server}/tools/{name}", self.call_app_tool, methods=["POST"])
+        self.router.add_api_route("/{server_id}/tools/{name}", self.call_app_tool, methods=["POST"])
 
     async def list_servers(self) -> ServerList:
         """Every configured server, connected or not."""
         return ServerList(servers=tuple(s.id for s in self._mcp.statuses()))
 
-    async def read_app(self, server: str, uri: str) -> AppResource:
-        self._refuse_unknown_server(server)
+    async def read_app(self, server_id: str, uri: str) -> AppResource:
+        self._refuse_unknown_server(server_id)
         if not uri.startswith(UI_SCHEME):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail=f"{uri!r} is not a ui:// resource"
             )
-        result = await self._mcp.read_resource(server, uri)
+        result = await self._mcp.read_resource(server_id, uri)
         content = result.contents[0] if result.contents else None
         if not isinstance(content, TextResourceContents) or content.mime_type != APP_MIME_TYPE:
             raise HTTPException(
@@ -50,12 +50,14 @@ class McpRouter:
             )
         return AppResource(html=content.text, csp=build_csp(content.meta))
 
-    async def call_app_tool(self, server: str, name: str, body: AppToolCall) -> JSONResponse:
-        self._refuse_unknown_server(server)
-        published = self._mcp.published_tools(server)
+    async def call_app_tool(self, server_id: str, name: str, body: AppToolCall) -> JSONResponse:
+        self._refuse_unknown_server(server_id)
+        published = self._mcp.published_tools(server_id)
         tool = next((t for t in published if t.name == name), None)
         if tool is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"{server} has no tool {name!r}")
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, detail=f"{server_id} has no tool {name!r}"
+            )
         if not is_app_visible(tool):
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, detail=f"{name!r} is not callable by apps"
@@ -65,11 +67,11 @@ class McpRouter:
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, detail=f"{name!r} belongs to another app, {bound}"
             )
-        logger.info("app %s on %s calls %s", body.resource_uri, server, name)
-        result = await self._mcp.call_tool(server, name, body.arguments)
+        logger.info("app %s on %s calls %s", body.resource_uri, server_id, name)
+        result = await self._mcp.call_tool(server_id, name, body.arguments)
         rewritten = with_relay_url(result, self._relays)
         return JSONResponse(rewritten.model_dump(mode="json", by_alias=True, exclude_none=True))
 
-    def _refuse_unknown_server(self, server: str) -> None:
-        if server not in {s.id for s in self._mcp.statuses()}:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"no MCP server {server!r}")
+    def _refuse_unknown_server(self, server_id: str) -> None:
+        if server_id not in {s.id for s in self._mcp.statuses()}:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"no MCP server {server_id!r}")

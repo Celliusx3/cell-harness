@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from harness.files import ChatFileService
 from harness.images import ImageService
 from harness.tickets.service.ticket_service import TicketService
-from harness.tickets.service.worker import worker_session_id
+from harness.tickets.service.worker import worker_chat_id
 from harness.web.http.files import folder_file, logged_image
 
 
@@ -29,7 +29,7 @@ class TicketFileRouter:
 
     async def read_ticket_file(self, ticket_id: str, path: str) -> FileResponse:
         self._tickets.get(ticket_id)
-        return folder_file(self._files, worker_session_id(ticket_id), path)
+        return folder_file(self._files, worker_chat_id(ticket_id), path)
 
     async def read_ticket_image(self, ticket_id: str, sha256: str) -> FileResponse:
         self._tickets.get(ticket_id)

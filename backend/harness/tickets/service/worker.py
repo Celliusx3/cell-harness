@@ -114,6 +114,11 @@ def worker_session_id(ticket_id: str) -> str:
     return f"ticket-{ticket_id}"
 
 
+def worker_chat_id(ticket_id: str) -> str:
+    """The id of the chat whose folder holds `ticket_id`'s worker's files: its session's id."""
+    return worker_session_id(ticket_id)
+
+
 def last_accepted_report(events: Sequence[SessionEvent]) -> TicketReportArgs | None:
     """The last report of the last turn that `ticket_report` accepted, `progress` skipped."""
     arguments_by_call_id: dict[str, str] = {}

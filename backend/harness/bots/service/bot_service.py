@@ -49,9 +49,10 @@ class BotService:
         bots = self._active_bots_in(self._repository.read())
         for bot in bots[: len(self._built_ins)]:
             try:
-                await self._sessions.read(bot.id)
+                await self._sessions.read(self.chat_of(bot.id))
             except SessionNotFoundError:
-                await self._log_instructions(await self._sessions.create(bot.id), bot)
+                session = await self._sessions.create(self.chat_of(bot.id))
+                await self._log_instructions(session, bot)
         return bots
 
     def active_bots(self) -> tuple[Bot, ...]:
@@ -162,7 +163,7 @@ class BotService:
         self._check_removable(stored, bot_id)
         kept = tuple(bot for bot in stored.bots if bot.id != bot_id)
         self._write_file(stored.model_copy(update={"bots": kept}))
-        await self._sessions.delete(bot_id)
+        await self._sessions.delete(self.chat_of(bot_id))
 
     def _active_bots_in(self, stored: BotsFile) -> tuple[Bot, ...]:
         built_ins = (

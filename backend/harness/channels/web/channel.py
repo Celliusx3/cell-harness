@@ -39,6 +39,10 @@ class WebChannel:
         """A browser chat is named by the conversation it writes into."""
         return chat_id
 
+    def chat_id_for(self, conversation_id: str) -> str:
+        """The browser chat that writes into a conversation, named by the conversation."""
+        return conversation_id
+
     async def run(self) -> None:
         """Wait until cancelled."""
         await asyncio.Event().wait()

@@ -154,7 +154,10 @@ class ConversationRouter:
         try:
             run = await web.gateway.receive(
                 InboundMessage(
-                    channel=web.channel, chat_id=conversation_id, text=body.prompt, files=files
+                    channel=web.channel,
+                    chat_id=web.chat_id_for(conversation_id),
+                    text=body.prompt,
+                    files=files,
                 )
             )
         except UnknownSkill as err:
@@ -192,7 +195,7 @@ class ConversationRouter:
             return await web.sessions.read(conversation_id)
 
         async def after_drain() -> Source:
-            await web.gateway.wait_until_drained(web.channel, conversation_id)
+            await web.gateway.wait_until_drained(web.channel, web.chat_id_for(conversation_id))
             return await source()
 
         return StreamingResponse(
@@ -216,7 +219,7 @@ class ConversationRouter:
     async def clear_chat(self, conversation_id: str) -> Response:
         """Clear the chat in place: its turn stops and the history starts after it."""
         await self._web.sessions.read(conversation_id)
-        await self._web.gateway.clear(self._web.channel, conversation_id)
+        await self._web.gateway.clear(self._web.channel, self._web.chat_id_for(conversation_id))
         logger.info("conversation %s cleared by the browser", conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -237,7 +240,9 @@ class ConversationRouter:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT, detail=mode_usage_reply(current)
             )
-        await web.gateway.set_approval_mode(web.channel, conversation_id, command.mode)
+        await web.gateway.set_approval_mode(
+            web.channel, web.chat_id_for(conversation_id), command.mode
+        )
         logger.info("conversation %s switched to %s by /mode", conversation_id, command.mode)
         return _message_accepted(await self._chat_session(conversation_id), queued=False)
 
