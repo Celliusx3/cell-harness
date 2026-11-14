@@ -27,7 +27,7 @@ class GroupRouter:
         )
 
     async def list_groups(self) -> list[Group]:
-        return list(self._groups.groups())
+        return list(self._groups.all())
 
     async def create_group(self, body: GroupDraft) -> Group:
         group = await self._groups.create(body)

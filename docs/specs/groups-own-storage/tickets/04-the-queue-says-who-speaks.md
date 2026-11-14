@@ -1,6 +1,6 @@
 # 04. The queue says who speaks, and the group names stop repeating
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

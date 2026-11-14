@@ -67,7 +67,7 @@ and each answers one question.
 
 - A **model** (`domain/`) is data, plus functions about that model itself.
   `Bot.with_secret` gives back the bot with a key added, and the speaker queue in
-  `groups/domain/turn_order.py` says who waits to speak after a turn. Both are about
+  `groups/domain/speaker_queue.py` says who waits to speak after a turn. Both are about
   the value they sit on, and neither reads a file or calls a service. A function
   that rewrites a stored collection is not about one model: finding a bot in the
   bots file and swapping in its newer copy belongs to the repository.

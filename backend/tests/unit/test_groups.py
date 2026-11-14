@@ -79,7 +79,7 @@ async def test_a_group_s_chat_holds_its_members_from_the_start(
 
     group = await groups.create(GroupDraft(name=" Launch ", member_ids=(writer.id, researcher.id)))
 
-    assert groups.groups() == (group,)
+    assert groups.all() == (group,)
     assert group.name == "Launch"
     chat = await service.read(group.id)
     assert list(chat.events()) == [
@@ -98,7 +98,7 @@ async def test_a_group_takes_only_active_bots(groups: GroupService, bots: BotSer
 
     with pytest.raises(BotNotFound):
         await groups.create(GroupDraft(name="Launch", member_ids=(researcher.id, writer.id)))
-    assert groups.groups() == ()
+    assert groups.all() == ()
 
 
 async def test_a_group_s_chat_is_answered_by_its_active_members_in_order(
@@ -143,7 +143,7 @@ async def test_changing_a_bot_keeps_every_group(groups: GroupService, bots: BotS
     )
     await bots.create(BotDraft(name="Editor", instructions="Edit.", model=MODEL_CREDENTIAL))
 
-    assert groups.groups() == (group,)
+    assert groups.all() == (group,)
 
 
 async def test_groups_left_in_the_bots_file_are_ignored_and_dropped_at_the_next_save(
@@ -156,7 +156,7 @@ async def test_groups_left_in_the_bots_file_are_ignored_and_dropped_at_the_next_
     )
 
     assert bots.active_bot("r1") == researcher
-    assert groups.groups() == ()
+    assert groups.all() == ()
     with pytest.raises(BotNotFound):
         groups.chat_members("g1")
 

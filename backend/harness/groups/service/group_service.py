@@ -12,7 +12,7 @@ from harness.groups.domain.models import (
     GroupDraft,
     GroupMemberNotFound,
 )
-from harness.groups.domain.turn_order import MENTION_TURN_ORDER
+from harness.groups.domain.speaker_queue import SpeakerQueue
 from harness.groups.repository.group_repository import GroupRepository
 from harness.session.domain.log import Session
 from harness.session.domain.models import GroupMembersEvent
@@ -45,9 +45,9 @@ class GroupService:
         self._app_events.publish(BotsChangedAppEvent())
         return group
 
-    def groups(self) -> tuple[Group, ...]:
+    def all(self) -> tuple[Group, ...]:
         """Every group, in the order each was made."""
-        return self._repository.groups()
+        return self._repository.all()
 
     def _active_member(self, bot_id: str) -> Bot:
         try:
@@ -61,7 +61,7 @@ class GroupService:
         own = next((bot for bot in active if self._bots.chat_of(bot.id) == chat_id), None)
         if own is not None:
             return ChatMembers(group=None, bots=(own,))
-        stored = self._repository.groups()
+        stored = self._repository.all()
         group = next((group for group in stored if self.chat_of_group(group.id) == chat_id), None)
         if group is None:
             raise BotNotFound(chat_id)
@@ -86,7 +86,7 @@ class GroupService:
     def first_speaker(self, session: Session, text: str) -> Bot:
         """Who answers `text` first, its instructions and group logged; else `EmptyGroupError`."""
         members = self.chat_members(session.id)
-        speakers = MENTION_TURN_ORDER.first_speakers(text, members.bots)
+        speakers = SpeakerQueue.after_message(text, members.bots).waiting
         if not speakers:
             raise EmptyGroupError(session.id)
         _log_speaker_and_members_if_changed(session, members, speakers[0])
@@ -95,7 +95,7 @@ class GroupService:
     def next_speaker(self, session: Session) -> Bot | None:
         """Who the queue says is next, its instructions and group logged; `None` when nobody is."""
         members = self.chat_members(session.id)
-        speaker = MENTION_TURN_ORDER.next_speaker(session.events(), members.bots)
+        speaker = SpeakerQueue.next_in(session.events(), members.bots)
         if speaker is None:
             return None
         _log_speaker_and_members_if_changed(session, members, speaker)

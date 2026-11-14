@@ -15,7 +15,7 @@ class GroupRepository:
     def __init__(self, path: Path) -> None:
         self._path = path
 
-    def groups(self) -> tuple[Group, ...]:
+    def all(self) -> tuple[Group, ...]:
         """Every stored group, in stored order."""
         return self._read().groups
 

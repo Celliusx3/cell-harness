@@ -14,7 +14,7 @@ PANEL = Group(id="g2", name="Panel", member_ids=("w1", "r1"))
 def test_a_missing_file_holds_no_groups(tmp_path: Path) -> None:
     repository = GroupRepository(tmp_path / "no" / "groups.json")
 
-    assert repository.groups() == ()
+    assert repository.all() == ()
 
 
 def test_an_added_group_goes_last(tmp_path: Path) -> None:
@@ -23,7 +23,7 @@ def test_an_added_group_goes_last(tmp_path: Path) -> None:
 
     repository.add(PANEL)
 
-    assert repository.groups() == (DESK, PANEL)
+    assert repository.all() == (DESK, PANEL)
 
 
 def test_a_second_repository_on_the_same_path_reads_what_the_first_wrote(tmp_path: Path) -> None:
@@ -31,7 +31,7 @@ def test_a_second_repository_on_the_same_path_reads_what_the_first_wrote(tmp_pat
 
     second = GroupRepository(tmp_path / "groups.json")
 
-    assert second.groups() == (DESK,)
+    assert second.all() == (DESK,)
 
 
 def test_the_file_written_holds_only_groups(tmp_path: Path) -> None:
