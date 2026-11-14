@@ -1,0 +1,12 @@
+$ git rev-parse HEAD
+42a060b47ceaca592124901c194539c4c8ca55fd
+$ make lint
+cd backend && uv run ruff check .
+All checks passed!
+cd backend && uv run ruff format --check .
+600 files already formatted
+cd backend/harness/sandbox/js && deno check shim.ts && deno lint && deno fmt --check
+Checked 1 file
+Checked 2 files
+./scripts/check-file-lengths.sh
+every file is under 300 lines

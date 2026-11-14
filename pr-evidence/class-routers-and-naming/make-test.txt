@@ -1,0 +1,603 @@
+$ git rev-parse HEAD
+42a060b47ceaca592124901c194539c4c8ca55fd
+$ make test
+cd backend && uv run pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.13.8, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/coyan.oh/Desktop/cellstudio/cell-harness/backend
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.1.0, asyncio-1.4.0, anyio-4.14.2
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 2170 items
+
+tests/integration/test_code_mode.py ...                                  [  0%]
+tests/integration/test_discord.py ....                                   [  0%]
+tests/integration/test_images_hidden.py .....                            [  0%]
+tests/integration/test_mcp_server_keys.py ...                            [  0%]
+tests/integration/test_mcp_stdio.py .......                              [  1%]
+tests/integration/test_one_chat.py ....                                  [  1%]
+tests/integration/test_sandbox.py .........                              [  1%]
+tests/integration/test_telegram.py .......                               [  1%]
+tests/integration/test_web.py .........                                  [  2%]
+tests/integration/test_web_app_events.py ..                              [  2%]
+tests/integration/test_web_approval.py ......                            [  2%]
+tests/integration/test_web_archive.py .......                            [  3%]
+tests/integration/test_web_bot_builder.py .                              [  3%]
+tests/integration/test_web_bot_chats.py ..........                       [  3%]
+tests/integration/test_web_bot_message_refusals.py ...                   [  3%]
+tests/integration/test_web_bot_messages.py .......                       [  4%]
+tests/integration/test_web_bot_worker_limit.py .                         [  4%]
+tests/integration/test_web_bots.py ........                              [  4%]
+tests/integration/test_web_chat_mode.py .........                        [  4%]
+tests/integration/test_web_clear.py .....                                [  5%]
+tests/integration/test_web_compact.py ......                             [  5%]
+tests/integration/test_web_context_window.py .....                       [  5%]
+tests/integration/test_web_credential_cards.py ....                      [  5%]
+tests/integration/test_web_files.py ............                         [  6%]
+tests/integration/test_web_groups.py ..........                          [  6%]
+tests/integration/test_web_hand_over.py ........                         [  7%]
+tests/integration/test_web_image_route.py ........                       [  7%]
+tests/integration/test_web_image_service.py ....                         [  7%]
+tests/integration/test_web_images.py ..                                  [  7%]
+tests/integration/test_web_invocation.py ..                              [  7%]
+tests/integration/test_web_keyring.py ...                                [  8%]
+tests/integration/test_web_location.py .......                           [  8%]
+tests/integration/test_web_needs_you.py ...                              [  8%]
+tests/integration/test_web_no_built_in_servers.py ..                     [  8%]
+tests/integration/test_web_no_model.py ..........                        [  9%]
+tests/integration/test_web_numbers.py ....                               [  9%]
+tests/integration/test_web_question.py ....                              [  9%]
+tests/integration/test_web_schedule_change.py .......                    [  9%]
+tests/integration/test_web_schedules.py ..........                       [ 10%]
+tests/integration/test_web_secret_access.py ....                         [ 10%]
+tests/integration/test_web_secrets.py .....                              [ 10%]
+tests/integration/test_web_starts_without_a_model.py ..                  [ 10%]
+tests/integration/test_web_stream.py ......                              [ 10%]
+tests/integration/test_web_ticket_answers.py ...                         [ 11%]
+tests/integration/test_web_ticket_approval.py .....                      [ 11%]
+tests/integration/test_web_ticket_asks.py .....                          [ 11%]
+tests/integration/test_web_ticket_files.py ....                          [ 11%]
+tests/integration/test_web_ticket_reports.py ..                          [ 11%]
+tests/integration/test_web_ticket_route.py ....                          [ 12%]
+tests/integration/test_web_ticket_routes.py ...                          [ 12%]
+tests/integration/test_web_tickets.py ..                                 [ 12%]
+tests/integration/test_web_turns.py ...........                          [ 12%]
+tests/integration/test_web_vision_per_model.py .....                     [ 12%]
+tests/unit/test_adding_the_pc.py ..                                      [ 13%]
+tests/unit/test_app_events.py ..                                         [ 13%]
+tests/unit/test_approval.py ........                                     [ 13%]
+tests/unit/test_approval_service.py .......                              [ 13%]
+tests/unit/test_approval_telegram.py .........                           [ 14%]
+tests/unit/test_approved_call_run.py ...                                 [ 14%]
+tests/unit/test_archive_tools.py .......                                 [ 14%]
+tests/unit/test_bot_builder.py ...                                       [ 14%]
+tests/unit/test_bot_credentials.py .....                                 [ 15%]
+tests/unit/test_bot_messages.py ..............                           [ 15%]
+tests/unit/test_bot_offers_no_client_tools.py .                          [ 15%]
+tests/unit/test_bot_prompt.py ...                                        [ 15%]
+tests/unit/test_bot_secrets.py .......                                   [ 16%]
+tests/unit/test_bot_service.py ..............                            [ 16%]
+tests/unit/test_bot_turns.py .............                               [ 17%]
+tests/unit/test_cached_tokens.py ....                                    [ 17%]
+tests/unit/test_channel_kinds.py ....                                    [ 17%]
+tests/unit/test_channel_leaving.py ...                                   [ 18%]
+tests/unit/test_channel_seam.py .........                                [ 18%]
+tests/unit/test_chat_file_service.py ............                        [ 18%]
+tests/unit/test_chat_inbox.py ...                                        [ 19%]
+tests/unit/test_chat_mode.py .......                                     [ 19%]
+tests/unit/test_chat_mode_told.py .....                                  [ 19%]
+tests/unit/test_clear.py ......                                          [ 19%]
+tests/unit/test_client_tools.py .........                                [ 20%]
+tests/unit/test_code_tools.py ...................                        [ 21%]
+tests/unit/test_code_typescript.py ..................                    [ 22%]
+tests/unit/test_compaction_derive.py ..........                          [ 22%]
+tests/unit/test_compaction_service.py ..............                     [ 23%]
+tests/unit/test_compose_code.py ........                                 [ 23%]
+tests/unit/test_compose_skills.py ..........                             [ 24%]
+tests/unit/test_compose_subagent.py ........                             [ 24%]
+tests/unit/test_context_window_tokens.py ......                          [ 24%]
+tests/unit/test_create_skill.py ...                                      [ 24%]
+tests/unit/test_credential_refusals.py ......                            [ 25%]
+tests/unit/test_credentials.py ....                                      [ 25%]
+tests/unit/test_credentials_dialog.py ..............                     [ 25%]
+tests/unit/test_derive_files.py .....                                    [ 26%]
+tests/unit/test_derive_images.py ............                            [ 26%]
+tests/unit/test_derive_long_results.py ......                            [ 26%]
+tests/unit/test_desktop_settings.py ..                                   [ 27%]
+tests/unit/test_discord_commands.py ......                               [ 27%]
+tests/unit/test_discord_links.py ......                                  [ 27%]
+tests/unit/test_discord_receiving.py ...........                         [ 28%]
+tests/unit/test_discord_sending.py .......                               [ 28%]
+tests/unit/test_disk_chat_files.py ....................                  [ 29%]
+tests/unit/test_disk_images.py .............                             [ 29%]
+tests/unit/test_disk_secrets.py ..........                               [ 30%]
+tests/unit/test_dispatcher.py ....                                       [ 30%]
+tests/unit/test_every_feature_has_a_tool.py ...                          [ 30%]
+tests/unit/test_extract_archive.py ..............                        [ 31%]
+tests/unit/test_failure_code.py ...............                          [ 32%]
+tests/unit/test_fetch_with_secret.py .......................             [ 33%]
+tests/unit/test_file_tools_stay_in_their_chat.py ...                     [ 33%]
+tests/unit/test_frontend_types.py ......                                 [ 33%]
+tests/unit/test_gateway.py ...........                                   [ 34%]
+tests/unit/test_gateway_apps.py .....                                    [ 34%]
+tests/unit/test_gateway_commands.py ............                         [ 34%]
+tests/unit/test_gateway_groups.py .                                      [ 34%]
+tests/unit/test_gateway_invocation.py ...                                [ 35%]
+tests/unit/test_gateway_steer.py .                                       [ 35%]
+tests/unit/test_gateway_ticket_question.py .......                       [ 35%]
+tests/unit/test_gateway_unasked.py ..                                    [ 35%]
+tests/unit/test_groups.py ............                                   [ 36%]
+tests/unit/test_hand_over.py ......                                      [ 36%]
+tests/unit/test_hand_over_chats.py ..                                    [ 36%]
+tests/unit/test_hooks.py ..........                                      [ 36%]
+tests/unit/test_hooks_native.py .......................                  [ 37%]
+tests/unit/test_hooks_step.py .....                                      [ 38%]
+tests/unit/test_image_hide.py .......                                    [ 38%]
+tests/unit/test_image_service.py ........................                [ 39%]
+tests/unit/test_jsonl_files.py ............                              [ 40%]
+tests/unit/test_jsonl_repository.py ...............                      [ 40%]
+tests/unit/test_layering.py ............................................ [ 42%]
+........................................................................ [ 46%]
+..............                                                           [ 46%]
+tests/unit/test_link_code_rules.py .............                         [ 47%]
+tests/unit/test_link_codes.py ................                           [ 48%]
+tests/unit/test_link_resolution.py .....                                 [ 48%]
+tests/unit/test_live_channels.py ..........                              [ 48%]
+tests/unit/test_location.py ..                                           [ 48%]
+tests/unit/test_location_chats.py ..............                         [ 49%]
+tests/unit/test_log_without_turn.py ...                                  [ 49%]
+tests/unit/test_loop.py .................                                [ 50%]
+tests/unit/test_loop_compaction.py .......                               [ 50%]
+tests/unit/test_loop_ends_turn.py .                                      [ 50%]
+tests/unit/test_loop_hooks.py .....                                      [ 51%]
+tests/unit/test_loop_interrupt.py ....                                   [ 51%]
+tests/unit/test_loop_pending.py .....                                    [ 51%]
+tests/unit/test_loop_tools.py ................                           [ 52%]
+tests/unit/test_make_archive.py ..............                           [ 52%]
+tests/unit/test_masking.py ..                                            [ 52%]
+tests/unit/test_mcp_errors.py ......                                     [ 53%]
+tests/unit/test_mcp_images.py ......                                     [ 53%]
+tests/unit/test_mcp_live_servers.py ........                             [ 53%]
+tests/unit/test_mcp_needs.py ........                                    [ 54%]
+tests/unit/test_mcp_routes.py .................                          [ 55%]
+tests/unit/test_mcp_server_list.py ..                                    [ 55%]
+tests/unit/test_mcp_server_routes.py .............                       [ 55%]
+tests/unit/test_mcp_server_saving.py ........                            [ 56%]
+tests/unit/test_mcp_service.py ..................                        [ 56%]
+tests/unit/test_mcp_settings.py ...........................              [ 58%]
+tests/unit/test_mcp_tool.py ..................................           [ 59%]
+tests/unit/test_mode_command.py .......                                  [ 60%]
+tests/unit/test_model_per_bot.py .............                           [ 60%]
+tests/unit/test_native_bots.py ..........                                [ 61%]
+tests/unit/test_native_skills.py ......................                  [ 62%]
+tests/unit/test_native_tools.py ....                                     [ 62%]
+tests/unit/test_no_built_in_servers.py ...                               [ 62%]
+tests/unit/test_no_wait.py ................                              [ 63%]
+tests/unit/test_openai_adapter.py .................                      [ 64%]
+tests/unit/test_openai_extra_content.py ...                              [ 64%]
+tests/unit/test_openai_image_limit.py .....                              [ 64%]
+tests/unit/test_openai_images.py ......                                  [ 64%]
+tests/unit/test_openai_request.py ..                                     [ 64%]
+tests/unit/test_openai_stream_edges.py ................                  [ 65%]
+tests/unit/test_openai_streaming.py ................                     [ 66%]
+tests/unit/test_openai_tools.py ...................                      [ 67%]
+tests/unit/test_platform_credentials.py .....                            [ 67%]
+tests/unit/test_question.py ....                                         [ 67%]
+tests/unit/test_question_telegram.py ....                                [ 67%]
+tests/unit/test_relay.py ...................                             [ 68%]
+tests/unit/test_relay_routes.py ...........                              [ 69%]
+tests/unit/test_repair.py .............                                  [ 69%]
+tests/unit/test_replies_asking.py ..                                     [ 69%]
+tests/unit/test_runs.py .............                                    [ 70%]
+tests/unit/test_runs_stop.py ...........                                 [ 70%]
+tests/unit/test_runtime_images.py ........                               [ 71%]
+tests/unit/test_saved_servers.py ................                        [ 71%]
+tests/unit/test_schedule_batch.py ..                                     [ 72%]
+tests/unit/test_schedule_busy.py ..                                      [ 72%]
+tests/unit/test_schedule_change_derive.py ....                           [ 72%]
+tests/unit/test_schedule_create.py .............                         [ 72%]
+tests/unit/test_schedule_edit.py ................                        [ 73%]
+tests/unit/test_schedule_failure.py .                                    [ 73%]
+tests/unit/test_schedule_firing.py .......                               [ 74%]
+tests/unit/test_schedule_history.py ..                                   [ 74%]
+tests/unit/test_schedule_list.py .........                               [ 74%]
+tests/unit/test_schedule_missed.py ...                                   [ 74%]
+tests/unit/test_schedule_run_now.py ..                                   [ 74%]
+tests/unit/test_schedule_timing.py ....................                  [ 75%]
+tests/unit/test_secret_service.py .............                          [ 76%]
+tests/unit/test_secret_tool_descriptions.py ....                         [ 76%]
+tests/unit/test_secret_values.py ....................................... [ 78%]
+........                                                                 [ 78%]
+tests/unit/test_send_file.py ..........                                  [ 79%]
+tests/unit/test_server_instructions.py ......                            [ 79%]
+tests/unit/test_service.py .......                                       [ 79%]
+tests/unit/test_service_repair.py ........                               [ 80%]
+tests/unit/test_session.py ..........                                    [ 80%]
+tests/unit/test_settings.py ..............................               [ 81%]
+tests/unit/test_skill_files.py ...........                               [ 82%]
+tests/unit/test_skill_list.py .......                                    [ 82%]
+tests/unit/test_skill_tool.py ...................                        [ 83%]
+tests/unit/test_skills_catalog.py ...................                    [ 84%]
+tests/unit/test_skills_invocation.py .......................             [ 85%]
+tests/unit/test_skills_routes.py ................                        [ 86%]
+tests/unit/test_skills_upload.py ...................                     [ 87%]
+tests/unit/test_subagent_mode.py ...                                     [ 87%]
+tests/unit/test_subagent_tool.py .......                                 [ 87%]
+tests/unit/test_subagents.py ......                                      [ 87%]
+tests/unit/test_telegram_commands.py ............                        [ 88%]
+tests/unit/test_telegram_links.py .........                              [ 88%]
+tests/unit/test_telegram_receiving.py ..............                     [ 89%]
+tests/unit/test_telegram_sending.py ..............                       [ 90%]
+tests/unit/test_ticket_approval_end.py .                                 [ 90%]
+tests/unit/test_ticket_dropped.py .                                      [ 90%]
+tests/unit/test_ticket_limit.py ..                                       [ 90%]
+tests/unit/test_ticket_mode.py ..                                        [ 90%]
+tests/unit/test_ticket_needs_you.py ...                                  [ 90%]
+tests/unit/test_ticket_note.py ..                                        [ 90%]
+tests/unit/test_ticket_places.py ........                                [ 91%]
+tests/unit/test_ticket_recovery.py .                                     [ 91%]
+tests/unit/test_ticket_report.py ...                                     [ 91%]
+tests/unit/test_ticket_report_asks.py .....................              [ 92%]
+tests/unit/test_ticket_route.py ..                                       [ 92%]
+tests/unit/test_tickets.py .............                                 [ 92%]
+tests/unit/test_token_logs.py ...                                        [ 93%]
+tests/unit/test_tool_arguments.py ....                                   [ 93%]
+tests/unit/test_tool_files.py .........                                  [ 93%]
+tests/unit/test_tools.py .....................                           [ 94%]
+tests/unit/test_tools_selected.py ..............                         [ 95%]
+tests/unit/test_turn_contract.py ........                                [ 95%]
+tests/unit/test_turn_inbox.py ......                                     [ 95%]
+tests/unit/test_turn_order.py .............................              [ 97%]
+tests/unit/test_turn_recovery.py .....                                   [ 97%]
+tests/unit/test_typed_keyring.py .............                           [ 98%]
+tests/unit/test_view_image.py ..........                                 [ 98%]
+tests/unit/test_web_errors.py ..............................             [ 99%]
+tests/unit/test_worker_tools.py .                                        [ 99%]
+tests/unit/test_workers.py .                                             [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.13.8-final-0 _______________
+
+Name                                                         Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------------------------
+harness/__init__.py                                              0      0   100%
+harness/app_events/__init__.py                                   3      0   100%
+harness/app_events/domain/__init__.py                            0      0   100%
+harness/app_events/domain/models.py                             18      0   100%
+harness/app_events/router/__init__.py                            0      0   100%
+harness/app_events/router/app_event_router.py                   17      0   100%
+harness/app_events/service/__init__.py                           0      0   100%
+harness/app_events/service/app_event_service.py                 17      0   100%
+harness/bots/__init__.py                                         6      0   100%
+harness/bots/domain/__init__.py                                  0      0   100%
+harness/bots/domain/models.py                                   80      0   100%
+harness/bots/domain/turn_order.py                               59      0   100%
+harness/bots/repository/__init__.py                              0      0   100%
+harness/bots/repository/bot_repository.py                       18      0   100%
+harness/bots/router/__init__.py                                  0      0   100%
+harness/bots/router/bot_router.py                               74      0   100%
+harness/bots/router/group_router.py                             21      0   100%
+harness/bots/router/schemas.py                                   5      0   100%
+harness/bots/service/__init__.py                                 0      0   100%
+harness/bots/service/bot_service.py                            120      0   100%
+harness/bots/service/group_service.py                           63      0   100%
+harness/channels/__init__.py                                     0      0   100%
+harness/channels/discord/__init__.py                             0      0   100%
+harness/channels/discord/channel.py                            118      4    97%   77, 94-95, 135
+harness/channels/domain/__init__.py                              0      0   100%
+harness/channels/domain/protocol.py                             58      1    98%   114
+harness/channels/domain/text.py                                 14      0   100%
+harness/channels/repository/__init__.py                          0      0   100%
+harness/channels/repository/chat_repository.py                  21      0   100%
+harness/channels/repository/json_chat_repository.py             48      2    96%   29-30
+harness/channels/router/__init__.py                              0      0   100%
+harness/channels/router/link_code_router.py                     30      0   100%
+harness/channels/router/link_code_schemas.py                    11      0   100%
+harness/channels/service/__init__.py                             0      0   100%
+harness/channels/service/chat_answers.py                        44      2    95%   92-93
+harness/channels/service/chat_tasks.py                          29      0   100%
+harness/channels/service/chats.py                               37      0   100%
+harness/channels/service/commands.py                            85      0   100%
+harness/channels/service/gateway.py                            145      4    97%   140, 147, 194-195
+harness/channels/service/inbox.py                               21      0   100%
+harness/channels/service/links.py                              105      0   100%
+harness/channels/service/platforms.py                           48      2    96%   73-74
+harness/channels/service/replies.py                            115      3    97%   48, 112, 126
+harness/channels/service/turn_follower.py                       94      1    99%   131
+harness/channels/telegram/__init__.py                            0      0   100%
+harness/channels/telegram/asking.py                             92      7    92%   103-104, 106, 113, 139, 148-149
+harness/channels/telegram/batching.py                           23      0   100%
+harness/channels/telegram/channel.py                           181     27    85%   100-108, 111-118, 175-177, 190, 195-197, 205-206, 211-212, 275, 289, 297
+harness/channels/telegram/commands.py                            9      0   100%
+harness/channels/telegram/private.py                            13      0   100%
+harness/channels/web/__init__.py                                 0      0   100%
+harness/channels/web/channel.py                                 25      0   100%
+harness/channels/web/client_router.py                           31      1    97%   53
+harness/channels/web/compact_router.py                          25      2    92%   40-41
+harness/channels/web/conversation_router.py                    122      0   100%
+harness/channels/web/schemas.py                                 31      0   100%
+harness/channels/web/secret_card_router.py                      69      3    96%   50, 67-68
+harness/channels/web/secret_card_schemas.py                     16      0   100%
+harness/channels/web/sse.py                                     48      0   100%
+harness/config/__init__.py                                       0      0   100%
+harness/config/sections.py                                      75      0   100%
+harness/config/settings.py                                      61      1    98%   77
+harness/files/__init__.py                                        5      0   100%
+harness/files/domain/__init__.py                                 0      0   100%
+harness/files/domain/models.py                                   8      0   100%
+harness/files/repository/__init__.py                             0      0   100%
+harness/files/repository/disk_file_repository.py                48      0   100%
+harness/files/repository/file_repository.py                     10      0   100%
+harness/files/service/__init__.py                                0      0   100%
+harness/files/service/file_service.py                           39      0   100%
+harness/images/__init__.py                                       5      0   100%
+harness/images/domain/__init__.py                                0      0   100%
+harness/images/domain/models.py                                  9      0   100%
+harness/images/repository/__init__.py                            0      0   100%
+harness/images/repository/disk_image_repository.py              38      0   100%
+harness/images/repository/image_repository.py                   10      0   100%
+harness/images/service/__init__.py                               0      0   100%
+harness/images/service/image_service.py                         70      0   100%
+harness/llm/__init__.py                                          6      0   100%
+harness/llm/adapters/__init__.py                                 3      0   100%
+harness/llm/adapters/openai/__init__.py                          0      0   100%
+harness/llm/adapters/openai/_errors.py                           8      0   100%
+harness/llm/adapters/openai/_image_limit.py                     27      0   100%
+harness/llm/adapters/openai/_request.py                         78      1    99%   86
+harness/llm/adapters/openai/_streaming.py                       76      0   100%
+harness/llm/adapters/openai/_tool_calls.py                      41      0   100%
+harness/llm/adapters/openai/client.py                           75      0   100%
+harness/llm/adapters/openai/models/__init__.py                   0      0   100%
+harness/llm/adapters/openai/models/chunk.py                     10      0   100%
+harness/llm/adapters/openai/models/model_list.py                 9      0   100%
+harness/llm/adapters/openai/models/tool_delta.py                10      0   100%
+harness/llm/adapters/openai/settings.py                          9      0   100%
+harness/llm/client.py                                            9      0   100%
+harness/llm/models/__init__.py                                   0      0   100%
+harness/llm/models/blocks.py                                    20      0   100%
+harness/llm/models/messages.py                                  39      0   100%
+harness/llm/models/stream.py                                    33      0   100%
+harness/llm/models/tools.py                                     15      0   100%
+harness/mcp/__init__.py                                         10      0   100%
+harness/mcp/domain/__init__.py                                   0      0   100%
+harness/mcp/domain/commands.py                                  20      0   100%
+harness/mcp/domain/csp.py                                       28      0   100%
+harness/mcp/domain/errors.py                                     6      0   100%
+harness/mcp/domain/keys.py                                       4      0   100%
+harness/mcp/domain/returned_file.py                              6      0   100%
+harness/mcp/domain/saved.py                                     60      1    98%   36
+harness/mcp/domain/server.py                                    35      0   100%
+harness/mcp/domain/status.py                                    10      0   100%
+harness/mcp/repository/__init__.py                               0      0   100%
+harness/mcp/repository/disk_saved_server_repository.py          21      0   100%
+harness/mcp/repository/saved_server_repository.py                6      0   100%
+harness/mcp/router/__init__.py                                   0      0   100%
+harness/mcp/router/mcp_router.py                                49      0   100%
+harness/mcp/router/schemas.py                                   13      0   100%
+harness/mcp/router/server_router.py                             82      0   100%
+harness/mcp/router/server_schemas.py                            19      0   100%
+harness/mcp/service/__init__.py                                  0      0   100%
+harness/mcp/service/_connection.py                             143     10    93%   90, 100, 159-160, 169, 179, 192-193, 207-208
+harness/mcp/service/_result.py                                  56      0   100%
+harness/mcp/service/client.py                                    8      0   100%
+harness/mcp/service/clients/__init__.py                          0      0   100%
+harness/mcp/service/clients/stderr_tail.py                      29      0   100%
+harness/mcp/service/clients/stdio.py                            32      0   100%
+harness/mcp/service/mcp_service.py                              91      0   100%
+harness/mcp/service/saved_server_service.py                     28      0   100%
+harness/mcp/service/tool.py                                     54      0   100%
+harness/prompts.py                                              52      0   100%
+harness/relay/__init__.py                                        4      0   100%
+harness/relay/domain/__init__.py                                 0      0   100%
+harness/relay/domain/models.py                                  25      0   100%
+harness/relay/router/__init__.py                                 0      0   100%
+harness/relay/router/relay_router.py                            82      2    98%   38, 50
+harness/relay/service/__init__.py                                0      0   100%
+harness/relay/service/entry.py                                  30      0   100%
+harness/relay/service/relay_service.py                          21      0   100%
+harness/runs/__init__.py                                         0      0   100%
+harness/runs/service/__init__.py                                 0      0   100%
+harness/runs/service/bot_messages.py                            83      0   100%
+harness/runs/service/discussion.py                              21      0   100%
+harness/runs/service/run.py                                     16      0   100%
+harness/runs/service/run_service.py                            193      2    99%   96, 125
+harness/runs/service/subscribe.py                               20      0   100%
+harness/runtime/__init__.py                                      0      0   100%
+harness/runtime/compaction/__init__.py                           3      0   100%
+harness/runtime/compaction/history.py                           37      1    97%   64
+harness/runtime/compaction/prompt.py                             6      0   100%
+harness/runtime/compaction/service.py                           76      0   100%
+harness/runtime/events.py                                       37      0   100%
+harness/runtime/hooks/__init__.py                                3      0   100%
+harness/runtime/hooks/calls.py                                  69      0   100%
+harness/runtime/hooks/native/__init__.py                         0      0   100%
+harness/runtime/hooks/native/empty_reply/__init__.py             2      0   100%
+harness/runtime/hooks/native/empty_reply/hook.py                16      0   100%
+harness/runtime/hooks/native/exact_failure/__init__.py           2      0   100%
+harness/runtime/hooks/native/exact_failure/hook.py              22      0   100%
+harness/runtime/hooks/native/no_progress/__init__.py             2      0   100%
+harness/runtime/hooks/native/no_progress/hook.py                35      0   100%
+harness/runtime/hooks/native/no_wait/__init__.py                 2      0   100%
+harness/runtime/hooks/native/no_wait/hook.py                    31      0   100%
+harness/runtime/hooks/native/repeated_call/__init__.py           2      0   100%
+harness/runtime/hooks/native/repeated_call/hook.py              22      0   100%
+harness/runtime/hooks/native/same_tool_failure/__init__.py       2      0   100%
+harness/runtime/hooks/native/same_tool_failure/hook.py          22      0   100%
+harness/runtime/hooks/native/skill_list/__init__.py              2      0   100%
+harness/runtime/hooks/native/skill_list/hook.py                 10      0   100%
+harness/runtime/hooks/service.py                                64      0   100%
+harness/runtime/inbox.py                                        23      0   100%
+harness/runtime/models.py                                       16      0   100%
+harness/runtime/run_to_end.py                                   39      0   100%
+harness/runtime/service.py                                     153      2    99%   225, 258
+harness/runtime/step_open.py                                    18      0   100%
+harness/runtime/step_tools.py                                   33      0   100%
+harness/runtime/subagents.py                                    32      2    94%   59-60
+harness/runtime/system_prompt.py                                25      0   100%
+harness/runtime/tool_run.py                                    138      0   100%
+harness/runtime/turn.py                                        150      1    99%   230
+harness/sandbox/__init__.py                                      3      0   100%
+harness/sandbox/deno.py                                         90     16    82%   51-52, 78, 82, 111-112, 122, 131-135, 143-148
+harness/sandbox/runner.py                                       14      0   100%
+harness/schedules/__init__.py                                    5      0   100%
+harness/schedules/domain/__init__.py                             0      0   100%
+harness/schedules/domain/models.py                              24      0   100%
+harness/schedules/domain/timing.py                              71      2    97%   56, 76
+harness/schedules/repository/__init__.py                         0      0   100%
+harness/schedules/repository/schedule_repository.py             18      0   100%
+harness/schedules/router/__init__.py                             0      0   100%
+harness/schedules/router/schedule_router.py                     53      0   100%
+harness/schedules/router/schemas.py                             15      0   100%
+harness/schedules/service/__init__.py                            0      0   100%
+harness/schedules/service/schedule_service.py                  129      0   100%
+harness/schedules/service/scheduler.py                         118      2    98%   92-93
+harness/secrets/__init__.py                                      8      0   100%
+harness/secrets/domain/__init__.py                               0      0   100%
+harness/secrets/domain/destination.py                           35      1    97%   51
+harness/secrets/domain/details.py                               43      1    98%   39
+harness/secrets/domain/errors.py                                 5      0   100%
+harness/secrets/domain/masking.py                                5      0   100%
+harness/secrets/domain/redaction.py                             10      0   100%
+harness/secrets/domain/sealed.py                                20      0   100%
+harness/secrets/domain/secret.py                                31      0   100%
+harness/secrets/repository/__init__.py                           0      0   100%
+harness/secrets/repository/disk_secret_repository.py            21      0   100%
+harness/secrets/repository/secret_repository.py                  6      0   100%
+harness/secrets/router/__init__.py                               0      0   100%
+harness/secrets/router/credential_router.py                     72      1    99%   137
+harness/secrets/router/credential_schemas.py                    42      0   100%
+harness/secrets/router/schemas.py                               10      0   100%
+harness/secrets/router/secret_router.py                         17      0   100%
+harness/secrets/service/__init__.py                              0      0   100%
+harness/secrets/service/credential_effects.py                   23      1    96%   38
+harness/secrets/service/sealing.py                              20      0   100%
+harness/secrets/service/secret_service.py                      108      1    99%   80
+harness/session/__init__.py                                      0      0   100%
+harness/session/domain/__init__.py                               0      0   100%
+harness/session/domain/change_notes.py                          29      0   100%
+harness/session/domain/compaction.py                            52      0   100%
+harness/session/domain/crash_repair.py                          30      0   100%
+harness/session/domain/heard.py                                 57      0   100%
+harness/session/domain/images.py                                22      0   100%
+harness/session/domain/log.py                                   88      1    99%   89
+harness/session/domain/model_history.py                        146      1    99%   167
+harness/session/domain/models.py                               118      0   100%
+harness/session/domain/schedule_change.py                       14      0   100%
+harness/session/domain/speakers.py                              10      0   100%
+harness/session/repository/__init__.py                           0      0   100%
+harness/session/repository/jsonl_session_repository.py         111      7    94%   138-142, 161-163
+harness/session/repository/session_repository.py                17      0   100%
+harness/session/service/__init__.py                              0      0   100%
+harness/session/service/session_service.py                      40      0   100%
+harness/skills/__init__.py                                       5      0   100%
+harness/skills/domain/__init__.py                                0      0   100%
+harness/skills/domain/invocation.py                             24      1    96%   39
+harness/skills/domain/models.py                                 87      0   100%
+harness/skills/repository/__init__.py                            0      0   100%
+harness/skills/repository/catalog.py                            87      2    98%   89-90
+harness/skills/router/__init__.py                                0      0   100%
+harness/skills/router/schemas.py                                33      0   100%
+harness/skills/router/skill_router.py                           47      0   100%
+harness/skills/service/__init__.py                               0      0   100%
+harness/skills/service/archive.py                               60      0   100%
+harness/skills/service/prompt.py                                21      0   100%
+harness/skills/service/resources.py                             46      2    96%   46-47
+harness/skills/service/skill_service.py                        141      8    94%   106-107, 139, 181-183, 190-191
+harness/skills/service/tool.py                                  44      0   100%
+harness/tickets/__init__.py                                      0      0   100%
+harness/tickets/domain/__init__.py                               0      0   100%
+harness/tickets/domain/models.py                                41      0   100%
+harness/tickets/domain/prompts.py                               13      0   100%
+harness/tickets/repository/__init__.py                           0      0   100%
+harness/tickets/repository/ticket_repository.py                 18      0   100%
+harness/tickets/router/__init__.py                               0      0   100%
+harness/tickets/router/file_router.py                           22      0   100%
+harness/tickets/router/schemas.py                               27      0   100%
+harness/tickets/router/ticket_router.py                         71      1    99%   154
+harness/tickets/service/__init__.py                              0      0   100%
+harness/tickets/service/places.py                               61      0   100%
+harness/tickets/service/ticket_service.py                      175      3    98%   141, 230, 237
+harness/tickets/service/worker.py                               77      0   100%
+harness/tools/__init__.py                                        8      0   100%
+harness/tools/client/__init__.py                                 5      0   100%
+harness/tools/client/catalog.py                                 29      0   100%
+harness/tools/client/models.py                                  41      0   100%
+harness/tools/client/pending_calls.py                           13      0   100%
+harness/tools/client/service.py                                 50      0   100%
+harness/tools/domain/__init__.py                                 0      0   100%
+harness/tools/domain/context.py                                 16      0   100%
+harness/tools/domain/decision.py                                17      0   100%
+harness/tools/domain/outcome.py                                 43      0   100%
+harness/tools/domain/tool.py                                    45      0   100%
+harness/tools/native/__init__.py                                 0      0   100%
+harness/tools/native/bots/__init__.py                            3      0   100%
+harness/tools/native/bots/create.py                             30      0   100%
+harness/tools/native/bots/message.py                            17      0   100%
+harness/tools/native/bots/models.py                              6      0   100%
+harness/tools/native/clock/__init__.py                           2      0   100%
+harness/tools/native/clock/models.py                             4      0   100%
+harness/tools/native/clock/tool.py                              18      0   100%
+harness/tools/native/code_mode/__init__.py                       3      0   100%
+harness/tools/native/code_mode/_typescript.py                  103     13    87%   61-63, 85, 94-97, 150-156
+harness/tools/native/code_mode/models.py                         9      0   100%
+harness/tools/native/code_mode/prompts.py                        8      0   100%
+harness/tools/native/code_mode/tools.py                         83      3    96%   149, 177-178
+harness/tools/native/files/__init__.py                           2      0   100%
+harness/tools/native/files/_archive.py                          89      0   100%
+harness/tools/native/files/_chat_paths.py                       13      0   100%
+harness/tools/native/files/_descriptions.py                     10      0   100%
+harness/tools/native/files/_image.py                            19      0   100%
+harness/tools/native/files/models.py                            16      0   100%
+harness/tools/native/files/tools.py                             54      0   100%
+harness/tools/native/hand_over/__init__.py                       3      0   100%
+harness/tools/native/hand_over/models.py                         9      0   100%
+harness/tools/native/hand_over/tool.py                           5      0   100%
+harness/tools/native/location/__init__.py                        3      0   100%
+harness/tools/native/location/models.py                          8      0   100%
+harness/tools/native/location/tool.py                            5      0   100%
+harness/tools/native/question/__init__.py                        3      0   100%
+harness/tools/native/question/models.py                         19      0   100%
+harness/tools/native/question/tool.py                            5      0   100%
+harness/tools/native/schedule/__init__.py                        4      0   100%
+harness/tools/native/schedule/browse.py                         32      0   100%
+harness/tools/native/schedule/create.py                         21      0   100%
+harness/tools/native/schedule/edit.py                           38      0   100%
+harness/tools/native/schedule/models.py                         27      0   100%
+harness/tools/native/schedule/shared.py                         25      2    92%   20-21
+harness/tools/native/secrets/__init__.py                         3      0   100%
+harness/tools/native/secrets/models.py                          60      2    97%   66, 99
+harness/tools/native/secrets/tools.py                           85      2    98%   117-118
+harness/tools/native/skills/__init__.py                          2      0   100%
+harness/tools/native/skills/models.py                           11      0   100%
+harness/tools/native/skills/tools.py                            45      0   100%
+harness/tools/native/subagent/__init__.py                        3      0   100%
+harness/tools/native/subagent/models.py                         17      0   100%
+harness/tools/native/subagent/tool.py                           27      0   100%
+harness/tools/native/tickets/__init__.py                         4      0   100%
+harness/tools/native/tickets/models.py                          48      0   100%
+harness/tools/native/tickets/note.py                            29      2    93%   50-51
+harness/tools/native/tickets/report.py                          28      0   100%
+harness/tools/native/tickets/route.py                           53      0   100%
+harness/tools/router/__init__.py                                 0      0   100%
+harness/tools/router/approval_router.py                         18      0   100%
+harness/tools/router/approval_schemas.py                         5      0   100%
+harness/tools/service/__init__.py                                0      0   100%
+harness/tools/service/approval_service.py                       47      0   100%
+harness/tools/service/tool_service.py                           72      0   100%
+harness/tools/service/toolset.py                                39      0   100%
+harness/utc.py                                                   4      0   100%
+harness/web/__init__.py                                          0      0   100%
+harness/web/http/__init__.py                                     0      0   100%
+harness/web/http/errors.py                                      22      0   100%
+harness/web/http/files.py                                       23      0   100%
+harness/web/http/logs.py                                        15      8    47%   12-19
+harness/web/http/this_mac.py                                    51      0   100%
+harness/web/model_choice.py                                     55      1    98%   85
+harness/web/runtime.py                                         101      0   100%
+harness/web/server.py                                          167      0   100%
+harness/web/tickets_wiring.py                                   18      0   100%
+------------------------------------------------------------------------------------------
+TOTAL                                                        10371    166    98%
+Required test coverage of 80% reached. Total coverage: 98.40%
+======================= 2170 passed in 96.75s (0:01:36) ========================

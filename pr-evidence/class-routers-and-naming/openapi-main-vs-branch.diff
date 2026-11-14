@@ -1,0 +1,253 @@
+175c175
+<    "ApprovalModeChanged": {
+---
+>    "ApprovalModeChange": {
+196c196
+<     "title": "ApprovalModeChanged",
+---
+>     "title": "ApprovalModeChange",
+228c228
+<         "$ref": "#/components/schemas/Completed"
+---
+>         "$ref": "#/components/schemas/Completion"
+231c231
+<         "$ref": "#/components/schemas/Failed"
+---
+>         "$ref": "#/components/schemas/StreamFailure"
+801c801
+<    "Completed": {
+---
+>    "Completion": {
+836c836
+<     "title": "Completed",
+---
+>     "title": "Completion",
+908c908
+<          "$ref": "#/components/schemas/ApprovalModeChanged"
+---
+>          "$ref": "#/components/schemas/ApprovalModeChange"
+1129,1174d1128
+<     "type": "object"
+<    },
+<    "Failed": {
+<     "description": "Terminal: the call did not produce a reply.",
+<     "properties": {
+<      "code": {
+<       "anyOf": [
+<        {
+<         "enum": [
+<          "context_window_exceeded",
+<          "images_over_limit"
+<         ],
+<         "type": "string"
+<        },
+<        {
+<         "type": "null"
+<        }
+<       ],
+<       "title": "Code"
+<      },
+<      "images_to_hide": {
+<       "anyOf": [
+<        {
+<         "type": "integer"
+<        },
+<        {
+<         "type": "null"
+<        }
+<       ],
+<       "title": "Images To Hide"
+<      },
+<      "kind": {
+<       "const": "failed",
+<       "default": "failed",
+<       "title": "Kind",
+<       "type": "string"
+<      },
+<      "reason": {
+<       "title": "Reason",
+<       "type": "string"
+<      }
+<     },
+<     "required": [
+<      "reason"
+<     ],
+<     "title": "Failed",
+1421a1376,1417
+>    "MessageRequest": {
+>     "description": "A message starting a turn.",
+>     "properties": {
+>      "files": {
+>       "description": "Absolute paths the upload route returned.",
+>       "items": {
+>        "type": "string"
+>       },
+>       "title": "Files",
+>       "type": "array"
+>      },
+>      "prompt": {
+>       "minLength": 1,
+>       "title": "Prompt",
+>       "type": "string"
+>      }
+>     },
+>     "required": [
+>      "prompt"
+>     ],
+>     "title": "MessageRequest",
+>     "type": "object"
+>    },
+>    "ModeRequest": {
+>     "additionalProperties": false,
+>     "description": "The mode the person switches a chat to.",
+>     "properties": {
+>      "mode": {
+>       "enum": [
+>        "ask",
+>        "auto"
+>       ],
+>       "title": "Mode",
+>       "type": "string"
+>      }
+>     },
+>     "required": [
+>      "mode"
+>     ],
+>     "title": "ModeRequest",
+>     "type": "object"
+>    },
+1684,1706d1679
+<     "type": "object"
+<    },
+<    "SendMessage": {
+<     "description": "A message starting a turn.",
+<     "properties": {
+<      "files": {
+<       "description": "Absolute paths the upload route returned.",
+<       "items": {
+<        "type": "string"
+<       },
+<       "title": "Files",
+<       "type": "array"
+<      },
+<      "prompt": {
+<       "minLength": 1,
+<       "title": "Prompt",
+<       "type": "string"
+<      }
+<     },
+<     "required": [
+<      "prompt"
+<     ],
+<     "title": "SendMessage",
+1830,1848d1802
+<    "SetMode": {
+<     "additionalProperties": false,
+<     "description": "The mode the person switches a chat to.",
+<     "properties": {
+<      "mode": {
+<       "enum": [
+<        "ask",
+<        "auto"
+<       ],
+<       "title": "Mode",
+<       "type": "string"
+<      }
+<     },
+<     "required": [
+<      "mode"
+<     ],
+<     "title": "SetMode",
+<     "type": "object"
+<    },
+2033a1988,2033
+>    "StreamFailure": {
+>     "description": "Terminal: the call did not produce a reply.",
+>     "properties": {
+>      "code": {
+>       "anyOf": [
+>        {
+>         "enum": [
+>          "context_window_exceeded",
+>          "images_over_limit"
+>         ],
+>         "type": "string"
+>        },
+>        {
+>         "type": "null"
+>        }
+>       ],
+>       "title": "Code"
+>      },
+>      "images_to_hide": {
+>       "anyOf": [
+>        {
+>         "type": "integer"
+>        },
+>        {
+>         "type": "null"
+>        }
+>       ],
+>       "title": "Images To Hide"
+>      },
+>      "kind": {
+>       "const": "failed",
+>       "default": "failed",
+>       "title": "Kind",
+>       "type": "string"
+>      },
+>      "reason": {
+>       "title": "Reason",
+>       "type": "string"
+>      }
+>     },
+>     "required": [
+>      "reason"
+>     ],
+>     "title": "StreamFailure",
+>     "type": "object"
+>    },
+2196c2196
+<          "$ref": "#/components/schemas/ApprovalModeChanged"
+---
+>          "$ref": "#/components/schemas/ApprovalModeChange"
+3731c3731
+<         "$ref": "#/components/schemas/SendMessage"
+---
+>         "$ref": "#/components/schemas/MessageRequest"
+3784c3784
+<         "$ref": "#/components/schemas/SetMode"
+---
+>         "$ref": "#/components/schemas/ModeRequest"
+4291c4291
+<   "/api/mcp/{server}/resources": {
+---
+>   "/api/mcp/{server_id}/resources": {
+4293c4293
+<     "operationId": "read_app_api_mcp__server__resources_get",
+---
+>     "operationId": "read_app_api_mcp__server_id__resources_get",
+4297c4297
+<       "name": "server",
+---
+>       "name": "server_id",
+4300c4300
+<        "title": "Server",
+---
+>        "title": "Server Id",
+4342c4342
+<   "/api/mcp/{server}/tools/{name}": {
+---
+>   "/api/mcp/{server_id}/tools/{name}": {
+4344c4344
+<     "operationId": "call_app_tool_api_mcp__server__tools__name__post",
+---
+>     "operationId": "call_app_tool_api_mcp__server_id__tools__name__post",
+4348c4348
+<       "name": "server",
+---
+>       "name": "server_id",
+4351c4351
+<        "title": "Server",
+---
+>        "title": "Server Id",
