@@ -15,7 +15,7 @@ from fastapi import FastAPI
 
 from harness.app_events import AppEventService
 from harness.app_events.router.app_event_router import AppEventRouter
-from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import BotRepository, BotService, GroupService
 from harness.bots.router.bot_router import BotRouter
 from harness.bots.router.group_router import GroupRouter
 from harness.bots.service.bot_lifecycle_service import BotLifecycleService
@@ -193,7 +193,7 @@ def create_web_app() -> FastAPI:
         sessions,
         runtime,
         bots,
-        GroupService(bots, sessions, MENTION_TURN_ORDER),
+        GroupService(bots, sessions),
         app_events=app_events,
     )
     assert runtime.tools is not None

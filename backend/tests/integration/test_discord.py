@@ -7,7 +7,6 @@ from pathlib import Path
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.service.gateway import ChannelGateway
 from harness.config.settings import Settings
 from harness.runs.service.run_service import RunService
@@ -18,7 +17,7 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.web.server import build_channels
 from tests.unit.fakes import OneModel, ScriptedClient
-from tests.unit.helpers import no_bots, no_images
+from tests.unit.helpers import group_service, no_bots, no_images
 from tests.webapp import channel_services, secrets_in
 
 
@@ -29,7 +28,7 @@ def _services(tmp_path: Path) -> tuple[SessionService, RunService]:
         sessions,
         runtime,
         no_bots(sessions),
-        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER),
+        group_service(no_bots(sessions), sessions),
         app_events=AppEventService(),
     )
 

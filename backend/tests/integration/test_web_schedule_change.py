@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots import ASSISTANT_ID
 from harness.llm import AssistantMessage, Message, StreamEvent, ToolMessage, UserMessage
 from harness.prompts import SCHEDULE_CHANGE
 from harness.runs.service.run_service import RunService
@@ -28,7 +28,7 @@ from harness.tools.native.schedule import schedule_edit_tool
 from tests.bot_models import save_chat_of
 from tests.integration.web_helpers import send, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool
-from tests.unit.helpers import durable_service, no_skills, run_service
+from tests.unit.helpers import durable_service, group_service, no_skills, run_service
 from tests.unit.schedule_helpers import START, Clock, schedules_in
 from tests.webapp import a_model_saved_in, bots_in, web_app
 
@@ -66,7 +66,7 @@ async def page_of(tmp_path: Path) -> AsyncIterator[Callable[..., Awaitable[Page]
         schedules = schedules_in(tmp_path, Clock(START))
         made = schedules.create(bot_id, TITLE, "Check it.", DAILY)
         model = SteppedClient(*scripts(made.id))
-        edit = schedule_edit_tool(GroupService(bots, sessions, MENTION_TURN_ORDER), schedules)
+        edit = schedule_edit_tool(group_service(bots, sessions), schedules)
         runs = run_service(sessions, model, gated_tool(release), edit, bots=bots)
         app = web_app(
             tmp_path,

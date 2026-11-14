@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BotService
 from harness.config.sections import CompactionSettings, LLMSettings
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
@@ -25,7 +25,7 @@ from harness.web.runtime import compaction_window_tokens
 from tests.bot_models import put_on_model
 from tests.integration.test_web_no_model import PAGE, no_image
 from tests.integration.web_helpers import settle
-from tests.unit.helpers import durable_service, no_approvals, no_images, no_skills
+from tests.unit.helpers import durable_service, group_service, no_approvals, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
 
 SMALL_HOST = "api.small.example"
@@ -141,7 +141,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         service,
         _runtime(CredentialModels(secrets, bots, base, endpoint), tmp_path, service.flush),
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        group_service(bots, service),
         app_events=AppEventService(),
     )
     asgi = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)

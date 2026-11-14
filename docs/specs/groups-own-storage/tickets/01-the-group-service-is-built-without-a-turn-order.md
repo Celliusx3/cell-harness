@@ -1,6 +1,6 @@
 # 01. The group service is built without a turn order
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

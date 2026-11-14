@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.llm import StreamEvent
 from harness.runs.service.bot_messages import BotMessenger
 from harness.runs.service.run_service import RunService
@@ -22,6 +22,7 @@ from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import OneModel, PerBotClient
 from tests.unit.helpers import (
     durable_service,
+    group_service,
     heard_nowhere,
     no_approvals,
     no_images,
@@ -118,7 +119,7 @@ def messaging_app(
         service,
         runtime,
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        group_service(bots, service),
         app_events=app_events,
     )
     messages = attach_bot_messages(tool_service, bots, runs, follow=heard_nowhere)

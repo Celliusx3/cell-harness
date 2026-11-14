@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots import ASSISTANT_ID
 from harness.bots.domain.models import DEFAULT_MAX_WORKERS
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import client as adapter_module
@@ -24,7 +24,7 @@ from harness.web.runtime import build_runtime
 from tests.integration.test_web_no_model import PAGE, FakeProvider
 from tests.integration.web_helpers import settle
 from tests.mcp_stub import DOT_PNG
-from tests.unit.helpers import client_tools, durable_service, no_approvals, no_skills
+from tests.unit.helpers import client_tools, durable_service, group_service, no_approvals, no_skills
 from tests.webapp import bots_in, files_in, images_in, secrets_in, web_app
 
 DOT = base64.b64decode(DOT_PNG)
@@ -66,7 +66,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         service,
         runtime,
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        group_service(bots, service),
         app_events=AppEventService(),
     )
     asgi = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)

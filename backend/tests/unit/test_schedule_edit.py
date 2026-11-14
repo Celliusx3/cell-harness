@@ -12,7 +12,6 @@ from harness.app_events import AppEventService
 from harness.bots import (
     ASSISTANT_ID,
     BUILDER_ID,
-    MENTION_TURN_ORDER,
     BotRepository,
     BotService,
     GroupDraft,
@@ -31,7 +30,7 @@ from harness.tools.native.schedule import (
 )
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import durable_service, no_bots
+from tests.unit.helpers import durable_service, group_service, no_bots
 from tests.unit.schedule_helpers import (
     Clock,
     ask,
@@ -65,7 +64,7 @@ def bots(tmp_path: Path, sessions: SessionService) -> BotService:
 
 @pytest.fixture
 async def groups(bots: BotService, sessions: SessionService) -> GroupService:
-    return GroupService(bots, sessions, MENTION_TURN_ORDER)
+    return group_service(bots, sessions)
 
 
 @pytest.fixture
@@ -89,9 +88,7 @@ async def test_pausing_stops_a_due_run(tmp_path: Path) -> None:
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
 
     paused = await ask(
-        schedule_edit_tool(
-            GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER), schedules
-        ),
+        schedule_edit_tool(group_service(no_bots(sessions), sessions), schedules),
         id=made.id,
         action="update",
         active=False,
@@ -108,9 +105,7 @@ async def test_resuming_runs_at_the_next_time_after_the_edit(tmp_path: Path) -> 
     _, gateway, runs, sessions, clock, schedules, scheduler = await world(
         tmp_path, ScriptedClient(completed("Done."))
     )
-    tool = schedule_edit_tool(
-        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER), schedules
-    )
+    tool = schedule_edit_tool(group_service(no_bots(sessions), sessions), schedules)
     made = schedules.create(ASSISTANT_ID, "Check in", "Check in.", HOURLY)
     await ask(tool, id=made.id, action="update", active=False)
     clock.advance(timedelta(hours=2, minutes=30))

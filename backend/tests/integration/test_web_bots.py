@@ -11,17 +11,15 @@ from harness.app_events import AppEventService
 from harness.bots import (
     ASSISTANT_ID,
     BUILDER_ID,
-    MENTION_TURN_ORDER,
     BotRepository,
     BotService,
-    GroupService,
 )
 from harness.bots.domain.models import DEFAULT_MAX_WORKERS
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.runs.service.run_service import RunService
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import durable_service, no_skills, runtime_over
+from tests.unit.helpers import durable_service, group_service, no_skills, runtime_over
 from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, web_app
 
 GUIDE = "GUIDE"
@@ -49,7 +47,7 @@ async def bots(tmp_path):
         service,
         runtime,
         store,
-        GroupService(store, service, MENTION_TURN_ORDER),
+        group_service(store, service),
         app_events=app_events,
     )
     app = web_app(

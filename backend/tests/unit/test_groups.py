@@ -9,7 +9,6 @@ from pydantic import ValidationError
 
 from harness.app_events import AppEventService
 from harness.bots import (
-    MENTION_TURN_ORDER,
     BotDraft,
     BotEdit,
     BotNotFound,
@@ -26,7 +25,7 @@ from harness.session.domain.models import (
     TurnStart,
 )
 from harness.session.service.session_service import SessionService
-from tests.unit.helpers import durable_service
+from tests.unit.helpers import durable_service, group_service
 from tests.webapp import MODEL_CREDENTIAL
 
 ASK = ToolCall(id="c1", name="ask", arguments="{}")
@@ -49,7 +48,7 @@ def bots(tmp_path: Path, service: SessionService) -> BotService:
 
 @pytest.fixture
 def groups(bots: BotService, service: SessionService) -> GroupService:
-    return GroupService(bots, service, MENTION_TURN_ORDER)
+    return group_service(bots, service)
 
 
 @pytest.mark.parametrize(

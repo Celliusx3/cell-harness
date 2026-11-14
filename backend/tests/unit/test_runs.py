@@ -9,7 +9,6 @@ import pytest
 
 from harness.bots import (
     ASSISTANT_ID,
-    MENTION_TURN_ORDER,
     Bot,
     BotDraft,
     BotService,
@@ -39,7 +38,7 @@ from tests.unit.fakes import (
     hanging_tool,
     pending_tool,
 )
-from tests.unit.helpers import drain, durable_service, no_bots, run_service, until
+from tests.unit.helpers import drain, durable_service, group_service, no_bots, run_service, until
 from tests.webapp import MODEL_CREDENTIAL, bots_in
 
 
@@ -188,7 +187,7 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
         seen.append(context.origin.bot_id)
         return Ok(content=args.value)
 
-    groups = _ChatsOfNotion(no_bots(service), service, MENTION_TURN_ORDER)
+    groups = _ChatsOfNotion(no_bots(service), service)
     client = SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done"))
     runs = run_service(service, client, replace(echo_tool(), execute=execute), groups=groups)
     run = runs.start(await service.create(ASSISTANT_ID), "go")
@@ -209,7 +208,7 @@ async def _group_chat(
             for name in names
         ]
     )
-    group = await GroupService(bots, service, MENTION_TURN_ORDER).create(
+    group = await group_service(bots, service).create(
         GroupDraft(name="Launch", member_ids=tuple(bot.id for bot in members))
     )
     return await service.resume(group.id), members

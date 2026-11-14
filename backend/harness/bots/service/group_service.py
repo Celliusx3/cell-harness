@@ -11,7 +11,7 @@ from harness.bots.domain.models import (
     GroupDraft,
     GroupMemberNotFound,
 )
-from harness.bots.domain.turn_order import TurnOrder
+from harness.bots.domain.turn_order import MENTION_TURN_ORDER
 from harness.bots.service.bot_service import BotService, bot_instructions_event
 from harness.session.domain.log import Session
 from harness.session.domain.models import GroupMembersEvent
@@ -21,10 +21,9 @@ from harness.session.service.session_service import SessionService
 class GroupService:
     """Every group, the members of each chat, and which of them speaks next."""
 
-    def __init__(self, bots: BotService, sessions: SessionService, turn_order: TurnOrder) -> None:
+    def __init__(self, bots: BotService, sessions: SessionService) -> None:
         self._bots = bots
         self._sessions = sessions
-        self._turn_order = turn_order
 
     async def create(self, draft: GroupDraft) -> Group:
         """A new group of active bots, its chat holding its members; else `GroupMemberNotFound`."""
@@ -75,7 +74,7 @@ class GroupService:
     def first_speaker(self, session: Session, text: str) -> Bot:
         """Who answers `text` first, its instructions and group logged; else `EmptyGroupError`."""
         members = self.chat_members(session.id)
-        speakers = self._turn_order.first_speakers(text, members.bots)
+        speakers = MENTION_TURN_ORDER.first_speakers(text, members.bots)
         if not speakers:
             raise EmptyGroupError(session.id)
         _log_speaker_and_members_if_changed(session, members, speakers[0])
@@ -84,7 +83,7 @@ class GroupService:
     def next_speaker(self, session: Session) -> Bot | None:
         """Who the queue says is next, its instructions and group logged; `None` when nobody is."""
         members = self.chat_members(session.id)
-        speaker = self._turn_order.next_speaker(session.events(), members.bots)
+        speaker = MENTION_TURN_ORDER.next_speaker(session.events(), members.bots)
         if speaker is None:
             return None
         _log_speaker_and_members_if_changed(session, members, speaker)

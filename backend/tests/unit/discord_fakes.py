@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from harness.app_events import AppEventService
-from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
@@ -19,7 +18,7 @@ from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import no_bots, no_images, no_links, no_skills
+from tests.unit.helpers import group_service, no_bots, no_images, no_links, no_skills
 
 BOT_ID = 900
 
@@ -136,7 +135,7 @@ def build(tmp_path, client: LLMClient | None = None):
         sessions,
         runtime,
         bots,
-        GroupService(bots, sessions, MENTION_TURN_ORDER),
+        group_service(bots, sessions),
         app_events=AppEventService(),
     )
     chats = JsonChatRepository(tmp_path / "chats")

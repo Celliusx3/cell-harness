@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService, GroupService
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.links import ChatLinks, LinkCodes
@@ -200,7 +200,7 @@ def run_service(
             inbox=inbox,
         ),
         answering,
-        groups or GroupService(answering, service, MENTION_TURN_ORDER),
+        groups or group_service(answering, service),
         app_events=AppEventService(),
     )
 
@@ -218,6 +218,11 @@ def no_bots(service: SessionService) -> BotService:
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=AppEventService(),
     )
+
+
+def group_service(bots: BotService, sessions: SessionService) -> GroupService:
+    """The groups of `bots`, each talking in a chat of `sessions`."""
+    return GroupService(bots, sessions)
 
 
 def skills_at(*roots: Path) -> SkillService:

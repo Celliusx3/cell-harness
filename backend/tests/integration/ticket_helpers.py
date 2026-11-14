@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import BotRepository, BotService
 from harness.llm import StreamEvent
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
@@ -27,7 +27,14 @@ from harness.web.runtime import CLIENT_TOOLS
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
-from tests.unit.helpers import durable_service, heard_nowhere, no_approvals, no_images, no_skills
+from tests.unit.helpers import (
+    durable_service,
+    group_service,
+    heard_nowhere,
+    no_approvals,
+    no_images,
+    no_skills,
+)
 from tests.webapp import a_model_saved_in, files_in, web_app
 
 WORKER_START = "You are a worker."
@@ -84,7 +91,7 @@ def ticketing_app(
         service,
         runtime,
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        group_service(bots, service),
         app_events=app_events,
     )
     worker_logs = SessionService(JsonlSessionRepository(tmp_path / "workers"))

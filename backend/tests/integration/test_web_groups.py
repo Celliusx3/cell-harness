@@ -9,14 +9,14 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import BotRepository, BotService
 from harness.llm import SystemMessage, UserMessage
 from harness.runs.service.run_service import RunService
 from harness.tools.native.question import ASK_USER
 from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, hanging_tool
-from tests.unit.helpers import client_tools, durable_service, no_skills, runtime_over
+from tests.unit.helpers import client_tools, durable_service, group_service, no_skills, runtime_over
 from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, web_app
 
 RESEARCHER = {
@@ -46,7 +46,7 @@ async def _group(tmp_path, *scripts, extra=()):
         service,
         runtime,
         store,
-        GroupService(store, service, MENTION_TURN_ORDER),
+        group_service(store, service),
         app_events=app_events,
     )
     secrets = a_model_saved_in(tmp_path)

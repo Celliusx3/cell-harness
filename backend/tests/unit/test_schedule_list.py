@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, BUILDER_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots import ASSISTANT_ID, BUILDER_ID, GroupService
 from harness.schedules import ScheduleService
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.schedule import schedule_list_tool, schedule_view_tool
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import durable_service, no_bots
+from tests.unit.helpers import durable_service, group_service, no_bots
 from tests.unit.schedule_helpers import Clock, ask, schedules_in, tick_and_settle, world
 
 NOW = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)
@@ -25,7 +25,7 @@ DAILY = "DTSTART:20261112T060000Z\nRRULE:FREQ=DAILY"
 async def groups(tmp_path: Path) -> GroupService:
     sessions = durable_service(tmp_path / "sessions")
     found = no_bots(sessions)
-    return GroupService(found, sessions, MENTION_TURN_ORDER)
+    return group_service(found, sessions)
 
 
 @pytest.fixture
@@ -122,9 +122,7 @@ async def test_a_view_after_a_delivery_shows_the_last_occurrence(tmp_path: Path)
     await tick_and_settle(scheduler, runs, gateway)
 
     outcome = await ask(
-        schedule_view_tool(
-            GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER), schedules
-        ),
+        schedule_view_tool(group_service(no_bots(sessions), sessions), schedules),
         id=made.id,
     )
 

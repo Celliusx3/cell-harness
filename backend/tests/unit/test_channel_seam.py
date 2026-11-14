@@ -6,7 +6,7 @@ import asyncio
 from datetime import UTC, datetime
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import (
     DuplicateChannelError,
     InboundMessage,
@@ -21,7 +21,7 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.tools.client import PendingCall
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import link_to_assistant, no_bots, no_images, no_skills
+from tests.unit.helpers import group_service, link_to_assistant, no_bots, no_images, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
 WHATSAPP = "whatsapp"
@@ -72,7 +72,7 @@ def build(tmp_path, reply: str = "answered"):
         sessions,
         runtime,
         no_bots(sessions),
-        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER),
+        group_service(no_bots(sessions), sessions),
         app_events=AppEventService(),
     )
     chats = JsonChatRepository(tmp_path / "chats")

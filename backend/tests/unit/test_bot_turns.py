@@ -8,10 +8,8 @@ from pathlib import Path
 from harness.app_events import AppEventService
 from harness.bots import (
     ASSISTANT_ID,
-    MENTION_TURN_ORDER,
     BotRepository,
     BotService,
-    GroupService,
 )
 from harness.llm import (
     ApplicationMessage,
@@ -44,7 +42,7 @@ from harness.session.service.session_service import SessionService
 from harness.tools import Ok
 from tests.bot_models import put_instructions
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool
-from tests.unit.helpers import durable_service, new_session, runtime_over
+from tests.unit.helpers import durable_service, group_service, new_session, runtime_over
 
 
 def _logged(session: Session) -> list[str]:
@@ -55,7 +53,7 @@ def _runs(
     service: SessionService, runtime: Runtime, bots: BotService, app_events: AppEventService
 ) -> RunService:
     """Runs over `runtime` for `bots`, wired the way the server wires them."""
-    groups = GroupService(bots, service, MENTION_TURN_ORDER)
+    groups = group_service(bots, service)
     return RunService(service, runtime, bots, groups, app_events=app_events)
 
 

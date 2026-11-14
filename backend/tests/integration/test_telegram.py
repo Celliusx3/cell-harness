@@ -10,7 +10,7 @@ import httpx
 from pydantic import SecretStr
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
@@ -26,6 +26,7 @@ from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import (
     client_tools,
+    group_service,
     link_to_assistant,
     no_approvals,
     no_bots,
@@ -64,7 +65,7 @@ def build(tmp_path):
         sessions,
         runtime,
         no_bots(sessions),
-        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER),
+        group_service(no_bots(sessions), sessions),
         app_events=AppEventService(),
     )
     tools = client_tools()
@@ -144,7 +145,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         sessions,
         Runtime(models=OneModel(ScriptedClient([])), images=no_images()),
         no_bots(sessions),
-        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER),
+        group_service(no_bots(sessions), sessions),
         app_events=AppEventService(),
     )
     tools = client_tools()
@@ -217,7 +218,7 @@ async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
         sessions,
         Runtime(models=OneModel(ScriptedClient([])), images=no_images()),
         no_bots(sessions),
-        GroupService(no_bots(sessions), sessions, MENTION_TURN_ORDER),
+        group_service(no_bots(sessions), sessions),
         app_events=AppEventService(),
     )
     settings = Settings()

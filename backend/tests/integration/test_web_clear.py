@@ -9,12 +9,12 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.llm import Message, StreamEvent, ToolSpec
 from harness.runs.service.run_service import RunService
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, completed
-from tests.unit.helpers import durable_service, no_skills, run_service, runtime_over
+from tests.unit.helpers import durable_service, group_service, no_skills, run_service, runtime_over
 from tests.webapp import web_app
 
 
@@ -33,7 +33,7 @@ async def assistant(tmp_path):
         service,
         runtime_over(model, checkpoint=service.flush),
         store,
-        GroupService(store, service, MENTION_TURN_ORDER),
+        group_service(store, service),
         app_events=app_events,
     )
     app = web_app(tmp_path, service, runs, skills=no_skills(), bots=store)

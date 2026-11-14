@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from typing import NamedTuple, Protocol
+from typing import NamedTuple
 
 from harness.bots.domain.models import MENTION_PATTERN, Bot
 from harness.session.domain.models import (
@@ -39,18 +39,6 @@ class SpeakerQueue(NamedTuple):
         joining = tuple(bot for bot in members if bot.is_mentioned_in(said) and bot.id not in ids)
         taken = joining[: max_turns_from_mentions - self.turns_from_mentions]
         return SpeakerQueue((*waiting, *taken), self.turns_from_mentions + len(taken))
-
-
-class TurnOrder(Protocol):
-    """Who in a chat answers the person first, and who speaks after each turn."""
-
-    def first_speakers(self, text: str, members: Sequence[Bot]) -> tuple[Bot, ...]:
-        """Who answers the person's `text`, in order."""
-        ...
-
-    def next_speaker(self, events: Sequence[SessionEvent], members: Sequence[Bot]) -> Bot | None:
-        """Who speaks once the log's last turn ends; `None` when nobody is next."""
-        ...
 
 
 class MentionTurnOrder:

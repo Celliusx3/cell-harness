@@ -9,12 +9,12 @@ from collections.abc import AsyncIterator
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import BotRepository, BotService
 from harness.runs.service.run_service import RunService
 from tests.integration.test_web_stream import TIMEOUT, served, serving
 from tests.integration.web_helpers import assistant_chat
 from tests.unit.fakes import ScriptedClient, SteppedClient, completed
-from tests.unit.helpers import durable_service, no_skills, runtime_over
+from tests.unit.helpers import durable_service, group_service, no_skills, runtime_over
 from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, web_app
 
 RESEARCHER = {"name": "Researcher", "instructions": "Cite.", "model": MODEL_CREDENTIAL}
@@ -56,7 +56,7 @@ async def test_an_open_window_hears_that_the_bots_changed(tmp_path) -> None:
         service,
         runtime_over(ScriptedClient(completed("hi"))),
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        group_service(bots, service),
         app_events=app_events,
     )
     app = web_app(

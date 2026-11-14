@@ -16,13 +16,11 @@ from harness.bots.domain.models import (
     GroupMemberNotFound,
     UnsavedModelError,
 )
-from harness.bots.domain.turn_order import MENTION_TURN_ORDER, MentionTurnOrder, TurnOrder
 from harness.bots.repository.bot_repository import BotRepository
 from harness.bots.service.bot_service import BotService
 from harness.bots.service.group_service import GroupService
 
 __all__ = [
-    "MENTION_TURN_ORDER",
     "ASSISTANT_ID",
     "BUILDER_ID",
     "BUILDER_NAME",
@@ -39,7 +37,5 @@ __all__ = [
     "GroupMemberNotFound",
     "EmptyGroupError",
     "GroupService",
-    "MentionTurnOrder",
-    "TurnOrder",
     "UnsavedModelError",
 ]
