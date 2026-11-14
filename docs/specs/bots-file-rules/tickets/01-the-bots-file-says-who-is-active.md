@@ -1,6 +1,6 @@
 # 01. The bots file says who is active
 
-**Status.** open
+**Status.** done
 
 ## What to build
 
