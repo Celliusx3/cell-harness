@@ -14,6 +14,7 @@ from harness.session.repository.session_repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
     SessionNotFoundError,
+    StoredSession,
 )
 
 _EVENT_ADAPTER = TypeAdapter(SessionEvent)
@@ -70,7 +71,7 @@ class JsonlSessionRepository:
         self._stored_count_single_writer[session_id] = count
         return count
 
-    async def load(self, session_id: str) -> tuple[SessionHeader, list[SessionEvent]]:
+    async def load(self, session_id: str) -> StoredSession:
         """Read a session back, tolerating only a torn tail."""
         path = self._path(session_id)
         if not path.exists():
@@ -94,7 +95,7 @@ class JsonlSessionRepository:
                     f"{path}: line {index + 2} is unreadable and is not a torn final write: {err}"
                 ) from err
         self._stored_count_single_writer[session_id] = len(events)
-        return header, events
+        return StoredSession(header, events)
 
     async def delete(self, session_id: str) -> None:
         """Remove the file and forget the session; one never written is already gone."""

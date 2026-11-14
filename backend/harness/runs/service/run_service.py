@@ -125,8 +125,8 @@ class RunService:
             raise RunAlreadyActiveError(session.id)
         run = self._register_run(session)
         compaction = self._runtime.compact(session=session)
-        run._turn_task = asyncio.create_task(self._drain_turn(run, compaction))
-        run._settle_task = asyncio.create_task(self._settle_when_done(run))
+        run._turn_task = turn_task = asyncio.create_task(self._drain_turn(run, compaction))
+        run._settle_task = asyncio.create_task(self._settle_when_done(run, turn_task))
         return run
 
     def clear(self, session: Session) -> Run:
@@ -230,8 +230,8 @@ class RunService:
         """Run `opening` and the discussion after it on a task this service owns."""
         run = self._register_run(session)
         discussion = discussion_events(self._runtime, self._groups, session, opening)
-        run._turn_task = asyncio.create_task(self._drain_turn(run, discussion))
-        run._settle_task = asyncio.create_task(self._settle_when_done(run))
+        run._turn_task = turn_task = asyncio.create_task(self._drain_turn(run, discussion))
+        run._settle_task = asyncio.create_task(self._settle_when_done(run, turn_task))
         return run
 
     def _register_run(self, session: Session) -> Run:
@@ -252,8 +252,8 @@ class RunService:
         """Own the clear: the run in flight ended and settled, then the wipe run as its turn."""
         if in_flight is not None:
             await self._end(in_flight)
-        clearing._turn_task = asyncio.create_task(self._wipe(clearing))
-        await self._settle_when_done(clearing)
+        clearing._turn_task = turn_task = asyncio.create_task(self._wipe(clearing))
+        await self._settle_when_done(clearing, turn_task)
 
     async def _wipe(self, run: Run) -> None:
         """Write the wiped log over the stored one, and show it to whoever watches `run`."""
@@ -266,11 +266,10 @@ class RunService:
             async for _ in events:
                 await self._wake(run)
 
-    async def _settle_when_done(self, run: Run) -> None:
+    async def _settle_when_done(self, run: Run, turn_task: asyncio.Task[None]) -> None:
         """Own the turn's ending. This task is never cancelled — see `stop`."""
-        assert run._turn_task is not None
         try:
-            await run._turn_task
+            await turn_task
         except asyncio.CancelledError:
             pass
         except Exception as err:

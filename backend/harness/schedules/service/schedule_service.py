@@ -181,7 +181,7 @@ def _resumed(schedule: Schedule, now: datetime) -> Schedule:
 
 
 def _with_delivery(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
-    deliveries = _recent_deliveries((*schedule.deliveries, delivery))
+    deliveries = _recent_deliveries(schedule.deliveries, delivery)
     return schedule.model_copy(update={"deliveries": deliveries, "updated_at": now})
 
 
@@ -203,10 +203,10 @@ def _delivered(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedul
     return _with_delivery(schedule, delivery, now).model_copy(update=moved)
 
 
-def _recent_deliveries(deliveries: tuple[Delivery, ...]) -> tuple[Delivery, ...]:
+def _recent_deliveries(older: tuple[Delivery, ...], newest: Delivery) -> tuple[Delivery, ...]:
     """The newest `MAX_KEPT_DELIVERIES`, none more than `KEPT_DELIVERY_DAYS` before the newest."""
-    cutoff = deliveries[-1].delivered_at - timedelta(days=KEPT_DELIVERY_DAYS)
-    recent = tuple(d for d in deliveries if d.delivered_at >= cutoff)
+    cutoff = newest.delivered_at - timedelta(days=KEPT_DELIVERY_DAYS)
+    recent = tuple(d for d in (*older, newest) if d.delivered_at >= cutoff)
     return recent[-MAX_KEPT_DELIVERIES:]
 
 

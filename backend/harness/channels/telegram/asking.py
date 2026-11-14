@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import json
+from typing import Literal, TypeIs
 
 from pydantic import ValidationError
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from telegram import (
+    Bot,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
 
 from harness.channels.domain.protocol import PushChannel
 from harness.channels.domain.text import split_message
 from harness.tools.client import PendingCall
+from harness.tools.domain.decision import Scope
 from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.question import ASK_USER, Question
 
@@ -27,17 +35,24 @@ NO_ANSWER_PAGE = "(Answering from Telegram needs `web.public_url` to be set.)"
 
 APPROVAL_CALLBACK_PREFIX = "ap"
 CHOICE_PREFIX = "qa"
-APPROVAL_BUTTONS: tuple[tuple[str, str], ...] = (
+ApprovalChoice = Literal[Scope, "deny"]
+APPROVAL_BUTTONS: tuple[tuple[str, ApprovalChoice], ...] = (
     ("Allow once", "once"),
     ("Allow for this conversation", "conversation"),
     ("Always allow", "always"),
     ("Deny", "deny"),
 )
+APPROVAL_CHOICES = frozenset(choice for _, choice in APPROVAL_BUTTONS)
+
+
+def is_approval_choice(word: str) -> TypeIs[ApprovalChoice]:
+    """Whether `word` is what one of the approval card's buttons answers."""
+    return word in APPROVAL_CHOICES
 
 
 async def ask_client(
     channel: PushChannel,
-    bot,
+    bot: Bot,
     chat_id: str,
     request: PendingCall,
     url: str,
@@ -118,7 +133,7 @@ def _approval_keyboard(call_id: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([buttons[:2], buttons[2:]])
 
 
-async def _ask_approval(channel: PushChannel, bot, chat_id: str, request: PendingCall) -> None:
+async def _ask_approval(channel: PushChannel, bot: Bot, chat_id: str, request: PendingCall) -> None:
     *earlier, last = split_message(approval_text(request), MAX_MESSAGE_CHARS)
     for part in earlier:
         await channel.send_message(chat_id, part)
@@ -154,7 +169,7 @@ def _choice_keyboard(call_id: str, question: Question) -> InlineKeyboardMarkup:
     )
 
 
-async def _ask_question(bot, chat_id: str, call_id: str, question: Question) -> None:
+async def _ask_question(bot: Bot, chat_id: str, call_id: str, question: Question) -> None:
     await bot.send_message(
         chat_id=int(chat_id),
         text=question.question,
@@ -162,7 +177,7 @@ async def _ask_question(bot, chat_id: str, call_id: str, question: Question) -> 
     )
 
 
-async def _ask_location(bot, chat_id: str) -> None:
+async def _ask_location(bot: Bot, chat_id: str) -> None:
     button = KeyboardButton(SHARE_LABEL, request_location=True)
     await bot.send_message(
         chat_id=int(chat_id),

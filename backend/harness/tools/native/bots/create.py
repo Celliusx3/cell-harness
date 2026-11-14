@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Literal
 
 from pydantic import Field, create_model
+from pydantic.json_schema import JsonDict
 
 from harness.bots import BotDraft, BotService
 from harness.secrets import SecretService
@@ -56,11 +58,11 @@ def _args_model(names: tuple[str, ...]) -> type[BotDraft]:
     )
 
 
-def _enum_schema_hook(names: tuple[str, ...]):
+def _enum_schema_hook(names: tuple[str, ...]) -> Callable[[JsonDict], None]:
     """A schema hook that forces `enum` for `model`."""
     # Pydantic prints a one-member `Literal` as `const`, not `enum`.
 
-    def force_enum(schema: dict) -> None:
+    def force_enum(schema: JsonDict) -> None:
         schema.pop("const", None)
         schema["enum"] = list(names)
 

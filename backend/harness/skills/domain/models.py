@@ -105,14 +105,19 @@ def parse_skill_file(text: str) -> SkillFileParts:
     return SkillFileParts(frontmatter, body)
 
 
-def _split(text: str) -> tuple[str, str] | None:
-    """`(yaml, body)`, `None` with no leading fence, or `InvalidSkill` if it never closes."""
+class _FencedText(NamedTuple):
+    yaml: str
+    body: str
+
+
+def _split(text: str) -> _FencedText | None:
+    """The YAML and the body, `None` with no leading fence, or `InvalidSkill` if it never closes."""
     lines = text.splitlines(keepends=True)
     if not lines or lines[0].strip() != _FENCE:
         return None
     for at, line in enumerate(lines[1:], start=1):
         if line.strip() == _FENCE:
-            return "".join(lines[1:at]), "".join(lines[at + 1 :]).strip()
+            return _FencedText("".join(lines[1:at]), "".join(lines[at + 1 :]).strip())
     raise InvalidSkill(
         "the frontmatter opened by `---` on the first line is never closed: end it with a "
         "line holding only `---`, then write the instructions below it"

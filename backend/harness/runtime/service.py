@@ -181,7 +181,7 @@ class Runtime:
             waiting = unanswered(session.events())
             if waiting:
                 session.append(TurnEnd(turn=turn, reason="pending"))
-                yield AgentPending(tool_call_id=waiting[0][1].id, name=waiting[0][1].name)
+                yield AgentPending(tool_call_id=waiting[0].call.id, name=waiting[0].call.name)
                 return
         except BaseException:
             session.append(TurnEnd(turn=turn, reason="cancelled"))

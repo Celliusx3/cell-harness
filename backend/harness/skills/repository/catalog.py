@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from pathlib import Path
+from typing import NamedTuple
 
 from harness.skills.domain.models import (
     MAX_DESCRIPTION_CHARS,
@@ -20,12 +21,22 @@ from harness.skills.domain.models import (
 logger = logging.getLogger("harness.skills")
 
 
+class FileStamp(NamedTuple):
+    mtime_ns: int
+    size: int
+
+
+class CachedSnapshot(NamedTuple):
+    stamp: FileStamp
+    snapshot: SkillSnapshot
+
+
 class SkillCatalog:
     """Every skill under a ranked list of roots, read afresh on each call."""
 
     def __init__(self, roots: Sequence[Path]) -> None:
         self._roots = tuple(roots)
-        self._parsed: dict[Path, tuple[tuple[int, int], SkillSnapshot]] = {}
+        self._parsed: dict[Path, CachedSnapshot] = {}
         self._last_good: dict[Path, SkillSnapshot] = {}
         self._failing: set[Path] = set()
 
@@ -77,12 +88,12 @@ class SkillCatalog:
             stat = file.stat()
         except OSError as err:
             return _problem_snapshot(file, str(err))
-        stamp = (stat.st_mtime_ns, stat.st_size)
+        stamp = FileStamp(stat.st_mtime_ns, stat.st_size)
         cached = self._parsed.get(file)
-        if cached is not None and cached[0] == stamp:
-            return cached[1]
+        if cached is not None and cached.stamp == stamp:
+            return cached.snapshot
         loaded = _read(root, entry)
-        self._parsed[file] = (stamp, loaded)
+        self._parsed[file] = CachedSnapshot(stamp, loaded)
         return loaded
 
 

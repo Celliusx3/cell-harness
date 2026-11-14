@@ -33,11 +33,12 @@ from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, link_or_receive
 from harness.channels.telegram import commands
 from harness.channels.telegram.asking import (
-    APPROVAL_BUTTONS,
     APPROVAL_CALLBACK_PREFIX,
     CHOICE_PREFIX,
     MAX_MESSAGE_CHARS,
+    ApprovalChoice,
     ask_client,
+    is_approval_choice,
 )
 from harness.channels.telegram.batching import BATCH_SEPARATOR, Batch, batch_delay_seconds
 from harness.channels.telegram.private import private_chat_id
@@ -52,14 +53,13 @@ CHANNEL = "telegram"
 OPEN_LABEL = "Open"
 REFUSED_TOKEN_MESSAGE = "Telegram refused the bot token; replace it on the Credentials page"
 
-RECEIPTS: dict[str, str] = {
+RECEIPTS: dict[ApprovalChoice, str] = {
     "once": "✅ Allowed once",
     "conversation": "✅ Allowed for this conversation",
     "always": "✅ Always allowed",
     "deny": "❌ Denied",
 }
 STALE_TAP_RECEIPT = "This request was already answered."
-APPROVAL_CHOICES = frozenset(choice for _, choice in APPROVAL_BUTTONS)
 
 
 class TelegramChannel:
@@ -266,7 +266,7 @@ class Tap(NamedTuple):
     """What one approval button's data names."""
 
     call_id: str
-    choice: str
+    choice: ApprovalChoice
 
 
 def _parse_tap(data: str | None) -> Tap | None:
@@ -274,7 +274,7 @@ def _parse_tap(data: str | None) -> Tap | None:
     if data is None or data.count(":") < 2:
         return None
     _, call_id, choice = data.split(":", 2)
-    return Tap(call_id, choice) if choice in APPROVAL_CHOICES else None
+    return Tap(call_id, choice) if is_approval_choice(choice) else None
 
 
 class Choice(NamedTuple):

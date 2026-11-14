@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 from harness.session.domain.models import SessionEvent, SessionHeader
 
@@ -18,6 +18,13 @@ class SessionFormatUnsupportedError(RuntimeError):
 
 class SessionCorruptionError(RuntimeError):
     """A committed part of the log is unreadable."""
+
+
+class StoredSession(NamedTuple):
+    """A session as read back: its header and its events, in order."""
+
+    header: SessionHeader
+    events: list[SessionEvent]
 
 
 class SessionRepository(Protocol):
@@ -39,7 +46,7 @@ class SessionRepository(Protocol):
         """How many events are already durable for this session."""
         ...
 
-    async def load(self, session_id: str) -> tuple[SessionHeader, list[SessionEvent]]:
+    async def load(self, session_id: str) -> StoredSession:
         """Read a session back. Raises if it does not exist or cannot be read."""
         ...
 

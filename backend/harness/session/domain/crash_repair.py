@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import NamedTuple
 
 from harness.llm import ToolCall, ToolMessage
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
@@ -18,11 +19,16 @@ from harness.session.domain.models import (
 INTERRUPTED_BY_CRASH = "INTERRUPTED_BY_CRASH"
 
 
-def unanswered(events: Sequence[SessionEvent]) -> list[tuple[AssistantMessageEvent, ToolCall]]:
+class UnansweredCall(NamedTuple):
+    asked: AssistantMessageEvent
+    call: ToolCall
+
+
+def unanswered(events: Sequence[SessionEvent]) -> list[UnansweredCall]:
     """Every call in the log with no result, with the message that made it."""
     answered = {e.message.tool_call_id for e in events if isinstance(e, ToolResultEvent)}
     return [
-        (event, call)
+        UnansweredCall(event, call)
         for event in events
         if isinstance(event, AssistantMessageEvent)
         for call in event.message.tool_calls

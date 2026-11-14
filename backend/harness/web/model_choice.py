@@ -56,7 +56,7 @@ class CredentialModels:
         self._bots = bots
         self._base = base
         self._endpoint = endpoint
-        self._by_credential: dict[str, CachedChoice] = {}
+        self._by_credential: dict[SecretName, CachedChoice] = {}
 
     async def model_for(self, bot_id: str | None) -> ModelChoice | NoModel:
         """`bot_id`'s LLM credential; `NoModel` for no bot, an unknown one, or one with none."""
@@ -72,7 +72,7 @@ class CredentialModels:
         except BotNotFound:
             return None
 
-    async def _model_choice(self, name: str) -> ModelChoice | None:
+    async def _model_choice(self, name: SecretName) -> ModelChoice | None:
         """The LLM credential `name` as a model, unsealed and asked its window per version."""
         version = self._secrets.model_credential_version(name)
         if version is None:

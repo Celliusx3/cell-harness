@@ -9,11 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 
-from harness.images.domain.models import ImageFile
+from harness.images.domain.models import ImageFile, KeptMediaType
 
 BLOBS = "blobs"
 FOLDER_MODE = 0o700
-_EXTENSIONS: Mapping[str, str] = MappingProxyType(
+_EXTENSIONS: Mapping[KeptMediaType, str] = MappingProxyType(
     {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
 )
 
@@ -24,13 +24,13 @@ class DiskImageRepository:
 
     root: Path
 
-    def write(self, sha256: str, media_type: str, data: bytes) -> None:
+    def write(self, sha256: str, media_type: KeptMediaType, data: bytes) -> None:
         """`data` kept under `sha256` unless a file already is, whole or not at all."""
         target = self._path_of(sha256, media_type)
         if not target.exists():
             self._write_whole(target, data)
 
-    def read(self, sha256: str, media_type: str) -> bytes:
+    def read(self, sha256: str, media_type: KeptMediaType) -> bytes:
         """The bytes kept under `sha256`; `OSError` when there are none."""
         return self._path_of(sha256, media_type).read_bytes()
 
@@ -42,7 +42,7 @@ class DiskImageRepository:
                 return ImageFile(path=path, media_type=media_type)
         return None
 
-    def _path_of(self, sha256: str, media_type: str) -> Path:
+    def _path_of(self, sha256: str, media_type: KeptMediaType) -> Path:
         """Where the image named `sha256` is kept as `media_type`."""
         return self.root / f"{sha256}.{_EXTENSIONS[media_type]}"
 

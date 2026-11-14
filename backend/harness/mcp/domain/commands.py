@@ -11,7 +11,7 @@ from mcp.types import CallToolResult, ReadResourceResult
 @dataclass
 class ToolCallCommand:
     server_tool_name: str
-    arguments: dict
+    arguments: dict[str, object]
     deadline: float
     reply: asyncio.Future[CallToolResult]
 

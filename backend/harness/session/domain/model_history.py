@@ -77,12 +77,10 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
     pruned = pruned_ids(log)
     log = _with_images_hidden(log, hidden_image_count(log))
     messages: list[Message] = []
-    start = boundary(log)
-    if start is not None:
-        summary = log[start]
-        assert summary.message is not None
-        messages.append(UserMessage(content=summary.message.content))
-        log = log[start + 1 :]
+    since = boundary(log)
+    if since is not None:
+        messages.append(UserMessage(content=since.summary.content))
+        log = log[since.position + 1 :]
     messages.extend(_heard_messages(log, voices, pruned))
     return messages
 

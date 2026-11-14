@@ -35,7 +35,7 @@ class Connection:
     factory: McpClientFactory
     status: Status = "connecting"
     error: str = ""
-    tools: tuple[Tool[dict], ...] = ()
+    tools: tuple[Tool[dict[str, object]], ...] = ()
     published_tools: tuple[McpTool, ...] = ()
     instructions: str = ""
     commands: asyncio.Queue[Command] = field(default_factory=asyncio.Queue)
@@ -60,7 +60,9 @@ class Connection:
         self.task = asyncio.create_task(self._serve(), name=f"mcp:{self.id}")
         self.task.add_done_callback(self._report_exit)
 
-    async def call_tool(self, server_tool_name: str, arguments: dict) -> CallToolResult:
+    async def call_tool(
+        self, server_tool_name: str, arguments: dict[str, object]
+    ) -> CallToolResult:
         loop = asyncio.get_running_loop()
         command = ToolCallCommand(
             server_tool_name=server_tool_name,

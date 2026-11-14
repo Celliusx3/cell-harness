@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
 
 import discord
 from discord import app_commands
@@ -21,6 +20,7 @@ from harness.channels.service.commands import (
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, link_or_receive
 from harness.skills import UnknownSkill
+from harness.tools import ApprovalMode
 from harness.tools.client import PendingCall
 
 logger = logging.getLogger("harness.channels.discord")
@@ -77,9 +77,7 @@ class DiscordChannel:
             await self._on_command(interaction, Command.COMPACT)
 
         @self._tree.command(name="mode", description="Show or switch what asks before it runs")
-        async def mode(
-            interaction: discord.Interaction, mode: Literal["ask", "auto"] | None = None
-        ) -> None:
+        async def mode(interaction: discord.Interaction, mode: ApprovalMode | None = None) -> None:
             await self._on_command(
                 interaction, ModeChoice(mode=mode) if mode is not None else ModeQuestion()
             )

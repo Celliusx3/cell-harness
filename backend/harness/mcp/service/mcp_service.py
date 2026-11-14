@@ -33,7 +33,7 @@ class McpService:
         self._connections: dict[str, Connection] = {}
         self._change_lock = asyncio.Lock()
 
-    def tools(self) -> list[Tool[dict]]:
+    def tools(self) -> list[Tool[dict[str, object]]]:
         """Every tool on offer right now — **the registry provider**."""
         return [tool for connection in self._connections.values() for tool in connection.tools]
 
@@ -65,7 +65,7 @@ class McpService:
         return self._connection(server_id).published_tools
 
     async def call_tool(
-        self, server_id: str, server_tool_name: str, arguments: dict
+        self, server_id: str, server_tool_name: str, arguments: dict[str, object]
     ) -> CallToolResult:
         """One `tools/call` on one server, answered verbatim, proxied for an MCP App."""
         return await self._connection(server_id).call_tool(server_tool_name, arguments)

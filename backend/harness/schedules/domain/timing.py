@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime, tzinfo
+from typing import NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dateutil.rrule import rrule, rrulestr
@@ -56,11 +57,16 @@ def _rule(text: str) -> rrule:
     return parsed
 
 
-def _lines(text: str) -> tuple[str, str]:
+class RruleLines(NamedTuple):
+    start: str
+    recurrence: str
+
+
+def _lines(text: str) -> RruleLines:
     lines = text.strip().splitlines()
     if len(lines) != 2 or not lines[0].startswith("DTSTART") or not lines[1].startswith("RRULE:"):
         raise InvalidRrule("expected one DTSTART line, a newline, and one RRULE line")
-    return lines[0].strip(), lines[1].strip()
+    return RruleLines(lines[0].strip(), lines[1].strip())
 
 
 def _tzid(line: str) -> str | None:
