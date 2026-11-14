@@ -1,0 +1,9 @@
+# I'm done run
+INFO:     harness.mcp: app ui://computer/screen on computer calls release_control
+INFO:     127.0.0.1:63929 - "POST /api/mcp/computer/tools/release_control HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63931 - "POST /api/tickets/02836b53b9cc4d6a9c3eae931920e4f4/answer HTTP/1.1" 202 Accepted
+
+# Skip run
+INFO:     harness.mcp: app ui://computer/screen on computer calls release_control
+INFO:     127.0.0.1:64438 - "POST /api/mcp/computer/tools/release_control HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64440 - "POST /api/tickets/e9e153f80f964c81ba276164eec39236/answer HTTP/1.1" 202 Accepted
