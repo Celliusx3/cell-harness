@@ -43,12 +43,8 @@ class BotService:
         )
         self._built_in_ids = frozenset(bot.id for bot in self._built_ins)
 
-    async def open_active_bots(self) -> tuple[Bot, ...]:
-        """The built-ins, then the active others in the order made; creates no chat."""
-        return self.active_bots()
-
     def active_bots(self) -> tuple[Bot, ...]:
-        """The active bots, built-ins first, read without opening any chat."""
+        """The built-ins, then the active others in the order made."""
         return self._repository.read().active_bots(self._built_ins)
 
     def archived_bots(self) -> tuple[Bot, ...]:

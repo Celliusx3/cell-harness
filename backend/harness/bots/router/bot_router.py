@@ -61,7 +61,7 @@ class BotRouter:
         )
 
     async def list_bots(self) -> list[Bot]:
-        return list(await self._bots.open_active_bots())
+        return list(self._bots.active_bots())
 
     async def list_archived_bots(self) -> list[Bot]:
         return list(self._bots.archived_bots())

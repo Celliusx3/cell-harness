@@ -1,6 +1,6 @@
 # 06. One name for the list of bots
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

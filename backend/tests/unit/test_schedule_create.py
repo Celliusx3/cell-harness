@@ -48,7 +48,6 @@ def bots(tmp_path: Path, sessions: SessionService) -> BotService:
 
 @pytest.fixture
 async def groups(bots: BotService, sessions: SessionService) -> GroupService:
-    await bots.open_active_bots()
     return GroupService(bots, sessions, MENTION_TURN_ORDER)
 
 

@@ -241,7 +241,7 @@ async def test_bot_create_with_an_unknown_model_names_the_saved_ones(app: App) -
     assert "first_model" in text.text
     assert "other_model" in text.text
     assert "github" not in text.text
-    assert len(await app.bots.open_active_bots()) == 2
+    assert len(app.bots.active_bots()) == 2
 
 
 async def test_a_bot_made_by_bot_create_answers_on_its_model(app: App) -> None:
@@ -250,7 +250,7 @@ async def test_a_bot_made_by_bot_create_answers_on_its_model(app: App) -> None:
     outcome = await _bot_create(app, "other_model")
 
     assert isinstance(outcome, Ok)
-    made = (await app.bots.open_active_bots())[2]
+    made = app.bots.active_bots()[2]
     assert made.model_credential == "other_model"
     await _say(app, made.id)
     (asked,) = app.provider.requests

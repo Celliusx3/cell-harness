@@ -57,7 +57,7 @@ async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
         app_events=AppEventService(),
     )
 
-    assert await missing.open_active_bots() == (KIND, BUILDER)
+    assert missing.active_bots() == (KIND, BUILDER)
     with pytest.raises(BotNotFound):
         missing.active_bot("any-conversation")
 
@@ -141,7 +141,7 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
     bots.archive(second.id)
     bots.archive(first.id)
 
-    assert await bots.open_active_bots() == (KIND, BUILDER)
+    assert bots.active_bots() == (KIND, BUILDER)
     assert bots.archived_bots() == (
         first.model_copy(update={"archived": True}),
         second.model_copy(update={"archived": True}),
@@ -149,7 +149,7 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
 
     bots.restore(first.id)
 
-    assert await bots.open_active_bots() == (KIND, BUILDER, first)
+    assert bots.active_bots() == (KIND, BUILDER, first)
     assert list((await service.read(first.id)).events()) == chat_before
 
 
@@ -232,7 +232,7 @@ async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
         ),
     )
 
-    assert await bots.open_active_bots() == (
+    assert bots.active_bots() == (
         Bot(id=ASSISTANT_ID, name="Helper", instructions="Be terse."),
         BUILDER,
         Bot(id=first.id, name="First", instructions="Uno.", model_credential=MODEL_CREDENTIAL),

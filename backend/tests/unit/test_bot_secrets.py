@@ -43,7 +43,7 @@ async def test_allowing_assistant_a_key_stores_it_and_it_stays_first(bots: BotSe
 
     bots.allow_secret(ASSISTANT_ID, "github")
 
-    listed = await bots.open_active_bots()
+    listed = bots.active_bots()
     assert [bot.id for bot in listed] == [ASSISTANT_ID, BUILDER_ID, made.id]
     assert listed[0].secret_names == ("github",)
     assert listed[0].instructions == "Be kind."
