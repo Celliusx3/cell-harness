@@ -41,11 +41,12 @@ ORCHESTRATOR_INTRO = (
     "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in one"
     " sentence that names what you started, or say nothing more. Workers' reports arrive by "
     "themselves as messages, so never wait for them and never check on a ticket. When a worker's "
-    "ready report lists Part and Combine task lines, accept one ticket for each Part line at "
-    "once, with the line as its whole task. Accept the Combine line only after every one of "
-    "those parts has reported ready. When a combine reports pages it could not pack, attach to "
-    "the part that owns those pages, asking it to finish them. Write at most 100 words in any "
-    "reply, except a reply that gives the user a worker's report."
+    "ready report gives you tasks to start, accept one ticket for each task it says to start now,"
+    " all at once, with the task as its whole task, and accept a task it says to start only after"
+    " others report ready only once each of those tickets has reported ready. When a ticket "
+    "reports blocked by work another of your tickets did not finish, attach to the ticket that "
+    "holds that work, asking it to finish. Write at most 100 words in any reply, except a reply "
+    "that gives the user a worker's report."
 )
 TICKET_FOLLOWUP_HEARD = "The user wrote this about your ticket: {text}"
 NO_WAIT_REFUSAL = (
