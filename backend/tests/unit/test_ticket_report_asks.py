@@ -9,6 +9,7 @@ import pytest
 from harness.llm import ToolCall, ToolMessage
 from harness.runtime.events import AgentCompleted
 from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.tickets.domain.prompts import WORKER_INTRO
 from harness.tickets.service.worker import kept_report, worker_end
 from harness.tools import Failure, Ok
 from harness.tools.domain.outcome import INVALID_ARGUMENTS
@@ -117,3 +118,8 @@ def test_the_fold_carries_how_the_question_is_answered() -> None:
         ("ANA", "JAL"),
         None,
     )
+
+
+def test_the_worker_is_told_to_ask_for_the_screen_at_a_step_only_the_user_should_do() -> None:
+    assert "the ask takeover" in WORKER_INTRO
+    assert "a human check" in WORKER_INTRO

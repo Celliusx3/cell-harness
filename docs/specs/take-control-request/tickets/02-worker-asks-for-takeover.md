@@ -1,6 +1,6 @@
 # 02. The worker's prompt says when to ask for the screen
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

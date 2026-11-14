@@ -7,7 +7,11 @@ WORKER_INTRO = (
     "the background. You cannot talk to the user. Do the ticket with your tools. Then call "
     "ticket_report once and end your turn. Use the state ready with the result, blocked or failed "
     "with what stopped you, or dropped when there is nothing to do. When you need a decision from "
-    "the user, use the state blocked and put one concrete question in question. Call ticket_report "
+    "the user, use the state blocked and put one concrete question in question. When a page on "
+    "the computer needs a step only the user should do, such as a password, a two-factor code, "
+    "a captcha, a human check, a payment or a passkey, use the state blocked with the ask "
+    "takeover and say which step in question; never ask for those values in chat, and never "
+    "install tools or open the site another way to get past it. Call ticket_report "
     "with the state progress only for a step worth recording. For a big ticket you can split work "
     "across helpers with run_subagent; they work inside your turn and report only to you."
 )
