@@ -10,7 +10,7 @@ from mcp.types import CallToolResult
 from mcp.types import Tool as McpTool
 
 from harness.mcp.domain.errors import McpNotConnectedError, McpTimeoutError
-from harness.mcp.service._result import outcome_of
+from harness.mcp.service._result import tool_outcome
 from harness.tools import (
     EXECUTION_ERROR,
     NAMESPACE_SEPARATOR,
@@ -35,7 +35,7 @@ _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 CallTool = Callable[[str, dict], Awaitable[CallToolResult]]
 
 
-def namespaced(server_id: str, server_tool_name: str) -> str:
+def namespaced_tool_name(server_id: str, server_tool_name: str) -> str:
     """`yt` + `get_subtitles` -> `yt__get_subtitles`."""
     return f"{server_id}{NAMESPACE_SEPARATOR}{server_tool_name.replace('-', '_')}"
 
@@ -45,7 +45,7 @@ def build_tools(server_id: str, published: Iterable[McpTool], call: CallTool) ->
     built: list[Tool[dict]] = []
     seen: set[str] = set()
     for tool in published:
-        tool_name = namespaced(server_id, tool.name)
+        tool_name = namespaced_tool_name(server_id, tool.name)
         if not _TS_IDENTIFIER.match(tool_name):
             logger.warning(
                 "dropping MCP tool %r from %r: %r is not a usable tool name — it must be a "
@@ -87,7 +87,7 @@ def ui_resource_uri(tool: McpTool) -> str | None:
 
 def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict]:
     """One MCP tool, wired to the connection that owns it."""
-    tool_name = namespaced(server_id, published.name)
+    tool_name = namespaced_tool_name(server_id, published.name)
     resource_uri = ui_resource_uri(published)
 
     async def execute(arguments: dict, _context: ToolContext) -> ToolOutcome:
@@ -99,7 +99,7 @@ def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict]
             )
         except McpTimeoutError as err:
             return Failure(EXECUTION_ERROR, str(err))
-        return outcome_of(
+        return tool_outcome(
             result, tool_name=tool_name, server_id=server_id, resource_uri=resource_uri
         )
 

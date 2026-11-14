@@ -27,15 +27,15 @@ from harness.web.http.this_mac import (
 
 logger = logging.getLogger("harness.mcp")
 
-REFUSED = (McpServerNotFound, McpServerTaken)
+REFUSED_ERRORS = (McpServerNotFound, McpServerTaken)
 
 
 class ServerRouter:
     """List every server; add, change, remove and restart one from this Mac."""
 
-    def __init__(self, mcp: McpService, saved: SavedServerService) -> None:
+    def __init__(self, mcp: McpService, saved_servers: SavedServerService) -> None:
         self._mcp = mcp
-        self._saved = saved
+        self._saved_servers = saved_servers
         self.router: APIRouter = APIRouter(prefix="/api/mcp/servers", tags=["mcp"])
         self._add_reading_routes()
         self._add_saving_routes()
@@ -82,30 +82,30 @@ class ServerRouter:
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers=cors_headers(request))
 
     async def add_server(self, request: Request, response: Response) -> ServerEntry:
-        headers = _permitted(request, response)
+        headers = _set_write_headers(request, response)
         body = parsed_body(NewServer, await request.body(), headers)
-        added = body.saved(body.id, kept={})
+        added = body.saved_server(body.id, saved_env={})
         with _saved_or_answered(headers):
-            self._saved.add(added)
-        await self._mcp.add(added.id, added.server())
+            self._saved_servers.add(added)
+        await self._mcp.add(added.id, added.mcp_server())
         logger.info("MCP server %s added", body.id)
         return self._entry(body.id)
 
     async def change_server(
         self, server_id: str, request: Request, response: Response
     ) -> ServerEntry:
-        headers = _permitted(request, response)
+        headers = _set_write_headers(request, response)
         body = parsed_body(ServerDraft, await request.body(), headers)
         with _saved_or_answered(headers):
-            changed = self._saved.change(server_id, body)
-        await self._mcp.change(server_id, changed.server())
+            changed = self._saved_servers.change(server_id, body)
+        await self._mcp.change(server_id, changed.mcp_server())
         logger.info("MCP server %s changed", server_id)
         return self._entry(server_id)
 
     async def remove_server(self, server_id: str, request: Request) -> Response:
         headers = permitted_write_headers(request)
         with _saved_or_answered(headers):
-            self._saved.remove(server_id)
+            self._saved_servers.remove(server_id)
         await self._mcp.remove(server_id)
         logger.info("MCP server %s removed, its keys with it", server_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
@@ -113,13 +113,13 @@ class ServerRouter:
     async def restart_server(
         self, server_id: str, request: Request, response: Response
     ) -> ServerEntry:
-        headers = _permitted(request, response)
-        with refusals_answered_with(headers, REFUSED):
-            self._known(server_id)
+        headers = _set_write_headers(request, response)
+        with refusals_answered_with(headers, REFUSED_ERRORS):
+            self._refuse_unknown_server(server_id)
         await self._mcp.restart(server_id)
         return self._entry(server_id)
 
-    def _known(self, server_id: str) -> None:
+    def _refuse_unknown_server(self, server_id: str) -> None:
         if server_id not in {s.id for s in self._mcp.statuses()}:
             raise McpServerNotFound(f"no MCP server {server_id!r}")
 
@@ -139,7 +139,7 @@ class ServerRouter:
         )
 
 
-def _permitted(request: Request, response: Response) -> dict[str, str]:
+def _set_write_headers(request: Request, response: Response) -> dict[str, str]:
     """The write's CORS headers, set on `response` too; a 403 for a page not on this Mac."""
     headers = permitted_write_headers(request)
     response.headers.update(headers)
@@ -149,7 +149,7 @@ def _permitted(request: Request, response: Response) -> dict[str, str]:
 @contextmanager
 def _saved_or_answered(headers: dict[str, str]) -> Iterator[None]:
     """A refused save answered with its status; a file that cannot be written, with a 500."""
-    with refusals_answered_with(headers, REFUSED):
+    with refusals_answered_with(headers, REFUSED_ERRORS):
         try:
             yield
         except OSError as err:

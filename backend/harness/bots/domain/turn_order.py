@@ -14,7 +14,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.skills.domain.invocation import display
+from harness.skills.domain.invocation import typed_invocation
 
 EVERYONE = "everyone"
 MAX_TURNS_FROM_MENTIONS = 6
@@ -61,7 +61,7 @@ class MentionTurnOrder:
 
     def first_speakers(self, text: str, members: Sequence[Bot]) -> tuple[Bot, ...]:
         """The members the person's `text` mentions; all of them for @everyone or nobody."""
-        invoked = display(text)
+        invoked = typed_invocation(text)
         typed = text if invoked is None else invoked.typed
         named = mentioned_members(typed, members)
         if not named or is_mentioned(typed, EVERYONE):

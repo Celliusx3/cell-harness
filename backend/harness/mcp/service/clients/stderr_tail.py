@@ -8,7 +8,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import TextIO
 
-KEPT_LINES = 20
+KEPT_LINE_COUNT = 20
 DRAIN_SECONDS = 2.0
 
 
@@ -20,7 +20,7 @@ class StderrTail:
     lines: deque[str]
     pump: threading.Thread
 
-    def last_words(self) -> str:
+    def drain_last_line(self) -> str:
         """The server's last non-blank line, once its output is drained; empty if it wrote none."""
         self.writer.close()
         self.pump.join(DRAIN_SECONDS)
@@ -28,9 +28,9 @@ class StderrTail:
 
 
 def tee_stderr(sink: TextIO) -> StderrTail:
-    """A pipe whose every line goes on to `sink`, the last KEPT_LINES of them kept."""
+    """A pipe whose every line goes on to `sink`, the last KEPT_LINE_COUNT of them kept."""
     read_fd, write_fd = os.pipe()
-    lines: deque[str] = deque(maxlen=KEPT_LINES)
+    lines: deque[str] = deque(maxlen=KEPT_LINE_COUNT)
 
     def pass_on() -> None:
         with os.fdopen(read_fd, encoding="utf-8", errors="replace") as reader:

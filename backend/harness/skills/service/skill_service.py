@@ -10,17 +10,15 @@ import zipfile
 from pathlib import Path
 
 from harness.config.settings import SkillSettings
-from harness.skills.domain.invocation import parse
+from harness.skills.domain.invocation import invoked_skill_name
 from harness.skills.domain.models import (
     SKILL_FILE,
     InvalidSkill,
     Skill,
     SkillSnapshot,
     UnknownSkill,
-    valid_name,
-)
-from harness.skills.domain.models import (
-    parse as parse_file,
+    is_skill_name,
+    parse_skill_file,
 )
 from harness.skills.repository.catalog import SkillCatalog
 from harness.skills.service import archive, resources
@@ -48,10 +46,10 @@ class SkillNotEditable(PermissionError):
 class SkillShadowed(FileExistsError):
     """A higher-ranked root already holds this name; a save would never be read."""
 
-    def __init__(self, name: str, winner: Path) -> None:
-        super().__init__(f"{name!r} is shadowed by {winner}; saved here it would never load")
+    def __init__(self, name: str, shadowing_dir: Path) -> None:
+        super().__init__(f"{name!r} is shadowed by {shadowing_dir}; saved here it would never load")
         self.name = name
-        self.winner = winner
+        self.shadowing_dir = shadowing_dir
 
 
 class SkillService:
@@ -59,12 +57,12 @@ class SkillService:
 
     def __init__(self, settings: SkillSettings) -> None:
         self._roots = settings.roots
-        self._editable = settings.editable
+        self._editable_root = settings.editable
         self._catalog = SkillCatalog(settings.roots)
 
     def snapshot(self) -> SkillSnapshot:
         """Every loadable skill and every problem, as of now."""
-        return self._catalog()
+        return self._catalog.snapshot()
 
     def find(self, name: str) -> Skill:
         for skill in self.snapshot().skills:
@@ -76,31 +74,31 @@ class SkillService:
         """The `SKILL.md` as it is on disk, for the editor to show."""
         return (self.find(name).dir / SKILL_FILE).read_text(encoding="utf-8")
 
-    def files(self, name: str) -> tuple[str, ...]:
+    def bundled_files(self, name: str) -> tuple[str, ...]:
         """Every file the named skill bundles beside its `SKILL.md`."""
-        return resources.listing(self.find(name))
+        return resources.bundled_files(self.find(name))
 
-    def file(self, name: str, path: str) -> str:
+    def bundled_file_text(self, name: str, path: str) -> str:
         """One bundled file of the named skill, or `UnreadableFile` saying why not."""
         return resources.read(self.find(name), path)
 
-    def editable(self, skill: Skill) -> bool:
-        return skill.root == self._editable
+    def is_editable(self, skill: Skill) -> bool:
+        return skill.root == self._editable_root
 
-    def invocable(self) -> list[Skill]:
+    def user_invocable_skills(self) -> list[Skill]:
         """What a person may type after `/`."""
         return [skill for skill in self.snapshot().skills if skill.user_invocable]
 
-    def model_invocable(self) -> list[Skill]:
+    def model_invocable_skills(self) -> list[Skill]:
         """What the model may load with `skill`."""
         return [skill for skill in self.snapshot().skills if skill.model_invocable]
 
     def expand(self, text: str) -> str:
         """The message the model receives for `text`."""
-        name = parse(text)
+        name = invoked_skill_name(text)
         if name is None:
             return text
-        skill = next((s for s in self.invocable() if s.name == name), None)
+        skill = next((s for s in self.user_invocable_skills() if s.name == name), None)
         if skill is None:
             raise UnknownSkill(name)
         try:
@@ -111,25 +109,25 @@ class SkillService:
 
     def save(self, name: str, text: str) -> None:
         """Write `text` as `<editable>/<name>/SKILL.md`, or refuse with the reason."""
-        if not valid_name(name):
+        if not is_skill_name(name):
             raise InvalidSkill(
                 f"name {name!r} must be lowercase letters, digits and single hyphens, 64 at most"
             )
-        declared = parse_file(text).frontmatter.name
+        declared = parse_skill_file(text).frontmatter.name
         if declared is not None and declared != name:
             raise InvalidSkill(f"frontmatter name {declared!r} does not match {name!r}")
         self._refuse_if_shadowed(name)
 
-        directory = self._editable / name
+        directory = self._editable_root / name
         directory.mkdir(parents=True, exist_ok=True)
         _write_atomically(directory / SKILL_FILE, text)
 
-    def write_file(self, name: str, path: str, text: str) -> None:
+    def write_bundled_file(self, name: str, path: str, text: str) -> None:
         """Write `text` as one file the named skill bundles, or refuse with the reason."""
         skill = self.find(name)
-        if not self.editable(skill):
+        if not self.is_editable(skill):
             raise SkillNotEditable(name, skill.root)
-        target = skill.dir / resources.writable(path, text)
+        target = skill.dir / resources.writable_path(path, text)
         if not target.parent.resolve().is_relative_to(skill.dir.resolve()):
             raise InvalidSkill(f"{path!r} would escape the skill directory")
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -149,12 +147,12 @@ class SkillService:
         with zipped:
             plan = archive.plan(archive.members_of(zipped))
             self._refuse_if_shadowed(plan.name)
-            self._editable.mkdir(parents=True, exist_ok=True)
-            staged = Path(tempfile.mkdtemp(dir=self._editable.parent))
+            self._editable_root.mkdir(parents=True, exist_ok=True)
+            staged = Path(tempfile.mkdtemp(dir=self._editable_root.parent))
             try:
                 _extract(zipped, plan, staged)
                 _refuse_mismatched_name(staged / SKILL_FILE, plan.name)
-                _replace_whole_directory(staged, self._editable / plan.name)
+                _replace_whole_directory(staged, self._editable_root / plan.name)
             finally:
                 shutil.rmtree(staged, ignore_errors=True)
         return plan.name
@@ -162,12 +160,12 @@ class SkillService:
     def delete(self, name: str) -> None:
         """Remove the skill's directory, bundled files included."""
         skill = self.find(name)
-        if not self.editable(skill):
+        if not self.is_editable(skill):
             raise SkillNotEditable(name, skill.root)
         shutil.rmtree(skill.dir)
 
     def _refuse_if_shadowed(self, name: str) -> None:
-        above = self._roots[: self._roots.index(self._editable)]
+        above = self._roots[: self._roots.index(self._editable_root)]
         for skill in self.snapshot().skills:
             if skill.name == name and skill.root in above:
                 raise SkillShadowed(name, skill.dir)
@@ -191,7 +189,7 @@ def _refuse_mismatched_name(file: Path, name: str) -> None:
         text = file.read_text(encoding="utf-8")
     except UnicodeDecodeError as err:
         raise InvalidSkill(f"{SKILL_FILE} is not a UTF-8 text file") from err
-    declared = parse_file(text).frontmatter.name
+    declared = parse_skill_file(text).frontmatter.name
     if declared is not None and declared != name:
         raise InvalidSkill(f"frontmatter name {declared!r} does not match the folder {name!r}")
 

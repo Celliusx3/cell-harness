@@ -47,7 +47,7 @@ class ServerWorld:
         self.repository = BreakableRepository(DiskSavedServerRepository(self.path))
         self.saved = SavedServerService(self.repository)
         self.mcp = McpService(
-            {server.id: server.server() for server in self.saved.servers()},
+            {server.id: server.mcp_server() for server in self.saved.servers()},
             client_factory=self.factory,
         )
         app = FastAPI(exception_handlers=exception_handlers())

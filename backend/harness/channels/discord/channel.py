@@ -118,7 +118,7 @@ class DiscordChannel:
                 await self.send_message(chat_id, reply)
         except UnknownSkill as err:
             await self.send_message(
-                chat_id, unknown_skill_reply(err.name, self._gateway.skills.invocable())
+                chat_id, unknown_skill_reply(err.name, self._gateway.skills.user_invocable_skills())
             )
         except Exception:
             logger.exception("handling message from chat %s failed", chat_id)

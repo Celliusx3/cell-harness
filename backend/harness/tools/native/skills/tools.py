@@ -85,7 +85,7 @@ def skill_write_file_tool(skills: SkillService) -> Tool[WriteFileArgs]:
 
     async def execute(args: WriteFileArgs, _context: ToolContext) -> ToolOutcome:
         try:
-            skills.write_file(args.name, args.path, args.text)
+            skills.write_bundled_file(args.name, args.path, args.text)
         except SkillNotFound as err:
             return Failure(INVALID_ARGUMENTS, f"no skill named {err.name!r}")
         except SkillNotEditable as err:

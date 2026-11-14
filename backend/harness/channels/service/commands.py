@@ -134,4 +134,4 @@ async def apply_command(
     if command is Command.COMPACT:
         started = await gateway.compact_chat(channel, chat_id)
         return COMPACTING_REPLY if started is not None else NOTHING_TO_COMPACT_REPLY
-    return skills_reply(gateway.skills.invocable())
+    return skills_reply(gateway.skills.user_invocable_skills())

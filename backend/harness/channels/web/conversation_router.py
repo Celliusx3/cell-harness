@@ -224,7 +224,7 @@ class ConversationRouter:
         """The `detail` for a `/word` that is neither a command nor a skill."""
         return HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=unknown_skill_reply(err.name, self._web.gateway.skills.invocable()),
+            detail=unknown_skill_reply(err.name, self._web.gateway.skills.user_invocable_skills()),
         )
 
     async def _switch_mode_by_command(

@@ -9,7 +9,7 @@ from typing import NamedTuple
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 MAX_NAME_CHARS = 64
 MAX_DESCRIPTION_CHARS = 1024
 SKILL_FILE = "SKILL.md"
@@ -40,7 +40,7 @@ class Frontmatter(BaseModel):
     user_invocable: bool = Field(default=True, alias="user-invocable")
 
 
-class Parsed(NamedTuple):
+class SkillFileParts(NamedTuple):
     frontmatter: Frontmatter
     body: str
 
@@ -76,11 +76,11 @@ class SkillSnapshot(BaseModel):
     problems: tuple[SkillProblem, ...] = ()
 
 
-def valid_name(name: str) -> bool:
-    return len(name) <= MAX_NAME_CHARS and NAME.match(name) is not None
+def is_skill_name(name: str) -> bool:
+    return len(name) <= MAX_NAME_CHARS and SKILL_NAME_PATTERN.match(name) is not None
 
 
-def parse(text: str) -> Parsed:
+def parse_skill_file(text: str) -> SkillFileParts:
     """The frontmatter and body of one `SKILL.md`, or `InvalidSkill`."""
     parts = _split(text)
     if parts is None:
@@ -102,7 +102,7 @@ def parse(text: str) -> Parsed:
         raise InvalidSkill(f"{field}: {first['msg']}") from err
     if not frontmatter.description.strip():
         raise InvalidSkill("description must not be empty")
-    return Parsed(frontmatter, body)
+    return SkillFileParts(frontmatter, body)
 
 
 def _split(text: str) -> tuple[str, str] | None:

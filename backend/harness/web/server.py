@@ -91,7 +91,7 @@ def build_saved_servers(settings: Settings) -> SavedServerService:
 
 def build_mcp(saved: SavedServerService) -> McpService:
     """Connections to the person's saved servers, with their keys."""
-    return McpService({server.id: server.server() for server in saved.servers()})
+    return McpService({server.id: server.mcp_server() for server in saved.servers()})
 
 
 def build_keyring(settings: Settings) -> SecretService:

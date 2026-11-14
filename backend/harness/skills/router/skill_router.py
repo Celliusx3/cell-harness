@@ -15,7 +15,7 @@ from harness.skills.router.schemas import (
 )
 
 
-def _missing(err: SkillNotFound) -> str:
+def _not_found_detail(err: SkillNotFound) -> str:
     return f"no skill named {err.name!r}"
 
 
@@ -62,7 +62,7 @@ class SkillRouter:
         snapshot = self._skills.snapshot()
         return SkillList(
             skills=[
-                SkillSummary(**skill.model_dump(), editable=self._skills.editable(skill))
+                SkillSummary(**skill.model_dump(), editable=self._skills.is_editable(skill))
                 for skill in snapshot.skills
             ],
             problems=[SkillIssue(**problem.model_dump()) for problem in snapshot.problems],
@@ -72,19 +72,21 @@ class SkillRouter:
         try:
             skill = self._skills.find(name)
             text = self._skills.read(name)
-            files = list(self._skills.files(name))
+            files = list(self._skills.bundled_files(name))
         except SkillNotFound as err:
             raise HTTPException(
                 status.HTTP_404_NOT_FOUND, detail=f"no skill named {err.name!r}"
             ) from err
-        return SkillFile(name=name, text=text, editable=self._skills.editable(skill), files=files)
+        return SkillFile(
+            name=name, text=text, editable=self._skills.is_editable(skill), files=files
+        )
 
     async def read_bundled_file(self, name: str, path: str) -> BundledFile:
         """One of the files the skill brought with it, read by its relative path."""
         try:
-            return BundledFile(path=path, text=self._skills.file(name, path))
+            return BundledFile(path=path, text=self._skills.bundled_file_text(name, path))
         except SkillNotFound as err:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_missing(err)) from err
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=_not_found_detail(err)) from err
 
     async def save_skill(self, name: str, body: SkillText) -> None:
         """Write a skill, refusing what the catalog would merely flag."""
@@ -101,4 +103,4 @@ class SkillRouter:
     async def install_skill(self, file: UploadFile) -> SkillSummary:
         """Unpack a zipped skill folder into the editable root."""
         installed = self._skills.find(self._skills.install(await file.read()))
-        return SkillSummary(**installed.model_dump(), editable=self._skills.editable(installed))
+        return SkillSummary(**installed.model_dump(), editable=self._skills.is_editable(installed))

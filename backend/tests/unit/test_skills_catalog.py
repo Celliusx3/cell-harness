@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.skills import InvalidSkill
-from harness.skills.domain.models import parse
+from harness.skills.domain.models import parse_skill_file
 from harness.skills.repository.catalog import SkillCatalog
 
 MINIMAL = (
@@ -28,7 +28,7 @@ def write_skill(root: Path, name: str, text: str | None = None) -> Path:
 
 
 def test_a_spec_skill_parses_into_frontmatter_and_body() -> None:
-    parsed = parse(MINIMAL)
+    parsed = parse_skill_file(MINIMAL)
 
     assert parsed.frontmatter.name == "pdf"
     assert parsed.frontmatter.description.startswith("Extract text")
@@ -55,7 +55,7 @@ def test_a_claude_code_skill_with_extra_fields_loads_unchanged() -> None:
         "---\nbody\n"
     )
 
-    parsed = parse(text)
+    parsed = parse_skill_file(text)
 
     assert parsed.frontmatter.disable_model_invocation is True
     assert parsed.frontmatter.user_invocable is False
@@ -63,14 +63,16 @@ def test_a_claude_code_skill_with_extra_fields_loads_unchanged() -> None:
 
 
 def test_booleans_accept_the_words_yaml_and_claude_code_accept() -> None:
-    parsed = parse("---\ndescription: d\ndisable-model-invocation: yes\nuser-invocable: off\n---\n")
+    parsed = parse_skill_file(
+        "---\ndescription: d\ndisable-model-invocation: yes\nuser-invocable: off\n---\n"
+    )
 
     assert parsed.frontmatter.disable_model_invocation is True
     assert parsed.frontmatter.user_invocable is False
 
 
 def test_an_unquoted_colon_in_the_description_is_recovered() -> None:
-    parsed = parse(
+    parsed = parse_skill_file(
         "---\nname: x\ndescription: Use this skill when: the user asks about PDFs\n---\n"
     )
 
@@ -79,29 +81,29 @@ def test_an_unquoted_colon_in_the_description_is_recovered() -> None:
 
 def test_no_fence_is_refused() -> None:
     with pytest.raises(InvalidSkill, match="---"):
-        parse("# Just markdown\n")
+        parse_skill_file("# Just markdown\n")
 
 
 def test_an_unclosed_fence_is_refused_naming_the_missing_close() -> None:
     with pytest.raises(InvalidSkill, match="never closed"):
-        parse("---\nname: x\ndescription: d\n# no closing fence\n")
+        parse_skill_file("---\nname: x\ndescription: d\n# no closing fence\n")
 
 
 def test_a_missing_or_empty_description_is_refused() -> None:
     with pytest.raises(InvalidSkill, match="description"):
-        parse("---\nname: x\n---\nbody\n")
+        parse_skill_file("---\nname: x\n---\nbody\n")
     with pytest.raises(InvalidSkill, match="description"):
-        parse("---\nname: x\ndescription: '  '\n---\nbody\n")
+        parse_skill_file("---\nname: x\ndescription: '  '\n---\nbody\n")
 
 
 def test_unparseable_yaml_is_refused_with_the_reason() -> None:
     with pytest.raises(InvalidSkill, match="YAML"):
-        parse("---\nname: [unclosed\ndescription: d\n---\n")
+        parse_skill_file("---\nname: [unclosed\ndescription: d\n---\n")
 
 
 def test_a_non_mapping_frontmatter_is_refused() -> None:
     with pytest.raises(InvalidSkill, match="mapping"):
-        parse("---\n- just\n- a list\n---\n")
+        parse_skill_file("---\n- just\n- a list\n---\n")
 
 
 def test_a_skill_directory_is_discovered(tmp_path) -> None:
@@ -110,7 +112,7 @@ def test_a_skill_directory_is_discovered(tmp_path) -> None:
     (root / "README.md").write_text("ignored")
     (root / "notes").mkdir()
 
-    snapshot = SkillCatalog([root])()
+    snapshot = SkillCatalog([root]).snapshot()
 
     (skill,) = snapshot.skills
     assert skill.name == "pdf"
@@ -124,7 +126,7 @@ def test_the_directory_name_is_the_identity_and_a_mismatch_is_reported(tmp_path)
     root = tmp_path / "skills"
     write_skill(root, "pdf-tools", MINIMAL)
 
-    snapshot = SkillCatalog([root])()
+    snapshot = SkillCatalog([root]).snapshot()
 
     assert snapshot.skills[0].name == "pdf-tools"
     (problem,) = snapshot.problems
@@ -135,7 +137,7 @@ def test_an_invalid_directory_name_is_skipped_with_a_reason(tmp_path) -> None:
     root = tmp_path / "skills"
     write_skill(root, "PDF_Tools")
 
-    snapshot = SkillCatalog([root])()
+    snapshot = SkillCatalog([root]).snapshot()
 
     assert snapshot.skills == ()
     assert "not a skill name" in snapshot.problems[0].problem
@@ -146,7 +148,7 @@ def test_a_broken_skill_is_a_problem_not_a_crash(tmp_path) -> None:
     write_skill(root, "good")
     write_skill(root, "bad", "no frontmatter here\n")
 
-    snapshot = SkillCatalog([root])()
+    snapshot = SkillCatalog([root]).snapshot()
 
     assert [s.name for s in snapshot.skills] == ["good"]
     (problem,) = snapshot.problems
@@ -157,7 +159,7 @@ def test_an_overlong_description_is_truncated_in_the_catalog_and_reported(tmp_pa
     root = tmp_path / "skills"
     write_skill(root, "long", f"---\ndescription: {'x' * 2000}\n---\nbody\n")
 
-    snapshot = SkillCatalog([root])()
+    snapshot = SkillCatalog([root]).snapshot()
 
     assert len(snapshot.skills[0].description) == 1024
     assert "truncated" in snapshot.problems[0].problem
@@ -168,7 +170,7 @@ def test_the_first_root_wins_and_the_shadowed_copy_is_reported(tmp_path) -> None
     write_skill(project, "pdf", MINIMAL.replace("Do the thing.", "project version"))
     write_skill(home, "pdf", MINIMAL.replace("Do the thing.", "home version"))
 
-    snapshot = SkillCatalog([project, home])()
+    snapshot = SkillCatalog([project, home]).snapshot()
 
     (skill,) = snapshot.skills
     assert skill.root == project
@@ -178,7 +180,7 @@ def test_the_first_root_wins_and_the_shadowed_copy_is_reported(tmp_path) -> None
 
 
 def test_an_absent_root_contributes_nothing_silently(tmp_path) -> None:
-    snapshot = SkillCatalog([tmp_path / "nowhere"])()
+    snapshot = SkillCatalog([tmp_path / "nowhere"]).snapshot()
 
     assert snapshot.skills == () and snapshot.problems == ()
 
@@ -189,7 +191,7 @@ def test_a_body_edit_is_seen_at_the_next_read_and_a_description_edit_at_the_next
     root = tmp_path / "skills"
     directory = write_skill(root, "pdf")
     catalog = SkillCatalog([root])
-    before = catalog()
+    before = catalog.snapshot()
 
     file = directory / "SKILL.md"
     file.write_text(
@@ -197,25 +199,25 @@ def test_a_body_edit_is_seen_at_the_next_read_and_a_description_edit_at_the_next
     )
     touch_newer(file)
 
-    after = catalog()
+    after = catalog.snapshot()
     assert before.skills[0].description.endswith("PDFs.")
     assert after.skills[0].description.endswith("PDFs!")
-    assert parse(file.read_text()).body == "# PDF\n\nDo it differently."
+    assert parse_skill_file(file.read_text()).body == "# PDF\n\nDo it differently."
 
 
 def test_an_unchanged_file_is_not_reparsed(tmp_path, monkeypatch) -> None:
     root = tmp_path / "skills"
     write_skill(root, "pdf")
     skills = SkillCatalog([root])
-    skills()
+    skills.snapshot()
 
     from harness.skills.repository import catalog as catalog_module
 
     def boom(*_args, **_kwargs):
         raise AssertionError("parsed again")
 
-    monkeypatch.setattr(catalog_module, "parse", boom)
-    assert skills().skills[0].name == "pdf"
+    monkeypatch.setattr(catalog_module, "parse_skill_file", boom)
+    assert skills.snapshot().skills[0].name == "pdf"
 
 
 @pytest.mark.skipif(os.geteuid() == 0, reason="root can list anything")
@@ -223,13 +225,13 @@ def test_a_root_that_cannot_be_listed_keeps_its_last_good_set(tmp_path, caplog) 
     root = tmp_path / "skills"
     write_skill(root, "pdf")
     catalog = SkillCatalog([root])
-    assert [s.name for s in catalog().skills] == ["pdf"]
+    assert [s.name for s in catalog.snapshot().skills] == ["pdf"]
 
     root.chmod(0)
     try:
         with caplog.at_level("WARNING", logger="harness.skills"):
-            first = catalog()
-            second = catalog()
+            first = catalog.snapshot()
+            second = catalog.snapshot()
     finally:
         root.chmod(0o755)
 

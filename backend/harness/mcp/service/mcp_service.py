@@ -15,7 +15,7 @@ from harness.mcp.domain.status import ServerStatus
 from harness.mcp.service._connection import Connection
 from harness.mcp.service.client import McpClientFactory
 from harness.mcp.service.clients.stdio import open_stdio_client
-from harness.mcp.service.tool import can_write, namespaced
+from harness.mcp.service.tool import can_write, namespaced_tool_name
 from harness.tools import Tool
 
 
@@ -31,7 +31,7 @@ class McpService:
         self._servers: Mapping[str, McpServer] = dict(servers)
         self._factory = client_factory
         self._connections: dict[str, Connection] = {}
-        self._changing = asyncio.Lock()
+        self._change_lock = asyncio.Lock()
 
     def tools(self) -> list[Tool[dict]]:
         """Every tool on offer right now — **the registry provider**."""
@@ -51,21 +51,24 @@ class McpService:
         return frozenset(
             tool_name
             for connection in self._connections.values()
-            for tool in connection.published
-            if can_write(tool) and (tool_name := namespaced(connection.id, tool.name)) in offered
+            for tool in connection.published_tools
+            if can_write(tool)
+            and (tool_name := namespaced_tool_name(connection.id, tool.name)) in offered
         )
 
     def server(self, server_id: str) -> McpServer:
         """How `server_id` is run, its keys in its env. `KeyError` if not configured."""
         return self._servers[server_id]
 
-    def published(self, server_id: str) -> tuple[McpTool, ...]:
+    def published_tools(self, server_id: str) -> tuple[McpTool, ...]:
         """One server's tools as it published them. `KeyError` if not configured."""
-        return self._connection(server_id).published
+        return self._connection(server_id).published_tools
 
-    async def call(self, server_id: str, server_tool_name: str, arguments: dict) -> CallToolResult:
+    async def call_tool(
+        self, server_id: str, server_tool_name: str, arguments: dict
+    ) -> CallToolResult:
         """One `tools/call` on one server, answered verbatim, proxied for an MCP App."""
-        return await self._connection(server_id).call(server_tool_name, arguments)
+        return await self._connection(server_id).call_tool(server_tool_name, arguments)
 
     async def read_resource(self, server_id: str, uri: str) -> ReadResourceResult:
         """One `resources/read` on one server — the browser fetching an app's HTML."""
@@ -81,7 +84,7 @@ class McpService:
 
     async def start(self) -> None:
         """Start every server whose keys are found, waiting for none of them to connect."""
-        async with self._changing:
+        async with self._change_lock:
             for server_id in self._servers:
                 await self._open(server_id)
 
@@ -89,7 +92,7 @@ class McpService:
         """Close `server_id`, then open it again. `KeyError` if unknown."""
         if server_id not in self._servers:
             raise KeyError(server_id)
-        async with self._changing:
+        async with self._change_lock:
             running = self._connections.get(server_id)
             if running is not None:
                 await running.aclose()
@@ -97,7 +100,7 @@ class McpService:
 
     async def add(self, server_id: str, server: McpServer) -> None:
         """Serve `server` as `server_id` and start it; `McpServerTaken` if the id is served."""
-        async with self._changing:
+        async with self._change_lock:
             if server_id in self._servers:
                 raise McpServerTaken(f"a server is already named {server_id!r}")
             self._servers = {**self._servers, server_id: server}
@@ -105,7 +108,7 @@ class McpService:
 
     async def change(self, server_id: str, server: McpServer) -> None:
         """Close the server `server_id`, then start it again as `server`."""
-        async with self._changing:
+        async with self._change_lock:
             self._refuse_unless_served(server_id)
             await self._close(server_id)
             self._servers = {**self._servers, server_id: server}
@@ -113,7 +116,7 @@ class McpService:
 
     async def remove(self, server_id: str) -> None:
         """Close the server `server_id` and forget it, its tools with it."""
-        async with self._changing:
+        async with self._change_lock:
             self._refuse_unless_served(server_id)
             await self._close(server_id)
             self._servers = {key: kept for key, kept in self._servers.items() if key != server_id}
@@ -134,12 +137,12 @@ class McpService:
         self._connections[server_id] = connection
         missing = missing_keys(server)
         if missing:
-            connection.wait_for(missing)
+            connection.mark_waiting_for(missing)
         else:
             connection.start()
 
     async def aclose(self) -> None:
-        async with self._changing:
+        async with self._change_lock:
             await asyncio.gather(
                 *(connection.aclose() for connection in self._connections.values()),
                 return_exceptions=True,
@@ -149,7 +152,7 @@ class McpService:
     def statuses(self) -> list[ServerStatus]:
         """Every configured server: whether it came up, or the keys it waits for."""
         return [
-            self._connections[server_id].snapshot()
+            self._connections[server_id].server_status()
             if server_id in self._connections
             else ServerStatus(id=server_id, status="disconnected", error="", tool_names=())
             for server_id in self._servers

@@ -50,7 +50,7 @@ async def forward_to_browser(remote: ClientConnection, browser: WebSocket) -> No
         return
 
 
-async def pump(browser: WebSocket, remote: ClientConnection) -> None:
+async def pump_frames(browser: WebSocket, remote: ClientConnection) -> None:
     """Frames both ways until either side closes; then the other one is closed too."""
     pumps = [
         asyncio.create_task(forward_to_upstream(browser, remote)),
@@ -110,7 +110,7 @@ class RelayRouter:
                 proxy=None,
             ) as remote:
                 await browser.accept(subprotocol=remote.subprotocol)
-                await pump(browser, remote)
+                await pump_frames(browser, remote)
         except (OSError, InvalidHandshake, TimeoutError) as err:
             logger.warning("relay %s: the upstream socket refused: %r", relay_id[:6], err)
             if browser.application_state == WebSocketState.CONNECTING:

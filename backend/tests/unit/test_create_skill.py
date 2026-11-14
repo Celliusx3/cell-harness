@@ -12,7 +12,7 @@ from harness.llm import ToolCall
 from harness.mcp import McpServer, McpService
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
-from harness.skills.domain.models import parse
+from harness.skills.domain.models import parse_skill_file
 from harness.tools import Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT
 from harness.web.runtime import build_runtime
@@ -47,7 +47,7 @@ def test_it_loads_from_the_project_root() -> None:
 
 
 def test_the_example_skill_it_teaches_is_one_the_page_would_save() -> None:
-    example = parse(fenced(CREATE_SKILL.read_text(), "markdown"))
+    example = parse_skill_file(fenced(CREATE_SKILL.read_text(), "markdown"))
 
     assert example.frontmatter.name == "unit-convert"
     assert 'skill({ name: "unit-convert", path: "scripts/convert.ts" })' in example.body

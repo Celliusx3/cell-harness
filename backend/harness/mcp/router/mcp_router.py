@@ -37,7 +37,7 @@ class McpRouter:
         return ServerList(servers=tuple(s.id for s in self._mcp.statuses()))
 
     async def read_app(self, server: str, uri: str) -> AppResource:
-        self._known(server)
+        self._refuse_unknown_server(server)
         if not uri.startswith(UI_SCHEME):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail=f"{uri!r} is not a ui:// resource"
@@ -51,8 +51,8 @@ class McpRouter:
         return AppResource(html=content.text, csp=build_csp(content.meta))
 
     async def call_app_tool(self, server: str, name: str, body: AppToolCall) -> JSONResponse:
-        self._known(server)
-        published = self._mcp.published(server)
+        self._refuse_unknown_server(server)
+        published = self._mcp.published_tools(server)
         tool = next((t for t in published if t.name == name), None)
         if tool is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"{server} has no tool {name!r}")
@@ -66,10 +66,10 @@ class McpRouter:
                 status.HTTP_403_FORBIDDEN, detail=f"{name!r} belongs to another app, {bound}"
             )
         logger.info("app %s on %s calls %s", body.resource_uri, server, name)
-        result = await self._mcp.call(server, name, body.arguments)
+        result = await self._mcp.call_tool(server, name, body.arguments)
         rewritten = with_relay_url(result, self._relays)
         return JSONResponse(rewritten.model_dump(mode="json", by_alias=True, exclude_none=True))
 
-    def _known(self, server: str) -> None:
+    def _refuse_unknown_server(self, server: str) -> None:
         if server not in {s.id for s in self._mcp.statuses()}:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"no MCP server {server!r}")

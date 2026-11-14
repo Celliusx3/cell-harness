@@ -13,7 +13,7 @@ from harness.session.domain.models import (
     UserMessageEvent,
 )
 from harness.skills import SKILL
-from harness.skills.domain.invocation import MARKER, display
+from harness.skills.domain.invocation import MARKER, typed_invocation
 
 PRUNE_KEEP = 3
 
@@ -51,7 +51,7 @@ def loaded_skill_bodies(events: Sequence[SessionEvent]) -> tuple[str, ...]:
             if (name := _skill_name(body)) is not None:
                 bodies[name] = body
         elif isinstance(event, UserMessageEvent):
-            shown = display(event.message.content)
+            shown = typed_invocation(event.message.content)
             if shown is not None:
                 _, _, rest = event.message.content.partition(MARKER)
                 bodies[shown.skill] = _SKILL_BODY_OPENING + rest

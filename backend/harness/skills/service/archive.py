@@ -9,7 +9,7 @@ from typing import NamedTuple
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.skills.domain.models import SKILL_FILE, InvalidSkill, valid_name
+from harness.skills.domain.models import SKILL_FILE, InvalidSkill, is_skill_name
 
 MAX_ARCHIVE_BYTES = 5 * 1024 * 1024
 MAX_UNPACKED_BYTES = 30 * 1024 * 1024
@@ -62,9 +62,9 @@ def plan(members: Sequence[Member]) -> ArchivePlan:
     """Where every member goes under one skill directory, or `InvalidSkill` saying why not."""
     for member in members:
         _refuse_unsafe(member)
-    kept = [member for member in members if not member.is_dir and not ignored(member.name)]
+    kept = [member for member in members if not member.is_dir and not is_ignored(member.name)]
     name = _sole_top_level(kept)
-    if not valid_name(name):
+    if not is_skill_name(name):
         raise InvalidSkill(
             f"folder {name!r} is not a skill name: lowercase letters, digits and single "
             "hyphens, at most 64"
@@ -87,19 +87,19 @@ def plan(members: Sequence[Member]) -> ArchivePlan:
     return ArchivePlan(name=name, files=files)
 
 
-def escapes(name: str) -> bool:
+def is_escaping_path(name: str) -> bool:
     path = PurePosixPath(name)
     return path.is_absolute() or ".." in path.parts or "\\" in name
 
 
 def _refuse_unsafe(member: Member) -> None:
-    if escapes(member.name):
+    if is_escaping_path(member.name):
         raise InvalidSkill(f"entry {member.name!r} would escape the skill directory")
     if member.is_link:
         raise InvalidSkill(f"entry {member.name!r} is a link, which is never installed")
 
 
-def ignored(name: str) -> bool:
+def is_ignored(name: str) -> bool:
     parts = PurePosixPath(name).parts
     return not parts or any(part in JUNK_DIRS or part.startswith(".") for part in parts)
 

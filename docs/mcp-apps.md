@@ -135,7 +135,7 @@ consent, and is not part of the conversation the model sees.
   (403, Openwork's rule — the request carries the app's own `resource_uri`).
   Not yet: approval for tools without `readOnlyHint` (Openwork, Vercel's
   allowlist, ChatGPT's opt-in) and a result size cap — with auth, below.
-- **Hyphens are mapped, not dropped.** `namespaced()` spells `get-system-info`
+- **Hyphens are mapped, not dropped.** `namespaced_tool_name()` spells `get-system-info`
   as `sysmon__get_system_info` for the model and code mode; `execute` calls the
   server by the published name. Two tools that map to one name keep the first.
 - **Single srcdoc iframe, `sandbox="allow-scripts allow-forms"`.** No

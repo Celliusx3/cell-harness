@@ -40,12 +40,12 @@ class McpServer(BaseModel):
         return named_keys(value)
 
 
-_SERVER_ID = re.compile(r"^[a-z][a-z0-9]{0,31}$")
+_SERVER_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]{0,31}$")
 
 
 def usable_server_id(name: str) -> str:
     """`name`, if it can be half of a tool name and half of an identifier; `ValueError` if not."""
-    if not _SERVER_ID.match(name):
+    if not _SERVER_ID_PATTERN.match(name):
         raise ValueError(
             f"{name!r} is not a usable MCP server id: a lowercase letter followed "
             "by lowercase letters or digits, at most 32. No underscore, because it "

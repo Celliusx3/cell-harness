@@ -13,8 +13,8 @@ from harness.skills.domain.models import (
     Skill,
     SkillProblem,
     SkillSnapshot,
-    parse,
-    valid_name,
+    is_skill_name,
+    parse_skill_file,
 )
 
 logger = logging.getLogger("harness.skills")
@@ -29,7 +29,7 @@ class SkillCatalog:
         self._last_good: dict[Path, SkillSnapshot] = {}
         self._failing: set[Path] = set()
 
-    def __call__(self) -> SkillSnapshot:
+    def snapshot(self) -> SkillSnapshot:
         skills: dict[str, Skill] = {}
         problems: list[SkillProblem] = []
         for root in self._roots:
@@ -76,7 +76,7 @@ class SkillCatalog:
         try:
             stat = file.stat()
         except OSError as err:
-            return _problem(file, str(err))
+            return _problem_snapshot(file, str(err))
         stamp = (stat.st_mtime_ns, stat.st_size)
         cached = self._parsed.get(file)
         if cached is not None and cached[0] == stamp:
@@ -89,16 +89,16 @@ class SkillCatalog:
 def _read(root: Path, entry: Path) -> SkillSnapshot:
     """One `SKILL.md`: a skill with zero or more caveats, or none with one problem."""
     file = entry / SKILL_FILE
-    if not valid_name(entry.name):
-        return _problem(
+    if not is_skill_name(entry.name):
+        return _problem_snapshot(
             file,
             f"directory name {entry.name!r} is not a skill name: lowercase letters, digits "
             "and single hyphens, at most 64",
         )
     try:
-        parsed = parse(file.read_text(encoding="utf-8"))
+        parsed = parse_skill_file(file.read_text(encoding="utf-8"))
     except (InvalidSkill, OSError, UnicodeDecodeError) as err:
-        return _problem(file, str(err))
+        return _problem_snapshot(file, str(err))
 
     front = parsed.frontmatter
     notes: list[SkillProblem] = []
@@ -130,10 +130,10 @@ def _read(root: Path, entry: Path) -> SkillSnapshot:
     return SkillSnapshot(skills=(skill,), problems=tuple(notes))
 
 
-def _problem(file: Path, problem: str) -> SkillSnapshot:
+def _problem_snapshot(file: Path, problem: str) -> SkillSnapshot:
     return SkillSnapshot(problems=(SkillProblem(path=file, problem=problem),))
 
 
 def read_body(skill: Skill) -> str:
     """The instructions, read now — not when the catalog was built."""
-    return parse((skill.dir / SKILL_FILE).read_text(encoding="utf-8")).body
+    return parse_skill_file((skill.dir / SKILL_FILE).read_text(encoding="utf-8")).body
