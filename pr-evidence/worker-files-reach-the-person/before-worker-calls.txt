@@ -1,0 +1,21 @@
+turn/start {"type": "turn/start", "turn": 0, "bot_id": "assistant"}
+[s0] SAY "I'll discover my available functions first, then download the page.\n"
+[s0] CALL list_functions {}
+   -> ok '// computer\n/** Click, fill or type on elements of the open page, in order, then read the page again. args: { actions: [{ kind: "click" | "fill" | "type", ref: string, text?: string }] } — 1 to 24 actions; each ref from the newest browser_read_page o' 
+[s1] SAY "I'll download the HTML from example.com using the shell, then figure out how to deliver it.\n"
+[s1] CALL computer__shell {"command":"cd ~ && curl -s -L -o example_com.html https://example.com/ && ls -la example_com.html && wc -c example_com.html","description":"Download example.com HTML to home folder"}
+   -> REFUSED "error: 'computer__shell' is not in your tool list. Select it by reading its schema with get_function_details — then it is, and you can call it directly. See list_functions for what exists." 
+[s2] CALL get_function_details {"names":["computer__shell"]}
+   -> ok "// computer\n/** Runs a command in your computer (Debian Linux with Python 3; the chat's files are at the same paths as you were told) and answers its output and exit code. A command still running after 15 seconds answers status `running` with how lon" 
+[s3] CALL computer__shell {"command":"cd ~ && curl -s -L -o example_com.html https://example.com/ && ls -la example_com.html && wc -c example_com.html","description":"Download example.com HTML to home folder"}
+   -> ok '{\n  "status": "done",\n  "exit_code": 0,\n  "seconds": 0.3,\n  "output": "-rw-r--r-- 1 pc pc 577 Nov 14 07:04 example_com.html\\n577 example_com.html\\n"\n}' 
+[s4] SAY 'The file downloaded (577 bytes). Let me check where it lives and how I can deliver it to you.\n'
+[s4] CALL computer__shell {"command":"echo \"HOME=$HOME\"; pwd; ls -la ~; echo \"---\"; ls -la","description":"Inspect home and current folders"}
+   -> ok '{\n  "status": "done",\n  "exit_code": 0,\n  "seconds": 0.0,\n  "output": "HOME=/home/pc\\n/home/pc\\ntotal 4\\ndrwxr-xr-x 5 pc pc 160 Nov 14 07:04 .cache\\ndrwx------ 3 pc pc  96 Nov 14 07:04 .config\\ndrwx------ 9 pc pc 288 Nov 14 07:04 .fluxbox\\ndrwx------' 
+[s5] SAY 'The HTML file is saved at `/home/pc/example_com.html`. Let me read its content so I can report it to you.\n'
+[s5] CALL computer__shell {"command":"cat ~/example_com.html","description":"Read downloaded HTML file content"}
+   -> ok '{\n  "status": "done",\n  "exit_code": 0,\n  "seconds": 0.0,\n  "output": "<!doctype html><html lang=en><head><meta charset=utf-8><link rel=icon href=data:,><meta name=viewport content=\\"width=device-width,initial-scale=1\\"><title>Example Domain</title><' 
+[s6] SAY "The download is complete. I saved the HTML from https://example.com/ to your computer at `/home/pc/example_com.html` (577 bytes). Since I can't attach files directly, here is the full content:\n\n<!doctype html><html lang=en><head><meta charset=utf-8><link rel=icon href=data:,><meta name=viewport cont"
+[s6] CALL ticket_report {"state":"ready","summary":"Downloaded https://example.com/ as HTML and saved it to /home/pc/example_com.html (577 bytes). Full content provided above since I cannot attach files directly."}
+   -> ok 'Reported. End your turn now.' 
+turn/end {"type": "turn/end", "turn": 0, "reason": "completed"}

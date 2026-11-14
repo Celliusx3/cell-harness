@@ -1,0 +1,6 @@
+person: Download https://example.com/ as an HTML file and send it to me.
+bot calls ticket_route {"items":[{"kind":"accept","title":"Download example.com HTML","task":"Download https://example.com/ as an HTML file and send it to me."}]}
+  -> ok
+bot says: I've started the download ticket for example.com; a worker will fetch the HTML and send it to you.
+bot hears: ready Downloaded https://example.com/ as HTML and saved it to /home/pc/example_com.html (577 bytes). Full content provided above since I cannot attach files directly.
+bot says: The worker downloaded https://example.com/ as an HTML file, saved as /home/pc/example_com.html (577 bytes), and reports the full content was provided since files can't be attached directly. You now have the page's HTML saved locally if it came through above.

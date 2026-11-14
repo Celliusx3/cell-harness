@@ -1,0 +1,12 @@
+person: Download https://example.com/ as an HTML file and send it to me.
+bot calls ticket_route {"items":[{"kind":"accept","title":"Download example.com HTML","task":"Download https://example.com/ as an HTML file and send it to me."}]}
+  -> ok
+bot says: I've started a ticket to download https://example.com/ as an HTML file and send it to you.
+bot hears: ready Downloaded https://example.com/ as an HTML file and saved it to the assistant files folder:
+run132-after/harness/files/assistant/example.com.html
+(577 bytes, exit code 0)
+
+Hand these files the report names to the user with send_file, since only you can: run132-after/harness/files/assistant/example.com.html
+bot calls send_file {"paths":["run132-after/harness/files/assistant/example.com.html"]}
+  -> ok, handed to the person: ['example.com.html']
+bot says: The worker downloaded https://example.com/ as a 577-byte HTML file, and I've sent it to you above — you can open it now.
