@@ -21,7 +21,7 @@ class CredentialEffects:
         if isinstance(details, ChatPlatformDetails):
             await self.platforms.restart(details.kind)
         elif isinstance(details, CustomDetails):
-            self.bots.tie_key(name, bot_ids)
+            self.bots.set_bots_for_secret(name, bot_ids)
 
     async def changed(
         self,
@@ -33,7 +33,7 @@ class CredentialEffects:
     ) -> None:
         """Restart the platform `name` signs in on a new key, or tie a key to `bot_ids`."""
         if isinstance(details, CustomDetails):
-            self.bots.tie_key(name, bot_ids)
+            self.bots.set_bots_for_secret(name, bot_ids)
         elif isinstance(details, ChatPlatformDetails) and is_new_key:
             await self.platforms.restart(details.kind)
 

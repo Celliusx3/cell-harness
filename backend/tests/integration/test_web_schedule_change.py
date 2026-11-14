@@ -61,7 +61,7 @@ async def page_of(tmp_path: Path) -> AsyncIterator[Callable[..., Awaitable[Page]
         release = asyncio.Event()
         sessions = durable_service(tmp_path / "sessions")
         bots = bots_in(tmp_path, sessions)
-        await bots.active_bots()
+        await bots.open_active_bots()
         schedules = schedules_in(tmp_path, Clock(START))
         made = schedules.create(bot_id, TITLE, "Check it.", DAILY)
         model = SteppedClient(*scripts(made.id))

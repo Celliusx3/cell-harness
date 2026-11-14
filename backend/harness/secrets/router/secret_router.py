@@ -15,7 +15,7 @@ def build_router(secrets: SecretService, bots: BotService) -> APIRouter:
 
     @router.get("", response_model=list[SavedKey])
     async def list_secrets() -> list[SavedKey]:
-        active = await bots.active_bots()
+        active = await bots.open_active_bots()
         return [_saved_key(summary, active) for summary in secrets.summaries()]
 
     return router

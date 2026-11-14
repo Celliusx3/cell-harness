@@ -48,7 +48,7 @@ def bots(tmp_path: Path, sessions: SessionService) -> BotService:
 
 @pytest.fixture
 async def groups(bots: BotService, sessions: SessionService) -> GroupService:
-    await bots.active_bots()
+    await bots.open_active_bots()
     return GroupService(bots, sessions, MENTION_TURN_ORDER)
 
 
@@ -139,7 +139,7 @@ async def test_a_schedule_asked_for_in_a_group_chat_is_refused(
     groups: GroupService, bots: BotService, schedules: ScheduleService
 ) -> None:
     draft = GroupDraft(name="Launch", member_ids=(ASSISTANT_ID, BUILDER_ID))
-    group = await groups.create_group(draft)
+    group = await groups.create(draft)
 
     outcome = await call(
         groups, schedules, group.id, title="Remind me", prompt="Remind me.", rrule=WEEKDAYS

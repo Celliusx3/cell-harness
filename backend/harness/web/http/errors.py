@@ -8,7 +8,7 @@ from types import MappingProxyType
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
-from harness.bots import BotNotFound, BotPermanent, GroupEmpty
+from harness.bots import BotNotFound, BuiltInBotError, EmptyGroupError
 from harness.files import FileTooLarge, UnsafeFileName
 from harness.mcp import (
     McpConnectionError,
@@ -38,9 +38,9 @@ ErrorHandler = Callable[[Request, Exception], Awaitable[JSONResponse]]
 STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
     {
         BotNotFound: status.HTTP_404_NOT_FOUND,
-        BotPermanent: status.HTTP_409_CONFLICT,
+        BuiltInBotError: status.HTTP_409_CONFLICT,
         FileTooLarge: status.HTTP_413_CONTENT_TOO_LARGE,
-        GroupEmpty: status.HTTP_409_CONFLICT,
+        EmptyGroupError: status.HTTP_409_CONFLICT,
         InvalidSchedule: status.HTTP_422_UNPROCESSABLE_CONTENT,
         InvalidSkill: status.HTTP_422_UNPROCESSABLE_CONTENT,
         McpConnectionError: status.HTTP_502_BAD_GATEWAY,

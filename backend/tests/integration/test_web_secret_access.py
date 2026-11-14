@@ -155,7 +155,7 @@ async def _launch(tmp_path: Path):
     writer = await bots.create(
         BotDraft(name="Writer", instructions="Post.", model=MODEL_CREDENTIAL)
     )
-    group = await runs.groups.create_group(
+    group = await runs.groups.create(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")

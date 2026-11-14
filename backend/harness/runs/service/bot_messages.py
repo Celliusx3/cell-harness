@@ -43,9 +43,9 @@ class BotMessages:
     ) -> Ok | Failure:
         """Queue `text` for the active bot named `to_name`, from the turn that made `call_id`."""
         session = self._runs.session_of_call(call_id)
-        if session is None or self._runs.groups.members_of_chat(session.id).group is not None:
+        if session is None or self._runs.groups.chat_members(session.id).group is not None:
             return Failure(REFUSED, "message_bot works only in your own chat, not in a group chat")
-        active = await self._bots.active_bots()
+        active = await self._bots.open_active_bots()
         recipient = next((bot for bot in active if bot.name == to_name), None)
         if recipient is None:
             return Failure(INVALID_ARGUMENTS, f"no bot is named {to_name!r}")

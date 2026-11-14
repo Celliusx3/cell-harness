@@ -8,7 +8,7 @@ import httpx
 import pytest
 from fastapi import FastAPI, HTTPException
 
-from harness.bots import ASSISTANT_ID, BotNotFound, BotPermanent, GroupEmpty
+from harness.bots import ASSISTANT_ID, BotNotFound, BuiltInBotError, EmptyGroupError
 from harness.files import FileTooLarge, UnsafeFileName
 from harness.mcp import (
     McpConnectionError,
@@ -40,9 +40,9 @@ from tests.webapp import web_app
 
 PINNED = [
     pytest.param(BotNotFound("nope"), 404, id="BotNotFound"),
-    pytest.param(BotPermanent(ASSISTANT_ID), 409, id="BotPermanent"),
+    pytest.param(BuiltInBotError(ASSISTANT_ID), 409, id="BuiltInBotError"),
     pytest.param(FileTooLarge("notes.txt", 1024), 413, id="FileTooLarge"),
-    pytest.param(GroupEmpty("team"), 409, id="GroupEmpty"),
+    pytest.param(EmptyGroupError("team"), 409, id="EmptyGroupError"),
     pytest.param(InvalidSchedule("rrule: no occurrence after now"), 422, id="InvalidSchedule"),
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),

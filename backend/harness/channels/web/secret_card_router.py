@@ -67,7 +67,7 @@ def build_router(
 def _asker(web: WebChannel, session: Session, call_id: str) -> Bot:
     """The bot whose turn asked for `call_id`, which a website key is tied to; a 409 if none."""
     try:
-        return web.runs.groups.asker(session, call_id)
+        return web.runs.groups.calling_bot(session, call_id)
     except BotNotFound as err:
         raise HTTPException(status.HTTP_409_CONFLICT, detail=str(err)) from err
 

@@ -14,7 +14,7 @@ IN_A_GROUP = Failure(REFUSED, "schedules work only in your own chat, not in a gr
 def in_a_group(groups: GroupService, chat_id: str) -> bool:
     """Whether `chat_id` is a group's chat, or no bot's own chat at all."""
     try:
-        return groups.members_of_chat(chat_id).group is not None
+        return groups.chat_members(chat_id).group is not None
     except BotNotFound:
         return True
 

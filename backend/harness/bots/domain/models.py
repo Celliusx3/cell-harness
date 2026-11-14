@@ -6,28 +6,27 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
-from harness.secrets import SecretName
+from harness.secrets import CredentialKind, SecretName
 
 ASSISTANT_ID = "assistant"
 ASSISTANT_NAME = "Assistant"
 BUILDER_ID = "builder"
 BUILDER_NAME = "Bot builder"
-MIN_MEMBERS = 2
-MAX_MEMBERS = 6
+MIN_GROUP_MEMBERS = 2
+MAX_GROUP_MEMBERS = 6
 
 
-def _stripped_not_blank(value: str) -> str:
+def _strip_and_refuse_blank(value: str) -> str:
     stripped = value.strip()
     if not stripped:
         raise ValueError("must not be blank")
     return stripped
 
 
-NonBlankText = Annotated[str, AfterValidator(_stripped_not_blank)]
+NonBlankText = Annotated[str, AfterValidator(_strip_and_refuse_blank)]
 
 
-MIN_WORKERS, DEFAULT_WORKERS, MAX_WORKERS = 1, 3, 16
-KEY_KIND, MODEL_KIND = "custom", "llm"
+MIN_WORKERS, DEFAULT_MAX_WORKERS, MAX_WORKERS = 1, 3, 16
 
 
 class BotDraft(BaseModel):
@@ -67,26 +66,26 @@ class Bot(BaseModel):
     archived: bool = False
     secret_names: tuple[SecretName, ...] = ()
     model_credential: SecretName | None = None
-    max_workers: int = Field(default=DEFAULT_WORKERS, ge=MIN_WORKERS, le=MAX_WORKERS)
+    max_workers: int = Field(default=DEFAULT_MAX_WORKERS, ge=MIN_WORKERS, le=MAX_WORKERS)
 
-    def holds_key(self, name: str) -> bool:
+    def can_use_secret(self, name: SecretName) -> bool:
         """Whether the saved key `name` is one of the keys this bot may use."""
         return name in self.secret_names
 
-    def serves(self, name: str, kind: str) -> bool:
+    def has_credential(self, name: SecretName, kind: CredentialKind) -> bool:
         """Whether the credential `name` of `kind` is one of its keys or its model; else no."""
-        if kind == KEY_KIND:
-            return self.holds_key(name)
-        return kind == MODEL_KIND and self.model_credential == name
+        if kind == "custom":
+            return self.can_use_secret(name)
+        return kind == "llm" and self.model_credential == name
 
-    def with_key(self, name: str, *, held: bool) -> Bot:
+    def with_secret(self, name: SecretName, *, allowed: bool) -> Bot:
         """This bot with the key `name` among its keys, last, or off them."""
         kept = tuple(key for key in self.secret_names if key != name)
-        return self.model_copy(update={"secret_names": (*kept, name) if held else kept})
+        return self.model_copy(update={"secret_names": (*kept, name) if allowed else kept})
 
-    def without_credential(self, name: str) -> Bot:
+    def without_credential(self, name: SecretName) -> Bot:
         """This bot with the credential `name` off its keys and off its model."""
-        return self.with_key(name, held=False).model_copy(
+        return self.with_secret(name, allowed=False).model_copy(
             update={
                 "model_credential": None if self.model_credential == name else self.model_credential
             }
@@ -99,7 +98,7 @@ class GroupDraft(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     name: NonBlankText
-    member_ids: tuple[str, ...] = Field(min_length=MIN_MEMBERS, max_length=MAX_MEMBERS)
+    member_ids: tuple[str, ...] = Field(min_length=MIN_GROUP_MEMBERS, max_length=MAX_GROUP_MEMBERS)
 
     @field_validator("member_ids")
     @classmethod
@@ -145,14 +144,14 @@ class BotNotFound(LookupError):
         super().__init__(f"no bot {bot_id!r}")
 
 
-class BotPermanent(PermissionError):
+class BuiltInBotError(PermissionError):
     """A built-in bot cannot be archived or deleted."""
 
     def __init__(self, bot_id: str) -> None:
         super().__init__(f"{bot_id!r} is built in and cannot be archived or deleted")
 
 
-class GroupEmpty(LookupError):
+class EmptyGroupError(LookupError):
     """Every member of this group has been archived or deleted."""
 
     def __init__(self, group_id: str) -> None:

@@ -43,7 +43,7 @@ def build_router(
     async def list_credentials(request: Request, response: Response) -> CredentialList:
         response.headers.update(cors_headers(request))
         saved = await asyncio.to_thread(secrets.saved_credentials)
-        active = await bots.active_bots()
+        active = await bots.open_active_bots()
         return CredentialList(
             credentials=tuple(_credential_entry(credential, active) for credential in saved),
             direct_url=_direct_url(request),
@@ -92,7 +92,9 @@ def build_router(
 
 
 def _credential_entry(credential: SavedCredential, active: tuple[Bot, ...]) -> CredentialEntry:
-    served = tuple(bot for bot in active if bot.serves(credential.name, credential.details.kind))
+    served = tuple(
+        bot for bot in active if bot.has_credential(credential.name, credential.details.kind)
+    )
     return CredentialEntry(
         name=credential.name,
         details=credential.details,

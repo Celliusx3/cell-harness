@@ -87,7 +87,7 @@ def build_router(
 
     @router.get("", response_model=list[ScheduleRow])
     async def list_schedules() -> list[ScheduleRow]:
-        named = (*await bots.active_bots(), *bots.archived_bots())
+        named = (*await bots.open_active_bots(), *bots.archived_bots())
         bot_names = {bot.id: bot.name for bot in named}
         return [_row(s, bot_names) for s in ordered(schedules.schedules(), None)]
 

@@ -72,6 +72,8 @@ class DiscordDetails(BaseModel):
 
 ChatPlatform = Literal["telegram", "discord"]
 
+CredentialKind = Literal["custom", "llm", ChatPlatform]
+
 ChatPlatformDetails = TelegramDetails | DiscordDetails
 
 CredentialDetails = Annotated[

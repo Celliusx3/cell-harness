@@ -82,7 +82,7 @@ class RunService:
         )
 
     def start(self, session: Session, prompt: str, *, files: tuple[ChatFile, ...] = ()) -> Run:
-        """Begin the discussion the person's message opens; `GroupEmpty` when nobody can answer."""
+        """Begin the discussion the person's message opens; `EmptyGroupError` if none can answer."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
         speaker = self._groups.first_speaker(session, prompt)
@@ -114,7 +114,7 @@ class RunService:
         """Begin the turn that answers a client tool for the bot that asked, then the queue's."""
         if session.id in self._runs:
             raise RunAlreadyActive(session.id)
-        bot = self._groups.asker(session, call_id)
+        bot = self._groups.calling_bot(session, call_id)
         return self._converse(
             session, self._runtime.resume(call_id, outcome, session=session, bot_id=bot.id)
         )

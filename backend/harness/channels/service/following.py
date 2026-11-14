@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from harness.bots import GroupEmpty
+from harness.bots import EmptyGroupError
 from harness.channels.domain.protocol import Channel, Pushing, RunningChannel
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.channels.service.chat_tasks import ChatKey, ChatTasks
@@ -115,7 +115,7 @@ class Following:
         await self._repository.save(cleared)
         try:
             await self.turn_for_chat(cleared, expanded(self._skills, text), state.pending_files)
-        except GroupEmpty as err:
+        except EmptyGroupError as err:
             logger.warning("queued message dropped, nobody is left to answer it: %s", err)
 
     async def drained(self, channel: str, chat_id: str) -> None:

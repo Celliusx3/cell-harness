@@ -43,7 +43,7 @@ async def page(tmp_path: Path) -> AsyncIterator[Page]:
     model = SteppedClient(calls_tool("gate", '{"value": "x"}'), completed("Done."))
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
-    await bots.active_bots()
+    await bots.open_active_bots()
     runs = run_service(service, model, gated_tool(release), bots=bots)
     clock = Clock(START)
     schedules = schedules_in(tmp_path, clock)

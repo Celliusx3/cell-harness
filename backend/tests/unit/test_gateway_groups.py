@@ -33,7 +33,7 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
     writer = await bots.create(
         BotDraft(name="Writer", instructions="Post.", model=MODEL_CREDENTIAL)
     )
-    group = await runs.groups.create_group(
+    group = await runs.groups.create(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
     await gateway.receive(InboundMessage(channel="web", chat_id=group.id, text="go"))

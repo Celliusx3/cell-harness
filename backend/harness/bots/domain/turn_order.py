@@ -72,21 +72,21 @@ class MentionTurnOrder:
         """The head of the queue once the log's last turn completed; `None` when nobody is next."""
         queue = SpeakerQueue((), 0)
         speaker_id: str | None = None
-        said: tuple[str, ...] = ()
+        replies: tuple[str, ...] = ()
         completed = False
         for event in events:
             if isinstance(event, UserMessageEvent):
                 first = self.first_speakers(event.message.content, members)
-                queue, said = SpeakerQueue(first, 0), ()
+                queue, replies = SpeakerQueue(first, 0), ()
             elif isinstance(event, TurnStart):
                 speaker_id, completed = event.bot_id, False
             elif isinstance(event, AssistantMessageEvent):
-                said = (*said, event.message.content)
+                replies = (*replies, event.message.content)
             elif isinstance(event, TurnEnd):
                 completed = event.reason == "completed"
                 if completed:
-                    queue = self._queue_after(queue, speaker_id, "\n\n".join(said), members)
-                    said = ()
+                    queue = self._queue_after(queue, speaker_id, "\n\n".join(replies), members)
+                    replies = ()
         return queue.waiting[0] if completed and queue.waiting else None
 
     def _queue_after(

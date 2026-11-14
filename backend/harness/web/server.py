@@ -14,10 +14,10 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 
 from harness.app_events import AppEventService
-from harness.app_events.router.app_event_router import build_router as build_app_events_router
+from harness.app_events.router.app_event_router import AppEventRouter
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
-from harness.bots.router.bot_router import build_router as build_bots_router
-from harness.bots.router.group_router import build_router as build_groups_router
+from harness.bots.router.bot_router import BotRouter
+from harness.bots.router.group_router import GroupRouter
 from harness.channels.repository.chat_repository import ChatRepository
 from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
 from harness.channels.router.link_code_router import build_router as build_link_codes_router
@@ -274,7 +274,7 @@ def create_app(
     relays = RelayService(now=time.monotonic)
     app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
-    app.include_router(build_app_events_router(runs.app_events))
+    app.include_router(AppEventRouter(runs.app_events).router)
     app.include_router(build_skills_router(skills))
     app.include_router(build_mcp_servers_router(mcp, saved_servers))
     app.include_router(build_mcp_router(mcp, relays))
@@ -286,10 +286,10 @@ def create_app(
     app.include_router(build_credentials_router(secrets, bots, channels.platforms))
     app.include_router(build_approvals_router(approvals))
     app.include_router(build_compact_router(web))
-    app.include_router(build_bots_router(bots, runs, secrets, schedules))
+    app.include_router(BotRouter(bots, runs, secrets, schedules).router)
     app.include_router(build_schedules_router(bots, schedules, scheduler, runs))
     app.include_router(build_tickets_router(tickets, secrets, bots, client_tools))
     app.include_router(build_ticket_files_router(tickets, web.files, web.images))
-    app.include_router(build_groups_router(runs.groups))
+    app.include_router(GroupRouter(bots, runs.groups).router)
     app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
     return app

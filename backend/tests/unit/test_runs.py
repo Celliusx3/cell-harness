@@ -14,8 +14,8 @@ from harness.bots import (
     BotDraft,
     BotService,
     ChatMembers,
+    EmptyGroupError,
     GroupDraft,
-    GroupEmpty,
     GroupService,
 )
 from harness.runs.service.run import RunAlreadyActive
@@ -175,7 +175,7 @@ async def test_resume_runs_a_turn_that_starts_with_the_answer(service) -> None:
 
 
 class _ChatsOfNotion(GroupService):
-    def members_of_chat(self, chat_id: str) -> ChatMembers:
+    def chat_members(self, chat_id: str) -> ChatMembers:
         return ChatMembers(
             group=None, bots=(Bot(id="notion", name="Notion", instructions="Read Notion."),)
         )
@@ -209,7 +209,7 @@ async def _group_chat(
             for name in names
         ]
     )
-    group = await GroupService(bots, service, MENTION_TURN_ORDER).create_group(
+    group = await GroupService(bots, service, MENTION_TURN_ORDER).create(
         GroupDraft(name="Launch", member_ids=tuple(bot.id for bot in members))
     )
     return await service.resume(group.id), members
@@ -269,6 +269,6 @@ async def test_a_group_with_no_active_member_starts_nothing(tmp_path, service) -
         bots.archive(bot.id)
     runs = run_service(service, ScriptedClient(completed("x")), bots=bots)
 
-    with pytest.raises(GroupEmpty):
+    with pytest.raises(EmptyGroupError):
         runs.start(chat, "anyone?")
     assert runs.active(chat.id) is None

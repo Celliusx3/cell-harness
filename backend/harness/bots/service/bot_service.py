@@ -12,8 +12,8 @@ from harness.bots.domain.models import (
     BotDraft,
     BotEdit,
     BotNotFound,
-    BotPermanent,
     BotsFile,
+    BuiltInBotError,
     Group,
 )
 from harness.bots.repository.bot_repository import BotRepository
@@ -44,9 +44,9 @@ class BotService:
         )
         self._built_in_ids = frozenset(bot.id for bot in self._built_ins)
 
-    async def active_bots(self) -> tuple[Bot, ...]:
+    async def open_active_bots(self) -> tuple[Bot, ...]:
         """The built-ins, then the active others in the order made; opens a built-in's chat once."""
-        bots = self._active_bots_in(self._read_file())
+        bots = self._active_bots_in(self._repository.read())
         for bot in bots[: len(self._built_ins)]:
             try:
                 await self._sessions.read(bot.id)
@@ -54,29 +54,29 @@ class BotService:
                 await self._log_instructions(await self._sessions.create(bot.id), bot)
         return bots
 
-    def active_bots_unopened(self) -> tuple[Bot, ...]:
+    def active_bots(self) -> tuple[Bot, ...]:
         """The active bots, built-ins first, read without opening any chat."""
-        return self._active_bots_in(self._read_file())
+        return self._active_bots_in(self._repository.read())
 
     def active_bot_names(self) -> tuple[str, ...]:
         """The active bots' names, built-ins first, read without opening any chat."""
-        return tuple(bot.name for bot in self.active_bots_unopened())
+        return tuple(bot.name for bot in self.active_bots())
 
     def archived_bots(self) -> tuple[Bot, ...]:
         """The archived bots, in the order they were made."""
-        return tuple(bot for bot in self._read_file().bots if bot.archived)
+        return tuple(bot for bot in self._repository.read().bots if bot.archived)
 
     def active_bot(self, bot_id: str) -> Bot:
         """The active bot with this id; `BotNotFound` when there is none."""
-        return self._active_bot_in(self._read_file(), bot_id)
+        return self._active_bot_in(self._repository.read(), bot_id)
 
     def groups(self) -> tuple[Group, ...]:
         """Every group, in the order each was made."""
-        return self._read_file().groups
+        return self._repository.read().groups
 
     def add_group(self, group: Group) -> None:
         """Save `group` after every group already made."""
-        stored = self._read_file()
+        stored = self._repository.read()
         self._write_file(stored.model_copy(update={"groups": (*stored.groups, group)}))
 
     def chat_of(self, bot_id: str) -> str:
@@ -93,13 +93,13 @@ class BotService:
             model_credential=draft.model,
         )
         await self._log_instructions(session, bot)
-        stored = self._read_file()
+        stored = self._repository.read()
         self._write_file(stored.model_copy(update={"bots": (*stored.bots, bot)}))
         return bot
 
     def update(self, bot_id: str, edit: BotEdit) -> Bot:
         """Set an active bot's name, instructions, model and worker limit; logged next turn."""
-        stored = self._read_file()
+        stored = self._repository.read()
         bot = self._active_bot_in(stored, bot_id)
         changes = {
             "name": edit.name,
@@ -111,7 +111,7 @@ class BotService:
 
     def allow_secret(self, bot_id: str, secret_name: str) -> Bot:
         """Add the saved key `secret_name` to the keys an active bot may use."""
-        stored = self._read_file()
+        stored = self._repository.read()
         bot = self._active_bot_in(stored, bot_id)
         return self._save_bot(
             stored,
@@ -122,43 +122,43 @@ class BotService:
 
     def set_allowed_secrets(self, bot_id: str, secret_names: tuple[str, ...]) -> Bot:
         """Make `secret_names` the saved keys an active bot may use, and no others."""
-        stored = self._read_file()
+        stored = self._repository.read()
         bot = self._active_bot_in(stored, bot_id)
         return self._save_bot(
             stored, bot.model_copy(update={"secret_names": _without_repeats(secret_names)})
         )
 
-    def tie_key(self, name: str, bot_ids: tuple[str, ...]) -> None:
+    def set_bots_for_secret(self, name: str, bot_ids: tuple[str, ...]) -> None:
         """Make the saved key `name` one of the keys of exactly the active bots `bot_ids`."""
-        stored = self._read_file()
+        stored = self._repository.read()
         changed = tuple(
-            bot.with_key(name, held=bot.id in bot_ids)
+            bot.with_secret(name, allowed=bot.id in bot_ids)
             for bot in self._active_bots_in(stored)
-            if bot.holds_key(name) != (bot.id in bot_ids)
+            if bot.can_use_secret(name) != (bot.id in bot_ids)
         )
         self._save_bots(stored, changed)
 
     def forget_secret(self, secret_name: str) -> None:
         """Take `secret_name` off every stored bot, archived ones too, as a key and as a model."""
-        stored = self._read_file()
-        kept = tuple(bot.without_credential(secret_name) for bot in stored.bots)
-        if kept != stored.bots:
-            self._write_file(stored.model_copy(update={"bots": kept}))
+        stored = self._repository.read()
+        bots = tuple(bot.without_credential(secret_name) for bot in stored.bots)
+        if bots != stored.bots:
+            self._write_file(stored.model_copy(update={"bots": bots}))
 
     def archive(self, bot_id: str) -> None:
         """Hide a bot and its chat until it is restored."""
-        stored = self._read_file()
+        stored = self._repository.read()
         self._check_removable(stored, bot_id)
         self._set_archived(stored, bot_id, archived=True)
 
     def restore(self, bot_id: str) -> None:
         """Bring an archived bot back with its chat as it was; an active one stays as it is."""
         if bot_id not in self._built_in_ids:
-            self._set_archived(self._read_file(), bot_id, archived=False)
+            self._set_archived(self._repository.read(), bot_id, archived=False)
 
     async def delete(self, bot_id: str) -> None:
         """Remove a bot and its chat for good."""
-        stored = self._read_file()
+        stored = self._repository.read()
         self._check_removable(stored, bot_id)
         kept = tuple(bot for bot in stored.bots if bot.id != bot_id)
         self._write_file(stored.model_copy(update={"bots": kept}))
@@ -182,7 +182,7 @@ class BotService:
 
     def _check_removable(self, stored: BotsFile, bot_id: str) -> None:
         if bot_id in self._built_in_ids:
-            raise BotPermanent(bot_id)
+            raise BuiltInBotError(bot_id)
         if bot_id not in {bot.id for bot in stored.bots}:
             raise BotNotFound(bot_id)
 
@@ -205,9 +205,6 @@ class BotService:
             for bot in stored.bots
         )
         self._write_file(stored.model_copy(update={"bots": bots}))
-
-    def _read_file(self) -> BotsFile:
-        return self._repository.read()
 
     def _write_file(self, stored: BotsFile) -> None:
         self._repository.write(stored)

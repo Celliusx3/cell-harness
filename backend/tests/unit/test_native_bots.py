@@ -52,7 +52,7 @@ async def test_a_bot_made_from_chat_is_the_one_the_form_makes(
         store, keyring, name="Researcher", instructions="You find sources.", model=MODEL_CREDENTIAL
     )
 
-    made = (await store.active_bots())[2]
+    made = (await store.open_active_bots())[2]
     assert isinstance(outcome, Ok)
     assert (made.name, made.instructions) == ("Researcher", "You find sources.")
     assert made.model_credential == MODEL_CREDENTIAL
@@ -74,7 +74,7 @@ async def test_a_bot_with_a_blank_name_or_no_saved_model_is_not_made(
 
     assert isinstance(outcome, Failure)
     assert outcome.code == INVALID_ARGUMENTS
-    assert [bot.name for bot in await store.active_bots()] == ["Assistant", "Bot builder"]
+    assert [bot.name for bot in await store.open_active_bots()] == ["Assistant", "Bot builder"]
 
 
 async def test_a_model_removed_since_the_tool_was_offered_is_refused(
@@ -89,7 +89,7 @@ async def test_a_model_removed_since_the_tool_was_offered_is_refused(
 
     assert isinstance(outcome, Failure)
     assert outcome.message == "'test_model' is not a saved LLM credential; none is saved"
-    assert len(await store.active_bots()) == 2
+    assert len(await store.open_active_bots()) == 2
 
 
 def test_with_no_llm_credential_saved_there_is_no_tool(store: BotService, tmp_path: Path) -> None:

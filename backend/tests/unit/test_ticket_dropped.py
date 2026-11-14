@@ -34,7 +34,7 @@ class DroppingWorkers:
 async def test_a_dropped_ticket_ends_without_a_report(tmp_path) -> None:
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
-    await bots.active_bots()
+    await bots.open_active_bots()
     model = ScriptedClient(completed("Heard it."))
     followed: list[Run] = []
 
