@@ -14,6 +14,7 @@ const DATA_PATHS = [
   ["skills", "editable"],
   ["approval", "grants_path"],
   ["bots", "path"],
+  ["groups", "path"],
   ["secrets", "path"],
   ["files", "root"],
 ] as const;

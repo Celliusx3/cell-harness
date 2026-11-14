@@ -15,7 +15,7 @@ from fastapi import FastAPI
 
 from harness.app_events import AppEventService
 from harness.app_events.router.app_event_router import AppEventRouter
-from harness.bots import BotRepository, BotService, GroupService
+from harness.bots import BotRepository, BotService, GroupRepository, GroupService
 from harness.bots.router.bot_router import BotRouter
 from harness.bots.router.group_router import GroupRouter
 from harness.bots.service.bot_lifecycle_service import BotLifecycleService
@@ -193,7 +193,7 @@ def create_web_app() -> FastAPI:
         sessions,
         runtime,
         bots,
-        GroupService(bots, sessions),
+        GroupService(bots, sessions, GroupRepository(settings.groups.path), app_events),
         app_events=app_events,
     )
     assert runtime.tools is not None
@@ -291,6 +291,6 @@ def create_app(
     app.include_router(ScheduleRouter(bots, schedules, scheduler, runs).router)
     app.include_router(TicketRouter(tickets, secrets, bots, client_tools).router)
     app.include_router(TicketFileRouter(tickets, web.files, web.images).router)
-    app.include_router(GroupRouter(bots, runs.groups).router)
+    app.include_router(GroupRouter(runs.groups).router)
     app.include_router(LinkCodeRouter(channels.link_codes, bots, secrets).router)
     return app

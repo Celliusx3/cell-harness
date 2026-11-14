@@ -25,7 +25,8 @@ from harness.web.runtime import compaction_window_tokens
 from tests.bot_models import put_on_model
 from tests.integration.test_web_no_model import PAGE, no_image
 from tests.integration.web_helpers import settle
-from tests.unit.helpers import durable_service, group_service, no_approvals, no_images, no_skills
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import durable_service, no_approvals, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
 
 SMALL_HOST = "api.small.example"

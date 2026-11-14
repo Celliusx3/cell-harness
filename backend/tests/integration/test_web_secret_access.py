@@ -7,6 +7,7 @@ from pathlib import Path
 
 import httpx
 
+from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, GroupDraft
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
@@ -14,6 +15,7 @@ from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetc
 from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
+from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import client_tools, durable_service, no_skills, run_service
 from tests.webapp import MODEL_CREDENTIAL, bots_in, secrets_in, web_app
 
@@ -147,7 +149,8 @@ async def _launch(tmp_path: Path):
     model = SteppedClient(
         completed("Sources."), calls_tool(ASK_FOR_SECRET, ASK, id="call_ask"), completed("Saved.")
     )
-    runs = run_service(service, model, *CLIENT_TOOLS.tools(), bots=bots)
+    groups = groups_in(tmp_path, bots, service, AppEventService())
+    runs = run_service(service, model, *CLIENT_TOOLS.tools(), bots=bots, groups=groups)
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools, bots=bots)
     researcher = await bots.create(
         BotDraft(name="Researcher", instructions="Cite.", model=MODEL_CREDENTIAL)

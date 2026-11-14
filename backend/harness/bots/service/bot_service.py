@@ -1,4 +1,4 @@
-"""The bots file, read on every call: every bot, the chat each owns, and every group."""
+"""The bots file, read on every call: every bot, and the chat each owns."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from harness.bots.domain.models import (
     BotEdit,
     BotNotFound,
     BuiltInBotError,
-    Group,
 )
 from harness.bots.repository.bot_repository import BotRepository
 from harness.prompts import BUILDER_INSTRUCTIONS
@@ -23,7 +22,7 @@ from harness.session.service.session_service import SessionService
 
 
 class BotService:
-    """Every bot, Assistant and Bot builder first, the one chat each owns, and the groups saved."""
+    """Every bot, Assistant and Bot builder first, and the one chat each owns."""
 
     def __init__(
         self,
@@ -56,15 +55,6 @@ class BotService:
         if bot is None:
             raise BotNotFound(bot_id)
         return bot
-
-    def groups(self) -> tuple[Group, ...]:
-        """Every group, in the order each was made."""
-        return self._repository.groups()
-
-    def add_group(self, group: Group) -> None:
-        """Save `group` after every group already made."""
-        self._repository.add_group(group)
-        self._publish_change()
 
     def chat_of(self, bot_id: str) -> str:
         """The id of the one chat the bot answers in, which is the bot's own id."""

@@ -30,7 +30,8 @@ from harness.tools.native.schedule import (
 )
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import durable_service, group_service, no_bots
+from tests.unit.group_helpers import group_service, groups_in
+from tests.unit.helpers import durable_service, no_bots
 from tests.unit.schedule_helpers import (
     Clock,
     ask,
@@ -63,8 +64,8 @@ def bots(tmp_path: Path, sessions: SessionService) -> BotService:
 
 
 @pytest.fixture
-async def groups(bots: BotService, sessions: SessionService) -> GroupService:
-    return group_service(bots, sessions)
+async def groups(tmp_path: Path, bots: BotService, sessions: SessionService) -> GroupService:
+    return groups_in(tmp_path, bots, sessions, AppEventService())
 
 
 @pytest.fixture

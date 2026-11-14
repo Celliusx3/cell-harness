@@ -28,7 +28,8 @@ from harness.tools.native.schedule import schedule_edit_tool
 from tests.bot_models import save_chat_of
 from tests.integration.web_helpers import send, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, gated_tool
-from tests.unit.helpers import durable_service, group_service, no_skills, run_service
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.unit.schedule_helpers import START, Clock, schedules_in
 from tests.webapp import a_model_saved_in, bots_in, web_app
 

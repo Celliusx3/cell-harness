@@ -1,4 +1,4 @@
-"""What a bot and a group are, what the bots file holds, and how a change to them is refused."""
+"""What a bot and a group are, what their two files hold, and how a change to them is refused."""
 
 from __future__ import annotations
 
@@ -139,11 +139,18 @@ class ChatMembers(BaseModel):
 
 
 class BotsFile(BaseModel):
-    """The bots file: every stored bot and every group, each in the order it was made."""
+    """The bots file: every stored bot, in the order it was made."""
 
     model_config = ConfigDict(frozen=True)
 
     bots: tuple[Bot, ...] = ()
+
+
+class GroupsFile(BaseModel):
+    """The groups file: every group, in the order it was made."""
+
+    model_config = ConfigDict(frozen=True)
+
     groups: tuple[Group, ...] = ()
 
 

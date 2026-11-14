@@ -36,6 +36,9 @@
   "bots": {
     "path": "~/Library/Application Support/Cell Harness/bots.json"
   },
+  "groups": {
+    "path": "~/Library/Application Support/Cell Harness/groups.json"
+  },
   "secrets": {
     "path": "~/Library/Application Support/Cell Harness/secrets.json"
   },

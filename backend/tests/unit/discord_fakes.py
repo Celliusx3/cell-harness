@@ -18,7 +18,8 @@ from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import group_service, no_bots, no_images, no_links, no_skills
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import no_bots, no_images, no_links, no_skills
 
 BOT_ID = 900
 

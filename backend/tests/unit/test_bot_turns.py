@@ -42,7 +42,8 @@ from harness.session.service.session_service import SessionService
 from harness.tools import Ok
 from tests.bot_models import put_instructions
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool
-from tests.unit.helpers import durable_service, group_service, new_session, runtime_over
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import durable_service, new_session, runtime_over
 
 
 def _logged(session: Session) -> list[str]:

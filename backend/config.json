@@ -31,6 +31,9 @@
   "bots": {
     "path": "~/.harness/bots.json"
   },
+  "groups": {
+    "path": "~/.harness/groups.json"
+  },
   "schedules": {
     "path": "~/.harness/schedules.json"
   },

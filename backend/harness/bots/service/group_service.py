@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from harness.app_events import AppEventService, BotsChangedAppEvent
 from harness.bots.domain.models import (
     Bot,
     BotNotFound,
@@ -12,6 +13,7 @@ from harness.bots.domain.models import (
     GroupMemberNotFound,
 )
 from harness.bots.domain.turn_order import MENTION_TURN_ORDER
+from harness.bots.repository.group_repository import GroupRepository
 from harness.bots.service.bot_service import BotService, bot_instructions_event
 from harness.session.domain.log import Session
 from harness.session.domain.models import GroupMembersEvent
@@ -21,9 +23,17 @@ from harness.session.service.session_service import SessionService
 class GroupService:
     """Every group, the members of each chat, and which of them speaks next."""
 
-    def __init__(self, bots: BotService, sessions: SessionService) -> None:
+    def __init__(
+        self,
+        bots: BotService,
+        sessions: SessionService,
+        groups: GroupRepository,
+        app_events: AppEventService,
+    ) -> None:
         self._bots = bots
         self._sessions = sessions
+        self._repository = groups
+        self._app_events = app_events
 
     async def create(self, draft: GroupDraft) -> Group:
         """A new group of active bots, its chat holding its members; else `GroupMemberNotFound`."""
@@ -32,8 +42,13 @@ class GroupService:
         group = Group(id=session.id, name=draft.name, member_ids=draft.member_ids)
         session.append(_group_members_event(group, members))
         await self._sessions.flush(session)
-        self._bots.add_group(group)
+        self._repository.add(group)
+        self._app_events.publish(BotsChangedAppEvent())
         return group
+
+    def groups(self) -> tuple[Group, ...]:
+        """Every group, in the order each was made."""
+        return self._repository.groups()
 
     def _active_member(self, bot_id: str) -> Bot:
         try:
@@ -47,10 +62,8 @@ class GroupService:
         own = next((bot for bot in active if self._bots.chat_of(bot.id) == chat_id), None)
         if own is not None:
             return ChatMembers(group=None, bots=(own,))
-        group = next(
-            (group for group in self._bots.groups() if self.chat_of_group(group.id) == chat_id),
-            None,
-        )
+        stored = self._repository.groups()
+        group = next((group for group in stored if self.chat_of_group(group.id) == chat_id), None)
         if group is None:
             raise BotNotFound(chat_id)
         by_id = {bot.id: bot for bot in active}

@@ -14,7 +14,8 @@ from harness.llm import Message, StreamEvent, ToolSpec
 from harness.runs.service.run_service import RunService
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import HangingClient, ScriptedClient, SteppedClient, completed
-from tests.unit.helpers import durable_service, group_service, no_skills, run_service, runtime_over
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import durable_service, no_skills, run_service, runtime_over
 from tests.webapp import web_app
 
 

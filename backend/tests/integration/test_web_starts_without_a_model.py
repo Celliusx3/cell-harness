@@ -60,6 +60,7 @@ def _config_with_no_model(tmp_path: Path) -> Path:
         "sessions": {"root": str(tmp_path / "sessions")},
         "files": {"root": str(tmp_path / "files")},
         "bots": {"path": str(tmp_path / "bots.json")},
+        "groups": {"path": str(tmp_path / "groups.json")},
         "schedules": {"path": str(tmp_path / "schedules.json")},
         "tickets": {"path": str(tmp_path / "tickets.json")},
         "secrets": {"path": str(tmp_path / "secrets.json"), "encryption_key": TEST_ENCRYPTION_KEY},

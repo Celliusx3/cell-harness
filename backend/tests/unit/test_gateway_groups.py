@@ -9,6 +9,7 @@ from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService, GroupDraft
 from harness.channels.domain.protocol import InboundMessage
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
+from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import durable_service, no_skills, run_service
 from tests.webapp import MODEL_CREDENTIAL, web_gateway
 
@@ -24,7 +25,11 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
         app_events=AppEventService(),
     )
     runs = run_service(
-        service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), bots=bots
+        service,
+        SteppedClient(calls_tool("hang", '{"value": "x"}')),
+        hanging_tool(),
+        bots=bots,
+        groups=groups_in(tmp_path, bots, service, AppEventService()),
     )
     gateway, _ = web_gateway(tmp_path, service, runs, skills=no_skills(), bots=bots)
     researcher = await bots.create(

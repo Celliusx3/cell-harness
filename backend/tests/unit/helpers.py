@@ -49,6 +49,7 @@ from harness.tools.service.tool_service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
 from harness.web.tickets_wiring import ticket_workers
 from tests.unit.fakes import OneModel
+from tests.unit.group_helpers import group_service
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -218,11 +219,6 @@ def no_bots(service: SessionService) -> BotService:
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=AppEventService(),
     )
-
-
-def group_service(bots: BotService, sessions: SessionService) -> GroupService:
-    """The groups of `bots`, each talking in a chat of `sessions`."""
-    return GroupService(bots, sessions)
 
 
 def skills_at(*roots: Path) -> SkillService:

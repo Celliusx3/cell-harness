@@ -13,7 +13,8 @@ from harness.schedules import ScheduleService
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.schedule import schedule_list_tool, schedule_view_tool
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import durable_service, group_service, no_bots
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import durable_service, no_bots
 from tests.unit.schedule_helpers import Clock, ask, schedules_in, tick_and_settle, world
 
 NOW = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)

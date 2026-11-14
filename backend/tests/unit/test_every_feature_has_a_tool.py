@@ -15,7 +15,8 @@ from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE
 from harness.web.runtime import attach_schedules, build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
-from tests.unit.helpers import client_tools, group_service, no_approvals, no_bots, no_skills
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.webapp import a_model_saved_in, files_in, images_in, schedules_in, web_app
 
 
@@ -146,6 +147,7 @@ CONFIG: dict[str, Tool | NotATool] = {
     "skills": NotATool("where skills live; skill_save and skill_delete work in the editable one"),
     "approval": NotATool("what the model must ask before doing; it never edits its own list"),
     "bots": NotATool("where the bots are kept; moving it while running loses them"),
+    "groups": NotATool("where the groups are kept; moving it while running loses them"),
     "schedules": NotATool("where the schedules are kept; moving it while running loses them"),
     "tickets": NotATool("where the tickets are kept; moving it while running loses them"),
     "secrets": NotATool(

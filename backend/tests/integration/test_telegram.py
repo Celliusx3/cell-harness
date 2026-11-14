@@ -24,9 +24,9 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.web.server import build_channels, create_app
 from tests.unit.fakes import OneModel, ScriptedClient, completed
+from tests.unit.group_helpers import group_service
 from tests.unit.helpers import (
     client_tools,
-    group_service,
     link_to_assistant,
     no_approvals,
     no_bots,

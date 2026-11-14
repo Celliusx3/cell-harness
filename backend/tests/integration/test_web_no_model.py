@@ -22,7 +22,8 @@ from harness.tools import Failure, Ok
 from harness.tools.native.bots import bot_create_tool
 from harness.web.model_choice import CredentialModels, ModelEndpoint
 from tests.integration.web_helpers import settle
-from tests.unit.helpers import context_for, durable_service, group_service, no_images, no_skills
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import context_for, durable_service, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
 
 PICK_A_MODEL = "Pick a model for this bot in Edit bot."

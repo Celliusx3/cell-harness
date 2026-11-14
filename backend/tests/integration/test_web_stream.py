@@ -27,7 +27,8 @@ from tests.unit.fakes import (
     gated_tool,
     hanging_tool,
 )
-from tests.unit.helpers import group_service, no_bots, no_images, no_skills, toolset_for
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import no_bots, no_images, no_skills, toolset_for
 from tests.webapp import web_app
 
 TIMEOUT = 10.0

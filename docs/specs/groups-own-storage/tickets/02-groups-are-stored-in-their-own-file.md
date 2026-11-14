@@ -1,6 +1,6 @@
 # 02. Groups are stored in their own file
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

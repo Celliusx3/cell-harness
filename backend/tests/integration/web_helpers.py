@@ -20,9 +20,9 @@ from harness.tools import Tool, ToolService, Toolset
 from harness.tools.native.bots import MESSAGE_BOT
 from harness.web.runtime import attach_bot_messages
 from tests.unit.fakes import OneModel, PerBotClient
+from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import (
     durable_service,
-    group_service,
     heard_nowhere,
     no_approvals,
     no_images,
@@ -119,7 +119,7 @@ def messaging_app(
         service,
         runtime,
         bots,
-        group_service(bots, service),
+        groups_in(tmp_path, bots, service, app_events),
         app_events=app_events,
     )
     messages = attach_bot_messages(tool_service, bots, runs, follow=heard_nowhere)

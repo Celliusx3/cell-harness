@@ -6,7 +6,7 @@ import logging
 
 from fastapi import APIRouter, status
 
-from harness.bots import BotService, Group, GroupDraft, GroupService
+from harness.bots import Group, GroupDraft, GroupService
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 class GroupRouter:
     """Every group, and making one; a member that is no active bot is a 422."""
 
-    def __init__(self, bots: BotService, groups: GroupService) -> None:
-        self._bots = bots
+    def __init__(self, groups: GroupService) -> None:
         self._groups = groups
         self.router: APIRouter = APIRouter(prefix="/api/groups", tags=["groups"])
         self.router.add_api_route("", self.list_groups, methods=["GET"], response_model=list[Group])
@@ -28,7 +27,7 @@ class GroupRouter:
         )
 
     async def list_groups(self) -> list[Group]:
-        return list(self._bots.groups())
+        return list(self._groups.groups())
 
     async def create_group(self, body: GroupDraft) -> Group:
         group = await self._groups.create(body)

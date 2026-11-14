@@ -61,6 +61,7 @@ def startup_settings(tmp_path: Path) -> Settings:
         sessions={"root": tmp_path / "sessions"},
         files={"root": tmp_path / "files"},
         bots={"path": tmp_path / "bots.json"},
+        groups={"path": tmp_path / "groups.json"},
         schedules={"path": tmp_path / "schedules.json"},
         tickets={"path": tmp_path / "tickets.json"},
         secrets={"path": tmp_path / "secrets.json", "encryption_key": TEST_ENCRYPTION_KEY},

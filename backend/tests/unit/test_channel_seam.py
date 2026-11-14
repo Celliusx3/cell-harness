@@ -21,7 +21,8 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.tools.client import PendingCall
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import group_service, link_to_assistant, no_bots, no_images, no_skills
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import link_to_assistant, no_bots, no_images, no_skills
 from tests.unit.telegram_fakes import telegram_channel
 
 WHATSAPP = "whatsapp"

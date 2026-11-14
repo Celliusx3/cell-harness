@@ -27,9 +27,9 @@ from harness.web.runtime import CLIENT_TOOLS
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
+from tests.unit.group_helpers import group_service
 from tests.unit.helpers import (
     durable_service,
-    group_service,
     heard_nowhere,
     no_approvals,
     no_images,

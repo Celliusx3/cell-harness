@@ -1,4 +1,4 @@
-"""`bots.json`: its bots and groups, fetched and changed one at a time, the file replaced whole."""
+"""`bots.json`: its bots, fetched and changed one at a time, the file replaced whole."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ import os
 import tempfile
 from pathlib import Path
 
-from harness.bots.domain.models import Bot, BotNotFound, BotsFile, Group
+from harness.bots.domain.models import Bot, BotNotFound, BotsFile
 
 
 class BotRepository:
-    """The stored bots and groups of one file; a missing file holds none."""
+    """The stored bots of one file; a missing file holds none."""
 
     def __init__(self, path: Path) -> None:
         self._path = path
@@ -45,15 +45,6 @@ class BotRepository:
         stored = self._read()
         kept = tuple(bot for bot in stored.bots if bot.id != bot_id)
         self._write(stored.model_copy(update={"bots": kept}))
-
-    def groups(self) -> tuple[Group, ...]:
-        """Every stored group, in stored order."""
-        return self._read().groups
-
-    def add_group(self, group: Group) -> None:
-        """Store a new group after every stored group."""
-        stored = self._read()
-        self._write(stored.model_copy(update={"groups": (*stored.groups, group)}))
 
     def _read(self) -> BotsFile:
         if not self._path.exists():

@@ -24,7 +24,8 @@ from harness.web.runtime import build_runtime
 from tests.integration.test_web_no_model import PAGE, FakeProvider
 from tests.integration.web_helpers import settle
 from tests.mcp_stub import DOT_PNG
-from tests.unit.helpers import client_tools, durable_service, group_service, no_approvals, no_skills
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import client_tools, durable_service, no_approvals, no_skills
 from tests.webapp import bots_in, files_in, images_in, secrets_in, web_app
 
 DOT = base64.b64decode(DOT_PNG)

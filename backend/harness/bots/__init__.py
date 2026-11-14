@@ -17,6 +17,7 @@ from harness.bots.domain.models import (
     UnsavedModelError,
 )
 from harness.bots.repository.bot_repository import BotRepository
+from harness.bots.repository.group_repository import GroupRepository
 from harness.bots.service.bot_service import BotService
 from harness.bots.service.group_service import GroupService
 
@@ -35,6 +36,7 @@ __all__ = [
     "Group",
     "GroupDraft",
     "GroupMemberNotFound",
+    "GroupRepository",
     "EmptyGroupError",
     "GroupService",
     "UnsavedModelError",
