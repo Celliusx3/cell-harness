@@ -15,7 +15,7 @@ A comic chapter is read and translated by one worker, one page at a time, while 
 7. The bot hands you `jewel-witch-46-english.cbz` in the chat.
 8. If a part fails, only that part is tried again. The pages the other parts finished are kept.
 9. If Combine chapter starts too early, it finds untranslated or unrendered pages, packs nothing, and says which pages are missing; the bot sends them back to their part. Nothing half-translated reaches you.
-10. A short chapter, under about 3 pages for each worker, is done by one worker, as today.
+10. A one-page chapter, or a bot that runs one worker, is done by one worker, as today. Any chapter of 2 pages or more is split, into as many parts as the bot runs workers but no more than its pages: reading a page takes minutes on a slow model, and a split costs about a minute.
 
 ## Decisions
 
@@ -39,5 +39,5 @@ A comic chapter is read and translated by one worker, one page at a time, while 
 - Compare the time from the first part starting to the last part finishing with today's single worker. It is about a third of today's 65 to 70 minutes.
 - Open the CBZ. A character's name reads the same on pages 1, 12 and 23.
 - Run Combine chapter while one part is still working. It renders nothing and names the pages still missing.
-- Attach a 6-page chapter. One worker does it, as today.
+- Attach a 5-page chapter to a bot with 3 workers. Three parts do it: 2, 2 and 1 pages.
 - Every step above is recorded on video, before and after.
