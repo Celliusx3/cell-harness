@@ -156,3 +156,7 @@ class EmptyGroupError(LookupError):
 
     def __init__(self, group_id: str) -> None:
         super().__init__(f"every member of group {group_id!r} is archived or deleted")
+
+
+class UnsavedModelError(ValueError):
+    """The model asked for a bot is not a saved LLM credential; the message says which are."""

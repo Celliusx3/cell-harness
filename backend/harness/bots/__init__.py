@@ -13,6 +13,7 @@ from harness.bots.domain.models import (
     EmptyGroupError,
     Group,
     GroupDraft,
+    UnsavedModelError,
 )
 from harness.bots.domain.turn_order import MENTION_TURN_ORDER, MentionTurnOrder, TurnOrder
 from harness.bots.repository.bot_repository import BotRepository
@@ -38,4 +39,5 @@ __all__ = [
     "GroupService",
     "MentionTurnOrder",
     "TurnOrder",
+    "UnsavedModelError",
 ]
