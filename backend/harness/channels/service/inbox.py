@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
-from harness.channels.service.following import QUEUE_JOIN, expanded
+from harness.channels.service.turn_follower import QUEUE_SEPARATOR, expanded
 from harness.runtime.inbox import Claimed
 from harness.skills import SkillService
 
@@ -25,7 +25,7 @@ class ChatInbox:
             await self._repository.save(
                 state.model_copy(update={"pending": (), "pending_files": ()})
             )
-        text = QUEUE_JOIN.join(text for state in waiting for text in state.pending)
+        text = QUEUE_SEPARATOR.join(text for state in waiting for text in state.pending)
         files = tuple(file for state in waiting for file in state.pending_files)
         return Claimed(text=expanded(self._skills, text), files=files)
 

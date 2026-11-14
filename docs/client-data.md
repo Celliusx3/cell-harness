@@ -3,8 +3,8 @@
 The first case is location. "What's near me?" needs coordinates only the
 person's device has; the server has nothing to compute from. This note is the
 prior art, the shape chosen, and why — the reasoning behind `tools/client/`,
-`tools/native/location/`, `web/routes/client.py`, `channels/service/client.py` and
-`Pushing.ask_client`.
+`tools/native/location/`, `web/routes/client.py`, `channels/service/chat_answers.py` and
+`PushChannel.ask_client`.
 
 ## 1. The four shapes in the wild
 
@@ -103,12 +103,12 @@ datum:
 **The acceptance criterion.** A second datum is `tools/native/<x>/{models,
 tool}.py`, one entry in `CLIENT_TOOLS` (`web/runtime.py`), and one entry in the
 browser's handler map — and no line in `tools/client/`, `routes/client.py`,
-`channels/service/client.py`, `Replies`, the loop or the run service. `test_client_tools.py` proves the spine on
+`channels/service/chat_answers.py`, `ReplySender`, the loop or the run service. `test_client_tools.py` proves the spine on
 a throwaway declaration so that stays true without a second real tool.
 
 ## 3. One request, three deliveries
 
-The ask is delivered where app links are: `Replies.deliver` watches the run's
+The ask is delivered where app links are: `ReplySender.deliver` watches the run's
 events for a chat, and a `tool/call` to a client tool becomes
 `transport.ask_client(chat_id, request, url)` — the platform is a client and
 fulfils the request by tool name, as the browser's map does.

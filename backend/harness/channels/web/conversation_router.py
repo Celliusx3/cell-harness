@@ -16,10 +16,15 @@ from harness.channels.service.commands import (
     ModeCommand,
     mode_command,
     mode_usage_reply,
-    unknown_skill,
+    unknown_skill_reply,
 )
-from harness.channels.web.schemas import ConversationDetail, MessageAccepted, SendMessage, SetMode
-from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
+from harness.channels.web.schemas import (
+    ConversationDetail,
+    MessageAccepted,
+    MessageRequest,
+    ModeRequest,
+)
+from harness.channels.web.sse import SSE_MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService
 from harness.session.domain.log import Session
 from harness.skills import UnknownSkill
@@ -41,13 +46,15 @@ async def _chunks(upload: UploadFile) -> AsyncIterator[bytes]:
 def chat_router(web: WebChannel, *, tag: str) -> APIRouter:
     """A router under `/api/conversations` whose every route 404s an id no bot or group has."""
 
-    async def answering(conversation_id: str) -> ChatMembers:
+    async def require_chat_members(conversation_id: str) -> ChatMembers:
         return web.runs.groups.chat_members(conversation_id)
 
-    return APIRouter(prefix="/api/conversations", tags=[tag], dependencies=[Depends(answering)])
+    return APIRouter(
+        prefix="/api/conversations", tags=[tag], dependencies=[Depends(require_chat_members)]
+    )
 
 
-def _accepted(session: Session, *, queued: bool) -> MessageAccepted:
+def _message_accepted(session: Session, *, queued: bool) -> MessageAccepted:
     header = session.header
     return MessageAccepted(id=header.id, created_at=header.created_at, queued=queued)
 
@@ -137,12 +144,12 @@ class ConversationRouter:
             mode=await self._web.runs.approval_mode(conversation_id),
         )
 
-    async def send_message(self, conversation_id: str, body: SendMessage) -> MessageAccepted:
+    async def send_message(self, conversation_id: str, body: MessageRequest) -> MessageAccepted:
         """Continue a conversation; `/mode` switches it instead, before any skill is looked for."""
         web = self._web
         mode = mode_command(body.prompt)
         if mode is not None:
-            return await self._switch_by_command(conversation_id, mode)
+            return await self._switch_mode_by_command(conversation_id, mode)
         files = _attached_files(web.files, conversation_id, body.files)
         try:
             run = await web.gateway.receive(
@@ -151,11 +158,11 @@ class ConversationRouter:
                 )
             )
         except UnknownSkill as err:
-            raise self._unknown_skill(err) from err
+            raise self._unknown_skill_error(err) from err
 
         if run is not None:
-            return _accepted(run.session, queued=False)
-        return _accepted(await self._chat_session(conversation_id), queued=True)
+            return _message_accepted(run.session, queued=False)
+        return _message_accepted(await self._chat_session(conversation_id), queued=True)
 
     async def upload_file(self, conversation_id: str, file: UploadFile) -> ChatFile:
         """Save one file in this chat's folder, for the next message to attach."""
@@ -185,12 +192,12 @@ class ConversationRouter:
             return await web.sessions.read(conversation_id)
 
         async def after_drain() -> Source:
-            await web.gateway.drained(web.channel, conversation_id)
+            await web.gateway.wait_until_drained(web.channel, conversation_id)
             return await source()
 
         return StreamingResponse(
             kept_alive(sse_frames(await source(), after=after, after_drain=after_drain)),
-            media_type=MEDIA_TYPE,
+            media_type=SSE_MEDIA_TYPE,
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
@@ -200,7 +207,7 @@ class ConversationRouter:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no turn is running")
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    async def set_approval_mode(self, conversation_id: str, body: SetMode) -> Response:
+    async def set_approval_mode(self, conversation_id: str, body: ModeRequest) -> Response:
         """Switch what asks in this chat: its next call follows `mode`."""
         await self._web.runs.set_approval_mode(conversation_id, body.mode)
         logger.info("conversation %s switched to %s by the browser", conversation_id, body.mode)
@@ -213,14 +220,14 @@ class ConversationRouter:
         logger.info("conversation %s cleared by the browser", conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    def _unknown_skill(self, err: UnknownSkill) -> HTTPException:
+    def _unknown_skill_error(self, err: UnknownSkill) -> HTTPException:
         """The `detail` for a `/word` that is neither a command nor a skill."""
         return HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=unknown_skill(err.name, self._web.gateway.skills.invocable()),
+            detail=unknown_skill_reply(err.name, self._web.gateway.skills.invocable()),
         )
 
-    async def _switch_by_command(
+    async def _switch_mode_by_command(
         self, conversation_id: str, command: ModeCommand
     ) -> MessageAccepted:
         """`/mode ask` or `/mode auto` switches the chat and starts no turn; any other is a 422."""
@@ -232,7 +239,7 @@ class ConversationRouter:
             )
         await web.gateway.set_approval_mode(web.channel, conversation_id, command.mode)
         logger.info("conversation %s switched to %s by /mode", conversation_id, command.mode)
-        return _accepted(await self._chat_session(conversation_id), queued=False)
+        return _message_accepted(await self._chat_session(conversation_id), queued=False)
 
     async def _chat_session(self, conversation_id: str) -> Session:
         """The running turn's session, else the stored one, read without repair."""

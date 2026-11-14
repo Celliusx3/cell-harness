@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from harness.bots import BotNotFound, BotService
 from harness.channels.router.link_code_schemas import IssuedLinkCode, LinkCodeRequest
-from harness.channels.service.links import LINK_CODE_SECONDS, LinkCodes
+from harness.channels.service.links import LINK_CODE_LIFETIME_SECONDS, LinkCodes
 from harness.secrets import SecretService
 from harness.secrets.domain.details import ChatPlatform
 
@@ -38,15 +38,15 @@ class LinkCodeRouter:
         except BotNotFound as err:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(err)) from err
         if await asyncio.to_thread(self._keyring.chat_platform_token, body.platform) is None:
-            raise HTTPException(status.HTTP_409_CONFLICT, detail=_no_token(body.platform))
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=_no_token_detail(body.platform))
         issued = self._codes.issue(bot.id, body.platform)
         logger.info("a %s link code issued for bot %s", body.platform, bot.id)
         return IssuedLinkCode(
-            code=issued.code, expires_in_seconds=LINK_CODE_SECONDS, bot_name=bot.name
+            code=issued.code, expires_in_seconds=LINK_CODE_LIFETIME_SECONDS, bot_name=bot.name
         )
 
 
-def _no_token(platform: ChatPlatform) -> str:
+def _no_token_detail(platform: ChatPlatform) -> str:
     """Why a code is refused for a platform whose token is not saved, and what to do."""
     name = platform.capitalize()
     return f"{name} has no token yet. Add the {name} token on the Credentials page first."

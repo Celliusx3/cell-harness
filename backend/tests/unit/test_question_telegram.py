@@ -6,7 +6,7 @@ import json
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.telegram.asking import ASK_BY_LINK
-from harness.channels.telegram.channel import STALE_TAP
+from harness.channels.telegram.channel import STALE_TAP_RECEIPT
 from harness.session.domain.models import ToolResultEvent, TurnEnd
 from harness.tools.native.question import ASK_USER
 from harness.web.runtime import CLIENT_TOOLS
@@ -75,7 +75,7 @@ async def test_a_stale_tap_is_told_so(tmp_path) -> None:
     await settle(runs, gateway)
 
     assert late.callback_query.answered is True
-    assert late.callback_query.edits == [(f"Which shop?\n\n{STALE_TAP}", None)]
+    assert late.callback_query.edits == [(f"Which shop?\n\n{STALE_TAP_RECEIPT}", None)]
 
 
 async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> None:

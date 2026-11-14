@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
-from harness.channels.domain.protocol import InboundMessage, Pushing
+from harness.channels.domain.protocol import InboundMessage, PushChannel
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.web.channel import WebChannel
@@ -60,7 +60,7 @@ async def settle(runs: RunService, gateway: ChannelGateway, key) -> None:
 
 
 def test_a_browser_cannot_be_sent_to() -> None:
-    assert not isinstance(WebChannel, Pushing)
+    assert not isinstance(WebChannel, PushChannel)
     assert not hasattr(WebChannel, "send_message")
 
 

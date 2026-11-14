@@ -10,15 +10,15 @@ from harness.channels.domain.protocol import (
     ChannelDisposer,
     DuplicateChannelError,
     InboundMessage,
-    Pushing,
+    PushChannel,
     RunningChannel,
     UnknownChannelError,
 )
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.channels.service.chat_tasks import ChatTasks
 from harness.channels.service.chats import state_of
-from harness.channels.service.following import Following
-from harness.channels.service.replies import Replies
+from harness.channels.service.replies import ReplySender
+from harness.channels.service.turn_follower import TurnFollower
 from harness.runs.service.run import Run, RunAlreadyActive
 from harness.runs.service.run_service import RunService
 from harness.runtime.compaction import CompactionRefused, check_can_compact
@@ -50,14 +50,14 @@ class ChannelGateway:
         self._channels: dict[str, RunningChannel] = {}
         self._is_receiving = False
         self._tasks = ChatTasks()
-        self._following = Following(
+        self._follower = TurnFollower(
             repository,
             runs,
             sessions,
             skills,
             self._channels,
             self._tasks,
-            Replies(repository, public_url=public_url),
+            ReplySender(repository, public_url=public_url),
         )
 
     def register(self, channel: Channel) -> ChannelDisposer:
@@ -66,7 +66,7 @@ class ChannelGateway:
             raise DuplicateChannelError(f"{channel.channel!r} is already registered")
         running = RunningChannel(channel)
         self._channels[channel.channel] = running
-        mode = "push" if isinstance(channel, Pushing) else "pull"
+        mode = "push" if isinstance(channel, PushChannel) else "pull"
         logger.info("%s channel registered (%s)", channel.channel, mode)
         if self._is_receiving:
             running.start()
@@ -81,7 +81,7 @@ class ChannelGateway:
         logger.info("%s channel removed", running.name)
 
     @property
-    def channels(self) -> list[str]:
+    def channel_names(self) -> list[str]:
         """The registered platforms, for logs and tests."""
         return list(self._channels)
 
@@ -93,21 +93,21 @@ class ChannelGateway:
 
     async def receive(self, message: InboundMessage) -> Run | None:
         """One inbound message, from any platform; nothing at all for a chat linked to no bot."""
-        self._require(message.channel)
+        self._require_registered(message.channel)
         state = await self._state(message.channel, message.chat_id)
-        if _ignored_as_unlinked(state):
+        if _is_unlinked(state):
             return None
         content = self.skills.expand(message.text)
         if self.runs.active(state.conversation_id) is not None:
-            await self._following.queue(state, message.text, message.files)
+            await self._follower.queue(state, message.text, message.files)
             return None
 
-        return await self._following.turn_for_chat(state, content, message.files)
+        return await self._follower.start_turn_or_queue(state, content, message.files)
 
     async def clear(self, channel: str, chat_id: str) -> None:
         """Clear this chat in place, as a run that stops its turn and wipes it under the same id."""
         state = await self._state(channel, chat_id)
-        if _ignored_as_unlinked(state):
+        if _is_unlinked(state):
             return
         await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
         in_flight = self.runs.active(state.conversation_id)
@@ -128,7 +128,7 @@ class ChannelGateway:
     async def stop(self, channel: str, chat_id: str) -> bool:
         """Cancel the turn in flight, discarding anything queued behind it."""
         state = await self._state(channel, chat_id)
-        if _ignored_as_unlinked(state):
+        if _is_unlinked(state):
             return False
         await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
         return await self.runs.stop(state.conversation_id)
@@ -136,25 +136,25 @@ class ChannelGateway:
     async def set_approval_mode(self, channel: str, chat_id: str, mode: ApprovalMode) -> None:
         """Switch this chat to `mode` from its next call; nothing for a chat linked to no bot."""
         state = await self._state(channel, chat_id)
-        if _ignored_as_unlinked(state):
+        if _is_unlinked(state):
             return
         await self.runs.set_approval_mode(state.conversation_id, mode)
 
     async def approval_mode(self, channel: str, chat_id: str) -> ApprovalMode | None:
         """The mode this chat's calls run under; `None` for a chat linked to no bot."""
         state = await self._state(channel, chat_id)
-        if _ignored_as_unlinked(state):
+        if _is_unlinked(state):
             return None
         return await self.runs.approval_mode(state.conversation_id)
 
     async def is_linked(self, channel: str, chat_id: str) -> bool:
         """Whether this chat writes into a conversation."""
-        self._require(channel)
-        return not _ignored_as_unlinked(await self._state(channel, chat_id))
+        self._require_registered(channel)
+        return not _is_unlinked(await self._state(channel, chat_id))
 
-    async def drained(self, channel: str, chat_id: str) -> None:
-        """Wait while this chat is between turns — see `Following.drained`."""
-        await self._following.drained(channel, chat_id)
+    async def wait_until_drained(self, channel: str, chat_id: str) -> None:
+        """Wait while this chat is between turns — see `TurnFollower.wait_until_drained`."""
+        await self._follower.wait_until_drained(channel, chat_id)
 
     async def aclose(self) -> None:
         """Stop receiving on every channel left, then stop delivering."""
@@ -163,7 +163,7 @@ class ChannelGateway:
             await supervised.aclose()
         await self._tasks.aclose()
 
-    def _require(self, channel: str) -> None:
+    def _require_registered(self, channel: str) -> None:
         if channel not in self._channels:
             raise UnknownChannelError(f"no channel registered for {channel!r}")
 
@@ -176,14 +176,14 @@ class ChannelGateway:
         check_can_compact(session)
         run = self.runs.compact(session)
         for state in followers:
-            self._following.begin(state, run)
+            self._follower.follow_in_chat(state, run)
         return run
 
     async def compact_chat(self, channel: str, chat_id: str) -> Run | None:
         """`/compact` from a chat: the run, or `None` when nothing can be compacted now."""
-        self._require(channel)
+        self._require_registered(channel)
         state = await self._state(channel, chat_id)
-        if _ignored_as_unlinked(state) or self.runs.active(state.conversation_id) is not None:
+        if _is_unlinked(state) or self.runs.active(state.conversation_id) is not None:
             return None
         try:
             session = await self.sessions.resume(state.conversation_id)
@@ -198,7 +198,7 @@ class ChannelGateway:
         """Have every chat linked to `run`'s conversation hear it, for a turn no chat started."""
         for state in await self._repository.chats_of(run.session.id):
             if state.channel in self._channels:
-                self._following.begin(state, run)
+                self._follower.follow_in_chat(state, run)
 
     async def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that carries an answer, followed by the chats that were asked it."""
@@ -208,11 +208,11 @@ class ChannelGateway:
             if call_id in state.asked and state.channel in self._channels:
                 answered = tuple(asked for asked in state.asked if asked != call_id)
                 await self._repository.save(state.model_copy(update={"asked": answered}))
-                self._following.begin(state, run)
+                self._follower.follow_in_chat(state, run)
         return run
 
 
-def _ignored_as_unlinked(state: ChatState) -> bool:
+def _is_unlinked(state: ChatState) -> bool:
     """Whether `state` writes nowhere, and so is ignored with a line at debug."""
     if state.conversation_id:
         return False

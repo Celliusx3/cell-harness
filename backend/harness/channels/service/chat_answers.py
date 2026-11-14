@@ -38,16 +38,20 @@ class ChatAnswers:
         """The tools a chat asks with Allow and Deny buttons."""
         return self._client_tools.protected_tools
 
-    async def answer(self, channel: Channel, chat_id: str, name: str, raw: object) -> bool:
-        """Hand a platform's answer to the tool `name` to this chat's pending call."""
+    async def answer_by_tool_name(
+        self, channel: Channel, chat_id: str, tool_name: str, raw: object
+    ) -> bool:
+        """Hand a platform's answer to the tool `tool_name` to this chat's pending call."""
         return await self._resume_with(
             channel,
             chat_id,
-            name,
-            lambda session: self._client_tools.accept_by_tool_name(session, name, raw),
+            tool_name,
+            lambda session: self._client_tools.accept_by_tool_name(session, tool_name, raw),
         )
 
-    async def answer_call(self, channel: Channel, chat_id: str, call_id: str, raw: object) -> bool:
+    async def answer_by_call_id(
+        self, channel: Channel, chat_id: str, call_id: str, raw: object
+    ) -> bool:
         """Hand a platform's decision on the call `call_id` to this chat's pending call."""
         return await self._resume_with(
             channel,

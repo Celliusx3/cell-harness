@@ -149,7 +149,7 @@ def build(tmp_path, client: LLMClient | None = None):
 async def settle(gateway: ChannelGateway, runs: RunService) -> None:
     """Wait for every turn and its delivery to finish."""
     for _ in range(300):
-        busy = gateway._tasks.running()
+        busy = gateway._tasks.is_any_running()
         if not busy and not runs._runs:
             return
         await asyncio.sleep(0.01)

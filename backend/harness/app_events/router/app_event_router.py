@@ -8,7 +8,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from harness.app_events import AppEventService
-from harness.channels.web.sse import MEDIA_TYPE, frame, kept_alive
+from harness.channels.web.sse import SSE_MEDIA_TYPE, frame, kept_alive
 
 
 class AppEventRouter:
@@ -22,7 +22,7 @@ class AppEventRouter:
     async def stream_app_events(self) -> StreamingResponse:
         return StreamingResponse(
             kept_alive(self._event_stream()),
-            media_type=MEDIA_TYPE,
+            media_type=SSE_MEDIA_TYPE,
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 

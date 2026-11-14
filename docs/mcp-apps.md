@@ -159,7 +159,7 @@ MCP App reaches a chat as a page the harness serves:
   app on its own — no sidebar, the whole viewport — from the same log as the
   conversation page. The chat pages moved under a `(chat)` route group so the
   sidebar is theirs alone.
-- `Pushing.send_link(chat_id, text, url)` joins `send_message` and
+- `PushChannel.send_link(chat_id, text, url)` joins `send_message` and
   `send_typing` on the seam, with the same contract as typing: a button where
   the platform has one, the URL as text where it does not. Telegram sends a
   `web_app` button for `https://` and a `url` button otherwise (Telegram's

@@ -10,9 +10,9 @@ from harness.runs.service.run import Run
 from harness.runs.service.subscribe import subscribe
 from harness.session.domain.log import Numbered, Session
 
-MEDIA_TYPE = "text/event-stream"
+SSE_MEDIA_TYPE = "text/event-stream"
 
-KEEP_ALIVE = ": keep-alive\n\n"
+KEEP_ALIVE_FRAME = ": keep-alive\n\n"
 
 KEEP_ALIVE_SECONDS = 15.0
 
@@ -50,13 +50,13 @@ async def sse_frames(source: Source, *, after: int, after_drain: AfterDrain) -> 
 
 
 async def kept_alive(frames: AsyncGenerator[str]) -> AsyncGenerator[str]:
-    """`frames` as they arrive, and `KEEP_ALIVE` whenever `KEEP_ALIVE_SECONDS` pass without one."""
+    """`frames` as they arrive, and `KEEP_ALIVE_FRAME` whenever `KEEP_ALIVE_SECONDS` pass idle."""
     pending = asyncio.ensure_future(anext(frames))
     try:
         while True:
             await asyncio.wait({pending}, timeout=KEEP_ALIVE_SECONDS)
             if not pending.done():
-                yield KEEP_ALIVE
+                yield KEEP_ALIVE_FRAME
                 continue
             try:
                 item = pending.result()

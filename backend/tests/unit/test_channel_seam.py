@@ -13,7 +13,7 @@ from harness.channels.domain.protocol import (
     UnknownChannelError,
 )
 from harness.channels.repository.json_chat_repository import JsonChatRepository
-from harness.channels.service.commands import Command, apply
+from harness.channels.service.commands import Command, apply_command
 from harness.channels.service.gateway import ChannelGateway
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
@@ -36,7 +36,7 @@ class FakeWhatsApp:
         self.sent: list[tuple[str, str]] = []
         self.ran = False
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:
@@ -123,7 +123,7 @@ async def test_commands_work_on_any_platform(tmp_path) -> None:
     before = (await chats.load(WHATSAPP, "guild-1")).conversation_id
     assert before != ""
 
-    reply = await apply(gateway, WHATSAPP, "guild-1", Command.NEW)
+    reply = await apply_command(gateway, WHATSAPP, "guild-1", Command.NEW)
 
     assert "cleared" in reply
     assert (await chats.load(WHATSAPP, "guild-1")).conversation_id == before

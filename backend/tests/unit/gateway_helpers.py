@@ -7,7 +7,7 @@ from pathlib import Path
 
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.json_chat_repository import JsonChatRepository
-from harness.channels.service.client import ChatAnswers
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.inbox import ChatInbox
 from harness.runs.service.run_service import RunService

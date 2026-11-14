@@ -8,10 +8,10 @@ import discord
 
 from harness.channels.discord.channel import ASK_BY_LINK as DISCORD_ASK
 from harness.channels.discord.channel import NO_ANSWER_PAGE as DISCORD_NO_PAGE
-from harness.channels.service.client import ChatAnswers
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.replies import answer_url
-from harness.channels.telegram.asking import ASK, ASK_BY_LINK, NO_ANSWER_PAGE, SHARE_LABEL
+from harness.channels.telegram.asking import ASK_BY_LINK, LOCATION_ASK, NO_ANSWER_PAGE, SHARE_LABEL
 from harness.runtime.service import SKIPPED
 from harness.session.domain.models import ToolResultEvent, TurnEnd
 from harness.tools.client import PendingCall, RefusalReason
@@ -65,7 +65,7 @@ async def test_telegram_is_asked_with_its_own_share_button_and_the_turn_ends(tmp
     await settle(runs, gateway)
 
     ((chat_id, text, markup),) = bot.linked
-    assert (chat_id, text) == (CHAT, ASK[GET_LOCATION])
+    assert (chat_id, text) == (CHAT, LOCATION_ASK)
     button = markup.keyboard[0][0]
     assert (button.text, button.request_location) == (SHARE_LABEL, True)
     assert markup.one_time_keyboard is True
@@ -223,11 +223,11 @@ async def test_a_chat_with_nothing_pending_refuses_an_answer(tmp_path) -> None:
     resolver = ChatAnswers(chats, sessions, gateway, tools)
     declined = {"kind": "declined"}
 
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
+    assert await resolver.answer_by_tool_name(channel, CHAT, GET_LOCATION, declined) is False
     await gateway.receive(msg("hi"))
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
+    assert await resolver.answer_by_tool_name(channel, CHAT, GET_LOCATION, declined) is False
     await settle(runs, gateway)
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
+    assert await resolver.answer_by_tool_name(channel, CHAT, GET_LOCATION, declined) is False
 
 
 async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
@@ -244,11 +244,10 @@ async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
     await gateway.receive(msg("what's near me"))
     await settle(runs, gateway)
 
-    assert (
-        await resolver.answer(channel, CHAT, GET_LOCATION, {"kind": "shared", "data": {}}) is False
-    )
-    assert await resolver.answer(channel, CHAT, "get_battery", {"kind": "declined"}) is False
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, {"kind": "declined"}) is True
+    answer = resolver.answer_by_tool_name
+    assert await answer(channel, CHAT, GET_LOCATION, {"kind": "shared", "data": {}}) is False
+    assert await answer(channel, CHAT, "get_battery", {"kind": "declined"}) is False
+    assert await answer(channel, CHAT, GET_LOCATION, {"kind": "declined"}) is True
     await settle(runs, gateway)
     events = await _log(sessions, chats, CHAT)
     assert [e.reason for e in events if isinstance(e, TurnEnd)] == ["pending", "completed"]

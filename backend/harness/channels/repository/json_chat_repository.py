@@ -8,7 +8,7 @@ from pathlib import Path
 
 from harness.channels.repository.chat_repository import ChatState, ChatStateError
 
-_SAFE = re.compile(r"[^A-Za-z0-9_-]")
+_UNSAFE_CHAR = re.compile(r"[^A-Za-z0-9_-]")
 
 
 class JsonChatRepository:
@@ -18,7 +18,7 @@ class JsonChatRepository:
         self._root = root
 
     def _path(self, channel: str, chat_id: str) -> Path:
-        return self._root / f"{_safe(channel)}-{_safe(chat_id)}.json"
+        return self._root / f"{_filename_part(channel)}-{_filename_part(chat_id)}.json"
 
     async def load(self, channel: str, chat_id: str) -> ChatState | None:
         path = self._path(channel, chat_id)
@@ -45,9 +45,9 @@ class JsonChatRepository:
         return found
 
 
-def _safe(value: str) -> str:
+def _filename_part(value: str) -> str:
     """A filename component that cannot escape the directory."""
-    return _SAFE.sub("_", value)
+    return _UNSAFE_CHAR.sub("_", value)
 
 
 def _write_atomic(root: Path, path: Path, body: str) -> None:

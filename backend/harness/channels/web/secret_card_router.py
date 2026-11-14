@@ -9,8 +9,8 @@ from pydantic import ValidationError
 
 from harness.bots import Bot, BotNotFound
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.routes import chat_router
-from harness.channels.web.secret_card_schemas import Entered, ModelEntry, SecretEntry
+from harness.channels.web.conversation_router import chat_router
+from harness.channels.web.secret_card_schemas import EnteredSecret, ModelEntry, SecretEntry
 from harness.runs.service.run import RunAlreadyActive
 from harness.secrets import SECRET_VALUE_RULE, SecretService
 from harness.secrets.domain.details import CustomDetails
@@ -52,10 +52,10 @@ class SecretCardRouter:
             )
         session = await self._web.sessions.resume(conversation_id)
         ask = self._waiting_ask(session, call_id)
-        entered = _entered(ask, await request.body())
+        entered = _entered_secret(ask, await request.body())
         match entered.details:
             case CustomDetails(destination=destination):
-                bot = self._asker(session, call_id)
+                bot = self._calling_bot(session, call_id)
                 self._secrets.save(ask.name, destination, entered.value)
                 self._web.bots.allow_secret(bot.id, ask.name)
             case details:
@@ -71,7 +71,7 @@ class SecretCardRouter:
         logger.info("%s key %r for %s saved by the browser", ask.kind, ask.name, conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    def _asker(self, session: Session, call_id: str) -> Bot:
+    def _calling_bot(self, session: Session, call_id: str) -> Bot:
         """The bot whose turn asked for `call_id`, which a website key is tied to; a 409 if none."""
         try:
             return self._web.runs.groups.calling_bot(session, call_id)
@@ -95,18 +95,20 @@ class SecretCardRouter:
         return SecretAsk.model_validate_json(asked.arguments)
 
 
-def _entered(ask: SecretAsk, raw: bytes) -> Entered:
+def _entered_secret(ask: SecretAsk, raw: bytes) -> EnteredSecret:
     """The card's body for `ask`: an LLM's fields as edited, any other kind's as asked; a 422."""
     try:
         if ask.kind == "llm":
             model = ModelEntry.model_validate_json(raw)
-            return Entered(model.details, model.value)
-        return Entered(ask.details, SecretEntry.model_validate_json(raw).value)
+            return EnteredSecret(model.details, model.value)
+        return EnteredSecret(ask.details, SecretEntry.model_validate_json(raw).value)
     except ValidationError as err:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=_refusal(err)) from None
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, detail=_refusal_detail(err)
+        ) from None
 
 
-def _refusal(err: ValidationError) -> str:
+def _refusal_detail(err: ValidationError) -> str:
     """The rule each refused field broke, never what was typed in it."""
     errors = err.errors(include_url=False, include_input=False)
     if any(error["loc"][:1] == ("value",) for error in errors):

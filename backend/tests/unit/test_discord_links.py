@@ -95,4 +95,4 @@ async def test_an_unlinked_dms_slash_command_is_not_even_acknowledged(tmp_path: 
 def test_a_discord_chat_writes_nowhere_until_it_is_linked() -> None:
     channel, _ = discord_channel(None)
 
-    assert channel.conversation_for(DM) == ""
+    assert channel.conversation_id_for(DM) == ""

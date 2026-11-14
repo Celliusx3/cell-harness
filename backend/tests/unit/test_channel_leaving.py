@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.domain.protocol import InboundMessage, TokenRefused
+from harness.channels.domain.protocol import InboundMessage, RefusedTokenError
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.llm import LLMClient
@@ -26,7 +26,7 @@ class PullingChannel:
 
     channel = "telegram"
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:
@@ -56,7 +56,7 @@ class RefusedChannel(PullingChannel):
     """A platform that refuses its token the moment it starts."""
 
     async def run(self) -> None:
-        raise TokenRefused("Telegram refused the bot token")
+        raise RefusedTokenError("Telegram refused the bot token")
 
 
 def _gateway(tmp_path: Path, model: LLMClient, *tools: Tool) -> ChannelGateway:
@@ -75,7 +75,7 @@ def _left_lines(caplog: pytest.LogCaptureFixture) -> list[str]:
 
 
 async def _settled(gateway: ChannelGateway) -> None:
-    await until(lambda: not gateway._tasks.running() and not gateway.runs._runs, what="idle")
+    await until(lambda: not gateway._tasks.is_any_running() and not gateway.runs._runs, what="idle")
 
 
 async def test_a_channel_that_stopped_on_its_own_is_disposed_of_without_raising(
@@ -88,7 +88,7 @@ async def test_a_channel_that_stopped_on_its_own_is_disposed_of_without_raising(
 
     await dispose()
 
-    assert gateway.channels == []
+    assert gateway.channel_names == []
     await gateway.aclose()
 
 

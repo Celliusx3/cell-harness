@@ -33,7 +33,7 @@ class MessageAccepted(BaseModel):
     queued: bool
 
 
-class SendMessage(BaseModel):
+class MessageRequest(BaseModel):
     """A message starting a turn."""
 
     model_config = ConfigDict(frozen=True)
@@ -52,7 +52,7 @@ class SendMessage(BaseModel):
         return value
 
 
-class SetMode(BaseModel):
+class ModeRequest(BaseModel):
     """The mode the person switches a chat to."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")

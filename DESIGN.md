@@ -360,7 +360,7 @@ From cell-bot:
 8. **The channel seam splits by capability, not by platform** (phase 6). The
    browser is a channel — one gateway serves it and Telegram, so "resolve the
    conversation, is a turn running?, start one" is one implementation instead of
-   two that answered oppositely. But `send_message` is on a separate `Pushing`
+   two that answered oppositely. But `send_message` is on a separate `PushChannel`
    Protocol that `WebChannel` does not implement, because **a browser has no
    address to send to**: it comes and reads the log through `subscribe()`.
 
@@ -375,8 +375,8 @@ From cell-bot:
    platform must satisfy forces the member that cannot to lie, and the lying
    member then has to be routed around everywhere.
 
-   What genuinely varies came out at two, not the four first planned: `Pushing`,
-   and `conversation_for`. A browser chat is the bot's chat it names. A Telegram
+   What genuinely varies came out at two, not the four first planned: `PushChannel`,
+   and `conversation_id_for`. A browser chat is the bot's chat it names. A Telegram
    or Discord chat names none, and writes where its link code put it. One stored
    before link codes, or a Discord server channel, writes into Assistant's; any
    other is silent. `busy` and `mapping` were dropped when both channels started

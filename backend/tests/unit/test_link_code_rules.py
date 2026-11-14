@@ -12,7 +12,7 @@ from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.chat_repository import ChatState
 from harness.channels.router.link_code_router import LinkCodeRouter
 from harness.channels.service.links import (
-    LINK_CODE_SECONDS,
+    SILENCE_SECONDS,
     WRONG_GUESSES_BEFORE_SILENCE,
     LinkCodes,
 )
@@ -39,7 +39,7 @@ class Telegram:
 
     channel = "telegram"
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ""
 
     async def run(self) -> None:
@@ -72,7 +72,7 @@ def test_a_silenced_chat_may_guess_again_once_its_silence_ends() -> None:
     codes = LinkCodes(clock)
     for _ in range(WRONG_GUESSES_BEFORE_SILENCE):
         codes.redeem("telegram", "1", "000000")
-    clock.now += LINK_CODE_SECONDS - 1
+    clock.now += SILENCE_SECONDS - 1
     code = codes.issue("chef", "telegram")
     assert codes.redeem("telegram", "1", code.code) is None
 

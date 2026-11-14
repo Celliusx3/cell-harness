@@ -61,7 +61,7 @@ class ParkedChannel:
     def channel(self) -> str:
         return self._platform
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:
@@ -169,7 +169,7 @@ async def test_removing_discord_stops_discord_alone(http, started, gateway) -> N
 
     assert removed.status_code == 204
     assert [channel.stopped.is_set() for channel in started.channels] == [False, True]
-    assert gateway.channels == ["telegram"]
+    assert gateway.channel_names == ["telegram"]
 
 
 async def test_an_edit_that_ticks_bots_for_a_platform_is_refused(http, started) -> None:

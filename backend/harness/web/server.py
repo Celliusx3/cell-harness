@@ -21,7 +21,7 @@ from harness.bots.router.group_router import GroupRouter
 from harness.channels.repository.chat_repository import ChatRepository
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.router.link_code_router import LinkCodeRouter
-from harness.channels.service.client import ChatAnswers
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.inbox import ChatInbox
 from harness.channels.service.links import ChatLinks, LinkCodes

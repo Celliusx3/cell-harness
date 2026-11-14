@@ -5,7 +5,7 @@ from __future__ import annotations
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.telegram.asking import APPROVE_BY_LINK
-from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
+from harness.channels.telegram.channel import RECEIPTS, STALE_TAP_RECEIPT
 from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.domain.models import ApprovalGrant, ToolResultEvent, TurnEnd
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
@@ -149,7 +149,7 @@ async def test_a_stale_tap_is_told_so(tmp_path) -> None:
 
     assert ran == ["Kopi"]
     assert second.callback_query.answered is True
-    assert second.callback_query.edits == [(f"card\n\n{STALE_TAP}", None)]
+    assert second.callback_query.edits == [(f"card\n\n{STALE_TAP_RECEIPT}", None)]
 
 
 async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> None:

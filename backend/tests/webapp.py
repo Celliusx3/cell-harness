@@ -282,7 +282,7 @@ def web_app_with_telegram(
 async def idle(runs: RunService, gateway: ChannelGateway) -> None:
     """Wait for every turn and every chat's delivery to finish."""
     for _ in range(300):
-        if not gateway._tasks.running() and not runs._runs:
+        if not gateway._tasks.is_any_running() and not runs._runs:
             return
         await asyncio.sleep(0.01)
     raise AssertionError("the gateway never went idle")

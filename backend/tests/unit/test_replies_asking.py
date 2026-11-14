@@ -29,7 +29,7 @@ class AskingPlatform:
         self.asked: list[str] = []
         self._refused = refused
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:

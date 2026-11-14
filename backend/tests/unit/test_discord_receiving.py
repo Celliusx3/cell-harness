@@ -124,7 +124,7 @@ async def test_a_gateway_failure_is_logged_not_raised(tmp_path, caplog) -> None:
 
 def test_the_transport_names_its_channel(tmp_path) -> None:
     assert build(tmp_path)[0].channel == "discord"
-    assert build(tmp_path)[0].conversation_for(CHAT) == ""
+    assert build(tmp_path)[0].conversation_id_for(CHAT) == ""
 
 
 async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path) -> None:

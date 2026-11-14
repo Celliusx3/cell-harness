@@ -107,7 +107,7 @@ async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
     state = await chats.load("telegram", CHAT)
     await chats.save(state.model_copy(update={"pending": ("one", "two", "three")}))
 
-    await gateway._following._drain("telegram", CHAT)
+    await gateway._follower._drain("telegram", CHAT)
     await settle(runs, gateway)
 
     stored = await sessions.read(state.conversation_id)
@@ -119,7 +119,7 @@ async def test_the_queue_drains_as_one_turn(tmp_path) -> None:
 async def test_drained_returns_at_once_for_an_idle_chat(tmp_path) -> None:
     _, gateway, _, _, _ = await build(tmp_path, ScriptedClient(completed("hi")), skills=no_skills())
 
-    await asyncio.wait_for(gateway.drained("telegram", CHAT), timeout=1)
+    await asyncio.wait_for(gateway.wait_until_drained("telegram", CHAT), timeout=1)
 
 
 async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: asyncio.Event):
@@ -171,7 +171,7 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
     async with watched.condition:
         await watched.condition.wait_for(lambda: watched.settled)
 
-    waiting = asyncio.create_task(gateway.drained("telegram", CHAT))
+    waiting = asyncio.create_task(gateway.wait_until_drained("telegram", CHAT))
     await asyncio.sleep(0.05)
     assert not waiting.done(), "returned with the drain still deciding"
     loading.set()
@@ -180,7 +180,7 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
     drained = runs.active(conversation)
     assert drained is not None and drained is not watched
     assert (await chats.load("telegram", CHAT)).pending == ()
-    await asyncio.wait_for(gateway.drained("telegram", CHAT), timeout=1)
+    await asyncio.wait_for(gateway.wait_until_drained("telegram", CHAT), timeout=1)
     assert not drained.settled
     second.set()
     await settle(runs, gateway)
@@ -191,7 +191,7 @@ async def test_cancelling_a_drained_waiter_leaves_the_follower_alone(tmp_path) -
     bot, gateway, runs, _, sessions, conversation = await _queued_behind_a_gated_turn(
         tmp_path, first, second
     )
-    waiting = asyncio.create_task(gateway.drained("telegram", CHAT))
+    waiting = asyncio.create_task(gateway.wait_until_drained("telegram", CHAT))
     await asyncio.sleep(0.01)
     waiting.cancel()
     with contextlib.suppress(asyncio.CancelledError):

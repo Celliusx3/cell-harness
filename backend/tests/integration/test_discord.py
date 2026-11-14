@@ -44,7 +44,7 @@ async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    assert (await _channels(tmp_path, secrets_in(tmp_path))).channels == ["web"]
+    assert (await _channels(tmp_path, secrets_in(tmp_path))).channel_names == ["web"]
 
 
 async def test_a_custom_key_named_discord_is_not_a_token(tmp_path) -> None:
@@ -52,7 +52,7 @@ async def test_a_custom_key_named_discord_is_not_a_token(tmp_path) -> None:
     site = Destination(origin="https://discord.example", auth="bearer")
     keyring.save("discord", site, SecretStr("custom-key-not-a-token"))
 
-    assert (await _channels(tmp_path, keyring)).channels == ["web"]
+    assert (await _channels(tmp_path, keyring)).channel_names == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
@@ -61,7 +61,7 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
 
     built = await _channels(tmp_path, keyring)
 
-    assert built.channels == ["web", "discord"]
+    assert built.channel_names == ["web", "discord"]
     await built.aclose()
 
 
@@ -72,5 +72,5 @@ async def test_both_bots_share_one_gateway(tmp_path) -> None:
 
     built = await _channels(tmp_path, keyring)
 
-    assert built.channels == ["web", "telegram", "discord"]
+    assert built.channel_names == ["web", "telegram", "discord"]
     await built.aclose()

@@ -28,7 +28,7 @@ class ModelEntry(BaseModel):
     details: ModelDetails
 
 
-class Entered(NamedTuple):
+class EnteredSecret(NamedTuple):
     """What the card saves: what the key is for, and the key."""
 
     details: AskedDetails

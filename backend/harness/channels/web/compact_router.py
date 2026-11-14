@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Response, status
 
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.routes import chat_router
+from harness.channels.web.conversation_router import chat_router
 from harness.runs.service.run import RunAlreadyActive
 from harness.runtime.compaction import CompactionRefused
 

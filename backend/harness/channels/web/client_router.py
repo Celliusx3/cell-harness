@@ -8,13 +8,13 @@ from fastapi import APIRouter, HTTPException, Response, status
 
 from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.routes import chat_router
+from harness.channels.web.conversation_router import chat_router
 from harness.runs.service.run import RunAlreadyActive
 from harness.tools.client import ClientToolService, RefusalReason
 
 logger = logging.getLogger(__name__)
 
-STATUS = {
+REFUSAL_STATUS = {
     RefusalReason.NOT_PENDING: status.HTTP_404_NOT_FOUND,
     RefusalReason.DOES_NOT_FIT: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }
@@ -44,7 +44,9 @@ class ClientToolRouter:
         session = await self._web.sessions.resume(conversation_id)
         verdict = self._client_tools.accept_by_call_id(session, call_id, body)
         if isinstance(verdict, RefusalReason):
-            raise HTTPException(STATUS[verdict], detail=f"call {call_id!r}: {verdict.value}")
+            raise HTTPException(
+                REFUSAL_STATUS[verdict], detail=f"call {call_id!r}: {verdict.value}"
+            )
         try:
             await self._web.gateway.resume(session, verdict.call_id, verdict.outcome)
         except RunAlreadyActive as err:

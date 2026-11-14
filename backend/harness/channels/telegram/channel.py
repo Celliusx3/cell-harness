@@ -25,22 +25,21 @@ from telegram.ext import (
     filters,
 )
 
-from harness.channels.domain.protocol import InboundMessage, TokenRefused
+from harness.channels.domain.protocol import InboundMessage, RefusedTokenError
 from harness.channels.domain.text import split_message
-from harness.channels.service.client import ChatAnswers
-from harness.channels.service.commands import apply as apply_command
-from harness.channels.service.commands import unknown_skill
+from harness.channels.service.chat_answers import ChatAnswers
+from harness.channels.service.commands import apply_command, unknown_skill_reply
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, link_or_receive
 from harness.channels.telegram import commands
 from harness.channels.telegram.asking import (
-    BUTTONS,
-    CALLBACK_PREFIX,
+    APPROVAL_BUTTONS,
+    APPROVAL_CALLBACK_PREFIX,
     CHOICE_PREFIX,
     MAX_MESSAGE_CHARS,
     ask_client,
 )
-from harness.channels.telegram.batching import JOIN, Batch, batch_delay
+from harness.channels.telegram.batching import BATCH_SEPARATOR, Batch, batch_delay_seconds
 from harness.channels.telegram.private import private_chat_id
 from harness.skills import UnknownSkill
 from harness.tools.client import PendingCall
@@ -51,7 +50,7 @@ logger = logging.getLogger("harness.channels.telegram")
 CHANNEL = "telegram"
 
 OPEN_LABEL = "Open"
-REFUSED_TOKEN = "Telegram refused the bot token; replace it on the Credentials page"
+REFUSED_TOKEN_MESSAGE = "Telegram refused the bot token; replace it on the Credentials page"
 
 RECEIPTS: dict[str, str] = {
     "once": "✅ Allowed once",
@@ -59,12 +58,12 @@ RECEIPTS: dict[str, str] = {
     "always": "✅ Always allowed",
     "deny": "❌ Denied",
 }
-STALE_TAP = "This request was already answered."
-CHOICES = frozenset(choice for _, choice in BUTTONS)
+STALE_TAP_RECEIPT = "This request was already answered."
+APPROVAL_CHOICES = frozenset(choice for _, choice in APPROVAL_BUTTONS)
 
 
 class TelegramChannel:
-    """`Channel` and `Pushing` for Telegram: receive, send, show typing."""
+    """`Channel` and `PushChannel` for Telegram: receive, send, show typing."""
 
     channel = CHANNEL
 
@@ -79,14 +78,16 @@ class TelegramChannel:
         )
         self._bot = self._app.bot
         self._batches: dict[str, Batch] = {}
-        self._app.add_handler(MessageHandler(filters.TEXT & ~filters.UpdateType.EDITED, self._on))
+        self._app.add_handler(
+            MessageHandler(filters.TEXT & ~filters.UpdateType.EDITED, self._on_text)
+        )
         self._app.add_handler(MessageHandler(filters.LOCATION, self._on_location))
         self._app.add_handler(
-            CallbackQueryHandler(self._on_decision, pattern=rf"^{CALLBACK_PREFIX}:")
+            CallbackQueryHandler(self._on_decision, pattern=rf"^{APPROVAL_CALLBACK_PREFIX}:")
         )
         self._app.add_handler(CallbackQueryHandler(self._on_choice, pattern=rf"^{CHOICE_PREFIX}:"))
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         """None: a Telegram chat writes where its stored state says, or nowhere."""
         return ""
 
@@ -95,7 +96,7 @@ class TelegramChannel:
         try:
             await self._app.initialize()
         except InvalidToken:
-            raise TokenRefused(REFUSED_TOKEN) from None
+            raise RefusedTokenError(REFUSED_TOKEN_MESSAGE) from None
         await self._app.start()
         await self._app.updater.start_polling(
             allowed_updates=[Update.MESSAGE, Update.CALLBACK_QUERY],
@@ -116,7 +117,7 @@ class TelegramChannel:
             await self._app.stop()
         await self._app.shutdown()
 
-    async def _on(self, update: Update, _context: object) -> None:
+    async def _on_text(self, update: Update, _context: object) -> None:
         """One inbound message from PTB, from a private chat."""
         message = update.effective_message
         chat_id = private_chat_id(update)
@@ -135,10 +136,10 @@ class TelegramChannel:
         existing = self._batches.pop(chat_id, None)
         if existing is not None:
             existing.timer.cancel()
-            text = f"{existing.text}{JOIN}{text}"
+            text = f"{existing.text}{BATCH_SEPARATOR}{text}"
         self._batches[chat_id] = Batch(
             text=text,
-            timer=asyncio.create_task(self._dispatch_after(chat_id, batch_delay(text))),
+            timer=asyncio.create_task(self._flush_after(chat_id, batch_delay_seconds(text))),
         )
 
     async def _on_location(self, update: Update, _context: object) -> None:
@@ -156,7 +157,7 @@ class TelegramChannel:
                 "accuracy_m": pin.horizontal_accuracy or 0.0,
             },
         }
-        if await self._answers.answer(self, chat_id, GET_LOCATION, shared):
+        if await self._answers.answer_by_tool_name(self, chat_id, GET_LOCATION, shared):
             return
         await self._flush(chat_id)
         text = f"(shared location: {pin.latitude}, {pin.longitude})"
@@ -172,15 +173,15 @@ class TelegramChannel:
         tap = _parse_tap(query.data)
         if tap is None:
             logger.warning("chat %s tapped a button with unreadable data %r", chat_id, query.data)
-            await self._edit_card(query, STALE_TAP)
+            await self._edit_card(query, STALE_TAP_RECEIPT)
             return
         body = (
             {"kind": "denied"}
             if tap.choice == "deny"
             else {"kind": "approved", "scope": tap.choice}
         )
-        ok = await self._answers.answer_call(self, chat_id, tap.call_id, body)
-        await self._edit_card(query, RECEIPTS[tap.choice] if ok else STALE_TAP)
+        ok = await self._answers.answer_by_call_id(self, chat_id, tap.call_id, body)
+        await self._edit_card(query, RECEIPTS[tap.choice] if ok else STALE_TAP_RECEIPT)
 
     async def _on_choice(self, update: Update, _context: object) -> None:
         query = update.callback_query
@@ -192,11 +193,11 @@ class TelegramChannel:
         label = _option_label(query.message.reply_markup, choice.index) if choice else None
         if choice is None or label is None:
             logger.warning("chat %s tapped an option with unreadable data %r", chat_id, query.data)
-            await self._edit_card(query, STALE_TAP)
+            await self._edit_card(query, STALE_TAP_RECEIPT)
             return
         shared = {"kind": "shared", "data": {"choice": label}}
-        ok = await self._answers.answer_call(self, chat_id, choice.call_id, shared)
-        await self._edit_card(query, f"✅ {label}" if ok else STALE_TAP)
+        ok = await self._answers.answer_by_call_id(self, chat_id, choice.call_id, shared)
+        await self._edit_card(query, f"✅ {label}" if ok else STALE_TAP_RECEIPT)
 
     async def _edit_card(self, query: CallbackQuery, receipt: str) -> None:
         try:
@@ -204,7 +205,7 @@ class TelegramChannel:
         except TelegramError as err:
             logger.debug("editing the approval card failed: %s", err)
 
-    async def _dispatch_after(self, chat_id: str, delay: float) -> None:
+    async def _flush_after(self, chat_id: str, delay: float) -> None:
         try:
             await asyncio.sleep(delay)
         except asyncio.CancelledError:
@@ -224,7 +225,7 @@ class TelegramChannel:
                 await self.send_message(chat_id, reply)
         except UnknownSkill as err:
             await self.send_message(
-                chat_id, unknown_skill(err.name, self._gateway.skills.invocable())
+                chat_id, unknown_skill_reply(err.name, self._gateway.skills.invocable())
             )
         except Exception:
             logger.exception("handling message from chat %s failed", chat_id)
@@ -273,7 +274,7 @@ def _parse_tap(data: str | None) -> Tap | None:
     if data is None or data.count(":") < 2:
         return None
     _, call_id, choice = data.split(":", 2)
-    return Tap(call_id, choice) if choice in CHOICES else None
+    return Tap(call_id, choice) if choice in APPROVAL_CHOICES else None
 
 
 class Choice(NamedTuple):

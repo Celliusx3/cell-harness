@@ -14,7 +14,7 @@ from telegram.request import HTTPXRequest
 
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.repository.json_chat_repository import JsonChatRepository
-from harness.channels.service.client import ChatAnswers
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.telegram.channel import TelegramChannel
 from harness.web.http.logs import keep_token_urls_out
