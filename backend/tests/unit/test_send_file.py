@@ -32,7 +32,6 @@ from harness.tools.native.files import SEND_FILE, send_file_tool
 from harness.web.runtime import (
     DEFAULT_TOOLS,
     NOT_CALLABLE_FROM_SCRIPTS,
-    SUBAGENT_TOOLS,
     build_runtime,
 )
 from tests.unit.fakes import OneModel, SteppedClient, calls_tool, completed
@@ -195,10 +194,9 @@ def test_the_description_and_the_paths_field_are_exactly_the_given_text() -> Non
     assert spec.input_schema["required"] == ["paths"]
 
 
-def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
+def test_the_main_chat_is_offered_it_and_scripts_are_not() -> None:
     assert SEND_FILE in DEFAULT_TOOLS
     assert SEND_FILE in NOT_CALLABLE_FROM_SCRIPTS
-    assert SEND_FILE not in SUBAGENT_TOOLS
 
 
 def test_it_never_asks_for_approval() -> None:
@@ -222,7 +220,6 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
         client_tools(),
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),

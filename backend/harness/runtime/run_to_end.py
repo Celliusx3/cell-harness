@@ -1,4 +1,4 @@
-"""A copy of a runtime run to its end in a session of its own, for subagents and workers."""
+"""A copy of a runtime run to its end in a session of its own, for workers."""
 
 from __future__ import annotations
 

@@ -188,7 +188,6 @@ def test_every_tool_the_tables_name_is_offered_to_the_bot_or_its_workers(tmp_pat
         client_tools(),
         no_approvals(),
         bots=bots,
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=a_model_saved_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),

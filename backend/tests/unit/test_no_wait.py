@@ -1,4 +1,4 @@
-"""The orchestrator may not wait in its own turn; its workers and helpers may."""
+"""The orchestrator may not wait in its own turn; its workers may."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from harness.runtime.hooks.native.no_wait import NoWaitHook, is_waiting_call
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR_INTRO
-from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, delegate_runtime
+from harness.web.runtime import build_runtime, delegate_runtime
 from harness.web.tickets_wiring import WORKER_TOOLS
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.webapp import files_in, images_in, secrets_in
@@ -68,20 +68,15 @@ def test_only_the_bots_own_runtime_routes_and_refuses_waits(tmp_path: Path) -> N
         client_tools(),
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
-    helpers = [
-        delegate_runtime(runtime.tools.tool_service, runtime, tools)
-        for tools in (SUBAGENT_TOOLS, WORKER_TOOLS)
-    ]
+    worker = delegate_runtime(runtime.tools.tool_service, runtime, WORKER_TOOLS)
 
     assert runtime.guidance.startswith(ORCHESTRATOR_INTRO)
     assert any(isinstance(hook, NoWaitHook) for hook in runtime.hooks.tool_hooks)
-    for helper in helpers:
-        assert helper.guidance == CODE_PROMPT
-        assert not any(isinstance(hook, NoWaitHook) for hook in helper.hooks.tool_hooks)
-        assert len(helper.hooks.tool_hooks) == len(runtime.hooks.tool_hooks) - 1
+    assert worker.guidance == CODE_PROMPT
+    assert not any(isinstance(hook, NoWaitHook) for hook in worker.hooks.tool_hooks)
+    assert len(worker.hooks.tool_hooks) == len(runtime.hooks.tool_hooks) - 1

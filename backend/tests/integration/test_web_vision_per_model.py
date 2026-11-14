@@ -17,8 +17,6 @@ from harness.config.settings import Settings
 from harness.llm.adapters.openai import client as adapter_module
 from harness.mcp import McpService
 from harness.runs.service.run_service import RunService
-from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
-from harness.session.service.session_service import SessionService
 from harness.tools.native.files import VIEW_IMAGE
 from harness.web.runtime import build_runtime
 from tests.integration.test_web_no_model import PAGE, FakeProvider
@@ -58,7 +56,6 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         client_tools(),
         no_approvals(),
         bots=bots,
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets,
         images=images_in(tmp_path),
         files=files_in(tmp_path),

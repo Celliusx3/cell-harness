@@ -39,7 +39,6 @@ def compose(tmp_path: Path):
             client_tools(),
             no_approvals(),
             bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
-            subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
             secrets=secrets_in(tmp_path),
             images=images_in(tmp_path),
             files=files_in(tmp_path),

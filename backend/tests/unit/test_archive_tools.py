@@ -23,7 +23,6 @@ from harness.tools.native.files import (
 from harness.web.runtime import (
     DEFAULT_TOOLS,
     NOT_CALLABLE_FROM_SCRIPTS,
-    SUBAGENT_TOOLS,
     build_runtime,
 )
 from harness.web.tickets_wiring import WORKER_TOOLS, ticket_workers
@@ -75,11 +74,10 @@ def test_make_archive_says_exactly_the_given_text(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("name", ARCHIVE_TOOLS)
-def test_a_worker_is_offered_it_and_the_main_chat_scripts_and_helpers_are_not(name: str) -> None:
+def test_a_worker_is_offered_it_and_the_main_chat_and_scripts_are_not(name: str) -> None:
     assert name in WORKER_TOOLS
     assert name not in DEFAULT_TOOLS
     assert name in NOT_CALLABLE_FROM_SCRIPTS
-    assert name not in SUBAGENT_TOOLS
 
 
 @pytest.mark.parametrize("name", ARCHIVE_TOOLS)
@@ -106,7 +104,6 @@ async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path
         client_tools(),
         no_approvals(),
         bots=bots,
-        subagent_logs=logs,
         secrets=secrets_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),

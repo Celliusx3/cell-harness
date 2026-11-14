@@ -64,7 +64,6 @@ async def worker_call_result(
         client_tools(),
         no_approvals(),
         bots=bots,
-        subagent_logs=logs,
         secrets=assistant_on_a_model(tmp_path, bots),
         images=images_in(tmp_path),
         files=files_in(tmp_path),

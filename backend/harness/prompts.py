@@ -92,13 +92,6 @@ APPROVAL_MODE_ASK = (
 APPROVAL_MODE_AUTO = "Approval mode: auto. Your calls run without asking the user."
 APPROVAL_MODE_CHANGED = "The approval mode changed from {before} to {after} (changed by the user)."
 
-SUBAGENT_INTRO = (
-    "You are a helper named {name}, started by the main assistant to do one task as part "
-    "of its answer to the user. Nobody will read your questions, so do not ask any: do the "
-    "task with your tools, then reply with a short result. That reply is all the main "
-    "assistant receives."
-)
-
 EMPTY_REPLY_NOTE = (
     "Your last reply was empty: no text and no tool call. Answer the user's last "
     "message now, in words, or call the tool you need."

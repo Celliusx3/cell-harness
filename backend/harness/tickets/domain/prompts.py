@@ -13,8 +13,7 @@ WORKER_INTRO = (
     "takeover and say which step in question; do not click, answer or solve the check yourself, "
     "never ask for those values in chat, and never install tools or open the site another way "
     "to get past it. Call ticket_report "
-    "with the state progress only for a step worth recording. For a big ticket you can split work "
-    "across helpers with run_subagent; they work inside your turn and report only to you."
+    "with the state progress only for a step worth recording."
 )
 TICKET_ANSWER_HEARD = "The user answered your question: {text}"
 TICKET_NOTE_HEARD = (

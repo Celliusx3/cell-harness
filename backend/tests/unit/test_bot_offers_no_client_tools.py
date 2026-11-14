@@ -45,7 +45,6 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
         client_tools(),
         no_approvals(),
         bots=bots,
-        subagent_logs=logs,
         secrets=secrets_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),

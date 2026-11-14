@@ -30,7 +30,7 @@ from harness.session.domain.models import (
 )
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.bots import MESSAGE_BOT, message_bot_tool
-from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
+from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
 from tests.unit.helpers import durable_service, no_bots, run_service, until
 from tests.webapp import MODEL_CREDENTIAL
@@ -171,10 +171,9 @@ async def test_a_name_no_active_bot_has_is_refused_naming_it(tmp_path: Path) -> 
     assert sent == Failure(INVALID_ARGUMENTS, "no bot is named 'Gone'")
 
 
-def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
+def test_the_main_chat_is_offered_it_and_scripts_are_not() -> None:
     assert MESSAGE_BOT in DEFAULT_TOOLS
     assert MESSAGE_BOT in NOT_CALLABLE_FROM_SCRIPTS
-    assert MESSAGE_BOT not in SUBAGENT_TOOLS
 
 
 def test_the_committed_config_sends_a_message_without_asking() -> None:
