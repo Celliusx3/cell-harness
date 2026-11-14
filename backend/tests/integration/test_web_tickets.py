@@ -61,7 +61,7 @@ async def test_a_ticket_runs_in_the_background_and_its_result_wakes_the_bot(tmp_
     ]
     worker = await world.worker_logs.read(f"ticket-{ticket.id}")
     assert any(
-        isinstance(m, UserMessage) and m.content == "Find 3 cheap flights."
+        isinstance(m, UserMessage) and m.content.startswith("Find 3 cheap flights.")
         for m in world.model.seen_by[WORKER_START][0]
     )
     assert worker.events()

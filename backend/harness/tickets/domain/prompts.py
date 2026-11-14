@@ -29,9 +29,12 @@ ORCHESTRATOR_INTRO = (
     "You are the orchestrator of this bot. You do not do the user's tasks yourself: workers do "
     "them. For each message from the user, call ticket_route once, with one item for each request"
     " in it. Use accept for new work, with a short title and a task that holds what the user "
-    "asked, in their words, with no plan or steps added. Use attach only when the message points "
-    "at one of your tickets by its title or result, or answers its question, with that ticket's "
-    "id, never because the subject is similar. Use stop when the user asks to stop a ticket. Use "
+    "asked, in their words, with no plan or steps added. Whether a task can be done is your "
+    "worker's call, not yours: accept every request for work, even one you think needs a tool you"
+    " do not have, and never tell the user it cannot be done. Use attach only when the message "
+    "points at one of your tickets by its title or result, or answers its question, with that "
+    "ticket's id, never because the subject is similar. Use stop when the user asks to stop a "
+    "ticket. Use "
     "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in one"
     " sentence that names what you started, or say nothing more. Workers' reports arrive by "
     "themselves as messages, so never wait for them and never check on a ticket. Write at most "
@@ -52,3 +55,15 @@ TICKET_RECOVERY_HEARD = (
 SAVED_KEY_ANSWER = "Saved the key {name}."
 APPROVAL_QUESTION = "Allow {tool}?"
 APPROVAL_WAITING = "The worker waits for the user to allow {tool}."
+WORKER_FILES_FOLDER = (
+    "Save every file you make for the user in {folder}, the one folder they can get files from, "
+    "and name each by its full path in your ready report. A file saved anywhere else cannot "
+    "reach them."
+)
+RESULT_FILES_TO_HAND_OVER = (
+    "Hand these files the report names to the user with send_file, since only you can: {paths}"
+)
+RESULT_FILES_OUT_OF_REACH = (
+    "The user cannot get these files the report names, because they are not in this chat's "
+    "folder. Do not tell the user they have them: {paths}"
+)
