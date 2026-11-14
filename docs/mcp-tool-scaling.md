@@ -171,7 +171,7 @@ writes one program, and only what the program returns enters the conversation.
 - **Round-trips.** Three subtitle fetches are three model calls; one script.
 
 **There is no switch.** A flag would offer a second way to do the only thing
-there is, so `load()` simply refuses to start when Deno is not on PATH, naming
+there is, so `load_settings()` simply refuses to start when Deno is not on PATH, naming
 the install and the setting to change. `code.deno_path` and `code.timeout_seconds`
 are the only knobs.
 

@@ -12,7 +12,7 @@ from harness.bots import ASSISTANT_ID
 from harness.config.settings import Settings
 from harness.llm import (
     CONTEXT_WINDOW_EXCEEDED,
-    Failed,
+    StreamFailure,
     SystemMessage,
     ToolCall,
     ToolMessage,
@@ -35,7 +35,7 @@ from harness.tools.native.skills import SKILL_SAVE
 from harness.tools.native.subagent import RUN_SUBAGENT
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
-from harness.web.server import build_store, build_subagent_logs
+from harness.web.server import build_sessions, build_subagent_logs
 from harness.web.tickets_wiring import ticket_workers
 from tests.bot_models import assistant_on_a_model
 from tests.unit.fakes import SteppedClient, calls_tool, completed
@@ -194,7 +194,7 @@ async def test_a_subagent_that_overflows_compacts_like_the_bot_and_answers(
 ) -> None:
     tasks = json.dumps({"tasks": [{"name": "aapl", "task": "Look up AAPL."}]})
     overflow = [
-        Failed(
+        StreamFailure(
             reason="provider sent an error: Context length exceeded", code=CONTEXT_WINDOW_EXCEEDED
         )
     ]
@@ -264,4 +264,4 @@ async def test_subagent_logs_sit_beside_the_conversations_and_are_not_among_them
 
     assert (tmp_path / "subagents" / "c1.0.jsonl").exists()
     with pytest.raises(SessionNotFoundError):
-        await build_store(settings).read("c1.0")
+        await build_sessions(settings).read("c1.0")

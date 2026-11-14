@@ -7,17 +7,17 @@ from collections.abc import Sequence
 from harness.llm.adapters.openai._request import JsonObject
 
 MAX_IMAGES = 600
-MAX_IMAGE_BYTES = 20 * 1024 * 1024
-HIDE_IMAGES = 20
-HIDE_BYTES = 10 * 1024 * 1024
+MAX_TOTAL_IMAGE_BYTES = 20 * 1024 * 1024
+IMAGES_HIDDEN_PER_BLOCK = 20
+BYTES_HIDDEN_PER_BLOCK = 10 * 1024 * 1024
 
 _DATA_URL_SEPARATOR = ","
 
 
 def images_to_hide(lengths: Sequence[int]) -> int:
     """How many of the oldest images to hide so the rest fit, in blocks; 0 when all fit."""
-    by_count = _rounded_up(len(lengths) - MAX_IMAGES, HIDE_IMAGES)
-    bytes_to_remove = _rounded_up(sum(lengths) - MAX_IMAGE_BYTES, HIDE_BYTES)
+    by_count = _rounded_up(len(lengths) - MAX_IMAGES, IMAGES_HIDDEN_PER_BLOCK)
+    bytes_to_remove = _rounded_up(sum(lengths) - MAX_TOTAL_IMAGE_BYTES, BYTES_HIDDEN_PER_BLOCK)
     by_bytes, removed = 0, 0
     for length in lengths:
         if removed >= bytes_to_remove:

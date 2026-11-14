@@ -7,7 +7,7 @@ from contextlib import aclosing
 
 import pytest
 
-from harness.llm import Completed, Failed, SystemMessage, TextChunk
+from harness.llm import Completion, StreamFailure, SystemMessage, TextChunk
 from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.hooks import HookChain
@@ -94,7 +94,7 @@ async def test_system_prompt_is_prepended_and_never_logged() -> None:
 
 
 async def test_provider_failure_ends_the_turn_without_hanging() -> None:
-    client = ScriptedClient([TextChunk(text="par"), Failed(reason="502 upstream")])
+    client = ScriptedClient([TextChunk(text="par"), StreamFailure(reason="502 upstream")])
     session = new_session()
 
     events = await asyncio.wait_for(
@@ -167,7 +167,7 @@ async def test_usage_travels_with_the_assistant_message() -> None:
     from harness.llm import Usage
 
     usage = Usage(input_tokens=11, output_tokens=3)
-    client = ScriptedClient([TextChunk(text="ok"), Completed(full_text="ok", usage=usage)])
+    client = ScriptedClient([TextChunk(text="ok"), Completion(full_text="ok", usage=usage)])
     session = new_session()
 
     await drain(runtime_with(client).run("hi", session=session, bot_id="b"))

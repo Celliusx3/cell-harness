@@ -49,7 +49,7 @@ async def test_startup_lists_the_keys_in_the_configured_keyring(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     secrets_in(tmp_path).save("github", GITHUB, SecretStr("tok-9Zx=7Lm"))
-    monkeypatch.setattr(server, "load", lambda: startup_settings(tmp_path))
+    monkeypatch.setattr(server, "load_settings", lambda: startup_settings(tmp_path))
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     transport = httpx.ASGITransport(app=server.create_web_app())
 

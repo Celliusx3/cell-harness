@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import httpx
 
-from harness.llm import IMAGES_OVER_LIMIT, Failed, Image, UserMessage
+from harness.llm import IMAGES_OVER_LIMIT, Image, StreamFailure, UserMessage
 from harness.llm.adapters.openai._image_limit import (
-    HIDE_BYTES,
-    MAX_IMAGE_BYTES,
+    BYTES_HIDDEN_PER_BLOCK,
     MAX_IMAGES,
+    MAX_TOTAL_IMAGE_BYTES,
     images_to_hide,
 )
 from tests.unit.test_openai_adapter import collect
@@ -29,9 +29,9 @@ def test_just_over_the_bytes_hides_at_least_10_mib_of_the_oldest() -> None:
 
     count = images_to_hide(lengths)
 
-    assert sum(lengths) > MAX_IMAGE_BYTES
-    assert sum(lengths[:count]) >= HIDE_BYTES
-    assert sum(lengths[: count - 1]) < HIDE_BYTES
+    assert sum(lengths) > MAX_TOTAL_IMAGE_BYTES
+    assert sum(lengths[:count]) >= BYTES_HIDDEN_PER_BLOCK
+    assert sum(lengths[: count - 1]) < BYTES_HIDDEN_PER_BLOCK
 
 
 def test_the_larger_of_the_two_counts_is_asked_for() -> None:
@@ -54,6 +54,6 @@ async def test_past_the_limit_the_request_is_refused_before_it_is_sent(monkeypat
 
     assert sent == []
     [failed] = events
-    assert isinstance(failed, Failed)
+    assert isinstance(failed, StreamFailure)
     assert failed.code == IMAGES_OVER_LIMIT
     assert failed.images_to_hide == 20

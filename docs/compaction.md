@@ -67,7 +67,7 @@ used      = last assistant/message.usage.input_tokens + output_tokens
 
 `context_tokens` is each LLM credential's own, carried on the bot's
 `ModelChoice` and resolved when `CredentialModels` first makes that choice — once
-per saved version of the credential (`web/runtime.py` `context_window`):
+per saved version of the credential (`web/runtime.py` `compaction_window_tokens`):
 `compaction.context_tokens` from config if set, else `context_length` read from
 that credential's endpoint's `GET /v1/models`, else unknown → proactive
 compaction off for that model, one warning, the reactive net alone. It is a cap on cost and latency, not a claim
@@ -81,7 +81,7 @@ are kept.
 ## The reactive net
 
 The adapter classifies a 4xx body it recognises as
-`Failed(code=CONTEXT_WINDOW_EXCEEDED)`; the loop then compacts and retries the
+`StreamFailure(code=CONTEXT_WINDOW_EXCEEDED)`; the loop then compacts and retries the
 step. Bounded: each recovery strictly shrinks the derived history, and a log
 that is only a summary has nothing left, so a summary that cannot shrink further
 fails the turn. Recognition is exact and fails closed — an unrecognised 400 is a

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field
 
 from harness.llm import (
-    Completed,
+    Completion,
     LLMClient,
     Message,
     StreamEvent,
@@ -121,7 +121,7 @@ def model_at(context_tokens: int | None) -> ModelChoice:
 
 def completed(text: str) -> list[StreamEvent]:
     """The ordinary script: stream `text` in one chunk, then finish."""
-    return [TextChunk(text=text), Completed(full_text=text)]
+    return [TextChunk(text=text), Completion(full_text=text)]
 
 
 def calls_tool(
@@ -133,7 +133,7 @@ def calls_tool(
     return [
         *events,
         ToolCallChunk(call=call),
-        Completed(full_text=text, tool_calls=(call,)),
+        Completion(full_text=text, tool_calls=(call,)),
     ]
 
 

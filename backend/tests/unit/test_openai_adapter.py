@@ -7,7 +7,7 @@ import json
 import httpx
 import pytest
 
-from harness.llm import Completed, Failed, Image, TextChunk, UserMessage
+from harness.llm import Completion, Image, StreamFailure, TextChunk, UserMessage
 from harness.llm.adapters import ImageReader, OpenAIClient, OpenAISettings
 from harness.llm.adapters.openai import client as adapter_module
 
@@ -59,7 +59,7 @@ async def test_streams_chunks_then_one_completed(monkeypatch) -> None:
     assert events == [
         TextChunk(text="he"),
         TextChunk(text="llo"),
-        Completed(full_text="hello"),
+        Completion(full_text="hello"),
     ]
 
 
@@ -111,7 +111,7 @@ async def test_empty_frames_are_normal_traffic_not_errors(monkeypatch, frame: st
 
     events = await collect(monkeypatch, handler)
 
-    assert events == [TextChunk(text="ok"), Completed(full_text="ok")]
+    assert events == [TextChunk(text="ok"), Completion(full_text="ok")]
 
 
 async def test_one_unparseable_frame_does_not_kill_the_turn(monkeypatch) -> None:
@@ -120,7 +120,7 @@ async def test_one_unparseable_frame_does_not_kill_the_turn(monkeypatch) -> None
 
     events = await collect(monkeypatch, handler)
 
-    assert events == [TextChunk(text="a"), TextChunk(text="b"), Completed(full_text="ab")]
+    assert events == [TextChunk(text="a"), TextChunk(text="b"), Completion(full_text="ab")]
 
 
 async def test_http_error_becomes_failed_with_the_body(monkeypatch) -> None:
@@ -131,7 +131,7 @@ async def test_http_error_becomes_failed_with_the_body(monkeypatch) -> None:
     events = await collect(monkeypatch, handler)
 
     assert len(events) == 1
-    assert isinstance(events[0], Failed)
+    assert isinstance(events[0], StreamFailure)
     assert "429" in events[0].reason
     assert "retry in 20s" in events[0].reason
 
@@ -142,7 +142,7 @@ async def test_transport_failure_becomes_failed_not_an_exception(monkeypatch) ->
 
     events = await collect(monkeypatch, handler)
 
-    assert events == [Failed(reason="ConnectError: no route to host")]
+    assert events == [StreamFailure(reason="ConnectError: no route to host")]
 
 
 async def test_request_pins_temperature_and_asks_for_usage(monkeypatch) -> None:
@@ -168,5 +168,5 @@ async def test_an_error_sent_inside_the_stream_fails_the_reply(monkeypatch) -> N
     events = await collect(monkeypatch, handler)
 
     assert len(events) == 1
-    assert isinstance(events[0], Failed)
+    assert isinstance(events[0], StreamFailure)
     assert "failed to decode, ret = 1" in events[0].reason

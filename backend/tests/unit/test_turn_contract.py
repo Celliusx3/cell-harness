@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import aclosing
 
-from harness.llm import Completed, TextChunk, ToolCall, ToolCallChunk, text_of
+from harness.llm import Completion, TextChunk, ToolCall, ToolCallChunk, text_of
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
 from harness.runtime.hooks import HookChain, ToolHook
@@ -40,7 +40,7 @@ def two_calls(first: ToolCall, second: ToolCall) -> list:
     return [
         ToolCallChunk(call=first),
         ToolCallChunk(call=second),
-        Completed(full_text="", tool_calls=(first, second)),
+        Completion(full_text="", tool_calls=(first, second)),
     ]
 
 

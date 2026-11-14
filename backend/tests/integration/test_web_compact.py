@@ -74,7 +74,7 @@ async def test_compacting_an_unknown_conversation_is_a_404(tmp_path) -> None:
 
 
 async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> None:
-    from harness.llm import Failed
+    from harness.llm import StreamFailure
 
     service = durable_service(tmp_path / "sessions")
 
@@ -84,7 +84,7 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
 
         async def stream_completion(self, messages, model, *, tools=None):
             if tools is None:
-                yield Failed(reason="boom")
+                yield StreamFailure(reason="boom")
                 return
             for e in completed("reply"):
                 yield e

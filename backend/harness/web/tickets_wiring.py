@@ -18,7 +18,7 @@ from harness.tools.native.tickets import (
     ticket_route_tool,
 )
 from harness.tools.service.tool_service import Disposer
-from harness.web.runtime import SUBAGENT_TOOLS, WORK_TOOLS, helper_runtime
+from harness.web.runtime import SUBAGENT_TOOLS, WORK_TOOLS, delegate_runtime
 
 WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)
 
@@ -27,7 +27,7 @@ def ticket_workers(
     tool_service: ToolService, runtime: Runtime, logs: SessionService
 ) -> RuntimeTicketWorker:
     """`runtime` as each ticket's worker runs it, offered `WORKER_TOOLS`, its logs in `logs`."""
-    worker = helper_runtime(tool_service, runtime, WORKER_TOOLS)
+    worker = delegate_runtime(tool_service, runtime, WORKER_TOOLS)
     return RuntimeTicketWorker(dataclasses.replace(worker, guidance=GUIDANCE), logs)
 
 

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 import httpx
 import pytest
 
-from harness.llm import AssistantMessage, Failed, Image, UserMessage
+from harness.llm import AssistantMessage, Image, StreamFailure, UserMessage
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runtime.service import Runtime
@@ -157,4 +157,4 @@ async def test_a_hide_leaves_no_failure_in_the_chat(provider) -> None:
     await _turn(_runtime(), session, "next")
 
     chunks = [e.chunk for e in session.events() if isinstance(e, AssistantChunk)]
-    assert [chunk for chunk in chunks if isinstance(chunk, Failed)] == []
+    assert [chunk for chunk in chunks if isinstance(chunk, StreamFailure)] == []

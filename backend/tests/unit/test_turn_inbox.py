@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm import Failed, UserMessage
+from harness.llm import StreamFailure, UserMessage
 from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending
 from harness.runtime.inbox import NO_INBOX, WaitingMessages
 from harness.runtime.run_to_end import HelperTurn, run_to_end
@@ -71,7 +71,7 @@ async def test_the_first_step_claims_nothing() -> None:
 async def test_a_turn_that_fails_or_waits_claims_nothing() -> None:
     session = new_session()
     inbox = HeldInbox(session, WaitingMessages(text="later", files=()))
-    failing = runtime_over(SteppedClient([Failed(reason="down")]), inbox=inbox)
+    failing = runtime_over(SteppedClient([StreamFailure(reason="down")]), inbox=inbox)
     asking = runtime_over(
         SteppedClient(calls_tool("ask", '{"value": "x"}')), pending_tool(), inbox=inbox
     )

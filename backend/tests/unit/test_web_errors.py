@@ -32,7 +32,7 @@ from harness.tickets.domain.models import (
     UnretryableTicketError,
 )
 from harness.tools import ToolNotApproved
-from harness.web.http.errors import STATUS_OF, exception_handlers
+from harness.web.http.errors import STATUS_BY_ERROR, exception_handlers
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_skills
@@ -100,7 +100,7 @@ async def answer_of(app: FastAPI) -> httpx.Response:
 
 
 def test_every_mapped_error_is_pinned() -> None:
-    assert {type(param.values[0]) for param in PINNED} == set(STATUS_OF)
+    assert {type(param.values[0]) for param in PINNED} == set(STATUS_BY_ERROR)
 
 
 @pytest.mark.parametrize(("err", "status_code"), PINNED)

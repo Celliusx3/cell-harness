@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from harness.llm import Completed, ToolCall, ToolCallChunk, ToolMessage
+from harness.llm import Completion, ToolCall, ToolCallChunk, ToolMessage
 from harness.runtime.events import AgentCompleted, AgentPending
 from harness.runtime.hooks import HookChain, ToolHook
 from harness.sandbox import Bridge, BridgeError
@@ -30,7 +30,7 @@ from tests.unit.helpers import drain, new_session
 
 
 def _step_with(*calls: ToolCall) -> list:
-    return [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
+    return [*(ToolCallChunk(call=c) for c in calls), Completion(full_text="", tool_calls=calls)]
 
 
 async def test_a_listed_tool_ends_the_turn_pending_and_does_not_run(tmp_path) -> None:

@@ -6,7 +6,7 @@ from dataclasses import replace
 
 from harness.llm import (
     AssistantMessage,
-    Completed,
+    Completion,
     TextChunk,
     ToolCall,
     ToolCallChunk,
@@ -196,7 +196,7 @@ async def test_two_calls_in_one_step_both_settle() -> None:
         [
             ToolCallChunk(call=first),
             ToolCallChunk(call=second),
-            Completed(full_text="", tool_calls=(first, second)),
+            Completion(full_text="", tool_calls=(first, second)),
         ],
         completed("done"),
     )

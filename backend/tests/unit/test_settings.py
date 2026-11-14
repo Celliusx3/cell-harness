@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from harness.config import settings as settings_module
 from harness.config.sections import FileSettings, LLMSettings
-from harness.config.settings import MissingConfigError, Settings, load
+from harness.config.settings import MissingConfigError, Settings, load_settings
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def test_load_needs_no_model_now_each_bot_has_its_own(config_file) -> None:
     write_committed, _ = config_file
     write_committed({"secrets": {"encryption_key": "e"}})
 
-    assert load().llm == LLMSettings()
+    assert load_settings().llm == LLMSettings()
 
 
 def test_temperature_is_pinned_not_inherited() -> None:
@@ -147,7 +147,7 @@ def test_a_missing_local_file_is_normal(config_file) -> None:
     write_committed, _ = config_file
     write_committed({"llm": {"temperature": 0.2}, "secrets": {"encryption_key": "e"}})
 
-    assert load().llm.temperature == 0.2
+    assert load_settings().llm.temperature == 0.2
 
 
 @pytest.mark.parametrize("secrets", [{}, {"encryption_key": ""}, {"encryption_key": "   "}])
@@ -159,7 +159,7 @@ def test_load_refuses_a_blank_encryption_key_and_points_at_the_local_file(
     write_committed({"secrets": secrets})
 
     with pytest.raises(MissingConfigError, match="config.local.json") as refused:
-        load()
+        load_settings()
 
     assert "secrets.encryption_key" in str(refused.value)
 

@@ -20,9 +20,9 @@ from harness.llm.models.blocks import Image
 from harness.llm.models.messages import Message, images_of
 from harness.llm.models.stream import (
     IMAGES_OVER_LIMIT,
-    Completed,
-    Failed,
+    Completion,
     StreamEvent,
+    StreamFailure,
     TextChunk,
     ToolCallChunk,
     Usage,
@@ -44,7 +44,7 @@ def _image_bytes(messages: Sequence[Message], read: ImageReader) -> dict[str, by
     }
 
 
-def _endpoint(settings: OpenAISettings, path: str) -> str:
+def _endpoint_url(settings: OpenAISettings, path: str) -> str:
     """The address of `path` under the configured base URL."""
     return f"{settings.base_url.rstrip('/')}/{path}"
 
@@ -73,7 +73,7 @@ class OpenAIClient(LLMClient):
         )
         to_hide = images_to_hide(image_lengths(body))
         if to_hide:
-            yield Failed(
+            yield StreamFailure(
                 reason=f"the request carries too many images: {to_hide} must be hidden",
                 code=IMAGES_OVER_LIMIT,
                 images_to_hide=to_hide,
@@ -88,14 +88,14 @@ class OpenAIClient(LLMClient):
                 httpx.AsyncClient(timeout=settings.timeout_seconds) as http,
                 http.stream(
                     "POST",
-                    _endpoint(settings, "chat/completions"),
+                    _endpoint_url(settings, "chat/completions"),
                     headers=_auth_headers(settings),
                     json=body,
                 ) as response,
             ):
                 if response.status_code >= 400:
                     detail = (await response.aread()).decode(errors="replace")
-                    yield Failed(
+                    yield StreamFailure(
                         reason=f"provider returned {response.status_code}: {detail}",
                         code=failure_code(detail),
                     )
@@ -103,7 +103,7 @@ class OpenAIClient(LLMClient):
 
                 async for chunk in chunks_of(response.aiter_lines()):
                     if chunk.error is not None:
-                        yield Failed(
+                        yield StreamFailure(
                             reason=f"provider sent an error: {chunk.error}",
                             code=failure_code(chunk.error),
                         )
@@ -114,18 +114,18 @@ class OpenAIClient(LLMClient):
                         accumulated += chunk.text
                         yield TextChunk(text=chunk.text)
         except httpx.HTTPError as err:
-            yield Failed(reason=f"{type(err).__name__}: {err}")
+            yield StreamFailure(reason=f"{type(err).__name__}: {err}")
             return
 
         assembled = assembler.tool_calls()
         for call in assembled:
             yield ToolCallChunk(call=call)
-        yield Completed(full_text=accumulated, tool_calls=tuple(assembled), usage=usage)
+        yield Completion(full_text=accumulated, tool_calls=tuple(assembled), usage=usage)
 
 
 def context_window_tokens(settings: OpenAISettings) -> int | None:
     """`context_length` of `settings.model` from the endpoint's list of models, or `None`."""
-    url = _endpoint(settings, "models")
+    url = _endpoint_url(settings, "models")
     try:
         with httpx.Client(timeout=settings.timeout_seconds) as http:
             response = http.get(url, headers=_auth_headers(settings))

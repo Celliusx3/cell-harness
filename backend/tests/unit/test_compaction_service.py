@@ -8,10 +8,10 @@ import pytest
 
 from harness.llm import (
     AssistantMessage,
-    Failed,
     LLMClient,
     Message,
     StreamEvent,
+    StreamFailure,
     SystemMessage,
     TextChunk,
     ToolCall,
@@ -188,11 +188,8 @@ async def test_a_failed_summary_is_logged_and_changes_nothing() -> None:
     tool_turn(session, 0, "c0", "r")
     before = derive_messages(session.events())
 
-    yielded = await drain(
-        run_compaction(
-            runtime_with(ScriptedClient([Failed(reason="boom")])), session, turn=1, trigger="auto"
-        )
-    )
+    failing = runtime_with(ScriptedClient([StreamFailure(reason="boom")]))
+    yielded = await drain(run_compaction(failing, session, turn=1, trigger="auto"))
 
     assert [e.type for e in yielded] == ["compaction/start", "compaction/end"]
     assert yielded[1] == CompactionEnd(turn=1, error="summary request failed: boom")

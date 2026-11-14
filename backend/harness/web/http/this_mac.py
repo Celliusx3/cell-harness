@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel, ValidationError
 
-from harness.web.http.errors import STATUS_OF
+from harness.web.http.errors import STATUS_BY_ERROR
 
 LOOPBACK_ADDRESSES = frozenset({"127.0.0.1", "::1"})
 LOOPBACK_HOSTNAMES = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -48,7 +48,7 @@ def refusals_answered_with(
     try:
         yield
     except refused as err:
-        raise HTTPException(STATUS_OF[type(err)], detail=str(err), headers=headers) from err
+        raise HTTPException(STATUS_BY_ERROR[type(err)], detail=str(err), headers=headers) from err
 
 
 def cors_headers(request: Request) -> dict[str, str]:

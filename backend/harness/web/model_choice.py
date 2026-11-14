@@ -60,11 +60,11 @@ class CredentialModels:
 
     async def model_for(self, bot_id: str | None) -> ModelChoice | NoModel:
         """`bot_id`'s LLM credential; `NoModel` for no bot, an unknown one, or one with none."""
-        name = self._credential_of(bot_id)
-        own = None if name is None else await self._choice_named(name)
+        name = self._model_credential_name(bot_id)
+        own = None if name is None else await self._model_choice(name)
         return NoModel() if own is None else own
 
-    def _credential_of(self, bot_id: str | None) -> SecretName | None:
+    def _model_credential_name(self, bot_id: str | None) -> SecretName | None:
         if bot_id is None:
             return None
         try:
@@ -72,7 +72,7 @@ class CredentialModels:
         except BotNotFound:
             return None
 
-    async def _choice_named(self, name: str) -> ModelChoice | None:
+    async def _model_choice(self, name: str) -> ModelChoice | None:
         """The LLM credential `name` as a model, unsealed and asked its window per version."""
         version = self._secrets.model_credential_version(name)
         if version is None:

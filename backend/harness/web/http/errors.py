@@ -35,7 +35,7 @@ from harness.tools import ToolNotApproved
 
 ErrorHandler = Callable[[Request, Exception], Awaitable[JSONResponse]]
 
-STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
+STATUS_BY_ERROR: Mapping[type[Exception], int] = MappingProxyType(
     {
         BotNotFound: status.HTTP_404_NOT_FOUND,
         BuiltInBotError: status.HTTP_409_CONFLICT,
@@ -68,7 +68,7 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
 )
 
 
-def _answer_with(status_code: int) -> ErrorHandler:
+def _error_handler(status_code: int) -> ErrorHandler:
     """A handler answering an error's message with `status_code`, the body `HTTPException` has."""
 
     async def answer(request: Request, err: Exception) -> JSONResponse:
@@ -78,5 +78,5 @@ def _answer_with(status_code: int) -> ErrorHandler:
 
 
 def exception_handlers() -> dict[type[Exception], ErrorHandler]:
-    """What `FastAPI(exception_handlers=...)` takes: one handler per error in `STATUS_OF`."""
-    return {error: _answer_with(status_code) for error, status_code in STATUS_OF.items()}
+    """What `FastAPI(exception_handlers=...)` takes: one handler per error in `STATUS_BY_ERROR`."""
+    return {error: _error_handler(status_code) for error, status_code in STATUS_BY_ERROR.items()}

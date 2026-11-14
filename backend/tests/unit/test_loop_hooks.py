@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import replace
 
-from harness.llm import Completed, Text, ToolCall, ToolCallChunk, text_of
+from harness.llm import Completion, Text, ToolCall, ToolCallChunk, text_of
 from harness.runtime.events import AgentCompleted, ToolResult, TurnEvent
 from harness.runtime.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
@@ -72,7 +72,7 @@ async def test_a_note_is_logged_as_a_guardrail_message_after_the_steps_calls() -
         [
             ToolCallChunk(call=ToolCall(id="c1", name="echo", arguments='{"value": "a"}')),
             ToolCallChunk(call=ToolCall(id="c2", name="echo", arguments='{"value": "b"}')),
-            Completed(
+            Completion(
                 full_text="",
                 tool_calls=[
                     ToolCall(id="c1", name="echo", arguments='{"value": "a"}'),

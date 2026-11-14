@@ -6,7 +6,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from harness.llm import CONTEXT_WINDOW_EXCEEDED, Failed
+from harness.llm import CONTEXT_WINDOW_EXCEEDED, StreamFailure
 from harness.llm.adapters.openai._errors import failure_code
 from tests.unit.test_openai_adapter import collect
 
@@ -48,7 +48,7 @@ def test_anything_else_is_not_classified(body: str) -> None:
 
 def test_a_failure_code_outside_the_list_is_refused() -> None:
     with pytest.raises(ValidationError):
-        Failed(reason="x", code="context_window_exceded")
+        StreamFailure(reason="x", code="context_window_exceded")
 
 
 async def test_a_recognised_400_reaches_the_loop_as_a_coded_failure(monkeypatch) -> None:
@@ -58,7 +58,7 @@ async def test_a_recognised_400_reaches_the_loop_as_a_coded_failure(monkeypatch)
     events = await collect(monkeypatch, handler)
 
     assert len(events) == 1
-    assert isinstance(events[0], Failed)
+    assert isinstance(events[0], StreamFailure)
     assert events[0].code == CONTEXT_WINDOW_EXCEEDED
     assert "Context length exceeded" in events[0].reason
 
@@ -69,7 +69,7 @@ async def test_an_unrecognised_400_carries_no_code(monkeypatch) -> None:
 
     events = await collect(monkeypatch, handler)
 
-    assert isinstance(events[0], Failed)
+    assert isinstance(events[0], StreamFailure)
     assert events[0].code is None
 
 
@@ -79,5 +79,5 @@ async def test_an_overflow_sent_inside_the_stream_reaches_the_loop_coded(monkeyp
 
     events = await collect(monkeypatch, handler)
 
-    assert isinstance(events[0], Failed)
+    assert isinstance(events[0], StreamFailure)
     assert events[0].code == CONTEXT_WINDOW_EXCEEDED

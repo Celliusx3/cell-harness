@@ -6,11 +6,11 @@ from harness.llm import (
     IMAGES_OVER_LIMIT,
     ApplicationMessage,
     AssistantMessage,
-    Completed,
-    Failed,
+    Completion,
     Image,
     LLMClient,
     Message,
+    StreamFailure,
     Text,
     ToolCall,
     ToolMessage,
@@ -108,9 +108,9 @@ class OverTheLimit(LLMClient):
     async def stream_completion(self, messages, model, *, tools=None):
         self.seen.append(list(messages))
         if len(self.seen) <= self.refusals:
-            yield Failed(reason="too many", code=IMAGES_OVER_LIMIT, images_to_hide=1)
+            yield StreamFailure(reason="too many", code=IMAGES_OVER_LIMIT, images_to_hide=1)
             return
-        yield Completed(full_text="seen")
+        yield Completion(full_text="seen")
 
 
 async def run(client: LLMClient, session: Session) -> list:

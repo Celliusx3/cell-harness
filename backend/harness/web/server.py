@@ -30,7 +30,7 @@ from harness.channels.web.channel import WebChannel
 from harness.channels.web.client_router import ClientToolRouter
 from harness.channels.web.compact_router import CompactRouter
 from harness.channels.web.secret_card_router import SecretCardRouter
-from harness.config.settings import Settings, load
+from harness.config.settings import Settings, load_settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
@@ -69,7 +69,7 @@ from harness.web.runtime import (
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
 
 
-def build_store(settings: Settings) -> SessionService:
+def build_sessions(settings: Settings) -> SessionService:
     """The session service over the configured storage backend."""
     return SessionService(JsonlSessionRepository(settings.sessions.root))
 
@@ -148,9 +148,9 @@ def build_channels(
 def create_web_app() -> FastAPI:
     """The application uvicorn starts."""
     configure_logging()
-    settings = load()
+    settings = load_settings()
     secrets = build_keyring(settings)
-    sessions = build_store(settings)
+    sessions = build_sessions(settings)
     disk = DiskChatFileRepository(settings.files.root)
     disk.create_root()
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)

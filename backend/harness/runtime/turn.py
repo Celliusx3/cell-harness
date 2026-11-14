@@ -13,9 +13,9 @@ from harness.llm import (
     IMAGES_OVER_LIMIT,
     ApplicationMessage,
     AssistantMessage,
-    Completed,
-    Failed,
+    Completion,
     StreamEvent,
+    StreamFailure,
     TextChunk,
     ToolCallChunk,
 )
@@ -74,7 +74,7 @@ async def run_turn(
             await open_step(runtime, session, turn=turn, step=step, bot_id=bot_id)
             await _shrink_history_when_due(runtime, session, turn=turn, bot_id=bot_id)
 
-            reply: Completed | Failed | RetryStep | None = None
+            reply: Completion | StreamFailure | RetryStep | None = None
             async with aclosing(_stream_reply(runtime, session, bot_id, at=at)) as chunks:
                 async for event in chunks:
                     if isinstance(event, (TextChunk, ToolCallChunk)):
@@ -83,7 +83,7 @@ async def run_turn(
                         reply = event
             assert reply is not None
 
-            if isinstance(reply, (RetryStep, Failed)) or not reply.tool_calls:
+            if isinstance(reply, (RetryStep, StreamFailure)) or not reply.tool_calls:
                 ended = await _outcome_without_tools(runtime, session, reply, at=at, bot_id=bot_id)
                 if ended is None:
                     continue
@@ -122,7 +122,7 @@ async def _shrink_history_when_due(
 async def _outcome_without_tools(
     runtime: Runtime,
     session: Session,
-    reply: Completed | Failed | RetryStep,
+    reply: Completion | StreamFailure | RetryStep,
     *,
     at: TurnStep,
     bot_id: str,
@@ -130,7 +130,7 @@ async def _outcome_without_tools(
     """A step whose reply runs no tools: the turn's outcome, or `None` to run another step."""
     if isinstance(reply, RetryStep):
         return None
-    if isinstance(reply, Failed):
+    if isinstance(reply, StreamFailure):
         close_turn(session, at.turn, at.step, "failed")
         return AgentFailed(reason=reply.reason)
     decision = await runtime.hooks.end_of_step(session=session)
@@ -149,11 +149,11 @@ async def _outcome_without_tools(
 
 async def _stream_reply(
     runtime: Runtime, session: Session, bot_id: str, *, at: TurnStep
-) -> AsyncIterator[TextChunk | ToolCallChunk | Completed | Failed | RetryStep]:
-    """One request to `bot_id`'s model: its chunks, then `Completed`, `Failed` or `RetryStep`."""
+) -> AsyncIterator[TextChunk | ToolCallChunk | Completion | StreamFailure | RetryStep]:
+    """A request to `bot_id`'s model: chunks, then `Completion`, `StreamFailure` or `RetryStep`."""
     choice = await runtime.models.model_for(bot_id)
     if isinstance(choice, NoModel):
-        refused = Failed(reason=PICK_A_MODEL)
+        refused = StreamFailure(reason=PICK_A_MODEL)
         session.append(AssistantChunk(turn=at.turn, step=at.step, chunk=refused))
         yield refused
         return
@@ -164,8 +164,8 @@ async def _stream_reply(
     if runtime.checkpoint is not None:
         await runtime.checkpoint(session)
 
-    completed: Completed | None = None
-    failed: Failed | None = None
+    completed: Completion | None = None
+    failed: StreamFailure | None = None
     partial = ""
     try:
         async with aclosing(
@@ -178,13 +178,13 @@ async def _stream_reply(
                     yield event
                 elif isinstance(event, ToolCallChunk):
                     yield event
-                elif isinstance(event, Completed):
+                elif isinstance(event, Completion):
                     completed = event
-                elif isinstance(event, Failed):
+                elif isinstance(event, StreamFailure):
                     failed = event
 
         if failed is not None or completed is None:
-            failure = failed if failed is not None else Failed(reason=NO_TERMINAL_REASON)
+            failure = failed if failed is not None else StreamFailure(reason=NO_TERMINAL_REASON)
             yield await _failure_or_retry(runtime, session, failure, turn=at.turn)
             return
 
@@ -205,8 +205,8 @@ async def _stream_reply(
 
 
 async def _failure_or_retry(
-    runtime: Runtime, session: Session, failure: Failed, *, turn: int
-) -> Failed | RetryStep:
+    runtime: Runtime, session: Session, failure: StreamFailure, *, turn: int
+) -> StreamFailure | RetryStep:
     """`RetryStep` when the request was too big and the history shrank, else the failure."""
     if failure.code == CONTEXT_WINDOW_EXCEEDED and await _shrink_history(
         runtime, session, turn=turn, trigger="overflow"
@@ -219,12 +219,12 @@ async def _failure_or_retry(
 
 def _log_chunk(session: Session, event: StreamEvent, *, at: TurnStep) -> None:
     """Log `event`, unless it is the adapter's own refusal of a request it never sent."""
-    if isinstance(event, Failed) and event.images_to_hide is not None:
+    if isinstance(event, StreamFailure) and event.images_to_hide is not None:
         return
     session.append(AssistantChunk(turn=at.turn, step=at.step, chunk=event))
 
 
-def _hide_images(session: Session, failure: Failed, *, turn: int) -> bool:
+def _hide_images(session: Session, failure: StreamFailure, *, turn: int) -> bool:
     """Log a hide of as many more images as `failure` asks: `True` when one more could go."""
     if failure.images_to_hide is None:
         return False

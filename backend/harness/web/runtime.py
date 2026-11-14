@@ -92,11 +92,11 @@ logger = logging.getLogger("harness.web")
 CLIENT_TOOLS = ClientToolCatalog(
     (GET_LOCATION_TOOL, ASK_USER_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL)
 )
-SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
+SKILL_WRITE_TOOLS = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 SCHEDULE_TOOLS = (SCHEDULE_CREATE, SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT)
 DEFAULT_TOOLS = (
     SKILL,
-    *SKILL_WRITES,
+    *SKILL_WRITE_TOOLS,
     BOT_CREATE,
     MESSAGE_BOT,
     *SCHEDULE_TOOLS,
@@ -111,7 +111,7 @@ SIGHT_TOOLS = frozenset({VIEW_IMAGE})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,
-        *SKILL_WRITES,
+        *SKILL_WRITE_TOOLS,
         BOT_CREATE,
         MESSAGE_BOT,
         *SCHEDULE_TOOLS,
@@ -131,7 +131,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
 
 def build_runtime(
     settings: Settings,
-    store: SessionService,
+    sessions: SessionService,
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
@@ -173,13 +173,15 @@ def build_runtime(
             settings.llm,
             ModelEndpoint(
                 client_for=functools.partial(_openai_client, images),
-                blocking_window_for=functools.partial(context_window, settings.compaction),
+                blocking_window_for=functools.partial(
+                    compaction_window_tokens, settings.compaction
+                ),
             ),
         ),
         images=images,
         tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
         guidance=ORCHESTRATOR_INTRO,
-        checkpoint=store.flush,
+        checkpoint=sessions.flush,
         hooks=orchestrator_hooks(skills),
         files=files,
         server_instructions=mcp.instructions,
@@ -192,7 +194,9 @@ def _openai_client(images: ImageService, settings: OpenAISettings) -> LLMClient:
     return OpenAIClient(settings, read_image=images.read)
 
 
-def context_window(compaction: CompactionSettings, settings: OpenAISettings) -> int | None:
+def compaction_window_tokens(
+    compaction: CompactionSettings, settings: OpenAISettings
+) -> int | None:
     """The window `settings`'s model compacts at: the configured one, else its endpoint's report."""
     configured = compaction.context_tokens
     if configured is not None:
@@ -232,11 +236,11 @@ def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
 def _register_run_subagent(
     tool_service: ToolService, runtime: Runtime, logs: SessionService
 ) -> None:
-    subagent = helper_runtime(tool_service, runtime, SUBAGENT_TOOLS)
+    subagent = delegate_runtime(tool_service, runtime, SUBAGENT_TOOLS)
     tool_service.register(run_subagent_tool(Subagents(subagent, logs)))
 
 
-def helper_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
+def delegate_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
     """`runtime` as a subagent or a ticket's worker runs it: offered `tools`, free to wait."""
     hooks = runtime.hooks
     kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))

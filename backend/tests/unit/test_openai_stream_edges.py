@@ -8,7 +8,7 @@ import httpx
 import pytest
 from pydantic import JsonValue
 
-from harness.llm import Completed, TextChunk, Usage
+from harness.llm import Completion, TextChunk, Usage
 from tests.unit.test_openai_adapter import collect, delta, sse
 
 
@@ -64,7 +64,7 @@ async def test_empty_text_gives_no_chunk(monkeypatch) -> None:
 
     events = await collect(monkeypatch, answering(empty, delta("ok")))
 
-    assert events == [TextChunk(text="ok"), Completed(full_text="ok")]
+    assert events == [TextChunk(text="ok"), Completion(full_text="ok")]
 
 
 @pytest.mark.parametrize("error", [None, "", {}])
@@ -73,7 +73,7 @@ async def test_an_empty_error_is_not_an_error(monkeypatch, error: JsonValue) -> 
 
     events = await collect(monkeypatch, answering(frame))
 
-    assert events == [TextChunk(text="ok"), Completed(full_text="ok")]
+    assert events == [TextChunk(text="ok"), Completion(full_text="ok")]
 
 
 async def test_lines_after_the_end_marker_are_ignored(monkeypatch) -> None:
@@ -82,7 +82,7 @@ async def test_lines_after_the_end_marker_are_ignored(monkeypatch) -> None:
 
     events = await collect(monkeypatch, handler)
 
-    assert events == [TextChunk(text="a"), Completed(full_text="a")]
+    assert events == [TextChunk(text="a"), Completion(full_text="a")]
 
 
 async def test_a_later_extra_content_replaces_the_earlier_one(monkeypatch) -> None:
@@ -115,4 +115,4 @@ async def test_a_later_extra_content_that_is_not_an_object_keeps_the_earlier_one
 async def test_a_line_that_is_not_an_object_is_skipped(monkeypatch, frame: str) -> None:
     events = await collect(monkeypatch, answering(frame, delta("ok")))
 
-    assert events == [TextChunk(text="ok"), Completed(full_text="ok")]
+    assert events == [TextChunk(text="ok"), Completion(full_text="ok")]

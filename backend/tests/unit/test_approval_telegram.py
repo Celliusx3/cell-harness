@@ -6,7 +6,7 @@ from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.telegram.asking import APPROVE_BY_LINK
 from harness.channels.telegram.channel import RECEIPTS, STALE_TAP_RECEIPT
-from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
+from harness.llm import Completion, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.domain.models import ApprovalGrant, ToolResultEvent, TurnEnd
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
@@ -215,7 +215,7 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
         ToolCall(id="c1", name=quote, arguments='{"value": "AAPL"}'),
         ToolCall(id="c2", name=WRITE, arguments='{"value": "Kopi"}'),
     )
-    step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
+    step = [*(ToolCallChunk(call=c) for c in calls), Completion(full_text="", tool_calls=calls)]
     approvals = ApprovalService(
         frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
     )
