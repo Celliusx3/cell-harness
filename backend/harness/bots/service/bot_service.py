@@ -93,7 +93,7 @@ class BotService:
             "max_workers": edit.max_workers,
         }
         edited = bot.model_copy(update=changes)
-        self._write_file(stored.with_bots((edited,)))
+        self._write_file(stored.with_saved_bots((edited,)))
         return edited
 
     def allow_secret(self, bot_id: str, secret_name: str) -> Bot:
@@ -103,7 +103,7 @@ class BotService:
         allowed = bot.model_copy(
             update={"secret_names": _without_repeats((*bot.secret_names, secret_name))}
         )
-        self._write_file(stored.with_bots((allowed,)))
+        self._write_file(stored.with_saved_bots((allowed,)))
         return allowed
 
     def set_allowed_secrets(self, bot_id: str, secret_names: tuple[str, ...]) -> Bot:
@@ -111,7 +111,7 @@ class BotService:
         stored = self._repository.read()
         bot = self._active_bot_in(stored, bot_id)
         allowed = bot.model_copy(update={"secret_names": _without_repeats(secret_names)})
-        self._write_file(stored.with_bots((allowed,)))
+        self._write_file(stored.with_saved_bots((allowed,)))
         return allowed
 
     def set_bots_for_secret(self, name: str, bot_ids: tuple[str, ...]) -> None:
@@ -122,12 +122,12 @@ class BotService:
             for bot in stored.active_bots(self._built_ins)
             if bot.can_use_secret(name) != (bot.id in bot_ids)
         )
-        self._write_file(stored.with_bots(changed))
+        self._write_file(stored.with_saved_bots(changed))
 
-    def forget_credential(self, secret_name: str) -> None:
-        """Take `secret_name` off every stored bot, archived ones too, as a key and as a model."""
+    def forget_credential(self, credential_name: str) -> None:
+        """Take `credential_name` off every stored bot, archived too, as a key and as a model."""
         stored = self._repository.read()
-        bots = tuple(bot.without_credential(secret_name) for bot in stored.bots)
+        bots = tuple(bot.without_credential(credential_name) for bot in stored.bots)
         if bots != stored.bots:
             self._write_file(stored.model_copy(update={"bots": bots}))
 
@@ -135,12 +135,12 @@ class BotService:
         """Hide a bot and its chat until it is restored."""
         stored = self._repository.read()
         self._check_removable(stored, bot_id)
-        self._write_file(stored.with_archived(bot_id, archived=True))
+        self._write_file(stored.with_bot_archived(bot_id))
 
     def restore(self, bot_id: str) -> None:
         """Bring an archived bot back with its chat as it was; an active one stays as it is."""
         if bot_id not in self._built_in_ids:
-            self._write_file(self._repository.read().with_archived(bot_id, archived=False))
+            self._write_file(self._repository.read().with_bot_restored(bot_id))
 
     async def delete(self, bot_id: str) -> None:
         """Remove a bot and its chat for good."""

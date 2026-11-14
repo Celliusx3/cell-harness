@@ -146,7 +146,7 @@ class BotsFile(BaseModel):
         others = (bot for bot in self.bots if bot.id not in built_in_ids and not bot.archived)
         return (*stored_built_ins, *others)
 
-    def with_bots(self, bots: tuple[Bot, ...]) -> BotsFile:
+    def with_saved_bots(self, bots: tuple[Bot, ...]) -> BotsFile:
         """This file with each of `bots` in its stored place, and those not yet stored first."""
         by_id = {bot.id: bot for bot in bots}
         stored_ids = {stored.id for stored in self.bots}
@@ -154,8 +154,15 @@ class BotsFile(BaseModel):
         replaced = tuple(by_id.get(stored.id, stored) for stored in self.bots)
         return self.model_copy(update={"bots": (*added, *replaced)})
 
-    def with_archived(self, bot_id: str, *, archived: bool) -> BotsFile:
-        """This file with the stored bot `bot_id` archived or not; `BotNotFound` when unknown."""
+    def with_bot_archived(self, bot_id: str) -> BotsFile:
+        """This file with the stored bot `bot_id` archived; `BotNotFound` when unknown."""
+        return self._with_archived_set(bot_id, archived=True)
+
+    def with_bot_restored(self, bot_id: str) -> BotsFile:
+        """This file with the stored bot `bot_id` not archived; `BotNotFound` when unknown."""
+        return self._with_archived_set(bot_id, archived=False)
+
+    def _with_archived_set(self, bot_id: str, *, archived: bool) -> BotsFile:
         if bot_id not in {bot.id for bot in self.bots}:
             raise BotNotFound(bot_id)
         bots = tuple(

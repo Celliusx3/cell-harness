@@ -53,13 +53,13 @@ def test_listing_the_active_bots_leaves_the_file_as_it_was() -> None:
 def test_a_saved_bot_replaces_the_stored_one_in_its_place() -> None:
     renamed = RESEARCHER.model_copy(update={"name": "Scout"})
 
-    saved = BotsFile(bots=(WRITER, RESEARCHER)).with_bots((renamed,))
+    saved = BotsFile(bots=(WRITER, RESEARCHER)).with_saved_bots((renamed,))
 
     assert saved.bots == (WRITER, renamed)
 
 
 def test_a_saved_bot_that_is_not_yet_stored_goes_first() -> None:
-    saved = BotsFile(bots=(WRITER,)).with_bots((ASSISTANT, RESEARCHER))
+    saved = BotsFile(bots=(WRITER,)).with_saved_bots((ASSISTANT, RESEARCHER))
 
     assert saved.bots == (ASSISTANT, RESEARCHER, WRITER)
 
@@ -67,7 +67,7 @@ def test_a_saved_bot_that_is_not_yet_stored_goes_first() -> None:
 def test_saving_bots_replaces_and_adds_in_one_call() -> None:
     renamed = WRITER.model_copy(update={"name": "Editor"})
 
-    saved = BotsFile(bots=(RESEARCHER, WRITER)).with_bots((renamed, ASSISTANT))
+    saved = BotsFile(bots=(RESEARCHER, WRITER)).with_saved_bots((renamed, ASSISTANT))
 
     assert saved.bots == (ASSISTANT, RESEARCHER, renamed)
 
@@ -75,19 +75,19 @@ def test_saving_bots_replaces_and_adds_in_one_call() -> None:
 def test_saving_no_bots_gives_back_an_equal_file() -> None:
     stored = BotsFile(bots=(WRITER, RESEARCHER))
 
-    assert stored.with_bots(()) == stored
+    assert stored.with_saved_bots(()) == stored
 
 
 def test_saving_a_bot_leaves_the_original_file_as_it_was() -> None:
     stored = BotsFile(bots=(WRITER,))
 
-    stored.with_bots((RESEARCHER, WRITER.model_copy(update={"name": "Editor"})))
+    stored.with_saved_bots((RESEARCHER, WRITER.model_copy(update={"name": "Editor"})))
 
     assert stored == BotsFile(bots=(WRITER,))
 
 
 def test_archiving_sets_the_flag_on_that_bot_and_leaves_the_others() -> None:
-    archived = BotsFile(bots=(WRITER, RESEARCHER)).with_archived("r1", archived=True)
+    archived = BotsFile(bots=(WRITER, RESEARCHER)).with_bot_archived("r1")
 
     assert archived.bots == (WRITER, RESEARCHER.model_copy(update={"archived": True}))
 
@@ -95,17 +95,17 @@ def test_archiving_sets_the_flag_on_that_bot_and_leaves_the_others() -> None:
 def test_restoring_clears_the_flag_on_that_bot() -> None:
     stored = BotsFile(bots=(WRITER.model_copy(update={"archived": True}), RESEARCHER))
 
-    assert stored.with_archived("w1", archived=False).bots == (WRITER, RESEARCHER)
+    assert stored.with_bot_restored("w1").bots == (WRITER, RESEARCHER)
 
 
 def test_archiving_a_bot_that_is_not_stored_is_refused() -> None:
     with pytest.raises(BotNotFound):
-        BotsFile(bots=(WRITER,)).with_archived("r1", archived=True)
+        BotsFile(bots=(WRITER,)).with_bot_archived("r1")
 
 
 def test_archiving_leaves_the_original_file_as_it_was() -> None:
     stored = BotsFile(bots=(WRITER, RESEARCHER))
 
-    stored.with_archived("w1", archived=True)
+    stored.with_bot_archived("w1")
 
     assert stored == BotsFile(bots=(WRITER, RESEARCHER))

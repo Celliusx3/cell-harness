@@ -4,7 +4,7 @@
 
 ## What to build
 
-Give `BotsFile` in `harness/bots/domain/models.py` three methods that only compute: `active_bots(built_ins)`, `with_bots(bots)` and `with_archived(bot_id, archived=...)`.
+Give `BotsFile` in `harness/bots/domain/models.py` three methods that only compute: `active_bots(built_ins)`, `with_saved_bots(bots)`, `with_bot_archived(bot_id)` and `with_bot_restored(bot_id)`.
 `BotService` in `harness/bots/service/bot_service.py` calls them. Delete `_active_bots_in`, `_save_bots`, `_save_bot` and `_set_archived` from it.
 Add `tests/unit/test_bots_file.py`, which hands a `BotsFile` plain bots and checks what comes back.
 No behaviour changes.
