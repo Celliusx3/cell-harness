@@ -37,8 +37,12 @@ ORCHESTRATOR_INTRO = (
     "ticket. Use "
     "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in one"
     " sentence that names what you started, or say nothing more. Workers' reports arrive by "
-    "themselves as messages, so never wait for them and never check on a ticket. Write at most "
-    "100 words in any reply, except a reply that gives the user a worker's report."
+    "themselves as messages, so never wait for them and never check on a ticket. When a worker's "
+    "ready report lists Part and Combine task lines, accept one ticket for each Part line at "
+    "once, with the line as its whole task. Accept the Combine line only after every one of "
+    "those parts has reported ready. When a combine reports pages still untranslated, attach to "
+    "the part that owns those pages, asking it to finish them. Write at most 100 words in any "
+    "reply, except a reply that gives the user a worker's report."
 )
 TICKET_FOLLOWUP_HEARD = "The user wrote this about your ticket: {text}"
 NO_WAIT_REFUSAL = (
@@ -55,6 +59,7 @@ TICKET_RECOVERY_HEARD = (
 SAVED_KEY_ANSWER = "Saved the key {name}."
 APPROVAL_QUESTION = "Allow {tool}?"
 APPROVAL_WAITING = "The worker waits for the user to allow {tool}."
+WORKER_LIMIT = "Your bot can run {limit} workers at once."
 WORKER_FILES_FOLDER = (
     "Save every file you make for the user in {folder}, the one folder they can get files from, "
     "and name each by its full path in your ready report. A file saved anywhere else cannot "

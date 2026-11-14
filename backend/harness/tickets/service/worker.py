@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -32,6 +32,7 @@ from harness.tickets.domain.prompts import (
     TICKET_TURN_FAILED,
     WORKER_FILES_FOLDER,
     WORKER_INTRO,
+    WORKER_LIMIT,
 )
 from harness.tickets.domain.result_files import reported_files
 from harness.tools import Approval, Failure, Ok
@@ -87,12 +88,15 @@ class RuntimeTicketWorker:
 
     runtime: Runtime
     sessions: SessionService
+    worker_limit_of: Callable[[str], int]
+    """How many workers a bot runs at once, read as its ticket's first turn starts."""
 
     async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
         session = await self.sessions.create(worker_session_id(ticket.id))
         session.append(ApprovalModeChange(mode=mode))
-        task = self._with_files_folder(ticket.task, self._chat_id(session, ticket))
+        limit = WORKER_LIMIT.format(limit=self.worker_limit_of(ticket.bot_id))
+        task = self._with_files_folder(f"{ticket.task}\n\n{limit}", self._chat_id(session, ticket))
         return await self._run_turn(ticket, task, session, ticket.files)
 
     async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:

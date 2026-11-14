@@ -41,7 +41,7 @@ def workers(
     )
     sessions = SessionService(JsonlSessionRepository(tmp_path / "workers"))
     runtime = runtime_over(client, saver, approvals=approvals, guidance="BASE")
-    return RuntimeTicketWorker(runtime, sessions), client, sessions
+    return RuntimeTicketWorker(runtime, sessions, lambda _bot_id: 3), client, sessions
 
 
 async def test_a_resumed_turn_keeps_the_mode_its_first_turn_logged(tmp_path: Path) -> None:
@@ -58,6 +58,6 @@ async def test_a_resumed_turn_keeps_the_mode_its_first_turn_logged(tmp_path: Pat
     assert all(m.content.startswith("You are a worker.") and "BASE" in m.content for m in systems)
     stored = await sessions.read(worker_session_id(TICKET.id))
     assert [e.message.content for e in stored.events() if e.type == "user/message"] == [
-        "Wait for the note.",
+        "Wait for the note.\n\nYour bot can run 3 workers at once.",
         "The note is Kopi.",
     ]

@@ -70,7 +70,7 @@ async def worker_call_result(
         files=files_in(tmp_path),
     )
     assert bot.tools is not None
-    runtime = ticket_workers(bot.tools.tool_service, bot, logs, bots.chat_of).runtime
+    runtime = ticket_workers(bot.tools.tool_service, bot, logs, bots).runtime
     session = await sessions.create(session_id)
     await drain(runtime.run("open it", session=session, bot_id=ASSISTANT_ID))
     (result,) = [e for e in session.events() if isinstance(e, ToolResultEvent)]

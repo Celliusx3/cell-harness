@@ -212,7 +212,7 @@ def create_web_app() -> FastAPI:
         TicketRepository(settings.tickets.path),
         bots,
         runs,
-        worker=ticket_workers(tool_service, runtime, subagent_logs, bots.chat_of),
+        worker=ticket_workers(tool_service, runtime, subagent_logs, bots),
         logs=subagent_logs,
         follow=channels.gateway.follow,
         now=now,

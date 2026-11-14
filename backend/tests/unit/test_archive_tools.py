@@ -112,7 +112,7 @@ async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path
         files=files_in(tmp_path),
     )
     assert bot.tools is not None
-    runtime = ticket_workers(bot.tools.tool_service, bot, logs, bots.chat_of).runtime
+    runtime = ticket_workers(bot.tools.tool_service, bot, logs, bots).runtime
     assert runtime.tools is not None
     offered = [spec.name for spec in runtime.tools.specs(sees_images=False)]
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered
