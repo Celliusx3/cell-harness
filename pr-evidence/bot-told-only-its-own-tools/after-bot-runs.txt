@@ -1,0 +1,11 @@
+== this branch, try 1
+person: Your computer has computer__shell. Call computer__shell yourself right now with the command uname -a and tell me the output. Do not start a worker.
+bot says: I don't have a `computer__shell` tool available in my toolset, so I can't run `uname -a` myself, and you asked me not to start a worker. I can't fabricate the output.
+
+== this branch, try 2
+person: Your computer has computer__shell. Call computer__shell yourself right now with the command uname -a and tell me the output. Do not start a worker.
+bot says: I don't have a `computer__shell` tool available, so I can't run `uname -a` for you. You can run it yourself in your own shell.
+
+== this branch, try 3
+person: Your computer has computer__shell. Call computer__shell yourself right now with the command uname -a and tell me the output. Do not start a worker.
+bot says: I don't have a `computer__shell` tool available in my toolset, so I can't run `uname -a` myself. I only have tools for routing work to workers, creating bots, managing schedules, sending files, viewing images, and managing skills. If you'd like, I can accept this as a ticket and hand it to a worker who may be able to run it, but I won't do that unless you ask since you said not to start a worker.
