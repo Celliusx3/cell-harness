@@ -123,3 +123,7 @@ def test_the_fold_carries_how_the_question_is_answered() -> None:
 def test_the_worker_is_told_to_ask_for_the_screen_at_a_step_only_the_user_should_do() -> None:
     assert "the ask takeover" in WORKER_INTRO
     assert "a human check" in WORKER_INTRO
+
+
+def test_the_worker_is_told_to_leave_the_check_alone_while_it_asks() -> None:
+    assert "do not click, answer or solve the check yourself" in WORKER_INTRO
