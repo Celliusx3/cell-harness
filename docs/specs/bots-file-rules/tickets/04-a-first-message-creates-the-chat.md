@@ -1,6 +1,6 @@
 # 04. A first message creates the chat
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

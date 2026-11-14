@@ -151,4 +151,5 @@ async def test_a_new_chat_switched_to_the_default_writes_nothing(tmp_path) -> No
     detail = await client.get(f"/api/conversations/{ASSISTANT_ID}")
 
     assert switched.status_code == 204
-    assert detail.status_code == 404, detail.text
+    assert detail.json()["events"] == []
+    assert not (tmp_path / "sessions" / f"{ASSISTANT_ID}.jsonl").exists()

@@ -10,6 +10,8 @@ from harness.channels.web.channel import WebChannel
 from harness.channels.web.conversation_router import chat_router
 from harness.runs.service.run import RunAlreadyActiveError
 from harness.runtime.compaction import CompactionRefusedError
+from harness.runtime.compaction.service import NOTHING_TO_COMPACT_REASON
+from harness.session.repository.session_repository import SessionNotFoundError
 
 logger = logging.getLogger("harness.web")
 
@@ -32,7 +34,10 @@ class CompactRouter:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
-        session = await self._web.sessions.resume(conversation_id)
+        try:
+            session = await self._web.sessions.resume(conversation_id)
+        except SessionNotFoundError as err:
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=NOTHING_TO_COMPACT_REASON) from err
         try:
             self._web.gateway.compact(session, ())
         except CompactionRefusedError as err:
