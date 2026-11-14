@@ -12,7 +12,6 @@ from harness.bots.domain.models import (
     BotDraft,
     BotEdit,
     BotNotFound,
-    BotsFile,
     BuiltInBotError,
     Group,
 )
@@ -20,7 +19,6 @@ from harness.bots.repository.bot_repository import BotRepository
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.domain.log import Session
 from harness.session.domain.models import BotInstructionsEvent
-from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
 
 
@@ -44,41 +42,29 @@ class BotService:
         )
         self._built_in_ids = frozenset(bot.id for bot in self._built_ins)
 
-    async def open_active_bots(self) -> tuple[Bot, ...]:
-        """The built-ins, then the active others in the order made; opens a built-in's chat once."""
-        bots = self._active_bots_in(self._repository.read())
-        for bot in bots[: len(self._built_ins)]:
-            try:
-                await self._sessions.read(self.chat_of(bot.id))
-            except SessionNotFoundError:
-                session = await self._sessions.create(self.chat_of(bot.id))
-                await self._log_instructions(session, bot)
-        return bots
-
     def active_bots(self) -> tuple[Bot, ...]:
-        """The active bots, built-ins first, read without opening any chat."""
-        return self._active_bots_in(self._repository.read())
-
-    def active_bot_names(self) -> tuple[str, ...]:
-        """The active bots' names, built-ins first, read without opening any chat."""
-        return tuple(bot.name for bot in self.active_bots())
+        """The built-ins, then the active others in the order made."""
+        return _active_bots(self._repository.bots(), self._built_ins)
 
     def archived_bots(self) -> tuple[Bot, ...]:
         """The archived bots, in the order they were made."""
-        return tuple(bot for bot in self._repository.read().bots if bot.archived)
+        return tuple(bot for bot in self._repository.bots() if bot.archived)
 
     def active_bot(self, bot_id: str) -> Bot:
         """The active bot with this id; `BotNotFound` when there is none."""
-        return self._active_bot_in(self._repository.read(), bot_id)
+        bot = next((bot for bot in self.active_bots() if bot.id == bot_id), None)
+        if bot is None:
+            raise BotNotFound(bot_id)
+        return bot
 
     def groups(self) -> tuple[Group, ...]:
         """Every group, in the order each was made."""
-        return self._repository.read().groups
+        return self._repository.groups()
 
     def add_group(self, group: Group) -> None:
         """Save `group` after every group already made."""
-        stored = self._repository.read()
-        self._write_file(stored.model_copy(update={"groups": (*stored.groups, group)}))
+        self._repository.add_group(group)
+        self._publish_change()
 
     def chat_of(self, bot_id: str) -> str:
         """The id of the one chat the bot answers in, which is the bot's own id."""
@@ -94,121 +80,85 @@ class BotService:
             model_credential=draft.model,
         )
         await self._log_instructions(session, bot)
-        stored = self._repository.read()
-        self._write_file(stored.model_copy(update={"bots": (*stored.bots, bot)}))
+        self._repository.add(bot)
+        self._publish_change()
         return bot
 
     def update(self, bot_id: str, edit: BotEdit) -> Bot:
         """Set an active bot's name, instructions, model and worker limit; logged next turn."""
-        stored = self._repository.read()
-        bot = self._active_bot_in(stored, bot_id)
         changes = {
             "name": edit.name,
             "instructions": edit.instructions,
             "model_credential": edit.model,
-            "max_workers": bot.max_workers if edit.max_workers is None else edit.max_workers,
+            "max_workers": edit.max_workers,
         }
-        return self._save_bot(stored, bot.model_copy(update=changes))
+        edited = self.active_bot(bot_id).model_copy(update=changes)
+        self._repository.update(edited)
+        self._publish_change()
+        return edited
 
     def allow_secret(self, bot_id: str, secret_name: str) -> Bot:
         """Add the saved key `secret_name` to the keys an active bot may use."""
-        stored = self._repository.read()
-        bot = self._active_bot_in(stored, bot_id)
-        return self._save_bot(
-            stored,
-            bot.model_copy(
-                update={"secret_names": _without_repeats((*bot.secret_names, secret_name))}
-            ),
+        bot = self.active_bot(bot_id)
+        allowed = bot.model_copy(
+            update={"secret_names": _without_repeats((*bot.secret_names, secret_name))}
         )
+        self._repository.update(allowed)
+        self._publish_change()
+        return allowed
 
     def set_allowed_secrets(self, bot_id: str, secret_names: tuple[str, ...]) -> Bot:
         """Make `secret_names` the saved keys an active bot may use, and no others."""
-        stored = self._repository.read()
-        bot = self._active_bot_in(stored, bot_id)
-        return self._save_bot(
-            stored, bot.model_copy(update={"secret_names": _without_repeats(secret_names)})
-        )
+        bot = self.active_bot(bot_id)
+        allowed = bot.model_copy(update={"secret_names": _without_repeats(secret_names)})
+        self._repository.update(allowed)
+        self._publish_change()
+        return allowed
 
     def set_bots_for_secret(self, name: str, bot_ids: tuple[str, ...]) -> None:
         """Make the saved key `name` one of the keys of exactly the active bots `bot_ids`."""
-        stored = self._repository.read()
         changed = tuple(
             bot.with_secret(name, allowed=bot.id in bot_ids)
-            for bot in self._active_bots_in(stored)
+            for bot in self.active_bots()
             if bot.can_use_secret(name) != (bot.id in bot_ids)
         )
-        self._save_bots(stored, changed)
+        self._repository.update(*changed)
+        self._publish_change()
 
-    def forget_secret(self, secret_name: str) -> None:
-        """Take `secret_name` off every stored bot, archived ones too, as a key and as a model."""
-        stored = self._repository.read()
-        bots = tuple(bot.without_credential(secret_name) for bot in stored.bots)
-        if bots != stored.bots:
-            self._write_file(stored.model_copy(update={"bots": bots}))
+    def forget_credential(self, credential_name: str) -> None:
+        """Take `credential_name` off every stored bot, archived too, as a key and as a model."""
+        stored = self._repository.bots()
+        cleared = (bot.without_credential(credential_name) for bot in stored)
+        changed = tuple(bot for bot in cleared if bot not in stored)
+        if changed:
+            self._repository.update(*changed)
+            self._publish_change()
 
     def archive(self, bot_id: str) -> None:
         """Hide a bot and its chat until it is restored."""
-        stored = self._repository.read()
-        self._check_removable(stored, bot_id)
-        self._set_archived(stored, bot_id, archived=True)
+        stored = self._removable_bot(bot_id)
+        self._repository.update(stored.model_copy(update={"archived": True}))
+        self._publish_change()
 
     def restore(self, bot_id: str) -> None:
         """Bring an archived bot back with its chat as it was; an active one stays as it is."""
         if bot_id not in self._built_in_ids:
-            self._set_archived(self._repository.read(), bot_id, archived=False)
+            stored = self._repository.find(bot_id)
+            self._repository.update(stored.model_copy(update={"archived": False}))
+            self._publish_change()
 
     async def delete(self, bot_id: str) -> None:
         """Remove a bot and its chat for good."""
-        stored = self._repository.read()
-        self._check_removable(stored, bot_id)
-        kept = tuple(bot for bot in stored.bots if bot.id != bot_id)
-        self._write_file(stored.model_copy(update={"bots": kept}))
+        self._repository.delete(self._removable_bot(bot_id).id)
+        self._publish_change()
         await self._sessions.delete(self.chat_of(bot_id))
 
-    def _active_bots_in(self, stored: BotsFile) -> tuple[Bot, ...]:
-        built_ins = (
-            next((bot for bot in stored.bots if bot.id == default.id), default)
-            for default in self._built_ins
-        )
-        others = (
-            bot for bot in stored.bots if bot.id not in self._built_in_ids and not bot.archived
-        )
-        return (*built_ins, *others)
-
-    def _active_bot_in(self, stored: BotsFile, bot_id: str) -> Bot:
-        bot = next((bot for bot in self._active_bots_in(stored) if bot.id == bot_id), None)
-        if bot is None:
-            raise BotNotFound(bot_id)
-        return bot
-
-    def _check_removable(self, stored: BotsFile, bot_id: str) -> None:
+    def _removable_bot(self, bot_id: str) -> Bot:
         if bot_id in self._built_in_ids:
             raise BuiltInBotError(bot_id)
-        if bot_id not in {bot.id for bot in stored.bots}:
-            raise BotNotFound(bot_id)
+        return self._repository.find(bot_id)
 
-    def _save_bot(self, stored: BotsFile, bot: Bot) -> Bot:
-        self._save_bots(stored, (bot,))
-        return bot
-
-    def _save_bots(self, stored: BotsFile, bots: tuple[Bot, ...]) -> None:
-        by_id = {bot.id: bot for bot in bots}
-        stored_ids = {saved.id for saved in stored.bots}
-        added = tuple(bot for bot in bots if bot.id not in stored_ids)
-        replaced = tuple(by_id.get(saved.id, saved) for saved in stored.bots)
-        self._write_file(stored.model_copy(update={"bots": (*added, *replaced)}))
-
-    def _set_archived(self, stored: BotsFile, bot_id: str, *, archived: bool) -> None:
-        if bot_id not in {bot.id for bot in stored.bots}:
-            raise BotNotFound(bot_id)
-        bots = tuple(
-            bot.model_copy(update={"archived": archived}) if bot.id == bot_id else bot
-            for bot in stored.bots
-        )
-        self._write_file(stored.model_copy(update={"bots": bots}))
-
-    def _write_file(self, stored: BotsFile) -> None:
-        self._repository.write(stored)
+    def _publish_change(self) -> None:
         self._app_events.publish(BotsChangedAppEvent())
 
     async def _log_instructions(self, session: Session, bot: Bot) -> None:
@@ -219,6 +169,15 @@ class BotService:
 def bot_instructions_event(bot: Bot) -> BotInstructionsEvent:
     """The event that tells a chat's log what `bot` is called and answers with."""
     return BotInstructionsEvent(name=bot.name, instructions=bot.instructions, bot_id=bot.id)
+
+
+def _active_bots(stored: tuple[Bot, ...], built_ins: tuple[Bot, ...]) -> tuple[Bot, ...]:
+    built_in_ids = {default.id for default in built_ins}
+    stored_built_ins = (
+        next((bot for bot in stored if bot.id == default.id), default) for default in built_ins
+    )
+    others = (bot for bot in stored if bot.id not in built_in_ids and not bot.archived)
+    return (*stored_built_ins, *others)
 
 
 def _without_repeats(names: tuple[str, ...]) -> tuple[str, ...]:

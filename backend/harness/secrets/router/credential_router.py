@@ -70,7 +70,7 @@ class CredentialRouter:
     async def list_credentials(self, request: Request, response: Response) -> CredentialList:
         response.headers.update(cors_headers(request))
         saved = await asyncio.to_thread(self._secrets.saved_credentials)
-        active = await self._bots.open_active_bots()
+        active = self._bots.active_bots()
         return CredentialList(
             credentials=tuple(_credential_entry(credential, active) for credential in saved),
             direct_url=_direct_url(request),

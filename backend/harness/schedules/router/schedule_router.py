@@ -66,7 +66,7 @@ class ScheduleRouter:
         )
 
     async def list_schedules(self) -> list[ScheduleRow]:
-        named = (*await self._bots.open_active_bots(), *self._bots.archived_bots())
+        named = (*self._bots.active_bots(), *self._bots.archived_bots())
         bot_names = {bot.id: bot.name for bot in named}
         return [_row(s, bot_names) for s in ordered(self._schedules.schedules(), None)]
 

@@ -79,7 +79,12 @@ export function SetupForm({ directUrl }: SetupFormProps) {
 async function putAssistantOnModel(name: string) {
   const assistant = (await listBots()).find((bot) => bot.id === ASSISTANT_ID);
   if (assistant === undefined) throw new ApiError(404, "The harness lists no Assistant.");
-  await updateBot(ASSISTANT_ID, { name: assistant.name, instructions: assistant.instructions, model: name });
+  await updateBot(ASSISTANT_ID, {
+    name: assistant.name,
+    instructions: assistant.instructions,
+    model: name,
+    max_workers: assistant.max_workers,
+  });
 }
 
 interface ProviderFieldsProps {

@@ -29,7 +29,6 @@ async def test_a_bot_message_s_turn_is_followed_by_the_chats_linked_to_it(tmp_pa
         tmp_path, ScriptedClient(completed("Researcher says yes.")), skills=no_skills()
     )
     bots = no_bots(sessions)
-    await bots.open_active_bots()
     messages = BotMessenger(bots, runs, follow=gateway.follow)
 
     await messages.deliver(ASSISTANT_ID, ANSWERED)

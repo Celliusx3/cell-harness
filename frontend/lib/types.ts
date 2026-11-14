@@ -209,8 +209,8 @@ export interface BotEdit {
   name: string;
   instructions: string;
   model: string | null;
-  /** The bot's worker limit, 1 to 16; left out, the saved one is kept. */
-  max_workers?: number;
+  /** The bot's worker limit, 1 to 16. */
+  max_workers: number;
 }
 
 /** Two to six bots sharing one chat, whose id is the group's; they take turns in member order. */

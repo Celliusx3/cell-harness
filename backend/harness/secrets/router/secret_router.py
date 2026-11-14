@@ -21,7 +21,7 @@ class SecretRouter:
         )
 
     async def list_secrets(self) -> list[SavedKey]:
-        active = await self._bots.open_active_bots()
+        active = self._bots.active_bots()
         return [_saved_key(summary, active) for summary in self._secrets.custom_key_summaries()]
 
 

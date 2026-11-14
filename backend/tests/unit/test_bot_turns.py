@@ -9,7 +9,6 @@ from harness.app_events import AppEventService
 from harness.bots import (
     ASSISTANT_ID,
     MENTION_TURN_ORDER,
-    BotEdit,
     BotRepository,
     BotService,
     GroupService,
@@ -43,6 +42,7 @@ from harness.session.domain.models import (
 )
 from harness.session.service.session_service import SessionService
 from harness.tools import Ok
+from tests.bot_models import put_instructions
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, pending_tool
 from tests.unit.helpers import durable_service, new_session, runtime_over
 
@@ -99,7 +99,7 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     runs = _runs(service, runtime, bots, app_events)
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "hi")._settle_task, timeout=5)
-    bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
+    put_instructions(bots, ASSISTANT_ID, "Be brief.")
 
     await asyncio.wait_for(runs.compact(session)._settle_task, timeout=5)
 
@@ -122,7 +122,7 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
     )
     session = await service.create(ASSISTANT_ID)
     await asyncio.wait_for(runs.start(session, "near me?")._settle_task, timeout=5)
-    bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
+    put_instructions(bots, ASSISTANT_ID, "Be brief.")
 
     await asyncio.wait_for(runs.resume(session, "c1", Ok(content="here"))._settle_task, timeout=5)
 

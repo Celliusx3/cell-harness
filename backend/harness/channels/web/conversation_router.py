@@ -192,7 +192,7 @@ class ConversationRouter:
             run = web.runs.active_run(conversation_id)
             if run is not None:
                 return run
-            return await web.sessions.read(conversation_id)
+            return await web.sessions.read_or_empty(conversation_id)
 
         async def after_drain() -> Source:
             await web.gateway.wait_until_drained(web.channel, web.chat_id_for(conversation_id))
@@ -218,7 +218,6 @@ class ConversationRouter:
 
     async def clear_chat(self, conversation_id: str) -> Response:
         """Clear the chat in place: its turn stops and the history starts after it."""
-        await self._web.sessions.read(conversation_id)
         await self._web.gateway.clear(self._web.channel, self._web.chat_id_for(conversation_id))
         logger.info("conversation %s cleared by the browser", conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -247,8 +246,8 @@ class ConversationRouter:
         return _message_accepted(await self._chat_session(conversation_id), queued=False)
 
     async def _chat_session(self, conversation_id: str) -> Session:
-        """The running turn's session, else the stored one, read without repair."""
+        """The running turn's session, else the stored one unrepaired, else an empty one."""
         run = self._web.runs.active_run(conversation_id)
         if run is not None:
             return run.session
-        return await self._web.sessions.read(conversation_id)
+        return await self._web.sessions.read_or_empty(conversation_id)

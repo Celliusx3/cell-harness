@@ -100,13 +100,13 @@ class RunService:
         )
 
     async def hear_when_free(self, chat_id: str, message: HeardMessage) -> Run:
-        """The turn `message` opens in `chat_id` once no run is in flight there."""
+        """The turn `message` opens in `chat_id` once free, the chat created if never written."""
         while True:
             running = self._runs.get(chat_id)
             if running is not None:
                 await wait_until_settled(running)
                 continue
-            session = await self._sessions.resume(chat_id)
+            session = await self._resumed_or_new_session(chat_id)
             if chat_id not in self._runs:
                 return self.hear(session, message)
 
@@ -138,7 +138,7 @@ class RunService:
 
     async def set_approval_mode(self, conversation_id: str, mode: ApprovalMode) -> None:
         """Switch the chat to `mode` from its next call; the mode already on writes nothing."""
-        session = await self._session_to_switch(conversation_id)
+        session = await self._resumed_or_new_session(conversation_id)
         if self._runtime.approval_mode(session) == mode:
             return
         await self._append(session, ApprovalModeChange(mode=mode))
@@ -181,7 +181,7 @@ class RunService:
             return tools.default_mode
         return self._runtime.approval_mode(session)
 
-    async def _session_to_switch(self, conversation_id: str) -> Session:
+    async def _resumed_or_new_session(self, conversation_id: str) -> Session:
         """The running turn's log, else the stored one, created when the chat was never written."""
         run = self._runs.get(conversation_id)
         if run is not None:

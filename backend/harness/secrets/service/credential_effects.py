@@ -41,6 +41,6 @@ class CredentialEffects:
 
     async def react_to_removed(self, name: str, details: CredentialDetails) -> None:
         """Untie `name` from every bot, and restart the platform it signed in."""
-        self.bots.forget_secret(name)
+        self.bots.forget_credential(name)
         if isinstance(details, ChatPlatformDetails):
             await self.platforms.restart(details.kind)

@@ -12,6 +12,7 @@ import pytest
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots.domain.models import DEFAULT_MAX_WORKERS
 from harness.config.settings import Settings
 from harness.llm.adapters.openai import client as adapter_module
 from harness.mcp import McpService
@@ -124,7 +125,12 @@ async def test_only_a_bot_on_a_seeing_model_is_sent_images_and_view_image(app: A
         assert (await app.client.post("/api/credentials", json=saved)).status_code == 201
     researcher = {"name": "Researcher", "instructions": "Find sources.", "model": TEXT_ONLY}
     reader = (await app.client.post("/api/bots", json=researcher)).json()["id"]
-    edit = {"name": "Assistant", "instructions": "Help.", "model": SEEING}
+    edit = {
+        "name": "Assistant",
+        "instructions": "Help.",
+        "model": SEEING,
+        "max_workers": DEFAULT_MAX_WORKERS,
+    }
     assert (await app.client.put(f"/api/bots/{ASSISTANT_ID}", json=edit)).status_code == 200
 
     await _send_image(app, ASSISTANT_ID)

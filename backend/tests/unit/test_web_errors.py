@@ -8,7 +8,14 @@ import httpx
 import pytest
 from fastapi import FastAPI, HTTPException
 
-from harness.bots import ASSISTANT_ID, BotNotFound, BuiltInBotError, EmptyGroupError
+from harness.bots import (
+    ASSISTANT_ID,
+    BotNotFound,
+    BuiltInBotError,
+    EmptyGroupError,
+    GroupMemberNotFound,
+    UnsavedModelError,
+)
 from harness.files import FileTooLargeError, UnsafeFileNameError
 from harness.mcp import (
     McpConnectionError,
@@ -41,8 +48,14 @@ from tests.webapp import web_app
 PINNED = [
     pytest.param(BotNotFound("nope"), 404, id="BotNotFound"),
     pytest.param(BuiltInBotError(ASSISTANT_ID), 409, id="BuiltInBotError"),
+    pytest.param(
+        UnsavedModelError("'gpt' is not a saved LLM credential; none is saved"),
+        422,
+        id="UnsavedModelError",
+    ),
     pytest.param(FileTooLargeError("notes.txt", 1024), 413, id="FileTooLargeError"),
     pytest.param(EmptyGroupError("team"), 409, id="EmptyGroupError"),
+    pytest.param(GroupMemberNotFound("nope"), 422, id="GroupMemberNotFound"),
     pytest.param(InvalidSchedule("rrule: no occurrence after now"), 422, id="InvalidSchedule"),
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),

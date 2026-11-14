@@ -8,7 +8,13 @@ from types import MappingProxyType
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
-from harness.bots import BotNotFound, BuiltInBotError, EmptyGroupError
+from harness.bots import (
+    BotNotFound,
+    BuiltInBotError,
+    EmptyGroupError,
+    GroupMemberNotFound,
+    UnsavedModelError,
+)
 from harness.files import FileTooLargeError, UnsafeFileNameError
 from harness.mcp import (
     McpConnectionError,
@@ -41,6 +47,7 @@ STATUS_BY_ERROR: Mapping[type[Exception], int] = MappingProxyType(
         BuiltInBotError: status.HTTP_409_CONFLICT,
         FileTooLargeError: status.HTTP_413_CONTENT_TOO_LARGE,
         EmptyGroupError: status.HTTP_409_CONFLICT,
+        GroupMemberNotFound: status.HTTP_422_UNPROCESSABLE_CONTENT,
         InvalidSchedule: status.HTTP_422_UNPROCESSABLE_CONTENT,
         InvalidSkill: status.HTTP_422_UNPROCESSABLE_CONTENT,
         McpConnectionError: status.HTTP_502_BAD_GATEWAY,
@@ -64,6 +71,7 @@ STATUS_BY_ERROR: Mapping[type[Exception], int] = MappingProxyType(
         StoppedTicketError: status.HTTP_409_CONFLICT,
         UnreadableFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
         UnsafeFileNameError: status.HTTP_422_UNPROCESSABLE_CONTENT,
+        UnsavedModelError: status.HTTP_422_UNPROCESSABLE_CONTENT,
     }
 )
 

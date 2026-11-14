@@ -25,7 +25,6 @@ DAILY = "DTSTART:20261112T060000Z\nRRULE:FREQ=DAILY"
 async def groups(tmp_path: Path) -> GroupService:
     sessions = durable_service(tmp_path / "sessions")
     found = no_bots(sessions)
-    await found.open_active_bots()
     return GroupService(found, sessions, MENTION_TURN_ORDER)
 
 

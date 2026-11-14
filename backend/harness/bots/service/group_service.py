@@ -9,6 +9,7 @@ from harness.bots.domain.models import (
     EmptyGroupError,
     Group,
     GroupDraft,
+    GroupMemberNotFound,
 )
 from harness.bots.domain.turn_order import TurnOrder
 from harness.bots.service.bot_service import BotService, bot_instructions_event
@@ -26,14 +27,20 @@ class GroupService:
         self._turn_order = turn_order
 
     async def create(self, draft: GroupDraft) -> Group:
-        """A new group of active bots, its chat holding its members; `BotNotFound` for any other."""
-        members = tuple(self._bots.active_bot(bot_id) for bot_id in draft.member_ids)
+        """A new group of active bots, its chat holding its members; else `GroupMemberNotFound`."""
+        members = tuple(self._active_member(bot_id) for bot_id in draft.member_ids)
         session = await self._sessions.create()
         group = Group(id=session.id, name=draft.name, member_ids=draft.member_ids)
         session.append(_group_members_event(group, members))
         await self._sessions.flush(session)
         self._bots.add_group(group)
         return group
+
+    def _active_member(self, bot_id: str) -> Bot:
+        try:
+            return self._bots.active_bot(bot_id)
+        except BotNotFound as err:
+            raise GroupMemberNotFound(bot_id) from err
 
     def chat_members(self, chat_id: str) -> ChatMembers:
         """A bot's chat's bot, or a group's active members in order; `BotNotFound` for neither."""

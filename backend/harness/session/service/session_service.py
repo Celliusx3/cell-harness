@@ -9,7 +9,10 @@ from uuid import uuid4
 from harness.session.domain.crash_repair import crash_repairs
 from harness.session.domain.log import Session
 from harness.session.domain.models import ChatCleared, SessionHeader
-from harness.session.repository.session_repository import SessionRepository
+from harness.session.repository.session_repository import (
+    SessionNotFoundError,
+    SessionRepository,
+)
 
 
 class SessionService:
@@ -38,6 +41,13 @@ class SessionService:
         """Load a stored session **as it is**, repairing nothing."""
         header, events = await self._repository.load(session_id)
         return Session(header, events)
+
+    async def read_or_empty(self, session_id: str) -> Session:
+        """The stored session as it is; an empty one, kept nowhere, when none is stored."""
+        try:
+            return await self.read(session_id)
+        except SessionNotFoundError:
+            return Session(SessionHeader(id=session_id, created_at=self._now()))
 
     async def resume(self, session_id: str) -> Session:
         """Load a stored session, repairing whatever a dead process left open."""
