@@ -15,7 +15,7 @@ from harness.session.domain.models import (
 )
 
 
-def after_owed_results(log: Sequence[SessionEvent]) -> tuple[SessionEvent, ...]:
+def with_changes_after_owed_results(log: Sequence[SessionEvent]) -> tuple[SessionEvent, ...]:
     """`log` with each schedule change moved past the tool results still owed when it was logged."""
     owed: frozenset[str] = frozenset()
     held: tuple[ScheduleChangeEvent, ...] = ()

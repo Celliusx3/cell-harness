@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.router.credential_router import build_router
+from harness.secrets.router.credential_router import CredentialRouter
 from harness.web.http.errors import exception_handlers
 from tests.unit.helpers import durable_service
 from tests.webapp import no_platforms
@@ -45,7 +45,7 @@ def http(tmp_path: Path) -> httpx.AsyncClient:
         app_events=AppEventService(),
     )
     app = FastAPI(exception_handlers=exception_handlers())
-    app.include_router(build_router(secrets, bots, no_platforms(secrets)))
+    app.include_router(CredentialRouter(secrets, bots, no_platforms(secrets)).router)
     transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
     return httpx.AsyncClient(
         transport=transport, base_url="http://127.0.0.1:4886", headers={"origin": PAGE}

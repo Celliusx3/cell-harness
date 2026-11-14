@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from harness.llm import Completed, ToolCall, ToolCallChunk, ToolMessage
+from harness.llm import Completion, ToolCall, ToolCallChunk, ToolMessage
 from harness.runtime.events import AgentCompleted, AgentPending
 from harness.runtime.hooks import HookChain, ToolHook
 from harness.sandbox import Bridge, BridgeError
@@ -30,7 +30,7 @@ from tests.unit.helpers import drain, new_session
 
 
 def _step_with(*calls: ToolCall) -> list:
-    return [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
+    return [*(ToolCallChunk(call=c) for c in calls), Completion(full_text="", tool_calls=calls)]
 
 
 async def test_a_listed_tool_ends_the_turn_pending_and_does_not_run(tmp_path) -> None:
@@ -110,7 +110,7 @@ async def test_allow_for_the_conversation_writes_a_grant_and_the_next_call_runs_
     assert ran == ["Kopi", "Teh"]
     grants = [e for e in session.events() if isinstance(e, ApprovalGrant)]
     assert grants == [ApprovalGrant(turn=1, tool=WRITE)]
-    assert session.conversation_approved_tools() == frozenset({WRITE})
+    assert session.speaker_granted_tools() == frozenset({WRITE})
     assert events[-1] == AgentCompleted(text="saved again")
     assert [e.reason for e in session.events() if isinstance(e, TurnEnd)] == [
         "pending",
@@ -201,10 +201,10 @@ async def test_a_script_calling_a_listed_tool_is_refused_and_told_to_call_it_dir
 
 async def test_a_hook_refusal_never_reaches_the_approvals(tmp_path) -> None:
     class Refuse(ToolHook):
-        async def pre(self, sig, prior) -> str | None:
+        async def refusal_reason(self, sig, prior) -> str | None:
             return "no"
 
-        async def post(self, sig, outcome, prior) -> str | None:
+        async def post_call_note(self, sig, outcome, prior) -> str | None:
             return None
 
     ran: list[str] = []

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 from harness.session.domain.models import SessionEvent, SessionHeader
 
@@ -20,6 +20,13 @@ class SessionCorruptionError(RuntimeError):
     """A committed part of the log is unreadable."""
 
 
+class StoredSession(NamedTuple):
+    """A session as read back: its header and its events, in order."""
+
+    header: SessionHeader
+    events: list[SessionEvent]
+
+
 class SessionRepository(Protocol):
     """Store and reload sessions durably."""
 
@@ -31,7 +38,7 @@ class SessionRepository(Protocol):
         """Durably record a batch, continuing the stored log. Append-only."""
         ...
 
-    async def restart(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+    async def replace(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
         """Replace the stored log with `header` and `events`."""
         ...
 
@@ -39,7 +46,7 @@ class SessionRepository(Protocol):
         """How many events are already durable for this session."""
         ...
 
-    async def load(self, session_id: str) -> tuple[SessionHeader, list[SessionEvent]]:
+    async def load(self, session_id: str) -> StoredSession:
         """Read a session back. Raises if it does not exist or cannot be read."""
         ...
 

@@ -6,26 +6,34 @@ import logging
 
 from fastapi import APIRouter, HTTPException, status
 
-from harness.bots import BotNotFound, Group, GroupDraft, GroupService
+from harness.bots import BotNotFound, BotService, Group, GroupDraft, GroupService
 
 logger = logging.getLogger(__name__)
 
 
-def build_router(groups: GroupService) -> APIRouter:
+class GroupRouter:
     """Every group, and making one; a member that is no active bot is a 422."""
-    router = APIRouter(prefix="/api/groups", tags=["groups"])
 
-    @router.get("", response_model=list[Group])
-    async def list_groups() -> list[Group]:
-        return list(groups.groups())
+    def __init__(self, bots: BotService, groups: GroupService) -> None:
+        self._bots = bots
+        self._groups = groups
+        self.router: APIRouter = APIRouter(prefix="/api/groups", tags=["groups"])
+        self.router.add_api_route("", self.list_groups, methods=["GET"], response_model=list[Group])
+        self.router.add_api_route(
+            "",
+            self.create_group,
+            methods=["POST"],
+            status_code=status.HTTP_201_CREATED,
+            response_model=Group,
+        )
 
-    @router.post("", status_code=status.HTTP_201_CREATED, response_model=Group)
-    async def create_group(body: GroupDraft) -> Group:
+    async def list_groups(self) -> list[Group]:
+        return list(self._bots.groups())
+
+    async def create_group(self, body: GroupDraft) -> Group:
         try:
-            group = await groups.create_group(body)
+            group = await self._groups.create(body)
         except BotNotFound as err:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(err)) from err
         logger.info("group %s created with %s", group.id, list(group.member_ids))
         return group
-
-    return router

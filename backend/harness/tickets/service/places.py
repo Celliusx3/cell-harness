@@ -21,12 +21,12 @@ class Occupancy:
 
 
 def place_for(
-    held: Occupancy, limit: int, *, first_in_line: bool, answer: bool
+    held: Occupancy, limit: int, *, first_in_line: bool, is_answer: bool
 ) -> PlaceKind | None:
     """The place a turn may take now, or `None` to wait; an answer skips the line."""
-    if (first_in_line or answer) and held.running < limit:
+    if (first_in_line or is_answer) and held.running < limit:
         return "normal"
-    if answer and not held.extra_in_use:
+    if is_answer and not held.extra_in_use:
         return "extra"
     return None
 
@@ -55,11 +55,11 @@ class Places:
         self._changed = asyncio.Condition()
 
     @asynccontextmanager
-    async def place(
-        self, bot_id: str, *, answer: bool, on_wait: Callable[[], None]
+    async def hold_place(
+        self, bot_id: str, *, is_answer: bool, on_wait: Callable[[], None]
     ) -> AsyncIterator[None]:
         """Hold a place for `bot_id` while inside; `on_wait` is called once if it must wait."""
-        kind = await self._take(bot_id, answer=answer, on_wait=on_wait)
+        kind = await self._take(bot_id, is_answer=is_answer, on_wait=on_wait)
         try:
             yield
         finally:
@@ -67,18 +67,20 @@ class Places:
                 self._held[bot_id] = freed(self._held[bot_id], kind)
                 self._changed.notify_all()
 
-    async def _take(self, bot_id: str, *, answer: bool, on_wait: Callable[[], None]) -> PlaceKind:
+    async def _take(
+        self, bot_id: str, *, is_answer: bool, on_wait: Callable[[], None]
+    ) -> PlaceKind:
         token = object()
-        if not answer:
+        if not is_answer:
             self._lines[bot_id] = (*self._lines.get(bot_id, ()), token)
         async with self._changed:
             try:
-                kind = self._grant(bot_id, token, answer)
+                kind = self._grant(bot_id, token, is_answer)
                 if kind is None:
                     on_wait()
                 while kind is None:
                     await self._changed.wait()
-                    kind = self._grant(bot_id, token, answer)
+                    kind = self._grant(bot_id, token, is_answer)
             finally:
                 self._lines[bot_id] = tuple(
                     t for t in self._lines.get(bot_id, ()) if t is not token
@@ -87,8 +89,8 @@ class Places:
             self._held[bot_id] = taken(self._held.get(bot_id, Occupancy()), kind)
             return kind
 
-    def _grant(self, bot_id: str, token: object, answer: bool) -> PlaceKind | None:
+    def _grant(self, bot_id: str, token: object, is_answer: bool) -> PlaceKind | None:
         line = self._lines.get(bot_id, ())
         first = bool(line) and line[0] is token
         held = self._held.get(bot_id, Occupancy())
-        return place_for(held, self._limit_of(bot_id), first_in_line=first, answer=answer)
+        return place_for(held, self._limit_of(bot_id), first_in_line=first, is_answer=is_answer)

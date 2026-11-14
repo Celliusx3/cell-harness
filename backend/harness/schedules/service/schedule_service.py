@@ -11,9 +11,9 @@ from harness.schedules.domain.models import Delivery, Schedule, SchedulesFile
 from harness.schedules.domain.timing import InvalidRrule, next_after
 from harness.schedules.repository.schedule_repository import ScheduleRepository
 
-MAX_TITLE = 120
-HISTORY_RECORDS = 200
-HISTORY_DAYS = 30
+MAX_TITLE_CHARS = 120
+MAX_KEPT_DELIVERIES = 200
+KEPT_DELIVERY_DAYS = 30
 
 Now = Callable[[], datetime]
 
@@ -56,15 +56,15 @@ class ScheduleService:
         schedule = Schedule(
             id=uuid.uuid4().hex,
             bot_id=bot_id,
-            title=_title(title),
-            prompt=_prompt(prompt),
+            title=_checked_title(title),
+            prompt=_checked_prompt(prompt),
             rrule=rrule,
             status="active",
             scheduled_at=_first_after(rrule, now),
             created_at=now,
             updated_at=now,
         )
-        self._change(lambda stored: (*stored, schedule))
+        self._rewrite_all(lambda stored: (*stored, schedule))
         self.changed.set()
         return schedule
 
@@ -72,18 +72,18 @@ class ScheduleService:
         """The occurrence due at `occurrence_at` was delivered: keep it, then move on, or end."""
         now = self._now()
         delivery = Delivery(scheduled_at=occurrence_at, delivered_at=now)
-        self._update(schedule_id, lambda schedule: _delivered(schedule, delivery, now))
+        self._rewrite_one(schedule_id, lambda schedule: _delivered(schedule, delivery, now))
 
     def record_run_now(self, schedule_id: str, occurrence_at: datetime) -> None:
         """A run-now delivery: kept, its next time and status left where they were."""
         now = self._now()
         delivery = Delivery(scheduled_at=occurrence_at, delivered_at=now)
-        self._update(schedule_id, lambda schedule: _kept(schedule, delivery, now))
+        self._rewrite_one(schedule_id, lambda schedule: _with_delivery(schedule, delivery, now))
 
     def end(self, schedule_id: str) -> None:
         """End the schedule, its `scheduled_at` left where it was."""
         now = self._now()
-        self._update(
+        self._rewrite_one(
             schedule_id,
             lambda schedule: schedule.model_copy(update={"status": "ended", "updated_at": now}),
         )
@@ -97,27 +97,31 @@ class ScheduleService:
         rrule: str | None = None,
     ) -> Schedule:
         """Change the fields given; a new rrule moves `scheduled_at` and revives an ended one."""
-        return self._revise(schedule_id, lambda s, now: _edited(s, now, title, prompt, rrule))
+        return self._revise_and_notify(
+            schedule_id, lambda s, now: _edited(s, now, title, prompt, rrule)
+        )
 
     def pause(self, schedule_id: str) -> Schedule:
         """Stop delivering the schedule until it is resumed."""
-        return self._revise(schedule_id, lambda s, _: s.model_copy(update={"status": "paused"}))
+        return self._revise_and_notify(
+            schedule_id, lambda s, _: s.model_copy(update={"status": "paused"})
+        )
 
     def resume(self, schedule_id: str) -> Schedule:
         """Deliver the schedule again, from its first occurrence after now."""
-        return self._revise(schedule_id, _resumed)
+        return self._revise_and_notify(schedule_id, _resumed)
 
     def delete(self, schedule_id: str) -> None:
         """Remove the schedule for good."""
-        self._change(lambda stored: _without(stored, _find(stored, schedule_id)))
+        self._rewrite_all(lambda stored: _without(stored, _find(stored, schedule_id)))
         self.changed.set()
 
     def delete_of_bot(self, bot_id: str) -> None:
         """Remove every schedule of `bot_id`, for a bot deleted for good."""
-        self._change(lambda stored: tuple(s for s in stored if s.bot_id != bot_id))
+        self._rewrite_all(lambda stored: tuple(s for s in stored if s.bot_id != bot_id))
         self.changed.set()
 
-    def _revise(
+    def _revise_and_notify(
         self, schedule_id: str, revise: Callable[[Schedule, datetime], Schedule]
     ) -> Schedule:
         """Replace the schedule with `revise` of it, stamped now, and say the schedules changed."""
@@ -127,14 +131,16 @@ class ScheduleService:
             revised = revise(_find(stored, schedule_id), now).model_copy(update={"updated_at": now})
             return tuple(revised if s.id == schedule_id else s for s in stored)
 
-        written = self._change(change)
+        written = self._rewrite_all(change)
         self.changed.set()
         return _find(written, schedule_id)
 
-    def _update(self, schedule_id: str, change: Callable[[Schedule], Schedule]) -> None:
-        self._change(lambda stored: tuple(change(s) if s.id == schedule_id else s for s in stored))
+    def _rewrite_one(self, schedule_id: str, change: Callable[[Schedule], Schedule]) -> None:
+        self._rewrite_all(
+            lambda stored: tuple(change(s) if s.id == schedule_id else s for s in stored)
+        )
 
-    def _change(
+    def _rewrite_all(
         self, change: Callable[[tuple[Schedule, ...]], tuple[Schedule, ...]]
     ) -> tuple[Schedule, ...]:
         """Every write: read, change, write, with no await between, so no two changes interleave."""
@@ -160,9 +166,9 @@ def _edited(
     """`schedule` with each given field checked and set; a new rrule restarts its timing."""
     fields: dict[str, str | datetime] = {}
     if title is not None:
-        fields = {**fields, "title": _title(title)}
+        fields = {**fields, "title": _checked_title(title)}
     if prompt is not None:
-        fields = {**fields, "prompt": _prompt(prompt)}
+        fields = {**fields, "prompt": _checked_prompt(prompt)}
     if rrule is not None:
         fields = {**fields, "rrule": rrule, "scheduled_at": _first_after(rrule, now)}
         fields = fields if schedule.status != "ended" else {**fields, "status": "active"}
@@ -174,44 +180,46 @@ def _resumed(schedule: Schedule, now: datetime) -> Schedule:
     return schedule.model_copy(update={"status": "active", "scheduled_at": first})
 
 
-def _kept(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
-    deliveries = _history((*schedule.deliveries, delivery))
+def _with_delivery(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
+    deliveries = _recent_deliveries(schedule.deliveries, delivery)
     return schedule.model_copy(update={"deliveries": deliveries, "updated_at": now})
 
 
 def ordered(schedules: tuple[Schedule, ...], active: bool | None) -> tuple[Schedule, ...]:
     """Active by `scheduled_at`, then the rest newest made first, narrowed by `active`."""
-    running = sorted((s for s in schedules if s.status == "active"), key=lambda s: s.scheduled_at)
+    active_by_due = sorted(
+        (s for s in schedules if s.status == "active"), key=lambda s: s.scheduled_at
+    )
     rest = sorted((s for s in schedules if s.status != "active"), key=lambda s: s.created_at)
     if active is True:
-        return tuple(running)
+        return tuple(active_by_due)
     newest_first = tuple(reversed(rest))
-    return newest_first if active is False else (*running, *newest_first)
+    return newest_first if active is False else (*active_by_due, *newest_first)
 
 
 def _delivered(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
     following = next_after(schedule.rrule, now)
     moved = {"status": "ended"} if following is None else {"scheduled_at": following}
-    return _kept(schedule, delivery, now).model_copy(update=moved)
+    return _with_delivery(schedule, delivery, now).model_copy(update=moved)
 
 
-def _history(deliveries: tuple[Delivery, ...]) -> tuple[Delivery, ...]:
-    """The newest `HISTORY_RECORDS`, none more than `HISTORY_DAYS` before the newest."""
-    cutoff = deliveries[-1].delivered_at - timedelta(days=HISTORY_DAYS)
-    recent = tuple(d for d in deliveries if d.delivered_at >= cutoff)
-    return recent[-HISTORY_RECORDS:]
+def _recent_deliveries(older: tuple[Delivery, ...], newest: Delivery) -> tuple[Delivery, ...]:
+    """The newest `MAX_KEPT_DELIVERIES`, none more than `KEPT_DELIVERY_DAYS` before the newest."""
+    cutoff = newest.delivered_at - timedelta(days=KEPT_DELIVERY_DAYS)
+    recent = tuple(d for d in (*older, newest) if d.delivered_at >= cutoff)
+    return recent[-MAX_KEPT_DELIVERIES:]
 
 
-def _title(title: str) -> str:
+def _checked_title(title: str) -> str:
     trimmed = title.strip()
     if not trimmed:
         raise InvalidSchedule("title: must not be empty")
-    if len(trimmed) > MAX_TITLE:
-        raise InvalidSchedule(f"title: must be at most {MAX_TITLE} characters")
+    if len(trimmed) > MAX_TITLE_CHARS:
+        raise InvalidSchedule(f"title: must be at most {MAX_TITLE_CHARS} characters")
     return trimmed
 
 
-def _prompt(prompt: str) -> str:
+def _checked_prompt(prompt: str) -> str:
     trimmed = prompt.strip()
     if not trimmed:
         raise InvalidSchedule("prompt: must not be empty")

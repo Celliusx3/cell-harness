@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import NamedTuple
 
 from harness.llm import ToolCall, ToolMessage
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
-from harness.session.domain.compaction import CompactionEnd, open_start
+from harness.session.domain.compaction import CompactionEnd, unended_start
 from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
@@ -15,14 +16,19 @@ from harness.session.domain.models import (
     TurnStart,
 )
 
-REPAIRED = "INTERRUPTED_BY_CRASH"
+INTERRUPTED_BY_CRASH = "INTERRUPTED_BY_CRASH"
 
 
-def unanswered(events: Sequence[SessionEvent]) -> list[tuple[AssistantMessageEvent, ToolCall]]:
+class UnansweredCall(NamedTuple):
+    asked: AssistantMessageEvent
+    call: ToolCall
+
+
+def unanswered(events: Sequence[SessionEvent]) -> list[UnansweredCall]:
     """Every call in the log with no result, with the message that made it."""
     answered = {e.message.tool_call_id for e in events if isinstance(e, ToolResultEvent)}
     return [
-        (event, call)
+        UnansweredCall(event, call)
         for event in events
         if isinstance(event, AssistantMessageEvent)
         for call in event.message.tool_calls
@@ -36,25 +42,25 @@ def unknown_result(call_id: str, *, turn: int, step: int) -> ToolResultEvent:
         turn=turn,
         step=step,
         message=ToolMessage(tool_call_id=call_id, content=TOOL_OUTCOME_UNKNOWN),
-        error=REPAIRED,
+        error=INTERRUPTED_BY_CRASH,
     )
 
 
-def repair(events: Sequence[SessionEvent]) -> list[SessionEvent]:
+def crash_repairs(events: Sequence[SessionEvent]) -> list[SessionEvent]:
     """Results for every call the log left unanswered *by accident*."""
     additions: list[SessionEvent] = []
-    if not _waiting(events):
+    if not _is_waiting_on_person(events):
         additions.extend(
             unknown_result(call.id, turn=event.turn, step=event.step)
             for event, call in unanswered(events)
         )
-    started = open_start(events)
+    started = unended_start(events)
     if started is not None:
-        additions.append(CompactionEnd(turn=started.turn, error=REPAIRED))
+        additions.append(CompactionEnd(turn=started.turn, error=INTERRUPTED_BY_CRASH))
     return additions
 
 
-def _waiting(events: Sequence[SessionEvent]) -> bool:
+def _is_waiting_on_person(events: Sequence[SessionEvent]) -> bool:
     """Did the last turn end `pending` — is the log waiting on the person, not on a dead process?"""
     turns = [e.turn for e in events if isinstance(e, TurnStart)]
     if not turns:

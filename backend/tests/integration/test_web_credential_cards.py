@@ -54,7 +54,7 @@ class ParkedChannel:
     def __init__(self, platform: ChatPlatform) -> None:
         self.channel = platform
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:
@@ -88,7 +88,7 @@ class CardApp:
         transport = httpx.MockTransport(self._answer)
         fetch = fetch_with_secret_tool(self.secrets, self.bots, transport)
         self.runs = run_service(
-            service, model, fetch, *tools.tools(), approvals=approvals, bots=self.bots
+            service, model, fetch, *CLIENT_TOOLS.tools(), approvals=approvals, bots=self.bots
         )
         app = web_app(
             tmp_path,

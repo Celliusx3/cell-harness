@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.sandbox import Bridge, BridgeError, Script
+from harness.sandbox import Bridge, BridgeError, ScriptResult
 from harness.tools import (
     EXECUTION_ERROR,
     CallOrigin,
@@ -106,7 +106,7 @@ async def test_the_script_is_given_every_available_name() -> None:
 
 
 async def test_logs_and_the_return_value_both_reach_the_model() -> None:
-    runner = FakeRunner(outcome=Script(result={"n": 2}, logs=("first", "second")))
+    runner = FakeRunner(outcome=ScriptResult(result={"n": 2}, logs=("first", "second")))
     built = build(runner=runner)
 
     outcome = await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
@@ -118,7 +118,7 @@ async def test_logs_and_the_return_value_both_reach_the_model() -> None:
 
 
 async def test_a_failed_script_keeps_what_it_printed() -> None:
-    runner = FakeRunner(outcome=Script(logs=("step one done",), error="boom"))
+    runner = FakeRunner(outcome=ScriptResult(logs=("step one done",), error="boom"))
     built = build(runner=runner)
 
     outcome = await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
@@ -130,7 +130,7 @@ async def test_a_failed_script_keeps_what_it_printed() -> None:
 
 
 async def test_a_script_that_returns_nothing_says_so() -> None:
-    built = build(runner=FakeRunner(outcome=Script()))
+    built = build(runner=FakeRunner(outcome=ScriptResult()))
 
     outcome = await built.run(EXECUTE_TYPESCRIPT, '{"code": "…", "description": "d"}')
 

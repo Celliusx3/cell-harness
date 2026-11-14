@@ -171,7 +171,7 @@ writes one program, and only what the program returns enters the conversation.
 - **Round-trips.** Three subtitle fetches are three model calls; one script.
 
 **There is no switch.** A flag would offer a second way to do the only thing
-there is, so `load()` simply refuses to start when Deno is not on PATH, naming
+there is, so `load_settings()` simply refuses to start when Deno is not on PATH, naming
 the install and the setting to change. `code.deno_path` and `code.timeout_seconds`
 are the only knobs.
 
@@ -192,7 +192,7 @@ all — only the signatures do, and only until something asks for more.
 Three of the five we already owned:
 
 1. `tools/list` JSON arrives from the server.
-2. Namespaced `{server}__{tool}` — `namespaced()` in `mcp/service/tool.py`.
+2. Namespaced `{server}__{tool}` — `namespaced_tool_name()` in `mcp/service/tool.py`.
 3. Split apart again; the schema is carried **verbatim**.
 4. **New:** JSON Schema → a `declare function`. Four rules (`string`→`string`,
    `integer`/`number`→`number`, `enum`→union, absent-from-`required`→`?`), plus

@@ -16,11 +16,15 @@ async def state_of(
     """This chat's state, on the conversation it writes into; `""` when that is nowhere."""
     stored = await repository.load(channel.channel, chat_id)
     known = stored if stored is not None else ChatState(channel=channel.channel, chat_id=chat_id)
-    named = channel.conversation_for(chat_id)
-    return known.model_copy(update={"conversation_id": _written_into(stored, named, bots)})
+    platform_conversation_id = channel.conversation_id_for(chat_id)
+    return known.model_copy(
+        update={
+            "conversation_id": _conversation_id_written_into(stored, platform_conversation_id, bots)
+        }
+    )
 
 
-def bot_written_to(stored: ChatState | None) -> str | None:
+def bot_id_written_to(stored: ChatState | None) -> str | None:
     """The bot a stored chat writes to: its code's, else Assistant once stored; else `None`."""
     if stored is None:
         return None
@@ -29,23 +33,25 @@ def bot_written_to(stored: ChatState | None) -> str | None:
     return ASSISTANT_ID if stored.conversation_id else None
 
 
-def _written_into(stored: ChatState | None, named: str, bots: BotService) -> str:
+def _conversation_id_written_into(
+    stored: ChatState | None, platform_conversation_id: str, bots: BotService
+) -> str:
     """The platform's choice unless a code linked the chat; else its bot's chat while active."""
     linked_by_code = stored is not None and stored.linked_bot_id is not None
-    if named and not linked_by_code:
-        return named
-    bot_id = bot_written_to(stored)
-    return "" if bot_id is None else _chat_of_active(bots, bot_id)
+    if platform_conversation_id and not linked_by_code:
+        return platform_conversation_id
+    bot_id = bot_id_written_to(stored)
+    return "" if bot_id is None else _active_bot_conversation_id(bots, bot_id)
 
 
-def _chat_of_active(bots: BotService, bot_id: str) -> str:
+def _active_bot_conversation_id(bots: BotService, bot_id: str) -> str:
     try:
         return bots.chat_of(bots.active_bot(bot_id).id)
     except BotNotFound:
         return ""
 
 
-async def session_for(
+async def open_chat_session(
     repository: ChatRepository, sessions: SessionService, state: ChatState
 ) -> Session:
     """The session this chat's next turn runs in, created under its id if never written."""

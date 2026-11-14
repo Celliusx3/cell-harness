@@ -11,6 +11,7 @@ from harness.llm import ToolMessage, text_of
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import SKIPPED
 from harness.tools.native.hand_over import HAND_OVER
+from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import assistant_chat, build, events_from, settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, no_skills
@@ -23,7 +24,7 @@ PATH = "/api/conversations/{id}/calls/call_h1/output"
 def _handing_over(tmp_path, reply: str = "signed in, carrying on"):
     tools = client_tools()
     model = SteppedClient(calls_tool(HAND_OVER, ASKED, id="call_h1"), completed(reply))
-    service, runs = build(tmp_path, model, *tools.tools())
+    service, runs = build(tmp_path, model, *CLIENT_TOOLS.tools())
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools)
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://h.test")
     return client, runs, model
@@ -87,7 +88,7 @@ async def test_an_answer_that_does_not_fit_is_refused_at_the_boundary(tmp_path, 
     )
 
     assert refused.status_code == 422
-    assert runs.active(conversation_id) is None
+    assert runs.active_run(conversation_id) is None
 
 
 async def test_typing_instead_skips_the_hand_over(tmp_path) -> None:

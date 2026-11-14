@@ -5,13 +5,14 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime, tzinfo
+from typing import NamedTuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dateutil.rrule import rrule, rrulestr
 
-MAX_COUNT = 1000
+MAX_RRULE_COUNT = 1000
 UTC_ZONE = ZoneInfo("UTC")
-_DTSTART = re.compile(r"DTSTART(?:;TZID=(?P<tzid>[^:;]+))?:\d{8}T\d{6}(?P<utc>Z?)")
+_DTSTART_PATTERN = re.compile(r"DTSTART(?:;TZID=(?P<tzid>[^:;]+))?:\d{8}T\d{6}(?P<utc>Z?)")
 
 
 class InvalidRrule(ValueError):
@@ -56,16 +57,21 @@ def _rule(text: str) -> rrule:
     return parsed
 
 
-def _lines(text: str) -> tuple[str, str]:
+class RruleLines(NamedTuple):
+    start: str
+    recurrence: str
+
+
+def _lines(text: str) -> RruleLines:
     lines = text.strip().splitlines()
     if len(lines) != 2 or not lines[0].startswith("DTSTART") or not lines[1].startswith("RRULE:"):
         raise InvalidRrule("expected one DTSTART line, a newline, and one RRULE line")
-    return lines[0].strip(), lines[1].strip()
+    return RruleLines(lines[0].strip(), lines[1].strip())
 
 
 def _tzid(line: str) -> str | None:
     """The DTSTART line's TZID, `None` for Z; it must carry exactly one of the two."""
-    matched = _DTSTART.fullmatch(line)
+    matched = _DTSTART_PATTERN.fullmatch(line)
     if matched is None:
         raise InvalidRrule("DTSTART must be DTSTART:YYYYMMDDTHHMMSSZ or DTSTART;TZID=<zone>:...")
     if (matched["tzid"] is None) == (matched["utc"] == ""):
@@ -97,5 +103,5 @@ def _check_parts(parts: Mapping[str, str]) -> None:
 
 
 def _check_count(count: str) -> None:
-    if not count.isdigit() or not 1 <= int(count) <= MAX_COUNT:
-        raise InvalidRrule(f"COUNT must be from 1 to {MAX_COUNT}")
+    if not count.isdigit() or not 1 <= int(count) <= MAX_RRULE_COUNT:
+        raise InvalidRrule(f"COUNT must be from 1 to {MAX_RRULE_COUNT}")

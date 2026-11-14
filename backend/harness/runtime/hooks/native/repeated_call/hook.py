@@ -19,17 +19,17 @@ class RepeatedCallHook(ToolHook):
 
     notes_at: tuple[int, ...] = REPEATED_CALL_NOTE_AT
 
-    async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
         return None
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, prior: Sequence[CompletedCall]
     ) -> str | None:
         if not isinstance(outcome, Ok):
             return None
         n = 1
         for entry in reversed(prior):
-            if not sig.is_same_call(entry) or entry.failed:
+            if not sig.is_same_call(entry) or entry.has_failed:
                 break
             n += 1
         return REPEATED_CALL_NOTE.format(name=sig.name, n=n) if n in self.notes_at else None

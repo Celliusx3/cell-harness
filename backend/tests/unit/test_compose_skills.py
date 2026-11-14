@@ -15,7 +15,7 @@ from harness.session.domain.models import TurnStart, UserMessageEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.skills import SKILL
-from harness.tickets.domain.prompts import ORCHESTRATOR
+from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
 from harness.tools import Ok
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
@@ -105,13 +105,13 @@ def test_bot_create_is_offered_exactly_while_an_llm_credential_is_saved(
 async def test_the_first_user_message_lists_the_skills_exactly_while_one_exists(compose) -> None:
     build, root = compose
     runtime = build()
-    alone = [SystemMessage(content=ORCHESTRATOR), UserMessage(content="hi")]
+    alone = [SystemMessage(content=ORCHESTRATOR_INTRO), UserMessage(content="hi")]
 
     assert await request_of(runtime) == alone
 
     directory = write_skill(root, "pdf")
     system, user = await request_of(runtime)
-    assert system == SystemMessage(content=ORCHESTRATOR)
+    assert system == SystemMessage(content=ORCHESTRATOR_INTRO)
     assert user.content.startswith("hi\n\n<system-reminder>\n")
     assert "\n- pdf: pdf things.\n</system-reminder>" in user.content
 

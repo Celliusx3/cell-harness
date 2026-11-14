@@ -12,10 +12,10 @@ from pydantic import SecretStr
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.config.settings import Settings
-from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.bot_messages import BotMessenger
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService
@@ -82,7 +82,7 @@ def build(tmp_path):
         no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
-        BotMessages(no_bots(sessions), runs, follow=gateway.follow),
+        BotMessenger(no_bots(sessions), runs, follow=gateway.follow),
         no_tickets(tmp_path, no_bots(sessions), runs),
         schedules,
         scheduler_in(schedules, no_bots(sessions), runs, gateway),
@@ -135,7 +135,7 @@ async def test_the_lifespan_starts_and_stops_the_gateway(tmp_path) -> None:
     async with app.router.lifespan_context(app):
         await until(lambda: recording.running, what="the channel to start")
 
-    assert gateway.channels == ["web", "telegram", "recording"]
+    assert gateway.channel_names == ["web", "telegram", "recording"]
 
 
 async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
@@ -160,20 +160,20 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
-        BotMessages(no_bots(sessions), runs, follow=gateway.follow),
+        BotMessenger(no_bots(sessions), runs, follow=gateway.follow),
         no_tickets(tmp_path, no_bots(sessions), runs),
         schedules,
         scheduler_in(schedules, no_bots(sessions), runs, gateway),
     )
 
-    assert gateway.channels == ["web"]
+    assert gateway.channel_names == ["web"]
     async with wired.router.lifespan_context(wired):
         pass
 
 
 async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
-    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
+    await link_to_assistant(JsonChatRepository(tmp_path / "chats"), "telegram", CHAT)
 
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="hello there"))
     await settle(runs, gateway)
@@ -190,7 +190,7 @@ async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) ->
 
 async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
-    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
+    await link_to_assistant(JsonChatRepository(tmp_path / "chats"), "telegram", CHAT)
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone"))
     await settle(runs, gateway)
 
@@ -227,7 +227,7 @@ async def _channels(tmp_path: Path, keyring: SecretService) -> ChannelGateway:
 
 
 async def test_no_token_means_no_channel(tmp_path) -> None:
-    assert (await _channels(tmp_path, secrets_in(tmp_path))).channels == ["web"]
+    assert (await _channels(tmp_path, secrets_in(tmp_path))).channel_names == ["web"]
 
 
 async def test_a_custom_key_named_telegram_is_not_a_token(tmp_path) -> None:
@@ -235,7 +235,7 @@ async def test_a_custom_key_named_telegram_is_not_a_token(tmp_path) -> None:
     site = Destination(origin="https://telegram.example", auth="bearer")
     keyring.save("telegram", site, SecretStr("custom-key-not-a-token"))
 
-    assert (await _channels(tmp_path, keyring)).channels == ["web"]
+    assert (await _channels(tmp_path, keyring)).channel_names == ["web"]
 
 
 async def test_a_token_builds_a_channel(tmp_path) -> None:
@@ -244,5 +244,5 @@ async def test_a_token_builds_a_channel(tmp_path) -> None:
 
     built = await _channels(tmp_path, keyring)
 
-    assert built.channels == ["web", "telegram"]
+    assert built.channel_names == ["web", "telegram"]
     await built.aclose()

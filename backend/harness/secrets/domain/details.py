@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from harness.secrets.domain.destination import Destination
 
-THIS_COMPUTER = frozenset({"localhost", "127.0.0.1", "::1"})
+LOCAL_HOSTNAMES = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
 class CustomDetails(BaseModel):
@@ -39,7 +39,7 @@ class ModelDetails(BaseModel):
             raise ValueError("the endpoint must be an https:// address")
         if parts.scheme == "https":
             return value
-        if parts.scheme == "http" and parts.hostname in THIS_COMPUTER:
+        if parts.scheme == "http" and parts.hostname in LOCAL_HOSTNAMES:
             return value
         raise ValueError(
             "the endpoint must be an https:// address; plain http:// is only for "
@@ -71,6 +71,8 @@ class DiscordDetails(BaseModel):
 
 
 ChatPlatform = Literal["telegram", "discord"]
+
+CredentialKind = Literal["custom", "llm", ChatPlatform]
 
 ChatPlatformDetails = TelegramDetails | DiscordDetails
 

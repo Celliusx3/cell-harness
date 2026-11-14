@@ -40,7 +40,7 @@ async def world(tmp_path: Path, client, *tools: Tool):
     """A gateway, its runs and chats, and a scheduler over schedules timed by a clock at START."""
     bot, gateway, runs, _, sessions = await build(tmp_path, client, *tools, skills=no_skills())
     bots = no_bots(sessions)
-    await bots.active_bots()
+    await bots.open_active_bots()
     clock = Clock(START)
     schedules = schedules_in(tmp_path, clock)
     scheduler = Scheduler(schedules, bots, runs, follow=gateway.follow, now=clock)

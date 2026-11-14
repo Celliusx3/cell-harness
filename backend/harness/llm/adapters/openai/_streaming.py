@@ -17,7 +17,7 @@ logger = logging.getLogger("harness.llm.openai")
 
 _DONE = "[DONE]"
 
-_EXTRA_CONTENT = TypeAdapter(ExtraContent)
+_EXTRA_CONTENT_ADAPTER = TypeAdapter(ExtraContent)
 
 
 async def chunks_of(lines: AsyncIterator[str]) -> AsyncIterator[Chunk]:
@@ -115,7 +115,7 @@ def _extra_content(raw: Mapping[str, JsonValue]) -> ExtraContent | None:
     if value is None:
         return None
     try:
-        return _EXTRA_CONTENT.validate_python(value)
+        return _EXTRA_CONTENT_ADAPTER.validate_python(value)
     except ValidationError:
         logger.warning("dropped a tool call's extra_content that is not an object: %r", value)
         return None

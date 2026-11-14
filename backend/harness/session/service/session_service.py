@@ -6,9 +6,9 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from harness.session.domain.crash_repair import crash_repairs
 from harness.session.domain.log import Session
 from harness.session.domain.models import ChatCleared, SessionHeader
-from harness.session.domain.repair import repair
 from harness.session.repository.session_repository import SessionRepository
 
 
@@ -42,7 +42,7 @@ class SessionService:
     async def resume(self, session_id: str) -> Session:
         """Load a stored session, repairing whatever a dead process left open."""
         header, events = await self._repository.load(session_id)
-        additions = repair(events)
+        additions = crash_repairs(events)
         if additions:
             await self._repository.append(session_id, additions)
             events = [*events, *additions]
@@ -63,7 +63,7 @@ class SessionService:
             header.model_copy(update={"numbered_from": header.numbered_from + len(events)}),
             [ChatCleared()],
         )
-        await self._repository.restart(wiped.header, wiped.events())
+        await self._repository.replace(wiped.header, wiped.events())
         return wiped
 
     async def delete(self, session_id: str) -> None:

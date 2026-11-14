@@ -10,7 +10,13 @@ from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import Ok, ToolOutcome
 from harness.tools.domain.tool import Tool
 from harness.tools.native.schedule.models import ScheduleListArgs, ScheduleViewArgs
-from harness.tools.native.schedule.shared import IN_A_GROUP, in_a_group, not_found, own, task
+from harness.tools.native.schedule.shared import (
+    OWN_CHAT_ONLY_REFUSAL,
+    is_outside_own_chat,
+    not_found_failure,
+    own_schedule,
+    read_back_task_fields,
+)
 
 SCHEDULE_LIST = "schedule_list"
 SCHEDULE_VIEW = "schedule_view"
@@ -26,18 +32,18 @@ def schedule_list_tool(groups: GroupService, schedules: ScheduleService) -> Tool
     """The tool that pages through the calling bot's schedules, from its own chat only."""
 
     async def execute(args: ScheduleListArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(groups, context.origin.conversation_id):
-            return IN_A_GROUP
+        if is_outside_own_chat(groups, context.origin.conversation_id):
+            return OWN_CHAT_ONLY_REFUSAL
         listed = ordered(schedules.of_bot(context.origin.bot_id), args.active)
         page = listed[args.offset : args.offset + args.limit]
-        shown = {
-            "items": [task(s) for s in page],
+        listing = {
+            "items": [read_back_task_fields(s) for s in page],
             "shown": len(page),
             "total": len(listed),
             "limit": args.limit,
             "offset": args.offset,
         }
-        return Ok(json.dumps(shown, ensure_ascii=False))
+        return Ok(json.dumps(listing, ensure_ascii=False))
 
     return Tool.from_model(
         name=SCHEDULE_LIST,
@@ -51,13 +57,13 @@ def schedule_view_tool(groups: GroupService, schedules: ScheduleService) -> Tool
     """The tool that shows one of the calling bot's schedules, from its own chat only."""
 
     async def execute(args: ScheduleViewArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(groups, context.origin.conversation_id):
-            return IN_A_GROUP
+        if is_outside_own_chat(groups, context.origin.conversation_id):
+            return OWN_CHAT_ONLY_REFUSAL
         try:
-            found = own(schedules, context.origin.bot_id, args.id)
+            found = own_schedule(schedules, context.origin.bot_id, args.id)
         except ScheduleNotFound as err:
-            return not_found(err)
-        return Ok(json.dumps(task(found), ensure_ascii=False))
+            return not_found_failure(err)
+        return Ok(json.dumps(read_back_task_fields(found), ensure_ascii=False))
 
     return Tool.from_model(
         name=SCHEDULE_VIEW,

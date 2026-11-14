@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from harness.llm import AssistantMessage, ToolCall
+from harness.session.domain.crash_repair import INTERRUPTED_BY_CRASH, crash_repairs
 from harness.session.domain.models import AssistantMessageEvent, ToolCallEvent, TurnEnd, TurnStart
-from harness.session.domain.repair import REPAIRED, repair
 from harness.tools import Approval, ApprovalService
 from harness.tools.client import (
     AcceptedAnswer,
@@ -45,15 +45,15 @@ def _asked(call_id: str):
 
 def test_always_allow_is_written_to_the_grants_file_and_the_tool_stops_asking(tmp_path) -> None:
     approvals = _approvals(tmp_path, WRITE)
-    assert approvals.needs_approval(WRITE) is True
-    assert approvals.needs_approval("clock") is False
+    assert approvals.should_ask(WRITE) is True
+    assert approvals.should_ask("clock") is False
 
     approvals.grant(WRITE)
 
-    assert approvals.needs_approval(WRITE) is False
+    assert approvals.should_ask(WRITE) is False
     assert _approvals(tmp_path, WRITE).approved_tools() == frozenset({WRITE})
     approvals.revoke(WRITE)
-    assert _approvals(tmp_path, WRITE).needs_approval(WRITE) is True
+    assert _approvals(tmp_path, WRITE).should_ask(WRITE) is True
     with pytest.raises(ValueError):
         approvals.grant("clock")
 
@@ -77,13 +77,13 @@ def test_repair_answers_a_call_left_by_a_crash_after_approval() -> None:
     session.append(_asked("c1"))
     session.append(_call("c1"))
     session.append(TurnEnd(turn=0, reason="pending"))
-    assert repair(session.events()) == []
+    assert crash_repairs(session.events()) == []
 
     session.append(TurnStart(turn=1))
 
-    additions = repair(session.events())
+    additions = crash_repairs(session.events())
     assert [type(e).__name__ for e in additions] == ["ToolResultEvent"]
-    assert additions[0].message.tool_call_id == "c1" and additions[0].error == REPAIRED
+    assert additions[0].message.tool_call_id == "c1" and additions[0].error == INTERRUPTED_BY_CRASH
 
 
 def test_the_service_parses_a_decision_for_a_listed_tool_and_refuses_a_client_body(
@@ -123,9 +123,9 @@ def test_a_server_tool_that_may_write_asks_until_it_is_allowed_always(tmp_path) 
         default_mode="ask",
     )
 
-    assert approvals.needs_approval("mail__send_email")
+    assert approvals.should_ask("mail__send_email")
     approvals.grant("mail__send_email")
-    assert not approvals.needs_approval("mail__send_email")
+    assert not approvals.should_ask("mail__send_email")
 
 
 def test_the_servers_tools_are_read_again_on_every_check(tmp_path) -> None:
@@ -134,6 +134,6 @@ def test_the_servers_tools_are_read_again_on_every_check(tmp_path) -> None:
         frozenset(), lambda: frozenset(connected), tmp_path / "approvals.json", default_mode="ask"
     )
 
-    assert not approvals.needs_approval("mail__send_email")
+    assert not approvals.should_ask("mail__send_email")
     connected.add("mail__send_email")
-    assert approvals.needs_approval("mail__send_email")
+    assert approvals.should_ask("mail__send_email")

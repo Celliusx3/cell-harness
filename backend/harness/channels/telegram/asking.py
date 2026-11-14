@@ -3,20 +3,28 @@
 from __future__ import annotations
 
 import json
+from typing import Literal, TypeIs
 
 from pydantic import ValidationError
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from telegram import (
+    Bot,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
 
-from harness.channels.domain.protocol import Pushing
+from harness.channels.domain.protocol import PushChannel
 from harness.channels.domain.text import split_message
 from harness.tools.client import PendingCall
+from harness.tools.domain.decision import Scope
 from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.question import ASK_USER, Question
 
 MAX_MESSAGE_CHARS = 4096
 MAX_CALLBACK_BYTES = 64
 
-ASK = {GET_LOCATION: "The assistant needs your location to answer. Share it?"}
+LOCATION_ASK = "The assistant needs your location to answer. Share it?"
 SHARE_LABEL = "Share my location"
 ASK_BY_LINK = (
     "The assistant needs an answer from you. Open the page to give it there; "
@@ -25,19 +33,26 @@ ASK_BY_LINK = (
 APPROVE_BY_LINK = "The assistant wants to run {label}. Open the page to allow or deny."
 NO_ANSWER_PAGE = "(Answering from Telegram needs `web.public_url` to be set.)"
 
-CALLBACK_PREFIX = "ap"
+APPROVAL_CALLBACK_PREFIX = "ap"
 CHOICE_PREFIX = "qa"
-BUTTONS: tuple[tuple[str, str], ...] = (
+ApprovalChoice = Literal[Scope, "deny"]
+APPROVAL_BUTTONS: tuple[tuple[str, ApprovalChoice], ...] = (
     ("Allow once", "once"),
     ("Allow for this conversation", "conversation"),
     ("Always allow", "always"),
     ("Deny", "deny"),
 )
+APPROVAL_CHOICES = frozenset(choice for _, choice in APPROVAL_BUTTONS)
+
+
+def is_approval_choice(word: str) -> TypeIs[ApprovalChoice]:
+    """Whether `word` is what one of the approval card's buttons answers."""
+    return word in APPROVAL_CHOICES
 
 
 async def ask_client(
-    channel: Pushing,
-    bot,
+    channel: PushChannel,
+    bot: Bot,
     chat_id: str,
     request: PendingCall,
     url: str,
@@ -49,14 +64,14 @@ async def ask_client(
         await _ask_location(bot, chat_id)
         return
     question = _question(request.arguments) if request.name == ASK_USER else None
-    if question is not None and _choices_fit(request.call_id, question):
+    if question is not None and _has_room_for_choices(request.call_id, question):
         await _ask_question(bot, chat_id, request.call_id, question)
         return
-    if request.name in protected_tools and _buttons_fit(request):
+    if request.name in protected_tools and _has_room_for_buttons(request):
         await _ask_approval(channel, bot, chat_id, request)
         return
     text = (
-        APPROVE_BY_LINK.format(label=_label(request.name))
+        APPROVE_BY_LINK.format(label=_tool_label(request.name))
         if request.name in protected_tools
         else ASK_BY_LINK
     )
@@ -68,17 +83,17 @@ async def ask_client(
 
 def approval_text(request: PendingCall) -> str:
     """The card: who wants to run, and with what."""
-    label = _label(request.name)
-    server = _server(request.name)
+    label = _tool_label(request.name)
+    server = _server_label(request.name)
     first = f"{label} ({server}) wants to run with:" if server else f"{label} wants to run with:"
     return "\n".join([first, *_argument_lines(request.arguments)])
 
 
-def _label(name: str) -> str:
+def _tool_label(name: str) -> str:
     return name.rsplit("__", 1)[-1].replace("_", " ")
 
 
-def _server(name: str) -> str:
+def _server_label(name: str) -> str:
     return name.rsplit("__", 1)[0].replace("_", " ") if "__" in name else ""
 
 
@@ -89,37 +104,42 @@ def _argument_lines(arguments: str) -> list[str]:
         return [arguments]
     if not isinstance(parsed, dict):
         return [arguments]
-    return [f"{key}: {_render(value)}" for key, value in parsed.items()]
+    return [f"{key}: {_argument_text(value)}" for key, value in parsed.items()]
 
 
-def _render(value: object) -> str:
+def _argument_text(value: object) -> str:
     if isinstance(value, str):
         return value
     return json.dumps(value, ensure_ascii=False)
 
 
-def _callback(call_id: str, choice: str) -> str:
-    return f"{CALLBACK_PREFIX}:{call_id}:{choice}"
+def _approval_callback_data(call_id: str, choice: str) -> str:
+    return f"{APPROVAL_CALLBACK_PREFIX}:{call_id}:{choice}"
 
 
-def _buttons_fit(request: PendingCall) -> bool:
-    longest = max(len(_callback(request.call_id, choice).encode()) for _, choice in BUTTONS)
+def _has_room_for_buttons(request: PendingCall) -> bool:
+    longest = max(
+        len(_approval_callback_data(request.call_id, choice).encode())
+        for _, choice in APPROVAL_BUTTONS
+    )
     return longest <= MAX_CALLBACK_BYTES
 
 
-def _keyboard(call_id: str) -> InlineKeyboardMarkup:
+def _approval_keyboard(call_id: str) -> InlineKeyboardMarkup:
     buttons = [
-        InlineKeyboardButton(label, callback_data=_callback(call_id, choice))
-        for label, choice in BUTTONS
+        InlineKeyboardButton(label, callback_data=_approval_callback_data(call_id, choice))
+        for label, choice in APPROVAL_BUTTONS
     ]
     return InlineKeyboardMarkup([buttons[:2], buttons[2:]])
 
 
-async def _ask_approval(channel: Pushing, bot, chat_id: str, request: PendingCall) -> None:
+async def _ask_approval(channel: PushChannel, bot: Bot, chat_id: str, request: PendingCall) -> None:
     *earlier, last = split_message(approval_text(request), MAX_MESSAGE_CHARS)
     for part in earlier:
         await channel.send_message(chat_id, part)
-    await bot.send_message(chat_id=int(chat_id), text=last, reply_markup=_keyboard(request.call_id))
+    await bot.send_message(
+        chat_id=int(chat_id), text=last, reply_markup=_approval_keyboard(request.call_id)
+    )
 
 
 def _question(arguments: str) -> Question | None:
@@ -133,7 +153,7 @@ def _choice_callback(call_id: str, index: int) -> str:
     return f"{CHOICE_PREFIX}:{call_id}:{index}"
 
 
-def _choices_fit(call_id: str, question: Question) -> bool:
+def _has_room_for_choices(call_id: str, question: Question) -> bool:
     longest = max(
         len(_choice_callback(call_id, index).encode()) for index in range(len(question.options))
     )
@@ -149,7 +169,7 @@ def _choice_keyboard(call_id: str, question: Question) -> InlineKeyboardMarkup:
     )
 
 
-async def _ask_question(bot, chat_id: str, call_id: str, question: Question) -> None:
+async def _ask_question(bot: Bot, chat_id: str, call_id: str, question: Question) -> None:
     await bot.send_message(
         chat_id=int(chat_id),
         text=question.question,
@@ -157,10 +177,10 @@ async def _ask_question(bot, chat_id: str, call_id: str, question: Question) -> 
     )
 
 
-async def _ask_location(bot, chat_id: str) -> None:
+async def _ask_location(bot: Bot, chat_id: str) -> None:
     button = KeyboardButton(SHARE_LABEL, request_location=True)
     await bot.send_message(
         chat_id=int(chat_id),
-        text=ASK[GET_LOCATION],
+        text=LOCATION_ASK,
         reply_markup=ReplyKeyboardMarkup([[button]], one_time_keyboard=True, resize_keyboard=True),
     )

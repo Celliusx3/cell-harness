@@ -2,21 +2,26 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, TypeIs, get_args
 
-from harness.images.domain.models import ImageFile
+from harness.images.domain.models import ImageFile, KeptMediaType
 
-KEPT_MEDIA_TYPES: frozenset[str] = frozenset({"image/png", "image/jpeg", "image/webp", "image/gif"})
+KEPT_MEDIA_TYPES: frozenset[str] = frozenset(get_args(KeptMediaType))
+
+
+def is_kept_media_type(media_type: str) -> TypeIs[KeptMediaType]:
+    """Whether an image of `media_type` is one a model can be sent, so one we keep."""
+    return media_type in KEPT_MEDIA_TYPES
 
 
 class ImageRepository(Protocol):
     """Image bytes kept by their hash, as storage."""
 
-    def write(self, sha256: str, media_type: str, data: bytes) -> None:
+    def write(self, sha256: str, media_type: KeptMediaType, data: bytes) -> None:
         """`data` kept under `sha256` once; a second write of the same hash changes nothing."""
         ...
 
-    def read(self, sha256: str, media_type: str) -> bytes:
+    def read(self, sha256: str, media_type: KeptMediaType) -> bytes:
         """The bytes kept under `sha256`; `OSError` when there are none."""
         ...
 

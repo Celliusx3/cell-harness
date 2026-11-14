@@ -27,7 +27,7 @@ class CompletedCall:
     text: str
 
     @property
-    def failed(self) -> bool:
+    def has_failed(self) -> bool:
         return self.error is not None
 
 
@@ -103,7 +103,7 @@ def failures_since_success(
     for entry in reversed(calls):
         if not match(entry):
             continue
-        if not entry.failed:
+        if not entry.has_failed:
             break
         n += 1
     return n
@@ -113,4 +113,4 @@ def last_failure_text(
     calls: Sequence[CompletedCall], match: Callable[[CompletedCall], bool]
 ) -> str:
     """The most recent matching failure's own words."""
-    return next((e.text for e in reversed(calls) if match(e) and e.failed), "")
+    return next((e.text for e in reversed(calls) if match(e) and e.has_failed), "")

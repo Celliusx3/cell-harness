@@ -30,10 +30,10 @@ async def open_stdio_client(server: McpServer) -> AsyncIterator[McpClient]:
     except asyncio.CancelledError:
         raise
     except BaseException as err:  # anyio raises BaseExceptionGroup, which Exception misses
-        last_words = "" if connected else tail.last_words()
-        if not last_words:
+        last_line = "" if connected else tail.drain_last_line()
+        if not last_line:
             raise
-        raise McpConnectionError(f"it exited before it connected: {last_words}") from err
+        raise McpConnectionError(f"it exited before it connected: {last_line}") from err
     finally:
         tail.writer.close()
 

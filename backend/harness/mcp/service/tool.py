@@ -10,7 +10,7 @@ from mcp.types import CallToolResult
 from mcp.types import Tool as McpTool
 
 from harness.mcp.domain.errors import McpNotConnectedError, McpTimeoutError
-from harness.mcp.service._result import outcome_of
+from harness.mcp.service._result import tool_outcome
 from harness.tools import (
     EXECUTION_ERROR,
     NAMESPACE_SEPARATOR,
@@ -32,20 +32,22 @@ _READ_VERBS = frozenset({"get", "list", "search", "find", "read", "fetch"})
 # Some providers reject a bare `{}` or null schema.
 _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 
-CallTool = Callable[[str, dict], Awaitable[CallToolResult]]
+CallTool = Callable[[str, dict[str, object]], Awaitable[CallToolResult]]
 
 
-def namespaced(server_id: str, server_tool_name: str) -> str:
+def namespaced_tool_name(server_id: str, server_tool_name: str) -> str:
     """`yt` + `get_subtitles` -> `yt__get_subtitles`."""
     return f"{server_id}{NAMESPACE_SEPARATOR}{server_tool_name.replace('-', '_')}"
 
 
-def build_tools(server_id: str, published: Iterable[McpTool], call: CallTool) -> list[Tool[dict]]:
+def build_tools(
+    server_id: str, published: Iterable[McpTool], call: CallTool
+) -> list[Tool[dict[str, object]]]:
     """Every tool this server offers that the model can actually be told about."""
-    built: list[Tool[dict]] = []
+    built: list[Tool[dict[str, object]]] = []
     seen: set[str] = set()
     for tool in published:
-        tool_name = namespaced(server_id, tool.name)
+        tool_name = namespaced_tool_name(server_id, tool.name)
         if not _TS_IDENTIFIER.match(tool_name):
             logger.warning(
                 "dropping MCP tool %r from %r: %r is not a usable tool name — it must be a "
@@ -85,12 +87,12 @@ def ui_resource_uri(tool: McpTool) -> str | None:
     return uri if isinstance(uri, str) and uri.startswith("ui://") else None
 
 
-def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict]:
+def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict[str, object]]:
     """One MCP tool, wired to the connection that owns it."""
-    tool_name = namespaced(server_id, published.name)
+    tool_name = namespaced_tool_name(server_id, published.name)
     resource_uri = ui_resource_uri(published)
 
-    async def execute(arguments: dict, _context: ToolContext) -> ToolOutcome:
+    async def execute(arguments: dict[str, object], _context: ToolContext) -> ToolOutcome:
         try:
             result = await call(published.name, arguments)
         except McpNotConnectedError:
@@ -99,7 +101,7 @@ def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict]
             )
         except McpTimeoutError as err:
             return Failure(EXECUTION_ERROR, str(err))
-        return outcome_of(
+        return tool_outcome(
             result, tool_name=tool_name, server_id=server_id, resource_uri=resource_uri
         )
 

@@ -13,12 +13,12 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotRepository, BotService
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.platforms import PlatformChannels
-from harness.secrets import DiskSecretRepository, SecretRefused, SecretService
+from harness.secrets import DiskSecretRepository, RefusedSecretError, SecretService
 from harness.secrets.domain.details import ChatPlatform, DiscordDetails, TelegramDetails
-from harness.secrets.router.credential_router import build_router
+from harness.secrets.router.credential_router import CredentialRouter
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import durable_service, no_skills, run_service
 
@@ -61,7 +61,7 @@ class ParkedChannel:
     def channel(self) -> str:
         return self._platform
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:
@@ -98,7 +98,7 @@ def keyring(tmp_path: Path) -> SecretService:
 @pytest.fixture
 async def gateway(tmp_path: Path) -> AsyncIterator[ChannelGateway]:
     sessions = durable_service(tmp_path / "sessions")
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(
         chats, run_service(sessions, ScriptedClient([])), sessions, no_skills(), public_url="t"
     )
@@ -122,7 +122,7 @@ def http(tmp_path: Path, keyring, gateway, started) -> httpx.AsyncClient:
     )
     app = FastAPI()
     platforms = PlatformChannels(gateway, keyring, started)
-    app.include_router(build_router(keyring, bots, platforms))
+    app.include_router(CredentialRouter(keyring, bots, platforms).router)
     transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
     return httpx.AsyncClient(
         transport=transport, base_url="http://127.0.0.1:4886", headers={"origin": PAGE}
@@ -169,7 +169,7 @@ async def test_removing_discord_stops_discord_alone(http, started, gateway) -> N
 
     assert removed.status_code == 204
     assert [channel.stopped.is_set() for channel in started.channels] == [False, True]
-    assert gateway.channels == ["telegram"]
+    assert gateway.channel_names == ["telegram"]
 
 
 async def test_an_edit_that_ticks_bots_for_a_platform_is_refused(http, started) -> None:
@@ -187,5 +187,5 @@ def test_the_keyring_holds_one_credential_per_platform(keyring) -> None:
     keyring.add_credential("discord", DiscordDetails(), SecretStr(DISCORD_TOKEN))
     keyring.add_credential("telegram", TelegramDetails(), SecretStr(TELEGRAM_TOKEN))
 
-    with pytest.raises(SecretRefused, match="already saved as 'discord'"):
+    with pytest.raises(RefusedSecretError, match="already saved as 'discord'"):
         keyring.add_credential("second_bot", DiscordDetails(), SecretStr("discord-token-6666"))

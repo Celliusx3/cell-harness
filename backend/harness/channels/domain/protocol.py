@@ -34,7 +34,7 @@ class UnknownChannelError(RuntimeError):
     """A message arrived from a platform with no registered transport."""
 
 
-class TokenRefused(RuntimeError):
+class RefusedTokenError(RuntimeError):
     """A platform refused the token its channel was started with."""
 
 
@@ -49,7 +49,7 @@ class Channel(Protocol):
         """The platform's name, as it appears in stored state and logs."""
         ...
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         """The conversation this platform puts a chat in; `""` leaves it to what the chat stored."""
         ...
 
@@ -59,7 +59,7 @@ class Channel(Protocol):
 
 
 @runtime_checkable
-class Pushing(Protocol):
+class PushChannel(Protocol):
     """A platform the gateway can send a reply *to*."""
 
     async def send_message(self, chat_id: str, text: str) -> None:
@@ -100,7 +100,7 @@ class RunningChannel:
         if self._task is None:
             return
         self._task.cancel()
-        await _ended(self._task)
+        await _wait_without_raising(self._task)
         self._task = None
 
     def _report_exit(self, task: asyncio.Task[None]) -> None:
@@ -110,12 +110,12 @@ class RunningChannel:
         error = task.exception()
         if error is not None:
             logger.error("%s channel stopped: %s", self.name, error, exc_info=error)
-        elif isinstance(self.channel, Pushing):
+        elif isinstance(self.channel, PushChannel):
             logger.warning("%s channel stopped; it will not answer", self.name)
         else:
             logger.info("%s channel stopped waiting", self.name)
 
 
-async def _ended(task: asyncio.Task[None]) -> None:
+async def _wait_without_raising(task: asyncio.Task[None]) -> None:
     """Wait for `task` to end, never raising what it raised."""
     await asyncio.wait({task})

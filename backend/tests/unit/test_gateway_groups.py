@@ -33,7 +33,7 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
     writer = await bots.create(
         BotDraft(name="Writer", instructions="Post.", model=MODEL_CREDENTIAL)
     )
-    group = await runs.groups.create_group(
+    group = await runs.groups.create(
         GroupDraft(name="Launch", member_ids=(researcher.id, writer.id))
     )
     await gateway.receive(InboundMessage(channel="web", chat_id=group.id, text="go"))
@@ -44,9 +44,9 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
     with caplog.at_level(logging.WARNING, logger="harness.channels"):
         await runs.stop(group.id)
         for _ in range(200):
-            if not gateway._tasks.running():
+            if not gateway._tasks.is_any_running():
                 break
             await asyncio.sleep(0.01)
 
-    assert runs.active(group.id) is None
+    assert runs.active_run(group.id) is None
     assert "nobody" in caplog.text

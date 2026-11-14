@@ -5,14 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from harness.tools import EXECUTION_ERROR, Failure, Ok
-from harness.tools.native.clock import clock_tool
+from harness.tools.native.clock import get_current_time_tool
 from tests.unit.helpers import context_for
 
 FIXED = datetime(2026, 8, 23, 12, 30, 0, tzinfo=UTC)
 
 
 def frozen_clock():
-    return clock_tool(now=lambda: FIXED)
+    return get_current_time_tool(now=lambda: FIXED)
 
 
 async def test_defaults_to_utc() -> None:

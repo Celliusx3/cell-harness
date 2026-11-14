@@ -10,7 +10,7 @@ import pytest
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.channels.telegram.batching import (
@@ -18,7 +18,7 @@ from harness.channels.telegram.batching import (
     FAST_DELAY_SECONDS,
     SHORT_DELAY_SECONDS,
     SPLIT_DELAY_SECONDS,
-    batch_delay,
+    batch_delay_seconds,
 )
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
@@ -54,7 +54,7 @@ def build(tmp_path, *, skills: SkillService):
         GroupService(bots, sessions, MENTION_TURN_ORDER),
         app_events=AppEventService(),
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url="http://t")
     links = ChatLinks(chats, LinkCodes(time.monotonic), bots)
     channel, bot = telegram_channel(gateway, links=links)
@@ -66,7 +66,7 @@ async def settle(gateway, runs) -> None:
     """Let the batch timer fire, then the turn and its delivery finish."""
     await asyncio.sleep(SPLIT_DELAY_SECONDS + 0.2)
     for _ in range(300):
-        busy = gateway._tasks.running()
+        busy = gateway._tasks.is_any_running()
         if not busy and not any(runs._runs.values()):
             return
         await asyncio.sleep(0.01)
@@ -90,15 +90,15 @@ async def prompts_of(sessions, chats) -> list[str]:
     ],
 )
 def test_short_text_waits_less_than_a_suspected_split(length, expected) -> None:
-    assert batch_delay("x" * length) == expected
+    assert batch_delay_seconds("x" * length) == expected
 
 
 async def test_a_client_split_paste_becomes_one_turn(tmp_path) -> None:
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
     await link_to_assistant(chats, "telegram", CHAT)
 
-    await channel._on(update(CHAT, "first half of a paste", 1), None)
-    await channel._on(update(CHAT, "second half", 2), None)
+    await channel._on_text(update(CHAT, "first half of a paste", 1), None)
+    await channel._on_text(update(CHAT, "second half", 2), None)
     await settle(gateway, runs)
 
     assert await prompts_of(sessions, chats) == ["first half of a paste\nsecond half"]
@@ -108,9 +108,9 @@ async def test_messages_far_apart_stay_separate_turns(tmp_path) -> None:
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
     await link_to_assistant(chats, "telegram", CHAT)
 
-    await channel._on(update(CHAT, "first", 1), None)
+    await channel._on_text(update(CHAT, "first", 1), None)
     await settle(gateway, runs)
-    await channel._on(update(CHAT, "second", 2), None)
+    await channel._on_text(update(CHAT, "second", 2), None)
     await settle(gateway, runs)
 
     assert await prompts_of(sessions, chats) == ["first", "second"]
@@ -121,8 +121,8 @@ async def test_different_chats_are_batched_separately(tmp_path) -> None:
     await link_to_assistant(chats, "telegram", "1")
     await link_to_assistant(chats, "telegram", "2")
 
-    await channel._on(update("1", "to one", 1), None)
-    await channel._on(update("2", "to two", 2), None)
+    await channel._on_text(update("1", "to one", 1), None)
+    await channel._on_text(update("2", "to two", 2), None)
     await settle(gateway, runs)
 
     assert sorted(bot.sent) == [("1", "ok"), ("2", "ok")]
@@ -132,7 +132,7 @@ async def test_a_command_is_answered_and_never_batched(tmp_path) -> None:
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
     await link_to_assistant(chats, "telegram", CHAT)
 
-    await channel._on(update(CHAT, "/new", 1), None)
+    await channel._on_text(update(CHAT, "/new", 1), None)
 
     assert bot.sent == [(CHAT, "Chat cleared.")]
 
@@ -148,8 +148,8 @@ async def test_a_command_flushes_whatever_was_batching(tmp_path) -> None:
 
     gateway.receive = spy
 
-    await channel._on(update(CHAT, "a question", 1), None)
-    await channel._on(update(CHAT, "/stop", 2), None)
+    await channel._on_text(update(CHAT, "a question", 1), None)
+    await channel._on_text(update(CHAT, "/stop", 2), None)
     await settle(gateway, runs)
 
     assert handed == ["a question"]
@@ -163,7 +163,7 @@ async def test_one_bad_message_does_not_stop_the_channel(tmp_path) -> None:
 
     gateway.receive = boom
 
-    await channel._on(update(CHAT, "hello", 1), None)
+    await channel._on_text(update(CHAT, "hello", 1), None)
     await asyncio.sleep(FAST_DELAY_SECONDS + 0.2)
 
 
@@ -173,7 +173,7 @@ async def test_an_update_with_no_text_is_ignored(tmp_path) -> None:
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=no_skills())
     empty = SimpleNamespace(effective_message=None, effective_chat=None)
 
-    await channel._on(empty, None)
+    await channel._on_text(empty, None)
 
     assert bot.sent == []
 
@@ -184,7 +184,7 @@ async def test_a_skill_name_passes_through_and_is_expanded(tmp_path) -> None:
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=skills_at(root))
     await link_to_assistant(chats, "telegram", CHAT)
 
-    await channel._on(update(CHAT, "/find-place https://x"), None)
+    await channel._on_text(update(CHAT, "/find-place https://x"), None)
     await settle(gateway, runs)
 
     (content,) = await prompts_of(sessions, chats)
@@ -198,7 +198,7 @@ async def test_an_unknown_skill_name_is_answered_not_sent_to_the_model(tmp_path)
     channel, bot, gateway, runs, chats, sessions = build(tmp_path, skills=skills_at(root))
     await link_to_assistant(chats, "telegram", CHAT)
 
-    await channel._on(update(CHAT, "/start"), None)
+    await channel._on_text(update(CHAT, "/start"), None)
     await settle(gateway, runs)
 
     assert bot.sent == [

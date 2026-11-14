@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.config.settings import MissingConfigError, Settings, load
+from harness.config.settings import MissingConfigError, Settings, load_settings
 from harness.llm import ToolCall
 from harness.mcp import McpServer, McpService
 from harness.prompts import CODE_PROMPT
@@ -111,7 +111,7 @@ def test_a_missing_deno_fails_at_startup_naming_the_fix(monkeypatch) -> None:
     monkeypatch.setenv("HARNESS_CODE__DENO_PATH", "definitely-not-a-real-binary")
 
     with pytest.raises(MissingConfigError, match="definitely-not-a-real-binary"):
-        load()
+        load_settings()
 
 
 def test_exactly_one_tool_service_is_built(compose, monkeypatch) -> None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-class SecretRefused(ValueError):
+class RefusedSecretError(ValueError):
     """A key that cannot be saved."""
 
 

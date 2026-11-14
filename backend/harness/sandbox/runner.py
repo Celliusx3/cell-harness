@@ -14,7 +14,7 @@ class BridgeError(Exception):
 
 
 @dataclass(frozen=True)
-class Script:
+class ScriptResult:
     """What one execution produced."""
 
     result: object = None
@@ -26,6 +26,6 @@ class Runner(ABC):
     """Runs one untrusted script."""
 
     @abstractmethod
-    async def run(self, code: str, *, names: Sequence[str], bridge: Bridge) -> Script:
+    async def run(self, code: str, *, names: Sequence[str], bridge: Bridge) -> ScriptResult:
         """Run `code`, resolving every name it calls through `bridge`."""
         ...

@@ -6,11 +6,11 @@ from harness.llm import (
     IMAGES_OVER_LIMIT,
     ApplicationMessage,
     AssistantMessage,
-    Completed,
-    Failed,
+    Completion,
     Image,
     LLMClient,
     Message,
+    StreamFailure,
     Text,
     ToolCall,
     ToolMessage,
@@ -20,9 +20,9 @@ from harness.llm import (
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.service import Runtime
 from harness.session.domain.compaction import CompactionEnd
-from harness.session.domain.derive import derive_messages, through_hiding
-from harness.session.domain.images import ImagesHidden, hidden_through
+from harness.session.domain.images import ImagesHidden, hidden_image_count
 from harness.session.domain.log import Session
+from harness.session.domain.model_history import derive_messages, hide_through_for_fewer_images
 from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,
@@ -65,27 +65,27 @@ def shown(events: list[SessionEvent]) -> list[Image]:
 def test_the_largest_hide_logged_wins() -> None:
     hides = [ImagesHidden(turn=0, through=3), ImagesHidden(turn=1, through=1)]
 
-    assert hidden_through([]) == 0
-    assert hidden_through(hides) == 3
+    assert hidden_image_count([]) == 0
+    assert hidden_image_count(hides) == 3
 
 
 def test_the_next_hide_covers_the_count_asked_for_past_the_last() -> None:
     events = [*person(0, FIRST, SECOND, THIRD), ImagesHidden(turn=0, through=1)]
 
-    assert through_hiding(events, 1) == 2
-    assert through_hiding(events, 5) == 3
+    assert hide_through_for_fewer_images(events, 1) == 2
+    assert hide_through_for_fewer_images(events, 5) == 3
 
 
 def test_with_every_image_hidden_there_is_no_next_hide() -> None:
     events = [*person(0, FIRST), ImagesHidden(turn=0, through=1)]
 
-    assert through_hiding(events, 1) is None
+    assert hide_through_for_fewer_images(events, 1) is None
 
 
 def test_a_hide_reaches_past_the_compaction_boundary() -> None:
     events = [*person(0, FIRST), SUMMARY, *person(1, SECOND, THIRD)]
 
-    through = through_hiding(events, 1)
+    through = hide_through_for_fewer_images(events, 1)
 
     assert through == 2
     assert shown([*events, ImagesHidden(turn=1, through=through)]) == [THIRD]
@@ -95,7 +95,7 @@ def test_another_bot_s_images_count_but_the_hide_reaches_the_listener_s() -> Non
     events = [*person(0, bot_id="a"), *snapped(0, FIRST), *person(1, SECOND, bot_id="b")]
 
     assert shown(events) == [SECOND]
-    assert through_hiding(events, 1) == 2
+    assert hide_through_for_fewer_images(events, 1) == 2
 
 
 class OverTheLimit(LLMClient):
@@ -108,9 +108,9 @@ class OverTheLimit(LLMClient):
     async def stream_completion(self, messages, model, *, tools=None):
         self.seen.append(list(messages))
         if len(self.seen) <= self.refusals:
-            yield Failed(reason="too many", code=IMAGES_OVER_LIMIT, images_to_hide=1)
+            yield StreamFailure(reason="too many", code=IMAGES_OVER_LIMIT, images_to_hide=1)
             return
-        yield Completed(full_text="seen")
+        yield Completion(full_text="seen")
 
 
 async def run(client: LLMClient, session: Session) -> list:
@@ -144,4 +144,4 @@ async def test_with_nothing_left_to_hide_the_refusal_fails_the_turn() -> None:
     events = await run(OverTheLimit(refusals=5), session)
 
     assert events[-1] == AgentFailed(reason="too many")
-    assert hidden_through(session.events()) == 1
+    assert hidden_image_count(session.events()) == 1

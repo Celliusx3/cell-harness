@@ -107,7 +107,7 @@ consent, and is not part of the conversation the model sees.
 - **The binding rides the `tool/result` event as a new field, not a new block.**
   `ToolUi(server, resource_uri, data)` on `Ok` and on `ToolResultEvent`. The
   model path — `content`, the adapter, `text_of`, `tools_selected()` —
-  is untouched; `derive.py` reads only `message`. `data` is the result's
+  is untouched; `model_history.py` reads only `message`. `data` is the result's
   `structuredContent`, logged beside the reference because it is what the view
   draws and a reloaded conversation must draw the same thing.
 - **`resources/read` is one more command on the connection's loop.**
@@ -115,10 +115,10 @@ consent, and is not part of the conversation the model sees.
   same error mapping — the anyio task-affinity constraint in `_connection.py`
   applies to every request kind.
 - **Two browser endpoints, `harness/web/routes/mcp.py`.**
-  `GET /api/mcp/{server}/resources?uri=` returns the HTML and a CSP string the
+  `GET /api/mcp/{server_id}/resources?uri=` returns the HTML and a CSP string the
   harness composed (spec defaults, widened only by the https origins the
   resource declared — values are parsed as URLs and only their origin kept).
-  `POST /api/mcp/{server}/tools/{name}` **proxies** the call to the app's own
+  `POST /api/mcp/{server_id}/tools/{name}` **proxies** the call to the app's own
   server — by the server's name, resolved from the server's published list,
   the `CallToolResult` returned verbatim (`_meta`, image blocks and all). Not
   the tool service's dispatch: that is the model's and a script's path, with a menu to
@@ -135,7 +135,7 @@ consent, and is not part of the conversation the model sees.
   (403, Openwork's rule — the request carries the app's own `resource_uri`).
   Not yet: approval for tools without `readOnlyHint` (Openwork, Vercel's
   allowlist, ChatGPT's opt-in) and a result size cap — with auth, below.
-- **Hyphens are mapped, not dropped.** `namespaced()` spells `get-system-info`
+- **Hyphens are mapped, not dropped.** `namespaced_tool_name()` spells `get-system-info`
   as `sysmon__get_system_info` for the model and code mode; `execute` calls the
   server by the published name. Two tools that map to one name keep the first.
 - **Single srcdoc iframe, `sandbox="allow-scripts allow-forms"`.** No
@@ -159,7 +159,7 @@ MCP App reaches a chat as a page the harness serves:
   app on its own — no sidebar, the whole viewport — from the same log as the
   conversation page. The chat pages moved under a `(chat)` route group so the
   sidebar is theirs alone.
-- `Pushing.send_link(chat_id, text, url)` joins `send_message` and
+- `PushChannel.send_link(chat_id, text, url)` joins `send_message` and
   `send_typing` on the seam, with the same contract as typing: a button where
   the platform has one, the URL as text where it does not. Telegram sends a
   `web_app` button for `https://` and a `url` button otherwise (Telegram's

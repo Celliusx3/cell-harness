@@ -10,7 +10,13 @@ from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
 from harness.tools.domain.tool import Tool
 from harness.tools.native.schedule.models import ScheduleEditArgs
-from harness.tools.native.schedule.shared import IN_A_GROUP, in_a_group, not_found, own, task
+from harness.tools.native.schedule.shared import (
+    OWN_CHAT_ONLY_REFUSAL,
+    is_outside_own_chat,
+    not_found_failure,
+    own_schedule,
+    read_back_task_fields,
+)
 
 SCHEDULE_EDIT = "schedule_edit"
 
@@ -27,13 +33,13 @@ def schedule_edit_tool(groups: GroupService, schedules: ScheduleService) -> Tool
     """The tool that changes or deletes one of the calling bot's schedules, from its own chat."""
 
     async def execute(args: ScheduleEditArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(groups, context.origin.conversation_id):
-            return IN_A_GROUP
+        if is_outside_own_chat(groups, context.origin.conversation_id):
+            return OWN_CHAT_ONLY_REFUSAL
         try:
-            own(schedules, context.origin.bot_id, args.id)
-            return _applied(schedules, args)
+            own_schedule(schedules, context.origin.bot_id, args.id)
+            return _edit_schedule(schedules, args)
         except ScheduleNotFound as err:
-            return not_found(err)
+            return not_found_failure(err)
         except InvalidSchedule as err:
             return Failure(INVALID_ARGUMENTS, str(err))
 
@@ -45,16 +51,18 @@ def schedule_edit_tool(groups: GroupService, schedules: ScheduleService) -> Tool
     )
 
 
-def _applied(schedules: ScheduleService, args: ScheduleEditArgs) -> ToolOutcome:
+def _edit_schedule(schedules: ScheduleService, args: ScheduleEditArgs) -> ToolOutcome:
     if args.action == "delete":
         schedules.delete(args.id)
         return Ok(json.dumps({"id": args.id, "deleted": True}))
     if (args.title, args.prompt, args.rrule, args.active) == (None, None, None, None):
         return _NOTHING_TO_UPDATE
-    return Ok(json.dumps(task(_updated(schedules, args)), ensure_ascii=False))
+    return Ok(
+        json.dumps(read_back_task_fields(_update_schedule(schedules, args)), ensure_ascii=False)
+    )
 
 
-def _updated(schedules: ScheduleService, args: ScheduleEditArgs) -> Schedule:
+def _update_schedule(schedules: ScheduleService, args: ScheduleEditArgs) -> Schedule:
     """The fields first, then the pause or resume; a refused field changes nothing."""
     edited = (
         schedules.get(args.id)

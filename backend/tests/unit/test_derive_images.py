@@ -14,8 +14,8 @@ from harness.llm import (
     images_of,
 )
 from harness.prompts import IMAGE_HIDDEN, IMAGE_NOT_SHOWN
-from harness.session.domain.derive import derive_messages, without_images
 from harness.session.domain.images import ImagesHidden
+from harness.session.domain.model_history import derive_messages, without_images
 from harness.session.domain.models import (
     AssistantMessageEvent,
     SessionEvent,

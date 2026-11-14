@@ -8,11 +8,11 @@ from collections.abc import AsyncIterator
 from harness.llm import (
     CONTEXT_WINDOW_EXCEEDED,
     AssistantMessage,
-    Completed,
-    Failed,
+    Completion,
     LLMClient,
     Message,
     StreamEvent,
+    StreamFailure,
     SystemMessage,
     TextChunk,
     ToolCall,
@@ -22,7 +22,7 @@ from harness.llm import (
 )
 from harness.prompts import SUMMARY_OPEN
 from harness.runtime.service import Runtime
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
@@ -51,12 +51,12 @@ class SizedClient(LLMClient):
             "compaction engine" in m.content for m in messages if isinstance(m, UserMessage)
         ):
             self.summaries += 1
-            yield Completed(full_text="INTENT: keep going. NEXT: answer.")
+            yield Completion(full_text="INTENT: keep going. NEXT: answer.")
             return
         self.turns += 1
         used = self._per_turn * (self.turns + 1)
         yield TextChunk(text="ok")
-        yield Completed(full_text="ok", usage=Usage(input_tokens=used, output_tokens=10))
+        yield Completion(full_text="ok", usage=Usage(input_tokens=used, output_tokens=10))
 
 
 def runtime_with(client: LLMClient, context: int | None) -> Runtime:
@@ -138,14 +138,14 @@ class OverflowingClient(LLMClient):
         if tools is None and any(
             "compaction engine" in m.content for m in messages if isinstance(m, UserMessage)
         ):
-            yield Completed(full_text="SUMMARY")
+            yield Completion(full_text="SUMMARY")
             return
         if self.refusals == 0:
             self.refusals += 1
-            yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+            yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
             return
         self.answered = True
-        yield Completed(full_text="recovered")
+        yield Completion(full_text="recovered")
 
 
 async def test_an_overflow_is_recovered_and_the_step_retried() -> None:
@@ -177,7 +177,7 @@ async def test_an_overflow_with_nothing_to_shrink_fails_the_turn() -> None:
         async def stream_completion(
             self, messages, model, *, tools=None
         ) -> AsyncIterator[StreamEvent]:
-            yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+            yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
 
     client = AlwaysOverflows()
     runtime = runtime_with(client, context=None)

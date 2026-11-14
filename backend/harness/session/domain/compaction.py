@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -43,7 +43,7 @@ class CompactionEnd(BaseModel):
         return self
 
     @property
-    def succeeded(self) -> bool:
+    def has_summary(self) -> bool:
         """A boundary was written — the model's history now starts here."""
         return self.message is not None
 
@@ -58,19 +58,26 @@ class CompactionPrune(BaseModel):
     call_ids: tuple[str, ...]
 
 
-def boundary(events: Sequence[SessionEvent]) -> int | None:
-    """The index of the last successful `compaction/end`, or `None` if never compacted."""
+class Boundary(NamedTuple):
+    """Where the last successful `compaction/end` sits, and the summary it wrote."""
+
+    position: int
+    summary: ApplicationMessage
+
+
+def boundary(events: Sequence[SessionEvent]) -> Boundary | None:
+    """The last successful `compaction/end`, or `None` if never compacted."""
     for index in reversed(range(len(events))):
         event = events[index]
-        if isinstance(event, CompactionEnd) and event.succeeded:
-            return index
+        if isinstance(event, CompactionEnd) and event.message is not None:
+            return Boundary(index, event.message)
     return None
 
 
 def tail_start(events: Sequence[SessionEvent]) -> int:
     """The index where the un-compacted tail begins."""
     since = boundary(events)
-    return 0 if since is None else since + 1
+    return 0 if since is None else since.position + 1
 
 
 def pruned_ids(events: Sequence[SessionEvent]) -> frozenset[str]:
@@ -83,7 +90,7 @@ def pruned_ids(events: Sequence[SessionEvent]) -> frozenset[str]:
     )
 
 
-def open_start(events: Sequence[SessionEvent]) -> CompactionStart | None:
+def unended_start(events: Sequence[SessionEvent]) -> CompactionStart | None:
     """A `compaction/start` a crash left without its `compaction/end`, or `None`."""
     for event in reversed(events):
         if isinstance(event, CompactionEnd):

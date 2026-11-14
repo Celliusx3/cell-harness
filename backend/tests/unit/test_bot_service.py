@@ -17,9 +17,9 @@ from harness.bots import (
     BotDraft,
     BotEdit,
     BotNotFound,
-    BotPermanent,
     BotRepository,
     BotService,
+    BuiltInBotError,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.domain.models import BotInstructionsEvent
@@ -57,7 +57,7 @@ async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
         app_events=AppEventService(),
     )
 
-    assert await missing.active_bots() == (KIND, BUILDER)
+    assert await missing.open_active_bots() == (KIND, BUILDER)
     with pytest.raises(BotNotFound):
         missing.active_bot("any-conversation")
 
@@ -65,8 +65,8 @@ async def test_with_no_file_assistant_then_bot_builder_are_the_only_bots(
 async def test_listing_opens_assistant_s_chat_only_the_first_time(
     bots: BotService, service: SessionService
 ) -> None:
-    await bots.active_bots()
-    await bots.active_bots()
+    await bots.open_active_bots()
+    await bots.open_active_bots()
 
     chat = await service.read(ASSISTANT_ID)
     assert list(chat.events()) == [
@@ -148,7 +148,7 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
     bots.archive(second.id)
     bots.archive(first.id)
 
-    assert await bots.active_bots() == (KIND, BUILDER)
+    assert await bots.open_active_bots() == (KIND, BUILDER)
     assert bots.archived_bots() == (
         first.model_copy(update={"archived": True}),
         second.model_copy(update={"archived": True}),
@@ -156,7 +156,7 @@ async def test_archiving_hides_a_bot_and_restoring_brings_it_back_as_it_was(
 
     bots.restore(first.id)
 
-    assert await bots.active_bots() == (KIND, BUILDER, first)
+    assert await bots.open_active_bots() == (KIND, BUILDER, first)
     assert list((await service.read(first.id)).events()) == chat_before
 
 
@@ -193,9 +193,9 @@ def test_restoring_assistant_leaves_it_as_it_was_and_writes_nothing(
 
 
 async def test_assistant_can_be_neither_archived_nor_deleted(bots: BotService) -> None:
-    with pytest.raises(BotPermanent):
+    with pytest.raises(BuiltInBotError):
         bots.archive(ASSISTANT_ID)
-    with pytest.raises(BotPermanent):
+    with pytest.raises(BuiltInBotError):
         await bots.delete(ASSISTANT_ID)
 
     assert bots.active_bot(ASSISTANT_ID) == KIND
@@ -221,7 +221,7 @@ async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
     bots.update(first.id, BotEdit(name="First", instructions="Uno.", model=MODEL_CREDENTIAL))
     bots.update(ASSISTANT_ID, BotEdit(name="Helper", instructions="Be terse.", model=None))
 
-    assert await bots.active_bots() == (
+    assert await bots.open_active_bots() == (
         Bot(id=ASSISTANT_ID, name="Helper", instructions="Be terse."),
         BUILDER,
         Bot(id=first.id, name="First", instructions="Uno.", model_credential=MODEL_CREDENTIAL),

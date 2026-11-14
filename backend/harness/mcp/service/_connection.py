@@ -35,14 +35,14 @@ class Connection:
     factory: McpClientFactory
     status: Status = "connecting"
     error: str = ""
-    tools: tuple[Tool[dict], ...] = ()
-    published: tuple[McpTool, ...] = ()
+    tools: tuple[Tool[dict[str, object]], ...] = ()
+    published_tools: tuple[McpTool, ...] = ()
     instructions: str = ""
     commands: asyncio.Queue[Command] = field(default_factory=asyncio.Queue)
     settled: asyncio.Event = field(default_factory=asyncio.Event)
     task: asyncio.Task[None] | None = None
 
-    def snapshot(self) -> ServerStatus:
+    def server_status(self) -> ServerStatus:
         return ServerStatus(
             id=self.id,
             status=self.status,
@@ -50,17 +50,19 @@ class Connection:
             tool_names=tuple(tool.name for tool in self.tools),
         )
 
-    def wait_for(self, missing: tuple[str, ...]) -> None:
+    def mark_waiting_for(self, missing_keys: tuple[str, ...]) -> None:
         """Stay unstarted, naming the keys it waits for; settled, so startup does not wait."""
         self.status = "waiting"
-        self.error = "needs " + ", ".join(missing)
+        self.error = "needs " + ", ".join(missing_keys)
         self.settled.set()
 
     def start(self) -> None:
         self.task = asyncio.create_task(self._serve(), name=f"mcp:{self.id}")
         self.task.add_done_callback(self._report_exit)
 
-    async def call(self, server_tool_name: str, arguments: dict) -> CallToolResult:
+    async def call_tool(
+        self, server_tool_name: str, arguments: dict[str, object]
+    ) -> CallToolResult:
         loop = asyncio.get_running_loop()
         command = ToolCallCommand(
             server_tool_name=server_tool_name,
@@ -108,21 +110,21 @@ class Connection:
             self.status = "disconnected"
             self.error = ""
             self.tools = ()
-            self.published = ()
+            self.published_tools = ()
             self.instructions = ""
 
     async def _serve(self) -> None:
         """Open, publish the tools, service commands, close — all in one task."""
         try:
             async with self.factory(self.server) as client:
-                self.published = tuple(await _list_all(client))
-                self.tools = tuple(build_tools(self.id, self.published, self.call))
+                self.published_tools = tuple(await _list_all_tools(client))
+                self.tools = tuple(build_tools(self.id, self.published_tools, self.call_tool))
                 self.instructions = client.instructions or ""
                 self.status = "connected"
                 self.settled.set()
                 logger.info("MCP server %s connected with %d tools", self.id, len(self.tools))
                 while True:
-                    await self._run(client, await self.commands.get())
+                    await self._run_command(client, await self.commands.get())
         except asyncio.CancelledError:
             self.status = "disconnected"
             raise
@@ -133,11 +135,11 @@ class Connection:
         finally:
             self.settled.set()
             self.tools = ()
-            self.published = ()
+            self.published_tools = ()
             self.instructions = ""
             self._fail_queued()
 
-    async def _run(self, client: McpClient, command: Command) -> None:
+    async def _run_command(self, client: McpClient, command: Command) -> None:
         try:
             async with asyncio.timeout_at(command.deadline):
                 result: CallToolResult | ReadResourceResult
@@ -177,7 +179,7 @@ class Connection:
             logger.error("MCP server %s stopped: %s", self.id, error, exc_info=error)
 
 
-async def _list_all(client: McpClient) -> list[McpTool]:
+async def _list_all_tools(client: McpClient) -> list[McpTool]:
     """Every tool the server offers, following its pagination."""
     tools: list[McpTool] = []
     cursor: str | None = None

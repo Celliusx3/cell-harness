@@ -38,8 +38,8 @@ async def run_to_end(
     runtime: Runtime, sessions: SessionService, session: Session, turn: HelperTurn
 ) -> TurnEvent | None:
     """Run `turn` on a copy of `runtime` in `session`, flushed by `sessions`; its last event."""
-    copy = _copy(runtime, sessions, turn.intro)
-    return await _last(
+    copy = _helper_runtime(runtime, sessions, turn.intro)
+    return await _last_event(
         sessions, session, copy.run(turn.prompt, session=session, bot_id=turn.bot_id)
     )
 
@@ -48,18 +48,18 @@ async def resume_to_end(
     runtime: Runtime, sessions: SessionService, session: Session, answer: HelperAnswer
 ) -> TurnEvent | None:
     """Answer the call `answer` names on a copy of `runtime` in `session`; the turn's last event."""
-    copy = _copy(runtime, sessions, answer.intro)
+    copy = _helper_runtime(runtime, sessions, answer.intro)
     resumed = copy.resume(answer.call_id, answer.outcome, session=session, bot_id=answer.bot_id)
-    return await _last(sessions, session, resumed)
+    return await _last_event(sessions, session, resumed)
 
 
-def _copy(runtime: Runtime, sessions: SessionService, intro: str) -> Runtime:
+def _helper_runtime(runtime: Runtime, sessions: SessionService, intro: str) -> Runtime:
     return dataclasses.replace(
         runtime, guidance=intro + runtime.guidance, checkpoint=sessions.flush, inbox=NO_INBOX
     )
 
 
-async def _last(
+async def _last_event(
     sessions: SessionService, session: Session, turn: AsyncGenerator[TurnEvent]
 ) -> TurnEvent | None:
     """`turn` drained, `session` flushed whatever happens: the last event it yielded."""

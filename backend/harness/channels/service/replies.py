@@ -8,7 +8,7 @@ import logging
 from typing import NamedTuple
 from urllib.parse import quote
 
-from harness.channels.domain.protocol import Pushing
+from harness.channels.domain.protocol import PushChannel
 from harness.channels.repository.chat_repository import ChatRepository
 from harness.runs.service.run import Run
 from harness.runs.service.subscribe import subscribe
@@ -21,7 +21,7 @@ from harness.session.domain.models import (
     ToolResultEvent,
     TurnEnd,
 )
-from harness.tools.client import PendingCall, next_pending
+from harness.tools.client import PendingCall, pending_calls_after
 
 logger = logging.getLogger("harness.channels")
 
@@ -43,7 +43,7 @@ def answer_url(public_url: str, conversation_id: str, call_id: str) -> str:
 
 def _compaction_line(event: CompactionEnd) -> str:
     """What a chat is told when a manual compaction settles."""
-    if event.succeeded:
+    if event.has_summary:
         return "Conversation compacted to free up context."
     return "Could not compact the conversation right now."
 
@@ -76,7 +76,7 @@ class _AppLink(NamedTuple):
     url: str
 
 
-class Replies:
+class ReplySender:
     """Sends a turn's replies to the chat that asked, and remembers what it was asked."""
 
     def __init__(self, repository: ChatRepository, *, public_url: str) -> None:
@@ -85,7 +85,7 @@ class Replies:
         if not public_url:
             logger.info("web.public_url is not set; app links will not be sent to chats")
 
-    async def deliver(self, transport: Pushing, channel: str, chat_id: str, run: Run) -> None:
+    async def deliver(self, transport: PushChannel, channel: str, chat_id: str, run: Run) -> None:
         """Send this turn's replies as they land."""
         typing = asyncio.create_task(self._keep_typing(transport, chat_id))
         try:
@@ -93,7 +93,7 @@ class Replies:
             pending: tuple[PendingCall, ...] = ()
             async for item in subscribe(run, after=run.first_event_number):
                 event = item.event
-                pending = next_pending(pending, event)
+                pending = pending_calls_after(pending, event)
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
                 elif isinstance(event, ToolResultEvent):
@@ -139,7 +139,7 @@ class Replies:
             app_url(self._public_url, session_id, call_id),
         )
 
-    async def _send_link(self, transport: Pushing, chat_id: str, link: _AppLink | None) -> None:
+    async def _send_link(self, transport: PushChannel, chat_id: str, link: _AppLink | None) -> None:
         """Best-effort, unlike a reply."""
         if link is None:
             return
@@ -151,21 +151,21 @@ class Replies:
             )
 
     async def _send_question(
-        self, transport: Pushing, chat_id: str, event: TicketReportEvent
+        self, transport: PushChannel, chat_id: str, event: TicketReportEvent
     ) -> None:
         """Send a report's question before the bot's reply, which does not repeat it."""
         report = event.report
         if report.question is not None:
             await transport.send_message(chat_id, _question_line(report, report.question))
 
-    async def _send_reply(self, transport: Pushing, chat_id: str, text: str) -> None:
+    async def _send_reply(self, transport: PushChannel, chat_id: str, text: str) -> None:
         """Send what the model said, unless it said nothing."""
         if not text.strip():
             return
         await transport.send_message(chat_id, text)
 
     async def _ask_each(
-        self, transport: Pushing, chat_id: str, session_id: str, calls: tuple[PendingCall, ...]
+        self, transport: PushChannel, chat_id: str, session_id: str, calls: tuple[PendingCall, ...]
     ) -> None:
         """Best-effort: an unsent prompt times out into a result the model can act on."""
         for call in calls:
@@ -177,7 +177,7 @@ class Replies:
                     "%s could not be asked of chat %s", call.name, chat_id, exc_info=True
                 )
 
-    async def _keep_typing(self, transport: Pushing, chat_id: str) -> None:
+    async def _keep_typing(self, transport: PushChannel, chat_id: str) -> None:
         """Refresh the typing indicator until cancelled."""
         while True:
             await transport.send_typing(chat_id)

@@ -8,8 +8,8 @@ import re
 from pathlib import Path
 
 from harness.files import ChatFile
-from harness.images.domain.models import ImageFile
-from harness.images.repository.image_repository import KEPT_MEDIA_TYPES, ImageRepository
+from harness.images.domain.models import ImageFile, KeptMediaType
+from harness.images.repository.image_repository import ImageRepository, is_kept_media_type
 from harness.llm import Block, Image, Text
 from harness.prompts import IMAGE_TOO_LARGE
 from harness.tools import ReturnedImage
@@ -31,11 +31,11 @@ class ImageService:
     def __init__(self, repository: ImageRepository) -> None:
         self._repository = repository
 
-    def of_result(self, returned: tuple[ReturnedImage, ...]) -> tuple[Block, ...]:
+    def keep_result_images(self, returned: tuple[ReturnedImage, ...]) -> tuple[Block, ...]:
         """Each image a tool returned, kept and shown; one too large is a note saying so instead."""
         blocks: list[Block] = []
         for image in returned:
-            if image.media_type not in KEPT_MEDIA_TYPES:
+            if not is_kept_media_type(image.media_type):
                 logger.warning(
                     "a tool's %s image is not shown: no model is sent that type", image.media_type
                 )
@@ -49,11 +49,11 @@ class ImageService:
                 blocks.append(kept)
         return tuple(blocks)
 
-    def of_attachments(self, files: tuple[ChatFile, ...]) -> tuple[Image, ...]:
+    def keep_attached_images(self, files: tuple[ChatFile, ...]) -> tuple[Image, ...]:
         """Each attachment a model can be sent as an image, kept; any other is left to its line."""
         images: list[Image] = []
         for file in files:
-            if file.media_type not in KEPT_MEDIA_TYPES or file.size > IMAGE_MAX_BYTES:
+            if not is_kept_media_type(file.media_type) or file.size > IMAGE_MAX_BYTES:
                 continue
             try:
                 data = Path(file.path).read_bytes()
@@ -67,7 +67,7 @@ class ImageService:
 
     def read(self, image: Image) -> bytes | None:
         """The bytes `image` names; `None`, with a warning, when they cannot be read back."""
-        if image.media_type not in KEPT_MEDIA_TYPES or not is_sha256(image.sha256):
+        if not is_kept_media_type(image.media_type) or not is_sha256(image.sha256):
             logger.warning("image %r (%s) cannot name a kept file", image.sha256, image.media_type)
             return None
         try:
@@ -84,7 +84,7 @@ class ImageService:
         """The kept file named `sha256`, whatever its extension; `None` when there is none."""
         return self._repository.file_of(sha256) if is_sha256(sha256) else None
 
-    def _save(self, media_type: str, data: bytes) -> Image | None:
+    def _save(self, media_type: KeptMediaType, data: bytes) -> Image | None:
         """The image `data` is, once kept; `None`, with a warning, when it could not be written."""
         image = Image(
             media_type=media_type, sha256=hashlib.sha256(data).hexdigest(), size=len(data)

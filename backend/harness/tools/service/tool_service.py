@@ -80,11 +80,11 @@ class ToolService:
         resolved = dict(self._static)
         for provider in self._providers:
             try:
-                offered = list(provider())
+                provided = list(provider())
             except Exception:
                 logger.warning("tool provider failed", exc_info=True)
                 continue
-            for tool in offered:
+            for tool in provided:
                 if tool.name in resolved:
                     logger.warning("tool %r already provided; ignoring duplicate", tool.name)
                     continue
@@ -107,7 +107,7 @@ class ToolService:
         origin: CallOrigin,
     ) -> ToolOutcome:
         """Run one call, whether the model made it or a script did — unless it must ask first."""
-        if not approved and origin.mode == "ask" and self._approvals.needs_approval(call.name):
+        if not approved and origin.mode == "ask" and self._approvals.should_ask(call.name):
             return Pending()
         tool = self.get(call.name)
         if tool is None:

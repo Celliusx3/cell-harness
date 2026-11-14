@@ -93,7 +93,7 @@ Same three tiers; the catalog is in the system prompt.
    logged.** The other clients in §2 put it in the system prompt or the tool
    description. Claude Code and DeepSeek Harness put it in the conversation
    instead, and Claude Code sends it again after compaction. This harness copies
-   Claude Code. A step hook, `SkillListHook`, returns `available_skills` at the
+   Claude Code. A step hook, `SkillListHook`, returns `skill_list_text` at the
    start of every step, `Runtime.request_messages` puts it at the end of the
    first user message as a `<system-reminder>`, and the `skill` tool's
    description points at it. After compaction the first user message is the

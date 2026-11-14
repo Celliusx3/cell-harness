@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
 
 import discord
 from discord import app_commands
@@ -15,12 +14,13 @@ from harness.channels.service.commands import (
     Command,
     ModeChoice,
     ModeQuestion,
-    unknown_skill,
+    apply_command,
+    unknown_skill_reply,
 )
-from harness.channels.service.commands import apply as apply_command
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, link_or_receive
 from harness.skills import UnknownSkill
+from harness.tools import ApprovalMode
 from harness.tools.client import PendingCall
 
 logger = logging.getLogger("harness.channels.discord")
@@ -38,7 +38,7 @@ NO_ANSWER_PAGE = "(Answering from Discord needs `web.public_url` to be set.)"
 
 
 class DiscordChannel:
-    """`Channel` and `Pushing` for Discord: receive, send, show typing."""
+    """`Channel` and `PushChannel` for Discord: receive, send, show typing."""
 
     channel = CHANNEL
 
@@ -77,14 +77,12 @@ class DiscordChannel:
             await self._on_command(interaction, Command.COMPACT)
 
         @self._tree.command(name="mode", description="Show or switch what asks before it runs")
-        async def mode(
-            interaction: discord.Interaction, mode: Literal["ask", "auto"] | None = None
-        ) -> None:
+        async def mode(interaction: discord.Interaction, mode: ApprovalMode | None = None) -> None:
             await self._on_command(
                 interaction, ModeChoice(mode=mode) if mode is not None else ModeQuestion()
             )
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         """None: a Discord chat writes where its stored state says, or nowhere."""
         return ""
 
@@ -102,7 +100,7 @@ class DiscordChannel:
         """One inbound message from the gateway websocket."""
         if message.author.bot:
             return
-        if message.guild is not None and not self._mentions_me(message):
+        if message.guild is not None and not self._is_mentioned_in(message):
             return
         text = self._strip_mention(message.content).strip()
         if not text:
@@ -118,7 +116,7 @@ class DiscordChannel:
                 await self.send_message(chat_id, reply)
         except UnknownSkill as err:
             await self.send_message(
-                chat_id, unknown_skill(err.name, self._gateway.skills.invocable())
+                chat_id, unknown_skill_reply(err.name, self._gateway.skills.user_invocable_skills())
             )
         except Exception:
             logger.exception("handling message from chat %s failed", chat_id)
@@ -127,7 +125,7 @@ class DiscordChannel:
         await self._links.store_on_assistant_unless_stored(CHANNEL, message.chat_id)
         await self._gateway.receive(message)
 
-    def _mentions_me(self, message: discord.Message) -> bool:
+    def _is_mentioned_in(self, message: discord.Message) -> bool:
         me = self._client.user
         return me is not None and any(user.id == me.id for user in message.mentions)
 

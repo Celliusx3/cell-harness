@@ -31,11 +31,11 @@ class BotMessageSender(Protocol):
     ) -> Ok | Failure: ...
 
 
-def message_bot_tool(bots: BotService, messages: BotMessageSender) -> Tool[MessageBotArgs]:
+def message_bot_tool(bots: BotService, sender: BotMessageSender) -> Tool[MessageBotArgs]:
     """The tool that sends a message to one of the bots active now, and returns once it is sent."""
 
     async def execute(args: MessageBotArgs, context: ToolContext) -> ToolOutcome:
-        return await messages.send(
+        return await sender.send(
             context.call_id, from_bot_id=context.origin.bot_id, to_name=args.bot, text=args.message
         )
 

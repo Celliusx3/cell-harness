@@ -98,10 +98,10 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     runtime = runtime_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
     runs = _runs(service, runtime, bots, app_events)
     session = await service.create(ASSISTANT_ID)
-    await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
+    await asyncio.wait_for(runs.start(session, "hi")._settle_task, timeout=5)
     bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
 
-    await asyncio.wait_for(runs.compact(session)._outer, timeout=5)
+    await asyncio.wait_for(runs.compact(session)._settle_task, timeout=5)
 
     assert client.seen[0] == SystemMessage(content="Be kind. GUIDE")
     assert _logged(session) == ["Be kind."]
@@ -121,10 +121,10 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
         service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots, app_events
     )
     session = await service.create(ASSISTANT_ID)
-    await asyncio.wait_for(runs.start(session, "near me?")._outer, timeout=5)
+    await asyncio.wait_for(runs.start(session, "near me?")._settle_task, timeout=5)
     bots.update(ASSISTANT_ID, BotEdit(name="Assistant", instructions="Be brief.", model=None))
 
-    await asyncio.wait_for(runs.resume(session, "c1", Ok(content="here"))._outer, timeout=5)
+    await asyncio.wait_for(runs.resume(session, "c1", Ok(content="here"))._settle_task, timeout=5)
 
     assert client.seen[0] == SystemMessage(content="Be kind.")
     assert _logged(session) == ["Be kind."]
@@ -145,7 +145,7 @@ async def test_a_chat_from_before_groups_logs_its_bot_s_instructions_no_second_t
     session = await service.create(ASSISTANT_ID)
     session.append(BotInstructionsEvent(name="Assistant", instructions="Be kind."))
 
-    await asyncio.wait_for(runs.start(session, "hi")._outer, timeout=5)
+    await asyncio.wait_for(runs.start(session, "hi")._settle_task, timeout=5)
 
     assert _logged(session) == ["Be kind."]
     assert [e.bot_id for e in session.events() if isinstance(e, TurnStart)] == [ASSISTANT_ID]
@@ -278,16 +278,16 @@ def test_each_bot_keeps_its_own_selected_tools_and_approvals() -> None:
     )
 
     assert session.tools_selected() == ()
-    assert session.conversation_approved_tools() == frozenset()
+    assert session.speaker_granted_tools() == frozenset()
     session.append(TurnStart(turn=3, bot_id="r"))
     assert session.tools_selected() == ("web__get",)
-    assert session.conversation_approved_tools() == {"fs__write"}
+    assert session.speaker_granted_tools() == {"fs__write"}
 
 
 def test_a_call_is_answered_for_the_bot_whose_turn_asked_it() -> None:
     session = log_of(*RESEARCHER_TURN, TurnStart(turn=1, bot_id="w"))
 
-    assert session.speaker_of_call("c1") == "r"
+    assert session.calling_bot_id("c1") == "r"
     assert session.speaker_id() == "w"
 
 

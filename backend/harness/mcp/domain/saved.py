@@ -47,10 +47,11 @@ class ServerDraft(ServerCommand):
     @model_validator(mode="after")
     def _keys_apart_from_settings(self) -> ServerDraft:
         """A key goes in `keys`, hidden; a plain setting in `env` is never one the server needs."""
-        kept = sorted(set(self.env) & set(self.needs))
-        if kept:
+        keys_typed_as_settings = sorted(set(self.env) & set(self.needs))
+        if keys_typed_as_settings:
             raise ValueError(
-                f"{', '.join(kept)} is a key this server needs; type it as a key, not as a setting"
+                f"{', '.join(keys_typed_as_settings)} is a key this server needs; "
+                "type it as a key, not as a setting"
             )
         unneeded = sorted(set(self.keys) - set(self.needs))
         if unneeded:
@@ -62,9 +63,9 @@ class ServerDraft(ServerCommand):
             raise ValueError(f"{', '.join(blank)} is blank; leave a key out to keep the one saved")
         return self
 
-    def saved(self, server_id: str, kept: Mapping[str, str]) -> SavedServer:
-        """The server to save as `server_id`: each key typed, else its value in `kept`, if any."""
-        held = {name: kept[name] for name in self.needs if name in kept}
+    def saved_server(self, server_id: str, saved_env: Mapping[str, str]) -> SavedServer:
+        """The server to save as `server_id`: each key typed, else its saved value, if any."""
+        held = {name: saved_env[name] for name in self.needs if name in saved_env}
         typed = {name: key.get_secret_value() for name, key in self.keys.items()}
         return SavedServer(
             id=server_id,
@@ -96,7 +97,7 @@ class SavedServer(ServerCommand):
     def _usable(cls, value: str) -> str:
         return usable_server_id(value)
 
-    def server(self) -> McpServer:
+    def mcp_server(self) -> McpServer:
         """The server to run, its keys in its env."""
         return McpServer(command=self.command, args=self.args, env=self.env, needs=self.needs)
 

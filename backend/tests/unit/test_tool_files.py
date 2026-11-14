@@ -9,7 +9,7 @@ from mcp.types import CallToolResult, TextContent
 
 from harness.files import ChatFile, ChatFileService, DiskChatFileRepository
 from harness.mcp.domain.returned_file import FILES_META
-from harness.mcp.service._result import outcome_of
+from harness.mcp.service._result import tool_outcome
 from harness.mcp.service.tool import as_tool
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
@@ -30,7 +30,7 @@ def result_with(meta: dict[str, object] | None, *, is_error: bool = False) -> Ca
 
 
 def ok_of(result: CallToolResult) -> Ok:
-    outcome = outcome_of(result, tool_name="srv__draw", server_id="srv", resource_uri=None)
+    outcome = tool_outcome(result, tool_name="srv__draw", server_id="srv", resource_uri=None)
     assert isinstance(outcome, Ok)
     return outcome
 
@@ -127,7 +127,7 @@ async def test_a_runtime_with_no_chat_files_logs_no_file(tmp_path) -> None:
 def test_a_failed_call_hands_back_no_files() -> None:
     meta = {FILES_META: [{"path": "/a.png"}]}
 
-    outcome = outcome_of(
+    outcome = tool_outcome(
         result_with(meta, is_error=True), tool_name="x", server_id="s", resource_uri=None
     )
 

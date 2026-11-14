@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import aclosing
 
 from harness.llm import Text, ToolMessage, ToolReference
-from harness.session.domain.derive import RESULT_LIMIT, derive_messages
+from harness.session.domain.model_history import RESULT_CHAR_LIMIT, derive_messages
 from harness.session.domain.models import ToolResultEvent
 from harness.tools import Ok, Tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
@@ -25,21 +25,21 @@ def _seen(event: ToolResultEvent) -> tuple[Text | ToolReference, ...]:
 
 
 def test_the_limit_is_twelve_thousand_characters() -> None:
-    assert RESULT_LIMIT == 12_000
+    assert RESULT_CHAR_LIMIT == 12_000
 
 
 def test_a_long_result_keeps_its_head_and_says_how_much_was_cut() -> None:
     (block,) = _seen(_result(Text(text="x" * 32_060)))
 
     assert isinstance(block, Text)
-    assert block.text.startswith("x" * RESULT_LIMIT)
-    assert not block.text.startswith("x" * (RESULT_LIMIT + 1))
+    assert block.text.startswith("x" * RESULT_CHAR_LIMIT)
+    assert not block.text.startswith("x" * (RESULT_CHAR_LIMIT + 1))
     assert "32,060" in block.text
-    assert len(block.text) < RESULT_LIMIT + 300
+    assert len(block.text) < RESULT_CHAR_LIMIT + 300
 
 
 def test_a_result_at_the_limit_is_untouched() -> None:
-    event = _result(Text(text="x" * RESULT_LIMIT))
+    event = _result(Text(text="x" * RESULT_CHAR_LIMIT))
 
     assert _seen(event) == event.message.content
 
@@ -83,5 +83,5 @@ async def test_the_log_keeps_the_whole_result_and_the_model_sees_the_cut() -> No
     stored = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     assert stored[0].message.content == (Text(text="y" * 20_000),)
     sent = [m for m in client.seen_per_call[1] if isinstance(m, ToolMessage)]
-    assert sent[0].content[0].text.startswith("y" * RESULT_LIMIT)
+    assert sent[0].content[0].text.startswith("y" * RESULT_CHAR_LIMIT)
     assert "20,000" in sent[0].content[0].text

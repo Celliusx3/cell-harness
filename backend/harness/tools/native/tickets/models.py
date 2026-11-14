@@ -10,18 +10,18 @@ from harness.secrets import Destination, SecretName
 from harness.session.domain.models import ReportAsk
 from harness.tickets.domain.models import ReportState
 
-TICKET_ID = "The id of one of your tickets."
-ASK = (
+TICKET_ID_DESCRIPTION = "The id of one of your tickets."
+ASK_DESCRIPTION = (
     "How the user answers question: text to type it, choice to tap one of options, secret to "
     "paste a key that is saved under secret_name and never shown to you, location to share "
     "where they are, takeover to do a step on the computer themselves and answer when done."
 )
-OPTIONS = "Two to four short answers to tap, only with the ask choice."
-SECRET_NAME = (
+OPTIONS_DESCRIPTION = "Two to four short answers to tap, only with the ask choice."
+SECRET_NAME_DESCRIPTION = (
     "The name the key is saved under: lowercase letters, digits and underscores, only with the "
     "ask secret. Use it with fetch_with_secret."
 )
-SECRET_DESTINATION = (
+SECRET_DESTINATION_DESCRIPTION = (
     "The one API the key may be sent to, only with the ask secret: its https origin and how it "
     "takes the key."
 )
@@ -55,7 +55,7 @@ class AttachItem(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     kind: Literal["attach"]
-    ticket: str = Field(min_length=1, description=TICKET_ID)
+    ticket: str = Field(min_length=1, description=TICKET_ID_DESCRIPTION)
     text: str = Field(
         min_length=1, description="The user's message for that ticket, in their words."
     )
@@ -67,7 +67,7 @@ class StopItem(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     kind: Literal["stop"]
-    ticket: str = Field(min_length=1, description=TICKET_ID)
+    ticket: str = Field(min_length=1, description=TICKET_ID_DESCRIPTION)
 
 
 class IgnoreItem(BaseModel):
@@ -123,10 +123,12 @@ class TicketReportArgs(BaseModel):
             "reaches the user unchanged."
         ),
     )
-    ask: ReportAsk = Field(default="text", description=ASK)
-    options: Options | None = Field(default=None, description=OPTIONS)
-    secret_name: SecretName | None = Field(default=None, description=SECRET_NAME)
-    secret_destination: Destination | None = Field(default=None, description=SECRET_DESTINATION)
+    ask: ReportAsk = Field(default="text", description=ASK_DESCRIPTION)
+    options: Options | None = Field(default=None, description=OPTIONS_DESCRIPTION)
+    secret_name: SecretName | None = Field(default=None, description=SECRET_NAME_DESCRIPTION)
+    secret_destination: Destination | None = Field(
+        default=None, description=SECRET_DESTINATION_DESCRIPTION
+    )
 
 
 class TicketNoteArgs(BaseModel):

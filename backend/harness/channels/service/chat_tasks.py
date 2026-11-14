@@ -30,7 +30,7 @@ class ChatTasks:
     def __bool__(self) -> bool:
         return bool(self._tasks)
 
-    def running(self) -> bool:
+    def is_any_running(self) -> bool:
         """Whether any chat's task is still running — for tests waiting on idle."""
         return any(not task.done() for task in self._tasks.values())
 

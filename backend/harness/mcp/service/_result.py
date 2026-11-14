@@ -24,7 +24,7 @@ from harness.tools import (
 logger = logging.getLogger("harness.mcp")
 
 
-def outcome_of(
+def tool_outcome(
     result: CallToolResult, *, tool_name: str, server_id: str, resource_uri: str | None
 ) -> ToolOutcome:
     """What the model gets back."""

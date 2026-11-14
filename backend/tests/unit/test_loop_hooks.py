@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import replace
 
-from harness.llm import Completed, Text, ToolCall, ToolCallChunk, text_of
+from harness.llm import Completion, Text, ToolCall, ToolCallChunk, text_of
 from harness.runtime.events import AgentCompleted, ToolResult, TurnEvent
 from harness.runtime.hooks import CompletedCall, HookChain, Signature, ToolHook
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
 from harness.tools import BLOCKED, Ok, ToolOutcome
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool, raising_tool
@@ -24,11 +24,11 @@ class Stub(ToolHook):
         self.pre_seen: list[Signature] = []
         self.post_seen: list[tuple[Signature, ToolOutcome]] = []
 
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
         self.pre_seen.append(sig)
         return self.refuse
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
     ) -> str | None:
         self.post_seen.append((sig, outcome))
@@ -72,7 +72,7 @@ async def test_a_note_is_logged_as_a_guardrail_message_after_the_steps_calls() -
         [
             ToolCallChunk(call=ToolCall(id="c1", name="echo", arguments='{"value": "a"}')),
             ToolCallChunk(call=ToolCall(id="c2", name="echo", arguments='{"value": "b"}')),
-            Completed(
+            Completion(
                 full_text="",
                 tool_calls=[
                     ToolCall(id="c1", name="echo", arguments='{"value": "a"}'),

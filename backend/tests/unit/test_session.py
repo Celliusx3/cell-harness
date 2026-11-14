@@ -8,13 +8,13 @@ from typing import get_args
 from harness.llm import (
     ApplicationMessage,
     AssistantMessage,
-    Completed,
+    Completion,
     Message,
     TextChunk,
     UserMessage,
 )
-from harness.session.domain.derive import derive_messages
 from harness.session.domain.log import Session
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,
@@ -57,7 +57,7 @@ def test_every_event_round_trips_as_json() -> None:
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     session.append(AssistantChunk(turn=0, step=0, chunk=TextChunk(text="he")))
-    session.append(AssistantChunk(turn=0, step=0, chunk=Completed(full_text="hello")))
+    session.append(AssistantChunk(turn=0, step=0, chunk=Completion(full_text="hello")))
     session.append(AssistantMessageEvent(turn=0, step=0, message=AssistantMessage(content="hello")))
     session.append(TurnEnd(turn=0, reason="completed"))
 

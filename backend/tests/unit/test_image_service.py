@@ -49,21 +49,21 @@ def attached(path: Path, *, media_type: str = "image/png", size: int | None = No
 
 
 def test_a_kept_image_carries_its_size_in_bytes(tmp_path) -> None:
-    (kept,) = images_at(tmp_path).of_result((RETURNED_DOT,))
+    (kept,) = images_at(tmp_path).keep_result_images((RETURNED_DOT,))
 
     assert isinstance(kept, Image)
     assert kept.size == len(DOT)
 
 
 def test_the_same_bytes_returned_twice_are_one_kept_image(tmp_path) -> None:
-    blocks = images_at(tmp_path).of_result((RETURNED_DOT, RETURNED_DOT))
+    blocks = images_at(tmp_path).keep_result_images((RETURNED_DOT, RETURNED_DOT))
 
     assert blocks == (DOT_IMAGE, DOT_IMAGE)
     assert [path.name for path in tmp_path.iterdir()] == [f"{DOT_SHA256}.png"]
 
 
 def test_a_reload_reads_the_same_bytes_by_hash(tmp_path) -> None:
-    assert images_at(tmp_path).of_result((RETURNED_DOT,)) == (DOT_IMAGE,)
+    assert images_at(tmp_path).keep_result_images((RETURNED_DOT,)) == (DOT_IMAGE,)
 
     assert images_at(tmp_path).read(DOT_IMAGE) == DOT
 
@@ -80,7 +80,7 @@ def test_a_missing_image_reads_as_nothing_with_a_warning(tmp_path, caplog) -> No
 
 def test_a_file_that_no_longer_holds_its_bytes_reads_as_nothing(tmp_path, caplog) -> None:
     images = images_at(tmp_path)
-    images.of_result((RETURNED_DOT,))
+    images.keep_result_images((RETURNED_DOT,))
     (tmp_path / f"{DOT_SHA256}.png").write_bytes(b"swapped")
 
     with caplog.at_level(logging.WARNING, logger="harness.images"):
@@ -102,7 +102,7 @@ def test_an_image_that_cannot_name_a_kept_file_reads_as_nothing(tmp_path, image:
 
 def test_a_kept_image_is_found_by_its_hash(tmp_path) -> None:
     images = images_at(tmp_path)
-    images.of_result((RETURNED_DOT,))
+    images.keep_result_images((RETURNED_DOT,))
 
     assert images.file_of(DOT_SHA256) == ImageFile(
         path=tmp_path / f"{DOT_SHA256}.png", media_type="image/png"
@@ -112,7 +112,7 @@ def test_a_kept_image_is_found_by_its_hash(tmp_path) -> None:
 @pytest.mark.parametrize("sha256", ["", "abc", "../" + DOT_SHA256, "g" * 64, DOT_SHA256.upper()])
 def test_a_name_that_is_not_a_hash_finds_no_file(tmp_path, sha256: str) -> None:
     images = images_at(tmp_path / "blobs")
-    images.of_result((RETURNED_DOT,))
+    images.keep_result_images((RETURNED_DOT,))
     (tmp_path / f"{DOT_SHA256}.png").write_bytes(DOT)
 
     assert images.file_of(sha256) is None
@@ -125,7 +125,7 @@ def test_a_hash_with_no_file_finds_nothing(tmp_path) -> None:
 def test_a_returned_image_over_five_megabytes_is_a_note_instead(tmp_path) -> None:
     huge = ReturnedImage(media_type="image/png", data=bytes(IMAGE_MAX_BYTES + 1))
 
-    blocks = images_at(tmp_path / "blobs").of_result((huge,))
+    blocks = images_at(tmp_path / "blobs").keep_result_images((huge,))
 
     note = IMAGE_TOO_LARGE.format(size=IMAGE_MAX_BYTES + 1, limit=IMAGE_MAX_BYTES)
     assert blocks == (Text(text=note),)
@@ -136,7 +136,7 @@ def test_a_returned_type_no_model_is_sent_is_not_shown(tmp_path, caplog) -> None
     bitmap = ReturnedImage(media_type="image/bmp", data=DOT)
 
     with caplog.at_level(logging.WARNING, logger="harness.images"):
-        blocks = images_at(tmp_path / "blobs").of_result((bitmap,))
+        blocks = images_at(tmp_path / "blobs").keep_result_images((bitmap,))
 
     assert blocks == ()
     assert "a tool's image/bmp image is not shown: no model is sent that type" in caplog.text
@@ -145,7 +145,7 @@ def test_a_returned_type_no_model_is_sent_is_not_shown(tmp_path, caplog) -> None
 
 def test_a_returned_image_that_cannot_be_kept_is_not_shown(caplog) -> None:
     with caplog.at_level(logging.WARNING, logger="harness.images"):
-        blocks = ImageService(FullDisk()).of_result((RETURNED_DOT,))
+        blocks = ImageService(FullDisk()).keep_result_images((RETURNED_DOT,))
 
     assert blocks == ()
     assert "an image is not shown: it could not be kept: disk full" in caplog.text
@@ -155,7 +155,7 @@ def test_an_attached_image_is_kept_and_shown(tmp_path) -> None:
     (tmp_path / "page.png").write_bytes(DOT)
     images = images_at(tmp_path / "blobs")
 
-    assert images.of_attachments((attached(tmp_path / "page.png"),)) == (DOT_IMAGE,)
+    assert images.keep_attached_images((attached(tmp_path / "page.png"),)) == (DOT_IMAGE,)
     assert images.read(DOT_IMAGE) == DOT
 
 
@@ -163,7 +163,7 @@ def test_an_attached_image_over_five_megabytes_is_not_shown(tmp_path) -> None:
     (tmp_path / "huge.png").write_bytes(DOT)
     huge = attached(tmp_path / "huge.png", size=IMAGE_MAX_BYTES + 1)
 
-    assert images_at(tmp_path / "blobs").of_attachments((huge,)) == ()
+    assert images_at(tmp_path / "blobs").keep_attached_images((huge,)) == ()
     assert not (tmp_path / "blobs").exists()
 
 
@@ -174,7 +174,7 @@ def test_an_attached_file_that_is_not_an_image_is_left_to_its_line(
     (tmp_path / "notes").write_bytes(DOT)
     notes = attached(tmp_path / "notes", media_type=media_type)
 
-    assert images_at(tmp_path / "blobs").of_attachments((notes,)) == ()
+    assert images_at(tmp_path / "blobs").keep_attached_images((notes,)) == ()
     assert not (tmp_path / "blobs").exists()
 
 
@@ -184,7 +184,7 @@ def test_an_attached_image_that_cannot_be_read_is_left_to_its_line(tmp_path, cap
     )
 
     with caplog.at_level(logging.WARNING, logger="harness.images"):
-        images = images_at(tmp_path / "blobs").of_attachments((gone,))
+        images = images_at(tmp_path / "blobs").keep_attached_images((gone,))
 
     assert images == ()
     assert "gone.png is not shown" in caplog.text
@@ -194,7 +194,7 @@ def test_an_image_that_cannot_be_kept_is_not_shown(tmp_path, caplog) -> None:
     (tmp_path / "page.png").write_bytes(DOT)
 
     with caplog.at_level(logging.WARNING, logger="harness.images"):
-        images = ImageService(FullDisk()).of_attachments((attached(tmp_path / "page.png"),))
+        images = ImageService(FullDisk()).keep_attached_images((attached(tmp_path / "page.png"),))
 
     assert images == ()
     assert "could not be kept" in caplog.text

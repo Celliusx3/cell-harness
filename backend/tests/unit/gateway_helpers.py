@@ -6,8 +6,8 @@ import asyncio
 from pathlib import Path
 
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
-from harness.channels.service.client import ChatAnswers
+from harness.channels.repository.json_chat_repository import JsonChatRepository
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.inbox import ChatInbox
 from harness.runs.service.run_service import RunService
@@ -32,7 +32,7 @@ async def build(
     approvals: ApprovalService | None = None,
 ):
     sessions = durable_service(tmp_path / "sessions")
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     runs = run_service(
         sessions,
         model,

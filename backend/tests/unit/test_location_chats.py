@@ -8,15 +8,16 @@ import discord
 
 from harness.channels.discord.channel import ASK_BY_LINK as DISCORD_ASK
 from harness.channels.discord.channel import NO_ANSWER_PAGE as DISCORD_NO_PAGE
-from harness.channels.service.client import ChatAnswers
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.replies import answer_url
-from harness.channels.telegram.asking import ASK, ASK_BY_LINK, NO_ANSWER_PAGE, SHARE_LABEL
+from harness.channels.telegram.asking import ASK_BY_LINK, LOCATION_ASK, NO_ANSWER_PAGE, SHARE_LABEL
 from harness.runtime.service import SKIPPED
 from harness.session.domain.models import ToolResultEvent, TurnEnd
 from harness.tools.client import PendingCall, RefusalReason
 from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.secrets import ASK_FOR_SECRET
+from harness.web.runtime import CLIENT_TOOLS
 from tests.unit.discord_fakes import discord_channel
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
@@ -53,14 +54,18 @@ async def _log(sessions, chats, chat_id: str):
 async def test_telegram_is_asked_with_its_own_share_button_and_the_turn_ends(tmp_path) -> None:
     tools = client_tools()
     bot, gateway, runs, chats, sessions = await build(
-        tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
+        tmp_path,
+        _asks_then_answers(),
+        *CLIENT_TOOLS.tools(),
+        skills=no_skills(),
+        client_tools=tools,
     )
 
     await gateway.receive(msg("what's near me"))
     await settle(runs, gateway)
 
     ((chat_id, text, markup),) = bot.linked
-    assert (chat_id, text) == (CHAT, ASK[GET_LOCATION])
+    assert (chat_id, text) == (CHAT, LOCATION_ASK)
     button = markup.keyboard[0][0]
     assert (button.text, button.request_location) == (SHARE_LABEL, True)
     assert markup.one_time_keyboard is True
@@ -73,7 +78,11 @@ async def test_telegram_is_asked_with_its_own_share_button_and_the_turn_ends(tmp
 async def test_a_pin_from_telegram_opens_the_turn_that_answers(tmp_path) -> None:
     tools = client_tools()
     bot, gateway, runs, chats, sessions = await build(
-        tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
+        tmp_path,
+        _asks_then_answers(),
+        *CLIENT_TOOLS.tools(),
+        skills=no_skills(),
+        client_tools=tools,
     )
     channel = gateway._channels["telegram"].channel
     await gateway.receive(msg("what's near me"))
@@ -96,7 +105,7 @@ async def test_typing_instead_skips_the_ask_and_answers_the_message(tmp_path) ->
     bot, gateway, runs, chats, sessions = await build(
         tmp_path,
         _asks_then_answers("9pm in Tokyo"),
-        *tools.tools(),
+        *CLIENT_TOOLS.tools(),
         skills=no_skills(),
         client_tools=tools,
     )
@@ -214,28 +223,31 @@ async def test_a_chat_with_nothing_pending_refuses_an_answer(tmp_path) -> None:
     resolver = ChatAnswers(chats, sessions, gateway, tools)
     declined = {"kind": "declined"}
 
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
+    assert await resolver.answer_by_tool_name(channel, CHAT, GET_LOCATION, declined) is False
     await gateway.receive(msg("hi"))
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
+    assert await resolver.answer_by_tool_name(channel, CHAT, GET_LOCATION, declined) is False
     await settle(runs, gateway)
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, declined) is False
+    assert await resolver.answer_by_tool_name(channel, CHAT, GET_LOCATION, declined) is False
 
 
 async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
     tools = client_tools()
     bot, gateway, runs, chats, sessions = await build(
-        tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
+        tmp_path,
+        _asks_then_answers(),
+        *CLIENT_TOOLS.tools(),
+        skills=no_skills(),
+        client_tools=tools,
     )
     channel = gateway._channels["telegram"].channel
     resolver = ChatAnswers(chats, sessions, gateway, tools)
     await gateway.receive(msg("what's near me"))
     await settle(runs, gateway)
 
-    assert (
-        await resolver.answer(channel, CHAT, GET_LOCATION, {"kind": "shared", "data": {}}) is False
-    )
-    assert await resolver.answer(channel, CHAT, "get_battery", {"kind": "declined"}) is False
-    assert await resolver.answer(channel, CHAT, GET_LOCATION, {"kind": "declined"}) is True
+    answer = resolver.answer_by_tool_name
+    assert await answer(channel, CHAT, GET_LOCATION, {"kind": "shared", "data": {}}) is False
+    assert await answer(channel, CHAT, "get_battery", {"kind": "declined"}) is False
+    assert await answer(channel, CHAT, GET_LOCATION, {"kind": "declined"}) is True
     await settle(runs, gateway)
     events = await _log(sessions, chats, CHAT)
     assert [e.reason for e in events if isinstance(e, TurnEnd)] == ["pending", "completed"]
@@ -244,7 +256,11 @@ async def test_a_chat_answer_that_does_not_fit_is_refused(tmp_path) -> None:
 async def test_an_answer_from_the_page_is_still_delivered_to_the_chat(tmp_path) -> None:
     tools = client_tools()
     bot, gateway, runs, chats, sessions = await build(
-        tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
+        tmp_path,
+        _asks_then_answers(),
+        *CLIENT_TOOLS.tools(),
+        skills=no_skills(),
+        client_tools=tools,
     )
     await gateway.receive(msg("what's near me"))
     await settle(runs, gateway)
@@ -263,7 +279,11 @@ async def test_an_answer_from_the_page_is_still_delivered_to_the_chat(tmp_path) 
 async def test_the_ask_is_sent_once_even_though_the_answer_opens_a_new_turn(tmp_path) -> None:
     tools = client_tools()
     bot, gateway, runs, chats, sessions = await build(
-        tmp_path, _asks_then_answers(), *tools.tools(), skills=no_skills(), client_tools=tools
+        tmp_path,
+        _asks_then_answers(),
+        *CLIENT_TOOLS.tools(),
+        skills=no_skills(),
+        client_tools=tools,
     )
     channel = gateway._channels["telegram"].channel
     await gateway.receive(msg("what's near me"))

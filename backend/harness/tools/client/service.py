@@ -13,7 +13,6 @@ from harness.tools.client.models import AcceptedAnswer, PendingCall, RefusalReas
 from harness.tools.client.pending_calls import pending_calls
 from harness.tools.domain.decision import DENIED, Approval, parse_decision
 from harness.tools.domain.outcome import Failure
-from harness.tools.domain.tool import Tool
 from harness.tools.service.approval_service import ApprovalService
 
 
@@ -27,11 +26,6 @@ class ClientToolService:
         self._approvals = approvals
 
     @property
-    def names(self) -> frozenset[str]:
-        """The client tools: offered, withheld from scripts, and asked of chats."""
-        return self._client_tools.names
-
-    @property
     def protected_tools(self) -> frozenset[str]:
         """The tools that ask the person before running; a chat asks them with buttons."""
         return self._approvals.protected_tools
@@ -40,10 +34,6 @@ class ClientToolService:
     def awaited_tools(self) -> frozenset[str]:
         """Every tool whose call waits on the person — client tools and tools that ask."""
         return self._client_tools.names | self._approvals.protected_tools
-
-    def tools(self) -> list[Tool]:
-        """The tools to register."""
-        return self._client_tools.tools()
 
     def answerable_calls(self, session: Session) -> tuple[PendingCall, ...]:
         """The calls a client may answer right now, in log order."""

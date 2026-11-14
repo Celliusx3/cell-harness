@@ -8,7 +8,7 @@ from fastapi import APIRouter
 
 from harness.bots import BotService
 from harness.channels.service.gateway import ChannelGateway
-from harness.channels.web.routes import build_router
+from harness.channels.web.conversation_router import ConversationRouter
 from harness.files import ChatFileService
 from harness.images import ImageService
 
@@ -33,11 +33,15 @@ class WebChannel:
         self.bots = bots
         self.files = files
         self.images = images
-        self.router: APIRouter = build_router(self)
+        self.router: APIRouter = ConversationRouter(self).router
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         """A browser chat is named by the conversation it writes into."""
         return chat_id
+
+    def chat_id_for(self, conversation_id: str) -> str:
+        """The browser chat that writes into a conversation, named by the conversation."""
+        return conversation_id
 
     async def run(self) -> None:
         """Wait until cancelled."""

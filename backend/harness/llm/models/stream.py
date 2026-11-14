@@ -37,7 +37,7 @@ class ToolCallChunk(BaseModel):
     call: ToolCall
 
 
-class Completed(BaseModel):
+class Completion(BaseModel):
     """Terminal: the model finished."""
 
     model_config = ConfigDict(frozen=True)
@@ -53,7 +53,7 @@ CONTEXT_WINDOW_EXCEEDED: FailureCode = "context_window_exceeded"
 IMAGES_OVER_LIMIT: FailureCode = "images_over_limit"
 
 
-class Failed(BaseModel):
+class StreamFailure(BaseModel):
     """Terminal: the call did not produce a reply."""
 
     model_config = ConfigDict(frozen=True)
@@ -64,4 +64,4 @@ class Failed(BaseModel):
     images_to_hide: int | None = None
 
 
-StreamEvent = TextChunk | ToolCallChunk | Completed | Failed
+StreamEvent = TextChunk | ToolCallChunk | Completion | StreamFailure

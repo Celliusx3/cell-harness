@@ -8,8 +8,8 @@ from contextlib import aclosing
 
 from harness.runtime.events import ToolProgress, ToolResult
 from harness.runtime.hooks import HookChain, ToolHook
+from harness.session.domain.crash_repair import INTERRUPTED_BY_CRASH
 from harness.session.domain.models import ApplicationMessageEvent, ToolResultEvent, TurnEnd
-from harness.session.domain.repair import REPAIRED
 from harness.tools import Approval, Ok, Tool, ToolOutcome
 from tests.unit.approval_fakes import WRITE, approvals_asking_for, note_writer, runtime_offering
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed, reporting_tool
@@ -44,7 +44,7 @@ async def test_cancel_during_an_approved_run_closes_the_turn(tmp_path) -> None:
         await task
 
     result = next(e for e in session.events() if isinstance(e, ToolResultEvent))
-    assert result.message.tool_call_id == "c1" and result.error == REPAIRED
+    assert result.message.tool_call_id == "c1" and result.error == INTERRUPTED_BY_CRASH
     assert session.events()[-1] == TurnEnd(turn=1, reason="cancelled")
     assert client.calls == 1
 
@@ -66,10 +66,10 @@ async def test_an_approved_calls_progress_reaches_the_caller_before_its_result(t
 
 async def test_an_approved_calls_note_is_logged_after_its_result(tmp_path) -> None:
     class Noting(ToolHook):
-        async def pre(self, sig, prior) -> str | None:
+        async def refusal_reason(self, sig, prior) -> str | None:
             return None
 
-        async def post(self, sig, outcome, prior) -> str | None:
+        async def post_call_note(self, sig, outcome, prior) -> str | None:
             return "careful"
 
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))

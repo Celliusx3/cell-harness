@@ -15,7 +15,7 @@ class UnreadableFile(ValueError):
     """The path names nothing this skill may hand over."""
 
 
-def listing(skill: Skill) -> tuple[str, ...]:
+def bundled_files(skill: Skill) -> tuple[str, ...]:
     """Every file bundled beside the `SKILL.md`, as sorted relative posix paths."""
     found: list[str] = []
     for file in sorted(skill.dir.rglob("*")):
@@ -47,14 +47,14 @@ def read(skill: Skill, path: str) -> str:
         raise UnreadableFile(f"{path!r} could not be read: {err}") from err
 
 
-def writable(path: str, text: str) -> PurePosixPath:
+def writable_path(path: str, text: str) -> PurePosixPath:
     """Where `text` may be written as a bundled file, or `InvalidSkill` saying why not."""
     relative = PurePosixPath(path)
     if not relative.parts:
         raise InvalidSkill(f"{path!r} names no file")
-    if archive.escapes(path):
+    if archive.is_escaping_path(path):
         raise InvalidSkill(f"{path!r} would escape the skill directory")
-    if archive.ignored(path):
+    if archive.is_ignored(path):
         raise InvalidSkill(
             f"{path!r} is hidden or in a hidden or cache folder, which skills never bundle"
         )

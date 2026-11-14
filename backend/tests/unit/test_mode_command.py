@@ -9,7 +9,7 @@ from harness.channels.service.commands import (
     ModeCommand,
     ModeQuestion,
     UnknownModeWord,
-    apply,
+    apply_command,
 )
 from harness.channels.telegram.commands import parse
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
@@ -55,7 +55,7 @@ async def _gateway(tmp_path, ran: list[str]):
 async def test_mode_alone_names_the_mode_on(tmp_path) -> None:
     gateway, _ = await _gateway(tmp_path, [])
 
-    assert await apply(gateway, "telegram", CHAT, ModeQuestion()) == "Mode: Ask."
+    assert await apply_command(gateway, "telegram", CHAT, ModeQuestion()) == "Mode: Ask."
     await gateway.aclose()
 
 
@@ -63,20 +63,20 @@ async def test_mode_auto_lets_the_next_protected_call_run(tmp_path) -> None:
     ran: list[str] = []
     gateway, runs = await _gateway(tmp_path, ran)
 
-    reply = await apply(gateway, "telegram", CHAT, ModeChoice("auto"))
+    reply = await apply_command(gateway, "telegram", CHAT, ModeChoice("auto"))
     await gateway.receive(msg("remember Kopi"))
     await settle(runs, gateway)
 
     assert reply == "Mode: Auto."
     assert ran == ["Kopi"]
-    assert await apply(gateway, "telegram", CHAT, ModeQuestion()) == "Mode: Auto."
+    assert await apply_command(gateway, "telegram", CHAT, ModeQuestion()) == "Mode: Auto."
     await gateway.aclose()
 
 
 async def test_any_other_word_says_which_words_mode_takes(tmp_path) -> None:
     gateway, _ = await _gateway(tmp_path, [])
 
-    reply = await apply(gateway, "telegram", CHAT, UnknownModeWord("yes"))
+    reply = await apply_command(gateway, "telegram", CHAT, UnknownModeWord("yes"))
 
     assert reply == "Use /mode ask or /mode auto. Mode: Ask."
     await gateway.aclose()

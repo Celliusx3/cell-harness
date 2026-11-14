@@ -5,24 +5,24 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from harness.bots import GroupEmpty
-from harness.channels.domain.protocol import Channel, Pushing, RunningChannel
+from harness.bots import EmptyGroupError
+from harness.channels.domain.protocol import Channel, PushChannel, RunningChannel
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.channels.service.chat_tasks import ChatKey, ChatTasks
-from harness.channels.service.chats import session_for, state_of
-from harness.channels.service.replies import Replies
+from harness.channels.service.chats import open_chat_session, state_of
+from harness.channels.service.replies import ReplySender
 from harness.files import ChatFile
-from harness.runs.service.run import Run, RunAlreadyActive
+from harness.runs.service.run import Run, RunAlreadyActiveError
 from harness.runs.service.run_service import RunService
 from harness.session.service.session_service import SessionService
 from harness.skills import SkillService, UnknownSkill
 
 logger = logging.getLogger("harness.channels")
 
-QUEUE_JOIN = "\n"
+QUEUE_SEPARATOR = "\n"
 
 
-class Following:
+class TurnFollower:
     """Follows every turn to its end for every chat that maps to it."""
 
     def __init__(
@@ -33,7 +33,7 @@ class Following:
         skills: SkillService,
         channels: dict[str, RunningChannel],
         tasks: ChatTasks,
-        replies: Replies,
+        replies: ReplySender,
     ) -> None:
         self._repository = repository
         self._runs = runs
@@ -43,7 +43,7 @@ class Following:
         self._replies = replies
         self._tasks = tasks
 
-    def _platform(self, key: ChatKey) -> Channel | None:
+    def _registered_channel(self, key: ChatKey) -> Channel | None:
         """The platform `key`'s chat is on, or `None`, said in one line, once it has left."""
         running = self._channels.get(key.channel)
         if running is None:
@@ -51,14 +51,14 @@ class Following:
             return None
         return running.channel
 
-    async def turn_for_chat(
+    async def start_turn_or_queue(
         self, state: ChatState, text: str, files: tuple[ChatFile, ...]
     ) -> Run | None:
         """Resolve this chat's conversation and begin a turn in it."""
-        session = await session_for(self._repository, self._sessions, state)
+        session = await open_chat_session(self._repository, self._sessions, state)
         try:
-            return self.begin(state, self._runs.start(session, text, files=files))
-        except RunAlreadyActive:
+            return self.follow_in_chat(state, self._runs.start(session, text, files=files))
+        except RunAlreadyActiveError:
             await self.queue(state, text, files)
             return None
 
@@ -73,7 +73,7 @@ class Following:
             )
         )
         key = ChatKey(state.channel, state.chat_id)
-        running = self._runs.active(state.conversation_id)
+        running = self._runs.active_run(state.conversation_id)
         if running is not None and not self._is_followed_elsewhere(key):
             self._tasks.start(key, self._wait_out(key, running))
 
@@ -82,53 +82,55 @@ class Following:
         task = self._tasks.get(key)
         return task is not None and not task.done() and task is not asyncio.current_task()
 
-    def begin(self, state: ChatState, run: Run) -> Run:
+    def follow_in_chat(self, state: ChatState, run: Run) -> Run:
         key = ChatKey(state.channel, state.chat_id)
         self._tasks.start(key, self._follow(key, run))
         return run
 
     async def _follow(self, key: ChatKey, run: Run) -> None:
         """See this turn to its end, then start whatever queued behind it."""
-        transport = self._platform(key)
+        transport = self._registered_channel(key)
         if transport is None:
             return
-        if isinstance(transport, Pushing):
+        if isinstance(transport, PushChannel):
             await self._replies.deliver(transport, key.channel, key.chat_id, run)
         await self._wait_out(key, run)
 
     async def _wait_out(self, key: ChatKey, run: Run) -> None:
         """Wait, sending nothing, for `run` to settle, then start whatever queued behind it."""
         async with run.condition:
-            await run.condition.wait_for(lambda: run.settled)
+            await run.condition.wait_for(lambda: run.is_settled)
         await self._drain(*key)
 
     async def _drain(self, channel: str, chat_id: str) -> None:
         """Run whatever queued during the last turn, as one turn."""
-        platform = self._platform(ChatKey(channel, chat_id))
+        platform = self._registered_channel(ChatKey(channel, chat_id))
         if platform is None:
             return
         state = await state_of(self._repository, platform, chat_id, self._runs.bots)
         if not state.conversation_id or not state.pending:
             return
-        text = QUEUE_JOIN.join(state.pending)
+        text = QUEUE_SEPARATOR.join(state.pending)
         cleared = state.model_copy(update={"pending": (), "pending_files": ()})
         await self._repository.save(cleared)
         try:
-            await self.turn_for_chat(cleared, expanded(self._skills, text), state.pending_files)
-        except GroupEmpty as err:
+            await self.start_turn_or_queue(
+                cleared, expanded(self._skills, text), state.pending_files
+            )
+        except EmptyGroupError as err:
             logger.warning("queued message dropped, nobody is left to answer it: %s", err)
 
-    async def drained(self, channel: str, chat_id: str) -> None:
+    async def wait_until_drained(self, channel: str, chat_id: str) -> None:
         """Wait while this chat is between turns."""
         key = ChatKey(channel, chat_id)
         task = self._tasks.get(key)
         if task is None:
             return
-        platform = self._platform(key)
+        platform = self._registered_channel(key)
         if platform is None:
             return
         state = await state_of(self._repository, platform, chat_id, self._runs.bots)
-        if state.conversation_id and self._runs.active(state.conversation_id) is not None:
+        if state.conversation_id and self._runs.active_run(state.conversation_id) is not None:
             return
         await asyncio.wait({task})
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.channels.service.client import ChatAnswers
+from harness.channels.service.chat_answers import ChatAnswers
 from tests.unit.helpers import client_tools
 from tests.unit.link_helpers import World, prompts_in, world
 from tests.unit.telegram_fakes import (
@@ -32,7 +32,7 @@ def _telegram(linked: World):
 
 async def _says(channel, chat_id: str, text: str, chat_type: str = "private") -> None:
     """One message from `chat_id`, handed over at once."""
-    await channel._on(update(chat_id, text, chat_type=chat_type), None)
+    await channel._on_text(update(chat_id, text, chat_type=chat_type), None)
     await channel._flush(chat_id)
 
 
@@ -116,7 +116,7 @@ async def test_an_unlinked_private_chat_gets_no_answer_at_all(tmp_path: Path) ->
 
     assert _nothing_sent(bot)
     assert await linked.chats.load("telegram", "1") is None
-    assert linked.runs.active(ASSISTANT_ID) is None
+    assert linked.runs.active_run(ASSISTANT_ID) is None
 
 
 async def test_a_strangers_traffic_is_logged_at_debug_only(
@@ -149,4 +149,4 @@ async def test_an_unlinked_private_tap_is_not_even_answered(tmp_path: Path) -> N
 def test_a_telegram_chat_writes_nowhere_until_it_is_linked(tmp_path: Path) -> None:
     channel, _ = telegram_channel(None)
 
-    assert channel.conversation_for("1") == ""
+    assert channel.conversation_id_for("1") == ""

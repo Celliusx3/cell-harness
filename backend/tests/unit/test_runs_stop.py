@@ -10,7 +10,7 @@ from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import LLMClient
 from harness.runs.service.subscribe import subscribe
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
@@ -47,7 +47,7 @@ async def test_stop_ends_the_turn_and_answers_every_dispatched_call(service) -> 
 
     assert await runs.stop(session.id) is True
 
-    assert run.settled
+    assert run.is_settled
     assert [e.reason for e in session.events() if isinstance(e, TurnEnd)] == ["cancelled"]
     assert unanswered_calls(derive_messages(session.events())) == []
 
@@ -81,10 +81,10 @@ async def test_a_bug_in_the_loop_still_settles_the_run(service) -> None:
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
-    await asyncio.wait_for(run._outer, timeout=5)
+    await asyncio.wait_for(run._settle_task, timeout=5)
 
-    assert run.settled
-    assert runs.active(session.id) is None
+    assert run.is_settled
+    assert runs.active_run(session.id) is None
     stored = await service.read(session.id)
     assert [e.reason for e in stored.events() if isinstance(e, TurnEnd)] == ["cancelled"]
 
@@ -119,7 +119,7 @@ async def test_a_subscriber_hears_the_turn_while_it_is_still_running(service) ->
     stream = subscribe(run, after=0)
     try:
         first = await asyncio.wait_for(anext(stream), timeout=2)
-        running = not run.settled
+        running = not run.is_settled
     finally:
         await stream.aclose()
         await runs.stop(session.id)
@@ -150,8 +150,8 @@ async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
 
     await runs.aclose()
 
-    assert runs.active(first.id) is None
-    assert runs.active(second.id) is None
+    assert runs.active_run(first.id) is None
+    assert runs.active_run(second.id) is None
     for session in (first, second):
         stored = await service.read(session.id)
         assert unanswered_calls(derive_messages(stored.events())) == []
@@ -161,7 +161,7 @@ async def test_a_run_records_the_conversation_it_was_asked(service) -> None:
     runs = run_service(service, ScriptedClient(completed("hello")))
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "what is it?")
-    await asyncio.wait_for(run._outer, timeout=5)
+    await asyncio.wait_for(run._settle_task, timeout=5)
 
     messages = derive_messages(session.events())
     assert [(m.role, m.content) for m in messages] == [
@@ -174,7 +174,7 @@ async def test_a_run_is_durable_without_anyone_subscribing(service) -> None:
     runs = run_service(service, ScriptedClient(completed("hello")))
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
-    await asyncio.wait_for(run._outer, timeout=5)
+    await asyncio.wait_for(run._settle_task, timeout=5)
 
     stored = await service.read(session.id)
     assert any(isinstance(e, UserMessageEvent) for e in stored.events())
@@ -203,5 +203,5 @@ async def test_the_conversation_id_is_the_session_id(service) -> None:
 
     run = runs.start(session, "go")
 
-    assert run.conversation_id == session.id
-    await asyncio.wait_for(run._outer, timeout=5)
+    assert run.session.id == session.id
+    await asyncio.wait_for(run._settle_task, timeout=5)

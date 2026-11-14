@@ -15,7 +15,7 @@ from pydantic import SecretStr
 from harness.bots import ASSISTANT_ID, BotDraft
 from harness.llm import StreamEvent
 from harness.runs.service.run_service import RunService
-from harness.secrets import SECRET_VALUE_RULE, Destination, SecretRefused, SecretService
+from harness.secrets import SECRET_VALUE_RULE, Destination, RefusedSecretError, SecretService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool
@@ -81,7 +81,7 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing(seen))
-    runs = run_service(service, model, fetch, *tools.tools(), approvals=approvals, bots=bots)
+    runs = run_service(service, model, fetch, *CLIENT_TOOLS.tools(), approvals=approvals, bots=bots)
     app = web_app(
         tmp_path,
         service,
@@ -145,7 +145,7 @@ def _asking_app(
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing([]))
     model = SteppedClient(first, completed("Saved."))
-    runs = run_service(service, model, fetch, *tools.tools(), approvals=approvals, bots=bots)
+    runs = run_service(service, model, fetch, *CLIENT_TOOLS.tools(), approvals=approvals, bots=bots)
     app = web_app(
         tmp_path,
         service,
@@ -219,7 +219,7 @@ async def test_a_save_the_store_refuses_is_a_409_with_its_reason_and_still_waits
     elsewhere = Destination(origin="https://other.example", auth="bearer")
     secrets.save("github", elsewhere, SecretStr("an-older-key"))
     asked = Destination(origin="https://api.github.com", auth="bearer")
-    with pytest.raises(SecretRefused) as expected:
+    with pytest.raises(RefusedSecretError) as expected:
         secrets.save("github", asked, SecretStr(KEY))
     async with client:
         await _post(client, runs, ASSISTANT_ID, "/messages", {"prompt": "check my GitHub"})

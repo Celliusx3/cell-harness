@@ -14,7 +14,7 @@ from harness.secrets.domain.details import (
     CustomDetails,
     ModelDetails,
 )
-from harness.secrets.domain.errors import SecretNotFound, SecretRefused
+from harness.secrets.domain.errors import RefusedSecretError, SecretNotFound
 from harness.secrets.domain.masking import last_four
 from harness.secrets.domain.sealed import SealedSecret
 from harness.secrets.domain.secret import (
@@ -44,16 +44,16 @@ class SecretService:
         stored = self._repository.sealed_secrets()
         existing = next((secret for secret in stored if secret.name == name), None)
         if existing is not None and not isinstance(existing.details, CustomDetails):
-            raise SecretRefused(
+            raise RefusedSecretError(
                 f"a {existing.details.kind} credential is already named {name!r}; pick another name"
             )
         if existing is not None and existing.details.destination != destination:
-            raise SecretRefused(
+            raise RefusedSecretError(
                 f"a key named {name!r} is already saved for {existing.details.destination.origin}; "
                 "remove it before saving it for another site"
             )
         if existing is None and len(stored) >= MAX_SECRETS:
-            raise SecretRefused(f"{MAX_SECRETS} keys are already saved; remove one first")
+            raise RefusedSecretError(f"{MAX_SECRETS} keys are already saved; remove one first")
         record_id = os.urandom(RECORD_ID_BYTES).hex()
         sealed_secret = SealedSecret(
             id=record_id,
@@ -73,12 +73,12 @@ class SecretService:
         """Seal `value` as a new credential; refused for a name taken, or a platform saved twice."""
         stored = self._repository.sealed_secrets()
         if any(secret.name == name for secret in stored):
-            raise SecretRefused(f"a credential is already named {name!r}; pick another name")
+            raise RefusedSecretError(f"a credential is already named {name!r}; pick another name")
         if isinstance(details, ChatPlatformDetails):
-            _refuse_a_second(stored, details.kind)
+            _refuse_second_platform_credential(stored, details.kind)
         if len(stored) >= MAX_SECRETS:
-            raise SecretRefused(f"{MAX_SECRETS} keys are already saved; remove one first")
-        added = self._sealed_secret(name, details, value.get_secret_value())
+            raise RefusedSecretError(f"{MAX_SECRETS} keys are already saved; remove one first")
+        added = self._new_sealed_secret(name, details, value.get_secret_value())
         self._repository.replace_all((*stored, added))
 
     def change_credential(
@@ -90,11 +90,11 @@ class SecretService:
         if existing is None:
             raise SecretNotFound(name)
         if existing.details.kind != details.kind:
-            raise SecretRefused(
+            raise RefusedSecretError(
                 f"{name!r} is a {existing.details.kind} credential; its type cannot change"
             )
         plaintext = self._plaintext(existing) if value is None else value.get_secret_value()
-        changed = self._sealed_secret(name, details, plaintext)
+        changed = self._new_sealed_secret(name, details, plaintext)
         self._repository.replace_all(
             tuple(changed if secret is existing else secret for secret in stored)
         )
@@ -165,7 +165,7 @@ class SecretService:
         self._repository.replace_all(tuple(secret for secret in stored if secret is not removed))
         return removed.details
 
-    def summaries(self) -> tuple[SecretSummary, ...]:
+    def custom_key_summaries(self) -> tuple[SecretSummary, ...]:
         """Every custom key's name and site, by name; never a value."""
         return tuple(
             SecretSummary(name=secret.name, destination=secret.details.destination)
@@ -183,7 +183,9 @@ class SecretService:
     def _sealed_named(self, name: str) -> SealedSecret | None:
         return next((s for s in self._repository.sealed_secrets() if s.name == name), None)
 
-    def _sealed_secret(self, name: str, details: CredentialDetails, plaintext: str) -> SealedSecret:
+    def _new_sealed_secret(
+        self, name: str, details: CredentialDetails, plaintext: str
+    ) -> SealedSecret:
         record_id = os.urandom(RECORD_ID_BYTES).hex()
         return SealedSecret(
             id=record_id,
@@ -217,11 +219,13 @@ def _platform_credential(
     )
 
 
-def _refuse_a_second(stored: tuple[SealedSecret, ...], platform: ChatPlatform) -> None:
-    """`SecretRefused` when `stored` already holds `platform`'s one credential."""
+def _refuse_second_platform_credential(
+    stored: tuple[SealedSecret, ...], platform: ChatPlatform
+) -> None:
+    """`RefusedSecretError` when `stored` already holds `platform`'s one credential."""
     saved = _platform_credential(stored, platform)
     if saved is not None:
-        raise SecretRefused(
+        raise RefusedSecretError(
             f"the {platform} credential is already saved as {saved.name!r}; "
             "there is one per platform, so edit or remove it"
         )

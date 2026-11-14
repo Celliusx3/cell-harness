@@ -8,8 +8,8 @@ import httpx
 import pytest
 from fastapi import FastAPI, HTTPException
 
-from harness.bots import ASSISTANT_ID, BotNotFound, BotPermanent, GroupEmpty
-from harness.files import FileTooLarge, UnsafeFileName
+from harness.bots import ASSISTANT_ID, BotNotFound, BuiltInBotError, EmptyGroupError
+from harness.files import FileTooLargeError, UnsafeFileNameError
 from harness.mcp import (
     McpConnectionError,
     McpNotConnectedError,
@@ -17,8 +17,8 @@ from harness.mcp import (
     McpServerTaken,
     McpTimeoutError,
 )
-from harness.schedules import InvalidSchedule, ScheduleBusy, ScheduleNotFound
-from harness.secrets import SecretNotFound, SecretRefused
+from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
+from harness.secrets import RefusedSecretError, SecretNotFound
 from harness.session.repository.session_repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
@@ -26,13 +26,13 @@ from harness.session.repository.session_repository import (
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
 from harness.tickets.domain.models import (
-    TicketNotAsking,
+    StoppedTicketError,
+    TicketNotAskingError,
     TicketNotFound,
-    TicketNotRetryable,
-    TicketStopped,
+    UnretryableTicketError,
 )
-from harness.tools import NotApproved
-from harness.web.http.errors import STATUS_OF, exception_handlers
+from harness.tools import ToolNotApproved
+from harness.web.http.errors import STATUS_BY_ERROR, exception_handlers
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_skills
@@ -40,9 +40,9 @@ from tests.webapp import web_app
 
 PINNED = [
     pytest.param(BotNotFound("nope"), 404, id="BotNotFound"),
-    pytest.param(BotPermanent(ASSISTANT_ID), 409, id="BotPermanent"),
-    pytest.param(FileTooLarge("notes.txt", 1024), 413, id="FileTooLarge"),
-    pytest.param(GroupEmpty("team"), 409, id="GroupEmpty"),
+    pytest.param(BuiltInBotError(ASSISTANT_ID), 409, id="BuiltInBotError"),
+    pytest.param(FileTooLargeError("notes.txt", 1024), 413, id="FileTooLargeError"),
+    pytest.param(EmptyGroupError("team"), 409, id="EmptyGroupError"),
     pytest.param(InvalidSchedule("rrule: no occurrence after now"), 422, id="InvalidSchedule"),
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),
@@ -50,12 +50,16 @@ PINNED = [
     pytest.param(McpServerNotFound("no MCP server 'exa'"), 404, id="McpServerNotFound"),
     pytest.param(McpServerTaken("a server is already named 'exa'"), 409, id="McpServerTaken"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),
-    pytest.param(NotApproved("'memory__write_note' is not approved"), 404, id="NotApproved"),
-    pytest.param(ScheduleBusy("s1"), 409, id="ScheduleBusy"),
+    pytest.param(
+        ToolNotApproved("'memory__write_note' is not approved"), 404, id="ToolNotApproved"
+    ),
+    pytest.param(ScheduleBusyError("s1"), 409, id="ScheduleBusyError"),
     pytest.param(ScheduleNotFound("s1"), 404, id="ScheduleNotFound"),
     pytest.param(SecretNotFound("GITHUB_TOKEN"), 404, id="SecretNotFound"),
     pytest.param(
-        SecretRefused("20 keys are already saved; remove one first"), 409, id="SecretRefused"
+        RefusedSecretError("20 keys are already saved; remove one first"),
+        409,
+        id="RefusedSecretError",
     ),
     pytest.param(
         SessionCorruptionError("chat.jsonl: empty log, no header"),
@@ -70,12 +74,12 @@ PINNED = [
     pytest.param(SessionNotFoundError("no stored session 'nope'"), 404, id="SessionNotFoundError"),
     pytest.param(SkillNotEditable("pdf", Path("/project/skills")), 409, id="SkillNotEditable"),
     pytest.param(SkillShadowed("notes", Path("/project/skills/notes")), 409, id="SkillShadowed"),
-    pytest.param(TicketNotAsking("t1"), 409, id="TicketNotAsking"),
+    pytest.param(TicketNotAskingError("t1"), 409, id="TicketNotAskingError"),
     pytest.param(TicketNotFound("t1"), 404, id="TicketNotFound"),
-    pytest.param(TicketNotRetryable("t1"), 409, id="TicketNotRetryable"),
-    pytest.param(TicketStopped("t1"), 409, id="TicketStopped"),
+    pytest.param(UnretryableTicketError("t1"), 409, id="UnretryableTicketError"),
+    pytest.param(StoppedTicketError("t1"), 409, id="StoppedTicketError"),
     pytest.param(UnreadableFile("'big.txt' is not a text file"), 422, id="UnreadableFile"),
-    pytest.param(UnsafeFileName("'..' does not name a file"), 422, id="UnsafeFileName"),
+    pytest.param(UnsafeFileNameError("'..' does not name a file"), 422, id="UnsafeFileNameError"),
 ]
 
 
@@ -96,7 +100,7 @@ async def answer_of(app: FastAPI) -> httpx.Response:
 
 
 def test_every_mapped_error_is_pinned() -> None:
-    assert {type(param.values[0]) for param in PINNED} == set(STATUS_OF)
+    assert {type(param.values[0]) for param in PINNED} == set(STATUS_BY_ERROR)
 
 
 @pytest.mark.parametrize(("err", "status_code"), PINNED)

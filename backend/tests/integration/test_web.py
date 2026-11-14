@@ -39,7 +39,7 @@ async def test_the_snapshot_carries_the_cursor_to_stream_from(simple) -> None:
 async def test_the_snapshot_reads_the_live_log_while_a_turn_runs(slow) -> None:
     client, _, runs = slow
     conversation_id = await assistant_chat(client, "go")
-    session = runs.active(conversation_id).session
+    session = runs.active_run(conversation_id).session
     await until(lambda: len(session.events()) > 3, what="the turn to get going")
 
     detail = (await client.get(f"/api/conversations/{conversation_id}")).json()
@@ -74,7 +74,7 @@ async def test_an_idle_conversation_streams_its_stored_tail(simple) -> None:
     client, _, runs = simple
     conversation_id = await assistant_chat(client, "hi")
     await settle(runs, conversation_id)
-    assert runs.active(conversation_id) is None
+    assert runs.active_run(conversation_id) is None
 
     body = (await client.get(f"/api/conversations/{conversation_id}/events?after=2")).text
 

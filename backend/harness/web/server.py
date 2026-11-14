@@ -14,50 +14,50 @@ from datetime import UTC, datetime
 from fastapi import FastAPI
 
 from harness.app_events import AppEventService
-from harness.app_events.router.app_event_router import build_router as build_app_events_router
+from harness.app_events.router.app_event_router import AppEventRouter
 from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupService
-from harness.bots.router.bot_router import build_router as build_bots_router
-from harness.bots.router.group_router import build_router as build_groups_router
+from harness.bots.router.bot_router import BotRouter
+from harness.bots.router.group_router import GroupRouter
 from harness.channels.repository.chat_repository import ChatRepository
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
-from harness.channels.router.link_code_router import build_router as build_link_codes_router
-from harness.channels.service.client import ChatAnswers
+from harness.channels.repository.json_chat_repository import JsonChatRepository
+from harness.channels.router.link_code_router import LinkCodeRouter
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.inbox import ChatInbox
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.channels.service.platforms import PlatformChannels, PlatformChats, platform_channel
 from harness.channels.web.channel import WebChannel
-from harness.channels.web.client_router import build_router as build_client_router
-from harness.channels.web.compact_router import build_router as build_compact_router
-from harness.channels.web.secret_card_router import build_router as build_secret_card_router
-from harness.config.settings import Settings, load
+from harness.channels.web.client_router import ClientToolRouter
+from harness.channels.web.compact_router import CompactRouter
+from harness.channels.web.secret_card_router import SecretCardRouter
+from harness.config.settings import Settings, load_settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
-from harness.mcp.router.mcp_router import build_router as build_mcp_router
-from harness.mcp.router.server_router import build_router as build_mcp_servers_router
+from harness.mcp.router.mcp_router import McpRouter
+from harness.mcp.router.server_router import ServerRouter
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
-from harness.relay.router.relay_router import build_router as build_relay_router
-from harness.runs.service.bot_messages import BotMessages
+from harness.relay.router.relay_router import RelayRouter
+from harness.runs.service.bot_messages import BotMessenger
 from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
-from harness.schedules.router.schedule_router import build_router as build_schedules_router
+from harness.schedules.router.schedule_router import ScheduleRouter
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.router.credential_router import build_router as build_credentials_router
-from harness.secrets.router.secret_router import build_router as build_secrets_router
+from harness.secrets.router.credential_router import CredentialRouter
+from harness.secrets.router.secret_router import SecretRouter
 from harness.secrets.service.credential_effects import CredentialEffects
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
-from harness.skills.router.skill_router import build_router as build_skills_router
+from harness.skills.router.skill_router import SkillRouter
 from harness.tickets.repository.ticket_repository import TicketRepository
-from harness.tickets.router.file_router import build_files_router as build_ticket_files_router
-from harness.tickets.router.ticket_router import build_router as build_tickets_router
+from harness.tickets.router.file_router import TicketFileRouter
+from harness.tickets.router.ticket_router import TicketRouter
 from harness.tickets.service.ticket_service import TicketService
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
-from harness.tools.router.approval_router import build_router as build_approvals_router
+from harness.tools.router.approval_router import ApprovalRouter
 from harness.web.http.errors import exception_handlers
 from harness.web.http.logs import configure_logging
 from harness.web.runtime import (
@@ -69,7 +69,7 @@ from harness.web.runtime import (
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
 
 
-def build_store(settings: Settings) -> SessionService:
+def build_sessions(settings: Settings) -> SessionService:
     """The session service over the configured storage backend."""
     return SessionService(JsonlSessionRepository(settings.sessions.root))
 
@@ -79,9 +79,9 @@ def build_subagent_logs(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
-def build_chats(settings: Settings) -> JsonlChatRepository:
+def build_chats(settings: Settings) -> JsonChatRepository:
     """Every chat's state, beside the conversations."""
-    return JsonlChatRepository(settings.sessions.root.parent / "chats")
+    return JsonChatRepository(settings.sessions.root.parent / "chats")
 
 
 def build_saved_servers(settings: Settings) -> SavedServerService:
@@ -91,7 +91,7 @@ def build_saved_servers(settings: Settings) -> SavedServerService:
 
 def build_mcp(saved: SavedServerService) -> McpService:
     """Connections to the person's saved servers, with their keys."""
-    return McpService({server.id: server.server() for server in saved.servers()})
+    return McpService({server.id: server.mcp_server() for server in saved.servers()})
 
 
 def build_keyring(settings: Settings) -> SecretService:
@@ -148,9 +148,9 @@ def build_channels(
 def create_web_app() -> FastAPI:
     """The application uvicorn starts."""
     configure_logging()
-    settings = load()
+    settings = load_settings()
     secrets = build_keyring(settings)
-    service = build_store(settings)
+    sessions = build_sessions(settings)
     disk = DiskChatFileRepository(settings.files.root)
     disk.create_root()
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
@@ -168,7 +168,7 @@ def create_web_app() -> FastAPI:
     app_events = AppEventService()
     bots = BotService(
         BotRepository(settings.bots.path),
-        service,
+        sessions,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=app_events,
     )
@@ -176,7 +176,7 @@ def create_web_app() -> FastAPI:
     chats = build_chats(settings)
     runtime = build_runtime(
         settings,
-        service,
+        sessions,
         mcp,
         skills,
         client_tools,
@@ -189,16 +189,16 @@ def create_web_app() -> FastAPI:
     )
     runtime = dataclasses.replace(runtime, inbox=ChatInbox(chats, skills))
     runs = RunService(
-        service,
+        sessions,
         runtime,
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        GroupService(bots, sessions, MENTION_TURN_ORDER),
         app_events=app_events,
     )
     assert runtime.tools is not None
     channels = build_channels(
         settings,
-        ChannelServices(service, runs, skills, client_tools, bots, files, images, chats),
+        ChannelServices(sessions, runs, skills, client_tools, bots, files, images, chats),
         secrets,
     )
     messages = attach_bot_messages(
@@ -247,7 +247,7 @@ def create_app(
     approvals: ApprovalService,
     bots: BotService,
     secrets: SecretService,
-    messages: BotMessages,
+    messages: BotMessenger,
     tickets: TicketService,
     schedules: ScheduleService,
     scheduler: Scheduler,
@@ -274,22 +274,22 @@ def create_app(
     relays = RelayService(now=time.monotonic)
     app = FastAPI(title="cell-harness", lifespan=lifespan, exception_handlers=exception_handlers())
     app.include_router(web.router)
-    app.include_router(build_app_events_router(runs.app_events))
-    app.include_router(build_skills_router(skills))
-    app.include_router(build_mcp_servers_router(mcp, saved_servers))
-    app.include_router(build_mcp_router(mcp, relays))
-    app.include_router(build_relay_router(relays))
-    app.include_router(build_client_router(web, client_tools))
+    app.include_router(AppEventRouter(runs.app_events).router)
+    app.include_router(SkillRouter(skills).router)
+    app.include_router(ServerRouter(mcp, saved_servers).router)
+    app.include_router(McpRouter(mcp, relays).router)
+    app.include_router(RelayRouter(relays).router)
+    app.include_router(ClientToolRouter(web, client_tools).router)
     effects = CredentialEffects(bots, channels.platforms)
-    app.include_router(build_secret_card_router(web, client_tools, secrets, effects))
-    app.include_router(build_secrets_router(secrets, bots))
-    app.include_router(build_credentials_router(secrets, bots, channels.platforms))
-    app.include_router(build_approvals_router(approvals))
-    app.include_router(build_compact_router(web))
-    app.include_router(build_bots_router(bots, runs, secrets, schedules))
-    app.include_router(build_schedules_router(bots, schedules, scheduler, runs))
-    app.include_router(build_tickets_router(tickets, secrets, bots, client_tools))
-    app.include_router(build_ticket_files_router(tickets, web.files, web.images))
-    app.include_router(build_groups_router(runs.groups))
-    app.include_router(build_link_codes_router(channels.link_codes, bots, secrets))
+    app.include_router(SecretCardRouter(web, client_tools, secrets, effects).router)
+    app.include_router(SecretRouter(secrets, bots).router)
+    app.include_router(CredentialRouter(secrets, bots, channels.platforms).router)
+    app.include_router(ApprovalRouter(approvals).router)
+    app.include_router(CompactRouter(web).router)
+    app.include_router(BotRouter(bots, runs, secrets, schedules).router)
+    app.include_router(ScheduleRouter(bots, schedules, scheduler, runs).router)
+    app.include_router(TicketRouter(tickets, secrets, bots, client_tools).router)
+    app.include_router(TicketFileRouter(tickets, web.files, web.images).router)
+    app.include_router(GroupRouter(bots, runs.groups).router)
+    app.include_router(LinkCodeRouter(channels.link_codes, bots, secrets).router)
     return app

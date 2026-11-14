@@ -7,13 +7,13 @@ from contextlib import aclosing
 
 import pytest
 
-from harness.llm import Completed, Failed, SystemMessage, TextChunk
+from harness.llm import Completion, StreamFailure, SystemMessage, TextChunk
 from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.hooks import HookChain
-from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EmptyReplyHook
+from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY_REASON, EmptyReplyHook
 from harness.runtime.service import Runtime
-from harness.runtime.turn import NO_TERMINAL
+from harness.runtime.turn import NO_TERMINAL_REASON
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,
@@ -24,7 +24,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.tools.native.clock import clock_tool
+from harness.tools.native.clock import get_current_time_tool
 from tests.unit.fakes import (
     HangingClient,
     OneModel,
@@ -94,7 +94,7 @@ async def test_system_prompt_is_prepended_and_never_logged() -> None:
 
 
 async def test_provider_failure_ends_the_turn_without_hanging() -> None:
-    client = ScriptedClient([TextChunk(text="par"), Failed(reason="502 upstream")])
+    client = ScriptedClient([TextChunk(text="par"), StreamFailure(reason="502 upstream")])
     session = new_session()
 
     events = await asyncio.wait_for(
@@ -112,7 +112,7 @@ async def test_stream_without_a_terminal_is_a_failure_not_a_success() -> None:
 
     events = await drain(runtime_with(client).run("hi", session=session, bot_id="b"))
 
-    assert events[-1] == AgentFailed(reason=NO_TERMINAL)
+    assert events[-1] == AgentFailed(reason=NO_TERMINAL_REASON)
     assert session.events()[-1].reason == "failed"
 
 
@@ -167,7 +167,7 @@ async def test_usage_travels_with_the_assistant_message() -> None:
     from harness.llm import Usage
 
     usage = Usage(input_tokens=11, output_tokens=3)
-    client = ScriptedClient([TextChunk(text="ok"), Completed(full_text="ok", usage=usage)])
+    client = ScriptedClient([TextChunk(text="ok"), Completion(full_text="ok", usage=usage)])
     session = new_session()
 
     await drain(runtime_with(client).run("hi", session=session, bot_id="b"))
@@ -199,7 +199,7 @@ async def test_two_empty_replies_fail_the_turn() -> None:
 
     events = await drain(runtime_with(client, hooks=TOLD).run("hi", session=session, bot_id="b"))
 
-    assert events[-1] == AgentFailed(reason=EMPTY_REPLY)
+    assert events[-1] == AgentFailed(reason=EMPTY_REPLY_REASON)
     assert _notes(session) == [EMPTY_REPLY_NOTE]
     assert client.calls == 2
     assert session.events()[-1] == TurnEnd(turn=0, reason="failed")
@@ -222,7 +222,9 @@ async def test_a_turn_that_spoke_then_went_blank_is_told_too() -> None:
     session = new_session()
 
     events = await drain(
-        runtime_over(client, clock_tool(), hooks=TOLD).run("hi", session=session, bot_id="b")
+        runtime_over(client, get_current_time_tool(), hooks=TOLD).run(
+            "hi", session=session, bot_id="b"
+        )
     )
 
     assert events[-1] == AgentCompleted(text="Tuesday")
@@ -236,7 +238,7 @@ async def test_a_turn_answers_with_its_final_reply_not_what_it_said_on_the_way()
     session = new_session()
 
     events = await drain(
-        runtime_over(client, clock_tool()).run("what day", session=session, bot_id="b")
+        runtime_over(client, get_current_time_tool()).run("what day", session=session, bot_id="b")
     )
 
     assert events[-1] == AgentCompleted(text="It is Tuesday.")

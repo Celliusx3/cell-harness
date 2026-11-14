@@ -9,7 +9,7 @@ import httpx
 from harness.config.sections import CompactionSettings
 from harness.llm.adapters import context_window_tokens
 from harness.llm.adapters.openai import client as adapter_module
-from harness.web.runtime import context_window
+from harness.web.runtime import compaction_window_tokens
 from tests.unit.test_openai_adapter import settings
 
 # ilmu serves the field on `/models`, not on `/models/{id}` (404).
@@ -81,13 +81,13 @@ def test_a_configured_window_wins_and_the_endpoint_is_not_asked(monkeypatch) -> 
     seen: list[httpx.Request] = []
     patched(monkeypatch, lambda r: seen.append(r) or httpx.Response(200, json=ILMU))
 
-    assert context_window(CompactionSettings(context_tokens=4096), settings()) == 4096
+    assert compaction_window_tokens(CompactionSettings(context_tokens=4096), settings()) == 4096
     assert seen == []
 
 
 def test_with_no_configured_window_the_endpoint_says_it(monkeypatch) -> None:
     patched(monkeypatch, lambda r: httpx.Response(200, json=ILMU))
-    assert context_window(CompactionSettings(context_tokens=None), settings()) == 1000000
+    assert compaction_window_tokens(CompactionSettings(context_tokens=None), settings()) == 1000000
 
     patched(monkeypatch, lambda r: httpx.Response(200, json=LM_STUDIO))
-    assert context_window(CompactionSettings(context_tokens=None), settings()) is None
+    assert compaction_window_tokens(CompactionSettings(context_tokens=None), settings()) is None

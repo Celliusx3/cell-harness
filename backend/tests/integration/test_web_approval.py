@@ -6,7 +6,7 @@ import httpx
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.llm import StreamEvent
 from harness.runs.service.run_service import RunService
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
@@ -44,7 +44,7 @@ def _asking(tmp_path, *steps, ran: list[str]):
         calls_tool(WRITE, '{"value": "Kopi"}', id="call_7f3a"), completed("saved"), *steps
     )
     service = durable_service(tmp_path / "sessions")
-    runs = run_service(service, model, _writer(ran), *tools.tools(), approvals=approvals)
+    runs = run_service(service, model, _writer(ran), *CLIENT_TOOLS.tools(), approvals=approvals)
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), client_tools=tools, approvals=approvals
     )
@@ -60,7 +60,7 @@ def _asking_beside_telegram(tmp_path, *scripts: list[StreamEvent], ran: list[str
     tools = ClientToolService(CLIENT_TOOLS, approvals)
     service = durable_service(tmp_path / "sessions")
     model = SteppedClient(*scripts)
-    runs = run_service(service, model, _writer(ran), *tools.tools(), approvals=approvals)
+    runs = run_service(service, model, _writer(ran), *CLIENT_TOOLS.tools(), approvals=approvals)
     app, gateway, bot = web_app_with_telegram(
         tmp_path, service, runs, skills=no_skills(), client_tools=tools, approvals=approvals
     )
@@ -180,7 +180,7 @@ async def test_an_answer_here_to_a_call_telegram_was_asked_goes_to_that_chat_onl
         completed("saved"),
         ran=ran,
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     await link_to_assistant(chats, "telegram", OTHER)
     await link_to_assistant(chats, "telegram", CHAT)
     async with client:
@@ -209,7 +209,7 @@ async def test_a_browser_turn_answered_here_sends_nothing_to_telegram(tmp_path) 
         completed("saved"),
         ran=ran,
     )
-    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
+    await link_to_assistant(JsonChatRepository(tmp_path / "chats"), "telegram", CHAT)
     async with client:
         await gateway.receive(_telegram(CHAT, "hi"))
         await idle(runs, gateway)

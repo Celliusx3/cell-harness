@@ -13,10 +13,10 @@ BATCH_DELAY_SECONDS = 0.30
 SPLIT_SUSPECT_LEN = 4000
 SPLIT_DELAY_SECONDS = 1.0
 
-JOIN = "\n"
+BATCH_SEPARATOR = "\n"
 
 
-def batch_delay(text: str) -> float:
+def batch_delay_seconds(text: str) -> float:
     """How long to wait for the rest of `text`, if more is coming."""
     if len(text) >= SPLIT_SUSPECT_LEN:
         return SPLIT_DELAY_SECONDS

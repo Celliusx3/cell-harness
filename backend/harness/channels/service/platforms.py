@@ -11,7 +11,7 @@ from pydantic import SecretStr
 
 from harness.channels.discord.channel import DiscordChannel
 from harness.channels.domain.protocol import Channel, ChannelDisposer
-from harness.channels.service.client import ChatAnswers
+from harness.channels.service.chat_answers import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks
 from harness.channels.telegram.channel import TelegramChannel
@@ -33,7 +33,7 @@ class PlatformChannels:
         self._keyring = keyring
         self._make_channel = make_channel
         self._disposers: dict[ChatPlatform, ChannelDisposer] = {}
-        self._changing = asyncio.Lock()
+        self._change_lock = asyncio.Lock()
 
     async def start_saved(self) -> None:
         """Register a channel for each platform whose token is saved."""
@@ -42,7 +42,7 @@ class PlatformChannels:
 
     async def restart(self, platform: ChatPlatform) -> None:
         """Stop `platform`'s channel, then register a fresh one if its token is saved."""
-        async with self._changing:
+        async with self._change_lock:
             dispose = self._disposers.pop(platform, None)
             if dispose is not None:
                 await dispose()

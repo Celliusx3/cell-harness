@@ -14,7 +14,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.skills.domain.invocation import display
+from harness.skills.domain.invocation import typed_invocation
 
 EVERYONE = "everyone"
 MAX_TURNS_FROM_MENTIONS = 6
@@ -61,7 +61,7 @@ class MentionTurnOrder:
 
     def first_speakers(self, text: str, members: Sequence[Bot]) -> tuple[Bot, ...]:
         """The members the person's `text` mentions; all of them for @everyone or nobody."""
-        invoked = display(text)
+        invoked = typed_invocation(text)
         typed = text if invoked is None else invoked.typed
         named = mentioned_members(typed, members)
         if not named or is_mentioned(typed, EVERYONE):
@@ -72,21 +72,21 @@ class MentionTurnOrder:
         """The head of the queue once the log's last turn completed; `None` when nobody is next."""
         queue = SpeakerQueue((), 0)
         speaker_id: str | None = None
-        said: tuple[str, ...] = ()
+        replies: tuple[str, ...] = ()
         completed = False
         for event in events:
             if isinstance(event, UserMessageEvent):
                 first = self.first_speakers(event.message.content, members)
-                queue, said = SpeakerQueue(first, 0), ()
+                queue, replies = SpeakerQueue(first, 0), ()
             elif isinstance(event, TurnStart):
                 speaker_id, completed = event.bot_id, False
             elif isinstance(event, AssistantMessageEvent):
-                said = (*said, event.message.content)
+                replies = (*replies, event.message.content)
             elif isinstance(event, TurnEnd):
                 completed = event.reason == "completed"
                 if completed:
-                    queue = self._queue_after(queue, speaker_id, "\n\n".join(said), members)
-                    said = ()
+                    queue = self._queue_after(queue, speaker_id, "\n\n".join(replies), members)
+                    replies = ()
         return queue.waiting[0] if completed and queue.waiting else None
 
     def _queue_after(

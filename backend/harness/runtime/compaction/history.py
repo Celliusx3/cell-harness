@@ -13,14 +13,14 @@ from harness.session.domain.models import (
     UserMessageEvent,
 )
 from harness.skills import SKILL
-from harness.skills.domain.invocation import MARKER, display
+from harness.skills.domain.invocation import MARKER, typed_invocation
 
 PRUNE_KEEP = 3
 
-_TAG = MARKER.lstrip()
+_SKILL_BODY_OPENING = MARKER.lstrip()
 
 
-def prunable_ids(events: Sequence[SessionEvent]) -> tuple[str, ...]:
+def prunable_call_ids(events: Sequence[SessionEvent]) -> tuple[str, ...]:
     """The call ids whose results a prune would clear now, oldest first."""
     pruned = pruned_ids(events)
     names = {e.call.id: e.call.name for e in events if isinstance(e, ToolCallEvent)}
@@ -34,12 +34,12 @@ def prunable_ids(events: Sequence[SessionEvent]) -> tuple[str, ...]:
     return tuple(candidates[:-PRUNE_KEEP])
 
 
-def summarizable(events: Sequence[SessionEvent]) -> bool:
+def has_summarizable_tail(events: Sequence[SessionEvent]) -> bool:
     """Does the un-compacted tail hold a user message to summarize?"""
     return any(e.type == "user/message" for e in events[tail_start(events) :])
 
 
-def loaded_skills(events: Sequence[SessionEvent]) -> tuple[str, ...]:
+def loaded_skill_bodies(events: Sequence[SessionEvent]) -> tuple[str, ...]:
     """The body of each skill loaded so far, the last per name, in load order."""
     calls: dict[str, str] = {}
     bodies: dict[str, str] = {}
@@ -48,19 +48,19 @@ def loaded_skills(events: Sequence[SessionEvent]) -> tuple[str, ...]:
             calls[event.call.id] = event.call.name
         elif isinstance(event, ToolResultEvent) and calls.get(event.message.tool_call_id) == SKILL:
             body = text_of(event.message.content)
-            if (name := _name(body)) is not None:
+            if (name := _skill_name(body)) is not None:
                 bodies[name] = body
         elif isinstance(event, UserMessageEvent):
-            shown = display(event.message.content)
+            shown = typed_invocation(event.message.content)
             if shown is not None:
                 _, _, rest = event.message.content.partition(MARKER)
-                bodies[shown.skill] = _TAG + rest
+                bodies[shown.skill] = _SKILL_BODY_OPENING + rest
     return tuple(bodies.values())
 
 
-def _name(body: str) -> str | None:
+def _skill_name(body: str) -> str | None:
     """The name in a skill body's opening tag, or `None` for text that is not one."""
-    if not body.startswith(_TAG):
+    if not body.startswith(_SKILL_BODY_OPENING):
         return None
-    name, quote, _ = body[len(_TAG) :].partition('"')
+    name, quote, _ = body[len(_SKILL_BODY_OPENING) :].partition('"')
     return name if quote else None

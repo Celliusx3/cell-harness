@@ -16,7 +16,7 @@ class ModelChoice:
 
     client: LLMClient
     model: str
-    vision: bool
+    has_vision: bool
     context_tokens: int | None
     """The window compaction works to; `None` when unknown, and only an overflow compacts."""
 

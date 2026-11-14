@@ -12,8 +12,8 @@ from harness.images import ImageService
 from harness.llm import images_of
 from harness.session.domain.models import SessionEvent, ToolResultEvent, UserMessageEvent
 
-INLINE_TYPES = frozenset({"image/png", "image/jpeg", "image/webp", "image/gif"})
-NO_SNIFFING = {"X-Content-Type-Options": "nosniff"}
+INLINE_MEDIA_TYPES = frozenset({"image/png", "image/jpeg", "image/webp", "image/gif"})
+NO_SNIFFING_HEADERS = {"X-Content-Type-Options": "nosniff"}
 
 
 def folder_file(files: ChatFileService, chat_id: str, path: str) -> FileResponse:
@@ -21,37 +21,39 @@ def folder_file(files: ChatFileService, chat_id: str, path: str) -> FileResponse
     stored = files.file_at(chat_id, path)
     if stored is None:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND, detail=f"{path} is not a file here", headers=NO_SNIFFING
+            status.HTTP_404_NOT_FOUND,
+            detail=f"{path} is not a file here",
+            headers=NO_SNIFFING_HEADERS,
         )
-    shown = "inline" if stored.media_type in INLINE_TYPES else "attachment"
+    disposition = "inline" if stored.media_type in INLINE_MEDIA_TYPES else "attachment"
     return FileResponse(
         stored.path,
         media_type=stored.media_type,
         filename=stored.name,
-        content_disposition_type=shown,
-        headers=NO_SNIFFING,
+        content_disposition_type=disposition,
+        headers=NO_SNIFFING_HEADERS,
     )
 
 
 def logged_image(images: ImageService, events: Sequence[SessionEvent], sha256: str) -> FileResponse:
     """The image kept under `sha256`, shown in place, when one of `events` showed it the model."""
-    stored = images.file_of(sha256) if _shows(events, sha256) else None
+    stored = images.file_of(sha256) if _is_shown_in(events, sha256) else None
     if stored is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             detail=f"{sha256} is not an image in this chat",
-            headers=NO_SNIFFING,
+            headers=NO_SNIFFING_HEADERS,
         )
     return FileResponse(
         stored.path,
         media_type=stored.media_type,
         filename=stored.path.name,
         content_disposition_type="inline",
-        headers=NO_SNIFFING,
+        headers=NO_SNIFFING_HEADERS,
     )
 
 
-def _shows(events: Sequence[SessionEvent], sha256: str) -> bool:
+def _is_shown_in(events: Sequence[SessionEvent], sha256: str) -> bool:
     return any(
         image.sha256 == sha256
         for event in events

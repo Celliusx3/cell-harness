@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from importlib import resources
 
-from harness.sandbox.runner import Bridge, BridgeError, Runner, Script
+from harness.sandbox.runner import Bridge, BridgeError, Runner, ScriptResult
 
 logger = logging.getLogger("harness.sandbox")
 
@@ -36,7 +36,7 @@ class DenoRunner(Runner):
         repr=False,
     )
 
-    async def run(self, code: str, *, names: Sequence[str], bridge: Bridge) -> Script:
+    async def run(self, code: str, *, names: Sequence[str], bridge: Bridge) -> ScriptResult:
         try:
             process = await asyncio.create_subprocess_exec(
                 self.deno_path,
@@ -55,7 +55,9 @@ class DenoRunner(Runner):
             async with asyncio.timeout(self.timeout_seconds):
                 return await self._converse(process, code, names, bridge)
         except TimeoutError:
-            return Script(error=f"the script did not finish within {self.timeout_seconds:.0f}s")
+            return ScriptResult(
+                error=f"the script did not finish within {self.timeout_seconds:.0f}s"
+            )
         finally:
             await self._reap(process)
 
@@ -65,7 +67,7 @@ class DenoRunner(Runner):
         code: str,
         names: Sequence[str],
         bridge: Bridge,
-    ) -> Script:
+    ) -> ScriptResult:
         assert process.stdin is not None and process.stdout is not None
         await self._send(process, {"kind": "run", "code": code, "names": list(names)})
 
@@ -73,27 +75,33 @@ class DenoRunner(Runner):
             try:
                 line = await process.stdout.readline()
             except (ValueError, asyncio.LimitOverrunError):
-                return Script(error="the script produced more output than one frame may carry")
+                return ScriptResult(
+                    error="the script produced more output than one frame may carry"
+                )
             if not line:
-                return Script(error=await self._died(process))
+                return ScriptResult(error=await self._exit_reason(process))
 
             frame = json.loads(line)
             match frame.get("kind"):
                 case "call":
-                    reply = await _reply(frame, bridge)
+                    reply = await _call_reply_frame(frame, bridge)
                     try:
                         await self._send(process, reply)
                     except (RuntimeError, OSError):
-                        return await self._unanswered(process, frame["name"])
+                        return await self._unanswered_call_result(process, frame["name"])
                 case "done":
-                    return Script(result=frame.get("result"), logs=tuple(frame.get("logs", ())))
+                    return ScriptResult(
+                        result=frame.get("result"), logs=tuple(frame.get("logs", ()))
+                    )
                 case "failed":
-                    return Script(
+                    return ScriptResult(
                         logs=tuple(frame.get("logs", ())),
                         error=frame.get("message", "the script failed"),
                     )
 
-    async def _unanswered(self, process: asyncio.subprocess.Process, name: str) -> Script:
+    async def _unanswered_call_result(
+        self, process: asyncio.subprocess.Process, name: str
+    ) -> ScriptResult:
         """Why the child exited mid-call, from what it wrote before it went."""
         assert process.stdout is not None
         rest = (await process.stdout.read()).decode(errors="replace")
@@ -103,7 +111,7 @@ class DenoRunner(Runner):
             except ValueError:
                 continue
             if frame.get("kind") in ("done", "failed"):
-                return Script(
+                return ScriptResult(
                     logs=tuple(frame.get("logs", ())),
                     error=(
                         f"the script returned while {name} was still running — every call "
@@ -111,14 +119,14 @@ class DenoRunner(Runner):
                         "body with `return await main();`, or write the steps at the top level"
                     ),
                 )
-        return Script(error=await self._died(process))
+        return ScriptResult(error=await self._exit_reason(process))
 
     async def _send(self, process: asyncio.subprocess.Process, frame: dict) -> None:
         assert process.stdin is not None
         process.stdin.write(json.dumps(frame).encode() + b"\n")
         await process.stdin.drain()
 
-    async def _died(self, process: asyncio.subprocess.Process) -> str:
+    async def _exit_reason(self, process: asyncio.subprocess.Process) -> str:
         """Why the child stopped talking."""
         assert process.stderr is not None
         detail = (await process.stderr.read()).decode(errors="replace").strip()
@@ -140,7 +148,7 @@ class DenoRunner(Runner):
             logger.warning("deno pid %s: error while closing", process.pid, exc_info=True)
 
 
-async def _reply(frame: dict, bridge: Bridge) -> dict:
+async def _call_reply_frame(frame: dict, bridge: Bridge) -> dict:
     """One call's answer."""
     call_id = frame["id"]
     try:

@@ -10,11 +10,11 @@ from harness.tools import INVALID_ARGUMENTS, Failure, Ok, Pending, Tool
 from harness.tools.native.hand_over import HAND_OVER
 from harness.tools.native.hand_over.models import STEP_MAX_LENGTH
 from harness.web.runtime import CLIENT_TOOLS, DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS
-from tests.unit.helpers import client_tools, context_for
+from tests.unit.helpers import context_for
 
 
 def _hand_over_tool() -> Tool:
-    return {tool.name: tool for tool in client_tools().tools()}[HAND_OVER]
+    return {tool.name: tool for tool in CLIENT_TOOLS.tools()}[HAND_OVER]
 
 
 def test_hand_over_is_a_client_tool_offered_neither_to_the_main_chat_nor_to_scripts() -> None:

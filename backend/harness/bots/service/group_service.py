@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
-from harness.bots.domain.models import Bot, BotNotFound, ChatMembers, Group, GroupDraft, GroupEmpty
+from harness.bots.domain.models import (
+    Bot,
+    BotNotFound,
+    ChatMembers,
+    EmptyGroupError,
+    Group,
+    GroupDraft,
+)
 from harness.bots.domain.turn_order import TurnOrder
 from harness.bots.service.bot_service import BotService, bot_instructions_event
 from harness.session.domain.log import Session
@@ -18,11 +25,7 @@ class GroupService:
         self._sessions = sessions
         self._turn_order = turn_order
 
-    def groups(self) -> tuple[Group, ...]:
-        """Every group, in the order each was made."""
-        return self._bots.groups()
-
-    async def create_group(self, draft: GroupDraft) -> Group:
+    async def create(self, draft: GroupDraft) -> Group:
         """A new group of active bots, its chat holding its members; `BotNotFound` for any other."""
         members = tuple(self._bots.active_bot(bot_id) for bot_id in draft.member_ids)
         session = await self._sessions.create()
@@ -32,13 +35,16 @@ class GroupService:
         self._bots.add_group(group)
         return group
 
-    def members_of_chat(self, chat_id: str) -> ChatMembers:
+    def chat_members(self, chat_id: str) -> ChatMembers:
         """A bot's chat's bot, or a group's active members in order; `BotNotFound` for neither."""
-        active = self._bots.active_bots_unopened()
+        active = self._bots.active_bots()
         own = next((bot for bot in active if self._bots.chat_of(bot.id) == chat_id), None)
         if own is not None:
             return ChatMembers(group=None, bots=(own,))
-        group = next((group for group in self._bots.groups() if group.id == chat_id), None)
+        group = next(
+            (group for group in self._bots.groups() if self.chat_of_group(group.id) == chat_id),
+            None,
+        )
         if group is None:
             raise BotNotFound(chat_id)
         by_id = {bot.id: bot for bot in active}
@@ -46,35 +52,39 @@ class GroupService:
             group=group, bots=tuple(by_id[bot_id] for bot_id in group.member_ids if bot_id in by_id)
         )
 
-    def asker(self, session: Session, call_id: str) -> Bot:
+    def chat_of_group(self, group_id: str) -> str:
+        """The id of the one chat the group talks in, which is the group's own id."""
+        return group_id
+
+    def calling_bot(self, session: Session, call_id: str) -> Bot:
         """The member whose turn asked for `call_id`; the chat's only bot in an older log."""
-        members = self.members_of_chat(session.id).bots
-        bot_id = session.speaker_of_call(call_id)
-        asking = members if bot_id is None else tuple(bot for bot in members if bot.id == bot_id)
-        if len(asking) != 1:
+        members = self.chat_members(session.id).bots
+        bot_id = session.calling_bot_id(call_id)
+        matches = members if bot_id is None else tuple(bot for bot in members if bot.id == bot_id)
+        if len(matches) != 1:
             raise BotNotFound(bot_id if bot_id is not None else session.id)
-        return asking[0]
+        return matches[0]
 
     def first_speaker(self, session: Session, text: str) -> Bot:
-        """Who answers `text` first, its instructions and group logged; `GroupEmpty` if none can."""
-        members = self.members_of_chat(session.id)
+        """Who answers `text` first, its instructions and group logged; else `EmptyGroupError`."""
+        members = self.chat_members(session.id)
         speakers = self._turn_order.first_speakers(text, members.bots)
         if not speakers:
-            raise GroupEmpty(session.id)
-        _log_speaker_if_changed(session, members, speakers[0])
+            raise EmptyGroupError(session.id)
+        _log_speaker_and_members_if_changed(session, members, speakers[0])
         return speakers[0]
 
     def next_speaker(self, session: Session) -> Bot | None:
         """Who the queue says is next, its instructions and group logged; `None` when nobody is."""
-        members = self.members_of_chat(session.id)
+        members = self.chat_members(session.id)
         speaker = self._turn_order.next_speaker(session.events(), members.bots)
         if speaker is None:
             return None
-        _log_speaker_if_changed(session, members, speaker)
+        _log_speaker_and_members_if_changed(session, members, speaker)
         return speaker
 
 
-def _log_speaker_if_changed(session: Session, members: ChatMembers, bot: Bot) -> None:
+def _log_speaker_and_members_if_changed(session: Session, members: ChatMembers, bot: Bot) -> None:
     logged = session.bot_instructions(bot.id)
     if logged is None or (logged.name, logged.instructions) != (bot.name, bot.instructions):
         session.append(bot_instructions_event(bot))

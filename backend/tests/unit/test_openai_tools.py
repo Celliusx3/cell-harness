@@ -9,7 +9,7 @@ import pytest
 
 from harness.llm import (
     AssistantMessage,
-    Completed,
+    Completion,
     ToolCall,
     ToolCallChunk,
     ToolMessage,
@@ -51,7 +51,10 @@ async def test_a_call_split_across_frames_is_reassembled(monkeypatch) -> None:
     events = await collect(monkeypatch, handler)
 
     expected = ToolCall(id="call_a", name="get_current_time", arguments='{"timezone": "UTC"}')
-    assert events == [ToolCallChunk(call=expected), Completed(full_text="", tool_calls=(expected,))]
+    assert events == [
+        ToolCallChunk(call=expected),
+        Completion(full_text="", tool_calls=(expected,)),
+    ]
 
 
 async def test_two_calls_are_grouped_by_index_not_arrival_order(monkeypatch) -> None:
@@ -132,7 +135,7 @@ async def test_a_call_with_no_name_is_dropped(monkeypatch) -> None:
 
     events = await collect(monkeypatch, handler)
 
-    assert events == [Completed(full_text="")]
+    assert events == [Completion(full_text="")]
 
 
 async def test_a_call_with_no_id_gets_a_synthetic_one(monkeypatch) -> None:

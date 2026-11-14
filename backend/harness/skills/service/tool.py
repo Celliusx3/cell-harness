@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Literal
 
 from pydantic import BaseModel, Field, create_model
+from pydantic.json_schema import JsonDict
 
 from harness.skills.domain.models import Skill
 from harness.skills.service import resources
@@ -32,7 +34,7 @@ _DESCRIPTION = (
 
 def skill_tool(skills: SkillService) -> Tool[SkillArgs] | None:
     """The tool over the skills the model may load, or `None` when there are none."""
-    offered = skills.model_invocable()
+    offered = skills.model_invocable_skills()
     if not offered:
         return None
     by_name = {skill.name: skill for skill in offered}
@@ -40,8 +42,8 @@ def skill_tool(skills: SkillService) -> Tool[SkillArgs] | None:
     async def execute(args: SkillArgs, _context: ToolContext) -> ToolOutcome:
         skill = by_name[args.name]
         if args.path is not None:
-            return _resource(skill, args.path)
-        return _instructions(skill)
+            return _bundled_file_outcome(skill, args.path)
+        return _instructions_outcome(skill)
 
     return Tool.from_model(
         name=SKILL,
@@ -69,7 +71,7 @@ def _args_model(names: tuple[str, ...]) -> type[SkillArgs]:
                 description=(
                     "The name of a skill from the available-skills list. Do not guess names."
                 ),
-                json_schema_extra=_always_enum(names),
+                json_schema_extra=_enum_schema_hook(names),
             ),
         ),
         path=(
@@ -85,25 +87,25 @@ def _args_model(names: tuple[str, ...]) -> type[SkillArgs]:
     )
 
 
-def _always_enum(names: tuple[str, ...]):
+def _enum_schema_hook(names: tuple[str, ...]) -> Callable[[JsonDict], None]:
     """A schema hook that forces `enum` for `name`."""
     # Pydantic prints a one-member `Literal` as `const`, not `enum`.
 
-    def fix(schema: dict) -> None:
+    def force_enum(schema: JsonDict) -> None:
         schema.pop("const", None)
         schema["enum"] = list(names)
 
-    return fix
+    return force_enum
 
 
-def _instructions(skill: Skill) -> ToolOutcome:
+def _instructions_outcome(skill: Skill) -> ToolOutcome:
     try:
         return Ok(instructions(skill))
     except (OSError, ValueError) as err:
         return Failure(INVALID_ARGUMENTS, f"skill {skill.name!r} could not be read: {err}")
 
 
-def _resource(skill: Skill, path: str) -> ToolOutcome:
+def _bundled_file_outcome(skill: Skill, path: str) -> ToolOutcome:
     """One bundled file, confined to the skill's directory."""
     try:
         text = resources.read(skill, path)

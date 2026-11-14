@@ -11,7 +11,7 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.tools.native.subagent import RUN_SUBAGENT
 from harness.tools.native.tickets import TICKET_REPORT
-from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, helper_runtime
+from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, delegate_runtime
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
 from tests.unit.fakes import ScriptedClient
 from tests.unit.helpers import (
@@ -56,7 +56,7 @@ def test_a_worker_offers_subagents_and_its_report_and_a_subagent_offers_neither(
     attach_tickets(tool_service, no_tickets(tmp_path, bots, runs))
 
     worker = offered(ticket_workers(tool_service, runtime, logs).runtime)
-    subagent = offered(helper_runtime(tool_service, runtime, SUBAGENT_TOOLS))
+    subagent = offered(delegate_runtime(tool_service, runtime, SUBAGENT_TOOLS))
 
     assert {RUN_SUBAGENT, TICKET_REPORT} <= worker
     assert not {RUN_SUBAGENT, TICKET_REPORT} & subagent

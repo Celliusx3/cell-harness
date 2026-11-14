@@ -23,7 +23,7 @@ class ImagesHidden(BaseModel):
     through: int = Field(ge=0)
 
 
-def hidden_through(events: Sequence[SessionEvent]) -> int:
+def hidden_image_count(events: Sequence[SessionEvent]) -> int:
     """How many of the log's first images are hidden: the largest hide logged, or 0."""
     return max((event.through for event in events if isinstance(event, ImagesHidden)), default=0)
 

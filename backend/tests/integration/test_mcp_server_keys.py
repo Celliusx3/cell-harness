@@ -65,7 +65,7 @@ async def connected(mcp: McpService, server_id: str) -> None:
 
 
 async def key_in_env(mcp: McpService, server_id: str) -> str:
-    result = await mcp.call(server_id, "env_value", {"name": FAKE_KEY})
+    result = await mcp.call_tool(server_id, "env_value", {"name": FAKE_KEY})
     return result.content[0].text
 
 

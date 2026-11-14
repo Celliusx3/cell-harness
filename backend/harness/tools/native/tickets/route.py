@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Protocol
 
-from harness.tickets.domain.models import Ticket, TicketNotFound, TicketStopped
+from harness.tickets.domain.models import StoppedTicketError, Ticket, TicketNotFound
 from harness.tickets.domain.prompts import TICKET_FOLLOWUP_HEARD
 from harness.tools.domain.context import ToolContext
 from harness.tools.domain.decision import ApprovalMode
@@ -31,7 +31,7 @@ _DESCRIPTION = (
 )
 
 
-class TicketRouter(Protocol):
+class TicketDesk(Protocol):
     """Starts, finds, tells and stops tickets."""
 
     def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket: ...
@@ -43,16 +43,16 @@ class TicketRouter(Protocol):
     def stop(self, ticket_id: str) -> None: ...
 
 
-class Refused(Exception):
+class ItemRefusal(Exception):
     """Why one item was not done, as its line says."""
 
 
-def ticket_route_tool(tickets: TicketRouter) -> Tool[TicketRouteArgs]:
+def ticket_route_tool(tickets: TicketDesk) -> Tool[TicketRouteArgs]:
     """The tool that does each item in turn, and answers with one numbered line for each."""
 
     async def execute(args: TicketRouteArgs, context: ToolContext) -> ToolOutcome:
         lines = [
-            f"{number}. {_line(tickets, item, context)}"
+            f"{number}. {_item_line(tickets, item, context)}"
             for number, item in enumerate(args.items, start=1)
         ]
         return Ok("\n".join(lines))
@@ -62,49 +62,49 @@ def ticket_route_tool(tickets: TicketRouter) -> Tool[TicketRouteArgs]:
     )
 
 
-def _line(tickets: TicketRouter, item: RouteItem, context: ToolContext) -> str:
+def _item_line(tickets: TicketDesk, item: RouteItem, context: ToolContext) -> str:
     """What became of `item`, or why it was refused."""
     try:
-        return _done(tickets, item, context)
-    except Refused as refused:
+        return _do_item(tickets, item, context)
+    except ItemRefusal as refused:
         return f"refused: {refused}"
 
 
-def _done(tickets: TicketRouter, item: RouteItem, context: ToolContext) -> str:
-    """Do `item`, and say what was done; `Refused` when it cannot be."""
+def _do_item(tickets: TicketDesk, item: RouteItem, context: ToolContext) -> str:
+    """Do `item`, and say what was done; `ItemRefusal` when it cannot be."""
     bot_id = context.origin.bot_id
     match item:
         case AcceptItem(title=title, task=task):
             ticket = tickets.accept(bot_id=bot_id, title=title, task=task, mode=context.origin.mode)
             return f"accepted ticket {ticket.id}, titled {ticket.title}"
         case AttachItem(ticket=ticket_id, text=text):
-            ticket = _own(tickets, ticket_id, bot_id)
-            _unless_stopped(
+            ticket = _own_ticket(tickets, ticket_id, bot_id)
+            _run_unless_stopped(
                 lambda: tickets.tell(ticket.id, TICKET_FOLLOWUP_HEARD.format(text=text))
             )
             return f"attached to ticket {ticket.id}"
         case StopItem(ticket=ticket_id):
-            ticket = _own(tickets, ticket_id, bot_id)
-            _unless_stopped(lambda: tickets.stop(ticket.id))
+            ticket = _own_ticket(tickets, ticket_id, bot_id)
+            _run_unless_stopped(lambda: tickets.stop(ticket.id))
             return f"stopped ticket {ticket.id}"
         case IgnoreItem(reason=reason):
             return f"ignored: {reason}"
 
 
-def _own(tickets: TicketRouter, ticket_id: str, bot_id: str) -> Ticket:
-    """The calling bot's ticket `ticket_id`; `Refused` when it is unknown or another bot's."""
+def _own_ticket(tickets: TicketDesk, ticket_id: str, bot_id: str) -> Ticket:
+    """The calling bot's ticket `ticket_id`; `ItemRefusal` when it is unknown or another bot's."""
     try:
         ticket = tickets.get(ticket_id)
     except TicketNotFound:
-        raise Refused(f"no ticket has the id {ticket_id}") from None
+        raise ItemRefusal(f"no ticket has the id {ticket_id}") from None
     if ticket.bot_id != bot_id:
-        raise Refused(f"ticket {ticket_id} is not one of yours")
+        raise ItemRefusal(f"ticket {ticket_id} is not one of yours")
     return ticket
 
 
-def _unless_stopped(action: Callable[[], None]) -> None:
-    """Run `action`; `Refused` when its ticket was stopped by the user."""
+def _run_unless_stopped(action: Callable[[], None]) -> None:
+    """Run `action`; `ItemRefusal` when its ticket was stopped by the user."""
     try:
         action()
-    except TicketStopped as stopped:
-        raise Refused(f"ticket {stopped} was stopped by the user") from None
+    except StoppedTicketError as stopped:
+        raise ItemRefusal(f"ticket {stopped} was stopped by the user") from None

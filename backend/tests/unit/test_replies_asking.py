@@ -7,9 +7,9 @@ from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
-from harness.llm import Completed, ToolCall, ToolCallChunk
+from harness.llm import Completion, ToolCall, ToolCallChunk
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import PendingCall
 from tests.unit.fakes import EchoArgs, SteppedClient, completed
@@ -29,7 +29,7 @@ class AskingPlatform:
         self.asked: list[str] = []
         self._refused = refused
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:
@@ -61,7 +61,7 @@ def _writer() -> Tool[EchoArgs]:
 
 async def _two_waiting(tmp_path: Path, platform: AskingPlatform) -> None:
     calls = tuple(ToolCall(id=f"w{n}", name=WRITE, arguments=f'{{"value": "{n}"}}') for n in (1, 2))
-    step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
+    step = [*(ToolCallChunk(call=c) for c in calls), Completion(full_text="", tool_calls=calls)]
     sessions = durable_service(tmp_path / "sessions")
     approvals = ApprovalService(
         frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
@@ -69,7 +69,7 @@ async def _two_waiting(tmp_path: Path, platform: AskingPlatform) -> None:
     runs = run_service(
         sessions, SteppedClient(step, completed("never")), _writer(), approvals=approvals
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     gateway.register(platform)
 

@@ -18,7 +18,7 @@ from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
-from harness.runs.service.bot_messages import BotMessages, Follow
+from harness.runs.service.bot_messages import BotMessenger, Follow
 from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
@@ -35,11 +35,11 @@ from harness.schedules import ScheduleService
 from harness.secrets import SecretService
 from harness.session.service.session_service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
-from harness.tickets.domain.prompts import ORCHESTRATOR
+from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
-from harness.tools.native.clock import clock_tool
+from harness.tools.native.clock import get_current_time_tool
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
     GET_FUNCTION_DETAILS,
@@ -92,11 +92,11 @@ logger = logging.getLogger("harness.web")
 CLIENT_TOOLS = ClientToolCatalog(
     (GET_LOCATION_TOOL, ASK_USER_TOOL, ASK_FOR_SECRET_TOOL, HAND_OVER_TOOL)
 )
-SKILL_WRITES = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
+SKILL_WRITE_TOOLS = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 SCHEDULE_TOOLS = (SCHEDULE_CREATE, SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT)
 DEFAULT_TOOLS = (
     SKILL,
-    *SKILL_WRITES,
+    *SKILL_WRITE_TOOLS,
     BOT_CREATE,
     MESSAGE_BOT,
     *SCHEDULE_TOOLS,
@@ -111,7 +111,7 @@ SIGHT_TOOLS = frozenset({VIEW_IMAGE})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,
-        *SKILL_WRITES,
+        *SKILL_WRITE_TOOLS,
         BOT_CREATE,
         MESSAGE_BOT,
         *SCHEDULE_TOOLS,
@@ -131,7 +131,7 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
 
 def build_runtime(
     settings: Settings,
-    store: SessionService,
+    sessions: SessionService,
     mcp: McpService,
     skills: SkillService,
     client_tools: ClientToolService,
@@ -146,7 +146,7 @@ def build_runtime(
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
     tool_service = ToolService(
         [
-            clock_tool(),
+            get_current_time_tool(),
             skill_save_tool(skills),
             skill_delete_tool(skills),
             skill_write_file_tool(skills),
@@ -155,7 +155,7 @@ def build_runtime(
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
             view_image_tool(files),
-            *client_tools.tools(),
+            *CLIENT_TOOLS.tools(),
         ],
         approvals=approvals,
     )
@@ -173,13 +173,15 @@ def build_runtime(
             settings.llm,
             ModelEndpoint(
                 client_for=functools.partial(_openai_client, images),
-                blocking_window_for=functools.partial(context_window, settings.compaction),
+                blocking_window_for=functools.partial(
+                    compaction_window_tokens, settings.compaction
+                ),
             ),
         ),
         images=images,
         tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
-        guidance=ORCHESTRATOR,
-        checkpoint=store.flush,
+        guidance=ORCHESTRATOR_INTRO,
+        checkpoint=sessions.flush,
         hooks=orchestrator_hooks(skills),
         files=files,
         server_instructions=mcp.instructions,
@@ -192,23 +194,29 @@ def _openai_client(images: ImageService, settings: OpenAISettings) -> LLMClient:
     return OpenAIClient(settings, read_image=images.read)
 
 
-def context_window(compaction: CompactionSettings, llm: OpenAISettings) -> int | None:
-    """The window `llm`'s model compacts at: the configured one, else its endpoint's report."""
+def compaction_window_tokens(
+    compaction: CompactionSettings, settings: OpenAISettings
+) -> int | None:
+    """The window `settings`'s model compacts at: the configured one, else its endpoint's report."""
     configured = compaction.context_tokens
     if configured is not None:
-        logger.info("compaction: %s has a %d-token window (from config)", llm.model, configured)
+        logger.info(
+            "compaction: %s has a %d-token window (from config)", settings.model, configured
+        )
         return configured
-    discovered = context_window_tokens(llm)
+    discovered = context_window_tokens(settings)
     if discovered is None:
         logger.warning(
             "compaction: %s at %s reports no window and none is configured; automatic "
             "compaction is off for it, only a provider overflow triggers it",
-            llm.model,
-            llm.base_url,
+            settings.model,
+            settings.base_url,
         )
     else:
         logger.info(
-            "compaction: %s has a %d-token window (reported by endpoint)", llm.model, discovered
+            "compaction: %s has a %d-token window (reported by endpoint)",
+            settings.model,
+            discovered,
         )
     return discovered
 
@@ -228,11 +236,11 @@ def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
 def _register_run_subagent(
     tool_service: ToolService, runtime: Runtime, logs: SessionService
 ) -> None:
-    subagent = helper_runtime(tool_service, runtime, SUBAGENT_TOOLS)
+    subagent = delegate_runtime(tool_service, runtime, SUBAGENT_TOOLS)
     tool_service.register(run_subagent_tool(Subagents(subagent, logs)))
 
 
-def helper_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
+def delegate_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
     """`runtime` as a subagent or a ticket's worker runs it: offered `tools`, free to wait."""
     hooks = runtime.hooks
     kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))
@@ -250,9 +258,9 @@ def attach_bot_messages(
     runs: RunService,
     *,
     follow: Follow,
-) -> BotMessages:
-    """`message_bot` offered from `tool_service`, sending through the `BotMessages` it returns."""
-    messages = BotMessages(bots, runs, follow=follow)
+) -> BotMessenger:
+    """`message_bot` offered from `tool_service`, sending through the `BotMessenger` it returns."""
+    messages = BotMessenger(bots, runs, follow=follow)
     tool_service.add_provider(lambda: [message_bot_tool(bots, messages)])
     return messages
 

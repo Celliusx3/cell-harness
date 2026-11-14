@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harness.llm import UserMessage
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import TurnEnd, TurnStart, UserMessageEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.repository.session_repository import SessionNotFoundError

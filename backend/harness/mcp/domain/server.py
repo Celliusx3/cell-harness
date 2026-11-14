@@ -40,20 +40,20 @@ class McpServer(BaseModel):
         return named_keys(value)
 
 
-_SERVER_ID = re.compile(r"^[a-z][a-z0-9]{0,31}$")
+_SERVER_ID_PATTERN = re.compile(r"^[a-z][a-z0-9]{0,31}$")
 
 
-def usable_server_id(name: str) -> str:
-    """`name`, if it can be half of a tool name and half of an identifier; `ValueError` if not."""
-    if not _SERVER_ID.match(name):
+def usable_server_id(server_id: str) -> str:
+    """`server_id`, if it can be half of a tool name and of an identifier; else `ValueError`."""
+    if not _SERVER_ID_PATTERN.match(server_id):
         raise ValueError(
-            f"{name!r} is not a usable MCP server id: a lowercase letter followed "
+            f"{server_id!r} is not a usable MCP server id: a lowercase letter followed "
             "by lowercase letters or digits, at most 32. No underscore, because it "
             "would make the {server}__{tool} split ambiguous; no hyphen and no "
             "leading digit, because {server}__{tool} becomes a TypeScript identifier "
             "in code mode"
         )
-    return name
+    return server_id
 
 
 def spawnable_command(value: str) -> str:

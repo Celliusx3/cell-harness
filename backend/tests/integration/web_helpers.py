@@ -12,7 +12,7 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.llm import StreamEvent
-from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.bot_messages import BotMessenger
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.session.service.session_service import SessionService
@@ -58,9 +58,9 @@ async def assistant_chat(client: httpx.AsyncClient, prompt: str) -> str:
 
 
 async def settle(runs: RunService, conversation_id: str) -> None:
-    run = runs.active(conversation_id)
+    run = runs.active_run(conversation_id)
     if run is not None:
-        await asyncio.wait_for(run._outer, timeout=5)
+        await asyncio.wait_for(run._settle_task, timeout=5)
 
 
 def events_from(body: str) -> list[dict]:
@@ -88,7 +88,7 @@ class Messaging:
     client: httpx.AsyncClient
     model: PerBotClient
     runs: RunService
-    messages: BotMessages
+    messages: BotMessenger
     service: SessionService
 
 

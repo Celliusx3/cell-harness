@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
 from harness.runtime.events import AgentCompleted, AgentPending, TurnEvent
 from harness.runtime.run_to_end import HelperAnswer, HelperTurn, resume_to_end, run_to_end
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
 from harness.session.domain.models import (
-    ApprovalModeChanged,
+    ApprovalModeChange,
     SessionEvent,
     TicketAsk,
     TicketReport,
@@ -61,8 +62,20 @@ class WorkerEnd:
         )
 
 
+class TicketWorker(Protocol):
+    """Runs a ticket's first turn in `mode`, and each next turn on the same log, to its end."""
+
+    async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd: ...
+
+    async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd: ...
+
+    async def approve(
+        self, ticket: Ticket, call_id: str, outcome: Ok | Failure | Approval
+    ) -> WorkerEnd: ...
+
+
 @dataclass(frozen=True)
-class Workers:
+class RuntimeTicketWorker:
     """Runs each ticket as `runtime`, logging its steps in `sessions` as `ticket-<id>`."""
 
     runtime: Runtime
@@ -71,13 +84,13 @@ class Workers:
     async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
         session = await self.sessions.create(worker_session_id(ticket.id))
-        session.append(ApprovalModeChanged(mode=mode))
-        return await self._turn(ticket, ticket.task, session)
+        session.append(ApprovalModeChange(mode=mode))
+        return await self._run_turn(ticket, ticket.task, session)
 
     async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:
         """Run the next turn on `prompt` in `ticket`'s session, under the mode its log holds."""
         session = await self.sessions.resume(worker_session_id(ticket.id))
-        return await self._turn(ticket, prompt, session)
+        return await self._run_turn(ticket, prompt, session)
 
     async def approve(
         self, ticket: Ticket, call_id: str, outcome: Ok | Failure | Approval
@@ -87,13 +100,13 @@ class Workers:
         intro = WORKER_INTRO.format(title=ticket.title)
         answer = HelperAnswer(intro=intro, call_id=call_id, outcome=outcome, bot_id=ticket.bot_id)
         last = await resume_to_end(self.runtime, self.sessions, session, answer)
-        return worker_end(last, kept_report(session.events()))
+        return worker_end(last, last_accepted_report(session.events()))
 
-    async def _turn(self, ticket: Ticket, prompt: str, session: Session) -> WorkerEnd:
+    async def _run_turn(self, ticket: Ticket, prompt: str, session: Session) -> WorkerEnd:
         intro = WORKER_INTRO.format(title=ticket.title)
         turn = HelperTurn(intro=intro, prompt=prompt, bot_id=ticket.bot_id)
         last = await run_to_end(self.runtime, self.sessions, session, turn)
-        return worker_end(last, kept_report(session.events()))
+        return worker_end(last, last_accepted_report(session.events()))
 
 
 def worker_session_id(ticket_id: str) -> str:
@@ -101,17 +114,22 @@ def worker_session_id(ticket_id: str) -> str:
     return f"ticket-{ticket_id}"
 
 
-def kept_report(events: Sequence[SessionEvent]) -> TicketReportArgs | None:
+def worker_chat_id(ticket_id: str) -> str:
+    """The id of the chat whose folder holds `ticket_id`'s worker's files: its session's id."""
+    return worker_session_id(ticket_id)
+
+
+def last_accepted_report(events: Sequence[SessionEvent]) -> TicketReportArgs | None:
     """The last report of the last turn that `ticket_report` accepted, `progress` skipped."""
-    asked: dict[str, str] = {}
+    arguments_by_call_id: dict[str, str] = {}
     kept: TicketReportArgs | None = None
     for event in events:
         if isinstance(event, TurnStart):
-            asked, kept = {}, None
+            arguments_by_call_id, kept = {}, None
         elif isinstance(event, ToolCallEvent) and event.call.name == TICKET_REPORT:
-            asked = {**asked, event.call.id: event.call.arguments}
+            arguments_by_call_id = {**arguments_by_call_id, event.call.id: event.call.arguments}
         elif isinstance(event, ToolResultEvent) and event.error is None:
-            arguments = asked.get(event.message.tool_call_id)
+            arguments = arguments_by_call_id.get(event.message.tool_call_id)
             report = None if arguments is None else TicketReportArgs.model_validate_json(arguments)
             if report is not None and report.state != "progress":
                 kept = report

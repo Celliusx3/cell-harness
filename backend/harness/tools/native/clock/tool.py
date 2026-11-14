@@ -16,7 +16,7 @@ Now = Callable[[], datetime]
 GET_CURRENT_TIME = "get_current_time"
 
 
-def clock_tool(now: Now = lambda: datetime.now(UTC)) -> Tool[ClockArgs]:
+def get_current_time_tool(now: Now = lambda: datetime.now(UTC)) -> Tool[ClockArgs]:
     async def execute(args: ClockArgs, _context: ToolContext) -> ToolOutcome:
         try:
             zone = ZoneInfo(args.timezone)

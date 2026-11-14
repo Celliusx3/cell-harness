@@ -8,12 +8,12 @@ from harness.prompts import SKILL_LIST_INTRO
 from harness.skills.domain.invocation import SKILL_TAG_OPEN
 from harness.skills.domain.models import Skill
 from harness.skills.repository.catalog import read_body
-from harness.skills.service.resources import listing
+from harness.skills.service.resources import bundled_files
 
 MAX_LISTED_FILES = 20
 
 
-def available_skills(skills: Sequence[Skill]) -> str:
+def skill_list_text(skills: Sequence[Skill]) -> str:
     """The skills the model may load, named and described; empty when there are none."""
     if not skills:
         return ""
@@ -27,7 +27,7 @@ def instructions(skill: Skill) -> str:
         f'{SKILL_TAG_OPEN}{skill.name}">\n{read_body(skill)}\n</skill>',
         f"This skill's folder: {skill.dir.resolve()}",
     ]
-    files = listing(skill)
+    files = bundled_files(skill)
     if files:
         more = len(files) - MAX_LISTED_FILES
         listed = ", ".join(files[:MAX_LISTED_FILES])

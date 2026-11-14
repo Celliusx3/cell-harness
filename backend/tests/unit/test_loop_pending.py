@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.llm import AssistantMessage, Completed, ToolCall, ToolCallChunk, ToolMessage
+from harness.llm import AssistantMessage, Completion, ToolCall, ToolCallChunk, ToolMessage
 from harness.runtime.events import AgentCompleted, AgentPending
 from harness.runtime.service import SKIPPED
 from harness.session.domain.models import ToolResultEvent, TurnEnd
@@ -42,7 +42,7 @@ async def test_a_parallel_ordinary_call_still_gets_its_result() -> None:
         ToolCall(id="c1", name="echo", arguments='{"value": "42"}'),
         ToolCall(id="c2", name="ask", arguments='{"value": "?"}'),
     )
-    script = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
+    script = [*(ToolCallChunk(call=c) for c in calls), Completion(full_text="", tool_calls=calls)]
     client = SteppedClient(script, completed("never"))
     session = new_session()
 

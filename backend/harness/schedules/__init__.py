@@ -8,13 +8,13 @@ from harness.schedules.service.schedule_service import (
     ScheduleService,
     ordered,
 )
-from harness.schedules.service.scheduler import ScheduleBusy, Scheduler
+from harness.schedules.service.scheduler import ScheduleBusyError, Scheduler
 
 __all__ = [
     "Delivery",
     "InvalidSchedule",
     "Schedule",
-    "ScheduleBusy",
+    "ScheduleBusyError",
     "ScheduleRepository",
     "ScheduleNotFound",
     "ScheduleService",

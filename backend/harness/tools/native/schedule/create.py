@@ -10,7 +10,11 @@ from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
 from harness.tools.domain.tool import Tool
 from harness.tools.native.schedule.models import ScheduleCreateArgs
-from harness.tools.native.schedule.shared import IN_A_GROUP, in_a_group, shown
+from harness.tools.native.schedule.shared import (
+    OWN_CHAT_ONLY_REFUSAL,
+    is_outside_own_chat,
+    task_fields,
+)
 
 SCHEDULE_CREATE = "schedule_create"
 
@@ -29,13 +33,13 @@ def schedule_create_tool(
     """The tool that makes a schedule for the calling bot, from its own chat only."""
 
     async def execute(args: ScheduleCreateArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(groups, context.origin.conversation_id):
-            return IN_A_GROUP
+        if is_outside_own_chat(groups, context.origin.conversation_id):
+            return OWN_CHAT_ONLY_REFUSAL
         try:
             made = schedules.create(context.origin.bot_id, args.title, args.prompt, args.rrule)
         except InvalidSchedule as err:
             return Failure(INVALID_ARGUMENTS, str(err))
-        return Ok(json.dumps(shown(made), ensure_ascii=False))
+        return Ok(json.dumps(task_fields(made), ensure_ascii=False))
 
     return Tool.from_model(
         name=SCHEDULE_CREATE,

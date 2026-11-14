@@ -15,10 +15,10 @@ from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.chat_repository import ChatState
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
-from harness.channels.router.link_code_router import build_router
+from harness.channels.repository.json_chat_repository import JsonChatRepository
+from harness.channels.router.link_code_router import LinkCodeRouter
 from harness.channels.service.gateway import ChannelGateway
-from harness.channels.service.links import LINK_CODE_SECONDS, ChatLinks, LinkCodes
+from harness.channels.service.links import LINK_CODE_LIFETIME_SECONDS, ChatLinks, LinkCodes
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import TelegramDetails
 from harness.session.domain.models import UserMessageEvent
@@ -47,7 +47,7 @@ class UnlinkedPlatform:
     def channel(self) -> str:
         return "telegram"
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ""
 
     async def run(self) -> None:
@@ -76,9 +76,9 @@ def test_a_code_lasts_fifteen_minutes() -> None:
     codes = LinkCodes(clock)
     code = codes.issue("chef", "telegram")
 
-    clock.now += LINK_CODE_SECONDS + 1
+    clock.now += LINK_CODE_LIFETIME_SECONDS + 1
 
-    assert LINK_CODE_SECONDS == 15 * 60
+    assert LINK_CODE_LIFETIME_SECONDS == 15 * 60
     assert codes.redeem("telegram", "1", code.code) is None
 
 
@@ -122,7 +122,7 @@ async def world(tmp_path: Path):
         BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
     )
     runs = run_service(sessions, ScriptedClient(completed("hi")), bots=bots)
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     gateway.register(UnlinkedPlatform())
     codes = LinkCodes(Clock())
@@ -147,7 +147,7 @@ def _hi(chat_id: str = "1") -> InboundMessage:
 
 async def _settled(run) -> None:
     for _ in range(200):
-        if run.settled:
+        if run.is_settled:
             return
         await asyncio.sleep(0.01)
     raise AssertionError("the turn never settled")
@@ -189,7 +189,7 @@ async def test_an_unlinked_direct_chat_gets_no_turn(world) -> None:
     run = await world["gateway"].receive(_hi())
 
     assert run is None
-    assert world["runs"].active(ASSISTANT_ID) is None
+    assert world["runs"].active_run(ASSISTANT_ID) is None
 
 
 async def test_a_chat_stored_before_links_keeps_the_assistant(world) -> None:
@@ -220,7 +220,7 @@ def keyring(tmp_path: Path) -> SecretService:
 
 async def _ask_for_code(world, keyring, bot_id: str, platform: str) -> httpx.Response:
     app = FastAPI()
-    app.include_router(build_router(world["codes"], world["bots"], keyring))
+    app.include_router(LinkCodeRouter(world["codes"], world["bots"], keyring).router)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as http:
         return await http.post(f"/api/bots/{bot_id}/link-codes", json={"platform": platform})
@@ -233,7 +233,7 @@ async def test_a_bots_page_gets_a_code_for_that_bot(world, keyring) -> None:
 
     body = response.json()
     assert response.status_code == 201
-    assert (body["bot_name"], body["expires_in_seconds"]) == ("Chef", LINK_CODE_SECONDS)
+    assert (body["bot_name"], body["expires_in_seconds"]) == ("Chef", LINK_CODE_LIFETIME_SECONDS)
     assert world["codes"].redeem("telegram", "1", body["code"]) == world["chef"].id
 
 

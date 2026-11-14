@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
-from harness.channels.service.following import QUEUE_JOIN, expanded
-from harness.runtime.inbox import Claimed
+from harness.channels.service.turn_follower import QUEUE_SEPARATOR, expanded
+from harness.runtime.inbox import WaitingMessages
 from harness.skills import SkillService
 
 
@@ -15,7 +15,7 @@ class ChatInbox:
         self._repository = repository
         self._skills = skills
 
-    async def claim(self, conversation_id: str) -> Claimed | None:
+    async def claim(self, conversation_id: str) -> WaitingMessages | None:
         """Every linked chat's queue, joined as a drain joins it, and emptied; `None` if empty."""
         linked = await self._repository.chats_of(conversation_id)
         waiting = sorted((state for state in linked if state.pending), key=_chat_order)
@@ -25,9 +25,9 @@ class ChatInbox:
             await self._repository.save(
                 state.model_copy(update={"pending": (), "pending_files": ()})
             )
-        text = QUEUE_JOIN.join(text for state in waiting for text in state.pending)
+        text = QUEUE_SEPARATOR.join(text for state in waiting for text in state.pending)
         files = tuple(file for state in waiting for file in state.pending_files)
-        return Claimed(text=expanded(self._skills, text), files=files)
+        return WaitingMessages(text=expanded(self._skills, text), files=files)
 
 
 def _chat_order(state: ChatState) -> tuple[str, str]:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from harness.bots import ASSISTANT_ID, BUILDER_ID
 from harness.llm import UserMessage
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.schedule_helpers import reminder_events, tick_and_settle, world
 

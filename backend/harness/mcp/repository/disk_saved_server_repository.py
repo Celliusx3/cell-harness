@@ -9,7 +9,7 @@ from pathlib import Path
 
 from harness.mcp.domain.saved import SavedServer, SavedServersFile
 
-FILE_MODE = 0o600
+OWNER_ONLY_FILE_MODE = 0o600
 
 
 @dataclass(frozen=True)
@@ -28,7 +28,7 @@ class DiskSavedServerRepository:
         """The file replaced whole by `servers`, its folder made when missing."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         handle, temp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
-        os.fchmod(handle, FILE_MODE)
+        os.fchmod(handle, OWNER_ONLY_FILE_MODE)
         with os.fdopen(handle, "w", encoding="utf-8") as file:
             file.write(SavedServersFile(servers=servers).model_dump_json(indent=2))
         os.replace(temp, self.path)

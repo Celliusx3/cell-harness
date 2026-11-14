@@ -21,7 +21,7 @@ from harness.runtime.subagents import Subagents
 from harness.tools import ToolService, Toolset
 from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.web.model_choice import CredentialModels, ModelEndpoint
-from harness.web.runtime import context_window
+from harness.web.runtime import compaction_window_tokens
 from tests.bot_models import put_on_model
 from tests.integration.test_web_no_model import PAGE, no_image
 from tests.integration.web_helpers import settle
@@ -131,7 +131,9 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     base = LLMSettings()
     endpoint = ModelEndpoint(
         client_for=lambda s: OpenAIClient(s, read_image=no_image),
-        blocking_window_for=lambda s: context_window(CompactionSettings(context_tokens=None), s),
+        blocking_window_for=lambda s: compaction_window_tokens(
+            CompactionSettings(context_tokens=None), s
+        ),
     )
     runs = RunService(
         service,

@@ -11,7 +11,7 @@ import pytest
 from harness.llm import UserMessage, text_of
 from harness.prompts import TOOL_OUTCOME_UNKNOWN
 from harness.runtime.events import AgentCompleted
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import ToolCallEvent, TurnEnd, TurnStart, UserMessageEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService

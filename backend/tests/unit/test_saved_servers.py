@@ -107,7 +107,7 @@ def test_a_blank_needed_key_name_is_refused() -> None:
 
 
 def test_a_saved_server_runs_as_it_was_saved() -> None:
-    server = EXA.server()
+    server = EXA.mcp_server()
 
     assert (server.command, server.args, server.needs) == (
         "npx",

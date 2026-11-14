@@ -3,8 +3,8 @@
 The first case is location. "What's near me?" needs coordinates only the
 person's device has; the server has nothing to compute from. This note is the
 prior art, the shape chosen, and why — the reasoning behind `tools/client/`,
-`tools/native/location/`, `web/routes/client.py`, `channels/service/client.py` and
-`Pushing.ask_client`.
+`tools/native/location/`, `web/routes/client.py`, `channels/service/chat_answers.py` and
+`PushChannel.ask_client`.
 
 ## 1. The four shapes in the wild
 
@@ -55,7 +55,7 @@ datum:
   door and the loop never checks a tool's name. On `Pending` the loop writes
   no result and closes the turn with `turn/end {reason: "pending"}`. Nothing
   runs, nothing waits in memory, there is no timer. The card is on screen
-  because the log holds an unanswered call; `runs.active()` is false, so the
+  because the log holds an unanswered call; `runs.active_run()` is false, so the
   composer is free and Stop is hidden.
 - **The answer opens the next turn.** `Runtime.resume(call_id, outcome)`
   opens a turn whose first event is the `tool/result` for the pending call;
@@ -67,7 +67,7 @@ datum:
   answering this; do not ask again unless they return to it"), then opens the
   turn with the message. Not optional: a provider rejects a history with a
   call and no result — it is a 400 before the model sees it.
-- **A pending turn is not a crash.** `repair()` leaves an unanswered call
+- **A pending turn is not a crash.** `crash_repairs()` leaves an unanswered call
   alone when its turn ended `pending`; every other unanswered call is still
   `INTERRUPTED_BY_CRASH`. That is why the reason is written down rather than
   inferred: repair and the screen both read it.
@@ -103,12 +103,12 @@ datum:
 **The acceptance criterion.** A second datum is `tools/native/<x>/{models,
 tool}.py`, one entry in `CLIENT_TOOLS` (`web/runtime.py`), and one entry in the
 browser's handler map — and no line in `tools/client/`, `routes/client.py`,
-`channels/service/client.py`, `Replies`, the loop or the run service. `test_client_tools.py` proves the spine on
+`channels/service/chat_answers.py`, `ReplySender`, the loop or the run service. `test_client_tools.py` proves the spine on
 a throwaway declaration so that stays true without a second real tool.
 
 ## 3. One request, three deliveries
 
-The ask is delivered where app links are: `Replies.deliver` watches the run's
+The ask is delivered where app links are: `ReplySender.deliver` watches the run's
 events for a chat, and a `tool/call` to a client tool becomes
 `transport.ask_client(chat_id, request, url)` — the platform is a client and
 fulfils the request by tool name, as the browser's map does.
@@ -227,12 +227,12 @@ is stopped midway.
 - **Three answers, three scopes.** `{"kind": "approved", "scope": "once" |
   "conversation" | "always"}` or `{"kind": "denied"}`, posted to the same
   `POST …/calls/{call_id}/output`. `once` runs the call. `conversation` first
-  writes an `approval/grant` event; `Session.conversation_approved_tools()` folds it the way
+  writes an `approval/grant` event; `Session.speaker_granted_tools()` folds it the way
   `tools_selected()` folds references, and the toolset runs that tool unasked
   from then on, while it is in the model's list: like any tool, one the model
   is no longer shown is refused until it is read again. `always` writes the tool into
   `approval.grants_path` (`~/.harness/approvals.json`), read by
-  `ApprovalService.needs_approval`; `GET /api/approvals` lists it and `DELETE
+  `ApprovalService.should_ask`; `GET /api/approvals` lists it and `DELETE
   /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),
   ChatGPT (per connected app) and OpenClaw (a durable allowlist) each have this
   rung above "this conversation".
@@ -243,7 +243,7 @@ is stopped midway.
 - **Several gated calls in one step.** `pending_calls` returns every unanswered
   call to an awaited tool, not just the current turn's; `resume` answers one
   and, while another still waits, closes the turn `pending` again without
-  asking the model. `repair()` now leaves unanswered calls alone only when the
+  asking the model. `crash_repairs()` now leaves unanswered calls alone only when the
   *last* turn ended `pending`, so a crash after a tap repairs the call as
   `INTERRUPTED_BY_CRASH` instead of showing the card a second time.
 - **The panel.** The tool name humanised (`memory__write_note` → "write note",

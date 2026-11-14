@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-TOKEN_URL_LOGGERS = ("httpx", "telegram")
+TOKEN_URL_LOGGER_NAMES = ("httpx", "telegram")
 
 
 def configure_logging() -> None:
@@ -21,5 +21,5 @@ def configure_logging() -> None:
 
 def keep_token_urls_out() -> None:
     """Hush, below a warning, the libraries that log a URL: a Telegram bot's holds its token."""
-    for name in TOKEN_URL_LOGGERS:
+    for name in TOKEN_URL_LOGGER_NAMES:
         logging.getLogger(name).setLevel(logging.WARNING)

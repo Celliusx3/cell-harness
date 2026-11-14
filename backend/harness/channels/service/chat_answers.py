@@ -9,7 +9,7 @@ from harness.channels.domain.protocol import Channel
 from harness.channels.repository.chat_repository import ChatRepository
 from harness.channels.service.chats import state_of
 from harness.channels.service.gateway import ChannelGateway
-from harness.runs.service.run import RunAlreadyActive
+from harness.runs.service.run import RunAlreadyActiveError
 from harness.session.domain.log import Session
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
@@ -38,16 +38,20 @@ class ChatAnswers:
         """The tools a chat asks with Allow and Deny buttons."""
         return self._client_tools.protected_tools
 
-    async def answer(self, channel: Channel, chat_id: str, name: str, raw: object) -> bool:
-        """Hand a platform's answer to the tool `name` to this chat's pending call."""
+    async def answer_by_tool_name(
+        self, channel: Channel, chat_id: str, tool_name: str, raw: object
+    ) -> bool:
+        """Hand a platform's answer to the tool `tool_name` to this chat's pending call."""
         return await self._resume_with(
             channel,
             chat_id,
-            name,
-            lambda session: self._client_tools.accept_by_tool_name(session, name, raw),
+            tool_name,
+            lambda session: self._client_tools.accept_by_tool_name(session, tool_name, raw),
         )
 
-    async def answer_call(self, channel: Channel, chat_id: str, call_id: str, raw: object) -> bool:
+    async def answer_by_call_id(
+        self, channel: Channel, chat_id: str, call_id: str, raw: object
+    ) -> bool:
         """Hand a platform's decision on the call `call_id` to this chat's pending call."""
         return await self._resume_with(
             channel,
@@ -60,13 +64,13 @@ class ChatAnswers:
         self,
         channel: Channel,
         chat_id: str,
-        answered: str,
+        answer_target: str,
         accept: Callable[[Session], AcceptedAnswer | RefusalReason],
     ) -> bool:
         state = await state_of(self._repository, channel, chat_id, self._gateway.runs.bots)
         if (
             not state.conversation_id
-            or self._gateway.runs.active(state.conversation_id) is not None
+            or self._gateway.runs.active_run(state.conversation_id) is not None
         ):
             return False
         try:
@@ -80,11 +84,11 @@ class ChatAnswers:
                     "%s chat %s answered %s with a body that does not fit",
                     channel.channel,
                     chat_id,
-                    answered,
+                    answer_target,
                 )
             return False
         try:
             await self._gateway.resume(session, verdict.call_id, verdict.outcome)
-        except RunAlreadyActive:
+        except RunAlreadyActiveError:
             return False
         return True

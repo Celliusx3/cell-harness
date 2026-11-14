@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService
 from harness.secrets import DiskSecretRepository, SecretService
-from harness.secrets.router.credential_router import build_router
+from harness.secrets.router.credential_router import CredentialRouter
 from tests.bot_models import put_on_model
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL, no_platforms
@@ -48,7 +48,7 @@ def bots(tmp_path: Path) -> BotService:
 
 def _client(secrets: SecretService, bots: BotService, peer=THIS_MAC) -> httpx.AsyncClient:
     app = FastAPI()
-    app.include_router(build_router(secrets, bots, no_platforms(secrets)))
+    app.include_router(CredentialRouter(secrets, bots, no_platforms(secrets)).router)
     transport = httpx.ASGITransport(app=app, client=peer)
     return httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1:4886")
 

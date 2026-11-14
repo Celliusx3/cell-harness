@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class Claimed:
+class WaitingMessages:
     """The messages a conversation's chats held, joined into one, and the files they carry."""
 
     text: str
@@ -23,7 +23,7 @@ class Claimed:
 class Inbox(Protocol):
     """Where the messages sent to a conversation while its turn runs wait for that turn."""
 
-    async def claim(self, conversation_id: str) -> Claimed | None:
+    async def claim(self, conversation_id: str) -> WaitingMessages | None:
         """Return and remove what waits for `conversation_id`; `None` when nothing does."""
         ...
 
@@ -32,7 +32,7 @@ class Inbox(Protocol):
 class NoInbox:
     """The inbox of a runtime no chat writes to: nothing ever waits in it."""
 
-    async def claim(self, conversation_id: str) -> Claimed | None:
+    async def claim(self, conversation_id: str) -> WaitingMessages | None:
         """Nothing, for every conversation."""
         return None
 
@@ -40,11 +40,15 @@ class NoInbox:
 NO_INBOX = NoInbox()
 
 
-async def claim_into(runtime: Runtime, session: Session, *, turn: int, bot_id: str) -> bool:
+async def log_waiting_messages(
+    runtime: Runtime, session: Session, *, turn: int, bot_id: str
+) -> bool:
     """Log what waits for `session` as the person's message in `turn`: `True` when anything did."""
-    sees_images = await runtime.sees_images(bot_id)
+    sees_images = await runtime.can_see_images(bot_id)
     claimed = await runtime.inbox.claim(session.id)
     if claimed is None:
         return False
-    runtime.log_person(session, claimed.text, claimed.files, turn=turn, sees_images=sees_images)
+    runtime.log_person_message(
+        session, claimed.text, claimed.files, turn=turn, sees_images=sees_images
+    )
     return True

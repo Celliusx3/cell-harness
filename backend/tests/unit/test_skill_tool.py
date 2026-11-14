@@ -8,7 +8,7 @@ from pathlib import Path
 from harness.prompts import SKILL_LIST_INTRO
 from harness.skills import SKILL, skill_tool
 from harness.skills.domain.models import Skill
-from harness.skills.service.prompt import available_skills, instructions
+from harness.skills.service.prompt import instructions, skill_list_text
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from tests.unit.helpers import context_for, no_skills, skills_at
 
@@ -32,7 +32,7 @@ def test_no_skills_means_no_tool() -> None:
 
 
 def test_no_skills_means_no_list() -> None:
-    assert available_skills(no_skills().model_invocable()) == ""
+    assert skill_list_text(no_skills().model_invocable_skills()) == ""
 
 
 def test_the_enum_and_the_list_come_from_the_same_subset(tmp_path) -> None:
@@ -41,7 +41,7 @@ def test_the_enum_and_the_list_come_from_the_same_subset(tmp_path) -> None:
     skills = skills_at(tmp_path)
 
     tool = skill_tool(skills)
-    listed = available_skills(skills.model_invocable())
+    listed = skill_list_text(skills.model_invocable_skills())
 
     assert tool is not None and tool.name == SKILL
     assert tool.spec().input_schema["properties"]["name"]["enum"] == ["pdf"]
@@ -65,7 +65,7 @@ def test_the_list_names_the_skill_tool_then_one_line_per_skill(tmp_path) -> None
     write_skill(tmp_path, "pdf", "PDF work.")
     write_skill(tmp_path, "ship", "Ship it.")
 
-    listed = available_skills(skills_at(tmp_path).model_invocable())
+    listed = skill_list_text(skills_at(tmp_path).model_invocable_skills())
 
     assert listed == f"{SKILL_LIST_INTRO}\n\n- pdf: PDF work.\n- ship: Ship it."
 
@@ -196,7 +196,7 @@ async def test_a_skill_deleted_after_the_tool_was_built_fails_softly(tmp_path) -
 def test_a_description_is_listed_as_written(tmp_path) -> None:
     write_skill(tmp_path, "pdf", "Handles <b>PDF</b> & forms.")
 
-    listed = available_skills(skills_at(tmp_path).model_invocable())
+    listed = skill_list_text(skills_at(tmp_path).model_invocable_skills())
 
     assert "- pdf: Handles <b>PDF</b> & forms." in listed
 

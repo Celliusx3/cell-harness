@@ -18,7 +18,7 @@ GATE = calls_tool("gate", '{"value": "x"}')
 
 async def until_active(runs, chat_id: str) -> None:
     async with asyncio.timeout(2):
-        while runs.active(chat_id) is None:
+        while runs.active_run(chat_id) is None:
             await asyncio.sleep(0.01)
 
 
@@ -36,7 +36,7 @@ async def test_a_schedule_due_in_a_busy_chat_runs_once_after_it_settles(tmp_path
     await asyncio.wait_for(scheduler.tick(), timeout=1)
     await asyncio.wait_for(scheduler.tick(), timeout=1)
     await asyncio.sleep(0.05)
-    assert runs.active(ASSISTANT_ID) is busy
+    assert runs.active_run(ASSISTANT_ID) is busy
     assert schedules.schedules()[0].deliveries == ()
 
     release.set()

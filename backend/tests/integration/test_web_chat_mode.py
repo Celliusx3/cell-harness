@@ -40,7 +40,7 @@ def _app(tmp_path, *notes: str, ran: list[str]):
     ]
     service = durable_service(tmp_path / "sessions")
     runs = run_service(
-        service, SteppedClient(*steps), _writer(ran), *tools.tools(), approvals=approvals
+        service, SteppedClient(*steps), _writer(ran), *CLIENT_TOOLS.tools(), approvals=approvals
     )
     app = web_app(
         tmp_path, service, runs, skills=no_skills(), client_tools=tools, approvals=approvals

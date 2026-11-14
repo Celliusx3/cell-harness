@@ -11,9 +11,9 @@ from harness.bots import (
     BUILDER_ID,
     BUILDER_NAME,
     Bot,
-    BotPermanent,
     BotRepository,
     BotService,
+    BuiltInBotError,
 )
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.domain.models import BotInstructionsEvent
@@ -41,9 +41,9 @@ def bots(tmp_path: Path, service: SessionService) -> BotService:
 
 
 async def test_the_builder_can_be_neither_archived_nor_deleted(bots: BotService) -> None:
-    with pytest.raises(BotPermanent):
+    with pytest.raises(BuiltInBotError):
         bots.archive(BUILDER_ID)
-    with pytest.raises(BotPermanent):
+    with pytest.raises(BuiltInBotError):
         await bots.delete(BUILDER_ID)
 
     assert bots.active_bot(BUILDER_ID) == BUILDER
@@ -52,8 +52,8 @@ async def test_the_builder_can_be_neither_archived_nor_deleted(bots: BotService)
 async def test_listing_opens_the_builder_s_chat_only_the_first_time(
     bots: BotService, service: SessionService
 ) -> None:
-    await bots.active_bots()
-    await bots.active_bots()
+    await bots.open_active_bots()
+    await bots.open_active_bots()
 
     chat = await service.read(BUILDER_ID)
     assert list(chat.events()) == [

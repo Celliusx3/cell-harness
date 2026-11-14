@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.files import ChatFile, FileTooLarge, UnsafeFileName
+from harness.files import ChatFile, FileTooLargeError, UnsafeFileNameError
 from tests.webapp import files_in
 
 PNG_HEADER = b"\x89PNG\r\n\x1a\n"
@@ -38,7 +38,7 @@ async def test_a_name_with_folders_in_it_is_saved_as_its_last_part(tmp_path) -> 
 
 @pytest.mark.parametrize("name", ["", ".", "..", "a/..", "nul\x00.png"])
 async def test_a_name_with_nothing_to_save_under_is_refused(tmp_path, name: str) -> None:
-    with pytest.raises(UnsafeFileName):
+    with pytest.raises(UnsafeFileNameError):
         await files_in(tmp_path).save("assistant", name, chunks_of(b"x"))
 
     assert everything_under(tmp_path / "files") == []
@@ -47,7 +47,7 @@ async def test_a_name_with_nothing_to_save_under_is_refused(tmp_path, name: str)
 async def test_an_upload_over_the_limit_leaves_nothing_on_disk(tmp_path) -> None:
     files = files_in(tmp_path, max_bytes=8)
 
-    with pytest.raises(FileTooLarge, match="8 bytes"):
+    with pytest.raises(FileTooLargeError, match="8 bytes"):
         await files.save("assistant", "big.bin", chunks_of(PNG_HEADER, b"!"))
 
     assert everything_under(tmp_path / "files" / "assistant") == []

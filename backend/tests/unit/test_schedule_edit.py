@@ -65,7 +65,7 @@ def bots(tmp_path: Path, sessions: SessionService) -> BotService:
 
 @pytest.fixture
 async def groups(bots: BotService, sessions: SessionService) -> GroupService:
-    await bots.active_bots()
+    await bots.open_active_bots()
     return GroupService(bots, sessions, MENTION_TURN_ORDER)
 
 
@@ -255,10 +255,8 @@ async def test_an_unknown_or_another_bot_s_id_is_a_typed_failure(
 async def test_every_tool_is_refused_in_a_group_chat(
     groups: GroupService, bots: BotService, schedules: ScheduleService, make, arguments: dict
 ) -> None:
-    await bots.active_bots()
-    group = await groups.create_group(
-        GroupDraft(name="Launch", member_ids=(ASSISTANT_ID, BUILDER_ID))
-    )
+    await bots.open_active_bots()
+    group = await groups.create(GroupDraft(name="Launch", member_ids=(ASSISTANT_ID, BUILDER_ID)))
 
     outcome = await ask(make(groups, schedules), group.id, **arguments)
 

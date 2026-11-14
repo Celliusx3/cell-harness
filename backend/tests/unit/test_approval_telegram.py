@@ -5,8 +5,8 @@ from __future__ import annotations
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.telegram.asking import APPROVE_BY_LINK
-from harness.channels.telegram.channel import RECEIPTS, STALE_TAP
-from harness.llm import Completed, StreamEvent, ToolCall, ToolCallChunk
+from harness.channels.telegram.channel import RECEIPTS, STALE_TAP_RECEIPT
+from harness.llm import Completion, StreamEvent, ToolCall, ToolCallChunk
 from harness.session.domain.models import ApprovalGrant, ToolResultEvent, TurnEnd
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
 from harness.tools.client import ClientToolService
@@ -42,7 +42,7 @@ def _asking(tmp_path, ran: list[str], *before: list[StreamEvent], call_id: str =
         tmp_path,
         model,
         _writer(ran),
-        *tools.tools(),
+        *CLIENT_TOOLS.tools(),
         skills=no_skills(),
         client_tools=tools,
         approvals=approvals,
@@ -149,7 +149,7 @@ async def test_a_stale_tap_is_told_so(tmp_path) -> None:
 
     assert ran == ["Kopi"]
     assert second.callback_query.answered is True
-    assert second.callback_query.edits == [(f"card\n\n{STALE_TAP}", None)]
+    assert second.callback_query.edits == [(f"card\n\n{STALE_TAP_RECEIPT}", None)]
 
 
 async def test_a_call_id_too_long_for_a_button_is_asked_by_link(tmp_path) -> None:
@@ -178,7 +178,7 @@ async def test_a_server_tool_connected_after_startup_is_asked_with_buttons(tmp_p
         tmp_path,
         model,
         _writer(ran, send),
-        *tools.tools(),
+        *CLIENT_TOOLS.tools(),
         skills=no_skills(),
         client_tools=tools,
         approvals=approvals,
@@ -215,7 +215,7 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
         ToolCall(id="c1", name=quote, arguments='{"value": "AAPL"}'),
         ToolCall(id="c2", name=WRITE, arguments='{"value": "Kopi"}'),
     )
-    step = [*(ToolCallChunk(call=c) for c in calls), Completed(full_text="", tool_calls=calls)]
+    step = [*(ToolCallChunk(call=c) for c in calls), Completion(full_text="", tool_calls=calls)]
     approvals = ApprovalService(
         frozenset({WRITE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
     )
@@ -225,7 +225,7 @@ async def test_only_the_waiting_call_of_a_step_is_asked(tmp_path) -> None:
         SteppedClient(step, completed("done")),
         _writer(ran, quote),
         _writer(ran),
-        *tools.tools(),
+        *CLIENT_TOOLS.tools(),
         skills=no_skills(),
         client_tools=tools,
         approvals=approvals,

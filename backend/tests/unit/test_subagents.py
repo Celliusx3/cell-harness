@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.llm import Failed, SystemMessage
+from harness.llm import StreamFailure, SystemMessage
 from harness.runtime.subagents import Subagents
 from harness.session.domain.models import TurnEnd, UserMessageEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
@@ -86,7 +86,7 @@ async def test_a_subagent_that_needs_the_person_stops_naming_the_call(
 
 
 async def test_a_subagent_whose_turn_fails_says_why(sessions: SessionService) -> None:
-    client = ScriptedClient([Failed(reason="provider down")])
+    client = ScriptedClient([StreamFailure(reason="provider down")])
 
     outcome = await Subagents(runtime_over(client), sessions)("c.0", TASK, bot_id="b", mode="ask")
 

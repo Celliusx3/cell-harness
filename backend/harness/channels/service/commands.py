@@ -44,12 +44,12 @@ ModeCommand = ModeQuestion | ModeChoice | UnknownModeWord
 ChatCommand = Command | ModeCommand
 
 
-CLEARED = "Chat cleared."
-STOPPED = "Stopped."
-NOTHING_TO_STOP = "Nothing is running."
-COMPACTING = "Compacting the conversation to free up context…"
-NOTHING_TO_COMPACT = "Nothing to compact yet."
-COMMANDS = "Commands: /new, /stop, /compact, /mode."
+CLEARED_REPLY = "Chat cleared."
+STOPPED_REPLY = "Stopped."
+NOTHING_TO_STOP_REPLY = "Nothing is running."
+COMPACTING_REPLY = "Compacting the conversation to free up context…"
+NOTHING_TO_COMPACT_REPLY = "Nothing to compact yet."
+COMMANDS_LINE = "Commands: /new, /stop, /compact, /mode."
 MODE_REPLY = "Mode: {name}."
 MODE_USAGE = "Use /mode ask or /mode auto."
 MODE_LABELS: dict[ApprovalMode, str] = {"ask": "Ask", "auto": "Auto"}
@@ -97,28 +97,28 @@ async def _answer_mode_command(
             await gateway.set_approval_mode(channel, chat_id, mode)
             return mode_reply(mode)
         case ModeQuestion():
-            reply = mode_reply
+            reply_for = mode_reply
         case UnknownModeWord():
-            reply = mode_usage_reply
+            reply_for = mode_usage_reply
     current = await gateway.approval_mode(channel, chat_id)
-    return None if current is None else reply(current)
+    return None if current is None else reply_for(current)
 
 
-def unknown_skill(name: str, skills: Sequence[Skill]) -> str:
+def unknown_skill_reply(name: str, skills: Sequence[Skill]) -> str:
     """The reply to a `/word` that is neither a command nor a skill."""
     listed = ", ".join(f"/{skill.name}" for skill in skills) or "none"
-    return f"No skill named {name!r}. Skills: {listed}. {COMMANDS}"
+    return f"No skill named {name!r}. Skills: {listed}. {COMMANDS_LINE}"
 
 
 def skills_reply(skills: Sequence[Skill]) -> str:
     """`/skills`: every skill a person may type, with what it is for."""
     if not skills:
-        return f"No skills installed. {COMMANDS}"
+        return f"No skills installed. {COMMANDS_LINE}"
     lines = "\n".join(f"/{skill.name} — {skill.description}" for skill in skills)
-    return f"Skills you can type:\n{lines}\n\n{COMMANDS}"
+    return f"Skills you can type:\n{lines}\n\n{COMMANDS_LINE}"
 
 
-async def apply(
+async def apply_command(
     gateway: ChannelGateway, channel: str, chat_id: str, command: ChatCommand
 ) -> str | None:
     """Run one command, and what to say; `None`, saying nothing, for a chat linked to no bot."""
@@ -128,10 +128,10 @@ async def apply(
         return await _answer_mode_command(gateway, channel, chat_id, command)
     if command is Command.NEW:
         await gateway.clear(channel, chat_id)
-        return CLEARED
+        return CLEARED_REPLY
     if command is Command.STOP:
-        return STOPPED if await gateway.stop(channel, chat_id) else NOTHING_TO_STOP
+        return STOPPED_REPLY if await gateway.stop(channel, chat_id) else NOTHING_TO_STOP_REPLY
     if command is Command.COMPACT:
         started = await gateway.compact_chat(channel, chat_id)
-        return COMPACTING if started is not None else NOTHING_TO_COMPACT
-    return skills_reply(gateway.skills.invocable())
+        return COMPACTING_REPLY if started is not None else NOTHING_TO_COMPACT_REPLY
+    return skills_reply(gateway.skills.user_invocable_skills())

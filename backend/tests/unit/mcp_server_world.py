@@ -11,8 +11,8 @@ import httpx
 from fastapi import FastAPI
 
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServer, SavedServerService
-from harness.mcp.router.mcp_router import build_router as build_mcp_router
-from harness.mcp.router.server_router import build_router
+from harness.mcp.router.mcp_router import McpRouter
+from harness.mcp.router.server_router import ServerRouter
 from harness.relay import RelayService
 from harness.web.http.errors import exception_handlers
 from tests.unit.mcp_fakes import FakeFactory, tool
@@ -47,12 +47,12 @@ class ServerWorld:
         self.repository = BreakableRepository(DiskSavedServerRepository(self.path))
         self.saved = SavedServerService(self.repository)
         self.mcp = McpService(
-            {server.id: server.server() for server in self.saved.servers()},
+            {server.id: server.mcp_server() for server in self.saved.servers()},
             client_factory=self.factory,
         )
         app = FastAPI(exception_handlers=exception_handlers())
-        app.include_router(build_router(self.mcp, self.saved))
-        app.include_router(build_mcp_router(self.mcp, RelayService(now=time.monotonic)))
+        app.include_router(ServerRouter(self.mcp, self.saved).router)
+        app.include_router(McpRouter(self.mcp, RelayService(now=time.monotonic)).router)
         self.app = app
 
     async def send(

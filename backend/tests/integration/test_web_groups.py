@@ -13,6 +13,7 @@ from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupSer
 from harness.llm import SystemMessage, UserMessage
 from harness.runs.service.run_service import RunService
 from harness.tools.native.question import ASK_USER
+from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, hanging_tool
 from tests.unit.helpers import client_tools, durable_service, no_skills, runtime_over
@@ -39,7 +40,7 @@ async def _group(tmp_path, *scripts, extra=()):
         app_events=app_events,
     )
     runtime = runtime_over(
-        model, *tools.tools(), *extra, guidance="GUIDE", checkpoint=service.flush
+        model, *CLIENT_TOOLS.tools(), *extra, guidance="GUIDE", checkpoint=service.flush
     )
     runs = RunService(
         service,
@@ -178,11 +179,11 @@ async def test_removing_a_bot_stops_the_discussion_it_is_speaking_in(
         sent = await client.post(f"/api/conversations/{chat}/messages", json={"prompt": "go"})
         assert sent.status_code == 202
         for _ in range(200):
-            running = runs.active(chat)
+            running = runs.active_run(chat)
             if running is not None and running.session.speaker_id() == researcher:
                 break
             await asyncio.sleep(0.01)
         removed = await client.request(method, f"/api/bots/{researcher}{suffix}")
 
     assert removed.status_code == 204
-    assert runs.active(chat) is None
+    assert runs.active_run(chat) is None

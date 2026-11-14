@@ -10,13 +10,14 @@ from typing import NamedTuple
 from harness.bots import ASSISTANT_ID, Bot, BotNotFound, BotService
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
-from harness.channels.service.chats import bot_written_to
+from harness.channels.service.chats import bot_id_written_to
 from harness.channels.service.gateway import ChannelGateway
 from harness.secrets.domain.details import ChatPlatform
 
 logger = logging.getLogger("harness.channels")
 
-LINK_CODE_SECONDS = 15 * 60
+LINK_CODE_LIFETIME_SECONDS = 15 * 60
+SILENCE_SECONDS = 15 * 60
 CODE_DIGITS = 6
 WRONG_GUESSES_BEFORE_SILENCE = 5
 
@@ -54,7 +55,9 @@ class LinkCodes:
             for code, live in self._live.items()
             if (live.bot_id, live.platform) != (bot_id, platform)
         }
-        issued = LinkCode(_unused_code(kept), bot_id, platform, self._now() + LINK_CODE_SECONDS)
+        issued = LinkCode(
+            _unused_code(kept), bot_id, platform, self._now() + LINK_CODE_LIFETIME_SECONDS
+        )
         self._live = {**kept, issued.code: issued}
         return issued
 
@@ -81,7 +84,7 @@ class LinkCodes:
             return
         logger.debug("%s chat %s guessed %d wrong codes and is silenced", *chat, wrong)
         self._wrong_guesses = {key: n for key, n in self._wrong_guesses.items() if key != chat}
-        self._silenced_until = {**self._silenced_until, chat: self._now() + LINK_CODE_SECONDS}
+        self._silenced_until = {**self._silenced_until, chat: self._now() + SILENCE_SECONDS}
 
     def _prune(self) -> None:
         """Forget every code that has expired, and every silence that has ended."""
@@ -134,9 +137,9 @@ class ChatLinks:
         """Store this chat writing into Assistant's chat, unless it is stored already."""
         if await self._chats.load(platform, chat_id) is not None:
             return
-        assistants = self._bots.chat_of(ASSISTANT_ID)
+        assistant_conversation_id = self._bots.chat_of(ASSISTANT_ID)
         await self._chats.save(
-            ChatState(channel=platform, chat_id=chat_id, conversation_id=assistants)
+            ChatState(channel=platform, chat_id=chat_id, conversation_id=assistant_conversation_id)
         )
 
 
@@ -153,6 +156,6 @@ async def link_or_receive(
 
 def _moved_dropping_old_queue(state: ChatState, bot_id: str, conversation_id: str) -> ChatState:
     linked = state.model_copy(update={"linked_bot_id": bot_id, "conversation_id": conversation_id})
-    if bot_written_to(state) == bot_id:
+    if bot_id_written_to(state) == bot_id:
         return linked
     return linked.model_copy(update={"pending": (), "pending_files": ()})

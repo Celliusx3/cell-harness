@@ -20,8 +20,8 @@ from harness.tools.client import (
     RefusalReason,
     SharedAnswer,
     UnavailableAnswer,
-    next_pending,
     pending_calls,
+    pending_calls_after,
 )
 from tests.unit.helpers import context_for, new_session, no_approvals
 
@@ -117,14 +117,14 @@ def test_the_pending_calls_are_the_unanswered_client_calls_in_log_order() -> Non
 
 
 def test_a_call_stays_pending_until_its_result_lands() -> None:
-    assert next_pending((), _call("c1")) == (PendingCall("get_battery", "c1", "{}"),)
-    assert next_pending(next_pending((), _call("c1")), _result("c1")) == ()
+    assert pending_calls_after((), _call("c1")) == (PendingCall("get_battery", "c1", "{}"),)
+    assert pending_calls_after(pending_calls_after((), _call("c1")), _result("c1")) == ()
 
-    both = next_pending(next_pending((), _call("c1")), _call("c2"))
-    assert next_pending(both, _result("c1")) == (PendingCall("get_battery", "c2", "{}"),)
+    both = pending_calls_after(pending_calls_after((), _call("c1")), _call("c2"))
+    assert pending_calls_after(both, _result("c1")) == (PendingCall("get_battery", "c2", "{}"),)
     assert both == (PendingCall("get_battery", "c1", "{}"), PendingCall("get_battery", "c2", "{}"))
 
-    assert next_pending(both, TurnStart(turn=1)) == both
+    assert pending_calls_after(both, TurnStart(turn=1)) == both
 
 
 def _session_with_pending(call_id: str = "c1"):
@@ -160,9 +160,10 @@ def test_each_refusal_is_its_own_answer() -> None:
 
 
 def test_the_service_exposes_what_composition_needs() -> None:
-    service = ClientToolService(ClientToolCatalog((BATTERY,)), no_approvals())
-    assert service.names == NAMES
-    assert [tool.name for tool in service.tools()] == ["get_battery"]
+    catalog = ClientToolCatalog((BATTERY,))
+    service = ClientToolService(catalog, no_approvals())
+    assert catalog.names == NAMES
+    assert [tool.name for tool in catalog.tools()] == ["get_battery"]
     assert service.answerable_calls(_session_with_pending()) == (
         PendingCall("get_battery", "c1", "{}"),
     )

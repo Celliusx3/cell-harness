@@ -9,7 +9,7 @@ import pytest
 
 from harness.app_events import TicketsChangedAppEvent
 from harness.bots import ASSISTANT_ID
-from harness.tickets.domain.models import Ticket, TicketNotRetryable, TicketsFile
+from harness.tickets.domain.models import Ticket, TicketsFile, UnretryableTicketError
 from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.service.ticket_service import TicketService
 from harness.tickets.service.worker import WorkerEnd
@@ -65,7 +65,7 @@ def test_only_tickets_that_wait_for_a_person_are_listed_oldest_first(tmp_path) -
 def test_only_a_blocked_or_failed_ticket_is_retried(tmp_path) -> None:
     tickets = tickets_holding(tmp_path, ticket("asks", "needs_answer", 1))
 
-    with pytest.raises(TicketNotRetryable):
+    with pytest.raises(UnretryableTicketError):
         tickets.retry("asks")
 
 

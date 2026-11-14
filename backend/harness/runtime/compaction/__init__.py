@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from harness.runtime.compaction.service import (
     CompactionEvent,
-    CompactionRefused,
+    CompactionRefusedError,
     check_can_compact,
     run_compaction,
     should_compact,
@@ -12,7 +12,7 @@ from harness.runtime.compaction.service import (
 
 __all__ = [
     "CompactionEvent",
-    "CompactionRefused",
+    "CompactionRefusedError",
     "check_can_compact",
     "run_compaction",
     "should_compact",

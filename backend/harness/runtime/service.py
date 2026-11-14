@@ -17,7 +17,7 @@ from harness.prompts import (
 )
 from harness.runtime.compaction import (
     CompactionEvent,
-    CompactionRefused,
+    CompactionRefusedError,
     check_can_compact,
     run_compaction,
 )
@@ -28,11 +28,12 @@ from harness.runtime.models import BotModels, ModelChoice
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
-from harness.session.domain.derive import derive_messages, without_images
+from harness.session.domain.crash_repair import unanswered
 from harness.session.domain.log import ApprovalModeSwitch, Session
+from harness.session.domain.model_history import derive_messages, without_images
 from harness.session.domain.models import (
     ApprovalGrant,
-    ApprovalModeChanged,
+    ApprovalModeChange,
     BotMessage,
     BotMessageEvent,
     HeardMessage,
@@ -45,7 +46,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.domain.repair import unanswered
 from harness.tools import Approval, ApprovalMode, Failure, Ok, Toolset
 
 SKIPPED = "SKIPPED"
@@ -100,7 +100,7 @@ class Runtime:
     def _approval_mode_reminder(self, session: Session) -> list[Message]:
         """The current mode as one system-reminder, once the person has switched this chat."""
         events = session.events()
-        if self.tools is None or not any(isinstance(e, ApprovalModeChanged) for e in events):
+        if self.tools is None or not any(isinstance(e, ApprovalModeChange) for e in events):
             return []
         sentence = APPROVAL_MODE_SENTENCES[self.approval_mode(session)]
         return [UserMessage(content=SYSTEM_REMINDER.format(text=sentence))]
@@ -116,13 +116,13 @@ class Runtime:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = self._open_turn(session, bot_id)
-        sees_images = await self.sees_images(bot_id)
-        self.log_person(session, user_input, files, turn=turn, sees_images=sees_images)
+        sees_images = await self.can_see_images(bot_id)
+        self.log_person_message(session, user_input, files, turn=turn, sees_images=sees_images)
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
 
-    def log_person(
+    def log_person_message(
         self,
         session: Session,
         text: str,
@@ -132,14 +132,14 @@ class Runtime:
         sees_images: bool,
     ) -> None:
         """Log what the person sent in `turn`, with its files' images for a model that sees."""
-        images = self.images.of_attachments(files) if sees_images else ()
+        images = self.images.keep_attached_images(files) if sees_images else ()
         message = UserMessage(content=text, images=images)
         session.append(UserMessageEvent(turn=turn, message=message, files=files))
 
-    async def sees_images(self, bot_id: str) -> bool:
+    async def can_see_images(self, bot_id: str) -> bool:
         """Whether `bot_id`'s model can be shown images now; `False` when it has none."""
         choice = await self.models.model_for(bot_id)
-        return isinstance(choice, ModelChoice) and choice.vision
+        return isinstance(choice, ModelChoice) and choice.has_vision
 
     async def hear(
         self, message: HeardMessage, *, session: Session, bot_id: str
@@ -181,7 +181,7 @@ class Runtime:
             waiting = unanswered(session.events())
             if waiting:
                 session.append(TurnEnd(turn=turn, reason="pending"))
-                yield AgentPending(tool_call_id=waiting[0][1].id, name=waiting[0][1].name)
+                yield AgentPending(tool_call_id=waiting[0].call.id, name=waiting[0].call.name)
                 return
         except BaseException:
             session.append(TurnEnd(turn=turn, reason="cancelled"))
@@ -195,7 +195,9 @@ class Runtime:
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
         if self.server_instructions is not None:
-            for event in _changed(session.server_instructions(), self.server_instructions()):
+            for event in _changed_instructions(
+                session.server_instructions(), self.server_instructions()
+            ):
                 session.append(event)
         return turn
 
@@ -203,7 +205,7 @@ class Runtime:
         """A manual compaction, driven as its own run."""
         try:
             check_can_compact(session)
-        except CompactionRefused:
+        except CompactionRefusedError:
             return
         async with aclosing(run_compaction(self, session, turn=None, trigger="manual")) as events:
             async for event in events:
@@ -223,7 +225,7 @@ def _with_context(history: list[Message], context: Sequence[str]) -> list[Messag
     return history
 
 
-def _changed(
+def _changed_instructions(
     logged: Mapping[str, str], current: Mapping[str, str]
 ) -> list[ServerInstructionsEvent]:
     """An event for each server whose `current` instructions, absent meaning empty, differ."""

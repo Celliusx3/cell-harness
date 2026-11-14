@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 
 from fastapi import APIRouter, Response, status
 
@@ -34,62 +33,66 @@ def _row(schedule: Schedule, bot_names: dict[str, str]) -> ScheduleRow:
     )
 
 
-@dataclass(frozen=True)
-class _Page:
-    """What the page's changes reach: the bots, their schedules, the scheduler and their chats."""
+class ScheduleRouter:
+    """List every bot's schedules, and change one."""
 
-    bots: BotService
-    schedules: ScheduleService
-    scheduler: Scheduler
-    runs: RunService
+    def __init__(
+        self, bots: BotService, schedules: ScheduleService, scheduler: Scheduler, runs: RunService
+    ) -> None:
+        self._bots = bots
+        self._schedules = schedules
+        self._scheduler = scheduler
+        self._runs = runs
+        self.router: APIRouter = APIRouter(prefix="/api/schedules", tags=["schedules"])
+        self.router.add_api_route(
+            "", self.list_schedules, methods=["GET"], response_model=list[ScheduleRow]
+        )
+        self._add_change_routes()
 
-    async def tell(self, schedule: Schedule, change: ScheduleChangeKind) -> None:
-        """Tell the schedule's bot, in its own chat, that the page changed it."""
-        told = ScheduleChange(schedule_id=schedule.id, title=schedule.title, change=change)
-        await self.runs.tell_schedule_change(self.bots.chat_of(schedule.bot_id), told)
+    def _add_change_routes(self) -> None:
+        """Pausing, resuming, running at once and deleting one schedule."""
+        no_content = status.HTTP_204_NO_CONTENT
+        self.router.add_api_route(
+            "/{schedule_id}/pause", self.pause_schedule, methods=["POST"], status_code=no_content
+        )
+        self.router.add_api_route(
+            "/{schedule_id}/resume", self.resume_schedule, methods=["POST"], status_code=no_content
+        )
+        self.router.add_api_route(
+            "/{schedule_id}/run", self.run_schedule_now, methods=["POST"], status_code=no_content
+        )
+        self.router.add_api_route(
+            "/{schedule_id}", self.delete_schedule, methods=["DELETE"], status_code=no_content
+        )
 
+    async def list_schedules(self) -> list[ScheduleRow]:
+        named = (*await self._bots.open_active_bots(), *self._bots.archived_bots())
+        bot_names = {bot.id: bot.name for bot in named}
+        return [_row(s, bot_names) for s in ordered(self._schedules.schedules(), None)]
 
-def _change_routes(router: APIRouter, page: _Page) -> None:
-    """Pausing, resuming, running at once and deleting one schedule."""
-
-    @router.post("/{schedule_id}/pause", status_code=status.HTTP_204_NO_CONTENT)
-    async def pause_schedule(schedule_id: str) -> Response:
-        await page.tell(page.schedules.pause(schedule_id), "updated")
+    async def pause_schedule(self, schedule_id: str) -> Response:
+        await self._tell(self._schedules.pause(schedule_id), "updated")
         logger.info("schedule %s paused", schedule_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    @router.post("/{schedule_id}/resume", status_code=status.HTTP_204_NO_CONTENT)
-    async def resume_schedule(schedule_id: str) -> Response:
-        await page.tell(page.schedules.resume(schedule_id), "updated")
+    async def resume_schedule(self, schedule_id: str) -> Response:
+        await self._tell(self._schedules.resume(schedule_id), "updated")
         logger.info("schedule %s resumed", schedule_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    @router.post("/{schedule_id}/run", status_code=status.HTTP_204_NO_CONTENT)
-    async def run_schedule_now(schedule_id: str) -> Response:
-        page.scheduler.run_now(schedule_id)
+    async def run_schedule_now(self, schedule_id: str) -> Response:
+        self._scheduler.run_now(schedule_id)
         logger.info("schedule %s run now", schedule_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    @router.delete("/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
-    async def delete_schedule(schedule_id: str) -> Response:
-        schedule = page.schedules.get(schedule_id)
-        page.schedules.delete(schedule_id)
-        await page.tell(schedule, "deleted")
+    async def delete_schedule(self, schedule_id: str) -> Response:
+        schedule = self._schedules.get(schedule_id)
+        self._schedules.delete(schedule_id)
+        await self._tell(schedule, "deleted")
         logger.info("schedule %s deleted", schedule_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-
-def build_router(
-    bots: BotService, schedules: ScheduleService, scheduler: Scheduler, runs: RunService
-) -> APIRouter:
-    """List every bot's schedules, and change one."""
-    router = APIRouter(prefix="/api/schedules", tags=["schedules"])
-
-    @router.get("", response_model=list[ScheduleRow])
-    async def list_schedules() -> list[ScheduleRow]:
-        named = (*await bots.active_bots(), *bots.archived_bots())
-        bot_names = {bot.id: bot.name for bot in named}
-        return [_row(s, bot_names) for s in ordered(schedules.schedules(), None)]
-
-    _change_routes(router, _Page(bots, schedules, scheduler, runs))
-    return router
+    async def _tell(self, schedule: Schedule, change: ScheduleChangeKind) -> None:
+        """Tell the schedule's bot, in its own chat, that the page changed it."""
+        told = ScheduleChange(schedule_id=schedule.id, title=schedule.title, change=change)
+        await self._runs.tell_schedule_change(self._bots.chat_of(schedule.bot_id), told)

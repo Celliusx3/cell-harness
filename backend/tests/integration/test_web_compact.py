@@ -6,7 +6,7 @@ import httpx
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from tests.integration.web_helpers import assistant_chat, settle
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, link_to_assistant, no_skills, run_service
@@ -74,7 +74,7 @@ async def test_compacting_an_unknown_conversation_is_a_404(tmp_path) -> None:
 
 
 async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> None:
-    from harness.llm import Failed
+    from harness.llm import StreamFailure
 
     service = durable_service(tmp_path / "sessions")
 
@@ -84,7 +84,7 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
 
         async def stream_completion(self, messages, model, *, tools=None):
             if tools is None:
-                yield Failed(reason="boom")
+                yield StreamFailure(reason="boom")
                 return
             for e in completed("reply"):
                 yield e
@@ -108,7 +108,7 @@ async def test_a_browser_compaction_sends_nothing_to_telegram(tmp_path) -> None:
     client = ScriptedClient(completed("SUMMARY"))
     runs = run_service(service, client, context_tokens=None)
     app, gateway, bot = web_app_with_telegram(tmp_path, service, runs, skills=no_skills())
-    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", "909")
+    await link_to_assistant(JsonChatRepository(tmp_path / "chats"), "telegram", "909")
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         await gateway.receive(InboundMessage(channel="telegram", chat_id="909", text="hello"))
         await idle(runs, gateway)

@@ -85,7 +85,7 @@ def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
         webs.append(channels.web)
         return channels
 
-    monkeypatch.setattr(server, "load", lambda: settings)
+    monkeypatch.setattr(server, "load_settings", lambda: settings)
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     monkeypatch.setattr(server, "build_runtime", runtime_seen)
     monkeypatch.setattr(server, "build_channels", channels_seen)

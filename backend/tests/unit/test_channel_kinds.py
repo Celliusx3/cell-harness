@@ -9,8 +9,8 @@ from pathlib import Path
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
-from harness.channels.domain.protocol import InboundMessage, Pushing
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.domain.protocol import InboundMessage, PushChannel
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.web.channel import WebChannel
 from harness.runs.service.run_service import RunService
@@ -42,7 +42,7 @@ def build(tmp_path: Path):
         GroupService(bots, sessions, MENTION_TURN_ORDER),
         app_events=AppEventService(),
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     web = WebChannel(gateway, bots, files_in(tmp_path), images_in(tmp_path))
     gateway.register(web)
@@ -60,7 +60,7 @@ async def settle(runs: RunService, gateway: ChannelGateway, key) -> None:
 
 
 def test_a_browser_cannot_be_sent_to() -> None:
-    assert not isinstance(WebChannel, Pushing)
+    assert not isinstance(WebChannel, PushChannel)
     assert not hasattr(WebChannel, "send_message")
 
 
@@ -101,7 +101,7 @@ async def _returns_immediately() -> None:
 async def test_a_client_channel_resolves_a_conversation_it_has_never_seen(tmp_path) -> None:
     gateway, _, runs, chats, sessions = build(tmp_path)
     session = await sessions.create(ASSISTANT_ID)
-    await asyncio.wait_for(runs.start(session, "started elsewhere")._outer, timeout=5)
+    await asyncio.wait_for(runs.start(session, "started elsewhere")._settle_task, timeout=5)
     assert await chats.load("web", ASSISTANT_ID) is None
 
     run = await gateway.receive(InboundMessage(channel="web", chat_id=session.id, text="and again"))

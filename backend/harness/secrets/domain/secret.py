@@ -17,13 +17,13 @@ SECRET_VALUE_RULE = "a key is 8 to 16384 printable ASCII characters, with no spa
 _TYPED_KEY = re.compile(r"[\x21-\x7e][\x20-\x7e]{6,16382}[\x21-\x7e]")
 
 
-def _typeable_value(value: SecretStr) -> SecretStr:
+def _refuse_untypeable_key(value: SecretStr) -> SecretStr:
     if _TYPED_KEY.fullmatch(value.get_secret_value()) is None:
         raise ValueError(SECRET_VALUE_RULE)
     return value
 
 
-SecretValue = Annotated[SecretStr, AfterValidator(_typeable_value)]
+SecretValue = Annotated[SecretStr, AfterValidator(_refuse_untypeable_key)]
 
 
 class UnsealedSecret(BaseModel):

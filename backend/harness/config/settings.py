@@ -55,8 +55,8 @@ class SkillSettings(BaseModel):
         return _project_path(value)
 
     @model_validator(mode="after")
-    def _editable_is_read(self) -> SkillSettings:
-        """Whether the editable root is also one the model reads from."""
+    def _require_editable_in_roots(self) -> SkillSettings:
+        """Raise unless the editable root is also one the model reads from."""
         if self.editable not in self.roots:
             raise ValueError(
                 f"skills.editable {str(self.editable)!r} must be one of skills.roots, "
@@ -121,7 +121,7 @@ class MissingConfigError(RuntimeError):
     """A value with no possible default was not supplied anywhere."""
 
 
-def load() -> Settings:
+def load_settings() -> Settings:
     """Settings for a real run, with Deno and the encryption key checked."""
     settings = Settings()
     if shutil.which(settings.code.deno_path) is None:

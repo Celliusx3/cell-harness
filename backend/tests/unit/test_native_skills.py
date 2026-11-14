@@ -114,7 +114,7 @@ async def test_writing_a_file_puts_it_beside_the_skill_where_the_page_lists_it(r
 
     assert isinstance(outcome, Ok) and "references/style.md" in outcome.text
     assert (home / "notes" / "references" / "style.md").read_text() == "Short.\n"
-    assert skills.files("notes") == ("references/style.md",)
+    assert skills.bundled_files("notes") == ("references/style.md",)
 
 
 @pytest.mark.parametrize(
@@ -139,7 +139,7 @@ async def test_a_path_the_page_would_never_list_is_refused(roots, path, reason) 
     outcome = await call(skill_write_file_tool(skills), name="notes", path=path, text="x")
 
     assert isinstance(outcome, Failure) and reason in outcome.message
-    assert skills.files("notes") == ()
+    assert skills.bundled_files("notes") == ()
     assert (home / "notes" / "SKILL.md").read_text() == VALID
 
 
@@ -156,7 +156,7 @@ async def test_a_file_too_large_to_read_back_is_refused(roots) -> None:
     )
 
     assert isinstance(outcome, Failure) and "64 KiB" in outcome.message
-    assert skills.files("notes") == ()
+    assert skills.bundled_files("notes") == ()
 
 
 async def test_writing_into_a_project_skill_is_refused_naming_its_root(roots) -> None:

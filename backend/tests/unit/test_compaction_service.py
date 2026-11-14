@@ -8,10 +8,10 @@ import pytest
 
 from harness.llm import (
     AssistantMessage,
-    Failed,
     LLMClient,
     Message,
     StreamEvent,
+    StreamFailure,
     SystemMessage,
     TextChunk,
     ToolCall,
@@ -22,17 +22,17 @@ from harness.llm import (
 )
 from harness.prompts import COMPACTION_INSTRUCTION, COMPACTION_PREAMBLE
 from harness.runtime.compaction import (
-    CompactionRefused,
+    CompactionRefusedError,
     check_can_compact,
     run_compaction,
     should_compact,
 )
 from harness.runtime.compaction.history import PRUNE_KEEP
-from harness.runtime.compaction.service import COMPACT_AT
+from harness.runtime.compaction.service import COMPACT_AT_WINDOW_FRACTION
 from harness.runtime.models import NoModel
 from harness.runtime.service import Runtime
 from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionStart
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
@@ -94,7 +94,7 @@ def test_should_compact_needs_a_window_and_a_measurement() -> None:
     assert not should_compact(NoModel(), session)
     assert not should_compact(model_at(20_000), session)
     assert should_compact(model_at(12_000), session)
-    assert COMPACT_AT == 0.8
+    assert COMPACT_AT_WINDOW_FRACTION == 0.8
 
 
 async def test_when_due_old_tool_results_are_pruned_before_any_summary() -> None:
@@ -188,11 +188,8 @@ async def test_a_failed_summary_is_logged_and_changes_nothing() -> None:
     tool_turn(session, 0, "c0", "r")
     before = derive_messages(session.events())
 
-    yielded = await drain(
-        run_compaction(
-            runtime_with(ScriptedClient([Failed(reason="boom")])), session, turn=1, trigger="auto"
-        )
-    )
+    failing = runtime_with(ScriptedClient([StreamFailure(reason="boom")]))
+    yielded = await drain(run_compaction(failing, session, turn=1, trigger="auto"))
 
     assert [e.type for e in yielded] == ["compaction/start", "compaction/end"]
     assert yielded[1] == CompactionEnd(turn=1, error="summary request failed: boom")
@@ -243,7 +240,7 @@ async def test_a_summary_of_only_a_summary_is_refused() -> None:
         await drain(run_compaction(runtime_with(client), session, turn=1, trigger="overflow")) == []
     )
     assert client.calls == 1
-    with pytest.raises(CompactionRefused) as refused:
+    with pytest.raises(CompactionRefusedError) as refused:
         check_can_compact(session)
     assert refused.value.reason == "nothing to compact"
 
@@ -264,7 +261,7 @@ async def test_an_unanswered_call_is_a_refusal() -> None:
     session.append(ToolCallEvent(turn=0, step=0, call=call))
     session.append(TurnEnd(turn=0, reason="pending"))
 
-    with pytest.raises(CompactionRefused) as refused:
+    with pytest.raises(CompactionRefusedError) as refused:
         check_can_compact(session)
     assert refused.value.reason == "a client request is still unanswered"
 

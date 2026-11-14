@@ -11,11 +11,11 @@ from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.calls import Signature
-from harness.runtime.hooks.native.no_wait import NoWaitHook, waits
+from harness.runtime.hooks.native.no_wait import NoWaitHook, is_waiting_call
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
-from harness.tickets.domain.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR
-from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, helper_runtime
+from harness.tickets.domain.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR_INTRO
+from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, delegate_runtime
 from harness.web.tickets_wiring import WORKER_TOOLS
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.webapp import files_in, images_in, secrets_in
@@ -47,7 +47,7 @@ def script(code: str) -> str:
 def test_a_call_waits_when_its_script_or_command_sleeps_or_times_out_long(
     name: str, arguments: str, expected: bool
 ) -> None:
-    assert waits(name, arguments) is expected
+    assert is_waiting_call(name, arguments) is expected
 
 
 async def test_the_hook_refuses_a_waiting_call_with_its_reason() -> None:
@@ -55,8 +55,8 @@ async def test_the_hook_refuses_a_waiting_call_with_its_reason() -> None:
     waiting = Signature(name="execute_typescript", args=script("setTimeout(go, 9000)"))
     working = Signature(name="execute_typescript", args=script("return 1"))
 
-    assert await hook.pre(waiting, ()) == NO_WAIT_REFUSAL
-    assert await hook.pre(working, ()) is None
+    assert await hook.refusal_reason(waiting, ()) == NO_WAIT_REFUSAL
+    assert await hook.refusal_reason(working, ()) is None
 
 
 def test_only_the_bots_own_runtime_routes_and_refuses_waits(tmp_path: Path) -> None:
@@ -75,11 +75,11 @@ def test_only_the_bots_own_runtime_routes_and_refuses_waits(tmp_path: Path) -> N
     )
     assert runtime.tools is not None
     helpers = [
-        helper_runtime(runtime.tools.tool_service, runtime, tools)
+        delegate_runtime(runtime.tools.tool_service, runtime, tools)
         for tools in (SUBAGENT_TOOLS, WORKER_TOOLS)
     ]
 
-    assert runtime.guidance.startswith(ORCHESTRATOR)
+    assert runtime.guidance.startswith(ORCHESTRATOR_INTRO)
     assert any(isinstance(hook, NoWaitHook) for hook in runtime.hooks.tool_hooks)
     for helper in helpers:
         assert helper.guidance == CODE_PROMPT

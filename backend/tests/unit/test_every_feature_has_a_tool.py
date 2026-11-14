@@ -61,7 +61,7 @@ ROUTES: dict[str, Tool | NotATool] = {
     "DELETE /api/approvals/{tool}": NotATool(
         "not yet: taking back an 'Always allow' from chat is the next piece"
     ),
-    "POST /api/mcp/{server}/tools/{name}": NotATool(
+    "POST /api/mcp/{server_id}/tools/{name}": NotATool(
         "an MCP App's own call to its server; the model reaches that tool through code mode"
     ),
     "OPTIONS /api/mcp/servers": NotATool("a browser's preflight; it changes nothing"),

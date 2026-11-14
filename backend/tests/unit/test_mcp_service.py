@@ -78,7 +78,7 @@ async def test_tool_listing_follows_pagination() -> None:
 async def test_concurrent_callers_each_get_their_own_result() -> None:
     factory = FakeFactory()
     store = await connected(factory)
-    call = store._connections["stub"].call
+    call = store._connections["stub"].call_tool
 
     first, second = await asyncio.gather(call("echo", {"n": 1}), call("echo", {"n": 2}))
 
@@ -97,10 +97,10 @@ async def test_a_timed_out_call_leaves_the_connection_usable(monkeypatch) -> Non
     connection = store._connections["stub"]
 
     with pytest.raises(McpTimeoutError, match="'slow'"):
-        await connection.call("slow", {})
+        await connection.call_tool("slow", {})
 
     assert connection.status == "connected"
-    assert (await connection.call("echo", {})).content[0].text == "echo ok"
+    assert (await connection.call_tool("echo", {})).content[0].text == "echo ok"
     await store.aclose()
 
 
@@ -154,7 +154,7 @@ async def test_a_timed_out_read_leaves_the_connection_usable(monkeypatch) -> Non
         await connection.read_resource("ui://stub/slow.html")
 
     assert connection.status == "connected"
-    assert (await connection.call("echo", {})).content[0].text == "echo ok"
+    assert (await connection.call_tool("echo", {})).content[0].text == "echo ok"
     await store.aclose()
 
 
@@ -200,7 +200,7 @@ async def test_calling_a_closed_connection_raises_not_connected() -> None:
     await store.aclose()
 
     with pytest.raises(McpNotConnectedError):
-        await connection.call("echo", {})
+        await connection.call_tool("echo", {})
 
 
 async def test_a_store_with_no_configured_servers_offers_nothing() -> None:

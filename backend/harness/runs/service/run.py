@@ -7,7 +7,7 @@ import asyncio
 from harness.session.domain.log import Session
 
 
-class RunAlreadyActive(RuntimeError):
+class RunAlreadyActiveError(RuntimeError):
     """This conversation is already running a turn."""
 
 
@@ -17,19 +17,14 @@ class Run:
     def __init__(self, session: Session, first_event_number: int) -> None:
         self.session = session
         self.first_event_number = first_event_number
-        self.settled = False
+        self.is_settled = False
         self.error: Exception | None = None
         self.condition = asyncio.Condition()
-        self._inner: asyncio.Task[None] | None = None
-        self._outer: asyncio.Task[None] | None = None
-
-    @property
-    def conversation_id(self) -> str:
-        """The session's id."""
-        return self.session.id
+        self._turn_task: asyncio.Task[None] | None = None
+        self._settle_task: asyncio.Task[None] | None = None
 
 
-async def settled(run: Run) -> None:
+async def wait_until_settled(run: Run) -> None:
     """Wait until `run` has settled."""
     async with run.condition:
-        await run.condition.wait_for(lambda: run.settled)
+        await run.condition.wait_for(lambda: run.is_settled)

@@ -8,9 +8,8 @@ import pytest
 from pydantic import ValidationError
 
 from harness.tools import Ok
-from harness.tools.client import ClientToolCatalog, ClientToolService
+from harness.tools.client import ClientToolCatalog
 from harness.tools.native.question import ASK_USER, ASK_USER_TOOL, Answer, Question
-from tests.unit.helpers import no_approvals
 
 LONGEST_LABEL = "x" * 80
 LONGEST_QUESTION = "q" * 240
@@ -44,7 +43,7 @@ def test_an_answer_names_a_choice_and_nothing_else() -> None:
 
 
 def test_the_example_in_the_description_is_a_call_the_tool_accepts() -> None:
-    (tool,) = ClientToolService(ClientToolCatalog((ASK_USER_TOOL,)), no_approvals()).tools()
+    (tool,) = ClientToolCatalog((ASK_USER_TOOL,)).tools()
     spec = tool.spec()
     assert spec.name == ASK_USER
     example = re.search(rf"{ASK_USER}\((\{{.*?\}})\)", spec.description)

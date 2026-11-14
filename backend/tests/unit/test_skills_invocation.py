@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from harness.skills import UnknownSkill
-from harness.skills.domain.invocation import MARKER, display, parse
+from harness.skills.domain.invocation import MARKER, invoked_skill_name, typed_invocation
 from tests.unit.helpers import no_skills, skills_at
 from tests.unit.test_skill_tool import write_skill
 
@@ -29,7 +29,7 @@ from tests.unit.test_skill_tool import write_skill
     ],
 )
 def test_parse_names_only_a_leading_valid_skill_name(text: str, name: str | None) -> None:
-    assert parse(text) == name
+    assert invoked_skill_name(text) == name
 
 
 def test_ordinary_text_is_returned_unchanged(tmp_path: Path) -> None:
@@ -106,15 +106,15 @@ def test_display_round_trips_the_expansion(tmp_path: Path) -> None:
     write_skill(tmp_path, "find-place")
     typed = "/find-place https://x\nand a second line"
 
-    shown = display(skills_at(tmp_path).expand(typed))
+    shown = typed_invocation(skills_at(tmp_path).expand(typed))
 
     assert shown is not None
     assert (shown.skill, shown.typed) == ("find-place", typed)
 
 
 def test_display_is_none_for_an_ordinary_message() -> None:
-    assert display("where is this?") is None
-    assert display('mentions <skill name="x"> inline') is None
+    assert typed_invocation("where is this?") is None
+    assert typed_invocation('mentions <skill name="x"> inline') is None
 
 
 def test_display_takes_the_first_marker(tmp_path: Path) -> None:
@@ -123,6 +123,6 @@ def test_display_takes_the_first_marker(tmp_path: Path) -> None:
         '---\ndescription: d\n---\nSay\n\n<skill name="other">\n'
     )
 
-    shown = display(skills_at(tmp_path).expand("/meta go"))
+    shown = typed_invocation(skills_at(tmp_path).expand("/meta go"))
 
     assert shown is not None and (shown.skill, shown.typed) == ("meta", "/meta go")

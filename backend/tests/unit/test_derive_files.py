@@ -5,7 +5,7 @@ from __future__ import annotations
 from harness.files import ChatFile
 from harness.llm import UserMessage
 from harness.prompts import ATTACHED_FILE
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import TurnStart, UserMessageEvent
 
 PAGE = ChatFile(path="/f/assistant/t1/page.png", name="page.png", media_type="image/png", size=8)

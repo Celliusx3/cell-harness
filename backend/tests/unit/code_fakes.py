@@ -6,7 +6,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from harness.llm import ToolCall
-from harness.sandbox import Bridge, DenoUnavailableError, Runner, Script
+from harness.sandbox import Bridge, DenoUnavailableError, Runner, ScriptResult
 from harness.tools import (
     ApprovalService,
     CallOrigin,
@@ -44,12 +44,12 @@ class FakeRunner(Runner):
     """Stands in for Deno."""
 
     script: Callable[[Bridge], object] | None = None
-    outcome: Script = field(default_factory=lambda: Script(result="ok"))
+    outcome: ScriptResult = field(default_factory=lambda: ScriptResult(result="ok"))
     unavailable: bool = False
     seen_names: list[str] = field(default_factory=list)
     seen_code: str = ""
 
-    async def run(self, code: str, *, names: Sequence[str], bridge: Bridge) -> Script:
+    async def run(self, code: str, *, names: Sequence[str], bridge: Bridge) -> ScriptResult:
         if self.unavailable:
             raise DenoUnavailableError("no deno here")
         self.seen_names = list(names)

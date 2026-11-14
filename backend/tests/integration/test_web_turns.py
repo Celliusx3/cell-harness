@@ -42,7 +42,7 @@ async def test_a_second_message_while_running_is_queued(slow) -> None:
 async def test_a_queued_message_does_not_repair_the_running_turn(slow) -> None:
     client, service, runs = slow
     conversation_id = await assistant_chat(client, "go")
-    session = runs.active(conversation_id).session
+    session = runs.active_run(conversation_id).session
     await until(
         lambda: any(e.type == "tool/call" for e in session.events()),
         what="the tool to be dispatched",
@@ -100,7 +100,7 @@ async def test_a_stream_follows_the_turn_queued_behind_the_one_it_watched(tmp_pa
     )
     async with api(tmp_path, service, runs) as client:
         conversation_id = await assistant_chat(client, "go")
-        session = runs.active(conversation_id).session
+        session = runs.active_run(conversation_id).session
         await until(
             lambda: any(e.type == "tool/call" for e in session.events()),
             what="the tool to be dispatched",
@@ -161,7 +161,7 @@ async def test_a_conversation_accepts_another_message_once_it_settles(simple) ->
 async def test_stopping_ends_the_turn_and_answers_every_call(slow) -> None:
     client, service, runs = slow
     conversation_id = await assistant_chat(client, "go")
-    session = runs.active(conversation_id).session
+    session = runs.active_run(conversation_id).session
     await until(
         lambda: any(e.type == "tool/call" for e in session.events()),
         what="the tool to be dispatched",
@@ -188,7 +188,7 @@ async def test_stopping_an_idle_conversation_is_a_404(simple) -> None:
 async def test_a_stream_open_when_a_turn_is_stopped_is_released(slow) -> None:
     client, _, runs = slow
     conversation_id = await assistant_chat(client, "go")
-    session = runs.active(conversation_id).session
+    session = runs.active_run(conversation_id).session
 
     async def read_to_end() -> str:
         response = await client.get(f"/api/conversations/{conversation_id}/events?after=0")
@@ -232,7 +232,7 @@ async def test_shutdown_stops_a_running_turn_durably(tmp_path) -> None:
 
     async with httpx.AsyncClient(transport=transport, base_url="http://harness.test") as client:
         conversation_id = await assistant_chat(client, "go")
-        session = runs.active(conversation_id).session
+        session = runs.active_run(conversation_id).session
         await until(
             lambda: any(e.type == "tool/call" for e in session.events()),
             what="the tool to be dispatched",

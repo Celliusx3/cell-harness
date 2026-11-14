@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict
 from harness.tools.domain.decision import ApprovalMode
 
 
-class NotApproved(LookupError):
+class ToolNotApproved(LookupError):
     """A tool the person has not approved always, so there is nothing to revoke."""
 
 
@@ -51,7 +51,7 @@ class ApprovalService:
         """The configured tools and the servers' tools that may write; each asks unless approved."""
         return self._configured_tools | self._writing_tool_names()
 
-    def needs_approval(self, name: str) -> bool:
+    def should_ask(self, name: str) -> bool:
         """Whether a call to `name` must wait for the person."""
         return name in self.protected_tools and name not in self.approved_tools()
 
@@ -72,7 +72,7 @@ class ApprovalService:
         """Make `name` ask again."""
         approved = self.approved_tools()
         if name not in approved:
-            raise NotApproved(f"{name!r} is not approved")
+            raise ToolNotApproved(f"{name!r} is not approved")
         self._write_grants(approved - {name})
 
     def _write_grants(self, tools: frozenset[str]) -> None:

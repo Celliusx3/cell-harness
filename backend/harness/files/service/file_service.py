@@ -12,7 +12,7 @@ from harness.files.repository.file_repository import ChatFileRepository, is_plai
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
 
 
-class FileTooLarge(Exception):
+class FileTooLargeError(Exception):
     """An upload went past the limit, and nothing of it was kept."""
 
     def __init__(self, name: str, max_bytes: int) -> None:
@@ -22,15 +22,15 @@ class FileTooLarge(Exception):
         )
 
 
-class UnsafeFileName(ValueError):
+class UnsafeFileNameError(ValueError):
     """A file name with nothing left to save under once its folders are stripped."""
 
 
 def safe_name(name: str) -> str:
-    """The last part of `name`; `UnsafeFileName` when that is empty, `.`, `..` or holds a NUL."""
+    """The last part of `name`; `UnsafeFileNameError` if it is empty, `.`, `..` or holds a NUL."""
     base = Path(name).name
     if not is_plain_name(base):
-        raise UnsafeFileName(f"{name!r} does not name a file")
+        raise UnsafeFileNameError(f"{name!r} does not name a file")
     return base
 
 
@@ -43,12 +43,12 @@ def media_type_of(name: str) -> str:
 async def _within_limit(
     chunks: AsyncIterator[bytes], name: str, max_bytes: int
 ) -> AsyncIterator[bytes]:
-    """`chunks` as they come; `FileTooLarge` before one would take them past `max_bytes`."""
+    """`chunks` as they come; `FileTooLargeError` before one would take them past `max_bytes`."""
     written = 0
     async for chunk in chunks:
         written += len(chunk)
         if written > max_bytes:
-            raise FileTooLarge(name, max_bytes)
+            raise FileTooLargeError(name, max_bytes)
         yield chunk
 
 

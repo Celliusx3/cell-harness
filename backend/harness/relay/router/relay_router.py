@@ -50,7 +50,7 @@ async def forward_to_browser(remote: ClientConnection, browser: WebSocket) -> No
         return
 
 
-async def pump(browser: WebSocket, remote: ClientConnection) -> None:
+async def pump_frames(browser: WebSocket, remote: ClientConnection) -> None:
     """Frames both ways until either side closes; then the other one is closed too."""
     pumps = [
         asyncio.create_task(forward_to_upstream(browser, remote)),
@@ -68,12 +68,17 @@ async def pump(browser: WebSocket, remote: ClientConnection) -> None:
             await browser.close()
 
 
-def build_router(relays: RelayService) -> APIRouter:
-    router = APIRouter(prefix=RELAY_PREFIX, tags=["relay"])
+class RelayRouter:
+    """A loopback page and its websocket, relayed to the browser by their relay id."""
 
-    @router.get("/{relay_id}/{path:path}")
-    async def relay_page(relay_id: str, path: str, request: Request) -> Response:
-        upstream = relays.upstream(relay_id)
+    def __init__(self, relays: RelayService) -> None:
+        self._relays = relays
+        self.router: APIRouter = APIRouter(prefix=RELAY_PREFIX, tags=["relay"])
+        self.router.add_api_route("/{relay_id}/{path:path}", self.relay_page, methods=["GET"])
+        self.router.add_api_websocket_route("/{relay_id}/{path:path}", self.relay_socket)
+
+    async def relay_page(self, relay_id: str, path: str, request: Request) -> Response:
+        upstream = self._relays.upstream(relay_id)
         if upstream is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no such relay")
         try:
@@ -90,9 +95,8 @@ def build_router(relays: RelayService) -> APIRouter:
             headers["Content-Type"] = content_type
         return Response(content=response.content, status_code=response.status_code, headers=headers)
 
-    @router.websocket("/{relay_id}/{path:path}")
-    async def relay_socket(browser: WebSocket, relay_id: str, path: str) -> None:
-        upstream = relays.upstream(relay_id)
+    async def relay_socket(self, browser: WebSocket, relay_id: str, path: str) -> None:
+        upstream = self._relays.upstream(relay_id)
         if upstream is None:
             await browser.close(code=status.WS_1008_POLICY_VIOLATION)
             return
@@ -106,10 +110,8 @@ def build_router(relays: RelayService) -> APIRouter:
                 proxy=None,
             ) as remote:
                 await browser.accept(subprotocol=remote.subprotocol)
-                await pump(browser, remote)
+                await pump_frames(browser, remote)
         except (OSError, InvalidHandshake, TimeoutError) as err:
             logger.warning("relay %s: the upstream socket refused: %r", relay_id[:6], err)
             if browser.application_state == WebSocketState.CONNECTING:
                 await browser.close(code=status.WS_1011_INTERNAL_ERROR)
-
-    return router

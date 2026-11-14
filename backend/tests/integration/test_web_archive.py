@@ -128,7 +128,7 @@ async def test_archiving_a_bot_stops_its_running_turn_and_keeps_its_chat_whole(t
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         bot_id = (await c.post("/api/bots", json=RESEARCHER)).json()["id"]
         await c.post(f"/api/conversations/{bot_id}/messages", json={"prompt": "go"})
-        run = runs.active(bot_id)
+        run = runs.active_run(bot_id)
         while not any(event.type == "assistant/chunk" for event in run.session.events()):
             await asyncio.sleep(0.01)
 
@@ -136,7 +136,7 @@ async def test_archiving_a_bot_stops_its_running_turn_and_keeps_its_chat_whole(t
 
     stored = await durable_service(tmp_path / "sessions").read(bot_id)
     assert archived.status_code == 204
-    assert runs.active(bot_id) is None
+    assert runs.active_run(bot_id) is None
     assert [e.message.content for e in stored.events() if isinstance(e, UserMessageEvent)] == ["go"]
     assert stored.events()[-1] == TurnEnd(turn=0, reason="cancelled")
 
@@ -150,5 +150,5 @@ async def test_a_refused_archive_leaves_assistant_s_turn_running(tmp_path) -> No
         refused = await c.post(f"/api/bots/{ASSISTANT_ID}/archive")
 
     assert refused.status_code == 409
-    assert runs.active(ASSISTANT_ID) is not None
+    assert runs.active_run(ASSISTANT_ID) is not None
     await runs.stop(ASSISTANT_ID)

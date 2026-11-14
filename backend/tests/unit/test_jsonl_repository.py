@@ -141,9 +141,9 @@ async def test_stored_count_tracks_appends(store) -> None:
 
 async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None:
     from harness.channels.repository.chat_repository import ChatState
-    from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+    from harness.channels.repository.json_chat_repository import JsonChatRepository
 
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     await chats.save(ChatState(channel="telegram", chat_id="1", conversation_id="c0"))
     await chats.save(ChatState(channel="discord", chat_id="9", conversation_id="c0"))
     await chats.save(ChatState(channel="telegram", chat_id="2", conversation_id="c1"))
@@ -155,9 +155,9 @@ async def test_the_chats_mapped_to_a_conversation_can_be_found(tmp_path) -> None
 
 async def test_files_that_are_not_chats_do_not_break_the_lookup(tmp_path) -> None:
     from harness.channels.repository.chat_repository import ChatState
-    from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+    from harness.channels.repository.json_chat_repository import JsonChatRepository
 
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     await chats.save(ChatState(channel="discord", chat_id="9", conversation_id="c0"))
     (tmp_path / "chats" / "offset.json").write_text('{"offset": 993566173}')
     (tmp_path / "chats" / "chat-1932139557.json").write_text('{"chat_id": 1932139557}')
@@ -171,6 +171,6 @@ async def test_a_restart_counts_only_what_it_wrote(store) -> None:
     await store.create(header())
     await store.append("s", a_turn())
 
-    await store.restart(header(), [TurnStart(turn=0)])
+    await store.replace(header(), [TurnStart(turn=0)])
 
     assert await store.stored_count("s") == 1

@@ -1,4 +1,4 @@
-"""`/api/mcp/{server}/…`: an app's HTML, and the calls an app makes back."""
+"""`/api/mcp/{server_id}/…`: an app's HTML, and the calls an app makes back."""
 
 from __future__ import annotations
 

@@ -9,7 +9,7 @@ from harness.llm import SystemMessage
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.models import Ticket
-from harness.tickets.service.worker import WorkerEnd, Workers, worker_session_id
+from harness.tickets.service.worker import RuntimeTicketWorker, WorkerEnd, worker_session_id
 from harness.tools import ApprovalService, Ok, Tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
 from tests.unit.helpers import runtime_over
@@ -25,7 +25,9 @@ TICKET = Ticket(
 )
 
 
-def workers(tmp_path: Path, ran: list[str]) -> tuple[Workers, SteppedClient, SessionService]:
+def workers(
+    tmp_path: Path, ran: list[str]
+) -> tuple[RuntimeTicketWorker, SteppedClient, SessionService]:
     async def execute(args: EchoArgs, _context) -> Ok:
         ran.append(args.value)
         return Ok(content=f"saved {args.value}")
@@ -39,7 +41,7 @@ def workers(tmp_path: Path, ran: list[str]) -> tuple[Workers, SteppedClient, Ses
     )
     sessions = SessionService(JsonlSessionRepository(tmp_path / "workers"))
     runtime = runtime_over(client, saver, approvals=approvals, guidance="BASE")
-    return Workers(runtime, sessions), client, sessions
+    return RuntimeTicketWorker(runtime, sessions), client, sessions
 
 
 async def test_a_resumed_turn_keeps_the_mode_its_first_turn_logged(tmp_path: Path) -> None:

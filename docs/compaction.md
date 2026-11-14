@@ -37,12 +37,12 @@ in phase 9 (`session/domain/compaction.py`):
 
 Two events bracket a summary, not dsh's three: the summary rides on `end` the
 way `usage` rides on `assistant/message`. A `compaction/start` a crash left
-without an end is closed by `repair` with an `error` end — close, do not
+without an end is closed by `crash_repairs` with an `error` end — close, do not
 truncate.
 
 ## How `derive_messages` honours them
 
-`session/domain/derive.py`, the one place model history is produced:
+`session/domain/model_history.py`, the one place model history is produced:
 
 - the last `compaction/end` **with a message** is the boundary — derivation
   starts there, that message in the user role (where Claude Code and the phase-9
@@ -52,7 +52,7 @@ truncate.
   the tool again if it still needs it.
 
 Everything else that folds the raw log — `Session.tools_selected()`, the hook
-folds, `repair`, `pending_call` — reads it unchanged, so a pruned
+folds, `crash_repairs`, `pending_call` — reads it unchanged, so a pruned
 `get_function_details` result keeps its tool callable, and the guardrail keeps
 counting.
 
@@ -61,13 +61,13 @@ counting.
 `should_compact` compares the context size against a line:
 
 ```
-threshold = floor(context_tokens × 0.8)          # COMPACT_AT; dsh's ratio
+threshold = floor(context_tokens × 0.8)          # COMPACT_AT_WINDOW_FRACTION; dsh's ratio
 used      = last assistant/message.usage.input_tokens + output_tokens
 ```
 
 `context_tokens` is each LLM credential's own, carried on the bot's
 `ModelChoice` and resolved when `CredentialModels` first makes that choice — once
-per saved version of the credential (`web/runtime.py` `context_window`):
+per saved version of the credential (`web/runtime.py` `compaction_window_tokens`):
 `compaction.context_tokens` from config if set, else `context_length` read from
 that credential's endpoint's `GET /v1/models`, else unknown → proactive
 compaction off for that model, one warning, the reactive net alone. It is a cap on cost and latency, not a claim
@@ -81,7 +81,7 @@ are kept.
 ## The reactive net
 
 The adapter classifies a 4xx body it recognises as
-`Failed(code=CONTEXT_WINDOW_EXCEEDED)`; the loop then compacts and retries the
+`StreamFailure(code=CONTEXT_WINDOW_EXCEEDED)`; the loop then compacts and retries the
 step. Bounded: each recovery strictly shrinks the derived history, and a log
 that is only a summary has nothing left, so a summary that cannot shrink further
 fails the turn. Recognition is exact and fails closed — an unrecognised 400 is a

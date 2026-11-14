@@ -14,9 +14,10 @@ from harness.session.repository.session_repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
     SessionNotFoundError,
+    StoredSession,
 )
 
-_EVENT = TypeAdapter(SessionEvent)
+_EVENT_ADAPTER = TypeAdapter(SessionEvent)
 
 
 class JsonlSessionRepository:
@@ -36,9 +37,9 @@ class JsonlSessionRepository:
         """Remember the header; write nothing."""
         self._pending[header.id] = header
 
-    async def restart(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+    async def replace(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
         """Replace the stored log with `header` and `events`."""
-        _write_first(self._path(header.id), header, events)
+        _write_whole_file(self._path(header.id), header, events)
         self._stored_count_single_writer[header.id] = len(events)
 
     async def stored_count(self, session_id: str) -> int:
@@ -56,7 +57,7 @@ class JsonlSessionRepository:
             header = self._pending.get(session_id)
             if header is None:
                 raise SessionNotFoundError(f"session {session_id!r} was never created")
-            _write_first(path, header, events)
+            _write_whole_file(path, header, events)
             self._pending.pop(session_id, None)
         else:
             _append_lines(path, events)
@@ -70,7 +71,7 @@ class JsonlSessionRepository:
         self._stored_count_single_writer[session_id] = count
         return count
 
-    async def load(self, session_id: str) -> tuple[SessionHeader, list[SessionEvent]]:
+    async def load(self, session_id: str) -> StoredSession:
         """Read a session back, tolerating only a torn tail."""
         path = self._path(session_id)
         if not path.exists():
@@ -85,7 +86,7 @@ class JsonlSessionRepository:
         body = lines[1:]
         for index, line in enumerate(body):
             try:
-                events.append(_EVENT.validate_json(line))
+                events.append(_EVENT_ADAPTER.validate_json(line))
             except (json.JSONDecodeError, ValidationError) as err:
                 torn = index == len(body) - 1 and not line.endswith("\n")
                 if torn:
@@ -94,7 +95,7 @@ class JsonlSessionRepository:
                     f"{path}: line {index + 2} is unreadable and is not a torn final write: {err}"
                 ) from err
         self._stored_count_single_writer[session_id] = len(events)
-        return header, events
+        return StoredSession(header, events)
 
     async def delete(self, session_id: str) -> None:
         """Remove the file and forget the session; one never written is already gone."""
@@ -116,7 +117,7 @@ def _read_lines(path: Path) -> list[str]:
         return handle.readlines()
 
 
-def _write_first(path: Path, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+def _write_whole_file(path: Path, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
     tmp = path.with_suffix(".jsonl.tmp")
     with open(tmp, "w", encoding="utf-8") as handle:
         handle.write(header.model_dump_json() + "\n")

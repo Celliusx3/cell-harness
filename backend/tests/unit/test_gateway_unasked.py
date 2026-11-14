@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.bots import ASSISTANT_ID
-from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.bot_messages import BotMessenger
 from harness.session.domain.models import BotMessage
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.gateway_helpers import CHAT, build, settle
@@ -29,8 +29,8 @@ async def test_a_bot_message_s_turn_is_followed_by_the_chats_linked_to_it(tmp_pa
         tmp_path, ScriptedClient(completed("Researcher says yes.")), skills=no_skills()
     )
     bots = no_bots(sessions)
-    await bots.active_bots()
-    messages = BotMessages(bots, runs, follow=gateway.follow)
+    await bots.open_active_bots()
+    messages = BotMessenger(bots, runs, follow=gateway.follow)
 
     await messages.deliver(ASSISTANT_ID, ANSWERED)
     await settle(runs, gateway)

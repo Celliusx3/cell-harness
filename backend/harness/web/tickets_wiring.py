@@ -8,8 +8,9 @@ from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.service.session_service import SessionService
 from harness.tickets.service.ticket_service import TicketService
-from harness.tickets.service.worker import Workers
+from harness.tickets.service.worker import RuntimeTicketWorker
 from harness.tools import ToolService
+from harness.tools.native.files import VIEW_IMAGE
 from harness.tools.native.tickets import (
     TICKET_REPORT,
     ticket_note_tool,
@@ -17,15 +18,17 @@ from harness.tools.native.tickets import (
     ticket_route_tool,
 )
 from harness.tools.service.tool_service import Disposer
-from harness.web.runtime import SUBAGENT_TOOLS, VIEW_IMAGE, WORK_TOOLS, helper_runtime
+from harness.web.runtime import SUBAGENT_TOOLS, WORK_TOOLS, delegate_runtime
 
 WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)
 
 
-def ticket_workers(tool_service: ToolService, runtime: Runtime, logs: SessionService) -> Workers:
+def ticket_workers(
+    tool_service: ToolService, runtime: Runtime, logs: SessionService
+) -> RuntimeTicketWorker:
     """`runtime` as each ticket's worker runs it, offered `WORKER_TOOLS`, its logs in `logs`."""
-    worker = helper_runtime(tool_service, runtime, WORKER_TOOLS)
-    return Workers(dataclasses.replace(worker, guidance=GUIDANCE), logs)
+    worker = delegate_runtime(tool_service, runtime, WORKER_TOOLS)
+    return RuntimeTicketWorker(dataclasses.replace(worker, guidance=GUIDANCE), logs)
 
 
 def attach_tickets(tool_service: ToolService, tickets: TicketService) -> Disposer:

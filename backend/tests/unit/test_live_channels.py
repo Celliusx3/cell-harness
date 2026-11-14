@@ -13,12 +13,12 @@ from pydantic import SecretStr
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.platforms import PlatformChannels
 from harness.secrets import DiskSecretRepository, SecretService
 from harness.secrets.domain.details import TelegramDetails
-from harness.secrets.router.credential_router import build_router
+from harness.secrets.router.credential_router import CredentialRouter
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import durable_service, no_skills, run_service
 
@@ -41,7 +41,7 @@ class QueueChannel:
     def channel(self) -> str:
         return self._name
 
-    def conversation_for(self, chat_id: str) -> str:
+    def conversation_id_for(self, chat_id: str) -> str:
         return ASSISTANT_ID
 
     async def run(self) -> None:
@@ -55,7 +55,7 @@ class QueueChannel:
 def _gateway(tmp_path: Path) -> ChannelGateway:
     sessions = durable_service(tmp_path / "sessions")
     runs = run_service(sessions, ScriptedClient(completed("hi")))
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
 
 
@@ -97,7 +97,7 @@ async def test_its_disposer_stops_it_and_takes_it_off_the_gateway(tmp_path: Path
     await dispose()
 
     assert channel.stopped.is_set()
-    assert "telegram" not in gateway.channels
+    assert "telegram" not in gateway.channel_names
     await dispose()
     await gateway.aclose()
 
@@ -173,7 +173,7 @@ async def _app_with_platforms(
     platforms = PlatformChannels(gateway, keyring, factory)
     await gateway.start()
     app = FastAPI()
-    app.include_router(build_router(keyring, bots, platforms))
+    app.include_router(CredentialRouter(keyring, bots, platforms).router)
     return app, gateway, factory.started
 
 
@@ -190,7 +190,7 @@ async def test_saving_a_telegram_token_starts_telegram_and_removing_it_stops_it(
     assert (added.status_code, removed.status_code) == (201, 204)
     assert token == TOKEN
     assert first.stopped.is_set()
-    assert "telegram" not in gateway.channels
+    assert "telegram" not in gateway.channel_names
     await gateway.aclose()
 
 

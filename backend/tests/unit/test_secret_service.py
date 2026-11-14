@@ -13,8 +13,8 @@ from pydantic import SecretStr
 from harness.secrets import (
     Destination,
     DiskSecretRepository,
+    RefusedSecretError,
     SecretNotFound,
-    SecretRefused,
     SecretService,
     SecretSummary,
 )
@@ -94,7 +94,7 @@ def test_a_name_saved_for_another_site_is_refused_without_showing_the_key(
 ) -> None:
     store.save("github", GITHUB_BY_HEADER, SecretStr(KEY))
 
-    with pytest.raises(SecretRefused) as refused:
+    with pytest.raises(RefusedSecretError) as refused:
         store.save("github", elsewhere, SecretStr(OTHER_KEY))
 
     assert "already saved for https://api.github.com" in str(refused.value)
@@ -108,7 +108,7 @@ def test_the_101st_key_is_refused_and_a_saved_one_can_still_be_replaced(
     _holding(store, path, 99)
     store.save("notion", NOTION, SecretStr(KEY))
 
-    with pytest.raises(SecretRefused):
+    with pytest.raises(RefusedSecretError):
         store.save("linear", LINEAR, SecretStr(KEY))
     store.save("notion", NOTION, SecretStr(OTHER_KEY))
 
@@ -149,7 +149,7 @@ def test_summaries_list_each_key_by_name_with_its_site_and_never_its_value(
     store.save("notion", NOTION, SecretStr(OTHER_KEY))
     store.save("github", GITHUB, SecretStr(KEY))
 
-    listed = store.summaries()
+    listed = store.custom_key_summaries()
 
     assert listed == (
         SecretSummary(name="github", destination=GITHUB),

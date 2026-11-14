@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable, Coroutine, Sequence
 
 from harness.bots import Bot, BotNotFound, BotService
 from harness.prompts import BOT_DID_NOT_FINISH, BOT_WAITING_ON_USER
-from harness.runs.service.run import Run, settled
+from harness.runs.service.run import Run, wait_until_settled
 from harness.runs.service.run_service import RunService
 from harness.session.domain.models import (
     AssistantMessageEvent,
@@ -29,7 +29,7 @@ MAX_HOPS = 6
 Follow = Callable[[Run], Awaitable[None]]
 
 
-class BotMessages:
+class BotMessenger:
     """Delivers each bot's message once the chat it is for is free, and each answer back."""
 
     def __init__(self, bots: BotService, runs: RunService, *, follow: Follow) -> None:
@@ -43,9 +43,9 @@ class BotMessages:
     ) -> Ok | Failure:
         """Queue `text` for the active bot named `to_name`, from the turn that made `call_id`."""
         session = self._runs.session_of_call(call_id)
-        if session is None or self._runs.groups.members_of_chat(session.id).group is not None:
+        if session is None or self._runs.groups.chat_members(session.id).group is not None:
             return Failure(REFUSED, "message_bot works only in your own chat, not in a group chat")
-        active = await self._bots.active_bots()
+        active = await self._bots.open_active_bots()
         recipient = next((bot for bot in active if bot.name == to_name), None)
         if recipient is None:
             return Failure(INVALID_ARGUMENTS, f"no bot is named {to_name!r}")
@@ -84,7 +84,7 @@ class BotMessages:
         run = await self.deliver(self._bots.chat_of(recipient.id), request)
         if run is None:
             return
-        await settled(run)
+        await wait_until_settled(run)
         result = BotMessage(
             from_bot_id=recipient.id,
             from_name=recipient.name,

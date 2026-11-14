@@ -7,9 +7,9 @@ import asyncio
 from harness.llm import (
     CONTEXT_WINDOW_EXCEEDED,
     AssistantMessage,
-    Completed,
-    Failed,
+    Completion,
     LLMClient,
+    StreamFailure,
     TextChunk,
     ToolCall,
     ToolMessage,
@@ -96,14 +96,14 @@ async def test_a_retried_step_leaves_the_refused_one_without_an_end() -> None:
 
         async def stream_completion(self, messages, model, *, tools=None):
             if asks_for_a_summary(messages, tools):
-                yield Completed(full_text="SUMMARY")
+                yield Completion(full_text="SUMMARY")
                 return
             if not self.refused:
                 self.refused = True
                 yield TextChunk(text="par")
-                yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+                yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
                 return
-            yield Completed(full_text="recovered")
+            yield Completion(full_text="recovered")
 
     session = seeded()
 
@@ -132,7 +132,7 @@ async def test_cancelling_during_recovery_logs_the_text_the_person_saw() -> None
             if asks_for_a_summary(messages, tools):
                 await asyncio.Event().wait()
             yield TextChunk(text="par")
-            yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+            yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
 
     session = seeded()
 
@@ -158,7 +158,7 @@ async def test_cancelling_during_recovery_logs_the_text_the_person_saw() -> None
 async def test_a_failure_without_a_code_is_not_retried_even_with_compaction() -> None:
     class Refuses(LLMClient):
         async def stream_completion(self, messages, model, *, tools=None):
-            yield Failed(reason="502 upstream")
+            yield StreamFailure(reason="502 upstream")
 
     session = seeded()
 
@@ -176,9 +176,9 @@ async def test_an_overflow_recovered_by_a_prune_retries_the_step() -> None:
         async def stream_completion(self, messages, model, *, tools=None):
             if not self.refused:
                 self.refused = True
-                yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+                yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
                 return
-            yield Completed(full_text="recovered")
+            yield Completion(full_text="recovered")
 
     session = with_finished_results(4)
 
@@ -194,9 +194,9 @@ async def test_an_overflow_whose_summary_fails_fails_the_turn() -> None:
     class SummaryBreaks(LLMClient):
         async def stream_completion(self, messages, model, *, tools=None):
             if asks_for_a_summary(messages, tools):
-                yield Failed(reason="summary broke")
+                yield StreamFailure(reason="summary broke")
                 return
-            yield Failed(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
+            yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
 
     session = seeded()
 
@@ -204,4 +204,4 @@ async def test_an_overflow_whose_summary_fails_fails_the_turn() -> None:
 
     assert events[-1] == AgentFailed(reason="too long")
     ends = [e for e in session.events() if isinstance(e, CompactionEnd)]
-    assert ends and not any(end.succeeded for end in ends)
+    assert ends and not any(end.has_summary for end in ends)

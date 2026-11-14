@@ -11,7 +11,7 @@ from pydantic import SecretStr
 from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService
 from harness.config.sections import LLMSettings
-from harness.llm import AssistantMessage, Failed, LLMClient, UserMessage
+from harness.llm import AssistantMessage, LLMClient, StreamFailure, UserMessage
 from harness.llm.adapters import OpenAISettings
 from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
 from harness.runtime.service import Runtime
@@ -88,7 +88,7 @@ async def test_a_bot_with_no_model_asks_nothing_and_ends_with_the_line(tmp_path:
 
     chunks = [e.chunk for e in session.events() if isinstance(e, AssistantChunk)]
     assert trader.calls == 0
-    assert chunks == [Failed(reason=PICK_A_MODEL)]
+    assert chunks == [StreamFailure(reason=PICK_A_MODEL)]
     assert session.events()[-1] == TurnEnd(turn=0, reason="failed")
 
 

@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 
-from harness.sandbox import BridgeError, DenoRunner, Script
+from harness.sandbox import BridgeError, DenoRunner, ScriptResult
 
 deno = pytest.mark.skipif(shutil.which("deno") is None, reason="deno is not installed")
 
@@ -39,7 +39,7 @@ def alive(pid: int) -> bool:
 async def test_a_script_runs_and_returns() -> None:
     result = await runner(30).run("const n: number = 41; return n + 1;", names=[], bridge=echo)
 
-    assert result == Script(result=42)
+    assert result == ScriptResult(result=42)
 
 
 @deno

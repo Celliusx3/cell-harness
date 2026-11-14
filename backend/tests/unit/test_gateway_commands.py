@@ -8,7 +8,13 @@ from pathlib import Path
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.chat_repository import ChatState
-from harness.channels.service.commands import CLEARED, Command, apply, skills_reply, unknown_skill
+from harness.channels.service.commands import (
+    CLEARED_REPLY,
+    Command,
+    apply_command,
+    skills_reply,
+    unknown_skill_reply,
+)
 from harness.skills import Skill
 from tests.unit.fakes import (
     ScriptedClient,
@@ -29,12 +35,12 @@ async def test_new_clears_assistants_chat_in_place(tmp_path) -> None:
     await gateway.receive(msg("hello", 1))
     await settle(runs, gateway)
 
-    reply = await apply(gateway, "telegram", CHAT, Command.NEW)
+    reply = await apply_command(gateway, "telegram", CHAT, Command.NEW)
 
     assert (await chats.load("telegram", CHAT)).conversation_id == ASSISTANT_ID
     stored = await sessions.read(ASSISTANT_ID)
     assert stored.events()[-1].type == "chat/cleared"
-    assert reply == CLEARED
+    assert reply == CLEARED_REPLY
 
 
 async def test_new_before_assistants_chat_was_ever_written_is_quiet(tmp_path) -> None:
@@ -43,7 +49,7 @@ async def test_new_before_assistants_chat_was_ever_written_is_quiet(tmp_path) ->
     )
     await chats.save(ChatState(channel="telegram", chat_id=CHAT, conversation_id="an-old-chat"))
 
-    assert await apply(gateway, "telegram", CHAT, Command.NEW) == CLEARED
+    assert await apply_command(gateway, "telegram", CHAT, Command.NEW) == CLEARED_REPLY
     assert (await chats.load("telegram", CHAT)).conversation_id == ASSISTANT_ID
     assert list((tmp_path / "sessions").glob("*.jsonl")) == []
 
@@ -58,12 +64,12 @@ async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
     await gateway.receive(msg("slow", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
     for _ in range(200):
-        if runs.active(conversation) is not None:
+        if runs.active_run(conversation) is not None:
             break
         await asyncio.sleep(0.01)
     await gateway.receive(msg("queued", 2))
 
-    reply = await apply(gateway, "telegram", CHAT, Command.STOP)
+    reply = await apply_command(gateway, "telegram", CHAT, Command.STOP)
 
     assert reply == "Stopped."
     assert (await chats.load("telegram", CHAT)).pending == ()
@@ -75,18 +81,18 @@ async def test_stop_on_an_idle_chat_says_so(tmp_path) -> None:
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
 
-    assert await apply(gateway, "telegram", CHAT, Command.STOP) == "Nothing is running."
+    assert await apply_command(gateway, "telegram", CHAT, Command.STOP) == "Nothing is running."
 
 
 def test_an_unknown_skill_reply_says_what_can_be_typed() -> None:
-    reply = unknown_skill("summarise", named("find-place", "weekly-report"))
+    reply = unknown_skill_reply("summarise", named("find-place", "weekly-report"))
 
     assert reply == (
         "No skill named 'summarise'. Skills: /find-place, /weekly-report. "
         "Commands: /new, /stop, /compact, /mode."
     )
     assert (
-        unknown_skill("x", [])
+        unknown_skill_reply("x", [])
         == "No skill named 'x'. Skills: none. Commands: /new, /stop, /compact, /mode."
     )
 
@@ -127,7 +133,7 @@ async def test_a_drained_turn_delivers_its_reply(tmp_path) -> None:
     state = await chats.load("telegram", CHAT)
     await chats.save(state.model_copy(update={"pending": ("follow up",)}))
 
-    await gateway._following._drain("telegram", CHAT)
+    await gateway._follower._drain("telegram", CHAT)
     await settle(runs, gateway)
 
 
@@ -139,7 +145,7 @@ async def test_skills_lists_what_can_be_typed(tmp_path) -> None:
         tmp_path, ScriptedClient(completed("hi")), skills=skills_at(root)
     )
 
-    reply = await apply(gateway, "telegram", CHAT, Command.SKILLS)
+    reply = await apply_command(gateway, "telegram", CHAT, Command.SKILLS)
 
     assert reply == (
         "Skills you can type:\n/find-place — Where a reel was filmed.\n\n"
@@ -162,7 +168,7 @@ async def test_compact_summarizes_this_chats_conversation(tmp_path) -> None:
     await gateway.receive(msg("some conversation", 1))
     await settle(runs, gateway)
 
-    reply = await apply(gateway, "telegram", CHAT, Command.COMPACT)
+    reply = await apply_command(gateway, "telegram", CHAT, Command.COMPACT)
     conversation = (await chats.load("telegram", CHAT)).conversation_id
     await settle(runs, gateway)
 
@@ -175,7 +181,9 @@ async def test_compact_on_an_idle_chat_says_nothing_to_do(tmp_path) -> None:
     bot, gateway, runs, _, _ = await build(
         tmp_path, ScriptedClient(completed("hi")), skills=no_skills()
     )
-    assert await apply(gateway, "telegram", CHAT, Command.COMPACT) == "Nothing to compact yet."
+    assert (
+        await apply_command(gateway, "telegram", CHAT, Command.COMPACT) == "Nothing to compact yet."
+    )
 
 
 async def test_compact_from_a_chat_is_reported_in_that_chat_only(tmp_path) -> None:
@@ -189,7 +197,7 @@ async def test_compact_from_a_chat_is_reported_in_that_chat_only(tmp_path) -> No
     await gateway.receive(InboundMessage(channel="telegram", chat_id="5151", text="from there"))
     await settle(runs, gateway, "5151")
 
-    await apply(gateway, "telegram", CHAT, Command.COMPACT)
+    await apply_command(gateway, "telegram", CHAT, Command.COMPACT)
     await settle(runs, gateway)
 
     assert bot.sent == [
