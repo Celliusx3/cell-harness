@@ -50,18 +50,18 @@ def _args_model(names: tuple[str, ...]) -> type[BotDraft]:
             Literal[names],
             Field(
                 description="The saved LLM credential the bot answers on.",
-                json_schema_extra=_always_enum(names),
+                json_schema_extra=_enum_schema_hook(names),
             ),
         ),
     )
 
 
-def _always_enum(names: tuple[str, ...]):
+def _enum_schema_hook(names: tuple[str, ...]):
     """A schema hook that forces `enum` for `model`."""
     # Pydantic prints a one-member `Literal` as `const`, not `enum`.
 
-    def fix(schema: dict) -> None:
+    def force_enum(schema: dict) -> None:
         schema.pop("const", None)
         schema["enum"] = list(names)
 
-    return fix
+    return force_enum

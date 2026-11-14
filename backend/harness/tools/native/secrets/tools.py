@@ -60,8 +60,8 @@ def fetch_with_secret_tool(
     async def execute(args: FetchArgs, context: ToolContext) -> ToolOutcome:
         saved = secrets.secret_named(args.name)
         if saved is None:
-            return _not_a_custom_key(secrets, args.name)
-        if not _can_use(bots, context.origin.bot_id, args.name):
+            return _no_custom_key_failure(secrets, args.name)
+        if not _can_use_secret(bots, context.origin.bot_id, args.name):
             return Failure(
                 NOT_ALLOWED,
                 f"this bot may not use {args.name!r}; the user can allow it on the bot's page",
@@ -89,7 +89,7 @@ def fetch_with_secret_tool(
     )
 
 
-def _not_a_custom_key(secrets: SecretService, name: str) -> Failure:
+def _no_custom_key_failure(secrets: SecretService, name: str) -> Failure:
     details = secrets.details_of(name)
     if details is None:
         return Failure(
@@ -104,9 +104,9 @@ def _not_a_custom_key(secrets: SecretService, name: str) -> Failure:
     )
 
 
-def _can_use(bots: BotService, bot_id: str, name: str) -> bool:
+def _can_use_secret(bots: BotService, bot_id: str, name: str) -> bool:
     try:
-        return name in bots.active_bot(bot_id).secret_names
+        return bots.active_bot(bot_id).can_use_secret(name)
     except BotNotFound:
         return False
 

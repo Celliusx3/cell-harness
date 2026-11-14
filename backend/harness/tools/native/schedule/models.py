@@ -6,9 +6,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-MAX_PAGE = 50
-DEFAULT_PAGE = 20
-_ID = "Task id."
+MAX_PAGE_SIZE = 50
+DEFAULT_PAGE_SIZE = 20
+_ID_DESCRIPTION = "Task id."
 
 
 class ScheduleCreateArgs(BaseModel):
@@ -50,9 +50,9 @@ class ScheduleListArgs(BaseModel):
         ),
     )
     limit: int = Field(
-        default=DEFAULT_PAGE,
+        default=DEFAULT_PAGE_SIZE,
         ge=1,
-        le=MAX_PAGE,
+        le=MAX_PAGE_SIZE,
         description="Page size from 1 to 50; defaults to 20.",
     )
     offset: int = Field(default=0, ge=0, description="Number of tasks to skip; defaults to 0.")
@@ -63,7 +63,7 @@ class ScheduleViewArgs(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    id: str = Field(description=_ID)
+    id: str = Field(description=_ID_DESCRIPTION)
 
 
 class ScheduleEditArgs(BaseModel):
@@ -71,7 +71,7 @@ class ScheduleEditArgs(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    id: str = Field(description=_ID)
+    id: str = Field(description=_ID_DESCRIPTION)
     action: Literal["update", "delete"] = Field(
         description="update applies the provided fields, at least one; delete removes the task."
     )

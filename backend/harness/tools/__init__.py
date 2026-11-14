@@ -16,7 +16,7 @@ from harness.tools.domain.outcome import (
     ToolUi,
 )
 from harness.tools.domain.tool import NAMESPACE_SEPARATOR, Tool
-from harness.tools.service.approval_service import ApprovalService, NotApproved
+from harness.tools.service.approval_service import ApprovalService, ToolNotApproved
 from harness.tools.service.tool_service import ToolService
 from harness.tools.service.toolset import Toolset
 
@@ -28,7 +28,7 @@ __all__ = [
     "REFUSED",
     "UNKNOWN_TOOL",
     "ApprovalService",
-    "NotApproved",
+    "ToolNotApproved",
     "Approval",
     "ApprovalMode",
     "CallOrigin",

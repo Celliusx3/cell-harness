@@ -8,7 +8,9 @@ from harness.schedules.domain.timing import zone_of
 from harness.tools.domain.outcome import INVALID_ARGUMENTS, REFUSED, Failure
 from harness.utc import utc_text
 
-IN_A_GROUP = Failure(REFUSED, "schedules work only in your own chat, not in a group chat")
+OWN_CHAT_ONLY_REFUSAL = Failure(
+    REFUSED, "schedules work only in your own chat, not in a group chat"
+)
 
 
 def is_outside_own_chat(groups: GroupService, chat_id: str) -> bool:
@@ -19,7 +21,7 @@ def is_outside_own_chat(groups: GroupService, chat_id: str) -> bool:
         return True
 
 
-def own(schedules: ScheduleService, bot_id: str, schedule_id: str) -> Schedule:
+def own_schedule(schedules: ScheduleService, bot_id: str, schedule_id: str) -> Schedule:
     """`bot_id`'s schedule with this id; another bot's is `ScheduleNotFound` too."""
     schedule = schedules.get(schedule_id)
     if schedule.bot_id != bot_id:
@@ -27,12 +29,12 @@ def own(schedules: ScheduleService, bot_id: str, schedule_id: str) -> Schedule:
     return schedule
 
 
-def not_found(err: ScheduleNotFound) -> Failure:
+def not_found_failure(err: ScheduleNotFound) -> Failure:
     """What the model is told for an id it has no schedule by."""
     return Failure(INVALID_ARGUMENTS, str(err))
 
 
-def shown(schedule: Schedule) -> dict[str, str]:
+def task_fields(schedule: Schedule) -> dict[str, str]:
     """What the model is told about the schedule it made."""
     local = schedule.scheduled_at.astimezone(zone_of(schedule.rrule))
     return {
@@ -46,7 +48,10 @@ def shown(schedule: Schedule) -> dict[str, str]:
     }
 
 
-def task(schedule: Schedule) -> dict[str, str | None]:
-    """`shown`, with the newest delivered occurrence, for a schedule read back."""
+def read_back_task_fields(schedule: Schedule) -> dict[str, str | None]:
+    """`task_fields`, with the newest delivered occurrence, for a schedule read back."""
     latest = schedule.deliveries[-1].scheduled_at if schedule.deliveries else None
-    return {**shown(schedule), "last_occurrence_at": None if latest is None else utc_text(latest)}
+    return {
+        **task_fields(schedule),
+        "last_occurrence_at": None if latest is None else utc_text(latest),
+    }

@@ -24,7 +24,7 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.tools.native.clock import clock_tool
+from harness.tools.native.clock import get_current_time_tool
 from tests.unit.fakes import (
     HangingClient,
     OneModel,
@@ -222,7 +222,9 @@ async def test_a_turn_that_spoke_then_went_blank_is_told_too() -> None:
     session = new_session()
 
     events = await drain(
-        runtime_over(client, clock_tool(), hooks=TOLD).run("hi", session=session, bot_id="b")
+        runtime_over(client, get_current_time_tool(), hooks=TOLD).run(
+            "hi", session=session, bot_id="b"
+        )
     )
 
     assert events[-1] == AgentCompleted(text="Tuesday")
@@ -236,7 +238,7 @@ async def test_a_turn_answers_with_its_final_reply_not_what_it_said_on_the_way()
     session = new_session()
 
     events = await drain(
-        runtime_over(client, clock_tool()).run("what day", session=session, bot_id="b")
+        runtime_over(client, get_current_time_tool()).run("what day", session=session, bot_id="b")
     )
 
     assert events[-1] == AgentCompleted(text="It is Tuesday.")

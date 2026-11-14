@@ -13,7 +13,7 @@ from harness.tools.client.models import (
     SharedAnswer,
     UnavailableAnswer,
 )
-from harness.tools.client.pending_calls import next_pending, pending_calls
+from harness.tools.client.pending_calls import pending_calls, pending_calls_after
 from harness.tools.client.service import ClientToolService
 
 __all__ = [
@@ -30,5 +30,5 @@ __all__ = [
     "SharedAnswer",
     "UnavailableAnswer",
     "pending_calls",
-    "next_pending",
+    "pending_calls_after",
 ]

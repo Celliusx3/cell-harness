@@ -92,7 +92,7 @@ def test_it_never_asks_for_approval(name: str) -> None:
         default_mode="ask",
     )
 
-    assert not approvals.needs_approval(name)
+    assert not approvals.should_ask(name)
 
 
 async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path: Path) -> None:

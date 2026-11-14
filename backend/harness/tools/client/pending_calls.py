@@ -23,7 +23,9 @@ def pending_calls(session: Session, names: frozenset[str]) -> tuple[PendingCall,
     )
 
 
-def next_pending(calls: tuple[PendingCall, ...], event: SessionEvent) -> tuple[PendingCall, ...]:
+def pending_calls_after(
+    calls: tuple[PendingCall, ...], event: SessionEvent
+) -> tuple[PendingCall, ...]:
     """The calls still unanswered once `event` has landed."""
     if isinstance(event, ToolCallEvent):
         return (*calls, PendingCall(event.call.name, event.call.id, event.call.arguments))

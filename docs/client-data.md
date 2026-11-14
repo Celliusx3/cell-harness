@@ -232,7 +232,7 @@ is stopped midway.
   from then on, while it is in the model's list: like any tool, one the model
   is no longer shown is refused until it is read again. `always` writes the tool into
   `approval.grants_path` (`~/.harness/approvals.json`), read by
-  `ApprovalService.needs_approval`; `GET /api/approvals` lists it and `DELETE
+  `ApprovalService.should_ask`; `GET /api/approvals` lists it and `DELETE
   /api/approvals/{tool}` makes it ask again. Claude Code (`settings.local.json`),
   ChatGPT (per connected app) and OpenClaw (a durable allowlist) each have this
   rung above "this conversation".

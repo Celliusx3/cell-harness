@@ -31,7 +31,7 @@ from harness.tickets.domain.models import (
     TicketNotRetryable,
     TicketStopped,
 )
-from harness.tools import NotApproved
+from harness.tools import ToolNotApproved
 from harness.web.http.errors import STATUS_OF, exception_handlers
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
@@ -50,7 +50,9 @@ PINNED = [
     pytest.param(McpServerNotFound("no MCP server 'exa'"), 404, id="McpServerNotFound"),
     pytest.param(McpServerTaken("a server is already named 'exa'"), 409, id="McpServerTaken"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),
-    pytest.param(NotApproved("'memory__write_note' is not approved"), 404, id="NotApproved"),
+    pytest.param(
+        ToolNotApproved("'memory__write_note' is not approved"), 404, id="ToolNotApproved"
+    ),
     pytest.param(ScheduleBusy("s1"), 409, id="ScheduleBusy"),
     pytest.param(ScheduleNotFound("s1"), 404, id="ScheduleNotFound"),
     pytest.param(SecretNotFound("GITHUB_TOKEN"), 404, id="SecretNotFound"),

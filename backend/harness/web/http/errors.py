@@ -31,7 +31,7 @@ from harness.tickets.domain.models import (
     TicketNotRetryable,
     TicketStopped,
 )
-from harness.tools import NotApproved
+from harness.tools import ToolNotApproved
 
 ErrorHandler = Callable[[Request, Exception], Awaitable[JSONResponse]]
 
@@ -48,7 +48,7 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
         McpServerNotFound: status.HTTP_404_NOT_FOUND,
         McpServerTaken: status.HTTP_409_CONFLICT,
         McpTimeoutError: status.HTTP_502_BAD_GATEWAY,
-        NotApproved: status.HTTP_404_NOT_FOUND,
+        ToolNotApproved: status.HTTP_404_NOT_FOUND,
         ScheduleBusy: status.HTTP_409_CONFLICT,
         ScheduleNotFound: status.HTTP_404_NOT_FOUND,
         SecretNotFound: status.HTTP_404_NOT_FOUND,

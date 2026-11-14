@@ -11,7 +11,7 @@ from harness.tools.domain.tool import NAMESPACE_SEPARATOR, Tool
 
 logger = logging.getLogger("harness.tools.code")
 
-_TS_PRIMITIVES = {
+_TS_TYPE_BY_JSON_TYPE = {
     "string": "string",
     "integer": "number",
     "number": "number",
@@ -40,12 +40,12 @@ def declarations(tools: Sequence[Tool], *, with_types: bool) -> str:
 
 
 def _declaration(tool: Tool, *, with_types: bool) -> str:
-    doc = f"/** {_one_line(tool.description)} */\n" if tool.description else ""
+    doc = f"/** {_comment_text(tool.description)} */\n" if tool.description else ""
     args = _args_type(tool.input_schema) if with_types else "args"
     return f"{doc}declare function {tool.name}({args}): {RETURN_TYPE};"
 
 
-def _one_line(text: str) -> str:
+def _comment_text(text: str) -> str:
     """One comment line."""
     return " ".join(text.split()).replace("*/", "*\\/")
 
@@ -111,15 +111,15 @@ def _declared_type(schema: dict, defs: dict[str, Any], *, depth: int, seen: froz
     """The type a schema's `type`, or its `properties`, describes; unknown when neither does."""
     kind = schema.get("type")
     if isinstance(kind, list):
-        return " | ".join(dict.fromkeys(_TS_PRIMITIVES.get(k, "unknown") for k in kind))
+        return " | ".join(dict.fromkeys(_TS_TYPE_BY_JSON_TYPE.get(k, "unknown") for k in kind))
     if kind == "array":
         item = _ts_type(schema.get("items"), defs, depth=depth + 1, seen=seen)
         # Parenthesised so `("a" | "b")[]` does not read as `"a" | ("b"[])`.
         return f"({item})[]" if "|" in item else f"{item}[]"
     if kind == "object" or "properties" in schema:
         return _object_type(schema, defs, depth=depth, seen=seen)
-    if isinstance(kind, str) and kind in _TS_PRIMITIVES:
-        return _TS_PRIMITIVES[kind]
+    if isinstance(kind, str) and kind in _TS_TYPE_BY_JSON_TYPE:
+        return _TS_TYPE_BY_JSON_TYPE[kind]
     return "unknown"
 
 

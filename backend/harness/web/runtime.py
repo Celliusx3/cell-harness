@@ -39,7 +39,7 @@ from harness.tickets.domain.prompts import ORCHESTRATOR
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
-from harness.tools.native.clock import clock_tool
+from harness.tools.native.clock import get_current_time_tool
 from harness.tools.native.code_mode import (
     EXECUTE_TYPESCRIPT,
     GET_FUNCTION_DETAILS,
@@ -146,7 +146,7 @@ def build_runtime(
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
     tool_service = ToolService(
         [
-            clock_tool(),
+            get_current_time_tool(),
             skill_save_tool(skills),
             skill_delete_tool(skills),
             skill_write_file_tool(skills),

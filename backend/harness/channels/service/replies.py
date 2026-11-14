@@ -21,7 +21,7 @@ from harness.session.domain.models import (
     ToolResultEvent,
     TurnEnd,
 )
-from harness.tools.client import PendingCall, next_pending
+from harness.tools.client import PendingCall, pending_calls_after
 
 logger = logging.getLogger("harness.channels")
 
@@ -93,7 +93,7 @@ class ReplySender:
             pending: tuple[PendingCall, ...] = ()
             async for item in subscribe(run, after=run.first_event_number):
                 event = item.event
-                pending = next_pending(pending, event)
+                pending = pending_calls_after(pending, event)
                 if isinstance(event, ToolCallEvent):
                     names[event.call.id] = event.call.name
                 elif isinstance(event, ToolResultEvent):
