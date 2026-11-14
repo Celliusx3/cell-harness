@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
@@ -25,10 +26,14 @@ from harness.tickets.domain.models import ReportState, Ticket
 from harness.tickets.domain.prompts import (
     APPROVAL_QUESTION,
     APPROVAL_WAITING,
+    RESULT_FILES_OUT_OF_REACH,
+    RESULT_FILES_TO_HAND_OVER,
     TICKET_DID_NOT_FINISH,
     TICKET_TURN_FAILED,
+    WORKER_FILES_FOLDER,
     WORKER_INTRO,
 )
+from harness.tickets.domain.result_files import reported_files
 from harness.tools import Approval, Failure, Ok
 from harness.tools.domain.decision import ApprovalMode
 from harness.tools.native.tickets.models import TicketReportArgs
@@ -87,7 +92,8 @@ class RuntimeTicketWorker:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
         session = await self.sessions.create(worker_session_id(ticket.id))
         session.append(ApprovalModeChange(mode=mode))
-        return await self._run_turn(ticket, ticket.task, session, ticket.files)
+        task = self._with_files_folder(ticket.task, self._chat_id(session, ticket))
+        return await self._run_turn(ticket, task, session, ticket.files)
 
     async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:
         """Run the next turn on `prompt` in `ticket`'s session, under the mode its log holds."""
@@ -110,7 +116,35 @@ class RuntimeTicketWorker:
         intro = WORKER_INTRO.format(title=ticket.title)
         turn = HelperTurn(intro=intro, prompt=prompt, bot_id=ticket.bot_id, files=files)
         last = await run_to_end(self.runtime, self.sessions, session, turn)
-        return worker_end(last, last_accepted_report(session.events()))
+        end = worker_end(last, last_accepted_report(session.events()))
+        return self._with_result_files(end, self._chat_id(session, ticket))
+
+    def _chat_id(self, session: Session, ticket: Ticket) -> str:
+        return self.runtime.chat_id_for(session, ticket.bot_id)
+
+    def _with_files_folder(self, task: str, chat_id: str) -> str:
+        """`task`, then where the person's files go, when this runtime keeps chats' files."""
+        if self.runtime.files is None:
+            return task
+        folder = self.runtime.files.folder(chat_id)
+        return f"{task}\n\n{WORKER_FILES_FOLDER.format(folder=folder)}"
+
+    def _with_result_files(self, end: WorkerEnd, chat_id: str) -> WorkerEnd:
+        """A ready `end` told which files it names can reach the person, and which cannot."""
+        if end.state != "ready" or self.runtime.files is None:
+            return end
+        folder = self.runtime.files.folder(chat_id)
+        chat_files = [str(path) for path in folder.rglob("*") if path.is_file()]
+        found = reported_files(end.text, str(folder), chat_files)
+        notes = [
+            template.format(paths=", ".join(paths))
+            for template, paths in (
+                (RESULT_FILES_TO_HAND_OVER, found.in_chat),
+                (RESULT_FILES_OUT_OF_REACH, found.out_of_reach),
+            )
+            if paths
+        ]
+        return dataclasses.replace(end, text="\n\n".join((end.text, *notes)))
 
 
 def worker_session_id(ticket_id: str) -> str:

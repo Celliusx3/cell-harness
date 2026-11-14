@@ -21,6 +21,10 @@ class ChatFileRepository(Protocol):
         """`chunks` as the file `name` in a new folder of this chat's; on any failure none stays."""
         ...
 
+    def folder(self, chat_id: str) -> Path:
+        """This chat's folder, resolved; `ValueError` for an id that is not one plain name."""
+        ...
+
     def path_in(self, chat_id: str, path: str) -> Path | None:
         """`path` resolved, when it is absolute and a file in this chat's folder; else `None`."""
         ...

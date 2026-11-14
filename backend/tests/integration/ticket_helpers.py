@@ -28,7 +28,7 @@ from harness.web.tickets_wiring import attach_tickets, ticket_workers
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
 from tests.unit.helpers import durable_service, heard_nowhere, no_approvals, no_images, no_skills
-from tests.webapp import a_model_saved_in, web_app
+from tests.webapp import a_model_saved_in, files_in, web_app
 
 WORKER_START = "You are a worker."
 
@@ -78,6 +78,7 @@ def ticketing_app(
         tools=Toolset(tool_service, offered, sight_tools=frozenset(), can_reach_servers=True),
         guidance="GUIDE",
         checkpoint=service.flush,
+        files=files_in(tmp_path),
     )
     runs = RunService(
         service,
