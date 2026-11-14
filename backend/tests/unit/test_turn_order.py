@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harness.bots import Bot
-from harness.bots.domain.turn_order import MAX_TURNS_FROM_MENTIONS, MENTION_TURN_ORDER, is_mentioned
+from harness.bots.domain.turn_order import MAX_TURNS_FROM_MENTIONS, MENTION_TURN_ORDER
 from harness.llm import AssistantMessage, UserMessage
 from harness.session.domain.models import (
     AssistantMessageEvent,
@@ -52,7 +52,7 @@ def opened_by(text: str, events: list[SessionEvent]) -> list[SessionEvent]:
     ],
 )
 def test_a_mention_is_at_and_the_whole_name_in_any_case(text: str, name: str) -> None:
-    assert is_mentioned(text, name)
+    assert Bot(id="b", name=name, instructions="x").is_mentioned_in(text)
 
 
 @pytest.mark.parametrize(
@@ -68,7 +68,7 @@ def test_a_mention_is_at_and_the_whole_name_in_any_case(text: str, name: str) ->
     ],
 )
 def test_no_mention_inside_a_word_or_a_longer_name(text: str, name: str) -> None:
-    assert not is_mentioned(text, name)
+    assert not Bot(id="b", name=name, instructions="x").is_mentioned_in(text)
 
 
 def test_the_person_queues_the_members_they_mention_in_member_order() -> None:

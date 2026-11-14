@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
-from harness.bots import BotNotFound, BotService, Group, GroupDraft, GroupService
+from harness.bots import BotService, Group, GroupDraft, GroupService
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,6 @@ class GroupRouter:
         return list(self._bots.groups())
 
     async def create_group(self, body: GroupDraft) -> Group:
-        try:
-            group = await self._groups.create(body)
-        except BotNotFound as err:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(err)) from err
+        group = await self._groups.create(body)
         logger.info("group %s created with %s", group.id, list(group.member_ids))
         return group

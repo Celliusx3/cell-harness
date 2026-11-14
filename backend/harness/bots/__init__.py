@@ -13,6 +13,7 @@ from harness.bots.domain.models import (
     EmptyGroupError,
     Group,
     GroupDraft,
+    GroupMemberNotFound,
     UnsavedModelError,
 )
 from harness.bots.domain.turn_order import MENTION_TURN_ORDER, MentionTurnOrder, TurnOrder
@@ -35,6 +36,7 @@ __all__ = [
     "ChatMembers",
     "Group",
     "GroupDraft",
+    "GroupMemberNotFound",
     "EmptyGroupError",
     "GroupService",
     "MentionTurnOrder",

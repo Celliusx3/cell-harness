@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
@@ -14,6 +15,7 @@ BUILDER_ID = "builder"
 BUILDER_NAME = "Bot builder"
 MIN_GROUP_MEMBERS = 2
 MAX_GROUP_MEMBERS = 6
+MENTION_PATTERN = r"(?:^|[^\w-])@{name}(?![\w-])"
 
 
 def _strip_and_refuse_blank(value: str) -> str:
@@ -77,6 +79,14 @@ class Bot(BaseModel):
         if kind == "custom":
             return self.can_use_secret(name)
         return kind == "llm" and self.model_credential == name
+
+    def is_mentioned_in(self, text: str) -> bool:
+        """Whether `text` holds `@` and this bot's name in any case, not inside a longer word."""
+        name = self.name.strip()
+        if not name:
+            return False
+        pattern = MENTION_PATTERN.format(name=re.escape(name))
+        return re.search(pattern, text, re.IGNORECASE) is not None
 
     def with_secret(self, name: SecretName, *, allowed: bool) -> Bot:
         """This bot with the key `name` among its keys, last, or off them."""
@@ -142,6 +152,10 @@ class BotNotFound(LookupError):
 
     def __init__(self, bot_id: str) -> None:
         super().__init__(f"no bot {bot_id!r}")
+
+
+class GroupMemberNotFound(BotNotFound):
+    """A bot named as a group's member is no active bot."""
 
 
 class BuiltInBotError(PermissionError):

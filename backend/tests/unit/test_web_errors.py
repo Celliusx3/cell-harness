@@ -13,6 +13,7 @@ from harness.bots import (
     BotNotFound,
     BuiltInBotError,
     EmptyGroupError,
+    GroupMemberNotFound,
     UnsavedModelError,
 )
 from harness.files import FileTooLargeError, UnsafeFileNameError
@@ -54,6 +55,7 @@ PINNED = [
     ),
     pytest.param(FileTooLargeError("notes.txt", 1024), 413, id="FileTooLargeError"),
     pytest.param(EmptyGroupError("team"), 409, id="EmptyGroupError"),
+    pytest.param(GroupMemberNotFound("nope"), 422, id="GroupMemberNotFound"),
     pytest.param(InvalidSchedule("rrule: no occurrence after now"), 422, id="InvalidSchedule"),
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),
