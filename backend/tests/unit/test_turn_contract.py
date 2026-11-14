@@ -29,10 +29,10 @@ from tests.unit.helpers import cancel_mid_turn, drain, new_session, runtime_over
 
 
 class Noting(ToolHook):
-    async def pre(self, sig, calls):
+    async def refusal_reason(self, sig, calls):
         return None
 
-    async def post(self, sig, outcome, calls):
+    async def post_call_note(self, sig, outcome, calls):
         return "careful"
 
 

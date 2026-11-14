@@ -21,18 +21,18 @@ from harness.tools import ToolOutcome
 
 logger = logging.getLogger("harness.runtime")
 
-HOOK_TIMEOUT_S = 5.0
+HOOK_TIMEOUT_SECONDS = 5.0
 
 
 class ToolHook(ABC):
     """Something consulted before and after every tool call the model makes."""
 
     @abstractmethod
-    async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
         """A reason to refuse the call, or `None` to run it."""
 
     @abstractmethod
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, prior: Sequence[CompletedCall]
     ) -> str | None:
         """Guidance for the model about this call, or `None` to say nothing."""
@@ -80,14 +80,16 @@ class HookChain:
 
     async def pre_tool_call(self, call: ToolCall, *, session: Session) -> str | None:
         sig, calls = Signature.of(call), completed_calls(session)
-        return await self._first_decision(self.tool_hooks, lambda hook: hook.pre(sig, calls), "pre")
+        return await self._first_decision(
+            self.tool_hooks, lambda hook: hook.refusal_reason(sig, calls), "refusal_reason"
+        )
 
     async def post_tool_call(
         self, call: ToolCall, outcome: ToolOutcome, *, session: Session
     ) -> str | None:
         sig, calls = Signature.of(call), completed_calls(session)
         return await self._first_decision(
-            self.tool_hooks, lambda hook: hook.post(sig, outcome, calls), "post"
+            self.tool_hooks, lambda hook: hook.post_call_note(sig, outcome, calls), "post_call_note"
         )
 
     async def start_of_step(self) -> tuple[str, ...]:
@@ -121,10 +123,12 @@ async def _answer[Hook: (ToolHook, StepHook), Said](
     """What `hook` says at `point`, or `None` when it raised or ran out of time."""
     name = type(hook).__name__
     try:
-        async with asyncio.timeout(HOOK_TIMEOUT_S):
+        async with asyncio.timeout(HOOK_TIMEOUT_SECONDS):
             return await ask(hook)
     except TimeoutError:
-        logger.warning("hook %s.%s exceeded %.1fs and was skipped", name, point, HOOK_TIMEOUT_S)
+        logger.warning(
+            "hook %s.%s exceeded %.1fs and was skipped", name, point, HOOK_TIMEOUT_SECONDS
+        )
     except Exception:
         logger.exception("hook %s.%s raised and was skipped", name, point)
     return None

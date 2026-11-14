@@ -20,9 +20,9 @@ from harness.llm import (
     ToolSpec,
     UserMessage,
 )
-from harness.runtime.compaction import CompactionRefused, check_can_compact
+from harness.runtime.compaction import CompactionRefusedError, check_can_compact
 from harness.runtime.compaction.history import PRUNE_KEEP
-from harness.runtime.compaction.service import NOTHING
+from harness.runtime.compaction.service import NOTHING_TO_COMPACT_REASON
 from harness.session.domain.compaction import CompactionEnd
 from harness.session.domain.log import Numbered, Session
 from harness.session.domain.models import (
@@ -133,9 +133,9 @@ async def test_after_a_clear_nothing_is_left_to_compact_granted_or_selected(tmp_
     await service.clear(before.id)
 
     after = await service.resume(before.id)
-    with pytest.raises(CompactionRefused) as refused:
+    with pytest.raises(CompactionRefusedError) as refused:
         check_can_compact(after)
-    assert refused.value.reason == NOTHING
+    assert refused.value.reason == NOTHING_TO_COMPACT_REASON
     assert after.speaker_granted_tools() == frozenset()
     assert after.tools_selected() == ()
     assert after.context_size() is None

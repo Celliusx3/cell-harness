@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING
 
 from harness.llm import ApplicationMessage, Completed, Failed, UserMessage
 from harness.prompts import COMPACTION_INSTRUCTION
-from harness.runtime.compaction.history import loaded_skills, prunable_ids, summarizable
+from harness.runtime.compaction.history import (
+    has_summarizable_tail,
+    loaded_skill_bodies,
+    prunable_call_ids,
+)
 from harness.runtime.compaction.prompt import summary_message
 from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel
 from harness.session.domain.compaction import (
@@ -25,16 +29,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("harness.runtime")
 
-COMPACT_AT = 0.8
+COMPACT_AT_WINDOW_FRACTION = 0.8
 
-NOTHING = "nothing to compact"
-UNANSWERED = "a client request is still unanswered"
-INTERRUPTED = "interrupted"
+NOTHING_TO_COMPACT_REASON = "nothing to compact"
+UNANSWERED_REQUEST_REASON = "a client request is still unanswered"
+INTERRUPTED_ERROR = "interrupted"
 
 CompactionEvent = CompactionStart | CompactionEnd | CompactionPrune
 
 
-class CompactionRefused(Exception):
+class CompactionRefusedError(Exception):
     """A manual compaction cannot run now."""
 
     def __init__(self, reason: str) -> None:
@@ -43,12 +47,12 @@ class CompactionRefused(Exception):
 
 
 def check_can_compact(session: Session) -> None:
-    """Raise `CompactionRefused` with the reason when a manual compaction cannot run now."""
+    """Raise `CompactionRefusedError` with the reason when a manual compaction cannot run now."""
     events = session.events()
     if unanswered(events):
-        raise CompactionRefused(UNANSWERED)
-    if not prunable_ids(events) and not summarizable(events):
-        raise CompactionRefused(NOTHING)
+        raise CompactionRefusedError(UNANSWERED_REQUEST_REASON)
+    if not prunable_call_ids(events) and not has_summarizable_tail(events):
+        raise CompactionRefusedError(NOTHING_TO_COMPACT_REASON)
 
 
 def should_compact(choice: ModelChoice | NoModel, session: Session) -> bool:
@@ -56,7 +60,7 @@ def should_compact(choice: ModelChoice | NoModel, session: Session) -> bool:
     if isinstance(choice, NoModel) or choice.context_tokens is None:
         return False
     used = session.context_size()
-    return used is not None and used >= int(choice.context_tokens * COMPACT_AT)
+    return used is not None and used >= int(choice.context_tokens * COMPACT_AT_WINDOW_FRACTION)
 
 
 async def run_compaction(
@@ -64,12 +68,12 @@ async def run_compaction(
 ) -> AsyncIterator[CompactionEvent]:
     """One pass: prune if anything is prunable, else summarize inside a start/end bracket."""
     events = session.events()
-    if ids := prunable_ids(events):
+    if ids := prunable_call_ids(events):
         prune = CompactionPrune(turn=turn, call_ids=ids)
         session.append(prune)
         yield prune
         return
-    if not summarizable(events):
+    if not has_summarizable_tail(events):
         return
     start = CompactionStart(turn=turn, trigger=trigger, tokens=session.context_size())
     session.append(start)
@@ -82,7 +86,7 @@ async def run_compaction(
         yield end
     finally:
         if not ended:
-            session.append(CompactionEnd(turn=turn, error=INTERRUPTED))
+            session.append(CompactionEnd(turn=turn, error=INTERRUPTED_ERROR))
 
 
 async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) -> CompactionEnd:
@@ -107,5 +111,5 @@ async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) ->
     text = completed.full_text.strip()
     if not text:
         return CompactionEnd(turn=turn, error="summary request produced no text")
-    content = summary_message(text, loaded_skills(session.events()))
+    content = summary_message(text, loaded_skill_bodies(session.events()))
     return CompactionEnd(turn=turn, message=ApplicationMessage(content=content))

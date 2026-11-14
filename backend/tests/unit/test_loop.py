@@ -11,9 +11,9 @@ from harness.llm import Completed, Failed, SystemMessage, TextChunk
 from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.runtime.hooks import HookChain
-from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY, EmptyReplyHook
+from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY_REASON, EmptyReplyHook
 from harness.runtime.service import Runtime
-from harness.runtime.turn import NO_TERMINAL
+from harness.runtime.turn import NO_TERMINAL_REASON
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,
@@ -112,7 +112,7 @@ async def test_stream_without_a_terminal_is_a_failure_not_a_success() -> None:
 
     events = await drain(runtime_with(client).run("hi", session=session, bot_id="b"))
 
-    assert events[-1] == AgentFailed(reason=NO_TERMINAL)
+    assert events[-1] == AgentFailed(reason=NO_TERMINAL_REASON)
     assert session.events()[-1].reason == "failed"
 
 
@@ -199,7 +199,7 @@ async def test_two_empty_replies_fail_the_turn() -> None:
 
     events = await drain(runtime_with(client, hooks=TOLD).run("hi", session=session, bot_id="b"))
 
-    assert events[-1] == AgentFailed(reason=EMPTY_REPLY)
+    assert events[-1] == AgentFailed(reason=EMPTY_REPLY_REASON)
     assert _notes(session) == [EMPTY_REPLY_NOTE]
     assert client.calls == 2
     assert session.events()[-1] == TurnEnd(turn=0, reason="failed")

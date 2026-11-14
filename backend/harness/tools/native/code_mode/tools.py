@@ -8,7 +8,7 @@ from collections.abc import Callable
 
 from harness.llm import Text, ToolCall, ToolReference, text_of
 from harness.prompts import NOTHING_CAME_BACK
-from harness.sandbox import BridgeError, DenoUnavailableError, Runner, Script
+from harness.sandbox import BridgeError, DenoUnavailableError, Runner, ScriptResult
 from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import (
     EXECUTION_ERROR,
@@ -159,7 +159,7 @@ def _script_value(text: str) -> object:
         return text
 
 
-def _script_outcome(script: Script) -> ToolOutcome:
+def _script_outcome(script: ScriptResult) -> ToolOutcome:
     """What the model reads back."""
     printed = "\n".join(script.logs)
     if script.error is not None:

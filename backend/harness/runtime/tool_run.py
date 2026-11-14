@@ -44,7 +44,7 @@ def settled_result(call_id: str, outcome: Ok | Failure, *, turn: int, step: int)
 
 
 @dataclass(frozen=True)
-class HandedOver:
+class FileHandOver:
     """The files a result named that reached the person, and a line per path saying whether."""
 
     files: tuple[ChatFile, ...]
@@ -53,7 +53,7 @@ class HandedOver:
 
 def _files_handed_over(
     files: ChatFileService | None, chat_id: str, outcome: Ok | Failure
-) -> HandedOver:
+) -> FileHandOver:
     """Each path a result names: kept when it is a file in this chat's folder, else refused."""
     paths = outcome.paths_to_send if isinstance(outcome, Ok) else ()
     kept: list[ChatFile] = []
@@ -66,10 +66,10 @@ def _files_handed_over(
             continue
         kept.append(stored)
         lines.append(HANDED_OVER.format(path=path))
-    return HandedOver(files=tuple(kept), lines=tuple(lines))
+    return FileHandOver(files=tuple(kept), lines=tuple(lines))
 
 
-def _with_hand_over_lines(message: ToolMessage, handed: HandedOver) -> ToolMessage:
+def _with_hand_over_lines(message: ToolMessage, handed: FileHandOver) -> ToolMessage:
     """The result's words, then which of the files it named reached the person."""
     if not handed.lines:
         return message
@@ -146,7 +146,7 @@ async def _answer_call(
 ) -> AsyncIterator[ToolProgress | ToolResult | ToolPending | Reminder]:
     """Any `ToolProgress`, then a `ToolPending`, or an optional `Reminder` then a `ToolResult`."""
     refusal = await runtime.hooks.pre_tool_call(call, session=session)
-    sees_images = await runtime.sees_images(bot_id)
+    sees_images = await runtime.can_see_images(bot_id)
     outcome: ToolOutcome | None = None
     if refusal is not None:
         outcome = Failure(BLOCKED, refusal)

@@ -27,7 +27,7 @@ from harness.runtime.events import (
     TurnEvent,
 )
 from harness.runtime.hooks import GiveUp, Tell
-from harness.runtime.inbox import claim_into
+from harness.runtime.inbox import log_waiting_messages
 from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.runtime.step_open import open_step
 from harness.runtime.step_tools import NextStep, StepEnding, close_turn, run_step_tools
@@ -45,7 +45,7 @@ from harness.session.domain.models import (
 if TYPE_CHECKING:
     from harness.runtime.service import Runtime
 
-NO_TERMINAL = "stream ended without a terminal event"
+NO_TERMINAL_REASON = "stream ended without a terminal event"
 
 
 @dataclass(frozen=True)
@@ -138,9 +138,9 @@ async def _outcome_without_tools(
         close_turn(session, at.turn, at.step, "failed")
         return AgentFailed(reason=decision.reason)
     if isinstance(decision, Tell):
-        _tell(session, at.turn, at.step, decision.note)
+        _end_step_with_note(session, at.turn, at.step, decision.note)
         return None
-    if await claim_into(runtime, session, turn=at.turn, bot_id=bot_id):
+    if await log_waiting_messages(runtime, session, turn=at.turn, bot_id=bot_id):
         session.append(StepEnd(turn=at.turn, step=at.step))
         return None
     close_turn(session, at.turn, at.step, "completed")
@@ -158,9 +158,9 @@ async def _stream_reply(
         yield refused
         return
     selected = session.tools_selected()
-    specs = runtime.tools.specs(selected, sees_images=choice.vision) if runtime.tools else None
+    specs = runtime.tools.specs(selected, sees_images=choice.has_vision) if runtime.tools else None
     context = await runtime.hooks.start_of_step()
-    messages = runtime.request_messages(session, context, sees_images=choice.vision)
+    messages = runtime.request_messages(session, context, sees_images=choice.has_vision)
     if runtime.checkpoint is not None:
         await runtime.checkpoint(session)
 
@@ -184,7 +184,7 @@ async def _stream_reply(
                     failed = event
 
         if failed is not None or completed is None:
-            failure = failed if failed is not None else Failed(reason=NO_TERMINAL)
+            failure = failed if failed is not None else Failed(reason=NO_TERMINAL_REASON)
             yield await _failure_or_retry(runtime, session, failure, turn=at.turn)
             return
 
@@ -262,7 +262,7 @@ async def _shrink_history(
     return shrank
 
 
-def _tell(session: Session, turn: int, step: int, note: str) -> None:
+def _end_step_with_note(session: Session, turn: int, step: int, note: str) -> None:
     """Close the step with a note the model reads before the next request."""
     session.append(ApplicationMessageEvent(turn=turn, message=ApplicationMessage(content=note)))
     session.append(StepEnd(turn=turn, step=step))

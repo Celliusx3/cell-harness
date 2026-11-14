@@ -66,10 +66,10 @@ async def test_an_approved_calls_progress_reaches_the_caller_before_its_result(t
 
 async def test_an_approved_calls_note_is_logged_after_its_result(tmp_path) -> None:
     class Noting(ToolHook):
-        async def pre(self, sig, prior) -> str | None:
+        async def refusal_reason(self, sig, prior) -> str | None:
             return None
 
-        async def post(self, sig, outcome, prior) -> str | None:
+        async def post_call_note(self, sig, outcome, prior) -> str | None:
             return "careful"
 
     client = SteppedClient(calls_tool(WRITE, '{"value": "Kopi"}', id="c1"), completed("saved"))

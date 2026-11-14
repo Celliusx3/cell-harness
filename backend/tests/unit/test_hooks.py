@@ -33,20 +33,20 @@ class Says(ToolHook):
     refusal: str | None = None
     note: str | None = None
 
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
         return self.refusal
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
     ) -> str | None:
         return self.note
 
 
 class Raises(ToolHook):
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
         raise RuntimeError("bug in a hook")
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
     ) -> str | None:
         raise RuntimeError("bug in a hook")
@@ -82,12 +82,12 @@ class Hangs(ToolHook):
     def __init__(self) -> None:
         self.started = asyncio.Event()
 
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
         self.started.set()
         await asyncio.Event().wait()
         return "never"
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
     ) -> str | None:
         await asyncio.Event().wait()
@@ -100,11 +100,11 @@ class Sees(ToolHook):
     def __init__(self) -> None:
         self.seen: list[tuple[Signature, tuple[CompletedCall, ...]]] = []
 
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
         self.seen.append((sig, calls))
         return None
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
     ) -> str | None:
         self.seen.append((sig, calls))
@@ -136,20 +136,20 @@ async def test_a_raising_decision_hook_refuses_nothing_and_suppresses_nothing(
         assert await chain.pre_tool_call(CALL, session=new_session()) == "ok"
         assert await chain.post_tool_call(CALL, Ok(content="x"), session=new_session()) == "note"
 
-    assert "Raises.pre raised" in caplog.text
-    assert "Raises.post raised" in caplog.text
+    assert "Raises.refusal_reason raised" in caplog.text
+    assert "Raises.post_call_note raised" in caplog.text
 
 
 async def test_a_hook_exceeding_the_timeout_is_skipped_and_logged(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    monkeypatch.setattr(service_module, "HOOK_TIMEOUT_S", 0.01)
+    monkeypatch.setattr(service_module, "HOOK_TIMEOUT_SECONDS", 0.01)
     chain = HookChain((Hangs(), Says(refusal="after")))
 
     with caplog.at_level(logging.WARNING, logger="harness.runtime"):
         assert await chain.pre_tool_call(CALL, session=new_session()) == "after"
 
-    assert "Hangs.pre exceeded" in caplog.text
+    assert "Hangs.refusal_reason exceeded" in caplog.text
 
 
 async def test_cancellation_passes_through_a_hook() -> None:

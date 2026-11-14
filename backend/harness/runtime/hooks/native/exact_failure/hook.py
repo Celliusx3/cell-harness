@@ -25,7 +25,7 @@ class ExactFailureHook(ToolHook):
     warn_at: int = EXACT_FAILURE_WARN_AT
     block_at: int = EXACT_FAILURE_BLOCK_AT
 
-    async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
         failures = failures_since_success(prior, sig.is_same_call)
         if failures + 1 < self.block_at:
             return None
@@ -33,7 +33,7 @@ class ExactFailureHook(ToolHook):
             name=sig.name, n=failures, last=last_failure_text(prior, sig.is_same_call)
         )
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, prior: Sequence[CompletedCall]
     ) -> str | None:
         if isinstance(outcome, Ok):

@@ -9,7 +9,7 @@ from harness.runtime.hooks.service import GiveUp, StepDecision, StepHook, Tell
 
 EMPTY_REPLY_TELL_AT, EMPTY_REPLY_FAIL_AT = 1, 2
 
-EMPTY_REPLY = "the model returned no text, and again after being told"
+EMPTY_REPLY_REASON = "the model returned no text, and again after being told"
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class EmptyReplyHook(StepHook):
 
     async def end_of_step(self, empties: int) -> StepDecision | None:
         if empties >= self.fail_at:
-            return GiveUp(EMPTY_REPLY)
+            return GiveUp(EMPTY_REPLY_REASON)
         if empties >= self.tell_at:
             return Tell(EMPTY_REPLY_NOTE)
         return None

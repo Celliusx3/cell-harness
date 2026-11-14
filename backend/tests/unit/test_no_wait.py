@@ -11,7 +11,7 @@ from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.calls import Signature
-from harness.runtime.hooks.native.no_wait import NoWaitHook, waits
+from harness.runtime.hooks.native.no_wait import NoWaitHook, is_waiting_call
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR
@@ -47,7 +47,7 @@ def script(code: str) -> str:
 def test_a_call_waits_when_its_script_or_command_sleeps_or_times_out_long(
     name: str, arguments: str, expected: bool
 ) -> None:
-    assert waits(name, arguments) is expected
+    assert is_waiting_call(name, arguments) is expected
 
 
 async def test_the_hook_refuses_a_waiting_call_with_its_reason() -> None:
@@ -55,8 +55,8 @@ async def test_the_hook_refuses_a_waiting_call_with_its_reason() -> None:
     waiting = Signature(name="execute_typescript", args=script("setTimeout(go, 9000)"))
     working = Signature(name="execute_typescript", args=script("return 1"))
 
-    assert await hook.pre(waiting, ()) == NO_WAIT_REFUSAL
-    assert await hook.pre(working, ()) is None
+    assert await hook.refusal_reason(waiting, ()) == NO_WAIT_REFUSAL
+    assert await hook.refusal_reason(working, ()) is None
 
 
 def test_only_the_bots_own_runtime_routes_and_refuses_waits(tmp_path: Path) -> None:

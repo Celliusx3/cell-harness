@@ -24,11 +24,11 @@ class Stub(ToolHook):
         self.pre_seen: list[Signature] = []
         self.post_seen: list[tuple[Signature, ToolOutcome]] = []
 
-    async def pre(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, calls: Sequence[CompletedCall]) -> str | None:
         self.pre_seen.append(sig)
         return self.refuse
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, calls: Sequence[CompletedCall]
     ) -> str | None:
         self.post_seen.append((sig, outcome))

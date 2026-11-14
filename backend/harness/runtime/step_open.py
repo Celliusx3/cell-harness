@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from harness.llm import ApplicationMessage
 from harness.prompts import APPROVAL_MODE_CHANGED
-from harness.runtime.inbox import claim_into
+from harness.runtime.inbox import log_waiting_messages
 from harness.session.domain.log import Session
 from harness.session.domain.models import ApplicationMessageEvent, StepStart
 
@@ -20,7 +20,7 @@ async def open_step(
     """Open the step, then, past the first, read in what the person sent since the last."""
     _start_step_noting_mode_switch(runtime, session, turn=turn, step=step)
     if step > 0:
-        await claim_into(runtime, session, turn=turn, bot_id=bot_id)
+        await log_waiting_messages(runtime, session, turn=turn, bot_id=bot_id)
 
 
 def _start_step_noting_mode_switch(

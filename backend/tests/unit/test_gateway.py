@@ -7,7 +7,7 @@ import contextlib
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.service.inbox import ChatInbox
-from harness.runtime.inbox import Claimed
+from harness.runtime.inbox import WaitingMessages
 from tests.unit.fakes import (
     ScriptedClient,
     SteppedClient,
@@ -147,7 +147,7 @@ async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: as
     return bot, gateway, runs, chats, sessions, conversation
 
 
-async def _past_the_last_check(self: ChatInbox, conversation_id: str) -> Claimed | None:
+async def _past_the_last_check(self: ChatInbox, conversation_id: str) -> WaitingMessages | None:
     """Claim nothing, as a turn whose last check came before the message did."""
     return None
 

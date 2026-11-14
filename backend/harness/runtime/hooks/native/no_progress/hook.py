@@ -21,16 +21,16 @@ class NoProgressHook(ToolHook):
     warn_at: int = NO_PROGRESS_WARN_AT
     block_at: int = NO_PROGRESS_BLOCK_AT
 
-    async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
+    async def refusal_reason(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
         last = next((e for e in reversed(prior) if sig.is_same_call(e)), None)
-        if last is None or last.failed:
+        if last is None or last.has_failed:
             return None
         identical = _identical_results_in_a_row(sig, last.text, prior)
         if identical + 1 < self.block_at:
             return None
         return NO_PROGRESS_REFUSAL.format(name=sig.name, n=identical)
 
-    async def post(
+    async def post_call_note(
         self, sig: Signature, outcome: ToolOutcome, prior: Sequence[CompletedCall]
     ) -> str | None:
         if not isinstance(outcome, Ok):
@@ -45,7 +45,7 @@ def _identical_results_in_a_row(sig: Signature, text: str, calls: Sequence[Compl
     for entry in reversed(calls):
         if not sig.is_same_call(entry):
             continue
-        if entry.failed or entry.text != text:
+        if entry.has_failed or entry.text != text:
             break
         n += 1
     return n

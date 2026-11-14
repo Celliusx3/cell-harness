@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.conversation_router import chat_router
 from harness.runs.service.run import RunAlreadyActive
-from harness.runtime.compaction import CompactionRefused
+from harness.runtime.compaction import CompactionRefusedError
 
 logger = logging.getLogger("harness.web")
 
@@ -35,7 +35,7 @@ class CompactRouter:
         session = await self._web.sessions.resume(conversation_id)
         try:
             self._web.gateway.compact(session, ())
-        except CompactionRefused as err:
+        except CompactionRefusedError as err:
             raise HTTPException(status.HTTP_409_CONFLICT, detail=err.reason) from err
         except RunAlreadyActive as err:
             raise HTTPException(

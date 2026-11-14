@@ -17,7 +17,7 @@ from harness.prompts import (
 )
 from harness.runtime.compaction import (
     CompactionEvent,
-    CompactionRefused,
+    CompactionRefusedError,
     check_can_compact,
     run_compaction,
 )
@@ -116,7 +116,7 @@ class Runtime:
         """A turn opened by the person: its events as they happen, then exactly one terminal."""
         _skip_calls_walked_past(session)
         turn = self._open_turn(session, bot_id)
-        sees_images = await self.sees_images(bot_id)
+        sees_images = await self.can_see_images(bot_id)
         self.log_person_message(session, user_input, files, turn=turn, sees_images=sees_images)
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
@@ -136,10 +136,10 @@ class Runtime:
         message = UserMessage(content=text, images=images)
         session.append(UserMessageEvent(turn=turn, message=message, files=files))
 
-    async def sees_images(self, bot_id: str) -> bool:
+    async def can_see_images(self, bot_id: str) -> bool:
         """Whether `bot_id`'s model can be shown images now; `False` when it has none."""
         choice = await self.models.model_for(bot_id)
-        return isinstance(choice, ModelChoice) and choice.vision
+        return isinstance(choice, ModelChoice) and choice.has_vision
 
     async def hear(
         self, message: HeardMessage, *, session: Session, bot_id: str
@@ -195,7 +195,9 @@ class Runtime:
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
         if self.server_instructions is not None:
-            for event in _changed(session.server_instructions(), self.server_instructions()):
+            for event in _changed_instructions(
+                session.server_instructions(), self.server_instructions()
+            ):
                 session.append(event)
         return turn
 
@@ -203,7 +205,7 @@ class Runtime:
         """A manual compaction, driven as its own run."""
         try:
             check_can_compact(session)
-        except CompactionRefused:
+        except CompactionRefusedError:
             return
         async with aclosing(run_compaction(self, session, turn=None, trigger="manual")) as events:
             async for event in events:
@@ -223,7 +225,7 @@ def _with_context(history: list[Message], context: Sequence[str]) -> list[Messag
     return history
 
 
-def _changed(
+def _changed_instructions(
     logged: Mapping[str, str], current: Mapping[str, str]
 ) -> list[ServerInstructionsEvent]:
     """An event for each server whose `current` instructions, absent meaning empty, differ."""

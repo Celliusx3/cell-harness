@@ -201,10 +201,10 @@ async def test_a_script_calling_a_listed_tool_is_refused_and_told_to_call_it_dir
 
 async def test_a_hook_refusal_never_reaches_the_approvals(tmp_path) -> None:
     class Refuse(ToolHook):
-        async def pre(self, sig, prior) -> str | None:
+        async def refusal_reason(self, sig, prior) -> str | None:
             return "no"
 
-        async def post(self, sig, outcome, prior) -> str | None:
+        async def post_call_note(self, sig, outcome, prior) -> str | None:
             return None
 
     ran: list[str] = []

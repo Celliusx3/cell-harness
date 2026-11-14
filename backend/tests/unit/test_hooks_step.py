@@ -5,7 +5,7 @@ from __future__ import annotations
 from harness.llm import AssistantMessage, ToolCall
 from harness.prompts import EMPTY_REPLY_NOTE
 from harness.runtime.hooks import GiveUp, Tell
-from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY
+from harness.runtime.hooks.native.empty_reply import EMPTY_REPLY_REASON
 from harness.session.domain.log import Session
 from harness.session.domain.models import AssistantMessageEvent, TurnStart
 from tests.unit.test_hooks_native import GUARD, call, turn
@@ -27,7 +27,7 @@ async def test_the_first_empty_reply_is_told_and_the_second_gives_up() -> None:
     assert await GUARD.end_of_step(session=session) == Tell(EMPTY_REPLY_NOTE)
 
     replied(session)
-    assert await GUARD.end_of_step(session=session) == GiveUp(EMPTY_REPLY)
+    assert await GUARD.end_of_step(session=session) == GiveUp(EMPTY_REPLY_REASON)
 
 
 async def test_an_empty_text_reply_that_calls_a_tool_is_not_an_empty_reply() -> None:

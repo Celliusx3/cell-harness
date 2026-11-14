@@ -61,7 +61,7 @@ counting.
 `should_compact` compares the context size against a line:
 
 ```
-threshold = floor(context_tokens × 0.8)          # COMPACT_AT; dsh's ratio
+threshold = floor(context_tokens × 0.8)          # COMPACT_AT_WINDOW_FRACTION; dsh's ratio
 used      = last assistant/message.usage.input_tokens + output_tokens
 ```
 
