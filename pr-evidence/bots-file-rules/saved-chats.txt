@@ -1,0 +1,17 @@
+Saved chat files in the sessions folder at each step, on a new data folder.
+The same browser script ran on both. No response was 400 or above on either.
+
+main (280fd13e), before
+  after the sidebar loads:                    assistant.jsonl, builder.jsonl
+  after opening Assistant's chat:             assistant.jsonl, builder.jsonl
+  after sending "hi":                         assistant.jsonl, builder.jsonl
+  after describing a bot to Bot builder:      assistant.jsonl, builder.jsonl
+
+refactor/bots-file-rules, after
+  after the sidebar loads:                    none
+  after opening Assistant's chat:             none
+  after sending "hi":                         assistant.jsonl
+  after describing a bot to Bot builder:      assistant.jsonl, builder.jsonl
+
+Assistant's chat as stored after "hi" starts with:
+  bot/instructions, turn/start, user/message, step/start, ...
