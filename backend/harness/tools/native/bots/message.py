@@ -42,7 +42,7 @@ def message_bot_tool(bots: BotService, sender: BotMessageSender) -> Tool[Message
     return Tool.from_model(
         name=MESSAGE_BOT,
         description=_DESCRIPTION,
-        args_model=_args_model(bots.active_bot_names()),
+        args_model=_args_model(tuple(bot.name for bot in bots.active_bots())),
         execute=execute,
     )
 

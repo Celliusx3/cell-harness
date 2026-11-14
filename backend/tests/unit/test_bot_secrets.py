@@ -84,7 +84,7 @@ async def test_forgetting_a_key_takes_it_off_every_bot_archived_ones_too(
     bots.allow_secret(ASSISTANT_ID, "github")
     bots.archive(second.id)
 
-    bots.forget_secret("github")
+    bots.forget_credential("github")
 
     assert bots.active_bot(first.id).secret_names == ("notion",)
     assert bots.active_bot(ASSISTANT_ID).secret_names == ()
@@ -92,7 +92,7 @@ async def test_forgetting_a_key_takes_it_off_every_bot_archived_ones_too(
 
 
 def test_forgetting_a_key_no_bot_holds_writes_nothing(tmp_path: Path, bots: BotService) -> None:
-    bots.forget_secret("github")
+    bots.forget_credential("github")
 
     assert not (tmp_path / "bots.json").exists()
 

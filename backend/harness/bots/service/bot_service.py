@@ -59,10 +59,6 @@ class BotService:
         """The active bots, built-ins first, read without opening any chat."""
         return self._repository.read().active_bots(self._built_ins)
 
-    def active_bot_names(self) -> tuple[str, ...]:
-        """The active bots' names, built-ins first, read without opening any chat."""
-        return tuple(bot.name for bot in self.active_bots())
-
     def archived_bots(self) -> tuple[Bot, ...]:
         """The archived bots, in the order they were made."""
         return tuple(bot for bot in self._repository.read().bots if bot.archived)
@@ -140,7 +136,7 @@ class BotService:
         )
         self._write_file(stored.with_bots(changed))
 
-    def forget_secret(self, secret_name: str) -> None:
+    def forget_credential(self, secret_name: str) -> None:
         """Take `secret_name` off every stored bot, archived ones too, as a key and as a model."""
         stored = self._repository.read()
         bots = tuple(bot.without_credential(secret_name) for bot in stored.bots)
