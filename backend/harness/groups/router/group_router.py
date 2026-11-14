@@ -6,7 +6,7 @@ import logging
 
 from fastapi import APIRouter, status
 
-from harness.bots import Group, GroupDraft, GroupService
+from harness.groups import Group, GroupDraft, GroupService
 
 logger = logging.getLogger(__name__)
 

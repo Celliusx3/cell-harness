@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, BUILDER_ID, GroupService
+from harness.bots import ASSISTANT_ID, BUILDER_ID
+from harness.groups import GroupService
 from harness.schedules import ScheduleService
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.schedule import schedule_list_tool, schedule_view_tool

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from harness.bots import Group, GroupRepository
+from harness.groups import Group, GroupRepository
 
 DESK = Group(id="g1", name="Desk", member_ids=("r1", "w1"))
 PANEL = Group(id="g2", name="Panel", member_ids=("w1", "r1"))

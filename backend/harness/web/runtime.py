@@ -9,10 +9,11 @@ from collections.abc import Sequence
 
 import httpx
 
-from harness.bots import BotService, GroupService
+from harness.bots import BotService
 from harness.config.sections import CompactionSettings
 from harness.config.settings import Settings
 from harness.files import ChatFileService
+from harness.groups import GroupService
 from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harness.bots import Bot
-from harness.bots.domain.turn_order import MAX_TURNS_FROM_MENTIONS, MENTION_TURN_ORDER
+from harness.groups.domain.turn_order import MAX_TURNS_FROM_MENTIONS, MENTION_TURN_ORDER
 from harness.llm import AssistantMessage, UserMessage
 from harness.session.domain.models import (
     AssistantMessageEvent,

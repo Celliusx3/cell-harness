@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from harness.bots.domain.models import Group, GroupsFile
+from harness.groups.domain.models import Group, GroupsFile
 
 
 class GroupRepository:

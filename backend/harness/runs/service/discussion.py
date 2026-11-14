@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
-from harness.bots import GroupService
+from harness.groups import GroupService
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session

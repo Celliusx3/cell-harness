@@ -17,10 +17,8 @@ from harness.bots import (
     BotNotFound,
     BotRepository,
     BotService,
-    ChatMembers,
-    GroupDraft,
-    GroupService,
 )
+from harness.groups import ChatMembers, GroupDraft, GroupService
 from harness.llm import ToolCall
 from harness.session.domain.models import (
     GroupMembersEvent,

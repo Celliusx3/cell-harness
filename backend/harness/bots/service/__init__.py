@@ -1,1 +1,1 @@
-"""The bots and groups, and who answers in each chat."""
+"""The bots, and what follows a change to one."""

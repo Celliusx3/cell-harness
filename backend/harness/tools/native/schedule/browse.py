@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from harness.bots import GroupService
+from harness.groups import GroupService
 from harness.schedules import ScheduleNotFound, ScheduleService, ordered
 from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import Ok, ToolOutcome

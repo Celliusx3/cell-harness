@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from harness.app_events import AppEventService
-from harness.bots import BotService, GroupRepository, GroupService
+from harness.bots import BotService
+from harness.groups import GroupRepository, GroupService
 from harness.session.service.session_service import SessionService
 
 NO_GROUPS_FILE = Path("/nonexistent/cell-harness-groups.json")

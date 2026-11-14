@@ -1,1 +1,1 @@
-"""Where the bots and groups are kept."""
+"""Where the bots are kept."""

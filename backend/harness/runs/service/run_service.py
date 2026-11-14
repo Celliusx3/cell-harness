@@ -9,8 +9,9 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import aclosing
 
 from harness.app_events import AppEventService, ChatLoggedAppEvent, TurnStartedAppEvent
-from harness.bots import BotService, GroupService
+from harness.bots import BotService
 from harness.files import ChatFile
+from harness.groups import GroupService
 from harness.runs.service.discussion import discussion_events
 from harness.runs.service.run import Run, RunAlreadyActiveError, wait_until_settled
 from harness.runtime.events import TurnEvent

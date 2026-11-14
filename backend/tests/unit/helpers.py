@@ -13,11 +13,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotRepository, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.config.settings import SkillSettings
+from harness.groups import GroupService
 from harness.images import DiskImageRepository, ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS

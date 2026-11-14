@@ -8,7 +8,8 @@ from pathlib import Path
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BotDraft, GroupDraft
+from harness.bots import ASSISTANT_ID, BotDraft
+from harness.groups import GroupDraft
 from harness.tools import ApprovalService
 from harness.tools.client import ClientToolService
 from harness.tools.native.secrets import ASK_FOR_SECRET, FETCH_WITH_SECRET, fetch_with_secret_tool

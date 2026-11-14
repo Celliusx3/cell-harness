@@ -8,17 +8,8 @@ from dataclasses import replace
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import (
-    ASSISTANT_ID,
-    Bot,
-    BotDraft,
-    BotService,
-    ChatMembers,
-    EmptyGroupError,
-    GroupDraft,
-    GroupRepository,
-    GroupService,
-)
+from harness.bots import ASSISTANT_ID, Bot, BotDraft, BotService
+from harness.groups import ChatMembers, EmptyGroupError, GroupDraft, GroupRepository, GroupService
 from harness.runs.service.run import RunAlreadyActiveError
 from harness.runs.service.subscribe import subscribe
 from harness.session.domain.log import Session

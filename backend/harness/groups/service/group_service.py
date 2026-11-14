@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 from harness.app_events import AppEventService, BotsChangedAppEvent
-from harness.bots.domain.models import (
-    Bot,
-    BotNotFound,
+from harness.bots.domain.models import Bot, BotNotFound
+from harness.bots.service.bot_service import BotService, bot_instructions_event
+from harness.groups.domain.models import (
     ChatMembers,
     EmptyGroupError,
     Group,
     GroupDraft,
     GroupMemberNotFound,
 )
-from harness.bots.domain.turn_order import MENTION_TURN_ORDER
-from harness.bots.repository.group_repository import GroupRepository
-from harness.bots.service.bot_service import BotService, bot_instructions_event
+from harness.groups.domain.turn_order import MENTION_TURN_ORDER
+from harness.groups.repository.group_repository import GroupRepository
 from harness.session.domain.log import Session
 from harness.session.domain.models import GroupMembersEvent
 from harness.session.service.session_service import SessionService
