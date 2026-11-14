@@ -1,7 +1,8 @@
-"""Groups in the bots file: who is in one, and what a group may be made of."""
+"""Groups in the groups file: who is in one, and what a group may be made of."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -9,16 +10,15 @@ from pydantic import ValidationError
 
 from harness.app_events import AppEventService
 from harness.bots import (
-    MENTION_TURN_ORDER,
+    ASSISTANT_ID,
+    Bot,
     BotDraft,
     BotEdit,
     BotNotFound,
     BotRepository,
     BotService,
-    ChatMembers,
-    GroupDraft,
-    GroupService,
 )
+from harness.groups import ChatMembers, GroupDraft, GroupService
 from harness.llm import ToolCall
 from harness.session.domain.models import (
     GroupMembersEvent,
@@ -26,6 +26,7 @@ from harness.session.domain.models import (
     TurnStart,
 )
 from harness.session.service.session_service import SessionService
+from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL
 
@@ -48,8 +49,8 @@ def bots(tmp_path: Path, service: SessionService) -> BotService:
 
 
 @pytest.fixture
-def groups(bots: BotService, service: SessionService) -> GroupService:
-    return GroupService(bots, service, MENTION_TURN_ORDER)
+def groups(tmp_path: Path, bots: BotService, service: SessionService) -> GroupService:
+    return groups_in(tmp_path, bots, service, AppEventService())
 
 
 @pytest.mark.parametrize(
@@ -78,7 +79,7 @@ async def test_a_group_s_chat_holds_its_members_from_the_start(
 
     group = await groups.create(GroupDraft(name=" Launch ", member_ids=(writer.id, researcher.id)))
 
-    assert bots.groups() == (group,)
+    assert groups.all() == (group,)
     assert group.name == "Launch"
     chat = await service.read(group.id)
     assert list(chat.events()) == [
@@ -97,7 +98,7 @@ async def test_a_group_takes_only_active_bots(groups: GroupService, bots: BotSer
 
     with pytest.raises(BotNotFound):
         await groups.create(GroupDraft(name="Launch", member_ids=(researcher.id, writer.id)))
-    assert bots.groups() == ()
+    assert groups.all() == ()
 
 
 async def test_a_group_s_chat_is_answered_by_its_active_members_in_order(
@@ -142,7 +143,27 @@ async def test_changing_a_bot_keeps_every_group(groups: GroupService, bots: BotS
     )
     await bots.create(BotDraft(name="Editor", instructions="Edit.", model=MODEL_CREDENTIAL))
 
-    assert bots.groups() == (group,)
+    assert groups.all() == (group,)
+
+
+async def test_groups_left_in_the_bots_file_are_ignored_and_dropped_at_the_next_save(
+    tmp_path: Path, groups: GroupService, bots: BotService
+) -> None:
+    researcher = Bot(id="r1", name="Researcher", instructions="Cite.")
+    left_behind = {"id": "g1", "name": "Launch", "member_ids": ["r1", ASSISTANT_ID]}
+    (tmp_path / "bots.json").write_text(
+        json.dumps({"bots": [researcher.model_dump()], "groups": [left_behind]})
+    )
+
+    assert bots.active_bot("r1") == researcher
+    assert groups.all() == ()
+    with pytest.raises(BotNotFound):
+        groups.chat_members("g1")
+
+    bots.archive("r1")
+
+    assert set(json.loads((tmp_path / "bots.json").read_text())) == {"bots"}
+    assert not (tmp_path / "groups.json").exists()
 
 
 async def test_the_bot_that_asked_a_call_is_the_one_that_answers_it(

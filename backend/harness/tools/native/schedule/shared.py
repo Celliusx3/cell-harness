@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from harness.bots import BotNotFound, GroupService
+from harness.bots import BotNotFound
+from harness.groups import GroupService
 from harness.schedules import Schedule, ScheduleNotFound, ScheduleService
 from harness.schedules.domain.timing import zone_of
 from harness.tools.domain.outcome import INVALID_ARGUMENTS, REFUSED, Failure

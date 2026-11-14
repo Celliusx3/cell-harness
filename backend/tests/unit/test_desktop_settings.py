@@ -21,7 +21,7 @@ print(json.dumps({
     "encryption_key": s.secrets.encryption_key,
     "data_paths": [str(p) for p in (
         s.sessions.root, s.skills.editable, s.approval.grants_path,
-        s.bots.path, s.secrets.path, s.files.root, s.mcp.path,
+        s.bots.path, s.groups.path, s.secrets.path, s.files.root, s.mcp.path,
     )],
 }))
 """

@@ -9,20 +9,14 @@ from pathlib import Path
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import (
-    ASSISTANT_ID,
-    BUILDER_ID,
-    MENTION_TURN_ORDER,
-    BotRepository,
-    BotService,
-    GroupDraft,
-    GroupService,
-)
+from harness.bots import ASSISTANT_ID, BUILDER_ID, BotRepository, BotService
+from harness.groups import GroupDraft, GroupService
 from harness.schedules import ScheduleService
 from harness.session.service.session_service import SessionService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.schedule import SCHEDULE_CREATE, schedule_create_tool
 from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
+from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import context_for, durable_service
 from tests.unit.schedule_helpers import Clock, schedules_in
 
@@ -47,8 +41,8 @@ def bots(tmp_path: Path, sessions: SessionService) -> BotService:
 
 
 @pytest.fixture
-async def groups(bots: BotService, sessions: SessionService) -> GroupService:
-    return GroupService(bots, sessions, MENTION_TURN_ORDER)
+async def groups(tmp_path: Path, bots: BotService, sessions: SessionService) -> GroupService:
+    return groups_in(tmp_path, bots, sessions, AppEventService())
 
 
 @pytest.fixture

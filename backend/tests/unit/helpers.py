@@ -13,11 +13,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.config.settings import SkillSettings
+from harness.groups import GroupService
 from harness.images import DiskImageRepository, ImageService
 from harness.llm import AssistantMessage, Message, ToolMessage
 from harness.prompts import ASSISTANT_INSTRUCTIONS
@@ -49,6 +50,7 @@ from harness.tools.service.tool_service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
 from harness.web.tickets_wiring import ticket_workers
 from tests.unit.fakes import OneModel
+from tests.unit.group_helpers import group_service
 
 
 def unanswered_calls(messages: Sequence[Message]) -> list[str]:
@@ -200,7 +202,7 @@ def run_service(
             inbox=inbox,
         ),
         answering,
-        groups or GroupService(answering, service, MENTION_TURN_ORDER),
+        groups or group_service(answering, service),
         app_events=AppEventService(),
     )
 

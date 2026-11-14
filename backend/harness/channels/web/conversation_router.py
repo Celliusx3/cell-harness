@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
 
-from harness.bots import ChatMembers
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.service.commands import (
     ModeChoice,
@@ -26,6 +25,7 @@ from harness.channels.web.schemas import (
 )
 from harness.channels.web.sse import SSE_MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService
+from harness.groups import ChatMembers
 from harness.session.domain.log import Session
 from harness.skills import UnknownSkill
 from harness.web.http.files import folder_file, logged_image

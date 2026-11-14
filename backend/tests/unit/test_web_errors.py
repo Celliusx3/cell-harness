@@ -8,15 +8,9 @@ import httpx
 import pytest
 from fastapi import FastAPI, HTTPException
 
-from harness.bots import (
-    ASSISTANT_ID,
-    BotNotFound,
-    BuiltInBotError,
-    EmptyGroupError,
-    GroupMemberNotFound,
-    UnsavedModelError,
-)
+from harness.bots import ASSISTANT_ID, BotNotFound, BuiltInBotError, UnsavedModelError
 from harness.files import FileTooLargeError, UnsafeFileNameError
+from harness.groups import EmptyGroupError, GroupMemberNotFound
 from harness.mcp import (
     McpConnectionError,
     McpNotConnectedError,

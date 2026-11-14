@@ -20,6 +20,7 @@ from harness.config.sections import (
     CodeModeSettings,
     CompactionSettings,
     FileSettings,
+    GroupSettings,
     LLMSettings,
     McpSettings,
     ScheduleSettings,
@@ -97,6 +98,7 @@ class Settings(BaseSettings):
     skills: SkillSettings = Field(default_factory=SkillSettings)
     approval: ApprovalSettings = Field(default_factory=ApprovalSettings)
     bots: BotSettings = Field(default_factory=BotSettings)
+    groups: GroupSettings = Field(default_factory=GroupSettings)
     schedules: ScheduleSettings = Field(default_factory=ScheduleSettings)
     tickets: TicketSettings = Field(default_factory=TicketSettings)
     secrets: SecretSettings = Field(default_factory=SecretSettings)

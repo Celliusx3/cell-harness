@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots import ASSISTANT_ID
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, LinkCodes
@@ -27,7 +27,14 @@ from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
-from tests.unit.helpers import link_to_assistant, no_bots, no_images, no_skills, skills_at
+from tests.unit.group_helpers import group_service
+from tests.unit.helpers import (
+    link_to_assistant,
+    no_bots,
+    no_images,
+    no_skills,
+    skills_at,
+)
 from tests.unit.telegram_fakes import telegram_channel, update
 from tests.unit.test_skill_tool import write_skill
 
@@ -51,7 +58,7 @@ def build(tmp_path, *, skills: SkillService):
         sessions,
         runtime,
         bots,
-        GroupService(bots, sessions, MENTION_TURN_ORDER),
+        group_service(bots, sessions),
         app_events=AppEventService(),
     )
     chats = JsonChatRepository(tmp_path / "chats")

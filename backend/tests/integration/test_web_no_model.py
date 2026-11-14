@@ -10,7 +10,7 @@ import httpx
 import pytest
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, BUILDER_ID, MENTION_TURN_ORDER, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
 from harness.config.sections import LLMSettings
 from harness.llm import Image
 from harness.llm.adapters import OpenAIClient, OpenAISettings
@@ -22,6 +22,7 @@ from harness.tools import Failure, Ok
 from harness.tools.native.bots import bot_create_tool
 from harness.web.model_choice import CredentialModels, ModelEndpoint
 from tests.integration.web_helpers import settle
+from tests.unit.group_helpers import group_service
 from tests.unit.helpers import context_for, durable_service, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
 
@@ -97,7 +98,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         service,
         runtime,
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        group_service(bots, service),
         app_events=AppEventService(),
     )
     asgi = web_app(tmp_path, service, runs, skills=no_skills(), bots=bots, secrets=secrets)

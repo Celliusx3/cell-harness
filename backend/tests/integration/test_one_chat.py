@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 import httpx
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
+from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
@@ -22,6 +22,7 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.web.server import create_app
 from tests.unit.fakes import OneModel, SteppedClient, completed
+from tests.unit.group_helpers import group_service
 from tests.unit.helpers import (
     client_tools,
     link_to_assistant,
@@ -81,7 +82,7 @@ def build_on(tmp_path, model: LLMClient):
         sessions,
         runtime,
         bots,
-        GroupService(bots, sessions, MENTION_TURN_ORDER),
+        group_service(bots, sessions),
         app_events=app_events,
     )
     gateway, web = web_gateway(tmp_path, sessions, runs, skills=no_skills())

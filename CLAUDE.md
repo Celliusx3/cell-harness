@@ -75,8 +75,8 @@ backend/harness/
                   repository/  how the data source is read and changed — <name>_repository.py, and its backends
                   service/     the business rules — <name>_service.py, schedulers, workers, tools
                   router/      HTTP only — <name>_router.py + schemas.py, <page>_router.py for a second page
-                features: app_events bots channels files images mcp relay runs
-                schedules secrets session skills tickets tools
+                features: app_events bots channels files groups images mcp relay
+                runs schedules secrets session skills tickets tools
                 a folder that is its own subject keeps its shape: channels/telegram/,
                 discord/, web/; tools/client/, tools/native/<tool>/
   prompts.py    every prompt the harness writes; a tool's description stays with its tool

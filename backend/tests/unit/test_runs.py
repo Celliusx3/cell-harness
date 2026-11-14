@@ -7,17 +7,9 @@ from dataclasses import replace
 
 import pytest
 
-from harness.bots import (
-    ASSISTANT_ID,
-    MENTION_TURN_ORDER,
-    Bot,
-    BotDraft,
-    BotService,
-    ChatMembers,
-    EmptyGroupError,
-    GroupDraft,
-    GroupService,
-)
+from harness.app_events import AppEventService
+from harness.bots import ASSISTANT_ID, Bot, BotDraft, BotService
+from harness.groups import ChatMembers, EmptyGroupError, GroupDraft, GroupRepository, GroupService
 from harness.runs.service.run import RunAlreadyActiveError
 from harness.runs.service.subscribe import subscribe
 from harness.session.domain.log import Session
@@ -39,6 +31,7 @@ from tests.unit.fakes import (
     hanging_tool,
     pending_tool,
 )
+from tests.unit.group_helpers import NO_GROUPS_FILE, groups_in
 from tests.unit.helpers import drain, durable_service, no_bots, run_service, until
 from tests.webapp import MODEL_CREDENTIAL, bots_in
 
@@ -188,7 +181,9 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
         seen.append(context.origin.bot_id)
         return Ok(content=args.value)
 
-    groups = _ChatsOfNotion(no_bots(service), service, MENTION_TURN_ORDER)
+    groups = _ChatsOfNotion(
+        no_bots(service), service, GroupRepository(NO_GROUPS_FILE), AppEventService()
+    )
     client = SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done"))
     runs = run_service(service, client, replace(echo_tool(), execute=execute), groups=groups)
     run = runs.start(await service.create(ASSISTANT_ID), "go")
@@ -198,7 +193,7 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
 
 
 async def _group_chat(
-    bots: BotService, service: SessionService, *names: str
+    groups: GroupService, bots: BotService, service: SessionService, *names: str
 ) -> tuple[Session, tuple[Bot, ...]]:
     """A group of new bots called `names`, and its chat."""
     members = tuple(
@@ -209,7 +204,7 @@ async def _group_chat(
             for name in names
         ]
     )
-    group = await GroupService(bots, service, MENTION_TURN_ORDER).create(
+    group = await groups.create(
         GroupDraft(name="Launch", member_ids=tuple(bot.id for bot in members))
     )
     return await service.resume(group.id), members
@@ -223,11 +218,12 @@ async def test_the_line_carries_on_once_the_person_answers_the_bot_that_asked(
     tmp_path, service
 ) -> None:
     bots = bots_in(tmp_path, service)
-    chat, (researcher, writer) = await _group_chat(bots, service, "Researcher", "Writer")
+    groups = groups_in(tmp_path, bots, service, AppEventService())
+    chat, (researcher, writer) = await _group_chat(groups, bots, service, "Researcher", "Writer")
     client = SteppedClient(
         calls_tool("ask", '{"value": "?"}', id="c1"), completed("Got it."), completed("Draft.")
     )
-    runs = run_service(service, client, pending_tool(), bots=bots)
+    runs = run_service(service, client, pending_tool(), bots=bots, groups=groups)
     await asyncio.wait_for(runs.start(chat, "go")._settle_task, timeout=5)
 
     assert _speakers(chat) == [researcher.id]
@@ -243,9 +239,12 @@ async def test_the_line_carries_on_once_the_person_answers_the_bot_that_asked(
 
 async def test_stopping_a_group_ends_the_round_in_one_settled_run(tmp_path, service) -> None:
     bots = bots_in(tmp_path, service)
-    chat, (researcher, writer, _) = await _group_chat(bots, service, "Researcher", "Writer", "Ed")
+    groups = groups_in(tmp_path, bots, service, AppEventService())
+    chat, (researcher, writer, _) = await _group_chat(
+        groups, bots, service, "Researcher", "Writer", "Ed"
+    )
     client = SteppedClient(completed("Sources."), calls_tool("hang", '{"value": "x"}'))
-    runs = run_service(service, client, hanging_tool(), bots=bots)
+    runs = run_service(service, client, hanging_tool(), bots=bots, groups=groups)
     run = runs.start(chat, "go")
     await until(
         lambda: any(isinstance(e, ToolCallEvent) for e in chat.events()),
@@ -264,10 +263,11 @@ async def test_stopping_a_group_ends_the_round_in_one_settled_run(tmp_path, serv
 
 async def test_a_group_with_no_active_member_starts_nothing(tmp_path, service) -> None:
     bots = bots_in(tmp_path, service)
-    chat, members = await _group_chat(bots, service, "Researcher", "Writer")
+    groups = groups_in(tmp_path, bots, service, AppEventService())
+    chat, members = await _group_chat(groups, bots, service, "Researcher", "Writer")
     for bot in members:
         bots.archive(bot.id)
-    runs = run_service(service, ScriptedClient(completed("x")), bots=bots)
+    runs = run_service(service, ScriptedClient(completed("x")), bots=bots, groups=groups)
 
     with pytest.raises(EmptyGroupError):
         runs.start(chat, "anyone?")

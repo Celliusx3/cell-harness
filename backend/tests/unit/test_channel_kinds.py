@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.app_events import AppEventService
-from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
+from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage, PushChannel
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
@@ -18,6 +18,7 @@ from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from tests.unit.fakes import OneModel, ScriptedClient, completed
+from tests.unit.group_helpers import group_service
 from tests.unit.helpers import no_bots, no_images, no_skills
 from tests.webapp import files_in, images_in
 
@@ -39,7 +40,7 @@ def build(tmp_path: Path):
         sessions,
         runtime,
         bots,
-        GroupService(bots, sessions, MENTION_TURN_ORDER),
+        group_service(bots, sessions),
         app_events=AppEventService(),
     )
     chats = JsonChatRepository(tmp_path / "chats")

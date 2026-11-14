@@ -1,4 +1,4 @@
-"""The bots repository: one bot or group fetched or changed at a time, in one file."""
+"""The bots repository: one bot fetched or changed at a time, in one file."""
 
 from __future__ import annotations
 
@@ -7,13 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from harness.bots import ASSISTANT_ID, Bot, BotNotFound, BotRepository, Group
+from harness.bots import ASSISTANT_ID, Bot, BotNotFound, BotRepository
 
 ASSISTANT = Bot(id=ASSISTANT_ID, name="Assistant", instructions="Be kind.")
 RESEARCHER = Bot(id="r1", name="Researcher", instructions="Find sources.")
 WRITER = Bot(id="w1", name="Writer", instructions="Write it up.")
-DESK = Group(id="g1", name="Desk", member_ids=("r1", "w1"))
-PANEL = Group(id="g2", name="Panel", member_ids=("w1", "r1"))
 
 
 def repository_holding(tmp_path: Path, *bots: Bot) -> BotRepository:
@@ -23,11 +21,10 @@ def repository_holding(tmp_path: Path, *bots: Bot) -> BotRepository:
     return repository
 
 
-def test_a_missing_file_holds_no_bots_and_no_groups(tmp_path: Path) -> None:
+def test_a_missing_file_holds_no_bots(tmp_path: Path) -> None:
     repository = BotRepository(tmp_path / "no" / "bots.json")
 
     assert repository.bots() == ()
-    assert repository.groups() == ()
 
 
 def test_an_added_bot_goes_last(tmp_path: Path) -> None:
@@ -112,21 +109,9 @@ def test_deleting_a_bot_that_is_not_stored_changes_nothing(tmp_path: Path) -> No
     assert repository.bots() == (WRITER, RESEARCHER)
 
 
-def test_an_added_group_goes_last_and_leaves_the_bots_alone(tmp_path: Path) -> None:
-    repository = repository_holding(tmp_path, RESEARCHER, WRITER)
-    repository.add_group(DESK)
-
-    repository.add_group(PANEL)
-
-    assert repository.groups() == (DESK, PANEL)
-    assert repository.bots() == (RESEARCHER, WRITER)
-
-
 def test_a_second_repository_on_the_same_path_reads_what_the_first_wrote(tmp_path: Path) -> None:
-    first = repository_holding(tmp_path, WRITER)
-    first.add_group(DESK)
+    repository_holding(tmp_path, WRITER)
 
     second = BotRepository(tmp_path / "bots.json")
 
     assert second.bots() == (WRITER,)
-    assert second.groups() == (DESK,)

@@ -5,13 +5,13 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from harness.bots import EmptyGroupError
 from harness.channels.domain.protocol import Channel, PushChannel, RunningChannel
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
 from harness.channels.service.chat_tasks import ChatKey, ChatTasks
 from harness.channels.service.chats import open_chat_session, state_of
 from harness.channels.service.replies import ReplySender
 from harness.files import ChatFile
+from harness.groups import EmptyGroupError
 from harness.runs.service.run import Run, RunAlreadyActiveError
 from harness.runs.service.run_service import RunService
 from harness.session.service.session_service import SessionService

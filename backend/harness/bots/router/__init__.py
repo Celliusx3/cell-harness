@@ -1,1 +1,1 @@
-"""The bots and groups pages' routes and bodies."""
+"""The bots page's routes and bodies."""

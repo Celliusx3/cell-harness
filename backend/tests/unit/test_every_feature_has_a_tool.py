@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import NamedTuple
 
-from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.config.settings import Settings
 from harness.mcp import McpService
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
@@ -16,6 +15,7 @@ from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE
 from harness.web.runtime import attach_schedules, build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
+from tests.unit.group_helpers import group_service
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.webapp import a_model_saved_in, files_in, images_in, schedules_in, web_app
 
@@ -147,6 +147,7 @@ CONFIG: dict[str, Tool | NotATool] = {
     "skills": NotATool("where skills live; skill_save and skill_delete work in the editable one"),
     "approval": NotATool("what the model must ask before doing; it never edits its own list"),
     "bots": NotATool("where the bots are kept; moving it while running loses them"),
+    "groups": NotATool("where the groups are kept; moving it while running loses them"),
     "schedules": NotATool("where the schedules are kept; moving it while running loses them"),
     "tickets": NotATool("where the tickets are kept; moving it while running loses them"),
     "secrets": NotATool(
@@ -195,7 +196,7 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
     assert runtime.tools is not None
     attach_schedules(
         runtime.tools.tool_service,
-        GroupService(bots, bot_chats, MENTION_TURN_ORDER),
+        group_service(bots, bot_chats),
         schedules_in(tmp_path),
     )
 

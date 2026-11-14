@@ -13,7 +13,6 @@ import pytest
 import uvicorn
 
 from harness.app_events import AppEventService
-from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.web import sse as sse_module
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
@@ -28,6 +27,7 @@ from tests.unit.fakes import (
     gated_tool,
     hanging_tool,
 )
+from tests.unit.group_helpers import group_service
 from tests.unit.helpers import no_bots, no_images, no_skills, toolset_for
 from tests.webapp import web_app
 
@@ -75,7 +75,7 @@ async def served(
         service,
         runtime,
         no_bots(service),
-        GroupService(no_bots(service), service, MENTION_TURN_ORDER),
+        group_service(no_bots(service), service),
         app_events=AppEventService(),
     )
     async with (

@@ -53,6 +53,17 @@ class BotSettings(BaseModel):
         return value.expanduser()
 
 
+class GroupSettings(BaseModel):
+    """Where the groups of bots are kept."""
+
+    path: Path = Path.home() / ".harness" / "groups.json"
+
+    @field_validator("path")
+    @classmethod
+    def _expand(cls, value: Path) -> Path:
+        return value.expanduser()
+
+
 class ScheduleSettings(BaseModel):
     """Where every bot's schedules are kept."""
 

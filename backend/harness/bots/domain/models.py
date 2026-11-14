@@ -1,11 +1,11 @@
-"""What a bot and a group are, what the bots file holds, and how a change to them is refused."""
+"""What a bot is, what the bots file holds, and how a change to a bot is refused."""
 
 from __future__ import annotations
 
 import re
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from harness.secrets import CredentialKind, SecretName
 
@@ -13,8 +13,6 @@ ASSISTANT_ID = "assistant"
 ASSISTANT_NAME = "Assistant"
 BUILDER_ID = "builder"
 BUILDER_NAME = "Bot builder"
-MIN_GROUP_MEMBERS = 2
-MAX_GROUP_MEMBERS = 6
 MENTION_PATTERN = r"(?:^|[^\w-])@{name}(?![\w-])"
 
 
@@ -102,49 +100,12 @@ class Bot(BaseModel):
         )
 
 
-class GroupDraft(BaseModel):
-    """A group's name, stripped and not blank, and two to six different bots' ids."""
-
-    model_config = ConfigDict(frozen=True)
-
-    name: NonBlankText
-    member_ids: tuple[str, ...] = Field(min_length=MIN_GROUP_MEMBERS, max_length=MAX_GROUP_MEMBERS)
-
-    @field_validator("member_ids")
-    @classmethod
-    def _refuse_repeats(cls, value: tuple[str, ...]) -> tuple[str, ...]:
-        """Refuse a bot named twice."""
-        if len(set(value)) != len(value):
-            raise ValueError("each bot can be a member once")
-        return value
-
-
-class Group(BaseModel):
-    """Bots sharing one chat, whose id is the group's id; they answer in `member_ids` order."""
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str
-    name: str
-    member_ids: tuple[str, ...]
-
-
-class ChatMembers(BaseModel):
-    """Who answers in one chat: a bot's own chat has no group and that one bot."""
-
-    model_config = ConfigDict(frozen=True)
-
-    group: Group | None
-    bots: tuple[Bot, ...]
-
-
 class BotsFile(BaseModel):
-    """The bots file: every stored bot and every group, each in the order it was made."""
+    """The bots file: every stored bot, in the order it was made."""
 
     model_config = ConfigDict(frozen=True)
 
     bots: tuple[Bot, ...] = ()
-    groups: tuple[Group, ...] = ()
 
 
 class BotNotFound(LookupError):
@@ -154,22 +115,11 @@ class BotNotFound(LookupError):
         super().__init__(f"no bot {bot_id!r}")
 
 
-class GroupMemberNotFound(BotNotFound):
-    """A bot named as a group's member is no active bot."""
-
-
 class BuiltInBotError(PermissionError):
     """A built-in bot cannot be archived or deleted."""
 
     def __init__(self, bot_id: str) -> None:
         super().__init__(f"{bot_id!r} is built in and cannot be archived or deleted")
-
-
-class EmptyGroupError(LookupError):
-    """Every member of this group has been archived or deleted."""
-
-    def __init__(self, group_id: str) -> None:
-        super().__init__(f"every member of group {group_id!r} is archived or deleted")
 
 
 class UnsavedModelError(ValueError):

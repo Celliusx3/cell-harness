@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from harness.bots import GroupService
+from harness.groups import GroupService
 from harness.schedules import InvalidSchedule, Schedule, ScheduleNotFound, ScheduleService
 from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
