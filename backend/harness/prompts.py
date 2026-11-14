@@ -236,6 +236,10 @@ TOOL_OUTCOME_UNKNOWN = (
     "it took effect, or ask the user."
 )
 
+NOT_YOUR_TOOL = (
+    "{name!r} is not one of your tools, and you cannot load it. Use only the tools in your list."
+)
+
 NOT_RUN_AFTER_TURN_END = (
     "not run: {tool} ended your turn earlier in this step, so nothing after it runs. If you "
     "asked the user something, wait for their answer before you do this."

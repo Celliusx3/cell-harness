@@ -179,7 +179,9 @@ def build_runtime(
             ),
         ),
         images=images,
-        tools=Toolset(tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS),
+        tools=Toolset(
+            tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS, can_reach_servers=False
+        ),
         guidance=ORCHESTRATOR_INTRO,
         checkpoint=sessions.flush,
         hooks=orchestrator_hooks(skills),
@@ -247,7 +249,7 @@ def delegate_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequenc
     kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))
     return dataclasses.replace(
         runtime,
-        tools=Toolset(tool_service, tools, sight_tools=SIGHT_TOOLS),
+        tools=Toolset(tool_service, tools, sight_tools=SIGHT_TOOLS, can_reach_servers=True),
         guidance=CODE_PROMPT,
         hooks=dataclasses.replace(hooks, tool_hooks=kept),
     )

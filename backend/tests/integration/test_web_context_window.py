@@ -100,7 +100,9 @@ def _runtime(models: CredentialModels, tmp_path: Path, checkpoint) -> Runtime:
     runtime = Runtime(
         models=models,
         images=no_images(),
-        tools=Toolset(tool_service, [RUN_SUBAGENT], sight_tools=frozenset()),
+        tools=Toolset(
+            tool_service, [RUN_SUBAGENT], sight_tools=frozenset(), can_reach_servers=True
+        ),
         checkpoint=checkpoint,
     )
     logs = durable_service(tmp_path / "subagents", prefix="sub")

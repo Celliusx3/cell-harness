@@ -98,11 +98,17 @@ def toolset_for(
     providers: Sequence[ToolProvider] = (),
     offer: Sequence[str] = (),
     approvals: ApprovalService | None = None,
+    can_reach_servers: bool = True,
 ) -> Toolset:
     """A tool service and a toolset over `tools`, offering all of them."""
     tool_service = ToolService(tools, approvals=approvals or no_approvals(), providers=providers)
     names = [*(tool.name for tool in tools), *offer]
-    return Toolset(tool_service, default_tools=names, sight_tools=frozenset())
+    return Toolset(
+        tool_service,
+        default_tools=names,
+        sight_tools=frozenset(),
+        can_reach_servers=can_reach_servers,
+    )
 
 
 def runtime_over(

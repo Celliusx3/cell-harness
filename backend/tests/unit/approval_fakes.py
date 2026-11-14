@@ -33,7 +33,12 @@ def runtime_offering(
     client, approvals: ApprovalService, *tools: Tool, hooks: HookChain | None = None
 ) -> Runtime:
     tool_service = ToolService(tools, approvals=approvals)
-    toolset = Toolset(tool_service, default_tools=[t.name for t in tools], sight_tools=frozenset())
+    toolset = Toolset(
+        tool_service,
+        default_tools=[t.name for t in tools],
+        sight_tools=frozenset(),
+        can_reach_servers=True,
+    )
     return Runtime(
         models=OneModel(client), images=no_images(), tools=toolset, hooks=hooks or HookChain()
     )
