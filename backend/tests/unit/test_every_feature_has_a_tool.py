@@ -16,7 +16,7 @@ from harness.web.runtime import attach_schedules, build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.group_helpers import group_service
-from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
+from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills, worker_of
 from tests.webapp import a_model_saved_in, files_in, images_in, schedules_in, web_app
 
 
@@ -177,7 +177,7 @@ def test_every_config_section_names_its_tool_or_a_reason() -> None:
     assert set(Settings.model_fields) == set(CONFIG)
 
 
-def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> None:
+def test_every_tool_the_tables_name_is_offered_to_the_bot_or_its_workers(tmp_path: Path) -> None:
     bot_chats = SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))
     bots = no_bots(bot_chats)
     runtime = build_runtime(
@@ -200,7 +200,13 @@ def test_every_tool_the_tables_name_is_offered_to_the_model(tmp_path: Path) -> N
         schedules_in(tmp_path),
     )
 
-    offered = {spec.name for spec in runtime.tools.specs(sees_images=False)}
+    worker = worker_of(runtime)
+    assert worker.tools is not None
+    offered = {
+        spec.name
+        for tools in (runtime.tools, worker.tools)
+        for spec in tools.specs(sees_images=False)
+    }
     named = {
         entry.name for entry in (*ROUTES.values(), *CONFIG.values()) if isinstance(entry, Tool)
     }

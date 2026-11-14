@@ -20,9 +20,9 @@ from harness.tools.native.tickets import (
     ticket_route_tool,
 )
 from harness.tools.service.tool_service import Disposer
-from harness.web.runtime import SUBAGENT_TOOLS, WORK_TOOLS, delegate_runtime
+from harness.web.runtime import SKILL_WRITE_TOOLS, SUBAGENT_TOOLS, WORK_TOOLS, delegate_runtime
 
-WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)
+WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, *SKILL_WRITE_TOOLS, VIEW_IMAGE, TICKET_REPORT)
 
 
 class BotLookup(Protocol):
