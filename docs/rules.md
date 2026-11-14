@@ -62,6 +62,36 @@ settings — it makes "which value is actually in use?" unanswerable without
 tracing two objects. Give each setting its own default, even if two defaults
 repeat a value.
 
+**Each layer holds one kind of logic.** A feature package has up to four layers,
+and each answers one question.
+
+- A **model** (`domain/`) is data, plus functions about that model itself.
+  `Bot.with_secret` gives back the bot with a key added, and the speaker queue in
+  `bots/domain/turn_order.py` says who waits to speak after a turn. Both are about
+  the value they sit on, and neither reads a file or calls a service. A function
+  that rewrites a stored collection is not about one model: finding a bot in the
+  bots file and swapping in its newer copy belongs to the repository.
+- A **repository** holds the logic of its data source: fetch, find, add, update,
+  delete. `BotRepository` reads and replaces `bots.json` whole, and nothing outside
+  it knows that. A service asks for one bot and hands one bot back.
+- A **service** holds the business rules: which bots are active, that a built-in
+  bot cannot be archived, that deleting a bot stops its turns and deletes its
+  schedules. A rule that needs services which already depend on this one goes in
+  a second service above them, as `BotLifecycleService` sits above the bots, runs,
+  secrets and schedules services.
+- A **router** holds the logic that exposes a service over HTTP: it parses the
+  request, calls one service method, and answers. A domain error becomes a status
+  in `web/http/errors.py`, not in the route. A route that runs several steps, or
+  decides whether a request is allowed, holds a business rule: Telegram, Discord
+  and a tool would each need the same steps and could not reach them.
+
+The test for a line of code is who else would need it. If another channel or a
+tool would, it is a business rule and goes in a service. If another storage
+backend would, it goes in the repository. If only this model would, it goes on the
+model. The rule was set in #148, after the bots file's type had grown list
+rewriting and the bots router had grown the steps of deleting a bot. Packages
+written before it are moved when they are next changed, not in one sweep.
+
 ## Harness invariants
 
 These are what the project exists to uphold. Breaking one is not a style

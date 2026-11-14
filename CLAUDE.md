@@ -71,10 +71,10 @@ backend/harness/
   web/          server, runtime — the composition root; http/ is what every route shares
   config/       one Settings: config.json + config.local.json + env
   <feature>/    every other package, in up to four layers, each left out when empty:
-                  domain/      data and rules that only compute; imports no other layer, no I/O
-                  repository/  the storage port, <name>_repository.py, and its backends
-                  service/     what acts — <name>_service.py, schedulers, workers, tools
-                  router/      <name>_router.py + schemas.py, <page>_router.py for a second page
+                  domain/      models: data, and functions about that model itself; imports no other layer, no I/O
+                  repository/  how the data source is read and changed — <name>_repository.py, and its backends
+                  service/     the business rules — <name>_service.py, schedulers, workers, tools
+                  router/      HTTP only — <name>_router.py + schemas.py, <page>_router.py for a second page
                 features: app_events bots channels files images mcp relay runs
                 schedules secrets session skills tickets tools
                 a folder that is its own subject keeps its shape: channels/telegram/,
@@ -99,6 +99,8 @@ earlier. Full intended layout in [DESIGN.md §3](./DESIGN.md).
 - **Typed boundaries, and fail closed.** No bare `dict`/`Any`; raise, don't guess.
 - **Explicit over implicit defaults.** Pass behavioral choices explicitly.
 - **One setting, one place to look.** No `a.x or b.y` fallback chains.
+- **Each layer holds one kind of logic.** A model: itself. A repository: its data
+  source. A service: the business rules. A router: HTTP, and one service call.
 - **No comments.** A why goes into a name, a type, a test, or a docs file; a
   docstring is one line. Only a note on behaviour forced by an external dependency,
   a format or style-only lint suppression, and an issue link stay.
