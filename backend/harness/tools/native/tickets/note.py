@@ -4,8 +4,13 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from harness.tickets.domain.models import StoppedTicketError, Ticket, TicketNotFound
-from harness.tickets.domain.prompts import TICKET_NOTE_HEARD
+from harness.tickets.domain.models import (
+    FINISHED_STATES,
+    StoppedTicketError,
+    Ticket,
+    TicketNotFound,
+)
+from harness.tickets.domain.prompts import TICKET_FINISHED, TICKET_NOTE_HEARD
 from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import INVALID_ARGUMENTS, REFUSED, Failure, Ok, ToolOutcome
 from harness.tools.domain.tool import Tool
@@ -18,7 +23,7 @@ MAX_NOTE_WORDS = 100
 _DESCRIPTION = (
     "Send one of your tickets a short fact it needs, such as a date the user gave you. The "
     "worker gets it as context for that ticket, not as a new task. A note reaches a busy worker "
-    "when its current turn ends."
+    "when its current turn ends. A ticket that has finished takes no note."
 )
 
 
@@ -45,6 +50,8 @@ def ticket_note_tool(tickets: TicketTeller) -> Tool[TicketNoteArgs]:
             return Failure(INVALID_ARGUMENTS, f"no ticket has the id {args.ticket!r}")
         if ticket.bot_id != context.origin.bot_id:
             return Failure(INVALID_ARGUMENTS, f"ticket {args.ticket!r} is not one of yours")
+        if ticket.state in FINISHED_STATES:
+            return Failure(REFUSED, TICKET_FINISHED.format(ticket=ticket.id, state=ticket.state))
         try:
             tickets.tell(ticket.id, TICKET_NOTE_HEARD.format(text=args.text))
         except StoppedTicketError:

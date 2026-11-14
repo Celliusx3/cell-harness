@@ -20,6 +20,10 @@ TICKET_ANSWER_HEARD = "The user answered your question: {text}"
 TICKET_NOTE_HEARD = (
     "A note from the orchestrator. It is context for this ticket, not a new task: {text}"
 )
+TICKET_FINISHED = (
+    "ticket {ticket} has finished ({state}), and a note reaches only a ticket still working. "
+    "To give it more work, attach to it with ticket_route."
+)
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."
 TICKET_TURN_FAILED = (
     "The worker's turn failed, so this ticket has no result. Tell the user this reason as it is, "

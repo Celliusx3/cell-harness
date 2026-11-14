@@ -6,8 +6,10 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+import pytest
+
 from harness.tickets.domain.models import Ticket, TicketNotFound
-from harness.tools import INVALID_ARGUMENTS, Failure, Ok
+from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.tickets import ticket_note_tool
 from tests.unit.helpers import context_for
 
@@ -24,11 +26,12 @@ TICKET = Ticket(
 @dataclass
 class Told:
     prompts: list[tuple[str, str]] = field(default_factory=list)
+    ticket: Ticket = TICKET
 
     def get(self, ticket_id: str) -> Ticket:
-        if ticket_id != TICKET.id:
+        if ticket_id != self.ticket.id:
             raise TicketNotFound(ticket_id)
-        return TICKET
+        return self.ticket
 
     def tell(self, ticket_id: str, prompt: str) -> None:
         self.prompts.append((ticket_id, prompt))
@@ -55,4 +58,18 @@ async def test_a_long_note_an_unknown_ticket_and_another_bots_ticket_are_refused
     ]
 
     assert all(isinstance(r, Failure) and r.code == INVALID_ARGUMENTS for r in refused)
+    assert told.prompts == []
+
+
+@pytest.mark.parametrize("state", ["done", "failed", "dropped"])
+async def test_a_note_to_a_finished_ticket_is_refused_and_wakes_nothing(state: str) -> None:
+    told = Told(ticket=TICKET.model_copy(update={"state": state}))
+
+    refused = await note(told, "t1", "Travel on the 12th.")
+
+    assert refused == Failure(
+        REFUSED,
+        f"ticket t1 has finished ({state}), and a note reaches only a ticket still working. "
+        "To give it more work, attach to it with ticket_route.",
+    )
     assert told.prompts == []
