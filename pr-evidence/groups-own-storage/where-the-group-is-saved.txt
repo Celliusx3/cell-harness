@@ -1,0 +1,12 @@
+The same browser script ran on both, on a new data folder with a fake model.
+It made the group "Launch team" from Assistant and Writer, then sent "Plan the launch."
+
+main, before
+  before making a group:   bots.json groups: []            groups.json: no such file
+  after making the group:  bots.json groups: [Launch team] groups.json: no such file
+  answers shown: 2         groups listed by the API: [Launch team]   responses of 400 or more: none
+
+refactor/groups-own-storage, after
+  before making a group:   bots.json groups: no such key   groups.json: no such file
+  after making the group:  bots.json groups: no such key   groups.json: [Launch team]
+  answers shown: 2         groups listed by the API: [Launch team]   responses of 400 or more: none
