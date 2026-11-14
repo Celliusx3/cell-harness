@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from harness.llm import AssistantMessage, ToolCall
+from harness.session.domain.crash_repair import INTERRUPTED_BY_CRASH, crash_repairs
 from harness.session.domain.models import AssistantMessageEvent, ToolCallEvent, TurnEnd, TurnStart
-from harness.session.domain.repair import REPAIRED, repair
 from harness.tools import Approval, ApprovalService
 from harness.tools.client import (
     AcceptedAnswer,
@@ -77,13 +77,13 @@ def test_repair_answers_a_call_left_by_a_crash_after_approval() -> None:
     session.append(_asked("c1"))
     session.append(_call("c1"))
     session.append(TurnEnd(turn=0, reason="pending"))
-    assert repair(session.events()) == []
+    assert crash_repairs(session.events()) == []
 
     session.append(TurnStart(turn=1))
 
-    additions = repair(session.events())
+    additions = crash_repairs(session.events())
     assert [type(e).__name__ for e in additions] == ["ToolResultEvent"]
-    assert additions[0].message.tool_call_id == "c1" and additions[0].error == REPAIRED
+    assert additions[0].message.tool_call_id == "c1" and additions[0].error == INTERRUPTED_BY_CRASH
 
 
 def test_the_service_parses_a_decision_for_a_listed_tool_and_refuses_a_client_body(

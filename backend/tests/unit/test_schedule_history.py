@@ -6,7 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
-from harness.schedules.service.schedule_service import HISTORY_RECORDS
+from harness.schedules.service.schedule_service import MAX_KEPT_DELIVERIES
 from tests.unit.schedule_helpers import START, Clock, schedules_in
 
 EVERY_MINUTE = "DTSTART:20261112T080000Z\nRRULE:FREQ=MINUTELY"
@@ -17,12 +17,12 @@ def test_history_keeps_the_newest_two_hundred(tmp_path: Path) -> None:
     schedules = schedules_in(tmp_path, clock)
     made = schedules.create(ASSISTANT_ID, "Tick", "Tick.", EVERY_MINUTE)
 
-    for _ in range(HISTORY_RECORDS + 1):
+    for _ in range(MAX_KEPT_DELIVERIES + 1):
         clock.advance(timedelta(minutes=1))
         schedules.record_delivery(made.id, clock.at)
 
     (kept,) = schedules.schedules()
-    assert HISTORY_RECORDS == 200
+    assert MAX_KEPT_DELIVERIES == 200
     assert len(kept.deliveries) == 200
     assert kept.deliveries[0].delivered_at == START + timedelta(minutes=2)
     assert kept.deliveries[-1].delivered_at == clock.at

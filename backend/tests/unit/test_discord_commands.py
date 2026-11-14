@@ -63,7 +63,7 @@ async def test_stop_cancels_the_turn_and_clears_the_queue(tmp_path) -> None:
     await link_to_assistant(chats, "discord", CHAT)
     chat = client.chat(CHAT)
     await channel.on_message(message(CHAT, "go"))
-    run = runs.active((await chats.load("discord", CHAT)).conversation_id)
+    run = runs.active_run((await chats.load("discord", CHAT)).conversation_id)
     while not any(e.type == "assistant/chunk" for e in run.session.events()):
         await asyncio.sleep(0.01)
     await channel.on_message(message(CHAT, "queued behind it"))

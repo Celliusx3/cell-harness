@@ -216,7 +216,7 @@ async def test_a_subagent_that_overflows_compacts_like_the_bot_and_answers(
     assert "## aapl\nAAPL grew 2%." in returned[0].content[0].text
     subagent_log = await SessionService(JsonlSessionRepository(tmp_path / "subagents")).read("c1.0")
     ends = [e for e in subagent_log.events() if isinstance(e, CompactionEnd)]
-    assert [end.succeeded for end in ends] == [True]
+    assert [end.has_summary for end in ends] == [True]
 
 
 class _LogWatcher(SteppedClient):

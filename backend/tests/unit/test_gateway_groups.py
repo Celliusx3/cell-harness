@@ -48,5 +48,5 @@ async def test_a_queued_message_for_a_group_with_nobody_left_is_dropped_with_a_w
                 break
             await asyncio.sleep(0.01)
 
-    assert runs.active(group.id) is None
+    assert runs.active_run(group.id) is None
     assert "nobody" in caplog.text

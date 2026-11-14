@@ -39,7 +39,7 @@ from harness.mcp.router.server_router import ServerRouter
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.relay.router.relay_router import RelayRouter
-from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.bot_messages import BotMessenger
 from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.schedules.router.schedule_router import ScheduleRouter
@@ -247,7 +247,7 @@ def create_app(
     approvals: ApprovalService,
     bots: BotService,
     secrets: SecretService,
-    messages: BotMessages,
+    messages: BotMessenger,
     tickets: TicketService,
     schedules: ScheduleService,
     scheduler: Scheduler,

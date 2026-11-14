@@ -171,6 +171,6 @@ async def test_a_restart_counts_only_what_it_wrote(store) -> None:
     await store.create(header())
     await store.append("s", a_turn())
 
-    await store.restart(header(), [TurnStart(turn=0)])
+    await store.replace(header(), [TurnStart(turn=0)])
 
     assert await store.stored_count("s") == 1

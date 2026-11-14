@@ -15,7 +15,7 @@ from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.llm import LLMClient, Message, StreamEvent, ToolSpec
-from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.bot_messages import BotMessenger
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
@@ -98,7 +98,7 @@ def build_on(tmp_path, model: LLMClient):
         no_approvals(),
         bots,
         secrets_in(tmp_path),
-        BotMessages(bots, runs, follow=gateway.follow),
+        BotMessenger(bots, runs, follow=gateway.follow),
         no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),

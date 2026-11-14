@@ -215,7 +215,7 @@ async def test_a_change_to_a_bot_with_no_chat_logs_nothing(page_of) -> None:
 async def _gate_called(page: Page) -> None:
     async with asyncio.timeout(5):
         while True:
-            run = page.runs.active(ASSISTANT_ID)
+            run = page.runs.active_run(ASSISTANT_ID)
             if run is not None and any(isinstance(e, ToolCallEvent) for e in run.session.events()):
                 return
             await asyncio.sleep(0.01)

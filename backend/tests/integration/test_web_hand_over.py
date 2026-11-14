@@ -88,7 +88,7 @@ async def test_an_answer_that_does_not_fit_is_refused_at_the_boundary(tmp_path, 
     )
 
     assert refused.status_code == 422
-    assert runs.active(conversation_id) is None
+    assert runs.active_run(conversation_id) is None
 
 
 async def test_typing_instead_skips_the_hand_over(tmp_path) -> None:

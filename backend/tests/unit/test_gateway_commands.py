@@ -64,7 +64,7 @@ async def test_stop_cancels_and_clears_the_queue(tmp_path) -> None:
     await gateway.receive(msg("slow", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
     for _ in range(200):
-        if runs.active(conversation) is not None:
+        if runs.active_run(conversation) is not None:
             break
         await asyncio.sleep(0.01)
     await gateway.receive(msg("queued", 2))

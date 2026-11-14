@@ -147,7 +147,7 @@ def _hi(chat_id: str = "1") -> InboundMessage:
 
 async def _settled(run) -> None:
     for _ in range(200):
-        if run.settled:
+        if run.is_settled:
             return
         await asyncio.sleep(0.01)
     raise AssertionError("the turn never settled")
@@ -189,7 +189,7 @@ async def test_an_unlinked_direct_chat_gets_no_turn(world) -> None:
     run = await world["gateway"].receive(_hi())
 
     assert run is None
-    assert world["runs"].active(ASSISTANT_ID) is None
+    assert world["runs"].active_run(ASSISTANT_ID) is None
 
 
 async def test_a_chat_stored_before_links_keeps_the_assistant(world) -> None:

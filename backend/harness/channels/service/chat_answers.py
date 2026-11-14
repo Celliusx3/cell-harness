@@ -9,7 +9,7 @@ from harness.channels.domain.protocol import Channel
 from harness.channels.repository.chat_repository import ChatRepository
 from harness.channels.service.chats import state_of
 from harness.channels.service.gateway import ChannelGateway
-from harness.runs.service.run import RunAlreadyActive
+from harness.runs.service.run import RunAlreadyActiveError
 from harness.session.domain.log import Session
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
@@ -70,7 +70,7 @@ class ChatAnswers:
         state = await state_of(self._repository, channel, chat_id, self._gateway.runs.bots)
         if (
             not state.conversation_id
-            or self._gateway.runs.active(state.conversation_id) is not None
+            or self._gateway.runs.active_run(state.conversation_id) is not None
         ):
             return False
         try:
@@ -89,6 +89,6 @@ class ChatAnswers:
             return False
         try:
             await self._gateway.resume(session, verdict.call_id, verdict.outcome)
-        except RunAlreadyActive:
+        except RunAlreadyActiveError:
             return False
         return True

@@ -49,7 +49,7 @@ async def test_the_browser_answers_the_call_and_the_turn_resumes(tmp_path) -> No
 
     answered = await client.post(PATH.format(id=conversation_id), json=SHARED)
     assert answered.status_code == 204
-    assert runs.active(conversation_id) is not None
+    assert runs.active_run(conversation_id) is not None
     await settle(runs, conversation_id)
 
     events = await _events(client, conversation_id)
@@ -139,7 +139,7 @@ async def test_a_malformed_answer_is_rejected_at_the_boundary(tmp_path) -> None:
         {"kind": "lost"},
     ]
     assert [(await client.post(path, json=body)).status_code for body in bodies] == [422] * 5
-    assert runs.active(conversation_id) is None
+    assert runs.active_run(conversation_id) is None
 
 
 async def test_a_restart_between_the_ask_and_the_answer_changes_nothing(tmp_path) -> None:

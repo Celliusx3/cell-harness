@@ -20,7 +20,7 @@ async def test_a_message_during_a_turn_is_read_at_its_next_step(tmp_path) -> Non
     await gateway.receive(msg("plan my trip", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
     for _ in range(200):
-        if runs.active(conversation) is not None:
+        if runs.active_run(conversation) is not None:
             break
         await asyncio.sleep(0.01)
 

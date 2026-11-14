@@ -17,7 +17,7 @@ from harness.mcp import (
     McpServerTaken,
     McpTimeoutError,
 )
-from harness.schedules import InvalidSchedule, ScheduleBusy, ScheduleNotFound
+from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
 from harness.secrets import SecretNotFound, SecretRefused
 from harness.session.repository.session_repository import (
     SessionCorruptionError,
@@ -53,7 +53,7 @@ PINNED = [
     pytest.param(
         ToolNotApproved("'memory__write_note' is not approved"), 404, id="ToolNotApproved"
     ),
-    pytest.param(ScheduleBusy("s1"), 409, id="ScheduleBusy"),
+    pytest.param(ScheduleBusyError("s1"), 409, id="ScheduleBusyError"),
     pytest.param(ScheduleNotFound("s1"), 404, id="ScheduleNotFound"),
     pytest.param(SecretNotFound("GITHUB_TOKEN"), 404, id="SecretNotFound"),
     pytest.param(

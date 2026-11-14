@@ -76,7 +76,7 @@ async def test_clearing_a_running_chat_stops_its_turn(tmp_path) -> None:
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await assistant_chat(c, "go")
-        run = runs.active(cid)
+        run = runs.active_run(cid)
         while not any(event.type == "assistant/chunk" for event in run.session.events()):
             await asyncio.sleep(0.01)
 
@@ -84,7 +84,7 @@ async def test_clearing_a_running_chat_stops_its_turn(tmp_path) -> None:
         chat = (await c.get(f"/api/conversations/{cid}")).json()
 
     assert cleared.status_code == 204
-    assert runs.active(cid) is None
+    assert runs.active_run(cid) is None
     assert chat["running"] is False
     assert chat["events"][-1]["type"] == "chat/cleared"
 
@@ -113,17 +113,17 @@ async def test_a_message_sent_while_a_clear_stops_the_turn_lands_after_the_clear
     app = web_app(tmp_path, service, runs, skills=no_skills())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await assistant_chat(c, "the secret word is PELICAN")
-        run = runs.active(cid)
+        run = runs.active_run(cid)
         while not any(event.type == "step/start" for event in run.session.events()):
             await asyncio.sleep(0.01)
 
         clearing = asyncio.create_task(c.post(f"/api/conversations/{cid}/clear"))
-        while not run._inner.done():
+        while not run._turn_task.done():
             await asyncio.sleep(0)
         sent = await c.post(f"/api/conversations/{cid}/messages", json={"prompt": "after"})
         assert (await clearing).status_code == 204
         for _ in range(300):
-            if runs.active(cid) is None and model.calls == 1:
+            if runs.active_run(cid) is None and model.calls == 1:
                 break
             await asyncio.sleep(0.01)
         chat = (await c.get(f"/api/conversations/{cid}")).json()

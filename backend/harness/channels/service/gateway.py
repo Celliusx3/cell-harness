@@ -19,7 +19,7 @@ from harness.channels.service.chat_tasks import ChatTasks
 from harness.channels.service.chats import state_of
 from harness.channels.service.replies import ReplySender
 from harness.channels.service.turn_follower import TurnFollower
-from harness.runs.service.run import Run, RunAlreadyActive
+from harness.runs.service.run import Run, RunAlreadyActiveError
 from harness.runs.service.run_service import RunService
 from harness.runtime.compaction import CompactionRefusedError, check_can_compact
 from harness.session.domain.log import Session
@@ -98,7 +98,7 @@ class ChannelGateway:
         if _is_unlinked(state):
             return None
         content = self.skills.expand(message.text)
-        if self.runs.active(state.conversation_id) is not None:
+        if self.runs.active_run(state.conversation_id) is not None:
             await self._follower.queue(state, message.text, message.files)
             return None
 
@@ -110,7 +110,7 @@ class ChannelGateway:
         if _is_unlinked(state):
             return
         await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
-        in_flight = self.runs.active(state.conversation_id)
+        in_flight = self.runs.active_run(state.conversation_id)
         try:
             session = (
                 in_flight.session
@@ -121,7 +121,7 @@ class ChannelGateway:
             return
         clearing = self.runs.clear(session)
         async with clearing.condition:
-            await clearing.condition.wait_for(lambda: clearing.settled)
+            await clearing.condition.wait_for(lambda: clearing.is_settled)
         if clearing.error is not None:
             raise clearing.error
 
@@ -183,7 +183,7 @@ class ChannelGateway:
         """`/compact` from a chat: the run, or `None` when nothing can be compacted now."""
         self._require_registered(channel)
         state = await self._state(channel, chat_id)
-        if _is_unlinked(state) or self.runs.active(state.conversation_id) is not None:
+        if _is_unlinked(state) or self.runs.active_run(state.conversation_id) is not None:
             return None
         try:
             session = await self.sessions.resume(state.conversation_id)
@@ -191,7 +191,7 @@ class ChannelGateway:
             return None
         try:
             return self.compact(session, (state,))
-        except (RunAlreadyActive, CompactionRefusedError):
+        except (RunAlreadyActiveError, CompactionRefusedError):
             return None
 
     async def follow(self, run: Run) -> None:

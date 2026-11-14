@@ -16,11 +16,12 @@ from harness.session.domain.compaction import (
     CompactionPrune,
     CompactionStart,
     boundary,
-    open_start,
     pruned_ids,
     tail_start,
+    unended_start,
 )
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.crash_repair import INTERRUPTED_BY_CRASH, crash_repairs
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,
@@ -29,7 +30,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.domain.repair import REPAIRED, repair
 from tests.unit.helpers import new_session
 
 
@@ -142,14 +142,14 @@ def test_repair_closes_a_start_the_crash_left_open() -> None:
     session.append(TurnStart(turn=0))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
     session.append(CompactionStart(turn=0, trigger="auto", tokens=5))
-    assert open_start(session.events()) is not None
+    assert unended_start(session.events()) is not None
 
-    additions = repair(session.events())
-    assert additions == [CompactionEnd(turn=0, error=REPAIRED)]
+    additions = crash_repairs(session.events())
+    assert additions == [CompactionEnd(turn=0, error=INTERRUPTED_BY_CRASH)]
     for event in additions:
         session.append(event)
-    assert repair(session.events()) == []
-    assert open_start(session.events()) is None
+    assert crash_repairs(session.events()) == []
+    assert unended_start(session.events()) is None
 
 
 def test_a_closed_start_needs_no_repair() -> None:
@@ -157,15 +157,15 @@ def test_a_closed_start_needs_no_repair() -> None:
         CompactionStart(turn=None, trigger="manual"),
         CompactionEnd(turn=None, message=ApplicationMessage(content="s")),
     ]
-    assert repair(events) == []
+    assert crash_repairs(events) == []
 
 
 def test_a_compaction_end_carries_exactly_one_outcome() -> None:
     import pytest
     from pydantic import ValidationError
 
-    assert CompactionEnd(turn=0, message=ApplicationMessage(content="s")).succeeded
-    assert not CompactionEnd(turn=0, error="boom").succeeded
+    assert CompactionEnd(turn=0, message=ApplicationMessage(content="s")).has_summary
+    assert not CompactionEnd(turn=0, error="boom").has_summary
     with pytest.raises(ValidationError):
         CompactionEnd(turn=0)
     with pytest.raises(ValidationError):

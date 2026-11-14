@@ -12,7 +12,7 @@ from harness.channels.service.chat_tasks import ChatKey, ChatTasks
 from harness.channels.service.chats import open_chat_session, state_of
 from harness.channels.service.replies import ReplySender
 from harness.files import ChatFile
-from harness.runs.service.run import Run, RunAlreadyActive
+from harness.runs.service.run import Run, RunAlreadyActiveError
 from harness.runs.service.run_service import RunService
 from harness.session.service.session_service import SessionService
 from harness.skills import SkillService, UnknownSkill
@@ -58,7 +58,7 @@ class TurnFollower:
         session = await open_chat_session(self._repository, self._sessions, state)
         try:
             return self.follow_in_chat(state, self._runs.start(session, text, files=files))
-        except RunAlreadyActive:
+        except RunAlreadyActiveError:
             await self.queue(state, text, files)
             return None
 
@@ -73,7 +73,7 @@ class TurnFollower:
             )
         )
         key = ChatKey(state.channel, state.chat_id)
-        running = self._runs.active(state.conversation_id)
+        running = self._runs.active_run(state.conversation_id)
         if running is not None and not self._is_followed_elsewhere(key):
             self._tasks.start(key, self._wait_out(key, running))
 
@@ -99,7 +99,7 @@ class TurnFollower:
     async def _wait_out(self, key: ChatKey, run: Run) -> None:
         """Wait, sending nothing, for `run` to settle, then start whatever queued behind it."""
         async with run.condition:
-            await run.condition.wait_for(lambda: run.settled)
+            await run.condition.wait_for(lambda: run.is_settled)
         await self._drain(*key)
 
     async def _drain(self, channel: str, chat_id: str) -> None:
@@ -130,7 +130,7 @@ class TurnFollower:
         if platform is None:
             return
         state = await state_of(self._repository, platform, chat_id, self._runs.bots)
-        if state.conversation_id and self._runs.active(state.conversation_id) is not None:
+        if state.conversation_id and self._runs.active_run(state.conversation_id) is not None:
             return
         await asyncio.wait({task})
 

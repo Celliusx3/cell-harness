@@ -32,7 +32,7 @@ from harness.mcp import (
     open_stdio_client,
 )
 from harness.prompts import ASSISTANT_INSTRUCTIONS
-from harness.runs.service.bot_messages import BotMessages
+from harness.runs.service.bot_messages import BotMessenger
 from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.secrets import DiskSecretRepository, SecretService
@@ -237,7 +237,7 @@ def web_app(
         approvals or no_approvals(),
         bots,
         secrets,
-        BotMessages(bots, runs, follow=gateway.follow),
+        BotMessenger(bots, runs, follow=gateway.follow),
         tickets or no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),
@@ -271,7 +271,7 @@ def web_app_with_telegram(
         approvals or no_approvals(),
         bots,
         secrets,
-        BotMessages(bots, runs, follow=gateway.follow),
+        BotMessenger(bots, runs, follow=gateway.follow),
         no_tickets(tmp_path, bots, runs),
         schedules,
         scheduler_in(schedules, bots, runs, gateway),

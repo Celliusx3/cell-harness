@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.conversation_router import chat_router
-from harness.runs.service.run import RunAlreadyActive
+from harness.runs.service.run import RunAlreadyActiveError
 from harness.tools.client import ClientToolService, RefusalReason
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class ClientToolRouter:
     async def tool_output(
         self, conversation_id: str, call_id: str, body: dict[str, object]
     ) -> Response:
-        if self._web.runs.active(conversation_id) is not None:
+        if self._web.runs.active_run(conversation_id) is not None:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
@@ -49,7 +49,7 @@ class ClientToolRouter:
             )
         try:
             await self._web.gateway.resume(session, verdict.call_id, verdict.outcome)
-        except RunAlreadyActive as err:
+        except RunAlreadyActiveError as err:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"call {call_id!r} was already answered"
             ) from err

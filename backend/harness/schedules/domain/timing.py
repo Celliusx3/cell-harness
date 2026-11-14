@@ -9,9 +9,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dateutil.rrule import rrule, rrulestr
 
-MAX_COUNT = 1000
+MAX_RRULE_COUNT = 1000
 UTC_ZONE = ZoneInfo("UTC")
-_DTSTART = re.compile(r"DTSTART(?:;TZID=(?P<tzid>[^:;]+))?:\d{8}T\d{6}(?P<utc>Z?)")
+_DTSTART_PATTERN = re.compile(r"DTSTART(?:;TZID=(?P<tzid>[^:;]+))?:\d{8}T\d{6}(?P<utc>Z?)")
 
 
 class InvalidRrule(ValueError):
@@ -65,7 +65,7 @@ def _lines(text: str) -> tuple[str, str]:
 
 def _tzid(line: str) -> str | None:
     """The DTSTART line's TZID, `None` for Z; it must carry exactly one of the two."""
-    matched = _DTSTART.fullmatch(line)
+    matched = _DTSTART_PATTERN.fullmatch(line)
     if matched is None:
         raise InvalidRrule("DTSTART must be DTSTART:YYYYMMDDTHHMMSSZ or DTSTART;TZID=<zone>:...")
     if (matched["tzid"] is None) == (matched["utc"] == ""):
@@ -97,5 +97,5 @@ def _check_parts(parts: Mapping[str, str]) -> None:
 
 
 def _check_count(count: str) -> None:
-    if not count.isdigit() or not 1 <= int(count) <= MAX_COUNT:
-        raise InvalidRrule(f"COUNT must be from 1 to {MAX_COUNT}")
+    if not count.isdigit() or not 1 <= int(count) <= MAX_RRULE_COUNT:
+        raise InvalidRrule(f"COUNT must be from 1 to {MAX_RRULE_COUNT}")

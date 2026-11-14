@@ -55,7 +55,7 @@ datum:
   door and the loop never checks a tool's name. On `Pending` the loop writes
   no result and closes the turn with `turn/end {reason: "pending"}`. Nothing
   runs, nothing waits in memory, there is no timer. The card is on screen
-  because the log holds an unanswered call; `runs.active()` is false, so the
+  because the log holds an unanswered call; `runs.active_run()` is false, so the
   composer is free and Stop is hidden.
 - **The answer opens the next turn.** `Runtime.resume(call_id, outcome)`
   opens a turn whose first event is the `tool/result` for the pending call;
@@ -67,7 +67,7 @@ datum:
   answering this; do not ask again unless they return to it"), then opens the
   turn with the message. Not optional: a provider rejects a history with a
   call and no result — it is a 400 before the model sees it.
-- **A pending turn is not a crash.** `repair()` leaves an unanswered call
+- **A pending turn is not a crash.** `crash_repairs()` leaves an unanswered call
   alone when its turn ended `pending`; every other unanswered call is still
   `INTERRUPTED_BY_CRASH`. That is why the reason is written down rather than
   inferred: repair and the screen both read it.
@@ -243,7 +243,7 @@ is stopped midway.
 - **Several gated calls in one step.** `pending_calls` returns every unanswered
   call to an awaited tool, not just the current turn's; `resume` answers one
   and, while another still waits, closes the turn `pending` again without
-  asking the model. `repair()` now leaves unanswered calls alone only when the
+  asking the model. `crash_repairs()` now leaves unanswered calls alone only when the
   *last* turn ended `pending`, so a crash after a tap repairs the call as
   `INTERRUPTED_BY_CRASH` instead of showing the card a second time.
 - **The panel.** The tool name humanised (`memory__write_note` → "write note",

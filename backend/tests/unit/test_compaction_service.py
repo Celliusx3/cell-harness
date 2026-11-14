@@ -32,7 +32,7 @@ from harness.runtime.compaction.service import COMPACT_AT_WINDOW_FRACTION
 from harness.runtime.models import NoModel
 from harness.runtime.service import Runtime
 from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionStart
-from harness.session.domain.derive import derive_messages
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
     ToolCallEvent,

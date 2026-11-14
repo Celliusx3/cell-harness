@@ -140,9 +140,9 @@ async def test_hanging_up_mid_stream_does_not_cancel_the_run(live) -> None:
 
     await asyncio.sleep(0.05)  # let the disconnect propagate through Starlette
 
-    run = runs.active(conversation_id)
+    run = runs.active_run(conversation_id)
     assert run is not None, "the run was cancelled by a closed connection"
-    assert not run.settled
+    assert not run.is_settled
 
     await client.delete(f"/api/conversations/{conversation_id}/run")
 
@@ -152,10 +152,12 @@ async def test_a_silent_turn_still_sends_something_within_the_keep_alive(live, m
     client, _, runs = live
     conversation_id = await assistant_chat(client, "go")
     await until(
-        lambda: any(e.type == "tool/call" for e in runs.active(conversation_id).session.events()),
+        lambda: any(
+            e.type == "tool/call" for e in runs.active_run(conversation_id).session.events()
+        ),
         what="the turn to park inside the tool",
     )
-    seen = len(runs.active(conversation_id).session.events())
+    seen = len(runs.active_run(conversation_id).session.events())
 
     async with client.stream(
         "GET", f"/api/conversations/{conversation_id}/events?after={seen}"
@@ -176,7 +178,9 @@ async def test_reconnecting_with_a_cursor_misses_nothing(live) -> None:
         early = await read_events(first, count=2)
 
     await until(
-        lambda: any(e.type == "tool/call" for e in runs.active(conversation_id).session.events()),
+        lambda: any(
+            e.type == "tool/call" for e in runs.active_run(conversation_id).session.events()
+        ),
         what="the turn to progress past where the first reader stopped",
     )
 
@@ -186,7 +190,7 @@ async def test_reconnecting_with_a_cursor_misses_nothing(live) -> None:
         later = await read_events(second, count=2)
 
     live_log = [
-        json.loads(e.model_dump_json()) for e in runs.active(conversation_id).session.events()
+        json.loads(e.model_dump_json()) for e in runs.active_run(conversation_id).session.events()
     ]
     assert early == live_log[: len(early)]
     assert later == live_log[len(early) : len(early) + len(later)]
@@ -220,7 +224,9 @@ async def test_a_watcher_is_released_when_the_turn_is_stopped(live) -> None:
 
     watching = asyncio.create_task(watch_to_end())
     await until(
-        lambda: any(e.type == "tool/call" for e in runs.active(conversation_id).session.events()),
+        lambda: any(
+            e.type == "tool/call" for e in runs.active_run(conversation_id).session.events()
+        ),
         what="the tool to be dispatched",
     )
 
@@ -261,8 +267,8 @@ async def test_a_queued_turn_is_streamed_live_not_delivered_after_it_ends(tmp_pa
                 return event["message"]["content"] if event["type"] == "user/message" else None
 
             await take(events, done=lambda seen: prompt_of(seen[-1]) == "again")
-            run = runs.active(conversation_id)
-            assert run is not None and not run.settled
+            run = runs.active_run(conversation_id)
+            assert run is not None and not run.is_settled
 
             second.set()
             rest = await take(events, done=lambda seen: seen[-1]["type"] == "turn/end")

@@ -17,7 +17,7 @@ from harness.mcp import (
     McpServerTaken,
     McpTimeoutError,
 )
-from harness.schedules import InvalidSchedule, ScheduleBusy, ScheduleNotFound
+from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
 from harness.secrets import SecretNotFound, SecretRefused
 from harness.session.repository.session_repository import (
     SessionCorruptionError,
@@ -49,7 +49,7 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
         McpServerTaken: status.HTTP_409_CONFLICT,
         McpTimeoutError: status.HTTP_502_BAD_GATEWAY,
         ToolNotApproved: status.HTTP_404_NOT_FOUND,
-        ScheduleBusy: status.HTTP_409_CONFLICT,
+        ScheduleBusyError: status.HTTP_409_CONFLICT,
         ScheduleNotFound: status.HTTP_404_NOT_FOUND,
         SecretNotFound: status.HTTP_404_NOT_FOUND,
         SecretRefused: status.HTTP_409_CONFLICT,

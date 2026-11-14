@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 from harness.bots import BotNotFound, BotService
 from harness.runs.service.bot_messages import Follow
-from harness.runs.service.run import settled
+from harness.runs.service.run import wait_until_settled
 from harness.runs.service.run_service import RunService
 from harness.schedules.domain.models import Schedule
 from harness.schedules.domain.timing import latest_at_or_before
@@ -26,7 +26,7 @@ DELIVERY_FLOOR_SECONDS = 60
 Record = Callable[[str, datetime], None]
 
 
-class ScheduleBusy(RuntimeError):
+class ScheduleBusyError(RuntimeError):
     """The schedule's chat already holds a delivery in flight."""
 
     def __init__(self, schedule_id: str) -> None:
@@ -71,7 +71,7 @@ class Scheduler:
         """Start one delivery for each bot chat with schedules due now and none in flight."""
         now = self._now()
         for chat_id, due in self._due_by_chat(now).items():
-            heard = ScheduleReminders(reminders=tuple(_reminder(s, now) for s in due))
+            heard = ScheduleReminders(reminders=tuple(_latest_due_reminder(s, now) for s in due))
             self._start(chat_id, heard, self._schedules.record_delivery)
 
     def run_now(self, schedule_id: str) -> None:
@@ -79,7 +79,7 @@ class Scheduler:
         schedule = self._schedules.get(schedule_id)
         chat_id = self._bots.chat_of(schedule.bot_id)
         if chat_id in self._chats_in_flight:
-            raise ScheduleBusy(schedule_id)
+            raise ScheduleBusyError(schedule_id)
         reminder = _reminder_at(schedule, self._now())
         heard = ScheduleReminders(reminders=(reminder,))
         self._start(chat_id, heard, self._schedules.record_run_now)
@@ -94,7 +94,7 @@ class Scheduler:
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(self._schedules.changed.wait(), self._wait_seconds())
 
-    def _waiting(self) -> Iterable[Schedule]:
+    def _deliverable_schedules(self) -> Iterable[Schedule]:
         """The active schedules whose chat holds no delivery in flight."""
         return (
             s
@@ -105,7 +105,7 @@ class Scheduler:
     def _due_by_chat(self, now: datetime) -> dict[str, tuple[Schedule, ...]]:
         """The schedules due at `now`, by the chat they are delivered in, in the order made."""
         grouped: dict[str, tuple[Schedule, ...]] = {}
-        for schedule in self._waiting():
+        for schedule in self._deliverable_schedules():
             if _due_at(schedule) <= now:
                 chat_id = self._bots.chat_of(schedule.bot_id)
                 grouped = {**grouped, chat_id: (*grouped.get(chat_id, ()), schedule)}
@@ -113,7 +113,7 @@ class Scheduler:
 
     def _wait_seconds(self) -> float:
         """Until the first waiting schedule is due, capped so a sleeping Mac cannot stretch it."""
-        due = [_due_at(s) for s in self._waiting()]
+        due = [_due_at(s) for s in self._deliverable_schedules()]
         if not due:
             return MAX_WAIT_SECONDS
         left = (min(due) - self._now()).total_seconds()
@@ -154,7 +154,7 @@ class Scheduler:
         await self._follow(run)
         for reminder in heard.reminders:
             record(reminder.schedule_id, reminder.occurrence_at)
-        await settled(run)
+        await wait_until_settled(run)
 
 
 def _due_at(schedule: Schedule) -> datetime:
@@ -165,7 +165,7 @@ def _due_at(schedule: Schedule) -> datetime:
     return max(schedule.scheduled_at, floor)
 
 
-def _reminder(schedule: Schedule, now: datetime) -> ScheduleReminder:
+def _latest_due_reminder(schedule: Schedule, now: datetime) -> ScheduleReminder:
     """The occurrence a delivery at `now` carries: the latest due, never before `scheduled_at`."""
     latest = latest_at_or_before(schedule.rrule, now)
     occurrence_at = schedule.scheduled_at if latest is None else max(latest, schedule.scheduled_at)

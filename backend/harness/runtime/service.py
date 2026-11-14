@@ -28,11 +28,12 @@ from harness.runtime.models import BotModels, ModelChoice
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
-from harness.session.domain.derive import derive_messages, without_images
+from harness.session.domain.crash_repair import unanswered
 from harness.session.domain.log import ApprovalModeSwitch, Session
+from harness.session.domain.model_history import derive_messages, without_images
 from harness.session.domain.models import (
     ApprovalGrant,
-    ApprovalModeChanged,
+    ApprovalModeChange,
     BotMessage,
     BotMessageEvent,
     HeardMessage,
@@ -45,7 +46,6 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
-from harness.session.domain.repair import unanswered
 from harness.tools import Approval, ApprovalMode, Failure, Ok, Toolset
 
 SKIPPED = "SKIPPED"
@@ -100,7 +100,7 @@ class Runtime:
     def _approval_mode_reminder(self, session: Session) -> list[Message]:
         """The current mode as one system-reminder, once the person has switched this chat."""
         events = session.events()
-        if self.tools is None or not any(isinstance(e, ApprovalModeChanged) for e in events):
+        if self.tools is None or not any(isinstance(e, ApprovalModeChange) for e in events):
             return []
         sentence = APPROVAL_MODE_SENTENCES[self.approval_mode(session)]
         return [UserMessage(content=SYSTEM_REMINDER.format(text=sentence))]

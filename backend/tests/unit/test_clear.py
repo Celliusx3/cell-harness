@@ -24,7 +24,7 @@ from harness.runtime.compaction import CompactionRefusedError, check_can_compact
 from harness.runtime.compaction.history import PRUNE_KEEP
 from harness.runtime.compaction.service import NOTHING_TO_COMPACT_REASON
 from harness.session.domain.compaction import CompactionEnd
-from harness.session.domain.log import Numbered, Session
+from harness.session.domain.log import NumberedEvent, Session
 from harness.session.domain.models import (
     ApprovalGrant,
     BotInstructionsEvent,
@@ -92,8 +92,8 @@ async def test_after_a_clear_new_events_number_on_and_read_back_under_the_new_he
     assert reread.header == session.header
     assert reread.header.numbered_from == wiped
     assert reread.numbered_events_from(0) == [
-        Numbered(wiped, ChatCleared()),
-        Numbered(wiped + 1, TurnStart(turn=0)),
+        NumberedEvent(wiped, ChatCleared()),
+        NumberedEvent(wiped + 1, TurnStart(turn=0)),
     ]
     assert reread.next_number() == wiped + 2
 
@@ -164,12 +164,12 @@ async def test_a_clear_keeps_the_chat_busy_from_its_start_until_it_settles(tmp_p
         await asyncio.sleep(0)
 
     clearing = runs.clear(session)
-    assert not turn.settled
-    while not clearing.settled:
-        assert runs.active(session.id) is clearing
+    assert not turn.is_settled
+    while not clearing.is_settled:
+        assert runs.active_run(session.id) is clearing
         await asyncio.sleep(0)
 
-    assert turn.settled
-    assert runs.active(session.id) is None
+    assert turn.is_settled
+    assert runs.active_run(session.id) is None
     assert clearing.session.events() == [ChatCleared()]
     assert (await service.read(session.id)).events() == [ChatCleared()]

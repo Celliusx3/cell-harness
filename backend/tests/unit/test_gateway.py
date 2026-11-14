@@ -86,7 +86,7 @@ async def test_a_message_during_a_turn_is_queued(tmp_path) -> None:
     await gateway.receive(msg("slow one", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
     for _ in range(200):
-        if runs.active(conversation) is not None:
+        if runs.active_run(conversation) is not None:
             break
         await asyncio.sleep(0.01)
 
@@ -139,7 +139,7 @@ async def _queued_behind_a_gated_turn(tmp_path, first: asyncio.Event, second: as
     await gateway.receive(msg("slow one", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
     for _ in range(200):
-        if runs.active(conversation) is not None:
+        if runs.active_run(conversation) is not None:
             break
         await asyncio.sleep(0.01)
     await gateway.receive(msg("and another", 2))
@@ -158,7 +158,7 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
     _, gateway, runs, chats, sessions, conversation = await _queued_behind_a_gated_turn(
         tmp_path, first, second
     )
-    watched = runs.active(conversation)
+    watched = runs.active_run(conversation)
     loading = asyncio.Event()
     real_resume = sessions.resume
 
@@ -169,7 +169,7 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
     monkeypatch.setattr(sessions, "resume", gated_resume)
     first.set()
     async with watched.condition:
-        await watched.condition.wait_for(lambda: watched.settled)
+        await watched.condition.wait_for(lambda: watched.is_settled)
 
     waiting = asyncio.create_task(gateway.wait_until_drained("telegram", CHAT))
     await asyncio.sleep(0.05)
@@ -177,11 +177,11 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
     loading.set()
     await asyncio.wait_for(waiting, timeout=5)
 
-    drained = runs.active(conversation)
+    drained = runs.active_run(conversation)
     assert drained is not None and drained is not watched
     assert (await chats.load("telegram", CHAT)).pending == ()
     await asyncio.wait_for(gateway.wait_until_drained("telegram", CHAT), timeout=1)
-    assert not drained.settled
+    assert not drained.is_settled
     second.set()
     await settle(runs, gateway)
 

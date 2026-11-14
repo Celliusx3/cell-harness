@@ -37,12 +37,12 @@ in phase 9 (`session/domain/compaction.py`):
 
 Two events bracket a summary, not dsh's three: the summary rides on `end` the
 way `usage` rides on `assistant/message`. A `compaction/start` a crash left
-without an end is closed by `repair` with an `error` end — close, do not
+without an end is closed by `crash_repairs` with an `error` end — close, do not
 truncate.
 
 ## How `derive_messages` honours them
 
-`session/domain/derive.py`, the one place model history is produced:
+`session/domain/model_history.py`, the one place model history is produced:
 
 - the last `compaction/end` **with a message** is the boundary — derivation
   starts there, that message in the user role (where Claude Code and the phase-9
@@ -52,7 +52,7 @@ truncate.
   the tool again if it still needs it.
 
 Everything else that folds the raw log — `Session.tools_selected()`, the hook
-folds, `repair`, `pending_call` — reads it unchanged, so a pruned
+folds, `crash_repairs`, `pending_call` — reads it unchanged, so a pruned
 `get_function_details` result keeps its tool callable, and the guardrail keeps
 counting.
 

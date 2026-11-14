@@ -8,7 +8,7 @@ from typing import NamedTuple
 from harness.llm import ToolReference
 from harness.session.domain.models import (
     ApprovalGrant,
-    ApprovalModeChanged,
+    ApprovalModeChange,
     AssistantMessageEvent,
     BotInstructionsEvent,
     GroupMembersEvent,
@@ -24,7 +24,7 @@ from harness.session.domain.speakers import last_speaker, turn_speakers
 from harness.tools import ApprovalMode
 
 
-class Numbered(NamedTuple):
+class NumberedEvent(NamedTuple):
     """One event and its number in the chat."""
 
     number: int
@@ -59,12 +59,12 @@ class Session:
         """Every event, oldest first."""
         return self._events
 
-    def numbered_events_from(self, number: int) -> list[Numbered]:
+    def numbered_events_from(self, number: int) -> list[NumberedEvent]:
         """The events numbered `number` and up; all of them when `number` predates this file."""
         first = self.header.numbered_from
         start = max(number - first, 0)
         return [
-            Numbered(first + index, event)
+            NumberedEvent(first + index, event)
             for index, event in enumerate(self._events[start:], start)
         ]
 
@@ -80,7 +80,7 @@ class Session:
         """The bot that opened the last turn; `None` when it names none or no turn was opened."""
         return last_speaker(self._events)
 
-    def speaker_of_call(self, call_id: str) -> str | None:
+    def calling_bot_id(self, call_id: str) -> str | None:
         """The bot whose turn asked for call `call_id`; `None` when that turn names none."""
         speakers = turn_speakers(self._events)
         for event in self._events:
@@ -160,6 +160,6 @@ class Session:
 def _latest_approval_mode(events: Sequence[SessionEvent], default: ApprovalMode) -> ApprovalMode:
     """The mode the last switch in `events` chose; `default` when there is none."""
     for event in reversed(events):
-        if isinstance(event, ApprovalModeChanged):
+        if isinstance(event, ApprovalModeChange):
             return event.mode
     return default

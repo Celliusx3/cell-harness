@@ -8,7 +8,7 @@ from contextlib import suppress
 
 from harness.runs.service.run import Run
 from harness.runs.service.subscribe import subscribe
-from harness.session.domain.log import Numbered, Session
+from harness.session.domain.log import NumberedEvent, Session
 
 SSE_MEDIA_TYPE = "text/event-stream"
 
@@ -26,7 +26,7 @@ def frame(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
-def session_frame(item: Numbered) -> str:
+def session_frame(item: NumberedEvent) -> str:
     """One logged event as an SSE frame whose `id` is the event's number."""
     return f"event: session\nid: {item.number}\ndata: {item.event.model_dump_json()}\n\n"
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from harness.bots import ASSISTANT_ID
 from harness.llm import ToolCall, text_of
 from harness.sandbox import Bridge, BridgeError
-from harness.session.domain.models import ApprovalModeChanged, ChatCleared, ToolResultEvent, TurnEnd
+from harness.session.domain.models import ApprovalModeChange, ChatCleared, ToolResultEvent, TurnEnd
 from harness.tools import (
     ApprovalMode,
     ApprovalService,
@@ -56,9 +56,9 @@ def test_a_chat_with_no_switch_follows_the_default() -> None:
 
 def test_the_latest_switch_wins() -> None:
     session = new_session()
-    session.append(ApprovalModeChanged(mode="auto"))
+    session.append(ApprovalModeChange(mode="auto"))
     session.append(ChatCleared())
-    session.append(ApprovalModeChanged(mode="ask"))
+    session.append(ApprovalModeChange(mode="ask"))
 
     assert session.approval_mode("auto") == "ask"
 
@@ -96,7 +96,7 @@ def test_a_chat_runs_under_its_latest_switch_else_the_configured_default() -> No
     session = new_session()
 
     assert toolset.approval_mode(session) == "auto"
-    session.append(ApprovalModeChanged(mode="ask"))
+    session.append(ApprovalModeChange(mode="ask"))
     assert toolset.approval_mode(session) == "ask"
 
 
@@ -140,14 +140,14 @@ async def test_a_switch_during_a_turn_decides_its_next_call(tmp_path) -> None:
         approvals=_approvals(WRITE),
     )
     run = runs.start(await service.create(ASSISTANT_ID), "go")
-    await until(lambda: runs.active(ASSISTANT_ID) is not None, what="the turn to start")
+    await until(lambda: runs.active_run(ASSISTANT_ID) is not None, what="the turn to start")
 
     await runs.set_approval_mode(ASSISTANT_ID, "auto")
     release.set()
-    await asyncio.wait_for(run._outer, timeout=5)
+    await asyncio.wait_for(run._settle_task, timeout=5)
 
     events = (await service.read(ASSISTANT_ID)).events()
-    assert ApprovalModeChanged(mode="auto") in events
+    assert ApprovalModeChange(mode="auto") in events
     written = [
         text_of(e.message.content)
         for e in events

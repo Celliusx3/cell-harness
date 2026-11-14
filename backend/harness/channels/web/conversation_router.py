@@ -131,7 +131,7 @@ class ConversationRouter:
 
     async def get_conversation(self, conversation_id: str) -> ConversationDetail:
         """The whole log, and the cursor to start streaming from."""
-        run = self._web.runs.active(conversation_id)
+        run = self._web.runs.active_run(conversation_id)
         session = await self._chat_session(conversation_id)
         events = list(session.events())
         header = session.header
@@ -186,7 +186,7 @@ class ConversationRouter:
         web = self._web
 
         async def source() -> Source:
-            run = web.runs.active(conversation_id)
+            run = web.runs.active_run(conversation_id)
             if run is not None:
                 return run
             return await web.sessions.read(conversation_id)
@@ -243,7 +243,7 @@ class ConversationRouter:
 
     async def _chat_session(self, conversation_id: str) -> Session:
         """The running turn's session, else the stored one, read without repair."""
-        run = self._web.runs.active(conversation_id)
+        run = self._web.runs.active_run(conversation_id)
         if run is not None:
             return run.session
         return await self._web.sessions.read(conversation_id)

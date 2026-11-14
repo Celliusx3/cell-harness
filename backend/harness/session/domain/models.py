@@ -170,7 +170,7 @@ class ApprovalGrant(BaseModel):
     tool: str
 
 
-class ApprovalModeChanged(BaseModel):
+class ApprovalModeChange(BaseModel):
     """The person switched the chat to `mode`; the latest switch decides what asks."""
 
     model_config = ConfigDict(frozen=True)
@@ -238,7 +238,7 @@ SessionEvent = (
     | CompactionPrune
     | ImagesHidden
     | ApprovalGrant
-    | ApprovalModeChanged
+    | ApprovalModeChange
     | BotInstructionsEvent
     | ServerInstructionsEvent
     | GroupMembersEvent

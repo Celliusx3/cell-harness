@@ -11,7 +11,7 @@ from harness.bots import Bot, BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.conversation_router import chat_router
 from harness.channels.web.secret_card_schemas import EnteredSecret, ModelEntry, SecretEntry
-from harness.runs.service.run import RunAlreadyActive
+from harness.runs.service.run import RunAlreadyActiveError
 from harness.secrets import SECRET_VALUE_RULE, SecretService
 from harness.secrets.domain.details import CustomDetails
 from harness.secrets.service.credential_effects import CredentialEffects
@@ -46,7 +46,7 @@ class SecretCardRouter:
         )
 
     async def save_secret(self, conversation_id: str, call_id: str, request: Request) -> Response:
-        if self._web.runs.active(conversation_id) is not None:
+        if self._web.runs.active_run(conversation_id) is not None:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"{conversation_id!r} is running a turn"
             )
@@ -64,7 +64,7 @@ class SecretCardRouter:
         try:
             saved = SavedName(name=ask.name, kind=ask.kind)
             await self._web.gateway.resume(session, call_id, Ok(content=saved.model_dump_json()))
-        except RunAlreadyActive as err:
+        except RunAlreadyActiveError as err:
             raise HTTPException(
                 status.HTTP_409_CONFLICT, detail=f"call {call_id!r} was already answered"
             ) from err

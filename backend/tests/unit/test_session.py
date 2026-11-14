@@ -13,8 +13,8 @@ from harness.llm import (
     TextChunk,
     UserMessage,
 )
-from harness.session.domain.derive import derive_messages
 from harness.session.domain.log import Session
+from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,

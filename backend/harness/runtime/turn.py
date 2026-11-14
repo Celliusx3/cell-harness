@@ -32,9 +32,9 @@ from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.runtime.step_open import open_step
 from harness.runtime.step_tools import NextStep, StepEnding, close_turn, run_step_tools
 from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
-from harness.session.domain.derive import through_hiding
 from harness.session.domain.images import ImagesHidden
 from harness.session.domain.log import Session
+from harness.session.domain.model_history import hide_through_for_fewer_images
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantChunk,
@@ -228,7 +228,7 @@ def _hide_images(session: Session, failure: Failed, *, turn: int) -> bool:
     """Log a hide of as many more images as `failure` asks: `True` when one more could go."""
     if failure.images_to_hide is None:
         return False
-    through = through_hiding(session.events(), failure.images_to_hide)
+    through = hide_through_for_fewer_images(session.events(), failure.images_to_hide)
     if through is None:
         return False
     session.append(ImagesHidden(turn=turn, through=through))
@@ -256,7 +256,7 @@ async def _shrink_history(
     async with aclosing(run_compaction(runtime, session, turn=turn, trigger=trigger)) as events:
         async for event in events:
             if isinstance(event, CompactionPrune) or (
-                isinstance(event, CompactionEnd) and event.succeeded
+                isinstance(event, CompactionEnd) and event.has_summary
             ):
                 shrank = True
     return shrank

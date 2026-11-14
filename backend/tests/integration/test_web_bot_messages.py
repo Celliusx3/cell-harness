@@ -199,7 +199,7 @@ async def test_a_message_for_a_bot_removed_while_it_waited_is_dropped(
     assert removed.status_code == 204
     assert "bot message dropped" in caplog.text
     assert of_type(assistant_log, "bot/message") == []
-    assert world.runs.active(researcher) is None
+    assert world.runs.active_run(researcher) is None
 
 
 async def test_closing_cancels_a_message_still_waiting_for_its_bot(tmp_path) -> None:

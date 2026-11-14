@@ -78,7 +78,7 @@ async def test_an_empty_answer_is_refused_at_the_boundary(tmp_path) -> None:
 
     refused = await client.post(PATH.format(id=conversation_id), json=_choice(""))
     assert refused.status_code == 422
-    assert runs.active(conversation_id) is None
+    assert runs.active_run(conversation_id) is None
 
 
 async def test_typing_instead_skips_the_question(tmp_path) -> None:

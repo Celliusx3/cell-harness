@@ -43,7 +43,7 @@ class CompactionEnd(BaseModel):
         return self
 
     @property
-    def succeeded(self) -> bool:
+    def has_summary(self) -> bool:
         """A boundary was written — the model's history now starts here."""
         return self.message is not None
 
@@ -62,7 +62,7 @@ def boundary(events: Sequence[SessionEvent]) -> int | None:
     """The index of the last successful `compaction/end`, or `None` if never compacted."""
     for index in reversed(range(len(events))):
         event = events[index]
-        if isinstance(event, CompactionEnd) and event.succeeded:
+        if isinstance(event, CompactionEnd) and event.has_summary:
             return index
     return None
 
@@ -83,7 +83,7 @@ def pruned_ids(events: Sequence[SessionEvent]) -> frozenset[str]:
     )
 
 
-def open_start(events: Sequence[SessionEvent]) -> CompactionStart | None:
+def unended_start(events: Sequence[SessionEvent]) -> CompactionStart | None:
     """A `compaction/start` a crash left without its `compaction/end`, or `None`."""
     for event in reversed(events):
         if isinstance(event, CompactionEnd):

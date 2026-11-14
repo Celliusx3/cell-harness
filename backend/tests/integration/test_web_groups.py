@@ -179,11 +179,11 @@ async def test_removing_a_bot_stops_the_discussion_it_is_speaking_in(
         sent = await client.post(f"/api/conversations/{chat}/messages", json={"prompt": "go"})
         assert sent.status_code == 202
         for _ in range(200):
-            running = runs.active(chat)
+            running = runs.active_run(chat)
             if running is not None and running.session.speaker_id() == researcher:
                 break
             await asyncio.sleep(0.01)
         removed = await client.request(method, f"/api/bots/{researcher}{suffix}")
 
     assert removed.status_code == 204
-    assert runs.active(chat) is None
+    assert runs.active_run(chat) is None

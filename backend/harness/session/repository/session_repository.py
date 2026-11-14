@@ -31,7 +31,7 @@ class SessionRepository(Protocol):
         """Durably record a batch, continuing the stored log. Append-only."""
         ...
 
-    async def restart(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+    async def replace(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
         """Replace the stored log with `header` and `events`."""
         ...
 

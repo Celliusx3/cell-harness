@@ -52,7 +52,7 @@ class GroupService:
     def calling_bot(self, session: Session, call_id: str) -> Bot:
         """The member whose turn asked for `call_id`; the chat's only bot in an older log."""
         members = self.chat_members(session.id).bots
-        bot_id = session.speaker_of_call(call_id)
+        bot_id = session.calling_bot_id(call_id)
         matches = members if bot_id is None else tuple(bot for bot in members if bot.id == bot_id)
         if len(matches) != 1:
             raise BotNotFound(bot_id if bot_id is not None else session.id)

@@ -61,7 +61,7 @@ async def test_a_queued_slash_name_is_expanded_when_it_drains(tmp_path) -> None:
     await gateway.receive(msg("hold on", 1))
     conversation = (await chats.load("telegram", CHAT)).conversation_id
     for _ in range(200):
-        if runs.active(conversation) is not None:
+        if runs.active_run(conversation) is not None:
             break
         await asyncio.sleep(0.01)
     assert await gateway.receive(msg("/find-place https://x", 2)) is None

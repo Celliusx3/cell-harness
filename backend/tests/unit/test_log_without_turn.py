@@ -32,7 +32,7 @@ async def test_an_event_is_logged_durably_in_the_last_turn_and_opens_none(tmp_pa
     session = await sessions.create(ASSISTANT_ID)
     run = runs.start(session, "hello")
     async with run.condition:
-        await run.condition.wait_for(lambda: run.settled)
+        await run.condition.wait_for(lambda: run.is_settled)
     published = runs.app_events.subscribe()
     told = asyncio.ensure_future(anext(published))
     await asyncio.sleep(0)
@@ -43,7 +43,7 @@ async def test_an_event_is_logged_durably_in_the_last_turn_and_opens_none(tmp_pa
     assert logged
     assert stored.events()[-1] == reported(0)
     assert [type(e) for e in stored.events()].count(TurnStart) == 1
-    assert runs.active(ASSISTANT_ID) is None
+    assert runs.active_run(ASSISTANT_ID) is None
     assert model.calls == 1
     assert await asyncio.wait_for(told, timeout=1) == ChatLoggedAppEvent(chat_id=ASSISTANT_ID)
     await published.aclose()

@@ -204,4 +204,4 @@ async def test_an_overflow_whose_summary_fails_fails_the_turn() -> None:
 
     assert events[-1] == AgentFailed(reason="too long")
     ends = [e for e in session.events() if isinstance(e, CompactionEnd)]
-    assert ends and not any(end.succeeded for end in ends)
+    assert ends and not any(end.has_summary for end in ends)

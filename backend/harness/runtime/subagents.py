@@ -8,7 +8,7 @@ from harness.prompts import SUBAGENT_INTRO
 from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
 from harness.runtime.run_to_end import HelperTurn, run_to_end
 from harness.runtime.service import Runtime
-from harness.session.domain.models import ApprovalModeChanged
+from harness.session.domain.models import ApprovalModeChange
 from harness.session.service.session_service import SessionService
 from harness.tools.domain.decision import ApprovalMode
 from harness.tools.native.subagent import (
@@ -31,7 +31,7 @@ class Subagents:
     ) -> SubagentOutcome:
         """Run `task` for `bot_id` in `mode` in a new session `subagent_id`, and report its end."""
         session = await self.sessions.create(subagent_id)
-        session.append(ApprovalModeChanged(mode=mode))
+        session.append(ApprovalModeChange(mode=mode))
         turn = HelperTurn(
             intro=SUBAGENT_INTRO.format(name=task.name), prompt=task.task, bot_id=bot_id
         )

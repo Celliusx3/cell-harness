@@ -22,9 +22,9 @@ from harness.prompts import (
     TICKET_QUESTION_HEARD,
     TICKET_REPORT_HEARD,
 )
-from harness.session.domain.change_notes import after_owed_results, change_message
+from harness.session.domain.change_notes import change_message, with_changes_after_owed_results
 from harness.session.domain.compaction import boundary, pruned_ids
-from harness.session.domain.images import ImagesHidden, first_images_noted, hidden_through
+from harness.session.domain.images import ImagesHidden, first_images_noted, hidden_image_count
 from harness.session.domain.models import (
     ApplicationMessageEvent,
     AssistantMessageEvent,
@@ -46,7 +46,7 @@ from harness.session.domain.models import (
 from harness.session.domain.speakers import last_speaker, turn_speakers
 from harness.utc import utc_text
 
-RESULT_LIMIT = 12_000
+RESULT_CHAR_LIMIT = 12_000
 
 BOT_MESSAGE_TEMPLATES: Mapping[BotMessageIntent, str] = {
     "request": BOT_MESSAGE_REQUEST,
@@ -62,7 +62,7 @@ class Voices:
     names: Mapping[str, str]
     listener: str | None
 
-    def other_speaker(self, turn: int) -> str | None:
+    def other_speaker_name(self, turn: int) -> str | None:
         """The name, or else the id, of the bot that opened `turn` when it is not the listener."""
         bot_id = self.speakers.get(turn)
         if bot_id is None or bot_id == self.listener:
@@ -72,10 +72,10 @@ class Voices:
 
 def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
     """The conversation as the bot that opened its last turn should see it."""
-    log = after_owed_results(tuple(events))
+    log = with_changes_after_owed_results(tuple(events))
     voices = Voices(turn_speakers(log), _bot_names(log), last_speaker(log))
     pruned = pruned_ids(log)
-    log = _with_images_hidden(log, hidden_through(log))
+    log = _with_images_hidden(log, hidden_image_count(log))
     messages: list[Message] = []
     start = boundary(log)
     if start is not None:
@@ -83,7 +83,7 @@ def derive_messages(events: Iterable[SessionEvent]) -> list[Message]:
         assert summary.message is not None
         messages.append(UserMessage(content=summary.message.content))
         log = log[start + 1 :]
-    messages.extend(_as_heard(log, voices, pruned))
+    messages.extend(_heard_messages(log, voices, pruned))
     return messages
 
 
@@ -97,9 +97,9 @@ def without_images(messages: Sequence[Message]) -> list[Message]:
     ]
 
 
-def through_hiding(events: Sequence[SessionEvent], count: int) -> int | None:
+def hide_through_for_fewer_images(events: Sequence[SessionEvent], count: int) -> int | None:
     """The smallest hide that shows up to `count` fewer images; `None` when none shows fewer."""
-    lowest, highest = hidden_through(events), _log_image_count(events)
+    lowest, highest = hidden_image_count(events), _log_image_count(events)
     shown = _shown_image_count(events, lowest)
     wanted = min(count, shown - _shown_image_count(events, highest))
     if wanted <= 0:
@@ -143,7 +143,7 @@ def _with_images_hidden(log: tuple[SessionEvent, ...], through: int) -> tuple[Se
     return tuple(hidden)
 
 
-def _as_heard(
+def _heard_messages(
     tail: Sequence[SessionEvent], voices: Voices, pruned: frozenset[str]
 ) -> Iterator[Message]:
     """Every event as the listener's own, but another bot's turn only as what it said, tagged."""
@@ -160,7 +160,7 @@ def _as_heard(
         elif isinstance(event, ScheduleChangeEvent):
             yield change_message(event)
         elif isinstance(event, (ApplicationMessageEvent, AssistantMessageEvent, ToolResultEvent)):
-            other = voices.other_speaker(event.turn)
+            other = voices.other_speaker_name(event.turn)
             if other is None:
                 yield _own_message(event, pruned)
             elif isinstance(event, AssistantMessageEvent) and _is_said(event.message.content):
@@ -262,9 +262,9 @@ def _bot_names(events: Sequence[SessionEvent]) -> Mapping[str, str]:
 
 def _limited(message: ToolMessage) -> ToolMessage:
     total = sum(len(block.text) for block in message.content if isinstance(block, Text))
-    if total <= RESULT_LIMIT:
+    if total <= RESULT_CHAR_LIMIT:
         return message
-    note = CUT_NOTE.format(total=total, limit=RESULT_LIMIT)
+    note = CUT_NOTE.format(total=total, limit=RESULT_CHAR_LIMIT)
     return ToolMessage(
         tool_call_id=message.tool_call_id, content=tuple(_cut_blocks(message.content, note))
     )
@@ -277,8 +277,8 @@ def _cut_blocks(blocks: tuple[Block, ...], note: str) -> Iterator[Block]:
             yield block
             continue
         end = start + len(block.text)
-        if end <= RESULT_LIMIT:
+        if end <= RESULT_CHAR_LIMIT:
             yield block
-        elif start <= RESULT_LIMIT:
-            yield Text(text=block.text[: RESULT_LIMIT - start] + note)
+        elif start <= RESULT_CHAR_LIMIT:
+            yield Text(text=block.text[: RESULT_CHAR_LIMIT - start] + note)
         start = end

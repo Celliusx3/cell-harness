@@ -43,7 +43,7 @@ def answer_url(public_url: str, conversation_id: str, call_id: str) -> str:
 
 def _compaction_line(event: CompactionEnd) -> str:
     """What a chat is told when a manual compaction settles."""
-    if event.succeeded:
+    if event.has_summary:
         return "Conversation compacted to free up context."
     return "Could not compact the conversation right now."
 

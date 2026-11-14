@@ -116,7 +116,7 @@ async def test_an_unlinked_private_chat_gets_no_answer_at_all(tmp_path: Path) ->
 
     assert _nothing_sent(bot)
     assert await linked.chats.load("telegram", "1") is None
-    assert linked.runs.active(ASSISTANT_ID) is None
+    assert linked.runs.active_run(ASSISTANT_ID) is None
 
 
 async def test_a_strangers_traffic_is_logged_at_debug_only(

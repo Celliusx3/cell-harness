@@ -10,7 +10,7 @@ from harness.runtime.run_to_end import HelperAnswer, HelperTurn, resume_to_end, 
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
 from harness.session.domain.models import (
-    ApprovalModeChanged,
+    ApprovalModeChange,
     SessionEvent,
     TicketAsk,
     TicketReport,
@@ -71,7 +71,7 @@ class Workers:
     async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
         session = await self.sessions.create(worker_session_id(ticket.id))
-        session.append(ApprovalModeChanged(mode=mode))
+        session.append(ApprovalModeChange(mode=mode))
         return await self._turn(ticket, ticket.task, session)
 
     async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:

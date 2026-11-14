@@ -16,7 +16,7 @@ from harness.session.repository.session_repository import (
     SessionNotFoundError,
 )
 
-_EVENT = TypeAdapter(SessionEvent)
+_EVENT_ADAPTER = TypeAdapter(SessionEvent)
 
 
 class JsonlSessionRepository:
@@ -36,7 +36,7 @@ class JsonlSessionRepository:
         """Remember the header; write nothing."""
         self._pending[header.id] = header
 
-    async def restart(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+    async def replace(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
         """Replace the stored log with `header` and `events`."""
         _write_whole_file(self._path(header.id), header, events)
         self._stored_count_single_writer[header.id] = len(events)
@@ -85,7 +85,7 @@ class JsonlSessionRepository:
         body = lines[1:]
         for index, line in enumerate(body):
             try:
-                events.append(_EVENT.validate_json(line))
+                events.append(_EVENT_ADAPTER.validate_json(line))
             except (json.JSONDecodeError, ValidationError) as err:
                 torn = index == len(body) - 1 and not line.endswith("\n")
                 if torn:

@@ -18,7 +18,7 @@ from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
-from harness.runs.service.bot_messages import BotMessages, Follow
+from harness.runs.service.bot_messages import BotMessenger, Follow
 from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
@@ -254,9 +254,9 @@ def attach_bot_messages(
     runs: RunService,
     *,
     follow: Follow,
-) -> BotMessages:
-    """`message_bot` offered from `tool_service`, sending through the `BotMessages` it returns."""
-    messages = BotMessages(bots, runs, follow=follow)
+) -> BotMessenger:
+    """`message_bot` offered from `tool_service`, sending through the `BotMessenger` it returns."""
+    messages = BotMessenger(bots, runs, follow=follow)
     tool_service.add_provider(lambda: [message_bot_tool(bots, messages)])
     return messages
 

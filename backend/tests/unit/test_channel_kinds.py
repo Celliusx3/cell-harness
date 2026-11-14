@@ -101,7 +101,7 @@ async def _returns_immediately() -> None:
 async def test_a_client_channel_resolves_a_conversation_it_has_never_seen(tmp_path) -> None:
     gateway, _, runs, chats, sessions = build(tmp_path)
     session = await sessions.create(ASSISTANT_ID)
-    await asyncio.wait_for(runs.start(session, "started elsewhere")._outer, timeout=5)
+    await asyncio.wait_for(runs.start(session, "started elsewhere")._settle_task, timeout=5)
     assert await chats.load("web", ASSISTANT_ID) is None
 
     run = await gateway.receive(InboundMessage(channel="web", chat_id=session.id, text="and again"))
