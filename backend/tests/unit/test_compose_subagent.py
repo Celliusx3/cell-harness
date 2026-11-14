@@ -78,7 +78,8 @@ def compose_both(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             files=files_in(tmp_path),
         )
         assert runtime.tools is not None
-        worker = ticket_workers(runtime.tools.tool_service, runtime, subagent_logs).runtime
+        workers = ticket_workers(runtime.tools.tool_service, runtime, subagent_logs, bots.chat_of)
+        worker = workers.runtime
         return runtime, worker, sessions
 
     return build

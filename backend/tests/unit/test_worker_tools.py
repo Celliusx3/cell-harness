@@ -55,7 +55,7 @@ def test_a_worker_offers_subagents_and_its_report_and_a_subagent_offers_neither(
     )
     attach_tickets(tool_service, no_tickets(tmp_path, bots, runs))
 
-    worker = offered(ticket_workers(tool_service, runtime, logs).runtime)
+    worker = offered(ticket_workers(tool_service, runtime, logs, bots.chat_of).runtime)
     subagent = offered(delegate_runtime(tool_service, runtime, SUBAGENT_TOOLS))
 
     assert {RUN_SUBAGENT, TICKET_REPORT} <= worker

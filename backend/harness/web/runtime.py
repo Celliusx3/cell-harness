@@ -28,7 +28,7 @@ from harness.runtime.hooks.native.no_wait import NoWaitHook
 from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
-from harness.runtime.service import Runtime
+from harness.runtime.service import Runtime, session_chat_id
 from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
 from harness.schedules import ScheduleService
@@ -185,6 +185,7 @@ def build_runtime(
         hooks=orchestrator_hooks(skills),
         files=files,
         server_instructions=mcp.instructions,
+        chat_id_for=session_chat_id,
     )
     _register_run_subagent(tool_service, runtime, subagent_logs)
     return runtime
