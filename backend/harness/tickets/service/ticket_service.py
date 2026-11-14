@@ -10,6 +10,7 @@ from datetime import datetime
 
 from harness.app_events import TicketsChangedAppEvent
 from harness.bots import BotNotFound, BotService
+from harness.files import ChatFile
 from harness.runs.service.run import Run
 from harness.runs.service.run_service import RunService
 from harness.session.domain.log import Session
@@ -122,11 +123,16 @@ class TicketService:
             state="working",
             created_at=self._now(),
             mode=mode,
+            files=self._files_attached_now(bot_id),
         )
         stored = self._repository.read()
         self._save(TicketsFile(tickets=(*stored.tickets, ticket)))
         self._start_first_turn(ticket)
         return ticket
+
+    def _files_attached_now(self, bot_id: str) -> tuple[ChatFile, ...]:
+        run = self._runs.active_run(self._bots.chat_of(bot_id))
+        return run.session.files_attached_this_turn() if run is not None else ()
 
     def recover(self) -> None:
         """After a restart, resume each working ticket with a note and start each queued one."""

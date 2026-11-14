@@ -7,6 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from harness.files.domain.models import ChatFile
 from harness.secrets import Destination
 from harness.session.domain.heard import ReportState as ReportState
 from harness.tools.domain.decision import ApprovalMode
@@ -57,6 +58,9 @@ class Ticket(BaseModel):
     created_at: datetime
     mode: ApprovalMode = Field(
         default="ask", description="The chat's mode at accept; tickets saved before it ask."
+    )
+    files: tuple[ChatFile, ...] = Field(
+        default=(), description="The files attached in the turn that accepted it; none before."
     )
 
 

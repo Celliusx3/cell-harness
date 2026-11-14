@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from dataclasses import dataclass
 
+from harness.files import ChatFile
 from harness.runtime.events import TurnEvent
 from harness.runtime.inbox import NO_INBOX
 from harness.runtime.service import Runtime
@@ -17,11 +18,12 @@ from harness.tools import Approval, Failure, Ok
 
 @dataclass(frozen=True)
 class HelperTurn:
-    """One turn of a copy: the intro put before its guidance, its prompt, and the bot it is for."""
+    """One turn of a copy: the intro put before its guidance, its prompt, files, and its bot."""
 
     intro: str
     prompt: str
     bot_id: str
+    files: tuple[ChatFile, ...]
 
 
 @dataclass(frozen=True)
@@ -40,7 +42,9 @@ async def run_to_end(
     """Run `turn` on a copy of `runtime` in `session`, flushed by `sessions`; its last event."""
     copy = _helper_runtime(runtime, sessions, turn.intro)
     return await _last_event(
-        sessions, session, copy.run(turn.prompt, session=session, bot_id=turn.bot_id)
+        sessions,
+        session,
+        copy.run(turn.prompt, session=session, bot_id=turn.bot_id, files=turn.files),
     )
 
 

@@ -33,7 +33,10 @@ class Subagents:
         session = await self.sessions.create(subagent_session_id(subagent_id))
         session.append(ApprovalModeChange(mode=mode))
         turn = HelperTurn(
-            intro=SUBAGENT_INTRO.format(name=task.name), prompt=task.task, bot_id=bot_id
+            intro=SUBAGENT_INTRO.format(name=task.name),
+            prompt=task.task,
+            bot_id=bot_id,
+            files=(),
         )
         last = await run_to_end(self.runtime, self.sessions, session, turn)
         return _subagent_outcome(last)

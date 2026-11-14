@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 
+from harness.files.domain.models import ChatFile
 from harness.llm import ToolReference
 from harness.session.domain.models import (
     ApprovalGrant,
@@ -19,6 +20,7 @@ from harness.session.domain.models import (
     ToolCallEvent,
     ToolResultEvent,
     TurnStart,
+    UserMessageEvent,
 )
 from harness.session.domain.speakers import last_speaker, turn_speakers
 from harness.tools import ApprovalMode
@@ -75,6 +77,16 @@ class Session:
     def next_turn(self) -> int:
         """The index the next turn should open with."""
         return sum(1 for event in self._events if isinstance(event, TurnStart))
+
+    def files_attached_this_turn(self) -> tuple[ChatFile, ...]:
+        """The files the person attached to the messages of the last turn opened."""
+        turn = self.next_turn() - 1
+        return tuple(
+            file
+            for event in self._events
+            if isinstance(event, UserMessageEvent) and event.turn == turn
+            for file in event.files
+        )
 
     def speaker_id(self) -> str | None:
         """The bot that opened the last turn; `None` when it names none or no turn was opened."""

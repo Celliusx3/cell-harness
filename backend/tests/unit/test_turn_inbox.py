@@ -95,7 +95,9 @@ async def test_a_helper_run_to_its_end_has_no_inbox(tmp_path) -> None:
     inbox = HeldInbox(session, WaitingMessages(text="not for a helper", files=()))
     runtime = runtime_over(SteppedClient(completed("done")), inbox=inbox)
 
-    await run_to_end(runtime, logs, session, HelperTurn(intro="", prompt="go", bot_id="b"))
+    await run_to_end(
+        runtime, logs, session, HelperTurn(intro="", prompt="go", bot_id="b", files=())
+    )
 
     assert inbox.claimed_after == []
     assert said(session) == [(0, "go")]

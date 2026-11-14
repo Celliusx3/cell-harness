@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
+from harness.files import ChatFile
 from harness.runtime.events import AgentCompleted, AgentFailed, AgentPending, TurnEvent
 from harness.runtime.run_to_end import HelperAnswer, HelperTurn, resume_to_end, run_to_end
 from harness.runtime.service import Runtime
@@ -86,12 +87,12 @@ class RuntimeTicketWorker:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
         session = await self.sessions.create(worker_session_id(ticket.id))
         session.append(ApprovalModeChange(mode=mode))
-        return await self._run_turn(ticket, ticket.task, session)
+        return await self._run_turn(ticket, ticket.task, session, ticket.files)
 
     async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:
         """Run the next turn on `prompt` in `ticket`'s session, under the mode its log holds."""
         session = await self.sessions.resume(worker_session_id(ticket.id))
-        return await self._run_turn(ticket, prompt, session)
+        return await self._run_turn(ticket, prompt, session, ())
 
     async def approve(
         self, ticket: Ticket, call_id: str, outcome: Ok | Failure | Approval
@@ -103,9 +104,11 @@ class RuntimeTicketWorker:
         last = await resume_to_end(self.runtime, self.sessions, session, answer)
         return worker_end(last, last_accepted_report(session.events()))
 
-    async def _run_turn(self, ticket: Ticket, prompt: str, session: Session) -> WorkerEnd:
+    async def _run_turn(
+        self, ticket: Ticket, prompt: str, session: Session, files: tuple[ChatFile, ...]
+    ) -> WorkerEnd:
         intro = WORKER_INTRO.format(title=ticket.title)
-        turn = HelperTurn(intro=intro, prompt=prompt, bot_id=ticket.bot_id)
+        turn = HelperTurn(intro=intro, prompt=prompt, bot_id=ticket.bot_id, files=files)
         last = await run_to_end(self.runtime, self.sessions, session, turn)
         return worker_end(last, last_accepted_report(session.events()))
 
