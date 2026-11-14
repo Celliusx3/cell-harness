@@ -10,13 +10,14 @@ Two leftovers sit beside that. Asking for the list of bots also creates the buil
 
 Nothing you see changes. These steps show the two leftovers going away.
 
-1. You open the app on a new install. The sidebar lists Assistant and Bot builder.
+1. You open the app on a new install. The sidebar lists Assistant.
 2. You open Assistant's chat. It is empty, as it is today.
 3. You type "hi". Assistant's chat is saved now, with its instructions first, and Assistant answers.
 4. A schedule that is due in Assistant's chat before you ever typed there still runs.
 5. A bot that messages Bot builder before you ever opened its chat still reaches it.
-6. You edit a bot and save. The form sends the worker limit, as it does today.
-7. You finish the setup screen. It sends Assistant's worker limit with the model you chose.
+6. You press **New**, then **Bot**, and describe a bot. Bot builder's chat is saved now, and it answers.
+7. You edit a bot and save. The form sends the worker limit, as it does today.
+8. You finish the setup screen. It sends Assistant's worker limit with the model you chose.
 
 After the change the code reads this way. The bots file's own type says which bots are active, and gives back the file with a bot saved or archived. Each service method reads the file, asks the type, and writes the result.
 

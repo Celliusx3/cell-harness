@@ -62,7 +62,12 @@ model = keyring.model_credential_named(name)
 draft = {"name": name, "details": model.details.model_dump(), "value": model.key.get_secret_value(), "bot_ids": []}
 copy.post("/api/credentials", json=draft).raise_for_status()
 assistant = next(bot for bot in copy.get("/api/bots").json() if bot["id"] == "assistant")
-edit = {"name": assistant["name"], "instructions": assistant["instructions"], "model": name}
+edit = {
+    "name": assistant["name"],
+    "instructions": assistant["instructions"],
+    "model": name,
+    "max_workers": assistant["max_workers"],
+}
 copy.put("/api/bots/assistant", json=edit).raise_for_status()
 print(f"Assistant answers on {model.details.model} at {model.details.base_url}")
 PY
