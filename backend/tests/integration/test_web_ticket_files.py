@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator
 from harness.bots import ASSISTANT_ID
 from harness.files import ChatFile
 from harness.llm import ToolMessage
-from harness.session.domain.models import ToolResultEvent
+from harness.session.domain.models import ToolResultEvent, UserMessageEvent
 from harness.tickets.service.worker import worker_session_id
 from harness.tools.domain.outcome import ReturnedImage
 from harness.tools.native.tickets import TICKET_ROUTE
@@ -98,3 +98,24 @@ async def test_an_image_the_workers_log_does_not_show_is_not_served(tmp_path) ->
         served = await client.get(f"/api/tickets/{ticket_id}/images/{DOT_SHA256}")
 
     assert served.status_code == 404
+
+
+async def test_a_worker_starts_with_the_files_the_person_attached(tmp_path) -> None:
+    world = ticketing_app(tmp_path, SCRIPTS)
+    async with world.client as client:
+        uploaded = await client.post(
+            f"/api/conversations/{ASSISTANT_ID}/files",
+            files={"file": ("page.png", DOT, "image/png")},
+        )
+        path = uploaded.json()["path"]
+        sent = await client.post(
+            f"/api/conversations/{ASSISTANT_ID}/messages",
+            json={"prompt": "write the report", "files": [path]},
+        )
+        assert sent.status_code == 202, sent.text
+        await once_said(client, ASSISTANT_ID, "The report is ready.")
+        (row,) = (await client.get("/api/tickets", params={"bot_id": ASSISTANT_ID})).json()
+
+    events = await world.tickets.worker_events(row["id"])
+    first = next(e for e in events if isinstance(e, UserMessageEvent))
+    assert [file.path for file in first.files] == [path]
