@@ -238,3 +238,23 @@ async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
         Bot(id=first.id, name="First", instructions="Uno.", model_credential=MODEL_CREDENTIAL),
         second,
     )
+
+
+def test_a_stored_built_in_marked_archived_is_still_active(
+    tmp_path: Path, bots: BotService
+) -> None:
+    archived = BUILDER.model_copy(update={"archived": True})
+    (tmp_path / "bots.json").write_text(json.dumps({"bots": [archived.model_dump()]}))
+
+    assert bots.active_bots() == (KIND, archived)
+
+
+def test_the_built_ins_come_first_in_their_own_order_then_the_others_as_stored(
+    tmp_path: Path, bots: BotService
+) -> None:
+    writer = Bot(id="w1", name="Writer", instructions="Write it up.")
+    researcher = Bot(id="r1", name="Researcher", instructions="Cite.")
+    stored = (writer, BUILDER, researcher, KIND)
+    (tmp_path / "bots.json").write_text(json.dumps({"bots": [bot.model_dump() for bot in stored]}))
+
+    assert bots.active_bots() == (KIND, BUILDER, writer, researcher)

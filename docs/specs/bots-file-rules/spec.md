@@ -2,7 +2,7 @@
 
 ## Problem
 
-The bots service is hard to read. Every method reads the bots file, works out the new list of bots inside the service, and writes the file. The working-out cannot be tested without a file and a service.
+The bots service is hard to read. Every method reads the whole bots file, works out the new list of bots inside the service, and writes the whole file. The list rewriting cannot be tested without a service.
 
 Two leftovers sit beside that. Asking for the list of bots also creates the built-in bots' chats. An edit of a bot may leave the worker limit out, and then the saved number is kept.
 
@@ -19,7 +19,7 @@ Nothing you see changes. These steps show the two leftovers going away.
 7. You edit a bot and save. The form sends the worker limit, as it does today.
 8. You finish the setup screen. It sends Assistant's worker limit with the model you chose.
 
-After the change the code reads this way. The bots file's own type says which bots are active, and gives back the file with a bot saved or archived. Each service method reads the file, asks the type, and writes the result.
+After the change the code reads this way. The bots file's type is plain data: its bots and its groups. The bots repository fetches one stored bot, adds one, updates one or several, and deletes one. It does the same for groups. Each service method asks the repository for a bot, makes a changed copy, and hands the copy back. The service never handles the whole list. The service works out which bots are active, because only it knows the built-in bots.
 
 ## Decisions
 
@@ -42,7 +42,7 @@ After the change the code reads this way. The bots file's own type says which bo
 ## How we will know it works
 
 - The 114 tests of the bots package pass before and after each part. Measured on 2026-11-14.
-- New tests hand the bots file's type plain values and check the bots that come back, with no file.
+- New tests give the bots repository a file in a temporary folder and check the bots it stores, with no service. Tests of the bots service check which bots are active.
 - On a new data folder, listing the bots leaves no chat saved.
 - On a new data folder, a schedule due in Assistant's chat runs a turn and stays active.
 - On a new data folder, a message from one bot to Bot builder is answered.
