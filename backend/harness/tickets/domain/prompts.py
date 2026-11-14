@@ -43,7 +43,7 @@ ORCHESTRATOR_INTRO = (
     "themselves as messages, so never wait for them and never check on a ticket. When a worker's "
     "ready report lists Part and Combine task lines, accept one ticket for each Part line at "
     "once, with the line as its whole task. Accept the Combine line only after every one of "
-    "those parts has reported ready. When a combine reports pages still untranslated, attach to "
+    "those parts has reported ready. When a combine reports pages it could not pack, attach to "
     "the part that owns those pages, asking it to finish them. Write at most 100 words in any "
     "reply, except a reply that gives the user a worker's report."
 )
