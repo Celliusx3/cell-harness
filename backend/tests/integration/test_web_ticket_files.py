@@ -50,11 +50,11 @@ async def _saved(tmp_path, chat_id: str) -> ChatFile:
     return await files_in(tmp_path).save(chat_id, "report.txt", _bytes(b"the report"))
 
 
-async def test_a_file_in_the_workers_folder_is_served_on_its_ticket(tmp_path) -> None:
+async def test_a_file_in_the_bots_chat_is_served_on_its_ticket(tmp_path) -> None:
     world = ticketing_app(tmp_path, SCRIPTS)
     async with world.client as client:
         ticket_id = await _done_ticket(world)
-        stored = await _saved(tmp_path, worker_session_id(ticket_id))
+        stored = await _saved(tmp_path, ASSISTANT_ID)
         served = await client.get(f"/api/tickets/{ticket_id}/file", params={"path": stored.path})
 
     assert served.status_code == 200
@@ -62,11 +62,11 @@ async def test_a_file_in_the_workers_folder_is_served_on_its_ticket(tmp_path) ->
     assert served.headers["x-content-type-options"] == "nosniff"
 
 
-async def test_a_file_in_the_bots_own_folder_is_not_served_on_a_ticket(tmp_path) -> None:
+async def test_a_file_in_another_chat_is_not_served_on_a_ticket(tmp_path) -> None:
     world = ticketing_app(tmp_path, SCRIPTS)
     async with world.client as client:
         ticket_id = await _done_ticket(world)
-        stored = await _saved(tmp_path, ASSISTANT_ID)
+        stored = await _saved(tmp_path, worker_session_id(ticket_id))
         served = await client.get(f"/api/tickets/{ticket_id}/file", params={"path": stored.path})
 
     assert served.status_code == 404

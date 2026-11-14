@@ -97,6 +97,7 @@ def test_it_never_asks_for_approval(name: str) -> None:
 
 async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path: Path) -> None:
     logs = SessionService(JsonlSessionRepository(tmp_path / "subagents"))
+    bots = no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats")))
     bot = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
@@ -104,14 +105,14 @@ async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path
         no_skills(),
         client_tools(),
         no_approvals(),
-        bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
+        bots=bots,
         subagent_logs=logs,
         secrets=secrets_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
     )
     assert bot.tools is not None
-    runtime = ticket_workers(bot.tools.tool_service, bot, logs).runtime
+    runtime = ticket_workers(bot.tools.tool_service, bot, logs, bots.chat_of).runtime
     assert runtime.tools is not None
     offered = [spec.name for spec in runtime.tools.specs(sees_images=False)]
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered

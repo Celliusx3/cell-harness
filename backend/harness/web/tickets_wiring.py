@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Callable
 
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
@@ -24,11 +25,18 @@ WORKER_TOOLS = (*SUBAGENT_TOOLS, *WORK_TOOLS, VIEW_IMAGE, TICKET_REPORT)
 
 
 def ticket_workers(
-    tool_service: ToolService, runtime: Runtime, logs: SessionService
+    tool_service: ToolService,
+    runtime: Runtime,
+    logs: SessionService,
+    bot_chat_id: Callable[[str], str],
 ) -> RuntimeTicketWorker:
-    """`runtime` as each ticket's worker runs it, offered `WORKER_TOOLS`, its logs in `logs`."""
-    worker = delegate_runtime(tool_service, runtime, WORKER_TOOLS)
-    return RuntimeTicketWorker(dataclasses.replace(worker, guidance=GUIDANCE), logs)
+    """`runtime` as each ticket's worker runs it, in its bot's chat, its logs in `logs`."""
+    worker = dataclasses.replace(
+        delegate_runtime(tool_service, runtime, WORKER_TOOLS),
+        guidance=GUIDANCE,
+        chat_id_for=lambda _session, bot_id: bot_chat_id(bot_id),
+    )
+    return RuntimeTicketWorker(worker, logs)
 
 
 def attach_tickets(tool_service: ToolService, tickets: TicketService) -> Disposer:

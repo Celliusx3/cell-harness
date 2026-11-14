@@ -17,6 +17,7 @@ from harness.mcp import McpService
 from harness.session.domain.models import ToolResultEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
+from harness.tickets.service.worker import worker_session_id
 from harness.tools.native.files import EXTRACT_ARCHIVE, MAKE_ARCHIVE, VIEW_IMAGE
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
@@ -42,10 +43,14 @@ def zipped_page() -> bytes:
     return packed.getvalue()
 
 
-async def result_in_chat_s(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tool: str, arguments: dict[str, object]
+async def worker_call_result(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tool: str,
+    arguments: dict[str, object],
+    session_id: str = "s",
 ) -> ToolResultEvent:
-    """The logged result of one call to `tool` made in chat `s` by a worker, offered them all."""
+    """The logged result of one call to `tool` a worker makes in `session_id`, offered them all."""
     model = SteppedClient(calls_tool(tool, json.dumps(arguments)), completed("done"))
     monkeypatch.setattr(composition, "OpenAIClient", lambda _settings, read_image: model)
     sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
@@ -65,8 +70,8 @@ async def result_in_chat_s(
         files=files_in(tmp_path),
     )
     assert bot.tools is not None
-    runtime = ticket_workers(bot.tools.tool_service, bot, logs).runtime
-    session = await sessions.create("s")
+    runtime = ticket_workers(bot.tools.tool_service, bot, logs, bots.chat_of).runtime
+    session = await sessions.create(session_id)
     await drain(runtime.run("open it", session=session, bot_id=ASSISTANT_ID))
     (result,) = [e for e in session.events() if isinstance(e, ToolResultEvent)]
     return result
@@ -75,16 +80,26 @@ async def result_in_chat_s(
 async def test_view_image_refuses_another_chat_s_image(tmp_path, monkeypatch) -> None:
     theirs = await files_in(tmp_path).save("other", "page.png", chunks_of(DOT))
 
-    result = await result_in_chat_s(tmp_path, monkeypatch, VIEW_IMAGE, {"path": theirs.path})
+    result = await worker_call_result(tmp_path, monkeypatch, VIEW_IMAGE, {"path": theirs.path})
 
     assert result.error is not None
     assert NOT_THIS_CHAT in result.message.content[0].text
 
 
+async def test_a_worker_opens_an_image_in_its_bots_chat(tmp_path, monkeypatch) -> None:
+    page = await files_in(tmp_path).save(ASSISTANT_ID, "page.png", chunks_of(DOT))
+
+    result = await worker_call_result(
+        tmp_path, monkeypatch, VIEW_IMAGE, {"path": page.path}, worker_session_id("t1")
+    )
+
+    assert result.error is None
+
+
 async def test_extract_archive_refuses_another_chat_s_archive(tmp_path, monkeypatch) -> None:
     theirs = await files_in(tmp_path).save("other", "pages.cbz", chunks_of(zipped_page()))
 
-    result = await result_in_chat_s(tmp_path, monkeypatch, EXTRACT_ARCHIVE, {"path": theirs.path})
+    result = await worker_call_result(tmp_path, monkeypatch, EXTRACT_ARCHIVE, {"path": theirs.path})
 
     assert result.error is not None
     assert NOT_THIS_CHAT in result.message.content[0].text
@@ -95,7 +110,7 @@ async def test_make_archive_refuses_another_chat_s_files(tmp_path, monkeypatch) 
     theirs = await files_in(tmp_path).save("other", "page.png", chunks_of(DOT))
     arguments = {"paths": [theirs.path], "name": "out.cbz"}
 
-    result = await result_in_chat_s(tmp_path, monkeypatch, MAKE_ARCHIVE, arguments)
+    result = await worker_call_result(tmp_path, monkeypatch, MAKE_ARCHIVE, arguments)
 
     assert result.error is not None
     assert NOT_THIS_CHAT in result.message.content[0].text

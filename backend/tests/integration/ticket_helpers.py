@@ -91,7 +91,7 @@ def ticketing_app(
         TicketRepository(tmp_path / "tickets.json"),
         bots,
         runs,
-        worker=ticket_workers(tool_service, runtime, worker_logs),
+        worker=ticket_workers(tool_service, runtime, worker_logs, bots.chat_of),
         logs=worker_logs,
         follow=heard_nowhere,
         now=lambda: datetime.now(UTC),

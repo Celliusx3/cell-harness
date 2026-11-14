@@ -56,6 +56,11 @@ APPROVAL_MODE_SENTENCES: Mapping[ApprovalMode, str] = {
 }
 
 
+def session_chat_id(session: Session, bot_id: str) -> str:
+    """The chat a turn works for when it runs in the chat it answers: the session's own."""
+    return session.id
+
+
 @dataclass(frozen=True)
 class Runtime:
     """A runtime that answers by running the tool loop."""
@@ -72,6 +77,8 @@ class Runtime:
     """Each connected server's instructions now, by server id; `None` means no servers."""
     inbox: Inbox = NO_INBOX
     """Where the person's messages sent during a turn wait for its next step."""
+    chat_id_for: Callable[[Session, str], str] = session_chat_id
+    """The chat whose files a call in a session, for a bot, opens and is handed."""
 
     def request_messages(
         self, session: Session, context: Sequence[str] = (), *, sees_images: bool

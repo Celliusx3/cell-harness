@@ -96,6 +96,10 @@ class TicketService:
             raise TicketNotFound(ticket_id)
         return found
 
+    def worker_chat_id(self, ticket_id: str) -> str:
+        """The chat whose files `ticket_id`'s worker works with, its bot's; `TicketNotFound`."""
+        return self._bots.chat_of(self.get(ticket_id).bot_id)
+
     def is_running(self, ticket_id: str) -> bool:
         """Whether `ticket_id`'s worker is in flight now."""
         return ticket_id in self._running

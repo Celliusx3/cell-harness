@@ -167,7 +167,7 @@ async def _answer_call(
             yield Reminder(note)
 
     result = settled_result(call.id, outcome, turn=turn, step=step)
-    handed = _files_handed_over(runtime.files, session.id, outcome)
+    handed = _files_handed_over(runtime.files, runtime.chat_id_for(session, bot_id), outcome)
     logged = result.model_copy(
         update={
             "message": _with_result_images(
@@ -236,7 +236,7 @@ async def _execute(
     assert runtime.tools is not None
     origin = CallOrigin(
         bot_id=run.bot_id,
-        conversation_id=run.session.id,
+        conversation_id=runtime.chat_id_for(run.session, run.bot_id),
         mode=runtime.tools.approval_mode(run.session),
     )
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
