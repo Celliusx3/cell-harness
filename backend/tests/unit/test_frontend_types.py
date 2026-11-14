@@ -16,6 +16,7 @@ from harness.skills.domain.invocation import MARKER
 _FRONTEND = Path(__file__).resolve().parents[3] / "frontend"
 _TYPES_TS = _FRONTEND / "lib" / "types.ts"
 _INVOCATION_TS = _FRONTEND / "components" / "conversation" / "invocation.ts"
+_SETUP_FORM_TSX = _FRONTEND / "components" / "setup" / "SetupForm.tsx"
 
 
 @pytest.fixture(scope="module")
@@ -75,3 +76,12 @@ def test_the_check_would_notice_an_absence(types_ts: str) -> None:
 def test_the_invocation_marker_is_the_same_on_both_sides() -> None:
     source = _INVOCATION_TS.read_text()
     assert f"export const MARKER = {json.dumps(MARKER)};" in source
+
+
+def test_the_edit_the_setup_form_sends_holds_the_worker_limit(types_ts: str) -> None:
+    edit = re.search(r"export interface BotEdit \{([^}]+)\}", types_ts)
+    sent = re.search(r"updateBot\(ASSISTANT_ID, \{([^}]+)\}", _SETUP_FORM_TSX.read_text())
+    assert edit is not None and sent is not None
+
+    assert " max_workers: number;" in edit[1]
+    assert "max_workers: assistant.max_workers" in sent[1]

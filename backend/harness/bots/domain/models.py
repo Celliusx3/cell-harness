@@ -45,14 +45,14 @@ class BotDraft(BaseModel):
 
 
 class BotEdit(BaseModel):
-    """What Edit bot saves: name, instructions, model (`None`: none), workers (`None`: kept)."""
+    """What Edit bot saves: name, instructions, model (`None`: none) and worker limit."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: NonBlankText
     instructions: NonBlankText
     model: SecretName | None
-    max_workers: int | None = Field(default=None, ge=MIN_WORKERS, le=MAX_WORKERS)
+    max_workers: int = Field(ge=MIN_WORKERS, le=MAX_WORKERS)
 
 
 class Bot(BaseModel):

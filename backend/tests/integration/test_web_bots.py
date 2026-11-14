@@ -14,6 +14,7 @@ from harness.bots import (
     BotService,
     GroupService,
 )
+from harness.bots.domain.models import DEFAULT_MAX_WORKERS
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.runs.service.run_service import RunService
 from tests.integration.web_helpers import settle
@@ -114,7 +115,12 @@ async def test_an_edit_is_logged_once_before_the_next_turn(bots) -> None:
 
     edited = await client.put(
         f"/api/bots/{bot_id}",
-        json={"name": "Researcher", "instructions": "Be brief.", "model": None},
+        json={
+            "name": "Researcher",
+            "instructions": "Be brief.",
+            "model": None,
+            "max_workers": DEFAULT_MAX_WORKERS,
+        },
     )
     await _say(client, runs, bot_id)
     await _say(client, runs, bot_id)
@@ -150,7 +156,12 @@ async def test_a_blank_name_or_instructions_is_refused(bots) -> None:
 async def test_editing_a_bot_that_does_not_exist_is_not_found(bots) -> None:
     client, _, _ = bots
 
-    edit = {"name": "Researcher", "instructions": "Cite.", "model": None}
+    edit = {
+        "name": "Researcher",
+        "instructions": "Cite.",
+        "model": None,
+        "max_workers": DEFAULT_MAX_WORKERS,
+    }
     missing = await client.put("/api/bots/nope", json=edit)
 
     assert missing.status_code == 404

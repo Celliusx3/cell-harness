@@ -135,6 +135,7 @@ async def test_assistant_asks_for_a_model_until_a_credential_is_set(started: Sta
         "name": assistant["name"],
         "instructions": assistant["instructions"],
         "model": "first_model",
+        "max_workers": assistant["max_workers"],
     }
     picked = await started.client.put(f"/api/bots/{ASSISTANT_ID}", json=edit)
     assert picked.status_code == 200, picked.text

@@ -133,7 +133,12 @@ async def test_changing_a_bot_keeps_every_group(groups: GroupService, bots: BotS
 
     bots.update(
         writer.id,
-        BotEdit(name="Writer", instructions="Write shorter.", model=MODEL_CREDENTIAL),
+        BotEdit(
+            name="Writer",
+            instructions="Write shorter.",
+            model=MODEL_CREDENTIAL,
+            max_workers=writer.max_workers,
+        ),
     )
     await bots.create(BotDraft(name="Editor", instructions="Edit.", model=MODEL_CREDENTIAL))
 

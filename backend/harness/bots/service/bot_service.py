@@ -102,7 +102,7 @@ class BotService:
             "name": edit.name,
             "instructions": edit.instructions,
             "model_credential": edit.model,
-            "max_workers": bot.max_workers if edit.max_workers is None else edit.max_workers,
+            "max_workers": edit.max_workers,
         }
         edited = bot.model_copy(update=changes)
         self._write_file(stored.with_bots((edited,)))

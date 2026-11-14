@@ -127,7 +127,7 @@ async def _say(app: App, conversation_id: str) -> list[dict]:
 
 async def _pick_model(app: App, bot_id: str, name: str | None) -> httpx.Response:
     bot = next(bot for bot in (await app.client.get("/api/bots")).json() if bot["id"] == bot_id)
-    edit = {"name": bot["name"], "instructions": bot["instructions"], "model": name}
+    edit = {**{key: bot[key] for key in ("name", "instructions", "max_workers")}, "model": name}
     return await app.client.put(f"/api/bots/{bot_id}", json=edit)
 
 

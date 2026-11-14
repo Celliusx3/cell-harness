@@ -21,6 +21,7 @@ from harness.bots import (
     BotService,
     BuiltInBotError,
 )
+from harness.bots.domain.models import DEFAULT_MAX_WORKERS
 from harness.prompts import BUILDER_INSTRUCTIONS
 from harness.session.domain.models import BotInstructionsEvent
 from harness.session.repository.session_repository import SessionNotFoundError
@@ -100,7 +101,12 @@ async def test_a_failed_write_leaves_the_file_as_it_was(
     with pytest.raises(OSError, match="disk full"):
         bots.update(
             made.id,
-            BotEdit(name="Renamed", instructions="Be brief.", model=MODEL_CREDENTIAL),
+            BotEdit(
+                name="Renamed",
+                instructions="Be brief.",
+                model=MODEL_CREDENTIAL,
+                max_workers=made.max_workers,
+            ),
         )
 
     assert (tmp_path / "bots.json").read_text() == before
@@ -172,7 +178,12 @@ async def test_an_archived_bot_owns_no_chat_and_cannot_be_edited(bots: BotServic
     with pytest.raises(BotNotFound):
         bots.update(
             made.id,
-            BotEdit(name="Renamed", instructions="Be brief.", model=MODEL_CREDENTIAL),
+            BotEdit(
+                name="Renamed",
+                instructions="Be brief.",
+                model=MODEL_CREDENTIAL,
+                max_workers=made.max_workers,
+            ),
         )
 
 
@@ -218,8 +229,21 @@ async def test_an_edited_assistant_stays_first_and_the_others_keep_their_order(
     first = await bots.create(BotDraft(name="First", instructions="One.", model=MODEL_CREDENTIAL))
     second = await bots.create(BotDraft(name="Second", instructions="Two.", model=MODEL_CREDENTIAL))
 
-    bots.update(first.id, BotEdit(name="First", instructions="Uno.", model=MODEL_CREDENTIAL))
-    bots.update(ASSISTANT_ID, BotEdit(name="Helper", instructions="Be terse.", model=None))
+    bots.update(
+        first.id,
+        BotEdit(
+            name="First",
+            instructions="Uno.",
+            model=MODEL_CREDENTIAL,
+            max_workers=first.max_workers,
+        ),
+    )
+    bots.update(
+        ASSISTANT_ID,
+        BotEdit(
+            name="Helper", instructions="Be terse.", model=None, max_workers=DEFAULT_MAX_WORKERS
+        ),
+    )
 
     assert await bots.open_active_bots() == (
         Bot(id=ASSISTANT_ID, name="Helper", instructions="Be terse."),

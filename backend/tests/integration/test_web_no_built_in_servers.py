@@ -138,7 +138,8 @@ async def _assistant_on_a_model(client: httpx.AsyncClient) -> None:
     saved = await client.post("/api/credentials", json=MODEL)
     assert saved.status_code == 201, saved.text
     assistant = (await client.get("/api/bots")).json()[0]
-    edit = {**{key: assistant[key] for key in ("name", "instructions")}, "model": "first_model"}
+    kept = {key: assistant[key] for key in ("name", "instructions", "max_workers")}
+    edit = {**kept, "model": "first_model"}
     picked = await client.put(f"/api/bots/{ASSISTANT_ID}", json=edit)
     assert picked.status_code == 200, picked.text
 

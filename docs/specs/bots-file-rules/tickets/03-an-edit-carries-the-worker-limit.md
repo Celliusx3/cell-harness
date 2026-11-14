@@ -1,6 +1,6 @@
 # 03. An edit carries the worker limit
 
-**Status.** open
+**Status.** done
 
 ## What to build
 
