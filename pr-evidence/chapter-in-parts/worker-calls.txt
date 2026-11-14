@@ -1,0 +1,21 @@
+== Part: translate pages 022-031
+  run.py render pepper-carrot-es-work 022 023 024 025 026 027 028 029 030 031
+  run.py render pepper-carrot-es-work 022 023 024 025 026 027 028 029 030 031
+  run.py render pepper-carrot-es-work 022 023 024 027
+  run.py render pepper-carrot-es-work 022 024
+  run.py render pepper-carrot-es-work 024
+  run.py render pepper-carrot-es-work 024
+== Part: translate pages 000-010
+  run.py render pepper-carrot-es-work 000 001 002 003 004 005 006 007 008 009 010
+  run.py render pepper-carrot-es-work 000 001 002 003 004 005 006 007 008 009 010
+== Combine: pack the chapter
+  run.py pack pepper-carrot-es-work <archive>
+== Part: translate pages 011-021
+  run.py render pepper-carrot-es-work 011 012 013 014 015 016 017 018 019 020 021
+  run.py render pepper-carrot-es-work 012 013 014 015 019
+  run.py render pepper-carrot-es-work 012
+  run.py render pepper-carrot-es-work 013
+  run.py render pepper-carrot-es-work 013
+== Prepare (the bot's first ticket)
+  run.py detect pepper-carrot-es.cbz
+  run.py detect pepper-carrot-es.cbz

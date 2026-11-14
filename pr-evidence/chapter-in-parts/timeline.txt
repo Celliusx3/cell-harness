@@ -1,0 +1,10 @@
+06:56:20  Translate CBZ chapter: working
+06:57:00  Translate CBZ chapter: done
+06:57:00  Translate pages 000-010: working
+06:57:00  Translate pages 011-021: working
+06:57:00  Translate pages 022-031: working
+06:59:11  Translate pages 000-010: done
+07:01:31  Translate pages 022-031: done
+07:01:41  Pack English chapter: working
+07:01:41  Translate pages 011-021: done
+07:02:01  Pack English chapter: done
