@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Protocol
 
-from harness.tickets.domain.models import StoppedTicketError, Ticket, TicketNotFound
+from harness.tickets.domain.models import (
+    FINISHED_STATES,
+    StoppedTicketError,
+    Ticket,
+    TicketNotFound,
+)
 from harness.tickets.domain.prompts import TICKET_FOLLOWUP_HEARD
 from harness.tools.domain.context import ToolContext
 from harness.tools.domain.decision import ApprovalMode
@@ -35,6 +40,8 @@ class TicketDesk(Protocol):
     """Starts, finds, tells and stops tickets."""
 
     def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket: ...
+
+    def of_bot(self, bot_id: str) -> tuple[Ticket, ...]: ...
 
     def get(self, ticket_id: str) -> Ticket: ...
 
@@ -75,6 +82,7 @@ def _do_item(tickets: TicketDesk, item: RouteItem, context: ToolContext) -> str:
     bot_id = context.origin.bot_id
     match item:
         case AcceptItem(title=title, task=task):
+            _refuse_a_repeat(tickets, bot_id, task)
             ticket = tickets.accept(bot_id=bot_id, title=title, task=task, mode=context.origin.mode)
             return f"accepted ticket {ticket.id}, titled {ticket.title}"
         case AttachItem(ticket=ticket_id, text=text):
@@ -89,6 +97,17 @@ def _do_item(tickets: TicketDesk, item: RouteItem, context: ToolContext) -> str:
             return f"stopped ticket {ticket.id}"
         case IgnoreItem(reason=reason):
             return f"ignored: {reason}"
+
+
+def _refuse_a_repeat(tickets: TicketDesk, bot_id: str, task: str) -> None:
+    """`ItemRefusal` when one of the bot's tickets that has not finished already has `task`."""
+    for ticket in tickets.of_bot(bot_id):
+        is_open = ticket.state not in FINISHED_STATES and ticket.state != "stopped"
+        if is_open and ticket.task == task:
+            raise ItemRefusal(
+                f"ticket {ticket.id} already has this task and has not finished; attach to it "
+                "instead of accepting it again"
+            )
 
 
 def _own_ticket(tickets: TicketDesk, ticket_id: str, bot_id: str) -> Ticket:
