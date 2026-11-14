@@ -14,7 +14,7 @@ from harness.runtime.hooks.calls import Signature
 from harness.runtime.hooks.native.no_wait import NoWaitHook, is_waiting_call
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
-from harness.tickets.domain.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR
+from harness.tickets.domain.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR_INTRO
 from harness.web.runtime import SUBAGENT_TOOLS, build_runtime, helper_runtime
 from harness.web.tickets_wiring import WORKER_TOOLS
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
@@ -79,7 +79,7 @@ def test_only_the_bots_own_runtime_routes_and_refuses_waits(tmp_path: Path) -> N
         for tools in (SUBAGENT_TOOLS, WORKER_TOOLS)
     ]
 
-    assert runtime.guidance.startswith(ORCHESTRATOR)
+    assert runtime.guidance.startswith(ORCHESTRATOR_INTRO)
     assert any(isinstance(hook, NoWaitHook) for hook in runtime.hooks.tool_hooks)
     for helper in helpers:
         assert helper.guidance == CODE_PROMPT

@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI, HTTPException
 
 from harness.bots import ASSISTANT_ID, BotNotFound, BuiltInBotError, EmptyGroupError
-from harness.files import FileTooLarge, UnsafeFileName
+from harness.files import FileTooLargeError, UnsafeFileNameError
 from harness.mcp import (
     McpConnectionError,
     McpNotConnectedError,
@@ -18,7 +18,7 @@ from harness.mcp import (
     McpTimeoutError,
 )
 from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
-from harness.secrets import SecretNotFound, SecretRefused
+from harness.secrets import RefusedSecretError, SecretNotFound
 from harness.session.repository.session_repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
@@ -26,10 +26,10 @@ from harness.session.repository.session_repository import (
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
 from harness.tickets.domain.models import (
-    TicketNotAsking,
+    StoppedTicketError,
+    TicketNotAskingError,
     TicketNotFound,
-    TicketNotRetryable,
-    TicketStopped,
+    UnretryableTicketError,
 )
 from harness.tools import ToolNotApproved
 from harness.web.http.errors import STATUS_OF, exception_handlers
@@ -41,7 +41,7 @@ from tests.webapp import web_app
 PINNED = [
     pytest.param(BotNotFound("nope"), 404, id="BotNotFound"),
     pytest.param(BuiltInBotError(ASSISTANT_ID), 409, id="BuiltInBotError"),
-    pytest.param(FileTooLarge("notes.txt", 1024), 413, id="FileTooLarge"),
+    pytest.param(FileTooLargeError("notes.txt", 1024), 413, id="FileTooLargeError"),
     pytest.param(EmptyGroupError("team"), 409, id="EmptyGroupError"),
     pytest.param(InvalidSchedule("rrule: no occurrence after now"), 422, id="InvalidSchedule"),
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
@@ -57,7 +57,9 @@ PINNED = [
     pytest.param(ScheduleNotFound("s1"), 404, id="ScheduleNotFound"),
     pytest.param(SecretNotFound("GITHUB_TOKEN"), 404, id="SecretNotFound"),
     pytest.param(
-        SecretRefused("20 keys are already saved; remove one first"), 409, id="SecretRefused"
+        RefusedSecretError("20 keys are already saved; remove one first"),
+        409,
+        id="RefusedSecretError",
     ),
     pytest.param(
         SessionCorruptionError("chat.jsonl: empty log, no header"),
@@ -72,12 +74,12 @@ PINNED = [
     pytest.param(SessionNotFoundError("no stored session 'nope'"), 404, id="SessionNotFoundError"),
     pytest.param(SkillNotEditable("pdf", Path("/project/skills")), 409, id="SkillNotEditable"),
     pytest.param(SkillShadowed("notes", Path("/project/skills/notes")), 409, id="SkillShadowed"),
-    pytest.param(TicketNotAsking("t1"), 409, id="TicketNotAsking"),
+    pytest.param(TicketNotAskingError("t1"), 409, id="TicketNotAskingError"),
     pytest.param(TicketNotFound("t1"), 404, id="TicketNotFound"),
-    pytest.param(TicketNotRetryable("t1"), 409, id="TicketNotRetryable"),
-    pytest.param(TicketStopped("t1"), 409, id="TicketStopped"),
+    pytest.param(UnretryableTicketError("t1"), 409, id="UnretryableTicketError"),
+    pytest.param(StoppedTicketError("t1"), 409, id="StoppedTicketError"),
     pytest.param(UnreadableFile("'big.txt' is not a text file"), 422, id="UnreadableFile"),
-    pytest.param(UnsafeFileName("'..' does not name a file"), 422, id="UnsafeFileName"),
+    pytest.param(UnsafeFileNameError("'..' does not name a file"), 422, id="UnsafeFileNameError"),
 ]
 
 

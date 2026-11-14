@@ -16,7 +16,7 @@ from harness.bots import ASSISTANT_ID, BotRepository, BotService
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.platforms import PlatformChannels
-from harness.secrets import DiskSecretRepository, SecretRefused, SecretService
+from harness.secrets import DiskSecretRepository, RefusedSecretError, SecretService
 from harness.secrets.domain.details import ChatPlatform, DiscordDetails, TelegramDetails
 from harness.secrets.router.credential_router import CredentialRouter
 from tests.unit.fakes import ScriptedClient
@@ -187,5 +187,5 @@ def test_the_keyring_holds_one_credential_per_platform(keyring) -> None:
     keyring.add_credential("discord", DiscordDetails(), SecretStr(DISCORD_TOKEN))
     keyring.add_credential("telegram", TelegramDetails(), SecretStr(TELEGRAM_TOKEN))
 
-    with pytest.raises(SecretRefused, match="already saved as 'discord'"):
+    with pytest.raises(RefusedSecretError, match="already saved as 'discord'"):
         keyring.add_credential("second_bot", DiscordDetails(), SecretStr("discord-token-6666"))

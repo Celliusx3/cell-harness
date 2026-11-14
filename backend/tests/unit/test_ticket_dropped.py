@@ -54,11 +54,11 @@ async def test_a_dropped_ticket_ends_without_a_report(tmp_path) -> None:
 
     tickets.accept(bot_id=ASSISTANT_ID, title="Sort the list", task="Sort it.", mode="ask")
     for _ in range(100):
-        if not tickets._working:
+        if not tickets._worker_tasks:
             break
         await asyncio.sleep(0.01)
 
-    assert not tickets._working
+    assert not tickets._worker_tasks
     assert tickets.get("t1").state == "dropped"
     assert followed == []
     assert model.calls == 0

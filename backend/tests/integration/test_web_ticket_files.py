@@ -76,7 +76,9 @@ async def test_an_image_the_workers_log_shows_is_served_on_its_ticket(tmp_path) 
     world = ticketing_app(tmp_path, SCRIPTS)
     async with world.client as client:
         ticket_id = await _done_ticket(world)
-        blocks = images_in(tmp_path).of_result((ReturnedImage(media_type="image/png", data=DOT),))
+        blocks = images_in(tmp_path).keep_result_images(
+            (ReturnedImage(media_type="image/png", data=DOT),)
+        )
         session = await world.worker_logs.resume(worker_session_id(ticket_id))
         result = ToolMessage(tool_call_id="shot", content=blocks)
         session.append(ToolResultEvent(turn=0, step=0, message=result))
@@ -92,7 +94,7 @@ async def test_an_image_the_workers_log_does_not_show_is_not_served(tmp_path) ->
     world = ticketing_app(tmp_path, SCRIPTS)
     async with world.client as client:
         ticket_id = await _done_ticket(world)
-        images_in(tmp_path).of_result((ReturnedImage(media_type="image/png", data=DOT),))
+        images_in(tmp_path).keep_result_images((ReturnedImage(media_type="image/png", data=DOT),))
         served = await client.get(f"/api/tickets/{ticket_id}/images/{DOT_SHA256}")
 
     assert served.status_code == 404

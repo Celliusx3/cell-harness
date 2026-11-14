@@ -31,7 +31,7 @@ class ImageService:
     def __init__(self, repository: ImageRepository) -> None:
         self._repository = repository
 
-    def of_result(self, returned: tuple[ReturnedImage, ...]) -> tuple[Block, ...]:
+    def keep_result_images(self, returned: tuple[ReturnedImage, ...]) -> tuple[Block, ...]:
         """Each image a tool returned, kept and shown; one too large is a note saying so instead."""
         blocks: list[Block] = []
         for image in returned:
@@ -49,7 +49,7 @@ class ImageService:
                 blocks.append(kept)
         return tuple(blocks)
 
-    def of_attachments(self, files: tuple[ChatFile, ...]) -> tuple[Image, ...]:
+    def keep_attached_images(self, files: tuple[ChatFile, ...]) -> tuple[Image, ...]:
         """Each attachment a model can be sent as an image, kept; any other is left to its line."""
         images: list[Image] = []
         for file in files:

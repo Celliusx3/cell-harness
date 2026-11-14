@@ -10,7 +10,7 @@ from harness.llm import ToolCall, ToolMessage
 from harness.runtime.events import AgentCompleted
 from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
 from harness.tickets.domain.prompts import WORKER_INTRO
-from harness.tickets.service.worker import kept_report, worker_end
+from harness.tickets.service.worker import last_accepted_report, worker_end
 from harness.tools import Failure, Ok
 from harness.tools.domain.outcome import INVALID_ARGUMENTS
 from harness.tools.native.tickets import TICKET_REPORT, ticket_report_tool
@@ -110,7 +110,7 @@ def test_the_fold_carries_how_the_question_is_answered() -> None:
         ),
     ]
 
-    end = worker_end(AgentCompleted(text="Asked."), kept_report(events))
+    end = worker_end(AgentCompleted(text="Asked."), last_accepted_report(events))
 
     assert (end.question, end.ask, end.options, end.secret_name) == (
         QUESTION,

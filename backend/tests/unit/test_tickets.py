@@ -10,9 +10,9 @@ import pytest
 from harness.bots import ASSISTANT_ID
 from harness.tickets.domain.models import (
     ReportState,
+    StoppedTicketError,
     Ticket,
     TicketState,
-    TicketStopped,
     ticket_state,
 )
 from harness.tickets.repository.ticket_repository import TicketRepository
@@ -136,9 +136,9 @@ async def test_stopping_a_ticket_cancels_its_worker_and_it_takes_nothing_more(tm
 
     assert not tickets.is_running(ticket.id)
     assert tickets.get(ticket.id).state == "stopped"
-    with pytest.raises(TicketStopped):
+    with pytest.raises(StoppedTicketError):
         tickets.tell(ticket.id, "go on")
-    with pytest.raises(TicketStopped):
+    with pytest.raises(StoppedTicketError):
         tickets.stop(ticket.id)
     await tickets.aclose()
 

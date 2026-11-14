@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request, Response, status
 
 from harness.bots import Bot, BotNotFound, BotService
 from harness.channels.service.platforms import PlatformChannels
-from harness.secrets import SavedCredential, SecretNotFound, SecretRefused, SecretService
+from harness.secrets import RefusedSecretError, SavedCredential, SecretNotFound, SecretService
 from harness.secrets.router.credential_schemas import (
     BotRef,
     CredentialChange,
@@ -27,7 +27,7 @@ from harness.web.http.this_mac import (
 
 logger = logging.getLogger(__name__)
 
-REFUSED = (BotNotFound, SecretNotFound, SecretRefused)
+REFUSAL_ERRORS = (BotNotFound, SecretNotFound, RefusedSecretError)
 
 
 class CredentialRouter:
@@ -83,22 +83,22 @@ class CredentialRouter:
     async def add_credential(self, request: Request) -> Response:
         headers = permitted_write_headers(request)
         body = parsed_body(NewCredential, await request.body(), headers)
-        with refusals_answered_with(headers, REFUSED):
+        with refusals_answered_with(headers, REFUSAL_ERRORS):
             self._refuse_inactive_bots(body.bot_ids)
             await asyncio.to_thread(
                 self._secrets.add_credential, body.name, body.details, body.value
             )
-        await self._effects.added(body.name, body.details, body.bot_ids)
+        await self._effects.react_to_added(body.name, body.details, body.bot_ids)
         logger.info("credential %r added for bots %s", body.name, list(body.bot_ids))
         return Response(status_code=status.HTTP_201_CREATED, headers=headers)
 
     async def change_credential(self, name: str, request: Request) -> Response:
         headers = permitted_write_headers(request)
         body = parsed_body(CredentialChange, await request.body(), headers)
-        with refusals_answered_with(headers, REFUSED):
+        with refusals_answered_with(headers, REFUSAL_ERRORS):
             self._refuse_inactive_bots(body.bot_ids)
             await asyncio.to_thread(self._secrets.change_credential, name, body.details, body.value)
-        await self._effects.changed(
+        await self._effects.react_to_changed(
             name, body.details, bot_ids=body.bot_ids, is_new_key=body.value is not None
         )
         logger.info("credential %r changed for bots %s", name, list(body.bot_ids))
@@ -106,9 +106,9 @@ class CredentialRouter:
 
     async def remove_credential(self, name: str, request: Request) -> Response:
         headers = permitted_write_headers(request)
-        with refusals_answered_with(headers, REFUSED):
-            removed = self._secrets.delete(name)
-        await self._effects.removed(name, removed)
+        with refusals_answered_with(headers, REFUSAL_ERRORS):
+            removed_details = self._secrets.delete(name)
+        await self._effects.react_to_removed(name, removed_details)
         logger.info("credential %r removed from the keyring and every bot", name)
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
 

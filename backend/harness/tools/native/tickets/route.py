@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Protocol
 
-from harness.tickets.domain.models import Ticket, TicketNotFound, TicketStopped
+from harness.tickets.domain.models import StoppedTicketError, Ticket, TicketNotFound
 from harness.tickets.domain.prompts import TICKET_FOLLOWUP_HEARD
 from harness.tools.domain.context import ToolContext
 from harness.tools.domain.decision import ApprovalMode
@@ -106,5 +106,5 @@ def _run_unless_stopped(action: Callable[[], None]) -> None:
     """Run `action`; `ItemRefusal` when its ticket was stopped by the user."""
     try:
         action()
-    except TicketStopped as stopped:
+    except StoppedTicketError as stopped:
         raise ItemRefusal(f"ticket {stopped} was stopped by the user") from None

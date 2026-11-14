@@ -83,7 +83,7 @@ def _with_result_images(
     """The result as the model reads it: its words, then its images when the model can see."""
     if not sees_images or not isinstance(outcome, Ok) or not outcome.images:
         return message
-    seen = runtime.images.of_result(outcome.images)
+    seen = runtime.images.keep_result_images(outcome.images)
     return message.model_copy(update={"content": (*message.content, *seen)})
 
 

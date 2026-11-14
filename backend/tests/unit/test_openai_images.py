@@ -49,7 +49,7 @@ async def wired(monkeypatch, messages: list[Message], read_image: ImageReader) -
 
 async def test_a_tool_s_image_rides_a_user_message_after_its_result(monkeypatch, tmp_path) -> None:
     images = images_at(tmp_path)
-    (image,) = images.of_result((RETURNED_DOT,))
+    (image,) = images.keep_result_images((RETURNED_DOT,))
     result = ToolMessage(tool_call_id="c1", content=(Text(text="shot"), image))
 
     *_, tool, after = await wired(
@@ -72,7 +72,7 @@ async def test_a_tool_s_image_rides_a_user_message_after_its_result(monkeypatch,
 
 async def test_images_wait_until_every_result_of_the_step_is_sent(monkeypatch, tmp_path) -> None:
     images = images_at(tmp_path)
-    (image,) = images.of_result((RETURNED_DOT,))
+    (image,) = images.keep_result_images((RETURNED_DOT,))
     second = ToolCall(id="c2", name="srv__snap", arguments="{}")
     messages: list[Message] = [
         AssistantMessage(content="", tool_calls=(CALL, second)),
@@ -90,7 +90,7 @@ async def test_images_wait_until_every_result_of_the_step_is_sent(monkeypatch, t
 
 async def test_the_person_s_image_rides_their_message_after_the_text(monkeypatch, tmp_path) -> None:
     images = images_at(tmp_path)
-    (image,) = images.of_result((RETURNED_DOT,))
+    (image,) = images.keep_result_images((RETURNED_DOT,))
 
     (person,) = await wired(
         monkeypatch, [UserMessage(content="look", images=(image,))], images.read
@@ -109,7 +109,7 @@ async def test_a_result_s_references_are_spelled_out_beside_its_image(
     monkeypatch, tmp_path
 ) -> None:
     images = images_at(tmp_path)
-    (image,) = images.of_result((RETURNED_DOT,))
+    (image,) = images.keep_result_images((RETURNED_DOT,))
     blocks = (Text(text="shot"), ToolReference(tool_name="srv__act"), image)
 
     _, tool, _ = await wired(

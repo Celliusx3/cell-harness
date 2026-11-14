@@ -6,7 +6,7 @@ from fastapi import APIRouter, Response, status
 
 from harness.bots import BotService
 from harness.secrets import SecretService
-from harness.tickets.domain.models import Ticket, TicketNotAsking
+from harness.tickets.domain.models import Ticket, TicketNotAskingError
 from harness.tickets.domain.prompts import SAVED_KEY_ANSWER
 from harness.tickets.router.schemas import (
     TicketAnswer,
@@ -121,10 +121,10 @@ class TicketRouter:
         )
 
     async def answer_ticket(self, ticket_id: str, body: TicketAnswer) -> TicketRow:
-        if await self._tickets.asks_for_key(ticket_id) or self._client_tools.answerable_calls(
-            await self._tickets.asking_worker(ticket_id)
+        if await self._tickets.is_asking_for_key(ticket_id) or self._client_tools.answerable_calls(
+            await self._tickets.asking_worker_log(ticket_id)
         ):
-            raise TicketNotAsking(ticket_id)
+            raise TicketNotAskingError(ticket_id)
         self._tickets.answer(ticket_id, body.text)
         return _row(self._tickets.get(ticket_id))
 
@@ -144,13 +144,13 @@ class TicketRouter:
         return _row(self._tickets.get(ticket_id))
 
     async def approve_ticket(self, ticket_id: str, body: TicketApproval) -> TicketRow:
-        worker = await self._tickets.asking_worker(ticket_id)
-        waiting = self._client_tools.answerable_calls(worker)
+        worker_log = await self._tickets.asking_worker_log(ticket_id)
+        waiting = self._client_tools.answerable_calls(worker_log)
         if not waiting:
-            raise TicketNotAsking(ticket_id)
+            raise TicketNotAskingError(ticket_id)
         raw = body.decision.model_dump()
-        accepted = self._client_tools.accept_by_call_id(worker, waiting[-1].call_id, raw)
+        accepted = self._client_tools.accept_by_call_id(worker_log, waiting[-1].call_id, raw)
         if isinstance(accepted, RefusalReason):
-            raise TicketNotAsking(ticket_id)
+            raise TicketNotAskingError(ticket_id)
         self._tickets.approve(ticket_id, accepted.call_id, accepted.outcome)
         return _row(self._tickets.get(ticket_id))

@@ -60,7 +60,7 @@ class SecretCardRouter:
                 self._web.bots.allow_secret(bot.id, ask.name)
             case details:
                 self._secrets.add_credential(ask.name, details, entered.value)
-                await self._effects.added(ask.name, details, ())
+                await self._effects.react_to_added(ask.name, details, ())
         try:
             saved = SavedName(name=ask.name, kind=ask.kind)
             await self._web.gateway.resume(session, call_id, Ok(content=saved.model_dump_json()))

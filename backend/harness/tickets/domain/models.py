@@ -28,19 +28,19 @@ class TicketNotFound(LookupError):
     """No ticket has this id."""
 
 
-class TicketNotAsking(RuntimeError):
+class TicketNotAskingError(RuntimeError):
     """The ticket asks no question now, so it has nothing to answer."""
 
 
-NEEDS_YOU: frozenset[TicketState] = frozenset({"needs_answer", "blocked", "failed"})
-RETRYABLE: frozenset[TicketState] = frozenset({"blocked", "failed"})
+NEEDS_YOU_STATES: frozenset[TicketState] = frozenset({"needs_answer", "blocked", "failed"})
+RETRYABLE_STATES: frozenset[TicketState] = frozenset({"blocked", "failed"})
 
 
-class TicketNotRetryable(RuntimeError):
+class UnretryableTicketError(RuntimeError):
     """Only a blocked or failed ticket can be tried again."""
 
 
-class TicketStopped(RuntimeError):
+class StoppedTicketError(RuntimeError):
     """The user stopped this ticket, so it takes nothing more."""
 
 

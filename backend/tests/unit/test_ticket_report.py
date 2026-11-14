@@ -6,7 +6,7 @@ import json
 
 from harness.llm import ToolCall, ToolMessage
 from harness.session.domain.models import SessionEvent, ToolCallEvent, ToolResultEvent, TurnStart
-from harness.tickets.service.worker import kept_report
+from harness.tickets.service.worker import last_accepted_report
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.tickets import TICKET_REPORT, ticket_report_tool
 from tests.unit.helpers import context_for
@@ -49,10 +49,10 @@ def test_the_last_report_of_the_last_turn_is_kept_skipping_progress_and_refusals
         *reported(1, "e", INVALID_ARGUMENTS, state="failed", summary="Refused."),
     ]
 
-    kept = kept_report(events)
+    kept = last_accepted_report(events)
 
     assert kept is not None and (kept.state, kept.summary) == ("ready", "Second.")
-    assert kept_report([TurnStart(turn=2)]) is None
+    assert last_accepted_report([TurnStart(turn=2)]) is None
 
 
 async def test_a_final_report_ends_the_worker_s_turn_and_progress_does_not() -> None:

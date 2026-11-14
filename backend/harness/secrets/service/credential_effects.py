@@ -16,14 +16,16 @@ class CredentialEffects:
     bots: BotService
     platforms: PlatformChannels
 
-    async def added(self, name: str, details: CredentialDetails, bot_ids: tuple[str, ...]) -> None:
+    async def react_to_added(
+        self, name: str, details: CredentialDetails, bot_ids: tuple[str, ...]
+    ) -> None:
         """Start the platform the new credential `name` signs in, or tie a key to `bot_ids`."""
         if isinstance(details, ChatPlatformDetails):
             await self.platforms.restart(details.kind)
         elif isinstance(details, CustomDetails):
             self.bots.set_bots_for_secret(name, bot_ids)
 
-    async def changed(
+    async def react_to_changed(
         self,
         name: str,
         details: CredentialDetails,
@@ -37,7 +39,7 @@ class CredentialEffects:
         elif isinstance(details, ChatPlatformDetails) and is_new_key:
             await self.platforms.restart(details.kind)
 
-    async def removed(self, name: str, details: CredentialDetails) -> None:
+    async def react_to_removed(self, name: str, details: CredentialDetails) -> None:
         """Untie `name` from every bot, and restart the platform it signed in."""
         self.bots.forget_secret(name)
         if isinstance(details, ChatPlatformDetails):

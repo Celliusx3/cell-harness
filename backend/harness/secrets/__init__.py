@@ -2,7 +2,7 @@
 
 from harness.secrets.domain.destination import Destination
 from harness.secrets.domain.details import CredentialKind
-from harness.secrets.domain.errors import SecretNotFound, SecretRefused
+from harness.secrets.domain.errors import RefusedSecretError, SecretNotFound
 from harness.secrets.domain.redaction import redacted
 from harness.secrets.domain.secret import (
     SECRET_VALUE_RULE,
@@ -24,7 +24,7 @@ __all__ = [
     "SavedCredential",
     "SecretName",
     "SecretNotFound",
-    "SecretRefused",
+    "RefusedSecretError",
     "SecretService",
     "SecretSummary",
     "SecretValue",

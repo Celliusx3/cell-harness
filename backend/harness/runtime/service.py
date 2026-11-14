@@ -132,7 +132,7 @@ class Runtime:
         sees_images: bool,
     ) -> None:
         """Log what the person sent in `turn`, with its files' images for a model that sees."""
-        images = self.images.of_attachments(files) if sees_images else ()
+        images = self.images.keep_attached_images(files) if sees_images else ()
         message = UserMessage(content=text, images=images)
         session.append(UserMessageEvent(turn=turn, message=message, files=files))
 

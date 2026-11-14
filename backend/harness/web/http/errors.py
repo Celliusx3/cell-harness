@@ -9,7 +9,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from harness.bots import BotNotFound, BuiltInBotError, EmptyGroupError
-from harness.files import FileTooLarge, UnsafeFileName
+from harness.files import FileTooLargeError, UnsafeFileNameError
 from harness.mcp import (
     McpConnectionError,
     McpNotConnectedError,
@@ -18,7 +18,7 @@ from harness.mcp import (
     McpTimeoutError,
 )
 from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
-from harness.secrets import SecretNotFound, SecretRefused
+from harness.secrets import RefusedSecretError, SecretNotFound
 from harness.session.repository.session_repository import (
     SessionCorruptionError,
     SessionFormatUnsupportedError,
@@ -26,10 +26,10 @@ from harness.session.repository.session_repository import (
 )
 from harness.skills import InvalidSkill, SkillNotEditable, SkillShadowed, UnreadableFile
 from harness.tickets.domain.models import (
-    TicketNotAsking,
+    StoppedTicketError,
+    TicketNotAskingError,
     TicketNotFound,
-    TicketNotRetryable,
-    TicketStopped,
+    UnretryableTicketError,
 )
 from harness.tools import ToolNotApproved
 
@@ -39,7 +39,7 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
     {
         BotNotFound: status.HTTP_404_NOT_FOUND,
         BuiltInBotError: status.HTTP_409_CONFLICT,
-        FileTooLarge: status.HTTP_413_CONTENT_TOO_LARGE,
+        FileTooLargeError: status.HTTP_413_CONTENT_TOO_LARGE,
         EmptyGroupError: status.HTTP_409_CONFLICT,
         InvalidSchedule: status.HTTP_422_UNPROCESSABLE_CONTENT,
         InvalidSkill: status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -52,18 +52,18 @@ STATUS_OF: Mapping[type[Exception], int] = MappingProxyType(
         ScheduleBusyError: status.HTTP_409_CONFLICT,
         ScheduleNotFound: status.HTTP_404_NOT_FOUND,
         SecretNotFound: status.HTTP_404_NOT_FOUND,
-        SecretRefused: status.HTTP_409_CONFLICT,
+        RefusedSecretError: status.HTTP_409_CONFLICT,
         SessionCorruptionError: status.HTTP_500_INTERNAL_SERVER_ERROR,
         SessionFormatUnsupportedError: status.HTTP_500_INTERNAL_SERVER_ERROR,
         SessionNotFoundError: status.HTTP_404_NOT_FOUND,
         SkillNotEditable: status.HTTP_409_CONFLICT,
         SkillShadowed: status.HTTP_409_CONFLICT,
-        TicketNotAsking: status.HTTP_409_CONFLICT,
+        TicketNotAskingError: status.HTTP_409_CONFLICT,
         TicketNotFound: status.HTTP_404_NOT_FOUND,
-        TicketNotRetryable: status.HTTP_409_CONFLICT,
-        TicketStopped: status.HTTP_409_CONFLICT,
+        UnretryableTicketError: status.HTTP_409_CONFLICT,
+        StoppedTicketError: status.HTTP_409_CONFLICT,
         UnreadableFile: status.HTTP_422_UNPROCESSABLE_CONTENT,
-        UnsafeFileName: status.HTTP_422_UNPROCESSABLE_CONTENT,
+        UnsafeFileNameError: status.HTTP_422_UNPROCESSABLE_CONTENT,
     }
 )
 

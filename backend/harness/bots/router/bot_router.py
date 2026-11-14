@@ -79,7 +79,7 @@ class BotRouter:
         return bot
 
     async def set_bot_secrets(self, bot_id: str, body: AllowedSecrets) -> Bot:
-        saved = {summary.name for summary in self._secrets.summaries()}
+        saved = {summary.name for summary in self._secrets.custom_key_summaries()}
         unsaved = next((name for name in body.names if name not in saved), None)
         if unsaved is not None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(SecretNotFound(unsaved)))

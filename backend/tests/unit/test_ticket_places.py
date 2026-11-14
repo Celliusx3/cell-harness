@@ -22,7 +22,7 @@ from harness.tickets.service.places import Occupancy, PlaceKind, freed, place_fo
 def test_a_turn_takes_a_free_place_in_line_and_an_answer_takes_the_extra_one(
     held: Occupancy, limit: int, first: bool, answer: bool, expected: PlaceKind | None
 ) -> None:
-    assert place_for(held, limit, first_in_line=first, answer=answer) == expected
+    assert place_for(held, limit, first_in_line=first, is_answer=answer) == expected
 
 
 def test_a_place_taken_and_freed_leaves_the_count_as_it_was() -> None:

@@ -19,7 +19,7 @@ from harness.secrets.domain.details import (
     ModelDetails,
     TelegramDetails,
 )
-from harness.secrets.domain.errors import SecretRefused
+from harness.secrets.domain.errors import RefusedSecretError
 from harness.secrets.domain.sealed import SealedSecret
 from harness.secrets.service.sealing import sealed
 
@@ -137,7 +137,7 @@ def test_a_custom_key_cannot_take_the_name_of_another_kind(path: Path) -> None:
     DiskSecretRepository(path).replace_all((_sealed("03", "telegram", TelegramDetails(), TOKEN),))
     store = SecretService(DiskSecretRepository(path), encryption_key=KEY)
 
-    with pytest.raises(SecretRefused):
+    with pytest.raises(RefusedSecretError):
         store.save("telegram", GITHUB, SecretStr("ghp-key-0009"))
 
 
@@ -150,7 +150,10 @@ def test_the_keys_list_holds_only_custom_keys(path: Path) -> None:
     )
 
     names = [
-        s.name for s in SecretService(DiskSecretRepository(path), encryption_key=KEY).summaries()
+        s.name
+        for s in SecretService(
+            DiskSecretRepository(path), encryption_key=KEY
+        ).custom_key_summaries()
     ]
 
     assert names == ["github"]
