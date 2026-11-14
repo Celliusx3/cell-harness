@@ -8,7 +8,7 @@ from typing import NamedTuple
 
 from harness.app_events import AppEventService
 from harness.bots import Bot, BotDraft, BotRepository, BotService
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.runs.service.run_service import RunService
@@ -22,7 +22,7 @@ from tests.webapp import MODEL_CREDENTIAL
 class World(NamedTuple):
     gateway: ChannelGateway
     runs: RunService
-    chats: JsonlChatRepository
+    chats: JsonChatRepository
     sessions: SessionService
     bots: BotService
     codes: LinkCodes
@@ -45,7 +45,7 @@ async def world(tmp_path: Path, reply: str = "hi") -> World:
         BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
     )
     runs = run_service(sessions, ScriptedClient(completed(reply)), bots=bots)
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     codes = LinkCodes(time.monotonic)
     links = ChatLinks(chats, codes, bots)

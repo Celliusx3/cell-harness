@@ -13,7 +13,7 @@ from discord.http import HTTPClient, Route
 from telegram.request import HTTPXRequest
 
 from harness.channels.discord.channel import DiscordChannel
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.client import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.telegram.channel import TelegramChannel
@@ -36,7 +36,7 @@ TELEGRAM_REFUSAL = b'{"ok": false, "error_code": 401, "description": "Unauthoriz
 def _gateway(tmp_path: Path) -> ChannelGateway:
     sessions = durable_service(tmp_path / "sessions")
     runs = run_service(sessions, ScriptedClient([]))
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
 
 

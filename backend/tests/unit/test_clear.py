@@ -128,9 +128,7 @@ async def test_after_a_clear_the_model_sees_nothing_from_before(tmp_path) -> Non
 async def test_after_a_clear_nothing_is_left_to_compact_granted_or_selected(tmp_path) -> None:
     service, before = await _chat_with_history(tmp_path / "sessions")
     check_can_compact(before)
-    assert (
-        before.conversation_approved_tools() and before.tools_selected() and before.context_size()
-    )
+    assert before.speaker_granted_tools() and before.tools_selected() and before.context_size()
 
     await service.clear(before.id)
 
@@ -138,7 +136,7 @@ async def test_after_a_clear_nothing_is_left_to_compact_granted_or_selected(tmp_
     with pytest.raises(CompactionRefused) as refused:
         check_can_compact(after)
     assert refused.value.reason == NOTHING
-    assert after.conversation_approved_tools() == frozenset()
+    assert after.speaker_granted_tools() == frozenset()
     assert after.tools_selected() == ()
     assert after.context_size() is None
 

@@ -14,7 +14,7 @@ async def subscribe(run: Run, *, after: int) -> AsyncIterator[Numbered]:
     cursor = after
     while True:
         async with run.condition:
-            await run.condition.wait_for(partial(_caught_up, run, cursor))
+            await run.condition.wait_for(partial(_has_news_or_settled, run, cursor))
             items = run.session.numbered_events_from(cursor)
             settled = run.settled
 
@@ -27,5 +27,5 @@ async def subscribe(run: Run, *, after: int) -> AsyncIterator[Numbered]:
             return
 
 
-def _caught_up(run: Run, cursor: int) -> bool:
+def _has_news_or_settled(run: Run, cursor: int) -> bool:
     return run.session.next_number() > cursor or run.settled

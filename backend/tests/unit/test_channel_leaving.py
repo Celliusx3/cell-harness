@@ -10,7 +10,7 @@ import pytest
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage, TokenRefused
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.llm import LLMClient
 from harness.tools import Tool
@@ -62,7 +62,7 @@ class RefusedChannel(PullingChannel):
 def _gateway(tmp_path: Path, model: LLMClient, *tools: Tool) -> ChannelGateway:
     sessions = durable_service(tmp_path / "sessions")
     runs = run_service(sessions, model, *tools)
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     return ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
 
 

@@ -10,7 +10,13 @@ from harness.tools.domain.context import ToolContext
 from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
 from harness.tools.domain.tool import Tool
 from harness.tools.native.schedule.models import ScheduleEditArgs
-from harness.tools.native.schedule.shared import IN_A_GROUP, in_a_group, not_found, own, task
+from harness.tools.native.schedule.shared import (
+    IN_A_GROUP,
+    is_outside_own_chat,
+    not_found,
+    own,
+    task,
+)
 
 SCHEDULE_EDIT = "schedule_edit"
 
@@ -27,7 +33,7 @@ def schedule_edit_tool(groups: GroupService, schedules: ScheduleService) -> Tool
     """The tool that changes or deletes one of the calling bot's schedules, from its own chat."""
 
     async def execute(args: ScheduleEditArgs, context: ToolContext) -> ToolOutcome:
-        if in_a_group(groups, context.origin.conversation_id):
+        if is_outside_own_chat(groups, context.origin.conversation_id):
             return IN_A_GROUP
         try:
             own(schedules, context.origin.bot_id, args.id)

@@ -117,12 +117,12 @@ class Runtime:
         _skip_calls_walked_past(session)
         turn = self._open_turn(session, bot_id)
         sees_images = await self.sees_images(bot_id)
-        self.log_person(session, user_input, files, turn=turn, sees_images=sees_images)
+        self.log_person_message(session, user_input, files, turn=turn, sees_images=sees_images)
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
 
-    def log_person(
+    def log_person_message(
         self,
         session: Session,
         text: str,

@@ -12,7 +12,7 @@ from pydantic import SecretStr
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.config.settings import Settings
 from harness.runs.service.bot_messages import BotMessages
@@ -173,7 +173,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
 
 async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
-    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
+    await link_to_assistant(JsonChatRepository(tmp_path / "chats"), "telegram", CHAT)
 
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="hello there"))
     await settle(runs, gateway)
@@ -190,7 +190,7 @@ async def test_a_message_lands_in_assistants_chat_visible_over_http(tmp_path) ->
 
 async def test_a_browser_reply_lands_in_assistants_chat_beside_telegrams(tmp_path) -> None:
     bot, app, gateway, runs, sessions = build(tmp_path)
-    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
+    await link_to_assistant(JsonChatRepository(tmp_path / "chats"), "telegram", CHAT)
     await gateway.receive(InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone"))
     await settle(runs, gateway)
 

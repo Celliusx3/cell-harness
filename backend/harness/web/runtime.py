@@ -155,7 +155,7 @@ def build_runtime(
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
             view_image_tool(files),
-            *client_tools.tools(),
+            *CLIENT_TOOLS.tools(),
         ],
         approvals=approvals,
     )
@@ -192,23 +192,27 @@ def _openai_client(images: ImageService, settings: OpenAISettings) -> LLMClient:
     return OpenAIClient(settings, read_image=images.read)
 
 
-def context_window(compaction: CompactionSettings, llm: OpenAISettings) -> int | None:
-    """The window `llm`'s model compacts at: the configured one, else its endpoint's report."""
+def context_window(compaction: CompactionSettings, settings: OpenAISettings) -> int | None:
+    """The window `settings`'s model compacts at: the configured one, else its endpoint's report."""
     configured = compaction.context_tokens
     if configured is not None:
-        logger.info("compaction: %s has a %d-token window (from config)", llm.model, configured)
+        logger.info(
+            "compaction: %s has a %d-token window (from config)", settings.model, configured
+        )
         return configured
-    discovered = context_window_tokens(llm)
+    discovered = context_window_tokens(settings)
     if discovered is None:
         logger.warning(
             "compaction: %s at %s reports no window and none is configured; automatic "
             "compaction is off for it, only a provider overflow triggers it",
-            llm.model,
-            llm.base_url,
+            settings.model,
+            settings.base_url,
         )
     else:
         logger.info(
-            "compaction: %s has a %d-token window (reported by endpoint)", llm.model, discovered
+            "compaction: %s has a %d-token window (reported by endpoint)",
+            settings.model,
+            discovered,
         )
     return discovered
 

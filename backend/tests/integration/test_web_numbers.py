@@ -5,6 +5,7 @@ from __future__ import annotations
 import httpx
 
 from harness.tools.native.question import ASK_USER
+from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import assistant_chat, build, settle
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed
 from tests.unit.helpers import client_tools, no_skills
@@ -71,7 +72,7 @@ async def test_numbering_carries_on_after_a_clear(tmp_path) -> None:
 
 async def test_a_tap_on_a_card_from_before_the_clear_is_refused(tmp_path) -> None:
     tools = client_tools()
-    service, runs = build(tmp_path, SteppedClient(ASKS), *tools.tools())
+    service, runs = build(tmp_path, SteppedClient(ASKS), *CLIENT_TOOLS.tools())
     app = web_app(tmp_path, service, runs, skills=no_skills(), client_tools=tools)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
         cid = await _started(c, runs, "find a shop")

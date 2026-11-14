@@ -20,7 +20,7 @@ class ToolChoices(Protocol):
 
     def tools_selected(self) -> tuple[str, ...]: ...
 
-    def conversation_approved_tools(self) -> frozenset[str]: ...
+    def speaker_granted_tools(self) -> frozenset[str]: ...
 
     def approval_mode(self, default: ApprovalMode) -> ApprovalMode: ...
 
@@ -84,7 +84,7 @@ class Toolset:
         return await self.tool_service.dispatch(
             call,
             progress=progress,
-            approved=call.name in session.conversation_approved_tools(),
+            approved=call.name in session.speaker_granted_tools(),
             origin=origin,
         )
 

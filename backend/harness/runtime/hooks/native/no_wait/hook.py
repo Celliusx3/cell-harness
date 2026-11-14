@@ -21,9 +21,9 @@ SLEEP_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*sleep\s+\d", re.MULTILINE)
 def waits(name: str, arguments: str) -> bool:
     """Whether a script sets a 5 s+ `setTimeout`, or a shell command runs `sleep <n>`."""
     if name == EXECUTE_TYPESCRIPT:
-        field, waiting = "code", LONG_TIMEOUT
+        field, pattern = "code", LONG_TIMEOUT
     elif name.endswith(SHELL_SUFFIX):
-        field, waiting = "command", SLEEP_COMMAND
+        field, pattern = "command", SLEEP_COMMAND
     else:
         return False
     try:
@@ -31,7 +31,7 @@ def waits(name: str, arguments: str) -> bool:
     except ValueError:
         return False
     text = parsed.get(field) if isinstance(parsed, dict) else None
-    return isinstance(text, str) and waiting.search(text) is not None
+    return isinstance(text, str) and pattern.search(text) is not None
 
 
 @dataclass(frozen=True)

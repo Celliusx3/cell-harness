@@ -100,7 +100,7 @@ class Session:
                         order[block.tool_name] = None
         return tuple(order)
 
-    def conversation_approved_tools(self) -> frozenset[str]:
+    def speaker_granted_tools(self) -> frozenset[str]:
         """The tools the person allowed the last turn's speaker to run unasked."""
         others = self._turns_of_others()
         return frozenset(

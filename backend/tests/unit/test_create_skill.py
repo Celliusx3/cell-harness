@@ -12,7 +12,7 @@ from harness.llm import ToolCall
 from harness.mcp import McpServer, McpService
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
-from harness.skills import parse
+from harness.skills.domain.models import parse
 from harness.tools import Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT
 from harness.web.runtime import build_runtime

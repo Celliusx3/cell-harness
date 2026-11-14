@@ -97,11 +97,11 @@ async def _answer_mode_command(
             await gateway.set_approval_mode(channel, chat_id, mode)
             return mode_reply(mode)
         case ModeQuestion():
-            reply = mode_reply
+            reply_for = mode_reply
         case UnknownModeWord():
-            reply = mode_usage_reply
+            reply_for = mode_usage_reply
     current = await gateway.approval_mode(channel, chat_id)
-    return None if current is None else reply(current)
+    return None if current is None else reply_for(current)
 
 
 def unknown_skill(name: str, skills: Sequence[Skill]) -> str:

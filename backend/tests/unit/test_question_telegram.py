@@ -9,6 +9,7 @@ from harness.channels.telegram.asking import ASK_BY_LINK
 from harness.channels.telegram.channel import STALE_TAP
 from harness.session.domain.models import ToolResultEvent, TurnEnd
 from harness.tools.native.question import ASK_USER
+from harness.web.runtime import CLIENT_TOOLS
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
 from tests.unit.helpers import client_tools, no_skills
@@ -20,7 +21,7 @@ ASKED = json.dumps({"question": "Which shop?", "options": ["Lazada", "Shopee"]})
 def _asking(tmp_path, *, call_id: str = "c1"):
     tools = client_tools()
     model = SteppedClient(calls_tool(ASK_USER, ASKED, id=call_id), completed("searching Shopee"))
-    return build(tmp_path, model, *tools.tools(), skills=no_skills(), client_tools=tools)
+    return build(tmp_path, model, *CLIENT_TOOLS.tools(), skills=no_skills(), client_tools=tools)
 
 
 async def _log(sessions, chats):

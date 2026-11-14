@@ -9,11 +9,12 @@ import discord
 from harness.bots import ASSISTANT_ID
 from harness.channels.discord.channel import ASK_BY_LINK as DISCORD_ASK
 from harness.channels.discord.channel import OPEN_LABEL
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.telegram.asking import ASK_BY_LINK
 from harness.session.domain.models import TurnEnd
 from harness.tools.native.hand_over import HAND_OVER
+from harness.web.runtime import CLIENT_TOOLS
 from tests.unit import discord_fakes
 from tests.unit.fakes import SteppedClient, calls_tool, completed
 from tests.unit.gateway_helpers import CHAT, build, msg, settle
@@ -38,7 +39,7 @@ async def test_telegram_is_sent_the_answer_page_and_the_turn_waits(tmp_path) -> 
     bot, gateway, runs, chats, sessions = await build(
         tmp_path,
         _hands_over_then_carries_on(),
-        *tools.tools(),
+        *CLIENT_TOOLS.tools(),
         skills=no_skills(),
         client_tools=tools,
     )
@@ -57,8 +58,8 @@ async def test_telegram_is_sent_the_answer_page_and_the_turn_waits(tmp_path) -> 
 
 async def test_discord_is_sent_the_open_button_to_the_answer_page(tmp_path) -> None:
     sessions = durable_service(tmp_path / "sessions")
-    runs = run_service(sessions, _hands_over_then_carries_on(), *client_tools().tools())
-    chats = JsonlChatRepository(tmp_path / "chats")
+    runs = run_service(sessions, _hands_over_then_carries_on(), *CLIENT_TOOLS.tools())
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     channel, client = discord_fakes.discord_channel(gateway)
     gateway.register(channel)

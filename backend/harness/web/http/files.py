@@ -23,12 +23,12 @@ def folder_file(files: ChatFileService, chat_id: str, path: str) -> FileResponse
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail=f"{path} is not a file here", headers=NO_SNIFFING
         )
-    shown = "inline" if stored.media_type in INLINE_TYPES else "attachment"
+    disposition = "inline" if stored.media_type in INLINE_TYPES else "attachment"
     return FileResponse(
         stored.path,
         media_type=stored.media_type,
         filename=stored.name,
-        content_disposition_type=shown,
+        content_disposition_type=disposition,
         headers=NO_SNIFFING,
     )
 

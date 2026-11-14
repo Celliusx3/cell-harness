@@ -38,7 +38,7 @@ class JsonlSessionRepository:
 
     async def restart(self, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
         """Replace the stored log with `header` and `events`."""
-        _write_first(self._path(header.id), header, events)
+        _write_whole_file(self._path(header.id), header, events)
         self._stored_count_single_writer[header.id] = len(events)
 
     async def stored_count(self, session_id: str) -> int:
@@ -56,7 +56,7 @@ class JsonlSessionRepository:
             header = self._pending.get(session_id)
             if header is None:
                 raise SessionNotFoundError(f"session {session_id!r} was never created")
-            _write_first(path, header, events)
+            _write_whole_file(path, header, events)
             self._pending.pop(session_id, None)
         else:
             _append_lines(path, events)
@@ -116,7 +116,7 @@ def _read_lines(path: Path) -> list[str]:
         return handle.readlines()
 
 
-def _write_first(path: Path, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
+def _write_whole_file(path: Path, header: SessionHeader, events: Sequence[SessionEvent]) -> None:
     tmp = path.with_suffix(".jsonl.tmp")
     with open(tmp, "w", encoding="utf-8") as handle:
         handle.write(header.model_dump_json() + "\n")

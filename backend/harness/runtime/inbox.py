@@ -46,5 +46,7 @@ async def claim_into(runtime: Runtime, session: Session, *, turn: int, bot_id: s
     claimed = await runtime.inbox.claim(session.id)
     if claimed is None:
         return False
-    runtime.log_person(session, claimed.text, claimed.files, turn=turn, sees_images=sees_images)
+    runtime.log_person_message(
+        session, claimed.text, claimed.files, turn=turn, sees_images=sees_images
+    )
     return True

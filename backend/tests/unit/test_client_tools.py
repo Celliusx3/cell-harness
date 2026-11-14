@@ -160,9 +160,10 @@ def test_each_refusal_is_its_own_answer() -> None:
 
 
 def test_the_service_exposes_what_composition_needs() -> None:
-    service = ClientToolService(ClientToolCatalog((BATTERY,)), no_approvals())
-    assert service.names == NAMES
-    assert [tool.name for tool in service.tools()] == ["get_battery"]
+    catalog = ClientToolCatalog((BATTERY,))
+    service = ClientToolService(catalog, no_approvals())
+    assert catalog.names == NAMES
+    assert [tool.name for tool in catalog.tools()] == ["get_battery"]
     assert service.answerable_calls(_session_with_pending()) == (
         PendingCall("get_battery", "c1", "{}"),
     )

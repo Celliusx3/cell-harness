@@ -23,11 +23,6 @@ class Run:
         self._inner: asyncio.Task[None] | None = None
         self._outer: asyncio.Task[None] | None = None
 
-    @property
-    def conversation_id(self) -> str:
-        """The session's id."""
-        return self.session.id
-
 
 async def settled(run: Run) -> None:
     """Wait until `run` has settled."""

@@ -134,9 +134,9 @@ class ChatLinks:
         """Store this chat writing into Assistant's chat, unless it is stored already."""
         if await self._chats.load(platform, chat_id) is not None:
             return
-        assistants = self._bots.chat_of(ASSISTANT_ID)
+        assistant_conversation_id = self._bots.chat_of(ASSISTANT_ID)
         await self._chats.save(
-            ChatState(channel=platform, chat_id=chat_id, conversation_id=assistants)
+            ChatState(channel=platform, chat_id=chat_id, conversation_id=assistant_conversation_id)
         )
 
 

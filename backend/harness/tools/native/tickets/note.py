@@ -34,10 +34,10 @@ def ticket_note_tool(tickets: TicketTeller) -> Tool[TicketNoteArgs]:
     """The tool that sends a note to one of the calling bot's tickets."""
 
     async def execute(args: TicketNoteArgs, context: ToolContext) -> ToolOutcome:
-        words = len(args.text.split())
-        if words > MAX_NOTE_WORDS:
+        word_count = len(args.text.split())
+        if word_count > MAX_NOTE_WORDS:
             return Failure(
-                INVALID_ARGUMENTS, f"the note has {words} words; keep it to {MAX_NOTE_WORDS}"
+                INVALID_ARGUMENTS, f"the note has {word_count} words; keep it to {MAX_NOTE_WORDS}"
             )
         try:
             ticket = tickets.get(args.ticket)

@@ -32,7 +32,7 @@ class Member(NamedTuple):
 class PlannedFile(NamedTuple):
     """An entry to read, and where it goes relative to the skill directory."""
 
-    member: str
+    member_name: str
     path: PurePosixPath
 
 
@@ -70,7 +70,7 @@ def plan(members: Sequence[Member]) -> ArchivePlan:
             "hyphens, at most 64"
         )
     files = tuple(
-        PlannedFile(member=member.name, path=PurePosixPath(member.name).relative_to(name))
+        PlannedFile(member_name=member.name, path=PurePosixPath(member.name).relative_to(name))
         for member in kept
     )
     if not any(planned.path == PurePosixPath(SKILL_FILE) for planned in files):

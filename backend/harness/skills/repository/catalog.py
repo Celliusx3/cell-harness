@@ -29,10 +29,6 @@ class SkillCatalog:
         self._last_good: dict[Path, SkillSnapshot] = {}
         self._failing: set[Path] = set()
 
-    @property
-    def roots(self) -> tuple[Path, ...]:
-        return self._roots
-
     def __call__(self) -> SkillSnapshot:
         skills: dict[str, Skill] = {}
         problems: list[SkillProblem] = []

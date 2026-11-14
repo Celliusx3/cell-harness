@@ -211,4 +211,4 @@ def _extract(zipped: zipfile.ZipFile, plan: ArchivePlan, staged: Path) -> None:
     for planned in plan.files:
         target = staged / planned.path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(zipped.read(planned.member))
+        target.write_bytes(zipped.read(planned.member_name))

@@ -81,7 +81,7 @@ async def test_a_saved_key_reaches_its_site_and_never_the_model_or_the_log(tmp_p
     service = durable_service(tmp_path / "sessions")
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing(seen))
-    runs = run_service(service, model, fetch, *tools.tools(), approvals=approvals, bots=bots)
+    runs = run_service(service, model, fetch, *CLIENT_TOOLS.tools(), approvals=approvals, bots=bots)
     app = web_app(
         tmp_path,
         service,
@@ -145,7 +145,7 @@ def _asking_app(
     bots = bots_in(tmp_path, service)
     fetch = fetch_with_secret_tool(secrets, bots, _echoing([]))
     model = SteppedClient(first, completed("Saved."))
-    runs = run_service(service, model, fetch, *tools.tools(), approvals=approvals, bots=bots)
+    runs = run_service(service, model, fetch, *CLIENT_TOOLS.tools(), approvals=approvals, bots=bots)
     app = web_app(
         tmp_path,
         service,

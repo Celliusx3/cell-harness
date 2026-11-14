@@ -82,7 +82,7 @@ class OpenAIClient(LLMClient):
 
         accumulated = ""
         usage: Usage | None = None
-        calls = ToolCallAssembler()
+        assembler = ToolCallAssembler()
         try:
             async with (
                 httpx.AsyncClient(timeout=settings.timeout_seconds) as http,
@@ -109,7 +109,7 @@ class OpenAIClient(LLMClient):
                         )
                         return
                     usage = chunk.usage or usage
-                    calls.add(chunk.tool_deltas)
+                    assembler.add(chunk.tool_deltas)
                     if chunk.text:
                         accumulated += chunk.text
                         yield TextChunk(text=chunk.text)
@@ -117,7 +117,7 @@ class OpenAIClient(LLMClient):
             yield Failed(reason=f"{type(err).__name__}: {err}")
             return
 
-        assembled = calls.tool_calls()
+        assembled = assembler.tool_calls()
         for call in assembled:
             yield ToolCallChunk(call=call)
         yield Completed(full_text=accumulated, tool_calls=tuple(assembled), usage=usage)

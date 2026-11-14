@@ -14,7 +14,7 @@ from pydantic import SecretStr
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
 from harness.channels.domain.protocol import Channel
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import LinkCodes
 from harness.channels.service.platforms import PlatformChannelMaker, PlatformChannels
@@ -96,7 +96,7 @@ def channel_services(tmp_path: Path, sessions: SessionService, runs: RunService)
         no_bots(sessions),
         files_in(tmp_path),
         images_in(tmp_path),
-        JsonlChatRepository(tmp_path / "chats"),
+        JsonChatRepository(tmp_path / "chats"),
     )
 
 
@@ -131,7 +131,7 @@ def web_gateway(
 ) -> tuple[ChannelGateway, WebChannel]:
     """A gateway with only the browser registered."""
     gateway = ChannelGateway(
-        JsonlChatRepository(tmp_path / "chats"),
+        JsonChatRepository(tmp_path / "chats"),
         runs,
         service,
         skills,
@@ -182,7 +182,7 @@ def no_platforms(secrets: SecretService) -> PlatformChannels:
     """Platforms over a gateway of their own that nothing runs on, for routes saving no token."""
     sessions = SessionService(JsonlSessionRepository(NO_PLATFORM_STORAGE / "sessions"))
     gateway = ChannelGateway(
-        JsonlChatRepository(NO_PLATFORM_STORAGE / "chats"),
+        JsonChatRepository(NO_PLATFORM_STORAGE / "chats"),
         run_service(sessions, ScriptedClient([])),
         sessions,
         no_skills(),

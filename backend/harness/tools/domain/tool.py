@@ -53,8 +53,8 @@ class Tool[ArgsT]:
 
     def _missing_required_message(self, raw: dict) -> str | None:
         """A required field the model left out, or `None`."""
-        required = [f for f in self.input_schema.get("required", ()) if f not in raw]
-        if not required:
+        missing = [f for f in self.input_schema.get("required", ()) if f not in raw]
+        if not missing:
             return None
         fields = self.input_schema.get("properties", {})
         expected = ", ".join(
@@ -63,7 +63,7 @@ class Tool[ArgsT]:
         )
         return (
             f"invalid arguments for {self.name!r}: missing required field "
-            f"{', '.join(required)}. You sent: {', '.join(raw) or 'nothing'}. "
+            f"{', '.join(missing)}. You sent: {', '.join(raw) or 'nothing'}. "
             f"Expected fields: {expected}."
         )
 

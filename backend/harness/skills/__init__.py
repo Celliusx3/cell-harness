@@ -6,8 +6,6 @@ from harness.skills.domain.models import (
     SkillProblem,
     SkillSnapshot,
     UnknownSkill,
-    parse,
-    valid_name,
 )
 from harness.skills.service.resources import UnreadableFile
 from harness.skills.service.skill_service import (
@@ -30,7 +28,5 @@ __all__ = [
     "SkillSnapshot",
     "UnknownSkill",
     "UnreadableFile",
-    "parse",
     "skill_tool",
-    "valid_name",
 ]

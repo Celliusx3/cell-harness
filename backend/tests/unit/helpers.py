@@ -15,7 +15,7 @@ from pathlib import Path
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.channels.repository.chat_repository import ChatRepository, ChatState
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.config.settings import SkillSettings
 from harness.images import DiskImageRepository, ImageService
@@ -232,7 +232,7 @@ def client_tools() -> ClientToolService:
 def no_links() -> ChatLinks:
     """Links over codes nobody issues, and chats and bots in folders that cannot exist."""
     sessions = SessionService(JsonlSessionRepository(NO_LINK_STORAGE / "sessions"))
-    chats = JsonlChatRepository(NO_LINK_STORAGE / "chats")
+    chats = JsonChatRepository(NO_LINK_STORAGE / "chats")
     return ChatLinks(chats, LinkCodes(time.monotonic), no_bots(sessions))
 
 

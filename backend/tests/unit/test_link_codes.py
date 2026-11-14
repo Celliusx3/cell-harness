@@ -15,7 +15,7 @@ from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.chat_repository import ChatState
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.router.link_code_router import LinkCodeRouter
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import LINK_CODE_SECONDS, ChatLinks, LinkCodes
@@ -122,7 +122,7 @@ async def world(tmp_path: Path):
         BotDraft(name="Trader", instructions="Trade.", model=MODEL_CREDENTIAL)
     )
     runs = run_service(sessions, ScriptedClient(completed("hi")), bots=bots)
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     gateway.register(UnlinkedPlatform())
     codes = LinkCodes(Clock())

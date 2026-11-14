@@ -11,7 +11,7 @@ from harness.utc import utc_text
 IN_A_GROUP = Failure(REFUSED, "schedules work only in your own chat, not in a group chat")
 
 
-def in_a_group(groups: GroupService, chat_id: str) -> bool:
+def is_outside_own_chat(groups: GroupService, chat_id: str) -> bool:
     """Whether `chat_id` is a group's chat, or no bot's own chat at all."""
     try:
         return groups.chat_members(chat_id).group is not None

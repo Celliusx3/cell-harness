@@ -148,21 +148,25 @@ class RunService:
             chat_id, lambda turn: ScheduleChangeEvent(turn=turn, change=change)
         )
 
-    async def log_without_turn(self, chat_id: str, logged: Callable[[int], SessionEvent]) -> bool:
-        """Log `logged(last turn)` for the next step, starting no turn; `False` if never written."""
+    async def log_without_turn(
+        self, chat_id: str, event_for_turn: Callable[[int], SessionEvent]
+    ) -> bool:
+        """Log `event_for_turn(last turn)` for the next step, in no turn; `False` if unwritten."""
         session = await self._running_or_stored(chat_id)
         if session is None:
             return False
-        await self._append(session, logged(max(session.next_turn() - 1, 0)))
+        await self._append(session, event_for_turn(max(session.next_turn() - 1, 0)))
         if chat_id not in self._runs:
             self._app_events.publish(ChatLoggedAppEvent(chat_id=chat_id))
         return True
 
-    async def log_when_free(self, chat_id: str, logged: Callable[[int], SessionEvent]) -> bool:
+    async def log_when_free(
+        self, chat_id: str, event_for_turn: Callable[[int], SessionEvent]
+    ) -> bool:
         """`log_without_turn` once no turn runs in `chat_id`, never between a call and result."""
         while (running := self._runs.get(chat_id)) is not None:
             await settled(running)
-        return await self.log_without_turn(chat_id, logged)
+        return await self.log_without_turn(chat_id, event_for_turn)
 
     async def approval_mode(self, conversation_id: str) -> ApprovalMode:
         """The mode the chat's next call runs under."""
@@ -253,7 +257,7 @@ class RunService:
 
     async def _wipe(self, run: Run) -> None:
         """Write the wiped log over the stored one, and show it to whoever watches `run`."""
-        run.session = await self._service.clear(run.conversation_id)
+        run.session = await self._service.clear(run.session.id)
         await self._wake(run)
 
     async def _stream(self, run: Run, turn: AsyncIterator[object]) -> None:
@@ -271,7 +275,7 @@ class RunService:
             pass
         except Exception as err:
             run.error = err
-            logger.exception("run for conversation %s raised", run.conversation_id)
+            logger.exception("run for conversation %s raised", run.session.id)
         finally:
             await self._settle(run)
 
@@ -282,8 +286,8 @@ class RunService:
         async with run.condition:
             run.settled = True
             run.condition.notify_all()
-        if self._runs.get(run.conversation_id) is run:
-            del self._runs[run.conversation_id]
+        if self._runs.get(run.session.id) is run:
+            del self._runs[run.session.id]
 
     async def _wake(self, run: Run) -> None:
         async with run.condition:

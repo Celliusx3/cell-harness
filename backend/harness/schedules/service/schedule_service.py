@@ -181,12 +181,14 @@ def _kept(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:
 
 def ordered(schedules: tuple[Schedule, ...], active: bool | None) -> tuple[Schedule, ...]:
     """Active by `scheduled_at`, then the rest newest made first, narrowed by `active`."""
-    running = sorted((s for s in schedules if s.status == "active"), key=lambda s: s.scheduled_at)
+    active_by_due = sorted(
+        (s for s in schedules if s.status == "active"), key=lambda s: s.scheduled_at
+    )
     rest = sorted((s for s in schedules if s.status != "active"), key=lambda s: s.created_at)
     if active is True:
-        return tuple(running)
+        return tuple(active_by_due)
     newest_first = tuple(reversed(rest))
-    return newest_first if active is False else (*running, *newest_first)
+    return newest_first if active is False else (*active_by_due, *newest_first)
 
 
 def _delivered(schedule: Schedule, delivery: Delivery, now: datetime) -> Schedule:

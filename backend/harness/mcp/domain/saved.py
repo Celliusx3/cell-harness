@@ -47,10 +47,11 @@ class ServerDraft(ServerCommand):
     @model_validator(mode="after")
     def _keys_apart_from_settings(self) -> ServerDraft:
         """A key goes in `keys`, hidden; a plain setting in `env` is never one the server needs."""
-        kept = sorted(set(self.env) & set(self.needs))
-        if kept:
+        keys_typed_as_settings = sorted(set(self.env) & set(self.needs))
+        if keys_typed_as_settings:
             raise ValueError(
-                f"{', '.join(kept)} is a key this server needs; type it as a key, not as a setting"
+                f"{', '.join(keys_typed_as_settings)} is a key this server needs; "
+                "type it as a key, not as a setting"
             )
         unneeded = sorted(set(self.keys) - set(self.needs))
         if unneeded:

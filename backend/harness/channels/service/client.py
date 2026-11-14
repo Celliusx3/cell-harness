@@ -60,7 +60,7 @@ class ChatAnswers:
         self,
         channel: Channel,
         chat_id: str,
-        answered: str,
+        answer_target: str,
         accept: Callable[[Session], AcceptedAnswer | RefusalReason],
     ) -> bool:
         state = await state_of(self._repository, channel, chat_id, self._gateway.runs.bots)
@@ -80,7 +80,7 @@ class ChatAnswers:
                     "%s chat %s answered %s with a body that does not fit",
                     channel.channel,
                     chat_id,
-                    answered,
+                    answer_target,
                 )
             return False
         try:

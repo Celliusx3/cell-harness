@@ -10,7 +10,7 @@ from pathlib import Path
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
 from harness.channels.domain.protocol import InboundMessage, Pushing
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.web.channel import WebChannel
 from harness.runs.service.run_service import RunService
@@ -42,7 +42,7 @@ def build(tmp_path: Path):
         GroupService(bots, sessions, MENTION_TURN_ORDER),
         app_events=AppEventService(),
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     web = WebChannel(gateway, bots, files_in(tmp_path), images_in(tmp_path))
     gateway.register(web)

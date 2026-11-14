@@ -7,7 +7,7 @@ from pathlib import Path
 
 from harness.bots import ASSISTANT_ID
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.llm import Completed, ToolCall, ToolCallChunk
 from harness.tools import ApprovalService, Ok, Tool, ToolOutcome
@@ -69,7 +69,7 @@ async def _two_waiting(tmp_path: Path, platform: AskingPlatform) -> None:
     runs = run_service(
         sessions, SteppedClient(step, completed("never")), _writer(), approvals=approvals
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     gateway.register(platform)
 

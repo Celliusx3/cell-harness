@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from harness.app_events import AppEventService
 from harness.bots import MENTION_TURN_ORDER, GroupService
 from harness.channels.discord.channel import DiscordChannel
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.llm import LLMClient
@@ -139,7 +139,7 @@ def build(tmp_path, client: LLMClient | None = None):
         GroupService(bots, sessions, MENTION_TURN_ORDER),
         app_events=AppEventService(),
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, no_skills(), public_url="http://t")
     channel, fake = discord_channel(gateway, ChatLinks(chats, LinkCodes(time.monotonic), bots))
     gateway.register(channel)

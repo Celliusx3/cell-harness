@@ -80,11 +80,11 @@ class ToolService:
         resolved = dict(self._static)
         for provider in self._providers:
             try:
-                offered = list(provider())
+                provided = list(provider())
             except Exception:
                 logger.warning("tool provider failed", exc_info=True)
                 continue
-            for tool in offered:
+            for tool in provided:
                 if tool.name in resolved:
                     logger.warning("tool %r already provided; ignoring duplicate", tool.name)
                     continue

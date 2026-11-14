@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from harness.skills import InvalidSkill, parse
+from harness.skills import InvalidSkill
+from harness.skills.domain.models import parse
 from harness.skills.repository.catalog import SkillCatalog
 
 MINIMAL = (

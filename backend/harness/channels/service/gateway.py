@@ -44,9 +44,9 @@ class ChannelGateway:
         public_url: str,
     ) -> None:
         self._repository = repository
-        self._runs = runs
-        self._sessions = sessions
-        self._skills = skills
+        self.runs: RunService = runs
+        self.sessions: SessionService = sessions
+        self.skills: SkillService = skills
         self._channels: dict[str, RunningChannel] = {}
         self._is_receiving = False
         self._tasks = ChatTasks()
@@ -85,21 +85,6 @@ class ChannelGateway:
         """The registered platforms, for logs and tests."""
         return list(self._channels)
 
-    @property
-    def runs(self) -> RunService:
-        """Which conversations are busy — for a chat deciding whether an answer can open a turn."""
-        return self._runs
-
-    @property
-    def sessions(self) -> SessionService:
-        """Where every conversation's log is kept — for a channel that reads one."""
-        return self._sessions
-
-    @property
-    def skills(self) -> SkillService:
-        """What `/name` may name."""
-        return self._skills
-
     async def start(self) -> None:
         """Begin receiving on every registered channel, and on each registered from now on."""
         self._is_receiving = True
@@ -112,8 +97,8 @@ class ChannelGateway:
         state = await self._state(message.channel, message.chat_id)
         if _ignored_as_unlinked(state):
             return None
-        content = self._skills.expand(message.text)
-        if self._runs.active(state.conversation_id) is not None:
+        content = self.skills.expand(message.text)
+        if self.runs.active(state.conversation_id) is not None:
             await self._following.queue(state, message.text, message.files)
             return None
 
@@ -125,16 +110,16 @@ class ChannelGateway:
         if _ignored_as_unlinked(state):
             return
         await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
-        in_flight = self._runs.active(state.conversation_id)
+        in_flight = self.runs.active(state.conversation_id)
         try:
             session = (
                 in_flight.session
                 if in_flight is not None
-                else await self._sessions.read(state.conversation_id)
+                else await self.sessions.read(state.conversation_id)
             )
         except SessionNotFoundError:
             return
-        clearing = self._runs.clear(session)
+        clearing = self.runs.clear(session)
         async with clearing.condition:
             await clearing.condition.wait_for(lambda: clearing.settled)
         if clearing.error is not None:
@@ -146,21 +131,21 @@ class ChannelGateway:
         if _ignored_as_unlinked(state):
             return False
         await self._repository.save(state.model_copy(update={"pending": (), "pending_files": ()}))
-        return await self._runs.stop(state.conversation_id)
+        return await self.runs.stop(state.conversation_id)
 
     async def set_approval_mode(self, channel: str, chat_id: str, mode: ApprovalMode) -> None:
         """Switch this chat to `mode` from its next call; nothing for a chat linked to no bot."""
         state = await self._state(channel, chat_id)
         if _ignored_as_unlinked(state):
             return
-        await self._runs.set_approval_mode(state.conversation_id, mode)
+        await self.runs.set_approval_mode(state.conversation_id, mode)
 
     async def approval_mode(self, channel: str, chat_id: str) -> ApprovalMode | None:
         """The mode this chat's calls run under; `None` for a chat linked to no bot."""
         state = await self._state(channel, chat_id)
         if _ignored_as_unlinked(state):
             return None
-        return await self._runs.approval_mode(state.conversation_id)
+        return await self.runs.approval_mode(state.conversation_id)
 
     async def is_linked(self, channel: str, chat_id: str) -> bool:
         """Whether this chat writes into a conversation."""
@@ -184,12 +169,12 @@ class ChannelGateway:
 
     async def _state(self, channel: str, chat_id: str) -> ChatState:
         platform = self._channels[channel].channel
-        return await state_of(self._repository, platform, chat_id, self._runs.bots)
+        return await state_of(self._repository, platform, chat_id, self.runs.bots)
 
     def compact(self, session: Session, followers: tuple[ChatState, ...]) -> Run:
         """Begin a manual compaction, followed by `followers` and no other chat."""
         check_can_compact(session)
-        run = self._runs.compact(session)
+        run = self.runs.compact(session)
         for state in followers:
             self._following.begin(state, run)
         return run
@@ -198,10 +183,10 @@ class ChannelGateway:
         """`/compact` from a chat: the run, or `None` when nothing can be compacted now."""
         self._require(channel)
         state = await self._state(channel, chat_id)
-        if _ignored_as_unlinked(state) or self._runs.active(state.conversation_id) is not None:
+        if _ignored_as_unlinked(state) or self.runs.active(state.conversation_id) is not None:
             return None
         try:
-            session = await self._sessions.resume(state.conversation_id)
+            session = await self.sessions.resume(state.conversation_id)
         except SessionNotFoundError:
             return None
         try:
@@ -211,14 +196,14 @@ class ChannelGateway:
 
     async def follow(self, run: Run) -> None:
         """Have every chat linked to `run`'s conversation hear it, for a turn no chat started."""
-        for state in await self._repository.chats_of(run.conversation_id):
+        for state in await self._repository.chats_of(run.session.id):
             if state.channel in self._channels:
                 self._following.begin(state, run)
 
     async def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that carries an answer, followed by the chats that were asked it."""
         states = await self._repository.chats_of(session.id)
-        run = self._runs.resume(session, call_id, outcome)
+        run = self.runs.resume(session, call_id, outcome)
         for state in states:
             if call_id in state.asked and state.channel in self._channels:
                 answered = tuple(asked for asked in state.asked if asked != call_id)

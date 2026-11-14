@@ -203,5 +203,5 @@ async def test_the_conversation_id_is_the_session_id(service) -> None:
 
     run = runs.start(session, "go")
 
-    assert run.conversation_id == session.id
+    assert run.session.id == session.id
     await asyncio.wait_for(run._outer, timeout=5)

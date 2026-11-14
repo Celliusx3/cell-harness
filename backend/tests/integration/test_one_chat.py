@@ -12,7 +12,7 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, BotRepository, BotService, GroupService
 from harness.channels.domain.protocol import InboundMessage
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.llm import LLMClient, Message, StreamEvent, ToolSpec
 from harness.runs.service.bot_messages import BotMessages
@@ -122,7 +122,7 @@ def _prompts(chat: dict) -> list[str]:
 
 
 async def _linked(tmp_path) -> None:
-    await link_to_assistant(JsonlChatRepository(tmp_path / "chats"), "telegram", CHAT)
+    await link_to_assistant(JsonChatRepository(tmp_path / "chats"), "telegram", CHAT)
 
 
 async def test_a_telegram_message_lands_in_assistants_chat(tmp_path) -> None:
@@ -194,7 +194,7 @@ async def test_a_telegram_message_sent_during_a_browser_turn_is_answered_after_i
         queued = await gateway.receive(
             InboundMessage(channel="telegram", chat_id=CHAT, text="from my phone")
         )
-        state = await JsonlChatRepository(tmp_path / "chats").load("telegram", CHAT)
+        state = await JsonChatRepository(tmp_path / "chats").load("telegram", CHAT)
         assert queued is None and state is not None and state.pending == ("from my phone",)
         release.set()
         await settle(runs, gateway)

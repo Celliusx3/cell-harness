@@ -11,7 +11,7 @@ from harness.channels.repository.chat_repository import ChatState, ChatStateErro
 _SAFE = re.compile(r"[^A-Za-z0-9_-]")
 
 
-class JsonlChatRepository:
+class JsonChatRepository:
     """Per-chat JSON files under one directory."""
 
     def __init__(self, root: Path) -> None:

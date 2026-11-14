@@ -19,7 +19,7 @@ from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupSer
 from harness.bots.router.bot_router import BotRouter
 from harness.bots.router.group_router import GroupRouter
 from harness.channels.repository.chat_repository import ChatRepository
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.router.link_code_router import LinkCodeRouter
 from harness.channels.service.client import ChatAnswers
 from harness.channels.service.gateway import ChannelGateway
@@ -79,9 +79,9 @@ def build_subagent_logs(settings: Settings) -> SessionService:
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
-def build_chats(settings: Settings) -> JsonlChatRepository:
+def build_chats(settings: Settings) -> JsonChatRepository:
     """Every chat's state, beside the conversations."""
-    return JsonlChatRepository(settings.sessions.root.parent / "chats")
+    return JsonChatRepository(settings.sessions.root.parent / "chats")
 
 
 def build_saved_servers(settings: Settings) -> SavedServerService:
@@ -150,7 +150,7 @@ def create_web_app() -> FastAPI:
     configure_logging()
     settings = load()
     secrets = build_keyring(settings)
-    service = build_store(settings)
+    sessions = build_store(settings)
     disk = DiskChatFileRepository(settings.files.root)
     disk.create_root()
     files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
@@ -168,7 +168,7 @@ def create_web_app() -> FastAPI:
     app_events = AppEventService()
     bots = BotService(
         BotRepository(settings.bots.path),
-        service,
+        sessions,
         assistant_instructions=ASSISTANT_INSTRUCTIONS,
         app_events=app_events,
     )
@@ -176,7 +176,7 @@ def create_web_app() -> FastAPI:
     chats = build_chats(settings)
     runtime = build_runtime(
         settings,
-        service,
+        sessions,
         mcp,
         skills,
         client_tools,
@@ -189,16 +189,16 @@ def create_web_app() -> FastAPI:
     )
     runtime = dataclasses.replace(runtime, inbox=ChatInbox(chats, skills))
     runs = RunService(
-        service,
+        sessions,
         runtime,
         bots,
-        GroupService(bots, service, MENTION_TURN_ORDER),
+        GroupService(bots, sessions, MENTION_TURN_ORDER),
         app_events=app_events,
     )
     assert runtime.tools is not None
     channels = build_channels(
         settings,
-        ChannelServices(service, runs, skills, client_tools, bots, files, images, chats),
+        ChannelServices(sessions, runs, skills, client_tools, bots, files, images, chats),
         secrets,
     )
     messages = attach_bot_messages(

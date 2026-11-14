@@ -10,7 +10,7 @@ import pytest
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, MENTION_TURN_ORDER, GroupService
-from harness.channels.repository.jsonl_chat_repository import JsonlChatRepository
+from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import ChatLinks, LinkCodes
 from harness.channels.telegram.batching import (
@@ -54,7 +54,7 @@ def build(tmp_path, *, skills: SkillService):
         GroupService(bots, sessions, MENTION_TURN_ORDER),
         app_events=AppEventService(),
     )
-    chats = JsonlChatRepository(tmp_path / "chats")
+    chats = JsonChatRepository(tmp_path / "chats")
     gateway = ChannelGateway(chats, runs, sessions, skills, public_url="http://t")
     links = ChatLinks(chats, LinkCodes(time.monotonic), bots)
     channel, bot = telegram_channel(gateway, links=links)

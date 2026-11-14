@@ -26,11 +26,11 @@ class SameToolFailureHook(ToolHook):
     block_at: int = SAME_TOOL_FAILURE_BLOCK_AT
 
     async def pre(self, sig: Signature, prior: Sequence[CompletedCall]) -> str | None:
-        failed = failures_since_success(prior, sig.is_same_tool)
-        if failed + 1 < self.block_at:
+        failures = failures_since_success(prior, sig.is_same_tool)
+        if failures + 1 < self.block_at:
             return None
         return SAME_TOOL_FAILURE_REFUSAL.format(
-            name=sig.name, n=failed, last=last_failure_text(prior, sig.is_same_tool)
+            name=sig.name, n=failures, last=last_failure_text(prior, sig.is_same_tool)
         )
 
     async def post(

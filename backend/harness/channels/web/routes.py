@@ -22,7 +22,6 @@ from harness.channels.web.schemas import ConversationDetail, MessageAccepted, Se
 from harness.channels.web.sse import MEDIA_TYPE, Source, kept_alive, sse_frames
 from harness.files import ChatFile, ChatFileService
 from harness.session.domain.log import Session
-from harness.session.service.session_service import SessionService
 from harness.skills import UnknownSkill
 from harness.web.http.files import folder_file, logged_image
 
@@ -51,13 +50,6 @@ def chat_router(web: WebChannel, *, tag: str) -> APIRouter:
 def _accepted(session: Session, *, queued: bool) -> MessageAccepted:
     header = session.header
     return MessageAccepted(id=header.id, created_at=header.created_at, queued=queued)
-
-
-async def _load(service: SessionService, conversation_id: str, *, for_writing: bool) -> Session:
-    """Fetch a stored conversation, repaired first when it is to be written to."""
-    if for_writing:
-        return await service.resume(conversation_id)
-    return await service.read(conversation_id)
 
 
 def _attached_files(files: ChatFileService, chat_id: str, paths: list[str]) -> tuple[ChatFile, ...]:
@@ -190,7 +182,7 @@ class ConversationRouter:
             run = web.runs.active(conversation_id)
             if run is not None:
                 return run
-            return await _load(web.sessions, conversation_id, for_writing=False)
+            return await web.sessions.read(conversation_id)
 
         async def after_drain() -> Source:
             await web.gateway.drained(web.channel, conversation_id)
@@ -216,7 +208,7 @@ class ConversationRouter:
 
     async def clear_chat(self, conversation_id: str) -> Response:
         """Clear the chat in place: its turn stops and the history starts after it."""
-        await _load(self._web.sessions, conversation_id, for_writing=False)
+        await self._web.sessions.read(conversation_id)
         await self._web.gateway.clear(self._web.channel, conversation_id)
         logger.info("conversation %s cleared by the browser", conversation_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -247,4 +239,4 @@ class ConversationRouter:
         run = self._web.runs.active(conversation_id)
         if run is not None:
             return run.session
-        return await _load(self._web.sessions, conversation_id, for_writing=False)
+        return await self._web.sessions.read(conversation_id)

@@ -13,6 +13,7 @@ from harness.bots import MENTION_TURN_ORDER, BotRepository, BotService, GroupSer
 from harness.llm import SystemMessage, UserMessage
 from harness.runs.service.run_service import RunService
 from harness.tools.native.question import ASK_USER
+from harness.web.runtime import CLIENT_TOOLS
 from tests.integration.web_helpers import settle
 from tests.unit.fakes import SteppedClient, calls_tool, completed, hanging_tool
 from tests.unit.helpers import client_tools, durable_service, no_skills, runtime_over
@@ -39,7 +40,7 @@ async def _group(tmp_path, *scripts, extra=()):
         app_events=app_events,
     )
     runtime = runtime_over(
-        model, *tools.tools(), *extra, guidance="GUIDE", checkpoint=service.flush
+        model, *CLIENT_TOOLS.tools(), *extra, guidance="GUIDE", checkpoint=service.flush
     )
     runs = RunService(
         service,

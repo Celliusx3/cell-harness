@@ -21,10 +21,10 @@ from harness.tools import (
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT
 from harness.tools.native.location import GET_LOCATION
 from harness.tools.native.question import ASK_USER
+from harness.web.runtime import CLIENT_TOOLS
 from tests.unit.code_fakes import FakeRunner, build, tool
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool, gated_tool
 from tests.unit.helpers import (
-    client_tools,
     durable_service,
     new_session,
     no_progress,
@@ -75,7 +75,7 @@ async def test_auto_runs_a_call_that_ask_holds() -> None:
 
 
 async def test_a_question_to_the_person_still_waits_in_auto() -> None:
-    tools = ToolService(client_tools().tools(), approvals=_approvals())
+    tools = ToolService(CLIENT_TOOLS.tools(), approvals=_approvals())
     location = ToolCall(id="c1", name=GET_LOCATION, arguments="{}")
     question = ToolCall(
         id="c2",
