@@ -19,19 +19,18 @@ from harness.llm import (
     TextChunk,
     ToolCallChunk,
 )
-from harness.prompts import APPROVAL_MODE_CHANGED
 from harness.runtime.compaction import run_compaction, should_compact
 from harness.runtime.events import (
     AgentCompleted,
     AgentFailed,
     AgentPending,
-    ToolPending,
     TurnEvent,
 )
 from harness.runtime.hooks import GiveUp, Tell
 from harness.runtime.inbox import claim_into
 from harness.runtime.models import PICK_A_MODEL, NoModel
-from harness.runtime.tool_run import run_tool_calls
+from harness.runtime.step_open import open_step
+from harness.runtime.step_tools import NextStep, StepEnding, close_turn, run_step_tools
 from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionTrigger
 from harness.session.domain.derive import through_hiding
 from harness.session.domain.images import ImagesHidden
@@ -41,9 +40,6 @@ from harness.session.domain.models import (
     AssistantChunk,
     AssistantMessageEvent,
     StepEnd,
-    StepStart,
-    TurnEnd,
-    TurnEndReason,
 )
 
 if TYPE_CHECKING:
@@ -75,7 +71,7 @@ async def run_turn(
     try:
         for step in itertools.count():
             at = TurnStep(turn=turn, step=step)
-            await _open_step(runtime, session, at, bot_id=bot_id)
+            await open_step(runtime, session, turn=turn, step=step, bot_id=bot_id)
             await _shrink_history_when_due(runtime, session, turn=turn, bot_id=bot_id)
 
             reply: Completed | Failed | RetryStep | None = None
@@ -94,28 +90,23 @@ async def run_turn(
                 outcome = ended
                 break
 
-            pending: ToolPending | None = None
+            ending: StepEnding | None = None
             async with aclosing(
-                run_tool_calls(
-                    runtime,
-                    reply.tool_calls,
-                    session=session,
-                    turn=turn,
-                    step=step,
-                    bot_id=bot_id,
+                run_step_tools(
+                    runtime, session, reply.tool_calls, turn=turn, step=step, bot_id=bot_id
                 )
-            ) as results:
-                async for event in results:
-                    if isinstance(event, ToolPending):
-                        pending = event
-                    yield event
-            if pending is not None:
-                _close(session, turn, step, "pending")
-                outcome = AgentPending(tool_call_id=pending.tool_call_id, name=pending.name)
+            ) as events:
+                async for event in events:
+                    if isinstance(event, (AgentCompleted, AgentPending, NextStep)):
+                        ending = event
+                    else:
+                        yield event
+            assert ending is not None
+            if not isinstance(ending, NextStep):
+                outcome = ending
                 break
-            session.append(StepEnd(turn=turn, step=step))
     except BaseException:
-        _close(session, turn, step, "cancelled")
+        close_turn(session, turn, step, "cancelled")
         raise
     yield outcome
 
@@ -140,11 +131,11 @@ async def _outcome_without_tools(
     if isinstance(reply, RetryStep):
         return None
     if isinstance(reply, Failed):
-        _close(session, at.turn, at.step, "failed")
+        close_turn(session, at.turn, at.step, "failed")
         return AgentFailed(reason=reply.reason)
     decision = await runtime.hooks.end_of_step(session=session)
     if isinstance(decision, GiveUp):
-        _close(session, at.turn, at.step, "failed")
+        close_turn(session, at.turn, at.step, "failed")
         return AgentFailed(reason=decision.reason)
     if isinstance(decision, Tell):
         _tell(session, at.turn, at.step, decision.note)
@@ -152,7 +143,7 @@ async def _outcome_without_tools(
     if await claim_into(runtime, session, turn=at.turn, bot_id=bot_id):
         session.append(StepEnd(turn=at.turn, step=at.step))
         return None
-    _close(session, at.turn, at.step, "completed")
+    close_turn(session, at.turn, at.step, "completed")
     return AgentCompleted(text=reply.full_text)
 
 
@@ -271,29 +262,7 @@ async def _shrink_history(
     return shrank
 
 
-async def _open_step(runtime: Runtime, session: Session, at: TurnStep, *, bot_id: str) -> None:
-    """Open the step, then, past the first, read in what the person sent since the last."""
-    _start_step_noting_mode_switch(runtime, session, at)
-    if at.step > 0:
-        await claim_into(runtime, session, turn=at.turn, bot_id=bot_id)
-
-
-def _start_step_noting_mode_switch(runtime: Runtime, session: Session, at: TurnStep) -> None:
-    """Open the step, and tell the model when the person switched the mode since the last one."""
-    switch = runtime.approval_mode_switch(session)
-    session.append(StepStart(turn=at.turn, step=at.step))
-    if switch is not None:
-        note = APPROVAL_MODE_CHANGED.format(before=switch.before, after=switch.after)
-        message = ApplicationMessage(content=note)
-        session.append(ApplicationMessageEvent(turn=at.turn, message=message))
-
-
 def _tell(session: Session, turn: int, step: int, note: str) -> None:
     """Close the step with a note the model reads before the next request."""
     session.append(ApplicationMessageEvent(turn=turn, message=ApplicationMessage(content=note)))
     session.append(StepEnd(turn=turn, step=step))
-
-
-def _close(session: Session, turn: int, step: int, reason: TurnEndReason) -> None:
-    session.append(StepEnd(turn=turn, step=step))
-    session.append(TurnEnd(turn=turn, reason=reason))

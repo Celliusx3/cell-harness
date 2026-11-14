@@ -43,6 +43,7 @@ class Ok:
     ui: ToolUi | None = None
     paths_to_send: tuple[str, ...] = ()
     images: tuple[ReturnedImage, ...] = ()
+    ends_turn: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.content, str):

@@ -47,9 +47,7 @@ async def test_an_answer_goes_to_the_worker_and_its_next_report_wakes_the_bot(tm
         {
             WORKER_START: [
                 report(state="blocked", summary="Two airlines need a choice.", question=QUESTION),
-                completed("Asked."),
                 report(state="ready", summary="Three 1-stop flights found."),
-                completed("Reported."),
             ],
             ASSISTANT_START: [
                 calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
@@ -71,7 +69,7 @@ async def test_an_answer_goes_to_the_worker_and_its_next_report_wakes_the_bot(tm
         await until_state(world, "done")
 
     assert answered.status_code == 202
-    worker_second_turn = world.model.seen_by[WORKER_START][2]
+    worker_second_turn = world.model.seen_by[WORKER_START][1]
     assert any(
         isinstance(m, UserMessage)
         and m.content == "The user answered your question: 1-stop is fine"
@@ -108,9 +106,7 @@ async def test_a_note_from_the_bot_reaches_the_worker_as_context(tmp_path) -> No
         {
             WORKER_START: [
                 report(state="waiting", summary="Waiting for the travel dates."),
-                completed("Waiting."),
                 report(state="ready", summary="Three flights on the 12th."),
-                completed("Reported."),
             ],
             ASSISTANT_START: [
                 calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
@@ -129,7 +125,7 @@ async def test_a_note_from_the_bot_reaches_the_worker_as_context(tmp_path) -> No
         await send(client, ASSISTANT_ID, "find flights to Tokyo")
         await once_said(client, ASSISTANT_ID, "Here are the flights.")
 
-    worker_second_turn = world.model.seen_by[WORKER_START][2]
+    worker_second_turn = world.model.seen_by[WORKER_START][1]
     assert any(
         isinstance(m, UserMessage)
         and m.content

@@ -33,7 +33,7 @@ def ticket_report_tool() -> Tool[TicketReportArgs]:
             return Failure(INVALID_ARGUMENTS, mismatch)
         if args.state == "progress":
             return Ok("Recorded.")
-        return Ok("Reported. End your turn now.")
+        return Ok("Reported. End your turn now.", ends_turn=True)
 
     return Tool.from_model(
         name=TICKET_REPORT, description=_DESCRIPTION, args_model=TicketReportArgs, execute=execute

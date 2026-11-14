@@ -23,7 +23,7 @@ async def test_a_question_goes_only_with_blocked_or_waiting() -> None:
 
     assert isinstance(refused, Failure) and refused.code == INVALID_ARGUMENTS
     assert await report(state="waiting", summary="Hold.", question="Which one?") == Ok(
-        "Reported. End your turn now."
+        "Reported. End your turn now.", ends_turn=True
     )
     assert await report(state="progress", summary="Step.") == Ok("Recorded.")
 
@@ -53,3 +53,17 @@ def test_the_last_report_of_the_last_turn_is_kept_skipping_progress_and_refusals
 
     assert kept is not None and (kept.state, kept.summary) == ("ready", "Second.")
     assert kept_report([TurnStart(turn=2)]) is None
+
+
+async def test_a_final_report_ends_the_worker_s_turn_and_progress_does_not() -> None:
+    tool = ticket_report_tool()
+
+    async def outcome(state: str) -> Ok:
+        arguments = json.dumps({"state": state, "summary": "x"})
+        result = await tool.invoke(arguments, context=context_for())
+        assert isinstance(result, Ok)
+        return result
+
+    assert (await outcome("blocked")).ends_turn
+    assert (await outcome("ready")).ends_turn
+    assert not (await outcome("progress")).ends_turn

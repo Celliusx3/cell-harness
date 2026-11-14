@@ -14,7 +14,7 @@ TICKET_ID = "The id of one of your tickets."
 ASK = (
     "How the user answers question: text to type it, choice to tap one of options, secret to "
     "paste a key that is saved under secret_name and never shown to you, location to share "
-    "where they are."
+    "where they are, takeover to do a step on the computer themselves and answer when done."
 )
 OPTIONS = "Two to four short answers to tap, only with the ask choice."
 SECRET_NAME = (

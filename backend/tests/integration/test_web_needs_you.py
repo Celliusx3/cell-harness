@@ -40,9 +40,7 @@ def failing_then_ready() -> dict:
     return {
         WORKER_START: [
             report(state="failed", summary="The airline site was down."),
-            completed("Reported."),
             report(state="ready", summary="Three flights found."),
-            completed("Reported."),
         ],
         ASSISTANT_START: [
             route(FLIGHTS, call_id="r1"),
@@ -69,7 +67,7 @@ async def test_a_failed_ticket_is_listed_and_retrying_it_runs_its_worker_again(t
     assert retried.status_code == 202
     assert any(
         isinstance(m, UserMessage) and m.content == RETRY
-        for m in world.model.seen_by[WORKER_START][2]
+        for m in world.model.seen_by[WORKER_START][1]
     )
     assert after == []
 

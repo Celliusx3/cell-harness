@@ -46,7 +46,7 @@ async def until_state(world, state: str) -> None:
 
 
 def answered_with(world, text: str) -> bool:
-    second_turn = world.model.seen_by[WORKER_START][2]
+    second_turn = world.model.seen_by[WORKER_START][1]
     heard = f"The user answered your question: {text}"
     return any(isinstance(m, UserMessage) and m.content == heard for m in second_turn)
 
@@ -63,9 +63,7 @@ async def test_a_tapped_option_reaches_the_worker(tmp_path) -> None:
                     ask="choice",
                     options=["Direct", "1-stop"],
                 ),
-                completed("Asked."),
                 report(state="ready", summary="A 1-stop flight."),
-                completed("Reported."),
             ],
             ASSISTANT_START: bot_script(completed("Here is the flight.")),
         },
@@ -105,10 +103,8 @@ async def test_a_saved_key_reaches_the_worker_by_name_only(tmp_path) -> None:
                     secret_name="flights_key",
                     secret_destination=SITE,
                 ),
-                completed("Asked."),
                 calls_tool(FETCH_WITH_SECRET, fetch, id="f1"),
                 report(state="ready", summary="Three flights."),
-                completed("Reported."),
             ],
             ASSISTANT_START: bot_script(completed("Three flights found.")),
         },
@@ -138,7 +134,6 @@ async def test_a_key_is_refused_for_a_question_that_asks_for_text(tmp_path) -> N
         {
             WORKER_START: [
                 report(state="blocked", summary="Needs a date.", question="Which day?"),
-                completed("Asked."),
             ],
             ASSISTANT_START: bot_script(),
         },
@@ -165,7 +160,6 @@ async def test_a_typed_answer_is_refused_for_a_question_that_asks_for_a_key(tmp_
                     secret_name="flights_key",
                     secret_destination=SITE,
                 ),
-                completed("Asked."),
             ],
             ASSISTANT_START: bot_script(),
         },
@@ -184,3 +178,32 @@ async def test_a_typed_answer_is_refused_for_a_question_that_asks_for_a_key(tmp_
 def logs_under(root: Path) -> list[Path]:
     """Every session log and the tickets file: whatever a model or a page could read back."""
     return [*root.rglob("*.jsonl"), root / "tickets.json"]
+
+
+async def test_a_takeover_answer_reaches_the_worker(tmp_path) -> None:
+    world = ticketing_app(
+        tmp_path,
+        {
+            WORKER_START: [
+                report(
+                    state="blocked",
+                    summary="The site shows a human check.",
+                    question="Please pass the human check on the computer.",
+                    ask="takeover",
+                ),
+                report(state="ready", summary="Signed in."),
+            ],
+            ASSISTANT_START: bot_script(completed("Signed in.")),
+        },
+    )
+    async with world.client as client:
+        await send(client, ASSISTANT_ID, "sign me in")
+        asked = await once_said(client, ASSISTANT_ID, "The ticket waits for your answer.")
+        await until_state(world, "needs_answer")
+        done = await client.post("/api/tickets/t1/answer", json={"text": "I'm done"})
+        await once_said(client, ASSISTANT_ID, "Signed in.")
+
+    (shown,) = of_type(asked, "ticket/report")
+    assert shown["report"]["ask"] == "takeover"
+    assert done.status_code == 202
+    assert answered_with(world, "I'm done")

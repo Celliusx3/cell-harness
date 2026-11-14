@@ -9,6 +9,7 @@ import pytest
 from harness.llm import ToolCall, ToolMessage
 from harness.runtime.events import AgentCompleted
 from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.tickets.domain.prompts import WORKER_INTRO
 from harness.tickets.service.worker import kept_report, worker_end
 from harness.tools import Failure, Ok
 from harness.tools.domain.outcome import INVALID_ARGUMENTS
@@ -30,6 +31,7 @@ async def reported(**fields: object) -> Ok | Failure:
         {"question": QUESTION},
         {"question": QUESTION, "ask": "choice", "options": ["ANA", "JAL"]},
         {"question": QUESTION, "ask": "location"},
+        {"question": QUESTION, "ask": "takeover"},
         {
             "question": QUESTION,
             "ask": "secret",
@@ -37,7 +39,7 @@ async def reported(**fields: object) -> Ok | Failure:
             "secret_destination": SITE,
         },
     ],
-    ids=["text", "choice", "location", "secret"],
+    ids=["text", "choice", "location", "takeover", "secret"],
 )
 async def test_each_way_of_asking_is_accepted(fields: dict[str, object]) -> None:
     assert isinstance(await reported(**fields), Ok)
@@ -116,3 +118,12 @@ def test_the_fold_carries_how_the_question_is_answered() -> None:
         ("ANA", "JAL"),
         None,
     )
+
+
+def test_the_worker_is_told_to_ask_for_the_screen_at_a_step_only_the_user_should_do() -> None:
+    assert "the ask takeover" in WORKER_INTRO
+    assert "a human check" in WORKER_INTRO
+
+
+def test_the_worker_is_told_to_leave_the_check_alone_while_it_asks() -> None:
+    assert "do not click, answer or solve the check yourself" in WORKER_INTRO

@@ -30,6 +30,7 @@ class ToolResult(BaseModel):
     tool_call_id: str
     name: str
     content: str
+    ends_turn: bool = False
 
 
 class ToolPending(BaseModel):

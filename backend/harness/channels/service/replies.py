@@ -61,6 +61,8 @@ def _question_line(report: TicketReport, question: str) -> str:
             )
         case "location":
             return f"{asks} (send your location)"
+        case "takeover":
+            return f"{asks} (open the computer in the app, then answer done)"
         case "approval":
             return f"{report.title} asks to run {report.approval_tool}. Approve it in the app."
         case "text":

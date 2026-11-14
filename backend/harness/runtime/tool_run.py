@@ -180,7 +180,12 @@ async def _answer_call(
         }
     )
     session.append(logged)
-    yield ToolResult(tool_call_id=call.id, name=call.name, content=text_of(logged.message.content))
+    yield ToolResult(
+        tool_call_id=call.id,
+        name=call.name,
+        content=text_of(logged.message.content),
+        ends_turn=isinstance(outcome, Ok) and outcome.ends_turn,
+    )
 
 
 async def run_approved_call(
