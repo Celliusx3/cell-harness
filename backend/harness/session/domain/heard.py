@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 BotMessageIntent = Literal["request", "result"]
 ReportState = Literal["progress", "waiting", "ready", "blocked", "failed", "dropped"]
-ReportAsk = Literal["text", "choice", "secret", "location"]
-TicketAsk = Literal["text", "choice", "secret", "location", "approval"]
+ReportAsk = Literal["text", "choice", "secret", "location", "takeover"]
+TicketAsk = Literal["text", "choice", "secret", "location", "takeover", "approval"]
 
 
 class BotMessage(BaseModel):

@@ -1,6 +1,6 @@
 # 01. A worker can ask the person to take control
 
-**Status.** open
+**Status.** done
 
 ## What to build
 

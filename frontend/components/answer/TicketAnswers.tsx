@@ -1,17 +1,23 @@
 "use client";
 
 import { ShieldQuestion } from "lucide-react";
+import Link from "next/link";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
 import { APPROVAL_OPTIONS } from "@/components/answer/ApprovalPanel";
 import { POSITION_OPTIONS, roundToHundredMetres } from "@/components/answer/LocationRequest";
 import { BADGE, OPTION } from "@/components/answer/answerStyles";
+import { releaseControl } from "@/components/computer/screen";
+import { COMPUTER_SCREEN } from "@/components/computer/server";
 import { Arguments } from "@/components/conversation/ToolCard";
 import { humanise } from "@/lib/toolName";
 import type { Decision, ToolCall } from "@/lib/types";
 
 const NOT_SHARED = "The user did not share a location.";
+const TAKEOVER_DONE = "I'm done";
+const TAKEOVER_SKIPPED = "Skipped: I did not do that step.";
+const COMPUTER_PAGE = "/computer";
 
 interface Answering {
   disabled: boolean;
@@ -82,6 +88,40 @@ export function LocationAnswer({ disabled, onSend }: Answering) {
         className="rounded-lg border border-line bg-surface px-3 py-1 text-xs font-medium transition hover:bg-surface-sunken"
       >
         Don&apos;t share
+      </button>
+    </div>
+  );
+}
+
+/** A step on the computer only the person should do: take control, then answer done or skipped. */
+export function TakeoverAnswer({ disabled, onSend }: Answering) {
+  const answer = async (text: string) => {
+    await releaseControl(COMPUTER_SCREEN).catch(() => undefined);
+    onSend(text);
+  };
+  return (
+    <div className="mt-2 flex gap-2">
+      <Link
+        href={COMPUTER_PAGE}
+        className="rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90"
+      >
+        Take control
+      </Link>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => void answer(TAKEOVER_DONE)}
+        className="rounded-lg border border-line bg-surface px-3 py-1 text-xs font-medium transition hover:bg-surface-sunken disabled:opacity-35"
+      >
+        I&apos;m done
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => void answer(TAKEOVER_SKIPPED)}
+        className="rounded-lg border border-line bg-surface px-3 py-1 text-xs font-medium transition hover:bg-surface-sunken disabled:opacity-35"
+      >
+        Skip
       </button>
     </div>
   );

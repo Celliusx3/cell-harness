@@ -3,7 +3,12 @@
 import { useState } from "react";
 
 import { AnswerList } from "@/components/answer/AnswerList";
-import { ApprovalAnswer, LocationAnswer, SecretAnswer } from "@/components/answer/TicketAnswers";
+import {
+  ApprovalAnswer,
+  LocationAnswer,
+  SecretAnswer,
+  TakeoverAnswer,
+} from "@/components/answer/TicketAnswers";
 import type { TicketQuestionItem } from "@/components/conversation/timelineItems";
 import { useTicket } from "@/components/conversation/useTicket";
 import { ApiError } from "@/lib/api";
@@ -81,6 +86,8 @@ function Answer({
       return <SecretAnswer name={item.secretName} disabled={disabled} onSend={onSend} />;
     case "location":
       return <LocationAnswer disabled={disabled} onSend={onSend} />;
+    case "takeover":
+      return <TakeoverAnswer disabled={disabled} onSend={onSend} />;
     case "choice":
     case "text":
       return <AnswerList options={item.options} disabled={disabled} autoFocus={false} onAnswer={onSend} />;

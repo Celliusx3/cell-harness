@@ -88,6 +88,15 @@ async def test_a_location_says_how_to_send_it(tmp_path) -> None:
     )
 
 
+async def test_a_takeover_says_to_open_the_computer_in_the_app(tmp_path) -> None:
+    report = ASKING.model_copy(update={"ask": "takeover", "question": "Pass the human check."})
+
+    assert await first_line_for(tmp_path, report) == (
+        "Flights to Tokyo asks: Pass the human check. "
+        "(open the computer in the app, then answer done)"
+    )
+
+
 async def test_an_approval_is_given_in_the_app(tmp_path) -> None:
     report = ASKING.model_copy(
         update={

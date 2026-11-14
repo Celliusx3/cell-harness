@@ -1,8 +1,8 @@
 import { request } from "./api";
 import type { Decision, SessionEvent } from "./types";
 
-/** How the person answers a worker's question: typed, an option tapped, a key pasted, or a location shared. */
-export type TicketAsk = "text" | "choice" | "secret" | "location" | "approval";
+/** How the person answers a worker's question: typed, an option tapped, a key pasted, a location shared, or a step done on the computer. */
+export type TicketAsk = "text" | "choice" | "secret" | "location" | "takeover" | "approval";
 
 /** A ticket's worker ending, as its bot hears it; `approval` asks are built by the host. */
 export interface TicketReport {

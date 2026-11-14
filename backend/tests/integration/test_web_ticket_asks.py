@@ -184,3 +184,34 @@ async def test_a_typed_answer_is_refused_for_a_question_that_asks_for_a_key(tmp_
 def logs_under(root: Path) -> list[Path]:
     """Every session log and the tickets file: whatever a model or a page could read back."""
     return [*root.rglob("*.jsonl"), root / "tickets.json"]
+
+
+async def test_a_takeover_answer_reaches_the_worker(tmp_path) -> None:
+    world = ticketing_app(
+        tmp_path,
+        {
+            WORKER_START: [
+                report(
+                    state="blocked",
+                    summary="The site shows a human check.",
+                    question="Please pass the human check on the computer.",
+                    ask="takeover",
+                ),
+                completed("Asked."),
+                report(state="ready", summary="Signed in."),
+                completed("Reported."),
+            ],
+            ASSISTANT_START: bot_script(completed("Signed in.")),
+        },
+    )
+    async with world.client as client:
+        await send(client, ASSISTANT_ID, "sign me in")
+        asked = await once_said(client, ASSISTANT_ID, "The ticket waits for your answer.")
+        await until_state(world, "needs_answer")
+        done = await client.post("/api/tickets/t1/answer", json={"text": "I'm done"})
+        await once_said(client, ASSISTANT_ID, "Signed in.")
+
+    (shown,) = of_type(asked, "ticket/report")
+    assert shown["report"]["ask"] == "takeover"
+    assert done.status_code == 202
+    assert answered_with(world, "I'm done")

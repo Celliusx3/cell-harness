@@ -30,6 +30,7 @@ async def reported(**fields: object) -> Ok | Failure:
         {"question": QUESTION},
         {"question": QUESTION, "ask": "choice", "options": ["ANA", "JAL"]},
         {"question": QUESTION, "ask": "location"},
+        {"question": QUESTION, "ask": "takeover"},
         {
             "question": QUESTION,
             "ask": "secret",
@@ -37,7 +38,7 @@ async def reported(**fields: object) -> Ok | Failure:
             "secret_destination": SITE,
         },
     ],
-    ids=["text", "choice", "location", "secret"],
+    ids=["text", "choice", "location", "takeover", "secret"],
 )
 async def test_each_way_of_asking_is_accepted(fields: dict[str, object]) -> None:
     assert isinstance(await reported(**fields), Ok)
