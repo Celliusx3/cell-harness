@@ -1,0 +1,11 @@
+HEARD: Go to https://www.google.com/recaptcha/api2/demo on the computer and submit the form.
+  step 0: list_functions {}
+  step 1: computer__browser_navigate {"url":"https://www.google.com/recaptcha/api2/demo"}
+  step 2: get_function_details {"names":["computer__browser_navigate","computer__browser_read_page","computer__browser_act"]}
+  step 3: computer__browser_navigate {"url":"https://www.google.com/recaptcha/api2/demo"}
+  step 4: computer__browser_read_page {}
+  step 5: ticket_report {"state":"blocked","summary":"Opened https://www.google.com/recaptcha/api2/demo. The form is loaded with fields pre-fill
+END completed
+HEARD: The user answered your question: Skipped: I did not do that step.
+  step 0: ticket_report {"state":"blocked","summary":"Opened https://www.google.com/recaptcha/api2/demo. The form is loaded and pre-filled (Firs
+END completed
