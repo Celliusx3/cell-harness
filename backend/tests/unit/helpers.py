@@ -37,6 +37,7 @@ from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.service.ticket_service import TicketService
 from harness.tickets.service.worker import WorkerEnd
 from harness.tools import (
+    NO_CHAT_GRANTS,
     ApprovalMode,
     ApprovalService,
     CallOrigin,
@@ -289,4 +290,6 @@ def worker_of(bot: Runtime) -> Runtime:
     """`bot`'s runtime as each ticket's worker runs it, the one offered code mode and work tools."""
     assert bot.tools is not None
     logs = SessionService(JsonlSessionRepository(Path("/nonexistent/cell-harness-workers")))
-    return ticket_workers(bot.tools.tool_service, bot, logs, no_bots(logs)).runtime
+    return ticket_workers(
+        bot.tools.tool_service, bot, logs, no_bots(logs), chat_grants=NO_CHAT_GRANTS
+    ).runtime

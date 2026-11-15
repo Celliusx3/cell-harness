@@ -208,3 +208,49 @@ async def test_an_approval_is_logged_in_the_bots_chat_without_waking_it(tmp_path
     assert len(of_type(first, "turn/start")) == len(of_type(second, "turn/start")) == 1
     assert len(of_type(done, "turn/start")) == 2
     assert len(called) == 2
+
+
+async def until_ticket(world, ticket_id: str, state: str) -> None:
+    for _ in range(500):
+        found = [t for t in world.tickets.of_bot(ASSISTANT_ID) if t.id == ticket_id]
+        if found and found[0].state == state and not world.tickets.is_running(ticket_id):
+            return
+        await asyncio.sleep(0.01)
+    raise AssertionError(f"ticket {ticket_id} never reached {state!r}")
+
+
+async def test_a_call_allowed_for_the_conversation_on_a_worker_runs_unasked_in_its_next_worker(
+    tmp_path,
+) -> None:
+    called: list[str] = []
+    world = asking_world(
+        tmp_path,
+        called,
+        [
+            report(state="ready", summary="Three flights."),
+            calls_tool(FETCH_WITH_SECRET, FETCH, id="f2"),
+            report(state="ready", summary="Four flights."),
+        ],
+        bot_replies=[
+            completed("Done."),
+            calls_tool(TICKET_ROUTE, ACCEPTED, id="c2"),
+            completed("On it again."),
+            completed("Done again."),
+        ],
+    )
+    async with world.client as client:
+        await send(client, ASSISTANT_ID, "find a flight to Tokyo")
+        await once_said(client, ASSISTANT_ID, "On it.")
+        await until_ticket(world, "t1", "needs_answer")
+        allowed = await client.post(
+            "/api/tickets/t1/approve",
+            json={"decision": {"kind": "approved", "scope": "conversation"}},
+        )
+        await once_said(client, ASSISTANT_ID, "Done.")
+        await until_ticket(world, "t1", "done")
+        await send(client, ASSISTANT_ID, "and one to Osaka")
+        await once_said(client, ASSISTANT_ID, "On it again.")
+        await until_ticket(world, "t2", "done")
+
+    assert allowed.status_code == 202
+    assert called == ["https://api.flights.test/v1", "https://api.flights.test/v1"]

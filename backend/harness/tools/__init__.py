@@ -18,13 +18,14 @@ from harness.tools.domain.outcome import (
 from harness.tools.domain.tool import NAMESPACE_SEPARATOR, Tool
 from harness.tools.service.approval_service import ApprovalService, ToolNotApproved
 from harness.tools.service.tool_service import ToolService
-from harness.tools.service.toolset import Toolset
+from harness.tools.service.toolset import NO_CHAT_GRANTS, ChatGrants, Toolset
 
 __all__ = [
     "BLOCKED",
     "EXECUTION_ERROR",
     "INVALID_ARGUMENTS",
     "NAMESPACE_SEPARATOR",
+    "NO_CHAT_GRANTS",
     "REFUSED",
     "UNKNOWN_TOOL",
     "ApprovalService",
@@ -32,6 +33,7 @@ __all__ = [
     "Approval",
     "ApprovalMode",
     "CallOrigin",
+    "ChatGrants",
     "Failure",
     "Ok",
     "Pending",

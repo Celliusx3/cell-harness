@@ -36,7 +36,7 @@ from harness.secrets import SecretService
 from harness.session.service.session_service import SessionService
 from harness.skills import SKILL, SkillService, skill_tool
 from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
-from harness.tools import ApprovalService, ToolService, Toolset
+from harness.tools import ApprovalService, ChatGrants, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import get_current_time_tool
@@ -231,13 +231,22 @@ def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
         tool_service.register(tool)
 
 
-def delegate_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
-    """`runtime` as a ticket's worker runs it: offered `tools`, free to wait."""
+def delegate_runtime(
+    tool_service: ToolService, runtime: Runtime, tools: Sequence[str], chat_grants: ChatGrants
+) -> Runtime:
+    """`runtime` as a ticket's worker runs it: offered `tools`, free to wait, its chat's grants."""
     hooks = runtime.hooks
     kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))
+    toolset = Toolset(
+        tool_service,
+        tools,
+        sight_tools=SIGHT_TOOLS,
+        can_reach_servers=True,
+        chat_grants=chat_grants,
+    )
     return dataclasses.replace(
         runtime,
-        tools=Toolset(tool_service, tools, sight_tools=SIGHT_TOOLS, can_reach_servers=True),
+        tools=toolset,
         guidance=CODE_PROMPT,
         hooks=dataclasses.replace(hooks, tool_hooks=kept),
     )

@@ -102,7 +102,7 @@ class Session:
 
     def tools_selected(self) -> tuple[str, ...]:
         """The tools the last turn's speaker has selected, oldest first, no repeats."""
-        others = self._turns_of_others()
+        others = self._turns_not_of(self.speaker_id())
         order: dict[str, None] = {}
         for event in self._events:
             if isinstance(event, ToolResultEvent) and event.turn not in others:
@@ -114,7 +114,11 @@ class Session:
 
     def speaker_granted_tools(self) -> frozenset[str]:
         """The tools the person allowed the last turn's speaker to run unasked."""
-        others = self._turns_of_others()
+        return self.granted_tools(self.speaker_id())
+
+    def granted_tools(self, bot_id: str | None) -> frozenset[str]:
+        """The tools the person allowed `bot_id` to run unasked, in its turns or in no bot's."""
+        others = self._turns_not_of(bot_id)
         return frozenset(
             e.tool for e in self._events if isinstance(e, ApprovalGrant) and e.turn not in others
         )
@@ -161,9 +165,8 @@ class Session:
                 return event.usage.input_tokens + event.usage.output_tokens
         return None
 
-    def _turns_of_others(self) -> frozenset[int]:
-        """The turns a bot other than the last turn's speaker opened."""
-        speaker = self.speaker_id()
+    def _turns_not_of(self, speaker: str | None) -> frozenset[int]:
+        """The turns a bot other than `speaker` opened."""
         return frozenset(
             turn for turn, bot_id in turn_speakers(self._events).items() if bot_id != speaker
         )

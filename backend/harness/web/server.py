@@ -42,6 +42,7 @@ from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.relay.router.relay_router import RelayRouter
 from harness.runs.service.bot_messages import BotMessenger
+from harness.runs.service.chat_grants import ChatGrantLog
 from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.schedules.router.schedule_router import ScheduleRouter
@@ -211,7 +212,9 @@ def create_web_app() -> FastAPI:
         TicketRepository(settings.tickets.path),
         bots,
         runs,
-        worker=ticket_workers(tool_service, runtime, subagent_logs, bots),
+        worker=ticket_workers(
+            tool_service, runtime, subagent_logs, bots, chat_grants=ChatGrantLog(runs, sessions)
+        ),
         logs=subagent_logs,
         follow=channels.gateway.follow,
         now=now,

@@ -13,6 +13,7 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
 from harness.llm import StreamEvent
+from harness.runs.service.chat_grants import ChatGrantLog
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import SecretService
@@ -99,7 +100,9 @@ def ticketing_app(
         TicketRepository(tmp_path / "tickets.json"),
         bots,
         runs,
-        worker=ticket_workers(tool_service, runtime, worker_logs, bots),
+        worker=ticket_workers(
+            tool_service, runtime, worker_logs, bots, chat_grants=ChatGrantLog(runs, service)
+        ),
         logs=worker_logs,
         follow=heard_nowhere,
         now=lambda: datetime.now(UTC),

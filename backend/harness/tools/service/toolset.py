@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Protocol
 
 from harness.llm import ToolCall, ToolSpec
@@ -26,6 +27,33 @@ class ToolChoices(Protocol):
     def approval_mode(self, default: ApprovalMode) -> ApprovalMode: ...
 
 
+class ChatGrants(Protocol):
+    """The grants kept in the chat a session works for, when that chat is another log."""
+
+    async def granted_tools(self, chat_id: str, bot_id: str) -> frozenset[str]:
+        """The tools the person allowed `bot_id` to run unasked in chat `chat_id`, read now."""
+        ...
+
+    async def grant(self, chat_id: str, tool: str) -> None:
+        """Record in chat `chat_id` that the person allowed `tool` for the rest of it."""
+        ...
+
+
+@dataclass(frozen=True)
+class NoChatGrants:
+    """The chat grants of a toolset whose sessions are their own chats: none kept elsewhere."""
+
+    async def granted_tools(self, chat_id: str, bot_id: str) -> frozenset[str]:
+        """Nothing, for every chat."""
+        return frozenset()
+
+    async def grant(self, chat_id: str, tool: str) -> None:
+        """Nothing to record: the session that was answered is the chat."""
+
+
+NO_CHAT_GRANTS = NoChatGrants()
+
+
 class Toolset:
     """The tool list one step is built from."""
 
@@ -36,11 +64,13 @@ class Toolset:
         *,
         sight_tools: frozenset[str],
         can_reach_servers: bool,
+        chat_grants: ChatGrants = NO_CHAT_GRANTS,
     ) -> None:
         self.tool_service = tool_service
         self._default_tools = tuple(default_tools)
         self._sight_tools = sight_tools
         self.can_reach_servers = can_reach_servers
+        self.chat_grants = chat_grants
 
     @property
     def default_mode(self) -> ApprovalMode:
@@ -87,9 +117,16 @@ class Toolset:
         return await self.tool_service.dispatch(
             call,
             progress=progress,
-            approved=call.name in session.speaker_granted_tools(),
+            approved=await self._is_granted(call.name, session, origin),
             origin=origin,
         )
+
+    async def _is_granted(self, tool: str, session: ToolChoices, origin: CallOrigin) -> bool:
+        """Whether the person allowed `tool` in `session` or in the chat it works for, read now."""
+        if tool in session.speaker_granted_tools():
+            return True
+        granted = await self.chat_grants.granted_tools(origin.conversation_id, origin.bot_id)
+        return tool in granted
 
     async def execute_approved(
         self, call: ToolCall, *, progress: ToolProgressReporter, origin: CallOrigin

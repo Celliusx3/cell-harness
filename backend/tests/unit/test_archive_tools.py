@@ -12,7 +12,7 @@ from harness.llm import ToolCall
 from harness.mcp import McpService
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
-from harness.tools import ApprovalService, Failure, Ok
+from harness.tools import NO_CHAT_GRANTS, ApprovalService, Failure, Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.files import (
     EXTRACT_ARCHIVE,
@@ -109,7 +109,9 @@ async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path
         files=files_in(tmp_path),
     )
     assert bot.tools is not None
-    runtime = ticket_workers(bot.tools.tool_service, bot, logs, bots).runtime
+    runtime = ticket_workers(
+        bot.tools.tool_service, bot, logs, bots, chat_grants=NO_CHAT_GRANTS
+    ).runtime
     assert runtime.tools is not None
     offered = [spec.name for spec in runtime.tools.specs(sees_images=False)]
     assert EXTRACT_ARCHIVE in offered and MAKE_ARCHIVE in offered

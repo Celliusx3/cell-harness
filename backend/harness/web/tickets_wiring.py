@@ -11,7 +11,7 @@ from harness.runtime.service import Runtime
 from harness.session.service.session_service import SessionService
 from harness.tickets.service.ticket_service import TicketService
 from harness.tickets.service.worker import RuntimeTicketWorker
-from harness.tools import ToolService
+from harness.tools import ChatGrants, ToolService
 from harness.tools.native.files import VIEW_IMAGE
 from harness.tools.native.tickets import (
     TICKET_REPORT,
@@ -38,10 +38,12 @@ def ticket_workers(
     runtime: Runtime,
     logs: SessionService,
     bots: BotLookup,
+    *,
+    chat_grants: ChatGrants,
 ) -> RuntimeTicketWorker:
-    """`runtime` as each ticket's worker runs it, in its bot's chat, its logs in `logs`."""
+    """`runtime` as each ticket's worker runs it, in its bot's chat and under its grants."""
     worker = dataclasses.replace(
-        delegate_runtime(tool_service, runtime, WORKER_TOOLS),
+        delegate_runtime(tool_service, runtime, WORKER_TOOLS, chat_grants),
         guidance=GUIDANCE,
         chat_id_for=lambda _session, bot_id: bots.chat_of(bot_id),
     )

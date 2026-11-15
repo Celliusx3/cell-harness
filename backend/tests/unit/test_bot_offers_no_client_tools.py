@@ -11,6 +11,7 @@ from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
+from harness.tools import NO_CHAT_GRANTS
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, GET_FUNCTION_DETAILS, LIST_FUNCTIONS
 from harness.tools.native.tickets import TICKET_ROUTE
 from harness.web.runtime import CLIENT_TOOLS, WORK_TOOLS, build_runtime
@@ -57,7 +58,9 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
     attach_tickets(tool_service, no_tickets(tmp_path, bots, runs))
 
     bot = offered(runtime)
-    worker = offered(ticket_workers(tool_service, runtime, logs, bots).runtime)
+    worker = offered(
+        ticket_workers(tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS).runtime
+    )
     code_mode = {LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT}
 
     assert TICKET_ROUTE in bot
@@ -69,4 +72,9 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
     assert not code_mode & bot
     assert code_mode <= worker
     assert runtime.guidance == ORCHESTRATOR_INTRO
-    assert ticket_workers(tool_service, runtime, logs, bots).runtime.guidance == GUIDANCE
+    assert (
+        ticket_workers(
+            tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS
+        ).runtime.guidance
+        == GUIDANCE
+    )

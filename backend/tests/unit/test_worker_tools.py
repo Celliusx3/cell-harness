@@ -10,6 +10,7 @@ from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.prompts import WORKER_INTRO
+from harness.tools import NO_CHAT_GRANTS
 from harness.tools.native.tickets import TICKET_REPORT
 from harness.web.runtime import build_runtime
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
@@ -54,7 +55,9 @@ def test_a_worker_offers_its_report_and_no_helpers(
     )
     attach_tickets(tool_service, no_tickets(tmp_path, bots, runs))
 
-    worker = offered(ticket_workers(tool_service, runtime, logs, bots).runtime)
+    worker = offered(
+        ticket_workers(tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS).runtime
+    )
 
     assert TICKET_REPORT in worker
     assert "run_subagent" not in worker | offered(runtime)
