@@ -55,3 +55,15 @@ The 142-page `ch84.zip` on GLM 5.3 Flash, 3 workers, Ask mode:
 | One part per worker, with every fix | 25.3 | 20.4M | 1 |
 
 In the last run, one part translated only pages 95 to 99 of 95 to 142, and the bot sent 100 to 142 out again. Without that, the run would have taken about 19 minutes.
+
+## One model call per page
+
+The person then chose to keep one part per worker and cut each part's steps. A part now runs the skill's commands instead of reading pages itself. `programs` prints code-mode programs that make one `ask_about_images` call per page, each saving that page's answer. `apply` turns the answers into notes. The code decides which boxes to keep from the kind the model names, and translates a sound only inside a closed bubble. The worker looks again only at the pages `apply` or `render` flags. Every worker shares one system text, its ticket's title opens its first message, and a skill named in the task is loaded there too.
+
+| Chapter | Minutes | Input tokens, workers' steps |
+|---|---|---|
+| 84, 142 pages | 14.6 | 3.9M |
+| 83, 134 images | 17.5 | 4.3M |
+| 82, 137 images | 16 | 3.1M |
+
+The token column counts the workers' own steps only. Each `ask_about_images` call is a model call of its own, and nothing logs its usage yet, so the chapter costs more than the column says. Episode 82's minutes run from the end of its download to the hand-over.
