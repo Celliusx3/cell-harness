@@ -33,6 +33,9 @@ class Router:
     def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket:
         return ticket("t9").model_copy(update={"title": title})
 
+    def of_bot(self, bot_id: str) -> tuple[Ticket, ...]:
+        return tuple(t for t in self.tickets.values() if t.bot_id == bot_id)
+
     def get(self, ticket_id: str) -> Ticket:
         if ticket_id not in self.tickets:
             raise TicketNotFound(ticket_id)
@@ -91,3 +94,28 @@ async def test_a_refused_item_does_not_stop_the_items_after_it() -> None:
     assert all(line.split(". ", 1)[1].startswith("refused: ") for line in lines[:4])
     assert "stopped by the user" in lines[2]
     assert lines[4] == "5. attached to ticket t1"
+
+
+async def test_a_task_one_of_your_open_tickets_already_has_is_refused() -> None:
+    router = Router(tickets={"t1": ticket("t1", state="working")})
+
+    answer = await route(router, {"kind": "accept", "title": "Again", "task": "t"})
+
+    assert answer == (
+        "1. refused: ticket t1 already has this task and has not finished; attach to it "
+        "instead of accepting it again"
+    )
+
+
+async def test_a_task_whose_ticket_finished_or_was_stopped_can_be_accepted_again() -> None:
+    router = Router(
+        tickets={
+            "t1": ticket("t1", state="failed"),
+            "t2": ticket("t2", state="stopped"),
+            "t3": ticket("t3", bot_id="other", state="working"),
+        }
+    )
+
+    answer = await route(router, {"kind": "accept", "title": "Retry", "task": "t"})
+
+    assert answer == "1. accepted ticket t9, titled Retry"

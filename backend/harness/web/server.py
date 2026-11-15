@@ -77,7 +77,7 @@ def build_sessions(settings: Settings) -> SessionService:
 
 
 def build_subagent_logs(settings: Settings) -> SessionService:
-    """The subagents' own logs, beside the conversations and never among them."""
+    """The workers' own logs, beside the conversations and never among them."""
     return SessionService(JsonlSessionRepository(settings.sessions.root.parent / "subagents"))
 
 
@@ -184,7 +184,6 @@ def create_web_app() -> FastAPI:
         client_tools,
         approvals,
         bots=bots,
-        subagent_logs=subagent_logs,
         secrets=secrets,
         images=images,
         files=files,
@@ -212,7 +211,7 @@ def create_web_app() -> FastAPI:
         TicketRepository(settings.tickets.path),
         bots,
         runs,
-        worker=ticket_workers(tool_service, runtime, subagent_logs, bots.chat_of),
+        worker=ticket_workers(tool_service, runtime, subagent_logs, bots),
         logs=subagent_logs,
         follow=channels.gateway.follow,
         now=now,

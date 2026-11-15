@@ -22,7 +22,7 @@ from harness.tools.native.schedule import (
     schedule_list_tool,
     schedule_view_tool,
 )
-from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
+from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.group_helpers import group_service, groups_in
 from tests.unit.helpers import durable_service, no_bots
@@ -251,11 +251,10 @@ async def test_every_tool_is_refused_in_a_group_chat(
     assert outcome == Failure(REFUSED, "schedules work only in your own chat, not in a group chat")
 
 
-def test_the_tools_are_offered_to_bots_but_not_to_scripts_or_subagents() -> None:
+def test_the_tools_are_offered_to_bots_but_not_to_scripts() -> None:
     approval_tools = json.loads(CONFIG.read_text())["approval"]["tools"]
 
     for name in (SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT):
         assert name in DEFAULT_TOOLS
         assert name in NOT_CALLABLE_FROM_SCRIPTS
-        assert name not in SUBAGENT_TOOLS
         assert name not in approval_tools

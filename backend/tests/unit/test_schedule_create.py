@@ -15,7 +15,7 @@ from harness.schedules import ScheduleService
 from harness.session.service.session_service import SessionService
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.schedule import SCHEDULE_CREATE, schedule_create_tool
-from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
+from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS
 from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import context_for, durable_service
 from tests.unit.schedule_helpers import Clock, schedules_in
@@ -142,10 +142,9 @@ async def test_a_schedule_asked_for_in_a_group_chat_is_refused(
     assert schedules.schedules() == ()
 
 
-def test_schedule_create_is_offered_to_bots_but_not_to_scripts_or_subagents() -> None:
+def test_schedule_create_is_offered_to_bots_but_not_to_scripts() -> None:
     approval_tools = json.loads(CONFIG.read_text())["approval"]["tools"]
 
     assert SCHEDULE_CREATE in DEFAULT_TOOLS
     assert SCHEDULE_CREATE in NOT_CALLABLE_FROM_SCRIPTS
-    assert SCHEDULE_CREATE not in SUBAGENT_TOOLS
     assert SCHEDULE_CREATE not in approval_tools

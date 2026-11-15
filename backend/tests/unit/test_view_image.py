@@ -21,7 +21,6 @@ from harness.tools.native.files import VIEW_IMAGE, view_image_tool
 from harness.web.runtime import (
     DEFAULT_TOOLS,
     NOT_CALLABLE_FROM_SCRIPTS,
-    SUBAGENT_TOOLS,
     build_runtime,
 )
 from tests.unit.fakes import SteppedClient, calls_tool, completed
@@ -70,7 +69,6 @@ def composed(tmp_path: Path) -> Runtime:
         client_tools(),
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),
         images=images_in(tmp_path),
         files=files_in(tmp_path),
@@ -172,10 +170,9 @@ def test_the_description_and_the_path_field_are_exactly_the_given_text(tmp_path:
     assert spec.input_schema["required"] == ["path"]
 
 
-def test_the_main_chat_may_be_offered_it_and_scripts_and_helpers_are_not() -> None:
+def test_the_main_chat_may_be_offered_it_and_scripts_are_not() -> None:
     assert VIEW_IMAGE in DEFAULT_TOOLS
     assert VIEW_IMAGE in NOT_CALLABLE_FROM_SCRIPTS
-    assert VIEW_IMAGE not in SUBAGENT_TOOLS
 
 
 def test_a_model_that_can_see_is_offered_it(tmp_path: Path) -> None:

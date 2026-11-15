@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -17,25 +16,20 @@ from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
-from harness.runtime.subagents import Subagents
-from harness.tools import ToolService, Toolset
-from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.web.model_choice import CredentialModels, ModelEndpoint
 from harness.web.runtime import compaction_window_tokens
 from tests.bot_models import put_on_model
 from tests.integration.test_web_no_model import PAGE, no_image
 from tests.integration.web_helpers import settle
 from tests.unit.group_helpers import group_service
-from tests.unit.helpers import durable_service, no_approvals, no_images, no_skills
+from tests.unit.helpers import durable_service, no_images, no_skills
 from tests.webapp import bots_in, secrets_in, web_app
 
 SMALL_HOST = "api.small.example"
 LARGE_HOST = "api.large.example"
 WINDOWS = {SMALL_HOST: 8000, LARGE_HOST: 32000}
 USED_TOKENS = 7000
-HELPER = "You are a helper named"
 SUMMARY_ASK = "compaction engine"
-SEND_A_SCOUT = "send a scout"
 
 
 def _credential(name: str, host: str) -> dict:
@@ -45,22 +39,6 @@ def _credential(name: str, host: str) -> dict:
 
 def _sse(*payloads: dict) -> bytes:
     return "".join(f"data: {json.dumps(p)}\n\n" for p in payloads).encode() + b"data: [DONE]\n\n"
-
-
-def _wants_subagent(body: dict) -> bool:
-    users = [message for message in body["messages"] if message["role"] == "user"]
-    answered = any(message["role"] == "tool" for message in body["messages"])
-    return bool(users) and SEND_A_SCOUT in str(users[-1]["content"]) and not answered
-
-
-SUBAGENT_CALL = {
-    "index": 0,
-    "id": "call-1",
-    "function": {
-        "name": RUN_SUBAGENT,
-        "arguments": json.dumps({"tasks": [{"name": "scout", "task": "Find one source."}]}),
-    },
-}
 
 
 @dataclass
@@ -75,10 +53,7 @@ class WindowedProvider:
             window = WINDOWS[request.url.host]
             return httpx.Response(200, json={"data": [{"id": "m", "context_length": window}]})
         usage = {"choices": [], "usage": {"prompt_tokens": USED_TOKENS, "completion_tokens": 0}}
-        if _wants_subagent(json.loads(request.content)):
-            delta = {"choices": [{"delta": {"tool_calls": [SUBAGENT_CALL]}}]}
-        else:
-            delta = {"choices": [{"delta": {"content": "hello"}}]}
+        delta = {"choices": [{"delta": {"content": "hello"}}]}
         return httpx.Response(200, content=_sse(delta, usage))
 
     def asked(self, host: str, method: str = "POST") -> list[httpx.Request]:
@@ -96,20 +71,8 @@ class App:
     bots: BotService
 
 
-def _runtime(models: CredentialModels, tmp_path: Path, checkpoint) -> Runtime:
-    tool_service = ToolService([], approvals=no_approvals())
-    runtime = Runtime(
-        models=models,
-        images=no_images(),
-        tools=Toolset(
-            tool_service, [RUN_SUBAGENT], sight_tools=frozenset(), can_reach_servers=True
-        ),
-        checkpoint=checkpoint,
-    )
-    logs = durable_service(tmp_path / "subagents", prefix="sub")
-    helper = dataclasses.replace(runtime, tools=None)
-    tool_service.register(run_subagent_tool(Subagents(helper, logs)))
-    return runtime
+def _runtime(models: CredentialModels, checkpoint) -> Runtime:
+    return Runtime(models=models, images=no_images(), tools=None, checkpoint=checkpoint)
 
 
 def _patch_endpoints(monkeypatch: pytest.MonkeyPatch, provider: WindowedProvider) -> None:
@@ -140,7 +103,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     runs = RunService(
         service,
-        _runtime(CredentialModels(secrets, bots, base, endpoint), tmp_path, service.flush),
+        _runtime(CredentialModels(secrets, bots, base, endpoint), service.flush),
         bots,
         group_service(bots, service),
         app_events=AppEventService(),
@@ -219,17 +182,6 @@ async def test_a_new_version_of_the_credential_is_asked_again(app: App) -> None:
     await _say(app, ASSISTANT_ID)
 
     assert len(app.provider.asked(SMALL_HOST, method="GET")) == 2
-
-
-async def test_a_subagent_asks_its_calling_bots_credential(app: App) -> None:
-    researcher = await _researcher_on_large(app)
-
-    await _say(app, researcher, SEND_A_SCOUT)
-
-    (helper,) = app.provider.asked_with(HELPER)
-    assert helper.url.host == LARGE_HOST
-    assert helper.headers["authorization"] == "Bearer sk-large_model-1234"
-    assert app.provider.asked(SMALL_HOST) == []
 
 
 async def test_a_manual_compaction_asks_the_chats_bots_credential(app: App) -> None:

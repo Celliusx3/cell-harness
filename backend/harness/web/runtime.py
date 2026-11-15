@@ -30,7 +30,6 @@ from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
 from harness.runtime.service import Runtime, session_chat_id
-from harness.runtime.subagents import Subagents
 from harness.sandbox import DenoRunner
 from harness.schedules import ScheduleService
 from harness.secrets import SecretService
@@ -83,7 +82,6 @@ from harness.tools.native.skills import (
     skill_save_tool,
     skill_write_file_tool,
 )
-from harness.tools.native.subagent import RUN_SUBAGENT, run_subagent_tool
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
 from harness.tools.service.tool_service import Disposer
 from harness.web.model_choice import CredentialModels, ModelEndpoint
@@ -97,7 +95,6 @@ SKILL_WRITE_TOOLS = (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE)
 SCHEDULE_TOOLS = (SCHEDULE_CREATE, SCHEDULE_LIST, SCHEDULE_VIEW, SCHEDULE_EDIT)
 DEFAULT_TOOLS = (
     SKILL,
-    *SKILL_WRITE_TOOLS,
     BOT_CREATE,
     MESSAGE_BOT,
     *SCHEDULE_TOOLS,
@@ -106,8 +103,8 @@ DEFAULT_TOOLS = (
     SEND_FILE,
     VIEW_IMAGE,
 )
-WORK_TOOLS = (RUN_SUBAGENT, FETCH_WITH_SECRET, EXTRACT_ARCHIVE, MAKE_ARCHIVE)
-SUBAGENT_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
+WORK_TOOLS = (FETCH_WITH_SECRET, EXTRACT_ARCHIVE, MAKE_ARCHIVE)
+CODE_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
 SIGHT_TOOLS = frozenset({VIEW_IMAGE})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
@@ -116,7 +113,6 @@ NOT_CALLABLE_FROM_SCRIPTS = frozenset(
         BOT_CREATE,
         MESSAGE_BOT,
         *SCHEDULE_TOOLS,
-        RUN_SUBAGENT,
         TICKET_ROUTE,
         TICKET_NOTE,
         TICKET_REPORT,
@@ -139,7 +135,6 @@ def build_runtime(
     approvals: ApprovalService,
     *,
     bots: BotService,
-    subagent_logs: SessionService,
     secrets: SecretService,
     images: ImageService,
     files: ChatFileService,
@@ -190,7 +185,6 @@ def build_runtime(
         server_instructions=mcp.instructions,
         chat_id_for=session_chat_id,
     )
-    _register_run_subagent(tool_service, runtime, subagent_logs)
     return runtime
 
 
@@ -237,15 +231,8 @@ def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
         tool_service.register(tool)
 
 
-def _register_run_subagent(
-    tool_service: ToolService, runtime: Runtime, logs: SessionService
-) -> None:
-    subagent = delegate_runtime(tool_service, runtime, SUBAGENT_TOOLS)
-    tool_service.register(run_subagent_tool(Subagents(subagent, logs)))
-
-
 def delegate_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
-    """`runtime` as a subagent or a ticket's worker runs it: offered `tools`, free to wait."""
+    """`runtime` as a ticket's worker runs it: offered `tools`, free to wait."""
     hooks = runtime.hooks
     kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))
     return dataclasses.replace(

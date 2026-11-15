@@ -35,6 +35,7 @@ class TicketNotAskingError(RuntimeError):
 
 NEEDS_YOU_STATES: frozenset[TicketState] = frozenset({"needs_answer", "blocked", "failed"})
 RETRYABLE_STATES: frozenset[TicketState] = frozenset({"blocked", "failed"})
+FINISHED_STATES: frozenset[TicketState] = frozenset({"done", "failed", "dropped"})
 
 
 class UnretryableTicketError(RuntimeError):

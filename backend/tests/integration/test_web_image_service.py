@@ -40,7 +40,6 @@ def runtime_over(tmp_path: Path, images: ImageService) -> Runtime:
         client_tools(),
         no_approvals(),
         bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
-        subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
         secrets=secrets_in(tmp_path),
         images=images,
         files=files_in(tmp_path),

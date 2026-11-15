@@ -73,3 +73,15 @@ async def test_a_ready_report_s_file_outside_the_chat_is_said_to_be_out_of_reach
 
     assert "cannot get" in text
     assert UNREACHABLE in text.split("cannot get", 1)[1]
+
+
+async def test_a_worker_is_told_how_many_workers_its_bot_can_run(tmp_path) -> None:
+    world = ticketing_app(tmp_path, _scripts("Done."))
+    async with world.client as client:
+        await send(client, ASSISTANT_ID, "download the chapter")
+        await once_said(client, ASSISTANT_ID, "Here it is.")
+        (row,) = (await client.get("/api/tickets", params={"bot_id": ASSISTANT_ID})).json()
+
+    events = await world.tickets.worker_events(row["id"])
+    first = next(e for e in events if isinstance(e, UserMessageEvent))
+    assert "Your bot can run 3 workers at once." in first.message.content

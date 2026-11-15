@@ -13,12 +13,15 @@ WORKER_INTRO = (
     "takeover and say which step in question; do not click, answer or solve the check yourself, "
     "never ask for those values in chat, and never install tools or open the site another way "
     "to get past it. Call ticket_report "
-    "with the state progress only for a step worth recording. For a big ticket you can split work "
-    "across helpers with run_subagent; they work inside your turn and report only to you."
+    "with the state progress only for a step worth recording."
 )
 TICKET_ANSWER_HEARD = "The user answered your question: {text}"
 TICKET_NOTE_HEARD = (
     "A note from the orchestrator. It is context for this ticket, not a new task: {text}"
+)
+TICKET_FINISHED = (
+    "ticket {ticket} has finished ({state}), and a note reaches only a ticket still working. "
+    "To give it more work, attach to it with ticket_route."
 )
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."
 TICKET_TURN_FAILED = (
@@ -37,8 +40,13 @@ ORCHESTRATOR_INTRO = (
     "ticket. Use "
     "ignore for a message that asks for no work, such as thanks, with a reason. Then reply in one"
     " sentence that names what you started, or say nothing more. Workers' reports arrive by "
-    "themselves as messages, so never wait for them and never check on a ticket. Write at most "
-    "100 words in any reply, except a reply that gives the user a worker's report."
+    "themselves as messages, so never wait for them and never check on a ticket. When a worker's "
+    "ready report gives you tasks to start, accept one ticket for each task it says to start now,"
+    " all at once, with the task as its whole task, and accept a task it says to start only after"
+    " others report ready only once each of those tickets has reported ready. When a ticket "
+    "reports blocked by work another of your tickets did not finish, attach to the ticket that "
+    "holds that work, asking it to finish. Write at most 100 words in any reply, except a reply "
+    "that gives the user a worker's report."
 )
 TICKET_FOLLOWUP_HEARD = "The user wrote this about your ticket: {text}"
 NO_WAIT_REFUSAL = (
@@ -55,6 +63,7 @@ TICKET_RECOVERY_HEARD = (
 SAVED_KEY_ANSWER = "Saved the key {name}."
 APPROVAL_QUESTION = "Allow {tool}?"
 APPROVAL_WAITING = "The worker waits for the user to allow {tool}."
+WORKER_LIMIT = "Your bot can run {limit} workers at once."
 WORKER_FILES_FOLDER = (
     "Save every file you make for the user in {folder}, the one folder they can get files from, "
     "and name each by its full path in your ready report. A file saved anywhere else cannot "

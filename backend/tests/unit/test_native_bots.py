@@ -14,7 +14,7 @@ from harness.secrets import SecretService
 from harness.secrets.domain.details import ModelDetails
 from harness.tools import INVALID_ARGUMENTS, Failure, Ok
 from harness.tools.native.bots import BOT_CREATE, bot_create_tool
-from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS, SUBAGENT_TOOLS
+from harness.web.runtime import DEFAULT_TOOLS, NOT_CALLABLE_FROM_SCRIPTS
 from tests.unit.helpers import context_for, durable_service
 from tests.webapp import MODEL_CREDENTIAL, secrets_in
 
@@ -141,10 +141,9 @@ def test_one_saved_model_is_still_an_enum(store: BotService, keyring: SecretServ
     assert "const" not in tool.input_schema["properties"]["model"]
 
 
-def test_the_main_chat_is_offered_it_and_scripts_and_helpers_are_not() -> None:
+def test_the_main_chat_is_offered_it_and_scripts_are_not() -> None:
     assert BOT_CREATE in DEFAULT_TOOLS
     assert BOT_CREATE in NOT_CALLABLE_FROM_SCRIPTS
-    assert BOT_CREATE not in SUBAGENT_TOOLS
 
 
 def test_the_committed_config_asks_before_a_bot_is_made() -> None:

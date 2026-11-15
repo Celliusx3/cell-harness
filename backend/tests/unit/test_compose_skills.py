@@ -5,68 +5,27 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
-from harness.config.settings import Settings
 from harness.llm import Message, SystemMessage, ToolCall, UserMessage
-from harness.mcp import McpServer, McpService
 from harness.runtime.service import Runtime
 from harness.session.domain.models import TurnStart, UserMessageEvent
-from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
-from harness.session.service.session_service import SessionService
 from harness.skills import SKILL
 from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
 from harness.tools import Ok
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
-from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE
-from harness.web.runtime import DEFAULT_TOOLS, SCHEDULE_TOOLS, build_runtime
+from harness.web.runtime import DEFAULT_TOOLS, SCHEDULE_TOOLS
 from tests.unit.helpers import (
     ORIGIN,
-    client_tools,
     new_session,
-    no_approvals,
-    no_bots,
     no_progress,
     skills_at,
     worker_of,
 )
-from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, files_in, images_in, secrets_in
+from tests.unit.skills_compose import compose, write_skill
+from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in
 
-COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
-
-
-def write_skill(root: Path, name: str) -> Path:
-    (root / name).mkdir(parents=True)
-    (root / name / "SKILL.md").write_text(f"---\ndescription: {name} things.\n---\nDo {name}.\n")
-    return root / name
-
-
-@pytest.fixture
-def compose(tmp_path: Path):
-    root = tmp_path / "skills"
-    root.mkdir()
-
-    def build() -> Runtime:
-        settings = Settings()
-        sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-        mcp = McpService({"stub": McpServer(command="does-not-run")})
-        return build_runtime(
-            settings,
-            sessions,
-            mcp,
-            skills_at(root),
-            client_tools(),
-            no_approvals(),
-            bots=no_bots(SessionService(JsonlSessionRepository(tmp_path / "bot-chats"))),
-            subagent_logs=SessionService(JsonlSessionRepository(tmp_path / "subagents")),
-            secrets=secrets_in(tmp_path),
-            images=images_in(tmp_path),
-            files=files_in(tmp_path),
-        )
-
-    return build, root
+__all__ = ["compose"]
 
 
 def test_the_tool_is_offered_exactly_while_a_skill_exists(compose) -> None:
@@ -188,105 +147,3 @@ def test_a_skill_saved_through_the_editor_is_offered_next_request(compose) -> No
 
     skills_at(root).delete("notes")
     assert SKILL not in [s.name for s in runtime.tools.specs(sees_images=False)]
-
-
-def test_every_skill_write_is_offered_before_any_skill_exists(compose) -> None:
-    build, _ = compose
-    runtime = build()
-    assert runtime.tools is not None
-
-    offered = [s.name for s in runtime.tools.specs(sees_images=False)]
-
-    assert {SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE} <= set(offered)
-
-
-async def test_a_script_cannot_write_a_skill(compose) -> None:
-    build, root = compose
-    write_skill(root, "pdf")
-    runtime = worker_of(build())
-    assert runtime.tools is not None
-
-    listed = await runtime.tools.execute(
-        ToolCall(id="c1", name=LIST_FUNCTIONS, arguments="{}"),
-        progress=no_progress,
-        origin=ORIGIN,
-        session=new_session(),
-        sees_images=False,
-    )
-    assert isinstance(listed, Ok)
-    assert not any(name in listed.text for name in (SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE))
-
-    ran = await runtime.tools.execute(
-        ToolCall(
-            id="c2",
-            name=EXECUTE_TYPESCRIPT,
-            arguments=json.dumps(
-                {"code": 'return await skill_delete({name: "pdf"});', "description": "try"}
-            ),
-        ),
-        progress=no_progress,
-        origin=ORIGIN,
-        session=new_session(),
-        sees_images=False,
-    )
-    assert "skill_delete is not defined" in str(ran) or "cannot be called" in str(ran)
-    assert (root / "pdf" / "SKILL.md").exists()
-
-
-def test_the_committed_config_asks_before_any_skill_write() -> None:
-    committed = json.loads(COMMITTED_CONFIG.read_text())
-
-    assert {SKILL_SAVE, SKILL_DELETE, SKILL_WRITE_FILE} <= set(committed["approval"]["tools"])
-
-
-async def test_a_script_written_into_a_skill_runs_as_a_program(compose) -> None:
-    build, root = compose
-    runtime = build()
-    assert runtime.tools is not None
-    skills_at(root).save("convert", "---\ndescription: Converts km to miles.\n---\nRun it.\n")
-
-    wrote = await runtime.tools.execute(
-        ToolCall(
-            id="c1",
-            name=SKILL_WRITE_FILE,
-            arguments=json.dumps(
-                {
-                    "name": "convert",
-                    "path": "scripts/km.ts",
-                    "text": "return Math.round(5 * 0.621371 * 1000) / 1000;",
-                }
-            ),
-        ),
-        progress=no_progress,
-        origin=ORIGIN,
-        session=new_session(),
-        sees_images=False,
-    )
-    assert isinstance(wrote, Ok)
-
-    read = await runtime.tools.execute(
-        ToolCall(
-            id="c2", name=SKILL, arguments=json.dumps({"name": "convert", "path": "scripts/km.ts"})
-        ),
-        progress=no_progress,
-        origin=ORIGIN,
-        session=new_session(),
-        sees_images=False,
-    )
-    assert isinstance(read, Ok)
-    script = read.text.split("\n", 1)[1].rsplit("\n</skill_file>", 1)[0]
-    worker = worker_of(runtime)
-    assert worker.tools is not None
-
-    ran = await worker.tools.execute(
-        ToolCall(
-            id="c3",
-            name=EXECUTE_TYPESCRIPT,
-            arguments=json.dumps({"code": script, "description": "run the skill's script"}),
-        ),
-        progress=no_progress,
-        origin=ORIGIN,
-        session=new_session(),
-        sees_images=False,
-    )
-    assert isinstance(ran, Ok) and ran.data == 3.107
