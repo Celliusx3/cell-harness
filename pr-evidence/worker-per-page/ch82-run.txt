@@ -1,0 +1,13 @@
+Episode 82 of a Korean webtoon: 137 images in the downloaded zip, 104 pages after the strip re-cut, 102 with text. GLM 5.3 Flash on ILMU, 3 workers, Ask mode.
+The pages are copyrighted, so only the chat is shown; the video has no page images.
+
+Ticket                        started (UTC)  steps  input tokens  cached
+Download and translate ch82   22:22:09        23      379,119      331,136   (Prepare; 30 min waiting on a browser approval card)
+Translate part 1 (34 pages)   22:57:36        31      714,599      652,288
+Translate part 2 (34 pages)   22:57:36        30      710,792      646,592
+Translate part 3 (34 pages)   22:57:36        30    1,270,497    1,164,288   (one ReadError, retried)
+Pack translated ch82          23:10:26         6       53,737       25,920
+Total                                         120    3,128,744    2,820,224
+
+Download done 22:54, chapter handed over 23:10: 16 minutes to translate.
+Input tokens are the workers' own steps; ask_about_images makes its own model call per page, which nothing logs yet.
