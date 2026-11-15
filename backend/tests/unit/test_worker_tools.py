@@ -56,7 +56,9 @@ def test_a_worker_offers_its_report_and_no_helpers(
     attach_tickets(tool_service, no_tickets(tmp_path, bots, runs))
 
     worker = offered(
-        ticket_workers(tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS).runtime
+        ticket_workers(
+            tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS, skills=no_skills()
+        ).runtime
     )
 
     assert TICKET_REPORT in worker

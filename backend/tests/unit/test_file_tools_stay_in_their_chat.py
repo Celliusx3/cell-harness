@@ -71,7 +71,7 @@ async def worker_call_result(
     )
     assert bot.tools is not None
     runtime = ticket_workers(
-        bot.tools.tool_service, bot, logs, bots, chat_grants=NO_CHAT_GRANTS
+        bot.tools.tool_service, bot, logs, bots, chat_grants=NO_CHAT_GRANTS, skills=no_skills()
     ).runtime
     session = await sessions.create(session_id)
     await drain(runtime.run("open it", session=session, bot_id=ASSISTANT_ID))

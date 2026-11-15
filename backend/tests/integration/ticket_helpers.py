@@ -101,7 +101,12 @@ def ticketing_app(
         bots,
         runs,
         worker=ticket_workers(
-            tool_service, runtime, worker_logs, bots, chat_grants=ChatGrantLog(runs, service)
+            tool_service,
+            runtime,
+            worker_logs,
+            bots,
+            chat_grants=ChatGrantLog(runs, service),
+            skills=no_skills(),
         ),
         logs=worker_logs,
         follow=heard_nowhere,

@@ -208,12 +208,13 @@ def create_web_app() -> FastAPI:
     )
     now = functools.partial(datetime.now, UTC)
     tool_service = runtime.tools.tool_service
+    grants = ChatGrantLog(runs, sessions)
     tickets = TicketService(
         TicketRepository(settings.tickets.path),
         bots,
         runs,
         worker=ticket_workers(
-            tool_service, runtime, subagent_logs, bots, chat_grants=ChatGrantLog(runs, sessions)
+            tool_service, runtime, subagent_logs, bots, chat_grants=grants, skills=skills
         ),
         logs=subagent_logs,
         follow=channels.gateway.follow,

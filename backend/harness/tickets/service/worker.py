@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
@@ -22,7 +23,10 @@ from harness.session.domain.models import (
     TurnStart,
 )
 from harness.session.service.session_service import SessionService
+from harness.skills import Skill, SkillService
+from harness.skills.service.prompt import instructions
 from harness.tickets.domain.models import ReportState, Ticket
+from harness.tickets.domain.named_skills import named_skills
 from harness.tickets.domain.prompts import (
     APPROVAL_QUESTION,
     APPROVAL_WAITING,
@@ -33,12 +37,15 @@ from harness.tickets.domain.prompts import (
     WORKER_FILES_FOLDER,
     WORKER_INTRO,
     WORKER_LIMIT,
+    WORKER_TICKET_TITLE,
 )
 from harness.tickets.domain.result_files import reported_files
 from harness.tools import Approval, Failure, Ok
 from harness.tools.domain.decision import ApprovalMode
 from harness.tools.native.tickets.models import TicketReportArgs
 from harness.tools.native.tickets.report import TICKET_REPORT
+
+logger = logging.getLogger("harness.tickets")
 
 
 @dataclass(frozen=True)
@@ -90,14 +97,19 @@ class RuntimeTicketWorker:
     sessions: SessionService
     worker_limit_of: Callable[[str], int]
     """How many workers a bot runs at once, read as its ticket's first turn starts."""
+    skills: SkillService
 
     async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
         session = await self.sessions.create(worker_session_id(ticket.id))
         session.append(ApprovalModeChange(mode=mode))
+        title = WORKER_TICKET_TITLE.format(title=ticket.title)
         limit = WORKER_LIMIT.format(limit=self.worker_limit_of(ticket.bot_id))
-        task = self._with_files_folder(f"{ticket.task}\n\n{limit}", self._chat_id(session, ticket))
-        return await self._run_turn(ticket, task, session, ticket.files)
+        task = self._with_files_folder(
+            f"{title}\n\n{ticket.task}\n\n{limit}", self._chat_id(session, ticket)
+        )
+        prompt = "\n\n".join((task, *self._named_skill_texts(ticket.task)))
+        return await self._run_turn(ticket, prompt, session, ticket.files)
 
     async def resume(self, ticket: Ticket, prompt: str) -> WorkerEnd:
         """Run the next turn on `prompt` in `ticket`'s session, under the mode its log holds."""
@@ -109,22 +121,28 @@ class RuntimeTicketWorker:
     ) -> WorkerEnd:
         """Answer the call `ticket`'s worker waits on with the person's decision, to its end."""
         session = await self.sessions.resume(worker_session_id(ticket.id))
-        intro = WORKER_INTRO.format(title=ticket.title)
-        answer = HelperAnswer(intro=intro, call_id=call_id, outcome=outcome, bot_id=ticket.bot_id)
+        answer = HelperAnswer(
+            intro=WORKER_INTRO, call_id=call_id, outcome=outcome, bot_id=ticket.bot_id
+        )
         last = await resume_to_end(self.runtime, self.sessions, session, answer)
         return worker_end(last, last_accepted_report(session.events()))
 
     async def _run_turn(
         self, ticket: Ticket, prompt: str, session: Session, files: tuple[ChatFile, ...]
     ) -> WorkerEnd:
-        intro = WORKER_INTRO.format(title=ticket.title)
-        turn = HelperTurn(intro=intro, prompt=prompt, bot_id=ticket.bot_id, files=files)
+        turn = HelperTurn(intro=WORKER_INTRO, prompt=prompt, bot_id=ticket.bot_id, files=files)
         last = await run_to_end(self.runtime, self.sessions, session, turn)
         end = worker_end(last, last_accepted_report(session.events()))
         return self._with_result_files(end, self._chat_id(session, ticket))
 
     def _chat_id(self, session: Session, ticket: Ticket) -> str:
         return self.runtime.chat_id_for(session, ticket.bot_id)
+
+    def _named_skill_texts(self, task: str) -> tuple[str, ...]:
+        """What `skill` returns for each skill `task` names, so the worker starts with it loaded."""
+        offered = {skill.name: skill for skill in self.skills.model_invocable_skills()}
+        loaded = (_skill_text(offered[name]) for name in named_skills(task, tuple(offered)))
+        return tuple(text for text in loaded if text is not None)
 
     def _with_files_folder(self, task: str, chat_id: str) -> str:
         """`task`, then where the person's files go, when this runtime keeps chats' files."""
@@ -149,6 +167,15 @@ class RuntimeTicketWorker:
             if paths
         ]
         return dataclasses.replace(end, text="\n\n".join((end.text, *notes)))
+
+
+def _skill_text(skill: Skill) -> str | None:
+    """`skill` as the `skill` tool returns it; `None`, with a warning, when it cannot be read."""
+    try:
+        return instructions(skill)
+    except (OSError, ValueError) as err:
+        logger.warning("skill %r named by a ticket could not be read: %s", skill.name, err)
+        return None
 
 
 def worker_session_id(ticket_id: str) -> str:

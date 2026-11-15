@@ -9,6 +9,7 @@ from harness.bots import Bot
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.service.session_service import SessionService
+from harness.skills import SkillService
 from harness.tickets.service.ticket_service import TicketService
 from harness.tickets.service.worker import RuntimeTicketWorker
 from harness.tools import ChatGrants, ToolService
@@ -47,6 +48,7 @@ def ticket_workers(
     bots: BotLookup,
     *,
     chat_grants: ChatGrants,
+    skills: SkillService,
 ) -> RuntimeTicketWorker:
     """`runtime` as each ticket's worker runs it, in its bot's chat and under its grants."""
     worker = dataclasses.replace(
@@ -54,7 +56,9 @@ def ticket_workers(
         guidance=GUIDANCE,
         chat_id_for=lambda _session, bot_id: bots.chat_of(bot_id),
     )
-    return RuntimeTicketWorker(worker, logs, lambda bot_id: bots.active_bot(bot_id).max_workers)
+    return RuntimeTicketWorker(
+        worker, logs, lambda bot_id: bots.active_bot(bot_id).max_workers, skills
+    )
 
 
 def attach_tickets(tool_service: ToolService, tickets: TicketService) -> Disposer:

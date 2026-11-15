@@ -59,7 +59,9 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
 
     bot = offered(runtime)
     worker = offered(
-        ticket_workers(tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS).runtime
+        ticket_workers(
+            tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS, skills=no_skills()
+        ).runtime
     )
     code_mode = {LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT}
 
@@ -74,7 +76,7 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
     assert runtime.guidance == ORCHESTRATOR_INTRO
     assert (
         ticket_workers(
-            tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS
+            tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS, skills=no_skills()
         ).runtime.guidance
         == GUIDANCE
     )

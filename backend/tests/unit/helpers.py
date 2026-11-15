@@ -291,5 +291,10 @@ def worker_of(bot: Runtime) -> Runtime:
     assert bot.tools is not None
     logs = SessionService(JsonlSessionRepository(Path("/nonexistent/cell-harness-workers")))
     return ticket_workers(
-        bot.tools.tool_service, bot, logs, no_bots(logs), chat_grants=NO_CHAT_GRANTS
+        bot.tools.tool_service,
+        bot,
+        logs,
+        no_bots(logs),
+        chat_grants=NO_CHAT_GRANTS,
+        skills=no_skills(),
     ).runtime
