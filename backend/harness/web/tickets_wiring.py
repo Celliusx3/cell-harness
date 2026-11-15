@@ -12,7 +12,7 @@ from harness.session.service.session_service import SessionService
 from harness.tickets.service.ticket_service import TicketService
 from harness.tickets.service.worker import RuntimeTicketWorker
 from harness.tools import ChatGrants, ToolService
-from harness.tools.native.files import VIEW_IMAGE
+from harness.tools.native.files import ASK_ABOUT_IMAGES, VIEW_IMAGE
 from harness.tools.native.tickets import (
     TICKET_REPORT,
     ticket_note_tool,
@@ -22,7 +22,14 @@ from harness.tools.native.tickets import (
 from harness.tools.service.tool_service import Disposer
 from harness.web.runtime import CODE_TOOLS, SKILL_WRITE_TOOLS, WORK_TOOLS, delegate_runtime
 
-WORKER_TOOLS = (*CODE_TOOLS, *WORK_TOOLS, *SKILL_WRITE_TOOLS, VIEW_IMAGE, TICKET_REPORT)
+WORKER_TOOLS = (
+    *CODE_TOOLS,
+    *WORK_TOOLS,
+    *SKILL_WRITE_TOOLS,
+    VIEW_IMAGE,
+    ASK_ABOUT_IMAGES,
+    TICKET_REPORT,
+)
 
 
 class BotLookup(Protocol):

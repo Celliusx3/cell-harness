@@ -47,10 +47,12 @@ from harness.tools.native.code_mode import (
     code_mode_tools,
 )
 from harness.tools.native.files import (
+    ASK_ABOUT_IMAGES,
     EXTRACT_ARCHIVE,
     MAKE_ARCHIVE,
     SEND_FILE,
     VIEW_IMAGE,
+    ask_about_images_tool,
     extract_archive_tool,
     make_archive_tool,
     send_file_tool,
@@ -105,7 +107,7 @@ DEFAULT_TOOLS = (
 )
 WORK_TOOLS = (FETCH_WITH_SECRET, EXTRACT_ARCHIVE, MAKE_ARCHIVE)
 CODE_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
-SIGHT_TOOLS = frozenset({VIEW_IMAGE})
+SIGHT_TOOLS = frozenset({VIEW_IMAGE, ASK_ABOUT_IMAGES})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,
@@ -140,6 +142,15 @@ def build_runtime(
     files: ChatFileService,
 ) -> Runtime:
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
+    models = CredentialModels(
+        secrets,
+        bots,
+        settings.llm,
+        ModelEndpoint(
+            client_for=functools.partial(_openai_client, images),
+            blocking_window_for=functools.partial(compaction_window_tokens, settings.compaction),
+        ),
+    )
     tool_service = ToolService(
         [
             get_current_time_tool(),
@@ -151,6 +162,7 @@ def build_runtime(
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
             view_image_tool(files),
+            ask_about_images_tool(files, images, models),
             *CLIENT_TOOLS.tools(),
         ],
         approvals=approvals,
@@ -163,17 +175,7 @@ def build_runtime(
     _register_code_mode(tool_service, settings)
 
     runtime = Runtime(
-        models=CredentialModels(
-            secrets,
-            bots,
-            settings.llm,
-            ModelEndpoint(
-                client_for=functools.partial(_openai_client, images),
-                blocking_window_for=functools.partial(
-                    compaction_window_tokens, settings.compaction
-                ),
-            ),
-        ),
+        models=models,
         images=images,
         tools=Toolset(
             tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS, can_reach_servers=False

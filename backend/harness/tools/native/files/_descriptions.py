@@ -29,3 +29,21 @@ VIEW_IMAGE = (
     "a JPEG or PNG of at most 5 MB, by its absolute path."
 )
 IMAGE_PATH = "The image's absolute path, inside this chat's files."
+
+ASK_ABOUT_IMAGES = (
+    "Asks the bot's own model one question about images in this chat's files, with no "
+    "conversation history: only the instructions and the images are sent, and it costs one "
+    "model call. Use it inside execute_typescript to handle many pages, one call per page. "
+    "Returns {answer, saved_to}: answer is the reply parsed as JSON when it is JSON, a ```json "
+    "fence around it removed, else the reply's text; saved_to is the path the reply was "
+    "written to, or null when save_to was not given."
+)
+ASK_PATHS = "Absolute paths of 1 to 12 JPEG or PNG images, each a file in this chat's folder."
+ASK_INSTRUCTIONS = (
+    "Everything the model is told: what to look for in the images and the exact shape of the "
+    "answer, such as the JSON to return. It sees nothing else."
+)
+ASK_SAVE_TO = (
+    "Absolute path of a file inside this chat's folder to write the reply to, replacing it if it "
+    "exists; leave it out to only return the reply."
+)
