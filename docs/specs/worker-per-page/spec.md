@@ -1,4 +1,4 @@
-# A worker per page
+# A worker per page, tried and measured
 
 ## Problem
 
@@ -17,10 +17,8 @@ A long chapter is split into one part per worker, so each part carries many page
 
 ## Decisions
 
-- **One ticket per 8 pages with text, queued behind the bot's worker limit.** The grill chose one page per ticket. On the 142-page chapter that finished 1 page every 40 to 60 seconds. The chapter would take 1.5 to 2 hours, against 20 minutes for 3 parts, since each ticket loads the skill and the render models again. The person then chose batches.
-
-  Codex's `spawn_agents_on_csv` runs one worker per row with a cap on how many run at once, and manga-image-translator works in batches of pages. The harness queue already does this (#102).
-- **A page with no text gets no ticket. Combine packs it unchanged.** The person chose this. `detect` already tells which pages have text.
+- **One part per worker, as before.** The grill chose one page per ticket, and the person later chose parts of 8. Both were built and run on the same chapter, and both were slower than one part per worker on GLM 5.3 Flash with 3 workers. Each ticket pays its own start, and the model's time per step sets the clock. The person then chose to go back to one part per worker. Codex's `spawn_agents_on_csv` and the harness queue (#102) would carry many small tickets when a model is faster.
+- **Combine packs a page with no text unchanged.** The person chose this. `detect` now tells which pages have text.
 - **"Allow for this conversation" covers the chat and every worker it starts, including a grant given on a worker's card.** The person chose that a chat's grant reaches its workers. Claude Code does the same: a session grant made on a sub-agent's prompt "applies your answer to the whole session, including your main conversation". Codex keeps a separate list for each sub-agent, which is what we do today. Approved: a grant on a worker's card is recorded in the chat, so it covers the other workers too.
 - **Names stay in the shared names file, read before each page.** TranslateImage does the same and accepts that two pages writing at once can lose a term (one source). This feature does not fix that the file stayed empty in the last run.
 - **The skill changes go in `Celliusx3/skills`, the grant change in cell-harness.** As in the chapter-in-parts feature.
@@ -53,5 +51,7 @@ The 142-page `ch84.zip` on GLM 5.3 Flash, 3 workers, Ask mode:
 | One page per ticket, stopped at 10 pages | about 100, projected | 2.3M for 10 pages | 1 |
 | Parts of 8, before the render limit | 45.5 | 31.5M | 1 |
 | Parts of 8, with the render limit | 30.4 | 12.8M | 1 |
+| Parts of 8, all of a part's images in one step | about 33 | 10.0M | 1 |
+| One part per worker, with every fix | 25.3 | 20.4M | 1 |
 
-In the last run the parts took 22.6 minutes and 5.8 more went to sending back 3 pages a part had missed or left stale.
+In the last run, one part translated only pages 95 to 99 of 95 to 142, and the bot sent 100 to 142 out again. Without that, the run would have taken about 19 minutes.
