@@ -1,6 +1,6 @@
 # 03 Delete a file or a folder after a confirm
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 

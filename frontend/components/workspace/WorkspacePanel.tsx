@@ -1,12 +1,14 @@
 "use client";
 
-import { FileIcon, FolderIcon } from "lucide-react";
+import { FileIcon, FolderIcon, Trash2Icon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { sizeLabel } from "@/components/computer/files";
 import { BUTTON, FilePreview, type OpenedFile } from "@/components/workspace/FilePreview";
 import {
   childPath,
+  deleteQuestion,
+  deleteWorkspaceEntry,
   entryPath,
   listWorkspace,
   type WorkspaceEntry,
@@ -45,6 +47,20 @@ export function WorkspacePanel({ chatId }: { chatId: string }) {
     void openFolder("");
   }, [openFolder]);
 
+  const deleteEntry = useCallback(
+    async (folder: string, name: string) => {
+      if (!window.confirm(deleteQuestion(name))) return;
+      try {
+        await deleteWorkspaceEntry(chatId, childPath(folder, name));
+      } catch (err: unknown) {
+        setError(messageOf(err));
+        return;
+      }
+      await openFolder(folder);
+    },
+    [chatId, openFolder],
+  );
+
   return (
     <section
       aria-label="Workspace files"
@@ -66,6 +82,7 @@ export function WorkspacePanel({ chatId }: { chatId: string }) {
               listing={listing}
               onOpen={(path) => void openFolder(path)}
               onOpenFile={setOpened}
+              onDelete={(name) => void deleteEntry(listing.path, name)}
             />
           )}
         </div>
@@ -102,9 +119,10 @@ interface EntriesProps {
   listing: WorkspaceListing;
   onOpen: (path: string) => void;
   onOpenFile: (file: OpenedFile) => void;
+  onDelete: (name: string) => void;
 }
 
-function Entries({ chatId, listing, onOpen, onOpenFile }: EntriesProps) {
+function Entries({ chatId, listing, onOpen, onOpenFile, onDelete }: EntriesProps) {
   if (listing.entries.length === 0) {
     return <p className="px-3 py-3 text-ink-soft">This folder is empty.</p>;
   }
@@ -112,15 +130,16 @@ function Entries({ chatId, listing, onOpen, onOpenFile }: EntriesProps) {
     <ul>
       {listing.entries.map((entry) =>
         entry.kind === "folder" ? (
-          <li key={entry.name} className="hover:bg-surface-sunken">
+          <li key={entry.name} className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface-sunken">
             <button
               type="button"
               onClick={() => onOpen(childPath(listing.path, entry.name))}
-              className="flex w-full min-w-0 items-center gap-2 px-3 py-1.5 text-left"
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
             >
               <FolderIcon className="size-4 shrink-0 text-ink-soft" aria-hidden />
               <span className="min-w-0 break-all">{entry.name}</span>
             </button>
+            <DeleteButton name={entry.name} onDelete={onDelete} />
           </li>
         ) : (
           <FileRow
@@ -128,6 +147,7 @@ function Entries({ chatId, listing, onOpen, onOpenFile }: EntriesProps) {
             entry={entry}
             url={fileUrl({ kind: "chat", id: chatId }, entryPath(listing, entry.name))}
             onOpen={onOpenFile}
+            onDelete={onDelete}
           />
         ),
       )}
@@ -139,9 +159,23 @@ interface FileRowProps {
   entry: WorkspaceEntry;
   url: string;
   onOpen: (file: OpenedFile) => void;
+  onDelete: (name: string) => void;
 }
 
-function FileRow({ entry, url, onOpen }: FileRowProps) {
+function DeleteButton({ name, onDelete }: { name: string; onDelete: (name: string) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={`Delete ${name}`}
+      onClick={() => onDelete(name)}
+      className="shrink-0 rounded-md p-1 text-ink-soft transition hover:bg-danger-soft hover:text-danger"
+    >
+      <Trash2Icon className="size-4" aria-hidden />
+    </button>
+  );
+}
+
+function FileRow({ entry, url, onOpen, onDelete }: FileRowProps) {
   return (
     <li className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface-sunken">
       <button
@@ -156,6 +190,7 @@ function FileRow({ entry, url, onOpen }: FileRowProps) {
       <a href={url} download={entry.name} className={`shrink-0 ${BUTTON}`}>
         Download
       </a>
+      <DeleteButton name={entry.name} onDelete={onDelete} />
     </li>
   );
 }

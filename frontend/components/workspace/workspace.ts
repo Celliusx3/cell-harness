@@ -26,6 +26,17 @@ export async function listWorkspace(chatId: string, path: string): Promise<Works
   return WorkspaceListing.parse(await request<unknown>(`/workspaces/${encodeURIComponent(chatId)}?${query}`));
 }
 
+/** Delete the file or folder at `path`, relative to the chat's workspace. */
+export async function deleteWorkspaceEntry(chatId: string, path: string): Promise<void> {
+  const query = new URLSearchParams({ path });
+  await request<void>(`/workspaces/${encodeURIComponent(chatId)}?${query}`, { method: "DELETE" });
+}
+
+/** The question asked before `name` is deleted. */
+export function deleteQuestion(name: string): string {
+  return `Delete ${name}? Bots lose it too, and past messages that link it will not open it.`;
+}
+
 /** The folder's path as crumbs back to the workspace's root. */
 export function workspaceCrumbs(path: string) {
   return crumbs(path).map((crumb, at) => (at === 0 ? { ...crumb, name: ROOT_NAME } : crumb));

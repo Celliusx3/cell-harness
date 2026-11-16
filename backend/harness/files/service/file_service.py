@@ -9,6 +9,7 @@ from pathlib import Path
 from harness.files.domain.models import (
     ChatFile,
     WorkspaceListing,
+    deletion_target,
     relative_path,
     sorted_entries,
 )
@@ -101,6 +102,10 @@ class ChatFileService:
             workspace=str(workspace),
             entries=sorted_entries(self._repository.entries_in(chat_id, folder)),
         )
+
+    def delete_path(self, chat_id: str, path: str) -> None:
+        """Delete the file, folder or link `path` names in this chat's workspace; else refused."""
+        self._repository.delete_in(chat_id, deletion_target(path))
 
     def file_at(self, chat_id: str, path: str) -> ChatFile | None:
         """The file at absolute `path` when it is one in this chat's workspace or old folder."""

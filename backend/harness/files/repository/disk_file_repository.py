@@ -5,9 +5,10 @@ from __future__ import annotations
 import os
 import secrets
 import shutil
+import stat
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from harness.files.domain.models import WorkspaceEntry, WorkspacePathError
 from harness.files.repository.file_repository import FOLDER_MODE, is_plain_name
@@ -84,6 +85,14 @@ class DiskChatFileRepository:
             raise
         return target
 
+    def delete_in(self, chat_id: str, target: PurePosixPath) -> None:
+        """Delete the entry `target` names, a link as a link; else `WorkspacePathError`."""
+        workspace = self.workspace(chat_id)
+        parent = (workspace / target.parent).resolve()
+        if not parent.is_relative_to(workspace):
+            raise WorkspacePathError(f"{str(target)!r} is not inside the workspace")
+        _delete_entry(parent / target.name)
+
     def delete_workspace(self, chat_id: str) -> None:
         """Delete this chat's workspace and everything in it; nothing when it is missing."""
         workspace = self.workspace(chat_id)
@@ -115,6 +124,18 @@ def _entry(item: os.DirEntry[str], workspace: Path) -> WorkspaceEntry | None:
         return WorkspaceEntry(name=item.name, kind="file", size=item.stat().st_size)
     except OSError:
         return None
+
+
+def _delete_entry(entry: Path) -> None:
+    """Delete `entry` without following it: a folder with all it holds, else the one entry."""
+    try:
+        mode = entry.lstat().st_mode
+    except FileNotFoundError as err:
+        raise WorkspacePathError(f"{entry.name!r} is not in the workspace") from err
+    if stat.S_ISDIR(mode):
+        shutil.rmtree(entry)
+    else:
+        entry.unlink()
 
 
 def _is_link_within(link: Path, workspace: Path) -> bool:

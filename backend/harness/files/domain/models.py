@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from pathlib import PurePath
+from pathlib import PurePath, PurePosixPath
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
 ROOT_PATH = ""
+NOT_AN_ENTRY_NAME = frozenset({"", ".."})
 
 
 class ChatFile(BaseModel):
@@ -59,3 +60,11 @@ def relative_path(workspace: PurePath, folder: PurePath) -> str:
     """`folder` as a path relative to `workspace`, "" for the workspace itself."""
     relative = folder.relative_to(workspace)
     return ROOT_PATH if relative == PurePath() else relative.as_posix()
+
+
+def deletion_target(path: str) -> PurePosixPath:
+    """`path` as the entry a delete names, relative and not the root; else `WorkspacePathError`."""
+    target = PurePosixPath(path)
+    if target.is_absolute() or target.name in NOT_AN_ENTRY_NAME:
+        raise WorkspacePathError(f"{path!r} does not name an entry inside the workspace")
+    return target
