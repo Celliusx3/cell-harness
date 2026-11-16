@@ -10,7 +10,7 @@ from pathlib import Path
 import httpx
 
 from harness.bots import ASSISTANT_ID
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.web.server import build_channels
 from tests.integration.web_helpers import api, build, of_type, once_said, settle
 from tests.unit.fakes import ScriptedClient, SteppedClient, calls_tool, completed, gated_tool

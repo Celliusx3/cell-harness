@@ -8,7 +8,7 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.channels.service.gateway import ChannelGateway
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService

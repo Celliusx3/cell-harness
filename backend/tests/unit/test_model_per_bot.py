@@ -10,7 +10,7 @@ from pydantic import SecretStr
 
 from harness.app_events import AppEventService
 from harness.bots import BotDraft, BotRepository, BotService
-from harness.config.sections import LLMSettings
+from harness.config import LLMSettings
 from harness.llm import AssistantMessage, LLMClient, StreamFailure, UserMessage
 from harness.llm.adapters import OpenAISettings
 from harness.runtime.models import PICK_A_MODEL, ModelChoice, NoModel

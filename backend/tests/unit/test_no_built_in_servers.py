@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from harness.config import settings as settings_module
-from harness.config.settings import Settings
+from harness.config import Settings
+from harness.config.repository import settings_repository as settings_module
 
 BACKEND = Path(__file__).resolve().parents[2]
 SHIPPED = (BACKEND / "config.json", BACKEND.parent / "desktop" / "config.json")
@@ -27,8 +27,8 @@ def test_mcp_servers_left_in_the_local_file_stop_the_start(tmp_path, monkeypatch
     local = tmp_path / "config.local.json"
     committed.write_text("{}")
     local.write_text(json.dumps({"mcp": {"servers": {"computer": {"command": "uv"}}}}))
-    monkeypatch.setattr(settings_module, "_CONFIG_JSON", committed)
-    monkeypatch.setattr(settings_module, "_LOCAL_JSON", local)
+    monkeypatch.setattr(settings_module, "CONFIG_JSON", committed)
+    monkeypatch.setattr(settings_module, "LOCAL_JSON", local)
 
     with pytest.raises(ValidationError, match=r"mcp\.servers\s+Extra inputs are not permitted"):
         Settings()

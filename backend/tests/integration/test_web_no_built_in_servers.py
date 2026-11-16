@@ -13,7 +13,7 @@ import pytest
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
-from harness.config import settings as settings_module
+from harness.config.repository import settings_repository as settings_module
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runs.service.run_service import RunService
 from harness.tools.native.code_mode.prompts import LIST_FUNCTIONS
@@ -107,8 +107,8 @@ def _committed_config_in(tmp_path: Path) -> Path:
 
 @pytest.fixture
 async def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(settings_module, "_CONFIG_JSON", _committed_config_in(tmp_path))
-    monkeypatch.setattr(settings_module, "_LOCAL_JSON", tmp_path / "config.local.json")
+    monkeypatch.setattr(settings_module, "CONFIG_JSON", _committed_config_in(tmp_path))
+    monkeypatch.setattr(settings_module, "LOCAL_JSON", tmp_path / "config.local.json")
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     built: list[RunService] = []
 

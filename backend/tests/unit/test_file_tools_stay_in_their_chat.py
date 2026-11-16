@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from harness.bots import ASSISTANT_ID
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.mcp import McpService
 from harness.session.domain.models import ToolResultEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository

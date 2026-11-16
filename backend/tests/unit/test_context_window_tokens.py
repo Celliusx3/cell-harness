@@ -6,7 +6,7 @@ import json
 
 import httpx
 
-from harness.config.sections import CompactionSettings
+from harness.config import CompactionSettings
 from harness.llm.adapters import context_window_tokens
 from harness.llm.adapters.openai import client as adapter_module
 from harness.web.runtime import compaction_window_tokens

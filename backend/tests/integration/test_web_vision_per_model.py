@@ -13,7 +13,7 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
 from harness.bots.domain.models import DEFAULT_MAX_WORKERS
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.llm.adapters.openai import client as adapter_module
 from harness.mcp import McpService
 from harness.runs.service.run_service import RunService
