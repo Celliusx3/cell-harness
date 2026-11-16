@@ -1,6 +1,6 @@
 # 02 Preview a text file or an image in the panel
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 

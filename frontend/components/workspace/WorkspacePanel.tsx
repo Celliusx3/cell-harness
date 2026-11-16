@@ -4,6 +4,7 @@ import { FileIcon, FolderIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { sizeLabel } from "@/components/computer/files";
+import { BUTTON, FilePreview, type OpenedFile } from "@/components/workspace/FilePreview";
 import {
   childPath,
   entryPath,
@@ -14,23 +15,22 @@ import {
 } from "@/components/workspace/workspace";
 import { fileUrl } from "@/lib/api";
 
-const BUTTON =
-  "rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:text-ink";
-
 function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : "The workspace could not be read.";
 }
 
-/** The chat's workspace beside the chat: one folder at a time, each file downloadable. */
+/** The chat's workspace beside the chat: one folder at a time, or one file shown. */
 export function WorkspacePanel({ chatId }: { chatId: string }) {
   const [listing, setListing] = useState<WorkspaceListing | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [opened, setOpened] = useState<OpenedFile | null>(null);
   const latestRequest = useRef(0);
 
   const openFolder = useCallback(
     async (path: string) => {
       const request = ++latestRequest.current;
       setError(null);
+      setOpened(null);
       try {
         const listed = await listWorkspace(chatId, path);
         if (request === latestRequest.current) setListing(listed);
@@ -56,11 +56,20 @@ export function WorkspacePanel({ chatId }: { chatId: string }) {
           {error}
         </p>
       )}
-      <div className="min-h-0 flex-1 overflow-auto">
-        {listing !== null && (
-          <Entries chatId={chatId} listing={listing} onOpen={(path) => void openFolder(path)} />
-        )}
-      </div>
+      {opened !== null ? (
+        <FilePreview file={opened} onClose={() => setOpened(null)} />
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto">
+          {listing !== null && (
+            <Entries
+              chatId={chatId}
+              listing={listing}
+              onOpen={(path) => void openFolder(path)}
+              onOpenFile={setOpened}
+            />
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -92,9 +101,10 @@ interface EntriesProps {
   chatId: string;
   listing: WorkspaceListing;
   onOpen: (path: string) => void;
+  onOpenFile: (file: OpenedFile) => void;
 }
 
-function Entries({ chatId, listing, onOpen }: EntriesProps) {
+function Entries({ chatId, listing, onOpen, onOpenFile }: EntriesProps) {
   if (listing.entries.length === 0) {
     return <p className="px-3 py-3 text-ink-soft">This folder is empty.</p>;
   }
@@ -113,24 +123,37 @@ function Entries({ chatId, listing, onOpen }: EntriesProps) {
             </button>
           </li>
         ) : (
-          <FileRow key={entry.name} chatId={chatId} listing={listing} entry={entry} />
+          <FileRow
+            key={entry.name}
+            entry={entry}
+            url={fileUrl({ kind: "chat", id: chatId }, entryPath(listing, entry.name))}
+            onOpen={onOpenFile}
+          />
         ),
       )}
     </ul>
   );
 }
 
-function FileRow({ chatId, listing, entry }: { chatId: string; listing: WorkspaceListing; entry: WorkspaceEntry }) {
+interface FileRowProps {
+  entry: WorkspaceEntry;
+  url: string;
+  onOpen: (file: OpenedFile) => void;
+}
+
+function FileRow({ entry, url, onOpen }: FileRowProps) {
   return (
     <li className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface-sunken">
-      <FileIcon className="size-4 shrink-0 text-ink-soft" aria-hidden />
-      <span className="min-w-0 break-all">{entry.name}</span>
-      <span className="ml-auto shrink-0 text-xs text-ink-soft tabular-nums">{sizeLabel(entry.size)}</span>
-      <a
-        href={fileUrl({ kind: "chat", id: chatId }, entryPath(listing, entry.name))}
-        download={entry.name}
-        className={`shrink-0 ${BUTTON}`}
+      <button
+        type="button"
+        onClick={() => onOpen({ name: entry.name, size: entry.size, url })}
+        className="flex min-w-0 flex-1 items-center gap-2 text-left"
       >
+        <FileIcon className="size-4 shrink-0 text-ink-soft" aria-hidden />
+        <span className="min-w-0 break-all">{entry.name}</span>
+        <span className="ml-auto shrink-0 text-xs text-ink-soft tabular-nums">{sizeLabel(entry.size)}</span>
+      </button>
+      <a href={url} download={entry.name} className={`shrink-0 ${BUTTON}`}>
         Download
       </a>
     </li>

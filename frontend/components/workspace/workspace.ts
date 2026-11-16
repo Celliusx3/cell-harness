@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { crumbs } from "@/components/computer/files";
+import { type Head, headOf } from "@/components/workspace/preview";
 import { request } from "@/lib/api";
 
 const ROOT_NAME = "Workspace";
@@ -38,4 +39,23 @@ export function entryPath(listing: WorkspaceListing, name: string): string {
 /** A relative folder path one level into `name`. */
 export function childPath(folder: string, name: string): string {
   return folder === "" ? name : `${folder}/${name}`;
+}
+
+/** The first `limit` bytes the file route serves at `url`; the rest is never read. */
+export async function readHead(url: string, limit: number): Promise<Head> {
+  const response = await fetch(url);
+  if (!response.ok || response.body === null) {
+    throw new Error(`The file could not be read (${response.status}).`);
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (total <= limit) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.length;
+  }
+  await reader.cancel();
+  return headOf(chunks, limit);
 }
