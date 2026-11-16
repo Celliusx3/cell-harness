@@ -18,7 +18,7 @@ from harness.session.domain.models import ToolResultEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.service.worker import worker_session_id
-from harness.tools import NO_CHAT_GRANTS
+from harness.tools import NO_CHAT_GRANTS, no_tools_from_start
 from harness.tools.native.files import EXTRACT_ARCHIVE, MAKE_ARCHIVE, VIEW_IMAGE
 from harness.web import runtime as composition
 from harness.web.runtime import build_runtime
@@ -71,7 +71,13 @@ async def worker_call_result(
     )
     assert bot.tools is not None
     runtime = ticket_workers(
-        bot.tools.tool_service, bot, logs, bots, chat_grants=NO_CHAT_GRANTS, skills=no_skills()
+        bot.tools.tool_service,
+        bot,
+        logs,
+        bots,
+        chat_grants=NO_CHAT_GRANTS,
+        skills=no_skills(),
+        offered_from_start=no_tools_from_start,
     ).runtime
     session = await sessions.create(session_id)
     await drain(runtime.run("open it", session=session, bot_id=ASSISTANT_ID))

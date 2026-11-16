@@ -134,6 +134,7 @@ class ServerRouter:
             args=server.args,
             env={name: value for name, value in server.env.items() if name not in server.needs},
             keys=tuple(KeyState(name=name, is_set=name not in missing) for name in server.needs),
+            offered=server.offered,
             status=state.status,
             error=state.error,
         )

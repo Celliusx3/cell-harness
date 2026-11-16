@@ -20,10 +20,11 @@ export interface ServerForm {
   argumentLines: string;
   settings: SettingRow[];
   needs: KeyRow[];
+  offeredLines: string;
 }
 
 /** A dialog field an error is shown under; `form` for one that is about the whole server. */
-export type ServerField = "name" | "command" | "argumentLines" | "settings" | "needs" | "form";
+export type ServerField = "name" | "command" | "argumentLines" | "settings" | "needs" | "offeredLines" | "form";
 
 /** The errors to show, by the field each sits under. */
 export type FieldErrors = Partial<Record<ServerField, string[]>>;
@@ -38,25 +39,32 @@ const FIELD_OF_REQUEST_KEY = new Map<string, ServerField>([
   ["env", "settings"],
   ["needs", "needs"],
   ["keys", "needs"],
+  ["offered", "offeredLines"],
 ]);
 
 const PYDANTIC_VALUE_ERROR = "Value error, ";
 
 /** The fields for a new server, or `server`'s as saved. */
 export function initialServerForm(server: McpServer | null): ServerForm {
-  if (server === null) return { name: "", command: "", argumentLines: "", settings: [], needs: [] };
+  if (server === null) return { name: "", command: "", argumentLines: "", settings: [], needs: [], offeredLines: "" };
   return {
     name: server.id,
     command: server.command,
     argumentLines: server.args.join("\n"),
     settings: Object.entries(server.env).map(([name, value]) => ({ name, value })),
     needs: server.keys.map((key) => ({ name: key.name, value: "", isSet: key.is_set })),
+    offeredLines: server.offered.join("\n"),
   };
 }
 
 /** One argument per line, as typed; a blank line is dropped. */
 function parseArgumentLines(text: string): string[] {
   return text.split(/\r?\n/).filter((line) => line.trim() !== "");
+}
+
+/** One tool name per line, trimmed; a blank line is dropped. */
+function parseToolLines(text: string): string[] {
+  return parseArgumentLines(text).map((line) => line.trim());
 }
 
 /** `POST /api/mcp/servers` from the form, or why it cannot be sent. */
@@ -82,6 +90,7 @@ export function serverChange(form: ServerForm): Built<McpServerChange> {
       env: settings.request,
       needs: needed.map((row) => row.name),
       keys: Object.fromEntries(needed.filter((row) => row.value !== "").map((row) => [row.name, row.value])),
+      offered: parseToolLines(form.offeredLines),
     },
   };
 }

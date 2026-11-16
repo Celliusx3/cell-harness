@@ -17,7 +17,8 @@ class KeyState(BaseModel):
 
 
 class ServerEntry(BaseModel):
-    """One server as the screen lists it: how it runs, its keys, and its state."""
+    """One server as the screen lists it: how it runs, its keys, the tools a worker is offered from
+    its first step, and its state."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -26,6 +27,7 @@ class ServerEntry(BaseModel):
     args: tuple[str, ...]
     env: dict[str, str]
     keys: tuple[KeyState, ...]
+    offered: tuple[str, ...]
     status: Status
     error: str
 

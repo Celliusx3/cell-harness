@@ -56,6 +56,16 @@ class McpService:
             and (tool_name := namespaced_tool_name(connection.id, tool.name)) in offered
         )
 
+    def offered_from_start(self) -> frozenset[str]:
+        """Every tool on offer now that its server's `offered` names, as the model calls it."""
+        on_offer = {tool.name for tool in self.tools()}
+        return frozenset(
+            tool_name
+            for server_id, server in self._servers.items()
+            for name in server.offered
+            if (tool_name := namespaced_tool_name(server_id, name)) in on_offer
+        )
+
     def server(self, server_id: str) -> McpServer:
         """How `server_id` is run, its keys in its env. `KeyError` if not configured."""
         return self._servers[server_id]

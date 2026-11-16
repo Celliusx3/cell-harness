@@ -5,7 +5,6 @@ from __future__ import annotations
 import dataclasses
 import functools
 import time
-import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -42,7 +41,6 @@ from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
 from harness.relay.router.relay_router import RelayRouter
 from harness.runs.service.bot_messages import BotMessenger
-from harness.runs.service.chat_grants import ChatGrantLog
 from harness.runs.service.run_service import RunService
 from harness.schedules import Scheduler, ScheduleRepository, ScheduleService
 from harness.schedules.router.schedule_router import ScheduleRouter
@@ -54,7 +52,6 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.skills import SkillService
 from harness.skills.router.skill_router import SkillRouter
-from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.router.file_router import TicketFileRouter
 from harness.tickets.router.ticket_router import TicketRouter
 from harness.tickets.service.ticket_service import TicketService
@@ -69,7 +66,7 @@ from harness.web.runtime import (
     attach_schedules,
     build_runtime,
 )
-from harness.web.tickets_wiring import attach_tickets, ticket_workers
+from harness.web.tickets_wiring import ticket_service
 
 
 def build_sessions(settings: Settings) -> SessionService:
@@ -207,21 +204,18 @@ def create_web_app() -> FastAPI:
         runtime.tools.tool_service, bots, runs, follow=channels.gateway.follow
     )
     now = functools.partial(datetime.now, UTC)
-    tool_service = runtime.tools.tool_service
-    grants = ChatGrantLog(runs, sessions)
-    tickets = TicketService(
-        TicketRepository(settings.tickets.path),
+    tickets = ticket_service(
+        settings.tickets.path,
+        runtime,
+        subagent_logs,
         bots,
         runs,
-        worker=ticket_workers(
-            tool_service, runtime, subagent_logs, bots, chat_grants=grants, skills=skills
-        ),
-        logs=subagent_logs,
+        sessions=sessions,
+        skills=skills,
+        offered_from_start=mcp.offered_from_start,
         follow=channels.gateway.follow,
         now=now,
-        ids=lambda: uuid.uuid4().hex,
     )
-    attach_tickets(tool_service, tickets)
     schedules = ScheduleService(ScheduleRepository(settings.schedules.path), now=now)
     attach_schedules(runtime.tools.tool_service, runs.groups, schedules)
     scheduler = Scheduler(schedules, bots, runs, follow=channels.gateway.follow, now=now)

@@ -15,9 +15,9 @@ from harness.runtime.hooks.native.no_wait import NoWaitHook, is_waiting_call
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.prompts import NO_WAIT_REFUSAL, ORCHESTRATOR_INTRO
-from harness.tools import NO_CHAT_GRANTS
-from harness.web.runtime import build_runtime, delegate_runtime
-from harness.web.tickets_wiring import WORKER_TOOLS
+from harness.tools import NO_CHAT_GRANTS, no_tools_from_start
+from harness.web.runtime import build_runtime
+from harness.web.tickets_wiring import WORKER_TOOLS, delegate_runtime
 from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
 from tests.webapp import files_in, images_in, secrets_in
 
@@ -74,7 +74,9 @@ def test_only_the_bots_own_runtime_routes_and_refuses_waits(tmp_path: Path) -> N
         files=files_in(tmp_path),
     )
     assert runtime.tools is not None
-    worker = delegate_runtime(runtime.tools.tool_service, runtime, WORKER_TOOLS, NO_CHAT_GRANTS)
+    worker = delegate_runtime(
+        runtime.tools.tool_service, runtime, WORKER_TOOLS, NO_CHAT_GRANTS, no_tools_from_start
+    )
 
     assert runtime.guidance.startswith(ORCHESTRATOR_INTRO)
     assert any(isinstance(hook, NoWaitHook) for hook in runtime.hooks.tool_hooks)

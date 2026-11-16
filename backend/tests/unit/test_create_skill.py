@@ -24,8 +24,8 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     skills_at,
-    worker_of,
 )
+from tests.unit.worker_helpers import worker_of
 from tests.webapp import files_in, images_in, secrets_in
 
 PROJECT_SKILLS = Path(__file__).parents[3] / ".agents" / "skills"

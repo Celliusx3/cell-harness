@@ -10,7 +10,7 @@ from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.prompts import WORKER_INTRO
-from harness.tools import NO_CHAT_GRANTS
+from harness.tools import NO_CHAT_GRANTS, no_tools_from_start
 from harness.tools.native.tickets import TICKET_REPORT
 from harness.web.runtime import build_runtime
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
@@ -57,7 +57,13 @@ def test_a_worker_offers_its_report_and_no_helpers(
 
     worker = offered(
         ticket_workers(
-            tool_service, runtime, logs, bots, chat_grants=NO_CHAT_GRANTS, skills=no_skills()
+            tool_service,
+            runtime,
+            logs,
+            bots,
+            chat_grants=NO_CHAT_GRANTS,
+            skills=no_skills(),
+            offered_from_start=no_tools_from_start,
         ).runtime
     )
 

@@ -21,7 +21,7 @@ from harness.session.repository.jsonl_session_repository import JsonlSessionRepo
 from harness.session.service.session_service import SessionService
 from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.service.ticket_service import TicketService
-from harness.tools import ApprovalService, Tool, ToolService, Toolset
+from harness.tools import ApprovalService, Tool, ToolService, Toolset, no_tools_from_start
 from harness.tools.client import ClientToolService
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_ROUTE
 from harness.web.runtime import CLIENT_TOOLS
@@ -107,6 +107,7 @@ def ticketing_app(
             bots,
             chat_grants=ChatGrantLog(runs, service),
             skills=no_skills(),
+            offered_from_start=no_tools_from_start,
         ),
         logs=worker_logs,
         follow=heard_nowhere,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -54,6 +54,11 @@ class NoChatGrants:
 NO_CHAT_GRANTS = NoChatGrants()
 
 
+def no_tools_from_start() -> frozenset[str]:
+    """The tools offered from the start to a toolset that reaches no server: none."""
+    return frozenset()
+
+
 class Toolset:
     """The tool list one step is built from."""
 
@@ -65,9 +70,11 @@ class Toolset:
         sight_tools: frozenset[str],
         can_reach_servers: bool,
         chat_grants: ChatGrants = NO_CHAT_GRANTS,
+        offered_from_start: Callable[[], frozenset[str]] = no_tools_from_start,
     ) -> None:
         self.tool_service = tool_service
         self._default_tools = tuple(default_tools)
+        self._offered_from_start = offered_from_start
         self._sight_tools = sight_tools
         self.can_reach_servers = can_reach_servers
         self.chat_grants = chat_grants
@@ -86,13 +93,15 @@ class Toolset:
         return [tool.spec() for tool in self._offered_tools(tools_selected, sees_images)]
 
     def _offered_tools(self, tools_selected: Sequence[str], sees_images: bool) -> list[Tool]:
-        """The defaults, then the latest selections; `sight_tools` only to a model that sees."""
+        """The defaults, the tools offered from the start, then the latest selections;
+        `sight_tools` only to a model that sees."""
         by_name = {
             t.name: t
             for t in self.tool_service.all()
             if sees_images or t.name not in self._sight_tools
         }
-        defaults = [by_name[n] for n in self._default_tools if n in by_name]
+        named = [*self._default_tools, *sorted(self._offered_from_start())]
+        defaults = [by_name[n] for n in dict.fromkeys(named) if n in by_name]
         default_names = {tool.name for tool in defaults}
         recent = tuple(tools_selected)[-MAX_TOOLS_SELECTED:]
         selected = sorted(

@@ -17,6 +17,7 @@ class McpServer(BaseModel):
     args: tuple[str, ...] = ()
     env: dict[str, str] = Field(default_factory=dict)
     needs: tuple[str, ...] = ()
+    offered: tuple[str, ...] = ()
 
     @field_validator("command")
     @classmethod
@@ -60,6 +61,13 @@ def spawnable_command(value: str) -> str:
     """`value`, if it names something to run; `ValueError` for a blank one."""
     if not value.strip():
         raise ValueError("command must not be blank")
+    return value
+
+
+def named_tools(value: tuple[str, ...]) -> tuple[str, ...]:
+    """`value`, if each names one of the server's tools; `ValueError` for a blank name."""
+    if any(not name.strip() for name in value):
+        raise ValueError("offered must name the server's tools, none blank")
     return value
 
 

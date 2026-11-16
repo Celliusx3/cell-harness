@@ -58,7 +58,7 @@ make app                           # the Mac app, desktop/dist-app/Cell Harness-
 # open http://localhost:4897 — there is no CLI, the API is the only surface
 ```
 
-To give the bots their PC, add `computer` on **Settings → MCP servers**: command `uv`, arguments `run`, `--quiet`, `--project`, `../mcp-servers/computer`, `computer`, settings `COMPUTER_ENGINE=microsandbox`, `COMPUTER_IDLE_MINUTES=10`, `COMPUTER_FILES_DIR=~/.harness/files`, `COMPUTER_SKILLS_DIRS=../.agents/skills`.
+To give the bots their PC, add `computer` on **Settings → MCP servers**: command `uv`, arguments `run`, `--quiet`, `--project`, `../mcp-servers/computer`, `computer`, settings `COMPUTER_ENGINE=microsandbox`, `COMPUTER_IDLE_MINUTES=10`, `COMPUTER_FILES_DIR=~/.harness/files`, `COMPUTER_SKILLS_DIRS=../.agents/skills`, tools offered from the start `shell`.
 The Mac app's command is in [mcp-servers/README.md](./mcp-servers/README.md).
 
 ## Layout
@@ -132,7 +132,8 @@ Breaking one is not a style disagreement. The reasoning behind each is in
   app's own server, guarded at the MCP layer.
 - **Registered is not offered; referenced is.** `ToolService.dispatch` resolves
   any registered name; the toolset refuses a call the model makes by a name it was
-  not shown. A result's `tool_reference` blocks put the tool in the next
+  not shown. A worker is shown a server's tools the person marked offered from
+  the start. A result's `tool_reference` blocks put the tool in the next
   request — the most recent eight.
 - **The sandbox is granted nothing.** No `--allow-*`; the bridge is the only way
   out, and code mode never reaches itself.

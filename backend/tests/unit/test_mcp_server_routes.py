@@ -41,11 +41,21 @@ async def test_the_list_holds_every_saved_server(world) -> None:
                 "args": ["-y", "exa-mcp-server"],
                 "env": {"EXA_LIMIT": "5"},
                 "keys": [],
+                "offered": [],
                 "status": "connected",
                 "error": "",
             },
         ]
     }
+
+
+async def test_tools_offered_from_the_start_are_saved_and_listed(world) -> None:
+    await world.send("POST", "/api/mcp/servers", exa(offered=["search"]))
+    await world.settled()
+
+    response = await world.send("GET", "/api/mcp/servers")
+
+    assert response.json()["servers"][0]["offered"] == ["search"]
 
 
 async def test_an_added_server_starts_and_its_tools_are_offered(world) -> None:
