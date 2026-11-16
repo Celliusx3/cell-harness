@@ -13,6 +13,7 @@ import {
   listWorkspace,
   type WorkspaceEntry,
   type WorkspaceListing,
+  watchWorkspace,
   workspaceCrumbs,
 } from "@/components/workspace/workspace";
 import { fileUrl } from "@/lib/api";
@@ -21,12 +22,18 @@ function messageOf(err: unknown): string {
   return err instanceof Error ? err.message : "The workspace could not be read.";
 }
 
+function stillListed(opened: OpenedFile | null, listing: WorkspaceListing): OpenedFile | null {
+  const kept = opened !== null && listing.entries.some((entry) => entry.kind === "file" && entry.name === opened.name);
+  return kept ? opened : null;
+}
+
 /** The chat's workspace beside the chat: one folder at a time, or one file shown. */
 export function WorkspacePanel({ chatId }: { chatId: string }) {
   const [listing, setListing] = useState<WorkspaceListing | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [opened, setOpened] = useState<OpenedFile | null>(null);
   const latestRequest = useRef(0);
+  const shownPath = useRef<string | null>(null);
 
   const openFolder = useCallback(
     async (path: string) => {
@@ -43,9 +50,36 @@ export function WorkspacePanel({ chatId }: { chatId: string }) {
     [chatId],
   );
 
+  const relist = useCallback(
+    async (path: string) => {
+      const request = ++latestRequest.current;
+      try {
+        const listed = await listWorkspace(chatId, path);
+        if (request !== latestRequest.current) return;
+        setListing(listed);
+        setOpened((current) => stillListed(current, listed));
+      } catch (err: unknown) {
+        if (request === latestRequest.current) setError(messageOf(err));
+      }
+    },
+    [chatId],
+  );
+
+  useEffect(() => {
+    shownPath.current = listing?.path ?? null;
+  }, [listing]);
+
   useEffect(() => {
     void openFolder("");
   }, [openFolder]);
+
+  useEffect(
+    () =>
+      watchWorkspace(chatId, (folder) => {
+        if (folder === shownPath.current) void relist(folder);
+      }),
+    [chatId, relist],
+  );
 
   const deleteEntry = useCallback(
     async (folder: string, name: string) => {

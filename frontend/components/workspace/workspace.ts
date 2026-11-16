@@ -20,6 +20,18 @@ const WorkspaceListing = z.object({
 });
 export type WorkspaceListing = z.infer<typeof WorkspaceListing>;
 
+const WorkspaceChanged = z.object({ type: z.literal("workspace/changed"), folder: z.string() });
+
+/** Calls `onChanged` with each folder of the chat's workspace that changes, until the returned close is called. */
+export function watchWorkspace(chatId: string, onChanged: (folder: string) => void): () => void {
+  const source = new EventSource(`/api/workspaces/${encodeURIComponent(chatId)}/changes`);
+  source.addEventListener("workspace/changed", (message: MessageEvent<string>) => {
+    const changed = WorkspaceChanged.safeParse(JSON.parse(message.data));
+    if (changed.success) onChanged(changed.data.folder);
+  });
+  return () => source.close();
+}
+
 /** One folder of the chat's workspace, by its path relative to the workspace, "" for the root. */
 export async function listWorkspace(chatId: string, path: string): Promise<WorkspaceListing> {
   const query = new URLSearchParams({ path });

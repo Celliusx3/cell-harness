@@ -1,4 +1,4 @@
-"""A file a chat holds, as the log records it, and one folder of a chat's workspace."""
+"""A file a chat holds, as the log records it, one folder of a chat's workspace, and its changes."""
 
 from __future__ import annotations
 
@@ -43,6 +43,24 @@ class WorkspaceListing(BaseModel):
     entries: tuple[WorkspaceEntry, ...]
 
 
+class WorkspaceWatching(BaseModel):
+    """The workspace is watched from now on: a change after this one is told."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    type: Literal["workspace/watching"] = "workspace/watching"
+
+
+class WorkspaceChanged(BaseModel):
+    """Something in this folder of the workspace changed, by its relative path, "" for the root."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    type: Literal["workspace/changed"] = "workspace/changed"
+    folder: str
+
+
+WorkspaceEvent = WorkspaceWatching | WorkspaceChanged
+
+
 class WorkspacePathError(LookupError):
     """A workspace path that leaves the workspace, is missing, or is not a folder."""
 
@@ -68,3 +86,13 @@ def deletion_target(path: str) -> PurePosixPath:
     if target.is_absolute() or target.name in NOT_AN_ENTRY_NAME:
         raise WorkspacePathError(f"{path!r} does not name an entry inside the workspace")
     return target
+
+
+def changed_folders(workspace: PurePath, changed: Iterable[PurePath]) -> tuple[str, ...]:
+    """Each folder holding a `changed` path inside `workspace`, relative, once, children first."""
+    folders = {
+        relative_path(workspace, path.parent)
+        for path in changed
+        if path.parent.is_relative_to(workspace)
+    }
+    return tuple(sorted(folders, reverse=True))

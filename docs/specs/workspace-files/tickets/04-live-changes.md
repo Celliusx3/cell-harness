@@ -1,6 +1,6 @@
 # 04 The panel shows changes at once
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 

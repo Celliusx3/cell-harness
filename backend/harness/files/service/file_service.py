@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import mimetypes
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
 
 from harness.files.domain.models import (
     ChatFile,
+    WorkspaceEvent,
     WorkspaceListing,
     deletion_target,
     relative_path,
@@ -18,6 +20,7 @@ from harness.files.repository.file_repository import (
     ChatFileRepository,
     is_plain_name,
 )
+from harness.files.service.workspace_watch import workspace_events
 
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
 
@@ -106,6 +109,10 @@ class ChatFileService:
     def delete_path(self, chat_id: str, path: str) -> None:
         """Delete the file, folder or link `path` names in this chat's workspace; else refused."""
         self._repository.delete_in(chat_id, deletion_target(path))
+
+    def changes(self, chat_id: str) -> AsyncGenerator[WorkspaceEvent]:
+        """This chat's workspace watched, made first when missing, until the caller closes it."""
+        return workspace_events(self.workspace(chat_id), asyncio.Event())
 
     def file_at(self, chat_id: str, path: str) -> ChatFile | None:
         """The file at absolute `path` when it is one in this chat's workspace or old folder."""
