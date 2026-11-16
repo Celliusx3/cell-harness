@@ -27,7 +27,7 @@ function stillListed(opened: OpenedFile | null, listing: WorkspaceListing): Open
   return kept ? opened : null;
 }
 
-/** The chat's workspace beside the chat: one folder at a time, or one file shown. */
+/** One chat's workspace: one folder at a time, or one file shown, each served by that chat. */
 export function WorkspacePanel({ chatId }: { chatId: string }) {
   const [listing, setListing] = useState<WorkspaceListing | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -96,10 +96,7 @@ export function WorkspacePanel({ chatId }: { chatId: string }) {
   );
 
   return (
-    <section
-      aria-label="Workspace files"
-      className="hidden min-h-0 w-[26rem] shrink-0 flex-col border-l border-line bg-surface-raised text-sm lg:flex"
-    >
+    <div className="flex min-h-0 flex-1 flex-col">
       <Crumbs path={listing?.path ?? ""} onOpen={(path) => void openFolder(path)} />
       {error !== null && (
         <p role="alert" className="bg-danger-soft px-3 py-2 break-words text-danger">
@@ -121,7 +118,7 @@ export function WorkspacePanel({ chatId }: { chatId: string }) {
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 

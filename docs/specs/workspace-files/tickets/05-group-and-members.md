@@ -1,6 +1,6 @@
 # 05 A group's panel switches to each member's workspace
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 

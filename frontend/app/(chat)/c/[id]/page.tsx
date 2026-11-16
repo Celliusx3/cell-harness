@@ -25,7 +25,7 @@ import { useChatTickets } from "@/components/conversation/useChatTickets";
 import { useElapsed } from "@/components/conversation/useElapsed";
 import { chatUsage } from "@/components/conversation/usage";
 import { useTimeline } from "@/components/conversation/useTimeline";
-import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
+import { WorkspaceDock } from "@/components/workspace/WorkspaceDock";
 import { listBots, listGroups } from "@/lib/api";
 import { type AppEvent, useAppEvent } from "@/lib/appEvents";
 
@@ -154,7 +154,9 @@ export default function ConversationPage({
         )}
       </div>
       {computerAdded && dock === "computer" && <ComputerDock />}
-      {dock === "files" && <WorkspacePanel key={id} chatId={id} />}
+      {dock === "files" && (
+        <WorkspaceDock key={id} chatId={id} group={group.kind === "found" ? group.item : null} />
+      )}
     </div>
   );
 }
