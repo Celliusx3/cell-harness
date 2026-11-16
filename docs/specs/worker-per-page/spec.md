@@ -65,5 +65,9 @@ The person then chose to keep one part per worker and cut each part's steps. A p
 | 84, 142 pages | 14.6 | 3.9M |
 | 83, 134 images | 17.5 | 4.3M |
 | 82, 137 images | 16 | 3.1M |
+| 81, 144 images, jobs file, one worker | 12 | 8.2M, 6.9M of it a loop before the worker found the shell |
+| 80, 129 images, shell offered from the start, jobs 3 at once | 7 | 1.0M |
 
 The token column counts the workers' own steps only. Each `ask_about_images` call is a model call of its own, and nothing logs its usage yet, so the chapter costs more than the column says. Episode 82's minutes run from the end of its download to the hand-over.
+
+From episode 81 the skill writes each part's page calls to a jobs file and names no harness tool, and `ask_about_image_jobs` answers the whole file. In episode 81 the worker could not see the PC's shell and looped for 219 steps (#155). A server now names the tools a worker is offered from its first step, and `computer` offers `shell`. In episode 80 the worker's first call was the shell, and each part answered its pages three calls at a time.
