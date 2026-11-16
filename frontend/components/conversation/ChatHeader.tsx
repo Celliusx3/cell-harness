@@ -4,7 +4,7 @@ import { Ellipsis, Monitor, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DrawerButton } from "@/components/chat/Drawer";
-import { BotAvatar } from "@/components/conversation/BotAvatar";
+import { BotAvatar, type BotMood } from "@/components/conversation/BotAvatar";
 import type { Speaker } from "@/components/conversation/timelineItems";
 import {
   DropdownMenu,
@@ -59,7 +59,7 @@ export function ChatHeader({
   return (
     <header className="flex min-h-14 items-center gap-3 border-b border-line px-4 md:px-6 py-2.5">
       <DrawerButton />
-      {chat !== null && <BotAvatar speaker={chat} />}
+      {chat !== null && <BotAvatar speaker={chat} mood={moodOf(elapsed, waiting, ticketsAtWork)} size="chat" />}
       <div className="flex min-w-0 flex-col">
         <h1 className="truncate text-sm font-semibold leading-tight">{chat?.name ?? ""}</h1>
         <ChatState elapsed={elapsed} waiting={waiting} ticketsAtWork={ticketsAtWork} />
@@ -75,6 +75,12 @@ export function ChatHeader({
       </div>
     </header>
   );
+}
+
+function moodOf(elapsed: string | null, waiting: boolean, ticketsAtWork: number): BotMood {
+  if (waiting) return "awake";
+  if (elapsed !== null || ticketsAtWork > 0) return "working";
+  return "asleep";
 }
 
 function DockButton({ computer }: { computer: ComputerToggle }) {
