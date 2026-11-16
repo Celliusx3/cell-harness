@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from typing import Literal
 
@@ -63,6 +64,14 @@ class Ticket(BaseModel):
     files: tuple[ChatFile, ...] = Field(
         default=(), description="The files attached in the turn that accepted it; none before."
     )
+    chat_id: str | None = Field(
+        default=None, description="The chat it came from; none in tickets saved before it was kept."
+    )
+
+
+def ticket_chat_id(ticket: Ticket, *, chat_of: Callable[[str], str]) -> str:
+    """The chat `ticket` came from; its bot's own chat, by `chat_of`, for one saved before."""
+    return ticket.chat_id if ticket.chat_id is not None else chat_of(ticket.bot_id)
 
 
 def ticket_state(state: ReportState, question: str | None) -> TicketState:

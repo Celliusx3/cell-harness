@@ -18,7 +18,7 @@ async def test_a_delivery_that_raises_pauses_its_schedule(tmp_path: Path) -> Non
     )
     attempts: list[str] = []
 
-    async def raising(chat_id: str, _message: object) -> None:
+    async def raising(chat_id: str, _message: object, *, speaker_id: str) -> None:
         attempts.append(chat_id)
         raise RuntimeError("the model seam broke")
 

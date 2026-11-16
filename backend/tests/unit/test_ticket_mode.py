@@ -49,7 +49,9 @@ async def test_a_queued_ticket_restarts_in_the_mode_it_was_accepted_in(tmp_path)
     repository = TicketRepository(tmp_path / "tickets.json")
     workers = ModeWorkers()
     accepting = tickets_on(repository, workers, tmp_path)
-    ticket = accepting.accept(bot_id=ASSISTANT_ID, title="T", task="do it", mode="auto")
+    ticket = accepting.accept(
+        bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title="T", task="do it", mode="auto"
+    )
     await accepting.aclose()
     repository.write(TicketsFile(tickets=(ticket.model_copy(update={"state": "queued"}),)))
 

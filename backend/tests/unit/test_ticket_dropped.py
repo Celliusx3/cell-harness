@@ -51,7 +51,13 @@ async def test_a_dropped_ticket_ends_without_a_report(tmp_path) -> None:
         ids=lambda: "t1",
     )
 
-    tickets.accept(bot_id=ASSISTANT_ID, title="Sort the list", task="Sort it.", mode="ask")
+    tickets.accept(
+        bot_id=ASSISTANT_ID,
+        chat_id=ASSISTANT_ID,
+        title="Sort the list",
+        task="Sort it.",
+        mode="ask",
+    )
     for _ in range(100):
         if not tickets._worker_tasks:
             break

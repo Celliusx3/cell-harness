@@ -6,6 +6,7 @@ from harness.groups.domain.models import (
     Group,
     GroupDraft,
     GroupMemberNotFound,
+    NotAChatMemberError,
 )
 from harness.groups.repository.group_repository import GroupRepository
 from harness.groups.service.group_service import GroupService
@@ -18,4 +19,5 @@ __all__ = [
     "GroupMemberNotFound",
     "GroupRepository",
     "GroupService",
+    "NotAChatMemberError",
 ]

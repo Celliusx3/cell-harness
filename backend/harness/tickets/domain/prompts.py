@@ -80,3 +80,7 @@ RESULT_FILES_OUT_OF_REACH = (
     "The user cannot get these files the report names, because they are not in this chat's "
     "workspace. Do not tell the user they have them: {paths}"
 )
+WORKER_OWN_WORKSPACE = (
+    "Your shell starts in your bot's workspace, {workspace}. Keep your working files there, "
+    "and save only what the user gets in the folder above."
+)

@@ -91,17 +91,17 @@ class RunService:
             session, self._runtime.run(prompt, session=session, bot_id=speaker.id, files=files)
         )
 
-    def hear(self, session: Session, message: HeardMessage) -> Run:
-        """Begin the turn in which a bot's own chat answers a bot's message or a schedule."""
+    def hear(self, session: Session, message: HeardMessage, *, speaker_id: str) -> Run:
+        """Begin the turn in which `speaker_id` answers a bot's message, a schedule or a ticket."""
         if session.id in self._runs:
             raise RunAlreadyActiveError(session.id)
-        speaker = self._groups.first_speaker(session, message.text)
+        speaker = self._groups.named_speaker(session, speaker_id)
         return self._converse(
             session, self._runtime.hear(message, session=session, bot_id=speaker.id)
         )
 
-    async def hear_when_free(self, chat_id: str, message: HeardMessage) -> Run:
-        """The turn `message` opens in `chat_id` once free, the chat created if never written."""
+    async def hear_when_free(self, chat_id: str, message: HeardMessage, *, speaker_id: str) -> Run:
+        """The turn `speaker_id` answers `message` with in `chat_id` once free, the chat made."""
         while True:
             running = self._runs.get(chat_id)
             if running is not None:
@@ -109,7 +109,7 @@ class RunService:
                 continue
             session = await self._resumed_or_new_session(chat_id)
             if chat_id not in self._runs:
-                return self.hear(session, message)
+                return self.hear(session, message, speaker_id=speaker_id)
 
     def resume(self, session: Session, call_id: str, outcome: Ok | Failure | Approval) -> Run:
         """Begin the turn that answers a client tool for the bot that asked, then the queue's."""

@@ -41,7 +41,13 @@ def workers(
     )
     sessions = SessionService(JsonlSessionRepository(tmp_path / "workers"))
     runtime = runtime_over(client, saver, approvals=approvals, guidance="BASE")
-    return RuntimeTicketWorker(runtime, sessions, lambda _bot_id: 3, no_skills()), client, sessions
+    return (
+        RuntimeTicketWorker(
+            runtime, sessions, lambda _bot_id: 3, no_skills(), lambda bot_id: bot_id
+        ),
+        client,
+        sessions,
+    )
 
 
 async def test_a_resumed_turn_keeps_the_mode_its_first_turn_logged(tmp_path: Path) -> None:

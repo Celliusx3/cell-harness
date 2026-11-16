@@ -1,6 +1,6 @@
 # 04 A ticket from a group hands its result over in the group
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 

@@ -70,7 +70,7 @@ def ticket_workers(
         own_chat_of=bots.chat_of,
     )
     return RuntimeTicketWorker(
-        worker, logs, lambda bot_id: bots.active_bot(bot_id).max_workers, skills
+        worker, logs, lambda bot_id: bots.active_bot(bot_id).max_workers, skills, bots.chat_of
     )
 
 
