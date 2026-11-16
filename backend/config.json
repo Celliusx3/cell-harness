@@ -47,6 +47,9 @@
     "root": "~/.harness/files",
     "max_bytes": 209715200
   },
+  "ask": {
+    "jobs_at_once": 3
+  },
   "mcp": {
     "path": "~/.harness/mcp.json"
   }

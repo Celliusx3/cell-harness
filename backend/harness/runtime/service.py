@@ -177,7 +177,7 @@ class Runtime:
             if isinstance(answer, Approval):
                 call = _waiting_call(session, call_id)
                 if answer.scope == "conversation":
-                    session.append(ApprovalGrant(turn=turn, tool=call.name))
+                    await self._grant(call.name, session, turn=turn, bot_id=bot_id)
                 async with aclosing(
                     run_approved_call(self, call, session=session, turn=turn, bot_id=bot_id)
                 ) as events:
@@ -196,6 +196,12 @@ class Runtime:
         async with aclosing(run_turn(self, session, turn, bot_id=bot_id)) as events:
             async for event in events:
                 yield event
+
+    async def _grant(self, tool: str, session: Session, *, turn: int, bot_id: str) -> None:
+        """Log `tool` allowed for the rest of `session`, and of the chat it works for."""
+        session.append(ApprovalGrant(turn=turn, tool=tool))
+        if self.tools is not None:
+            await self.tools.chat_grants.grant(self.chat_id_for(session, bot_id), tool)
 
     def _open_turn(self, session: Session, bot_id: str) -> int:
         """Append the next turn's start, then any server instructions that changed since logged."""

@@ -16,7 +16,8 @@ from harness.web.runtime import attach_schedules, build_runtime
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.group_helpers import group_service
-from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills, worker_of
+from tests.unit.helpers import client_tools, no_approvals, no_bots, no_skills
+from tests.unit.worker_helpers import worker_of
 from tests.webapp import a_model_saved_in, files_in, images_in, schedules_in, web_app
 
 
@@ -154,6 +155,7 @@ CONFIG: dict[str, Tool | NotATool] = {
         "where keys are kept and the key that locks them; neither ever passes the model"
     ),
     "files": NotATool("where each chat's files are kept and the upload limit; the person's"),
+    "ask": NotATool("how many model calls a jobs file makes at once; the model spends no more"),
 }
 
 

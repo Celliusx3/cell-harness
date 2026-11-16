@@ -11,7 +11,7 @@ interface ServerFieldsProps {
   onChange: (form: ServerForm) => void;
 }
 
-/** Name (for a new server), command, arguments one per line, plain settings, and each key it needs with its hidden value; each with its errors. */
+/** Name (for a new server), command, arguments one per line, plain settings, each key it needs with its hidden value, and the tools offered from the start; each with its errors. */
 export function ServerFields({ form, isEditing, errors, onChange }: ServerFieldsProps) {
   const change = (update: Partial<ServerForm>) => onChange({ ...form, ...update });
   return (
@@ -53,6 +53,20 @@ export function ServerFields({ form, isEditing, errors, onChange }: ServerFields
       </Field>
       <SettingRows rows={form.settings} errors={errors} onChange={(settings) => change({ settings })} />
       <KeyRows rows={form.needs} errors={errors} onChange={(needs) => change({ needs })} />
+      <Field label="Tools offered from the start" htmlFor="server-offered">
+        <textarea
+          id="server-offered"
+          value={form.offeredLines}
+          onChange={(event) => change({ offeredLines: event.target.value })}
+          placeholder={"One per line, such as\nshell"}
+          rows={2}
+          className={`font-mono ${INPUT_CLASSES}`}
+        />
+        <p className="text-xs text-ink-soft">
+          Workers can call these from their first step. Every other tool is read before it is used.
+        </p>
+        <Errors errors={errors} field="offeredLines" />
+      </Field>
     </div>
   );
 }

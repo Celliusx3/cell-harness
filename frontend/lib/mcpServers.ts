@@ -16,6 +16,7 @@ export interface McpServer {
   args: string[];
   env: Record<string, string>;
   keys: KeyState[];
+  offered: string[];
   status: ServerStatus;
   error: string;
 }
@@ -32,6 +33,7 @@ export interface McpServerChange {
   env: Record<string, string>;
   needs: string[];
   keys: Record<string, string>;
+  offered: string[];
 }
 
 /** `POST /api/mcp/servers`: a change under the name its tools are called by. */

@@ -5,7 +5,6 @@ from __future__ import annotations
 import dataclasses
 import functools
 import logging
-from collections.abc import Sequence
 
 import httpx
 
@@ -17,7 +16,6 @@ from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
-from harness.prompts import CODE_PROMPT
 from harness.runs.service.bot_messages import BotMessenger, Follow
 from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
@@ -37,6 +35,7 @@ from harness.skills import SKILL, SkillService, skill_tool
 from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
+from harness.tools.native.ask import ask_model_jobs_tool, ask_model_tool
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import get_current_time_tool
 from harness.tools.native.code_mode import (
@@ -139,6 +138,15 @@ def build_runtime(
     files: ChatFileService,
 ) -> Runtime:
     """The default runtime: a model, the native tools, the guardrail, a durability checkpoint."""
+    models = CredentialModels(
+        secrets,
+        bots,
+        settings.llm,
+        ModelEndpoint(
+            client_for=functools.partial(_openai_client, images),
+            blocking_window_for=functools.partial(compaction_window_tokens, settings.compaction),
+        ),
+    )
     tool_service = ToolService(
         [
             get_current_time_tool(),
@@ -150,6 +158,8 @@ def build_runtime(
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
             view_image_tool(files),
+            ask_model_tool(files, images, models),
+            ask_model_jobs_tool(files, images, models, at_once=settings.ask.jobs_at_once),
             *CLIENT_TOOLS.tools(),
         ],
         approvals=approvals,
@@ -162,17 +172,7 @@ def build_runtime(
     _register_code_mode(tool_service, settings)
 
     runtime = Runtime(
-        models=CredentialModels(
-            secrets,
-            bots,
-            settings.llm,
-            ModelEndpoint(
-                client_for=functools.partial(_openai_client, images),
-                blocking_window_for=functools.partial(
-                    compaction_window_tokens, settings.compaction
-                ),
-            ),
-        ),
+        models=models,
         images=images,
         tools=Toolset(
             tool_service, DEFAULT_TOOLS, sight_tools=SIGHT_TOOLS, can_reach_servers=False
@@ -228,18 +228,6 @@ def _register_code_mode(tool_service: ToolService, settings: Settings) -> None:
         withheld=NOT_CALLABLE_FROM_SCRIPTS,
     ):
         tool_service.register(tool)
-
-
-def delegate_runtime(tool_service: ToolService, runtime: Runtime, tools: Sequence[str]) -> Runtime:
-    """`runtime` as a ticket's worker runs it: offered `tools`, free to wait."""
-    hooks = runtime.hooks
-    kept = tuple(hook for hook in hooks.tool_hooks if not isinstance(hook, NoWaitHook))
-    return dataclasses.replace(
-        runtime,
-        tools=Toolset(tool_service, tools, sight_tools=SIGHT_TOOLS, can_reach_servers=True),
-        guidance=CODE_PROMPT,
-        hooks=dataclasses.replace(hooks, tool_hooks=kept),
-    )
 
 
 def attach_bot_messages(

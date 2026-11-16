@@ -47,8 +47,8 @@ from tests.unit.helpers import (
     no_progress,
     no_skills,
     toolset_for,
-    worker_of,
 )
+from tests.unit.worker_helpers import worker_of
 from tests.webapp import files_in, images_in, secrets_in
 
 CONFIG = Path(__file__).resolve().parents[2] / "config.json"

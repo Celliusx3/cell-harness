@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from harness.config import (
+    AskSettings,
     FileSettings,
     LLMSettings,
     MissingConfigError,
@@ -232,6 +233,17 @@ def test_the_committed_config_sets_where_files_go_and_how_big_one_may_be(config_
     committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
 
     assert committed["files"] == {"root": "~/.harness/files", "max_bytes": 209715200}
+
+
+def test_the_committed_config_sets_how_many_model_calls_a_jobs_file_makes_at_once() -> None:
+    committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
+
+    assert committed["ask"] == {"jobs_at_once": 3}
+
+
+def test_ask_jobs_at_once_of_nothing_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        AskSettings(jobs_at_once=0)
 
 
 def test_the_committed_config_names_no_model_only_how_every_model_is_asked() -> None:

@@ -48,7 +48,6 @@ from harness.tools import (
 from harness.tools.client import ClientToolService
 from harness.tools.service.tool_service import ToolProvider
 from harness.web.runtime import CLIENT_TOOLS
-from harness.web.tickets_wiring import ticket_workers
 from tests.unit.fakes import OneModel
 from tests.unit.group_helpers import group_service
 
@@ -283,10 +282,3 @@ def no_tickets(tmp_path: Path, bots: BotService, runs: RunService) -> TicketServ
 async def link_to_assistant(chats: ChatRepository, channel: str, chat_id: str) -> None:
     """Store this chat's link to Assistant."""
     await chats.save(ChatState(channel=channel, chat_id=chat_id, conversation_id=ASSISTANT_ID))
-
-
-def worker_of(bot: Runtime) -> Runtime:
-    """`bot`'s runtime as each ticket's worker runs it, the one offered code mode and work tools."""
-    assert bot.tools is not None
-    logs = SessionService(JsonlSessionRepository(Path("/nonexistent/cell-harness-workers")))
-    return ticket_workers(bot.tools.tool_service, bot, logs, no_bots(logs)).runtime

@@ -12,7 +12,7 @@ from harness.tickets.domain.models import Ticket
 from harness.tickets.service.worker import RuntimeTicketWorker, WorkerEnd, worker_session_id
 from harness.tools import ApprovalService, Ok, Tool
 from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
-from tests.unit.helpers import runtime_over
+from tests.unit.helpers import no_skills, runtime_over
 
 SAVE = "save_note"
 TICKET = Ticket(
@@ -41,7 +41,7 @@ def workers(
     )
     sessions = SessionService(JsonlSessionRepository(tmp_path / "workers"))
     runtime = runtime_over(client, saver, approvals=approvals, guidance="BASE")
-    return RuntimeTicketWorker(runtime, sessions, lambda _bot_id: 3), client, sessions
+    return RuntimeTicketWorker(runtime, sessions, lambda _bot_id: 3, no_skills()), client, sessions
 
 
 async def test_a_resumed_turn_keeps_the_mode_its_first_turn_logged(tmp_path: Path) -> None:
@@ -58,6 +58,6 @@ async def test_a_resumed_turn_keeps_the_mode_its_first_turn_logged(tmp_path: Pat
     assert all(m.content.startswith("You are a worker.") and "BASE" in m.content for m in systems)
     stored = await sessions.read(worker_session_id(TICKET.id))
     assert [e.message.content for e in stored.events() if e.type == "user/message"] == [
-        "Wait for the note.\n\nYour bot can run 3 workers at once.",
+        "Your ticket: Notes\n\nWait for the note.\n\nYour bot can run 3 workers at once.",
         "The note is Kopi.",
     ]

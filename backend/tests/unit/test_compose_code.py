@@ -35,8 +35,8 @@ from tests.unit.helpers import (
     no_bots,
     no_progress,
     no_skills,
-    worker_of,
 )
+from tests.unit.worker_helpers import worker_of
 from tests.webapp import files_in, images_in, secrets_in
 
 ATTACHED_LATER = (MESSAGE_BOT, *SCHEDULE_TOOLS, BOT_CREATE, TICKET_ROUTE, TICKET_NOTE)

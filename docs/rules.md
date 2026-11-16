@@ -216,6 +216,17 @@ and a door that must stay shut cannot. The cost was measured: the same model,
 forced through code mode, then guessed a return shape and got the place wrong —
 which is the honest result, and a skill-text fix, not a reason to reopen it.
 
+**Offered from the start.** A worker that needs the PC's shell on its first step
+did not reach it: with `computer__shell` not in the request, GLM 5.3 Flash kept
+emitting the nearest tool it had, `skill` and then empty scripts, for 219 steps
+and 6.9M tokens before it read the schema (#155). Every other harness keeps its
+shell in the request: DeepSeek Harness, Claude Code and Codex build it in, and
+Anthropic's tool search advises keeping the 3 to 5 most used tools non-deferred,
+set per tool on an MCP server. So a server's saved entry names the tools a
+worker is offered from its first step (`offered`, set on the MCP servers
+screen). They are shown, so the door above stays shut for every other name; the
+harness names no server's tool itself.
+
 **Selected is offered.** The door above was first shut outright, and a 4B
 model, forced through code mode, guessed a return shape and got the place
 wrong. The right answer was not to reopen the door but to make the refusal a

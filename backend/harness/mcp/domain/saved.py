@@ -6,11 +6,18 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict, SecretStr, field_validator, model_validator
 
-from harness.mcp.domain.server import McpServer, named_keys, spawnable_command, usable_server_id
+from harness.mcp.domain.server import (
+    McpServer,
+    named_keys,
+    named_tools,
+    spawnable_command,
+    usable_server_id,
+)
 
 
 class ServerCommand(BaseModel):
-    """How to run a server, its env, and the names of the keys it needs."""
+    """How to run a server, its env, the names of the keys it needs, and the names of its tools
+    a worker is offered from its first step; a file saved before `offered` existed has none."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -18,6 +25,7 @@ class ServerCommand(BaseModel):
     args: tuple[str, ...]
     env: dict[str, str]
     needs: tuple[str, ...]
+    offered: tuple[str, ...] = ()
 
     @field_validator("command")
     @classmethod
@@ -28,6 +36,11 @@ class ServerCommand(BaseModel):
     @classmethod
     def _named(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         return named_keys(value)
+
+    @field_validator("offered")
+    @classmethod
+    def _named_tools(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return named_tools(value)
 
     @field_validator("env")
     @classmethod
@@ -73,6 +86,7 @@ class ServerDraft(ServerCommand):
             args=self.args,
             env={**self.env, **held, **typed},
             needs=self.needs,
+            offered=self.offered,
         )
 
 
@@ -99,7 +113,13 @@ class SavedServer(ServerCommand):
 
     def mcp_server(self) -> McpServer:
         """The server to run, its keys in its env."""
-        return McpServer(command=self.command, args=self.args, env=self.env, needs=self.needs)
+        return McpServer(
+            command=self.command,
+            args=self.args,
+            env=self.env,
+            needs=self.needs,
+            offered=self.offered,
+        )
 
 
 class SavedServersFile(BaseModel):

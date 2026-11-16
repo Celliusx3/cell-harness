@@ -20,9 +20,9 @@ from tests.unit.helpers import (
     new_session,
     no_progress,
     skills_at,
-    worker_of,
 )
 from tests.unit.skills_compose import compose, write_skill
+from tests.unit.worker_helpers import worker_of
 from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in
 
 __all__ = ["compose"]

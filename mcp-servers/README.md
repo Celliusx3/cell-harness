@@ -70,14 +70,15 @@ The bots' PC is added the same way, named `computer` (the Computer page shows
 only for that name). In `make dev`: command `uv`, arguments `run`, `--quiet`,
 `--project`, `../mcp-servers/computer`, `computer`, settings
 `COMPUTER_ENGINE=microsandbox`, `COMPUTER_IDLE_MINUTES=10`,
-`COMPUTER_FILES_DIR=~/.harness/files`, `COMPUTER_SKILLS_DIRS=../.agents/skills`.
-In the Mac app: command `python3`, arguments `-c`,
+`COMPUTER_FILES_DIR=~/.harness/files`, `COMPUTER_SKILLS_DIRS=../.agents/skills`,
+tools offered from the start `shell`. In the Mac app: command `python3`, arguments `-c`,
 `from computer.server import main; main()`, settings
 `PYTHONPATH=../../servers/computer`, `COMPUTER_ENGINE=microsandbox`,
 `COMPUTER_IDLE_MINUTES=10`,
 `COMPUTER_FILES_DIR=~/Library/Application Support/Cell Harness/files`,
 `COMPUTER_SKILLS_DIRS=../.agents/skills`, `COMPUTER_NAME=cell-harness-app-computer`,
-`MSB_HOME=~/.cell-harness/msb`. A PC that cannot start shows why on its row.
+`MSB_HOME=~/.cell-harness/msb`, tools offered from the start `shell`. A PC that cannot
+start shows why on its row.
 
 The phone is added the same way, named `phone`. Its kernel is the
 `libkrunfw.5.dylib` from the latest `phone-kernel-*` release, and

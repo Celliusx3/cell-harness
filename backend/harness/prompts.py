@@ -268,3 +268,4 @@ TICKET_QUESTION_HEARD = (
     "it asks for a key, the user saves it in the key field shown with it, so never ask them to "
     "paste a key in the chat."
 )
+ASKED_TEXT_FILE = '<file path="{path}">\n{text}\n</file>'

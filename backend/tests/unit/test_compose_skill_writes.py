@@ -10,8 +10,9 @@ from harness.skills import SKILL
 from harness.tools import Ok
 from harness.tools.native.code_mode import EXECUTE_TYPESCRIPT, LIST_FUNCTIONS
 from harness.tools.native.skills import SKILL_DELETE, SKILL_SAVE, SKILL_WRITE_FILE
-from tests.unit.helpers import ORIGIN, new_session, no_progress, skills_at, worker_of
+from tests.unit.helpers import ORIGIN, new_session, no_progress, skills_at
 from tests.unit.skills_compose import compose, write_skill
+from tests.unit.worker_helpers import worker_of
 
 COMMITTED_CONFIG = Path(__file__).parents[2] / "config.json"
 __all__ = ["compose"]

@@ -18,3 +18,8 @@ def test_the_routing_rules_start_tasks_now_or_after_others_and_send_blocked_work
     assert "start now" in ORCHESTRATOR_INTRO
     assert "only after" in ORCHESTRATOR_INTRO
     assert "attach to the ticket that holds that work" in ORCHESTRATOR_INTRO
+
+
+def test_a_step_of_the_user_s_message_that_needs_an_earlier_one_waits_for_its_ticket() -> None:
+    assert "accept only the first step now" in ORCHESTRATOR_INTRO
+    assert "the ticket it needs reports ready" in ORCHESTRATOR_INTRO

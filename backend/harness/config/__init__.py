@@ -2,6 +2,7 @@
 
 from harness.config.domain.sections import (
     ApprovalSettings,
+    AskSettings,
     BotSettings,
     CodeModeSettings,
     CompactionSettings,
@@ -24,6 +25,7 @@ from harness.config.service.settings_service import MissingConfigError, Settings
 
 __all__ = [
     "ApprovalSettings",
+    "AskSettings",
     "BotSettings",
     "CodeModeSettings",
     "CompactionSettings",

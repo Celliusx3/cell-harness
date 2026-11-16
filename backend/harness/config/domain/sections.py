@@ -98,6 +98,14 @@ class SecretSettings(BaseModel):
         return value.expanduser()
 
 
+class AskSettings(BaseModel):
+    """How many model calls `ask_model_jobs` makes at once."""
+
+    model_config = ConfigDict(frozen=True)
+
+    jobs_at_once: int = Field(default=3, gt=0)
+
+
 class FileSettings(BaseModel):
     """Where each chat's files are kept, and the most one upload may be."""
 
