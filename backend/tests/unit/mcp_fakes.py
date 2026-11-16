@@ -76,7 +76,9 @@ class FakeClient:
         nxt = index + size
         return ListToolsResult(tools=chunk, nextCursor=str(nxt) if nxt < len(self.tools) else None)
 
-    async def call_tool(self, server_tool_name: str, arguments: dict) -> CallToolResult:
+    async def call_tool(
+        self, server_tool_name: str, arguments: dict, *, meta: dict[str, str] | None
+    ) -> CallToolResult:
         self.calls.append((server_tool_name, arguments))
         outcome = self.behaviour.get(server_tool_name, f"{server_tool_name} ok")
         if isinstance(outcome, float):

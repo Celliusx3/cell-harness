@@ -7,7 +7,11 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 
 from harness.files.domain.models import ChatFile
-from harness.files.repository.file_repository import ChatFileRepository, is_plain_name
+from harness.files.repository.file_repository import (
+    FOLDER_MODE,
+    ChatFileRepository,
+    is_plain_name,
+)
 
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
 
@@ -74,6 +78,14 @@ class ChatFileService:
         folder = self._repository.folder(chat_id)
         folder.mkdir(parents=True, exist_ok=True)
         return folder
+
+    def workspace(self, chat_id: str) -> Path:
+        """This chat's workspace folder, made readable by us alone when it is missing."""
+        workspace = self._repository.workspace(chat_id)
+        self._repository.create_root()
+        workspace.parent.mkdir(mode=FOLDER_MODE, exist_ok=True)
+        workspace.mkdir(mode=FOLDER_MODE, exist_ok=True)
+        return workspace
 
     def file_at(self, chat_id: str, path: str) -> ChatFile | None:
         """The file at absolute `path` when it is one in this chat's folder; else `None`."""

@@ -15,7 +15,7 @@ from tests.unit.helpers import context_for
 from tests.unit.mcp_fakes import text_result, tool
 
 
-async def never_called(name: str, arguments: dict) -> CallToolResult:
+async def never_called(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
     raise AssertionError("should not have been called")
 
 
@@ -40,7 +40,7 @@ async def test_the_published_schema_is_relayed_byte_for_byte() -> None:
 async def test_an_unknown_argument_reaches_the_server_untouched() -> None:
     seen: list[dict] = []
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         seen.append(arguments)
         return text_result("ok")
 
@@ -52,7 +52,7 @@ async def test_an_unknown_argument_reaches_the_server_untouched() -> None:
 
 async def test_a_tool_that_reports_an_error_becomes_a_failure() -> None:
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return text_result("disk is full", is_error=True)
 
     built = one("fs", tool("write"), call)
@@ -62,7 +62,7 @@ async def test_a_tool_that_reports_an_error_becomes_a_failure() -> None:
 
 
 async def test_an_error_with_no_message_still_names_the_tool() -> None:
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return CallToolResult(content=[], isError=True)
 
     built = one("fs", tool("write"), call)
@@ -74,7 +74,7 @@ async def test_an_error_with_no_message_still_names_the_tool() -> None:
 
 async def test_a_disconnected_server_reports_the_tool_as_unknown() -> None:
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         raise McpNotConnectedError("stub is not connected")
 
     built = one("stub", tool("echo"), call)
@@ -85,7 +85,7 @@ async def test_a_disconnected_server_reports_the_tool_as_unknown() -> None:
 
 
 async def test_a_timeout_is_an_execution_error_carrying_the_reason() -> None:
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         raise McpTimeoutError("stub did not answer 'echo' within 60s")
 
     built = one("stub", tool("echo"), call)
@@ -95,7 +95,7 @@ async def test_a_timeout_is_an_execution_error_carrying_the_reason() -> None:
 
 
 async def test_a_server_that_dies_mid_call_is_a_failure_naming_the_tool_and_the_cause() -> None:
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         raise McpConnectionError("server died")
 
     built = one("stub", tool("echo"), call)
@@ -106,7 +106,7 @@ async def test_a_server_that_dies_mid_call_is_a_failure_naming_the_tool_and_the_
 
 async def test_structured_content_is_used_when_there_are_no_blocks() -> None:
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return CallToolResult(content=[], structuredContent={"rows": 3})
 
     built = one("db", tool("count"), call)
@@ -117,7 +117,7 @@ async def test_structured_content_is_used_when_there_are_no_blocks() -> None:
 
 async def test_structured_content_survives_alongside_text() -> None:
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return CallToolResult(
             content=[TextContent(type="text", text="Found 3 jobs.")],
             structuredContent={"jobs": [{"title": "Senior Python Engineer"}]},
@@ -132,7 +132,7 @@ async def test_structured_content_survives_alongside_text() -> None:
 
 
 async def test_a_tool_with_no_structured_content_has_none() -> None:
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return CallToolResult(content=[TextContent(type="text", text="hi")])
 
     built = one("stub", tool("echo"), call)
@@ -168,7 +168,7 @@ def test_a_name_no_provider_would_accept_is_dropped_not_relayed() -> None:
 async def test_a_hyphenated_name_is_mapped_for_the_model_and_kept_for_the_server() -> None:
     asked: list[str] = []
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         asked.append(name)
         return text_result("ok")
 
@@ -196,7 +196,7 @@ def test_the_app_binding_is_read_from_the_tool_meta() -> None:
 
 
 async def test_a_bound_tool_returns_its_app_with_the_structured_content() -> None:
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return CallToolResult(
             content=[TextContent(type="text", text="3 rows")], structuredContent={"rows": 3}
         )
@@ -212,7 +212,7 @@ async def test_a_bound_tool_returns_its_app_with_the_structured_content() -> Non
 
 
 async def test_a_bound_tool_that_fails_has_no_app() -> None:
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return text_result("nope", is_error=True)
 
     built = one("db", tool("count", meta={"ui": {"resourceUri": "ui://db/app.html"}}), call)

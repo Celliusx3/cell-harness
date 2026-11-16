@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Annotated
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver.context import Context
 from pydantic import Field
 
-from computer.models.pc import HOME
 from computer.models.shell import CommandRun
+from computer.models.workspace import start_folder
 from computer.services.shell import Job
 from computer.tools import Computer, computer_for_one_call
 from computer.tools.descriptions import (
@@ -28,7 +29,10 @@ def register(server: MCPServer, computer: Computer) -> None:
     """shell, offered to the model."""
 
     @server.tool(name="shell", description=SHELL_DESCRIPTION)
-    async def shell(command: Command, stdin: Stdin = "", cwd: Cwd = None) -> CommandRun:
-        job = Job(command=command, stdin=stdin, cwd=HOME if cwd is None else cwd)
+    async def shell(
+        ctx: Context, command: Command, stdin: Stdin = "", cwd: Cwd = None
+    ) -> CommandRun:
+        folder = start_folder(cwd, ctx.request_context.meta)
+        job = Job(command=command, stdin=stdin, cwd=folder)
         async with computer_for_one_call(computer.machine):
             return await computer.shell.run(job)

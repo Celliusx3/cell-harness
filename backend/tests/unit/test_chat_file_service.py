@@ -79,3 +79,11 @@ async def test_a_file_in_another_chat_s_folder_is_not_this_chat_s(tmp_path) -> N
     theirs = await files.save("other", "page.png", chunks_of(PNG_HEADER))
 
     assert files.file_at("assistant", theirs.path) is None
+
+
+def test_a_chats_workspace_is_its_own_folder_under_workspaces_made_when_missing(tmp_path) -> None:
+    workspace = files_in(tmp_path).workspace("bot-1")
+
+    assert workspace == tmp_path.resolve() / "files" / "workspaces" / "bot-1"
+    assert workspace.is_dir()
+    assert workspace.stat().st_mode & 0o777 == 0o700

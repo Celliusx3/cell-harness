@@ -61,12 +61,13 @@ class Connection:
         self.task.add_done_callback(self._report_exit)
 
     async def call_tool(
-        self, server_tool_name: str, arguments: dict[str, object]
+        self, server_tool_name: str, arguments: dict[str, object], meta: dict[str, str] | None
     ) -> CallToolResult:
         loop = asyncio.get_running_loop()
         command = ToolCallCommand(
             server_tool_name=server_tool_name,
             arguments=arguments,
+            meta=meta,
             deadline=loop.time() + COMMAND_TIMEOUT_SECONDS,
             reply=loop.create_future(),
         )
@@ -144,7 +145,9 @@ class Connection:
             async with asyncio.timeout_at(command.deadline):
                 result: CallToolResult | ReadResourceResult
                 if isinstance(command, ToolCallCommand):
-                    result = await client.call_tool(command.server_tool_name, command.arguments)
+                    result = await client.call_tool(
+                        command.server_tool_name, command.arguments, meta=command.meta
+                    )
                 else:
                     result = await client.read_resource(command.uri)
         except TimeoutError:

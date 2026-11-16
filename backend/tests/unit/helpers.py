@@ -71,14 +71,20 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
 
 CONVERSATION_ID = "s"
 NO_LINK_STORAGE = Path("/nonexistent/cell-harness-links")
-ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID, mode="ask")
+ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID, mode="ask", workspace=None)
 
 
 def context_for(
-    call_id: str = "call-1", bot_id: str = "s", conversation_id: str = CONVERSATION_ID
+    call_id: str = "call-1",
+    bot_id: str = "s",
+    conversation_id: str = CONVERSATION_ID,
+    *,
+    workspace: Path | None = None,
 ) -> ToolContext:
     """A context for invoking a tool directly, outside the dispatcher."""
-    origin = CallOrigin(bot_id=bot_id, conversation_id=conversation_id, mode="ask")
+    origin = CallOrigin(
+        bot_id=bot_id, conversation_id=conversation_id, mode="ask", workspace=workspace
+    )
     return ToolContext(call_id=call_id, progress=no_progress, origin=origin)
 
 

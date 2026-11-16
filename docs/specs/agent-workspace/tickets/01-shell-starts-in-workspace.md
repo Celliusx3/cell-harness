@@ -1,6 +1,6 @@
 # 01 The shell starts in the chat's workspace
 
-**Status.** open
+**Status.** done
 
 **What to build.** The files repository gains the folder of a chat's workspace, `<files root>/workspaces/<chat id>/`, made on first use. The MCP tool's invoke sends that folder in the request `_meta` under one generic key, for example `harness/workspace`, from `CallOrigin.conversation_id`. It goes to every server, so the harness names no server. The MCP client and the connection command carry the `_meta` through. In `mcp-servers/computer`, `computer__shell` uses it as the start folder when the call gives no `cwd`, and `/home/pc` otherwise.
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from harness.tools.domain.decision import ApprovalMode
@@ -17,11 +18,12 @@ class ToolProgressReporter(Protocol):
 
 @dataclass(frozen=True)
 class CallOrigin:
-    """Who a call comes from: the bot, the conversation it is in, and that chat's mode."""
+    """Who a call comes from: the bot, its conversation, that chat's mode, and its workspace."""
 
     bot_id: str
     conversation_id: str
     mode: ApprovalMode
+    workspace: Path | None
 
 
 @dataclass(frozen=True)

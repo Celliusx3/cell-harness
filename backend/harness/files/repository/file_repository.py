@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Protocol
 
+FOLDER_MODE = 0o700
 NOT_A_NAME = frozenset({"", ".", ".."})
 
 
@@ -25,6 +26,14 @@ class ChatFileRepository(Protocol):
         """This chat's folder, resolved; `ValueError` for an id that is not one plain name."""
         ...
 
+    def workspace(self, chat_id: str) -> Path:
+        """This chat's workspace folder, resolved; `ValueError` for an id not one plain name."""
+        ...
+
     def path_in(self, chat_id: str, path: str) -> Path | None:
         """`path` resolved, when it is absolute and a file in this chat's folder; else `None`."""
+        ...
+
+    def create_root(self) -> None:
+        """The folder every chat's files live under, readable by us alone, made if missing."""
         ...

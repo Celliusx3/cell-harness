@@ -217,3 +217,18 @@ async def test_a_command_runs_while_the_person_holds_the_screen() -> None:
         result = await client.call_tool("shell", {"command": "ls"})
 
     assert not result.is_error, text_of(result)
+
+
+WORKSPACE = "/Users/someone/.harness/files/workspaces/bot-1"
+
+
+async def test_the_workspace_a_call_names_is_where_it_runs_when_no_folder_is_given() -> None:
+    docker = JobDocker()
+
+    async with Client(server_with(docker)) as client:
+        for args in ({"command": "ls"}, {"command": "ls", "cwd": "/tmp"}):
+            await client.call_tool("shell", args, meta={"harness/workspace": WORKSPACE})
+
+    in_workspace, given = docker.runner_calls()
+    assert in_workspace[-1] == WORKSPACE
+    assert given[-1] == "/tmp"

@@ -17,7 +17,7 @@ from tests.unit.helpers import new_session, no_approvals
 from tests.unit.mcp_fakes import FakeFactory, servers, tool
 from tests.unit.test_not_offered_refusal import _ignore
 
-ORIGIN = CallOrigin(bot_id="b", conversation_id="s", mode="auto")
+ORIGIN = CallOrigin(bot_id="b", conversation_id="s", mode="auto", workspace=None)
 
 
 async def test_the_service_names_a_server_s_offered_tools_as_the_model_calls_them() -> None:

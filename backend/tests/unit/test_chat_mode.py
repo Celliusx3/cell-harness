@@ -46,7 +46,7 @@ def _approvals(*protected: str, default_mode: ApprovalMode = "ask") -> ApprovalS
 
 
 def _origin(mode: ApprovalMode) -> CallOrigin:
-    return CallOrigin(bot_id="s", conversation_id="s", mode=mode)
+    return CallOrigin(bot_id="s", conversation_id="s", mode=mode, workspace=None)
 
 
 def test_a_chat_with_no_switch_follows_the_default() -> None:

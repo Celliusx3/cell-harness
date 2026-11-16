@@ -42,7 +42,7 @@ async def chunks_of(body: bytes) -> AsyncIterator[bytes]:
 async def logged_files(files: ChatFileService | None, meta: dict[str, object]) -> list[ChatFile]:
     """What the log records of a result with `meta`, from an MCP tool called in chat `s`."""
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, sent: dict[str, str] | None) -> CallToolResult:
         return result_with(meta)
 
     runtime = Runtime(

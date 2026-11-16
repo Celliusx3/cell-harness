@@ -251,10 +251,12 @@ async def _execute(
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
     assert runtime.tools is not None
+    chat_id = runtime.chat_id_for(run.session, run.bot_id)
     origin = CallOrigin(
         bot_id=run.bot_id,
-        conversation_id=runtime.chat_id_for(run.session, run.bot_id),
+        conversation_id=chat_id,
         mode=runtime.tools.approval_mode(run.session),
+        workspace=None if runtime.files is None else runtime.files.workspace(chat_id),
     )
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 

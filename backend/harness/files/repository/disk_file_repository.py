@@ -8,9 +8,9 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from harness.files.repository.file_repository import is_plain_name
+from harness.files.repository.file_repository import FOLDER_MODE, is_plain_name
 
-FOLDER_MODE = 0o700
+WORKSPACES = "workspaces"
 TOKEN_BYTES = 16
 
 
@@ -25,6 +25,12 @@ class DiskChatFileRepository:
         if not is_plain_name(chat_id):
             raise ValueError(f"{chat_id!r} cannot name a chat's folder")
         return (self.root / chat_id).resolve()
+
+    def workspace(self, chat_id: str) -> Path:
+        """This chat's workspace folder, resolved; `ValueError` for an id not one plain name."""
+        if not is_plain_name(chat_id):
+            raise ValueError(f"{chat_id!r} cannot name a chat's workspace")
+        return (self.root / WORKSPACES / chat_id).resolve()
 
     def path_in(self, chat_id: str, path: str) -> Path | None:
         """`path` resolved, when it is absolute and a file in this chat's folder; else `None`."""
