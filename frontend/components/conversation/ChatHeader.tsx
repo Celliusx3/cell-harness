@@ -59,7 +59,7 @@ export function ChatHeader({
   return (
     <header className="flex min-h-14 items-center gap-3 border-b border-line px-4 md:px-6 py-2.5">
       <DrawerButton />
-      {chat !== null && <BotAvatar mood={moodOf(elapsed, waiting, ticketsAtWork)} />}
+      {chat !== null && <BotAvatar speaker={chat} mood={moodOf(elapsed, waiting, ticketsAtWork)} size="chat" />}
       <div className="flex min-w-0 flex-col">
         <h1 className="truncate text-sm font-semibold leading-tight">{chat?.name ?? ""}</h1>
         <ChatState elapsed={elapsed} waiting={waiting} ticketsAtWork={ticketsAtWork} />

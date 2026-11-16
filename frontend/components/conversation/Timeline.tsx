@@ -113,7 +113,12 @@ export function Timeline({
       {rows.map((row) => {
         if (row.kind === "item") return <Item key={row.item.key} item={row.item} {...shared} />;
         return (
-          <BotBlock key={row.key} speaker={row.speaker ?? host} continues={row.continues}>
+          <BotBlock
+            key={row.key}
+            speaker={row.speaker ?? host}
+            continues={row.continues}
+            mood={row.turn === openTurn ? "working" : "asleep"}
+          >
             {row.parts.map((part) =>
               part.kind === "item" ? (
                 <Item key={part.item.key} item={part.item} {...shared} />

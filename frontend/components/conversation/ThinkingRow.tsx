@@ -11,7 +11,7 @@ export function ThinkingRow({
   elapsed: string | null;
 }) {
   return (
-    <BotBlock speaker={speaker} continues={false}>
+    <BotBlock speaker={speaker} continues={false} mood="working">
       <Trace role="status">
         <TraceLine status="running">
           <TraceTitle>Thinking</TraceTitle>

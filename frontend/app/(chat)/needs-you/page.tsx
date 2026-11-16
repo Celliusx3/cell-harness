@@ -106,10 +106,10 @@ function ChatItem({ chat, botName, onRetry, onStop }: ChatItemProps) {
         href={`/c/${encodeURIComponent(chat.botId)}`}
         className="flex items-center gap-2.5 font-semibold hover:text-accent"
       >
-        <BotAvatar mood="awake" />
+        <BotAvatar speaker={{ id: chat.botId, name: botName }} mood="awake" size="chat" />
         <span className="min-w-0 break-words">{botName}</span>
       </Link>
-      <ul className="flex flex-col gap-2 pl-[38px]">
+      <ul className="flex flex-col gap-2 pl-[46px]">
         {chat.tickets.map((ticket) => (
           <li key={ticket.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="min-w-0 break-words">{ticket.title}</span>
