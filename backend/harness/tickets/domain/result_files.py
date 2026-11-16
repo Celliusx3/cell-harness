@@ -20,7 +20,12 @@ class ReportedFiles:
 
 def reported_files(summary: str, folder: str, chat_files: Sequence[str]) -> ReportedFiles:
     """Which of `chat_files` `summary` names, and which other absolute paths it names."""
-    in_chat = tuple(path for path in chat_files if path in summary)
+    names_folder = folder in summary
+    in_chat = tuple(
+        path
+        for path in chat_files
+        if path in summary or (names_folder and _named_alone(path, folder, summary))
+    )
     named = (
         found.group(0).rstrip(TRAILING_PUNCTUATION) for found in ABSOLUTE_PATH.finditer(summary)
     )
@@ -28,6 +33,13 @@ def reported_files(summary: str, folder: str, chat_files: Sequence[str]) -> Repo
         dict.fromkeys(path for path in named if not _is_part_of_the_chat(path, folder, in_chat))
     )
     return ReportedFiles(in_chat=in_chat, out_of_reach=out_of_reach)
+
+
+def _named_alone(path: str, folder: str, summary: str) -> bool:
+    """Whether `summary` names `path` by its name inside `folder` alone, as a list under the
+    folder does, and not as part of a longer name."""
+    name = path.removeprefix(folder).lstrip("/")
+    return re.search(rf"(?<![\w./-]){re.escape(name)}(?![\w.-])", summary) is not None
 
 
 def _is_part_of_the_chat(path: str, folder: str, in_chat: Sequence[str]) -> bool:

@@ -42,6 +42,10 @@ BOT_MESSAGE_RESULT = (
 )
 BOT_WAITING_ON_USER = "{name} is waiting for the user to answer it in its own chat."
 BOT_DID_NOT_FINISH = "{name} stopped before it finished, and has no answer."
+MESSAGE_TO_YOURSELF = (
+    "you cannot send a message to yourself: you are {name}. Your own workers do your work: "
+    "accept it with ticket_route."
+)
 
 SCHEDULE_REMINDER = (
     "[SCHEDULE REMINDER]\n"
