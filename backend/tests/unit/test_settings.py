@@ -222,10 +222,16 @@ def test_an_upload_limit_of_nothing_is_refused() -> None:
         FileSettings(max_bytes=0)
 
 
-def test_the_committed_config_sets_where_files_go_and_how_big_one_may_be(config_file) -> None:
+def test_the_committed_config_sets_where_files_go_how_big_and_image_jobs_at_once(
+    config_file,
+) -> None:
     committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
 
-    assert committed["files"] == {"root": "~/.harness/files", "max_bytes": 209715200}
+    assert committed["files"] == {
+        "root": "~/.harness/files",
+        "max_bytes": 209715200,
+        "image_jobs_at_once": 3,
+    }
 
 
 def test_the_committed_config_names_no_model_only_how_every_model_is_asked() -> None:

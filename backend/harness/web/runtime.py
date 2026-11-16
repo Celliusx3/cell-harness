@@ -165,7 +165,9 @@ def build_runtime(
             make_archive_tool(files),
             view_image_tool(files),
             ask_about_images_tool(files, images, models),
-            ask_about_image_jobs_tool(files, images, models),
+            ask_about_image_jobs_tool(
+                files, images, models, at_once=settings.files.image_jobs_at_once
+            ),
             *CLIENT_TOOLS.tools(),
         ],
         approvals=approvals,

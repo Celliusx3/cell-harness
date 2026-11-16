@@ -99,12 +99,14 @@ class SecretSettings(BaseModel):
 
 
 class FileSettings(BaseModel):
-    """Where each chat's files are kept, and the most one upload may be."""
+    """Where each chat's files are kept, the most one upload may be, and how many model calls
+    `ask_about_image_jobs` makes at once."""
 
     model_config = ConfigDict(frozen=True)
 
     root: Path = Path.home() / ".harness" / "files"
     max_bytes: int = Field(default=200 * 1024 * 1024, gt=0)
+    image_jobs_at_once: int = Field(default=3, gt=0)
 
     @field_validator("root")
     @classmethod

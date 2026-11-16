@@ -49,7 +49,7 @@ ASK_SAVE_TO = (
 )
 
 ASK_ABOUT_IMAGE_JOBS = (
-    "Makes every ask_about_images call a jobs file lists, one after another, each with no "
+    "Makes every ask_about_images call a jobs file lists, a few at a time, each with no "
     "conversation history and saved to its own file. The file is a JSON list of jobs, each an "
     'object with "paths", "instructions" and "save_to", as ask_about_images takes them. Returns '
     "{answered, failed}: how many replies were saved, and each job that was not, by its save_to, "

@@ -30,7 +30,7 @@ from harness.tools.native.files._ask import (
 )
 from harness.tools.native.files._chat_paths import paths_in_chat
 from harness.tools.native.files._image import UnviewableImage, image_at
-from harness.tools.native.files._jobs import JobFailure, JobsAnswered, jobs_in
+from harness.tools.native.files._jobs import ImageJob, JobFailure, JobsAnswered, jobs_in
 from harness.tools.native.files.models import (
     AskAboutImageJobsArgs,
     AskAboutImagesArgs,
@@ -144,9 +144,10 @@ def ask_about_images_tool(
 
 
 def ask_about_image_jobs_tool(
-    files: ChatFileService, images: ImageService, models: BotModels
+    files: ChatFileService, images: ImageService, models: BotModels, *, at_once: int
 ) -> Tool[AskAboutImageJobsArgs]:
-    """The tool that makes every `ask_about_images` call a jobs file in this chat lists."""
+    """The tool that makes every `ask_about_images` call a jobs file in this chat lists,
+    `at_once` of them at a time."""
 
     async def execute(args: AskAboutImageJobsArgs, context: ToolContext) -> ToolOutcome:
         found = paths_in_chat(files, context.origin.conversation_id, [args.jobs_path])
@@ -158,11 +159,18 @@ def ask_about_image_jobs_tool(
         sight = await can_see(models, context.origin.bot_id)
         if isinstance(sight, Failure):
             return sight
-        failed: list[JobFailure] = []
-        for job in jobs:
-            outcome = await _asked(files, images, models, job, context)
-            if isinstance(outcome, Failure):
-                failed.append(JobFailure(save_to=job.save_to, error=outcome.message))
+        gate = asyncio.Semaphore(at_once)
+
+        async def one(job: ImageJob) -> ToolOutcome:
+            async with gate:
+                return await _asked(files, images, models, job, context)
+
+        outcomes = await asyncio.gather(*(one(job) for job in jobs))
+        failed = [
+            JobFailure(save_to=job.save_to, error=outcome.message)
+            for job, outcome in zip(jobs, outcomes, strict=True)
+            if isinstance(outcome, Failure)
+        ]
         done = JobsAnswered(answered=len(jobs) - len(failed), failed=failed)
         return Ok(done.model_dump_json(), data=done.model_dump())
 

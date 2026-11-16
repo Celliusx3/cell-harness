@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+from collections.abc import AsyncIterator
 from pathlib import Path
 
-from harness.llm import StreamFailure
+from harness.llm import LLMClient, StreamEvent, StreamFailure
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 from harness.tools.native.files import ASK_ABOUT_IMAGE_JOBS, ask_about_image_jobs_tool
 from harness.web.runtime import SIGHT_TOOLS
@@ -23,9 +25,11 @@ async def jobs_file(tmp_path: Path, jobs: object, name: str = "jobs.json") -> Pa
     return path
 
 
-async def answered(tmp_path: Path, path: Path, client, *, vision: bool = True) -> Ok | Failure:
+async def answered(
+    tmp_path: Path, path: Path, client, *, vision: bool = True, at_once: int = 1
+) -> Ok | Failure:
     tool = ask_about_image_jobs_tool(
-        files_in(tmp_path), images_in(tmp_path), OneModel(client, vision=vision)
+        files_in(tmp_path), images_in(tmp_path), OneModel(client, vision=vision), at_once=at_once
     )
     outcome = await tool.invoke(json.dumps({"jobs_path": str(path)}), context=context_for())
     assert isinstance(outcome, Ok | Failure)
@@ -131,7 +135,7 @@ async def test_a_model_that_cannot_see_is_refused_once_without_a_call(tmp_path: 
 
 def test_the_description_names_the_file_s_shape(tmp_path: Path) -> None:
     spec = ask_about_image_jobs_tool(
-        files_in(tmp_path), images_in(tmp_path), OneModel(ScriptedClient([]))
+        files_in(tmp_path), images_in(tmp_path), OneModel(ScriptedClient([])), at_once=1
     ).spec()
 
     assert spec.name == ASK_ABOUT_IMAGE_JOBS == "ask_about_image_jobs"
@@ -142,3 +146,38 @@ def test_the_description_names_the_file_s_shape(tmp_path: Path) -> None:
 def test_workers_are_offered_it_and_it_needs_sight() -> None:
     assert ASK_ABOUT_IMAGE_JOBS in WORKER_TOOLS
     assert ASK_ABOUT_IMAGE_JOBS in SIGHT_TOOLS
+
+
+class OverlapClient(LLMClient):
+    """Answers each call after a pause, counting how many calls are open at once."""
+
+    def __init__(self) -> None:
+        self.open = 0
+        self.most_open = 0
+        self.calls = 0
+
+    async def stream_completion(self, messages, model, *, tools=None) -> AsyncIterator[StreamEvent]:
+        self.calls += 1
+        self.open += 1
+        self.most_open = max(self.most_open, self.open)
+        await asyncio.sleep(0.02)
+        self.open -= 1
+        for event in completed("{}"):
+            yield event
+
+
+async def test_jobs_run_at_most_at_once_together(tmp_path: Path) -> None:
+    page = await page_in_the_chat(tmp_path)
+    folder = chat_folder(tmp_path)
+    jobs = [
+        {"paths": [str(page)], "instructions": "Read.", "save_to": str(folder / f"{n}.json")}
+        for n in range(7)
+    ]
+    client = OverlapClient()
+
+    outcome = await answered(tmp_path, await jobs_file(tmp_path, jobs), client, at_once=3)
+
+    assert isinstance(outcome, Ok) and outcome.data == {"answered": 7, "failed": []}
+    assert client.calls == 7
+    assert client.most_open == 3
+    assert sorted(p.name for p in folder.glob("[0-9].json")) == [f"{n}.json" for n in range(7)]
