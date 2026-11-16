@@ -1,4 +1,4 @@
-"""Where each chat's files are kept: an upload's bytes, and the paths inside a chat's folder."""
+"""Where each chat's files are kept: an upload's bytes, and the paths that are a chat's."""
 
 from __future__ import annotations
 
@@ -16,14 +16,10 @@ def is_plain_name(text: str) -> bool:
 
 
 class ChatFileRepository(Protocol):
-    """Each chat's own folder of files, as storage."""
+    """Each chat's workspace of files, as storage."""
 
     async def write(self, chat_id: str, name: str, chunks: AsyncIterator[bytes]) -> Path:
-        """`chunks` as the file `name` in a new folder of this chat's; on any failure none stays."""
-        ...
-
-    def folder(self, chat_id: str) -> Path:
-        """This chat's folder, resolved; `ValueError` for an id that is not one plain name."""
+        """`chunks` as the file `name` in a new upload folder; on any failure none stays."""
         ...
 
     def workspace(self, chat_id: str) -> Path:
@@ -31,7 +27,7 @@ class ChatFileRepository(Protocol):
         ...
 
     def path_in(self, chat_id: str, path: str) -> Path | None:
-        """`path` resolved, when it is absolute and a file in this chat's folder; else `None`."""
+        """`path` resolved, when absolute and a file in this chat's workspace or old folder."""
         ...
 
     def create_root(self) -> None:

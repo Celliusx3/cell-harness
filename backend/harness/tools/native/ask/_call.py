@@ -49,7 +49,7 @@ def answer_target(folder: Path, save_to: str) -> Path | Failure:
         return Failure(INVALID_ARGUMENTS, f"{save_to} is not an absolute path")
     resolved = candidate.resolve()
     if resolved == folder or not resolved.is_relative_to(folder) or resolved.is_dir():
-        return Failure(INVALID_ARGUMENTS, f"{save_to} is not a file path in this chat's folder")
+        return Failure(INVALID_ARGUMENTS, f"{save_to} is not a file path in this chat's workspace")
     return resolved
 
 

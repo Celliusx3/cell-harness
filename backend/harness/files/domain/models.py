@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ChatFile(BaseModel):
-    """A file in a chat's folder: where it is on disk, its name, type and size."""
+    """A file in a chat's workspace: where it is on disk, its name, type and size."""
 
     model_config = ConfigDict(frozen=True)
 

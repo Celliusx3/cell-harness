@@ -1,4 +1,4 @@
-"""The files a worker's ready report names: in the chat's folder, or out of the person's reach."""
+"""The files a ready report names: in the chat's workspace, or out of the person's reach."""
 
 from __future__ import annotations
 
@@ -31,5 +31,5 @@ def reported_files(summary: str, folder: str, chat_files: Sequence[str]) -> Repo
 
 
 def _is_part_of_the_chat(path: str, folder: str, in_chat: Sequence[str]) -> bool:
-    """Whether `path` is in the chat's folder, or the start of a path that is, cut at a space."""
+    """Whether `path` is in the chat's workspace, or the start of a path that is, cut at a space."""
     return path.startswith(folder) or any(full.startswith(path) for full in (folder, *in_chat))

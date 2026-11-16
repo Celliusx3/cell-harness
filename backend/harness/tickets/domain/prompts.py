@@ -78,5 +78,5 @@ RESULT_FILES_TO_HAND_OVER = (
 )
 RESULT_FILES_OUT_OF_REACH = (
     "The user cannot get these files the report names, because they are not in this chat's "
-    "folder. Do not tell the user they have them: {paths}"
+    "workspace. Do not tell the user they have them: {paths}"
 )

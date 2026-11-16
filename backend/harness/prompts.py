@@ -18,7 +18,7 @@ SPEAKER_TAG = '<speaker name="{name}" />\n{text}'
 
 ATTACHED_FILE = 'The person attached "{name}" ({media_type}, {size} bytes), saved at {path}.'
 HANDED_OVER = "Handed over to the person: {path}"
-NOT_HANDED_OVER = "Not handed over, because it is not a file in this chat's folder: {path}"
+NOT_HANDED_OVER = "Not handed over, because it is not a file in this chat's workspace: {path}"
 
 GROUP_NOTE = (
     'You are {name}, one of the bots in the group chat "{group}", '
@@ -28,6 +28,14 @@ GROUP_NOTE = (
     "To ask another bot in this group to respond, write @ followed by its name. "
     "When a message is not addressed to you and you have nothing useful to add, "
     f"reply with exactly {NO_RESPONSE} and nothing else; it is not shown to anyone."
+)
+WORKSPACE_NOTE = (
+    "Your workspace is the folder {workspace}. Your shell starts in it. Keep every file you "
+    "make in it."
+)
+GROUP_WORKSPACE_NOTE = (
+    "This group's workspace is the folder {workspace}. Your shell starts in it, and the person "
+    "gets files from it. Your own workspace is the folder {own}. Work there on what is only yours."
 )
 
 BOT_MESSAGE_REQUEST = (

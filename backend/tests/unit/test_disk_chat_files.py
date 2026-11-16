@@ -32,13 +32,13 @@ def everything_under(folder: Path) -> list[Path]:
     return sorted(folder.rglob("*")) if folder.exists() else []
 
 
-async def test_a_write_lands_in_a_fresh_folder_of_the_chat_s_own(tmp_path) -> None:
+async def test_a_write_lands_in_a_fresh_folder_of_the_chat_s_uploads(tmp_path) -> None:
     disk = disk_in(tmp_path)
 
     written = await disk.write("assistant", "page.png", chunks_of(PNG_HEADER))
 
     assert written.read_bytes() == PNG_HEADER
-    assert written.parent.parent == disk.folder("assistant")
+    assert written.parent.parent == disk.workspace("assistant") / "uploads"
 
 
 async def test_two_writes_of_one_name_keep_both(tmp_path) -> None:
@@ -56,7 +56,8 @@ async def test_the_folders_a_write_makes_are_readable_by_the_harness_alone(tmp_p
 
     written = await disk.write("assistant", "a.txt", chunks_of(b"x"))
 
-    for folder in (written.parent, disk.folder("assistant"), tmp_path / "files"):
+    workspace = disk.workspace("assistant")
+    for folder in (written.parent, workspace / "uploads", workspace, workspace.parent):
         assert stat.S_IMODE(os.stat(folder).st_mode) == 0o700
 
 
@@ -66,7 +67,7 @@ async def test_a_write_that_fails_part_way_leaves_nothing(tmp_path) -> None:
     with pytest.raises(RuntimeError, match="broke off"):
         await disk.write("assistant", "big.bin", failing_after(PNG_HEADER))
 
-    assert everything_under(disk.folder("assistant")) == []
+    assert everything_under(disk.workspace("assistant") / "uploads") == []
 
 
 @pytest.mark.parametrize("name", ["", "..", "a/b.png", "nul\x00.png"])
@@ -80,7 +81,7 @@ async def test_a_name_that_is_not_one_plain_name_is_never_written(tmp_path, name
 async def test_a_path_that_climbs_out_of_the_folder_is_not_the_chat_s(tmp_path) -> None:
     disk = disk_in(tmp_path)
     theirs = await disk.write("other", "page.png", chunks_of(PNG_HEADER))
-    climbing = f"{disk.folder('assistant')}/../other/{theirs.parent.name}/page.png"
+    climbing = f"{disk.workspace('assistant')}/../other/uploads/{theirs.parent.name}/page.png"
 
     assert disk.path_in("other", str(theirs)) == theirs
     assert disk.path_in("assistant", climbing) is None

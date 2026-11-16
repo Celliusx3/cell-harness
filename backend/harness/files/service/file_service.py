@@ -73,12 +73,6 @@ class ChatFileService:
         self._repository = repository
         self._max_bytes = max_bytes
 
-    def folder(self, chat_id: str) -> Path:
-        """This chat's folder, made when it is missing, where a file the person can get is saved."""
-        folder = self._repository.folder(chat_id)
-        folder.mkdir(parents=True, exist_ok=True)
-        return folder
-
     def workspace(self, chat_id: str) -> Path:
         """This chat's workspace folder, made readable by us alone when it is missing."""
         workspace = self._repository.workspace(chat_id)
@@ -88,7 +82,7 @@ class ChatFileService:
         return workspace
 
     def file_at(self, chat_id: str, path: str) -> ChatFile | None:
-        """The file at absolute `path` when it is one in this chat's folder; else `None`."""
+        """The file at absolute `path` when it is one in this chat's workspace or old folder."""
         found = self._repository.path_in(chat_id, path)
         return _chat_file(found) if found is not None else None
 

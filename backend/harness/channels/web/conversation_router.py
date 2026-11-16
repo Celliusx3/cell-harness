@@ -168,13 +168,13 @@ class ConversationRouter:
         return _message_accepted(await self._chat_session(conversation_id), queued=True)
 
     async def upload_file(self, conversation_id: str, file: UploadFile) -> ChatFile:
-        """Save one file in this chat's folder, for the next message to attach."""
+        """Save one file in this chat's workspace, for the next message to attach."""
         stored = await self._web.files.save(conversation_id, file.filename or "", _chunks(file))
         logger.info("conversation %s was sent %s", conversation_id, stored.path)
         return stored
 
     async def read_file(self, conversation_id: str, path: str) -> FileResponse:
-        """A file in this chat's folder: an image shown in place, anything else downloaded."""
+        """A file in this chat's workspace: an image shown in place, anything else downloaded."""
         return folder_file(self._web.files, conversation_id, path)
 
     async def read_image(self, conversation_id: str, sha256: str) -> FileResponse:

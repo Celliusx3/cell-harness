@@ -1,4 +1,4 @@
-"""Files: what the person attaches and what a tool hands back, kept in each chat's folder."""
+"""Files: what the person attaches and what a tool hands back, kept in each chat's workspace."""
 
 from harness.files.domain.models import ChatFile
 from harness.files.repository.disk_file_repository import DiskChatFileRepository

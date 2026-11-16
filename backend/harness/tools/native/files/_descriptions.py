@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 SEND_FILE = (
-    "Hand the person files from this chat's folder, such as a page a tool saved next to a "
+    "Hand the person files from this chat's workspace, such as a page a tool saved next to a "
     "file they attached. Each file appears under this call: a picture as a thumbnail they "
     "can open full size, anything else as a download. Returns the paths handed over, and "
-    "each path that was not, because it is not a file in this chat's folder."
+    "each path that was not, because it is not a file in this chat's workspace."
 )
-PATHS = "Absolute paths of the files to hand over, each a file inside this chat's folder."
+PATHS = "Absolute paths of the files to hand over, each a file inside this chat's workspace."
 
 EXTRACT_ARCHIVE = (
     "Unpack a .zip or .cbz the person attached into a new folder beside it, so each file "

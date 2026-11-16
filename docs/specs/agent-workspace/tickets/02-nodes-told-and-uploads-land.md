@@ -1,6 +1,6 @@
 # 02 Every node is told its workspace, and uploads land there
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 

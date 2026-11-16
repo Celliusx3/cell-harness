@@ -200,6 +200,17 @@ class ServerInstructionsEvent(BaseModel):
     instructions: str
 
 
+class WorkspaceEvent(BaseModel):
+    """The folder `bot_id`'s turns here work in, and its own when that is another one."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["workspace/named"] = "workspace/named"
+    bot_id: str
+    workspace: str
+    own_workspace: str | None
+
+
 class GroupMembersEvent(BaseModel):
     """The group this conversation belongs to, and its members' names, as its bots are told."""
 
@@ -241,6 +252,7 @@ SessionEvent = (
     | ApprovalModeChange
     | BotInstructionsEvent
     | ServerInstructionsEvent
+    | WorkspaceEvent
     | GroupMembersEvent
     | ChatCleared
 )

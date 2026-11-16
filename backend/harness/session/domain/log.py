@@ -21,6 +21,7 @@ from harness.session.domain.models import (
     ToolResultEvent,
     TurnStart,
     UserMessageEvent,
+    WorkspaceEvent,
 )
 from harness.session.domain.speakers import last_speaker, turn_speakers
 from harness.tools import ApprovalMode
@@ -150,6 +151,13 @@ class Session:
         return {
             e.server: e.instructions for e in self._events if isinstance(e, ServerInstructionsEvent)
         }
+
+    def workspace_of(self, bot_id: str | None) -> WorkspaceEvent | None:
+        """The workspace logged last for `bot_id`; `None` when none was."""
+        for event in reversed(self._events):
+            if isinstance(event, WorkspaceEvent) and event.bot_id == bot_id:
+                return event
+        return None
 
     def group_members(self) -> GroupMembersEvent | None:
         """The group's name and members as logged last; `None` in a bot's own chat."""

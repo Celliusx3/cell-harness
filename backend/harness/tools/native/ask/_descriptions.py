@@ -13,7 +13,7 @@ ASK_MODEL = (
     "the provider did not report them."
 )
 ASK_PATHS = (
-    "Absolute paths of up to 12 files in this chat's folder: PNG or JPEG images, or UTF-8 "
+    "Absolute paths of up to 12 files in this chat's workspace: PNG or JPEG images, or UTF-8 "
     "text files of at most 200 KB. Leave it out to send only the instructions."
 )
 ASK_INSTRUCTIONS = (
@@ -21,8 +21,8 @@ ASK_INSTRUCTIONS = (
     "answer, such as the JSON to return. It sees nothing else."
 )
 ASK_SAVE_TO = (
-    "Absolute path of a file inside this chat's folder to write the reply to, replacing it if it "
-    "exists; leave it out to only return the reply."
+    "Absolute path of a file inside this chat's workspace to write the reply to, replacing it "
+    "if it exists; leave it out to only return the reply."
 )
 
 ASK_MODEL_JOBS = (

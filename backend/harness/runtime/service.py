@@ -28,6 +28,7 @@ from harness.runtime.models import BotModels, ModelChoice
 from harness.runtime.system_prompt import system_text
 from harness.runtime.tool_run import run_approved_call, settled_result
 from harness.runtime.turn import run_turn
+from harness.runtime.workspace import workspace_named
 from harness.session.domain.crash_repair import unanswered
 from harness.session.domain.log import ApprovalModeSwitch, Session
 from harness.session.domain.model_history import derive_messages, without_images
@@ -79,6 +80,8 @@ class Runtime:
     """Where the person's messages sent during a turn wait for its next step."""
     chat_id_for: Callable[[Session, str], str] = session_chat_id
     """The chat whose files a call in a session, for a bot, opens and is handed."""
+    own_chat_of: Callable[[str], str] | None = None
+    """The chat a bot answers in on its own; `None` names no workspace of its own."""
 
     def request_messages(
         self, session: Session, context: Sequence[str] = (), *, sees_images: bool
@@ -204,9 +207,15 @@ class Runtime:
             await self.tools.chat_grants.grant(self.chat_id_for(session, bot_id), tool)
 
     def _open_turn(self, session: Session, bot_id: str) -> int:
-        """Append the next turn's start, then any server instructions that changed since logged."""
+        """Append the next turn's start, then its workspace and server instructions if changed."""
         turn = session.next_turn()
         session.append(TurnStart(turn=turn, bot_id=bot_id))
+        if self.files is not None:
+            own_chat = None if self.own_chat_of is None else self.own_chat_of(bot_id)
+            chat_id = self.chat_id_for(session, bot_id)
+            named = workspace_named(self.files, bot_id, chat_id, own_chat)
+            if named != session.workspace_of(bot_id):
+                session.append(named)
         if self.server_instructions is not None:
             reachable = self.tools is not None and self.tools.can_reach_servers
             current = self.server_instructions() if reachable else {}

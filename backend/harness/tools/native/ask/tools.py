@@ -129,7 +129,7 @@ async def _asked(
     found = paths_in_chat(files, chat_id, args.paths)
     if isinstance(found, Failure):
         return found
-    target = None if args.save_to is None else answer_target(files.folder(chat_id), args.save_to)
+    target = None if args.save_to is None else answer_target(files.workspace(chat_id), args.save_to)
     if isinstance(target, Failure):
         return target
     try:

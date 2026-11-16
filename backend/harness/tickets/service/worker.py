@@ -145,19 +145,19 @@ class RuntimeTicketWorker:
         return tuple(text for text in loaded if text is not None)
 
     def _with_files_folder(self, task: str, chat_id: str) -> str:
-        """`task`, then where the person's files go, when this runtime keeps chats' files."""
+        """`task`, then the workspace the person's files go in, when this runtime keeps files."""
         if self.runtime.files is None:
             return task
-        folder = self.runtime.files.folder(chat_id)
-        return f"{task}\n\n{WORKER_FILES_FOLDER.format(folder=folder)}"
+        workspace = self.runtime.files.workspace(chat_id)
+        return f"{task}\n\n{WORKER_FILES_FOLDER.format(folder=workspace)}"
 
     def _with_result_files(self, end: WorkerEnd, chat_id: str) -> WorkerEnd:
         """A ready `end` told which files it names can reach the person, and which cannot."""
         if end.state != "ready" or self.runtime.files is None:
             return end
-        folder = self.runtime.files.folder(chat_id)
-        chat_files = [str(path) for path in folder.rglob("*") if path.is_file()]
-        found = reported_files(end.text, str(folder), chat_files)
+        workspace = self.runtime.files.workspace(chat_id)
+        chat_files = [str(path) for path in workspace.rglob("*") if path.is_file()]
+        found = reported_files(end.text, str(workspace), chat_files)
         notes = [
             template.format(paths=", ".join(paths))
             for template, paths in (

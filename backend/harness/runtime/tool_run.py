@@ -60,7 +60,7 @@ class FileHandOver:
 def _files_handed_over(
     files: ChatFileService | None, chat_id: str, outcome: Ok | Failure
 ) -> FileHandOver:
-    """Each path a result names: kept when it is a file in this chat's folder, else refused."""
+    """Each path a result names: kept when it is a file in this chat's workspace, else refused."""
     paths = outcome.paths_to_send if isinstance(outcome, Ok) else ()
     kept: list[ChatFile] = []
     lines: list[str] = []

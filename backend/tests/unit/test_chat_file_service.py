@@ -33,7 +33,8 @@ async def test_a_name_with_folders_in_it_is_saved_as_its_last_part(tmp_path) -> 
     saved = await files_in(tmp_path).save("assistant", "../../x.png", chunks_of(PNG_HEADER))
 
     assert saved.name == "x.png"
-    assert Path(saved.path).parent.parent == tmp_path.resolve() / "files" / "assistant"
+    uploads = tmp_path.resolve() / "files" / "workspaces" / "assistant" / "uploads"
+    assert Path(saved.path).parent.parent == uploads
 
 
 @pytest.mark.parametrize("name", ["", ".", "..", "a/..", "nul\x00.png"])
@@ -50,7 +51,7 @@ async def test_an_upload_over_the_limit_leaves_nothing_on_disk(tmp_path) -> None
     with pytest.raises(FileTooLargeError, match="8 bytes"):
         await files.save("assistant", "big.bin", chunks_of(PNG_HEADER, b"!"))
 
-    assert everything_under(tmp_path / "files" / "assistant") == []
+    assert everything_under(tmp_path / "files" / "workspaces" / "assistant" / "uploads") == []
 
 
 async def test_an_upload_of_exactly_the_limit_is_kept(tmp_path) -> None:
@@ -87,3 +88,22 @@ def test_a_chats_workspace_is_its_own_folder_under_workspaces_made_when_missing(
     assert workspace == tmp_path.resolve() / "files" / "workspaces" / "bot-1"
     assert workspace.is_dir()
     assert workspace.stat().st_mode & 0o777 == 0o700
+
+
+def test_a_file_in_the_chats_old_folder_is_still_the_chats(tmp_path) -> None:
+    old = tmp_path / "files" / "assistant" / "token"
+    old.mkdir(parents=True)
+    (old / "page.png").write_bytes(PNG_HEADER)
+
+    found = files_in(tmp_path).file_at("assistant", str(old / "page.png"))
+
+    assert found is not None and found.name == "page.png"
+
+
+def test_a_file_the_bot_made_in_its_workspace_is_the_chats(tmp_path) -> None:
+    files = files_in(tmp_path)
+    made = files.workspace("assistant") / "report.pdf"
+    made.write_bytes(b"%PDF")
+
+    assert files.file_at("assistant", str(made)) is not None
+    assert files.file_at("other", str(made)) is None
