@@ -285,7 +285,9 @@ def create_app(
     app.include_router(CredentialRouter(secrets, bots, channels.platforms).router)
     app.include_router(ApprovalRouter(approvals).router)
     app.include_router(CompactRouter(web).router)
-    app.include_router(BotRouter(bots, BotLifecycleService(bots, runs, secrets, schedules)).router)
+    app.include_router(
+        BotRouter(bots, BotLifecycleService(bots, runs, secrets, schedules, web.files)).router
+    )
     app.include_router(ScheduleRouter(bots, schedules, scheduler, runs).router)
     app.include_router(TicketRouter(tickets, secrets, bots, client_tools).router)
     app.include_router(TicketFileRouter(tickets, web.files, web.images).router)

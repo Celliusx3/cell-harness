@@ -1,6 +1,6 @@
 # 05 Deleting a bot deletes its workspace, and the last member's deletion deletes the group's
 
-**Status.** open
+**Status.** done
 
 **What to build.** `BotLifecycleService.delete` deletes the bot's workspace folder after it deletes the bot. Then, for each group that lists the bot, it deletes the group's workspace when none of the group's `member_ids` is a stored bot any more. An archived bot is still stored, so it keeps both. The deletion is a files repository method. The group check is a plain function over the group and the stored bots' ids.
 

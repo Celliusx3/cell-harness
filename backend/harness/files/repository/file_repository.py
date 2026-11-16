@@ -30,6 +30,10 @@ class ChatFileRepository(Protocol):
         """`path` resolved, when absolute and a file in this chat's workspace or old folder."""
         ...
 
+    def delete_workspace(self, chat_id: str) -> None:
+        """Delete this chat's workspace and everything in it; nothing when it is missing."""
+        ...
+
     def create_root(self) -> None:
         """The folder every chat's files live under, readable by us alone, made if missing."""
         ...

@@ -81,6 +81,10 @@ class ChatFileService:
         workspace.mkdir(mode=FOLDER_MODE, exist_ok=True)
         return workspace
 
+    def delete_workspace(self, chat_id: str) -> None:
+        """Delete this chat's workspace and everything in it; nothing when it is missing."""
+        self._repository.delete_workspace(chat_id)
+
     def file_at(self, chat_id: str, path: str) -> ChatFile | None:
         """The file at absolute `path` when it is one in this chat's workspace or old folder."""
         found = self._repository.path_in(chat_id, path)

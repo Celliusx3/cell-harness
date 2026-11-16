@@ -61,6 +61,12 @@ class DiskChatFileRepository:
             raise
         return target
 
+    def delete_workspace(self, chat_id: str) -> None:
+        """Delete this chat's workspace and everything in it; nothing when it is missing."""
+        workspace = self.workspace(chat_id)
+        if workspace.exists():
+            shutil.rmtree(workspace)
+
     def create_root(self) -> None:
         """The folder every chat's files live under, readable by us alone, made if missing."""
         self.root.mkdir(mode=FOLDER_MODE, parents=True, exist_ok=True)
