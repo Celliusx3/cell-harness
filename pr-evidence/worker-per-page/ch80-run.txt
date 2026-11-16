@@ -1,0 +1,15 @@
+Episode 80 of a Korean webtoon: 129 images in the downloaded zip, 97 pages after the strip re-cut, 96 with text.
+GLM 5.3 Flash on ILMU, 3 workers, Ask mode. computer offers `shell` from the start; ask_about_image_jobs runs 3 calls at once.
+The pages are copyrighted, so only the chat is shown; the video has no page images.
+
+Ticket                          started (UTC)  steps  input tokens
+Download & translate ch80       01:52:55        24       317,819   (download, detect, names jobs, parts; first call was computer__shell)
+Translate part 1 (32 pages)     01:57:00        20       256,599   (jobs, one ask_about_image_jobs call, apply, render, 7 flagged pages viewed)
+Translate part 2 (32 pages)     01:57:00        20       294,404
+Translate part 3 (32 pages)     01:57:00        10       101,610
+Pack ch80-english               02:01:37         5        44,165
+Total                                           79     1,014,597
+
+Download done 01:54, chapter handed over 02:01: 7 minutes to translate.
+Episode 81 before these fixes: 12 minutes, 248 steps (219 a loop before the worker found the shell), 8.2M input tokens.
+Input tokens are the workers' own steps; the jobs' model calls are not logged yet.
