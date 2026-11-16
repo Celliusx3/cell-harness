@@ -9,7 +9,7 @@ from typing import NamedTuple
 import pytest
 
 from harness.channels.web.channel import WebChannel
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.images import ImageService
 from harness.mcp import McpService
 from harness.runtime.service import Runtime
@@ -84,7 +84,7 @@ def started(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Started:
         webs.append(channels.web)
         return channels
 
-    monkeypatch.setattr(server, "load_settings", lambda: settings)
+    monkeypatch.setattr(server.SettingsService, "load", lambda _self: settings)
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     monkeypatch.setattr(server, "build_runtime", runtime_seen)
     monkeypatch.setattr(server, "build_channels", channels_seen)

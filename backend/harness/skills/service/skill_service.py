@@ -9,7 +9,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from harness.config.settings import SkillSettings
+from harness.config import SkillSettings
 from harness.skills.domain.invocation import invoked_skill_name
 from harness.skills.domain.models import (
     SKILL_FILE,

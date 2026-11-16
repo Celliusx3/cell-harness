@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.session.domain.models import TurnStart
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.web.server import build_sessions, build_subagent_logs

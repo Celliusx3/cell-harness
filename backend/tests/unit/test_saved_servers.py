@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from harness.config.sections import BotSettings, McpSettings
+from harness.config import BotSettings, McpSettings
 from harness.mcp import (
     DiskSavedServerRepository,
     McpServerNotFound,

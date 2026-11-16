@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import NamedTuple
 
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.mcp import McpService
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService

@@ -11,7 +11,7 @@ import pytest
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BUILDER_ID, BotService
-from harness.config.sections import LLMSettings
+from harness.config import LLMSettings
 from harness.llm import Image
 from harness.llm.adapters import OpenAIClient, OpenAISettings
 from harness.llm.adapters.openai import client as adapter_module

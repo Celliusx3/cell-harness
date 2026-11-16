@@ -8,7 +8,7 @@ import json
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.images import IMAGE_MAX_BYTES
 from harness.llm import Image, ToolCall
 from harness.mcp import McpService

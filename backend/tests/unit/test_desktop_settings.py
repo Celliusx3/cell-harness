@@ -15,7 +15,7 @@ APP_FOLDER = Path("Library") / "Application Support" / "Cell Harness"
 
 _PRINT_LOADED = """
 import json
-from harness.config.settings import Settings
+from harness.config import Settings
 s = Settings()
 print(json.dumps({
     "encryption_key": s.secrets.encryption_key,
