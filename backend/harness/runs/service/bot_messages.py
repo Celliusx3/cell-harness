@@ -7,7 +7,7 @@ import logging
 from collections.abc import Awaitable, Callable, Coroutine, Sequence
 
 from harness.bots import Bot, BotNotFound, BotService
-from harness.prompts import BOT_DID_NOT_FINISH, BOT_WAITING_ON_USER
+from harness.prompts import BOT_DID_NOT_FINISH, BOT_WAITING_ON_USER, MESSAGE_TO_YOURSELF
 from harness.runs.service.run import Run, wait_until_settled
 from harness.runs.service.run_service import RunService
 from harness.session.domain.models import (
@@ -50,7 +50,7 @@ class BotMessenger:
         if recipient is None:
             return Failure(INVALID_ARGUMENTS, f"no bot is named {to_name!r}")
         if recipient.id == from_bot_id:
-            return Failure(INVALID_ARGUMENTS, "you cannot send a message to yourself")
+            return Failure(INVALID_ARGUMENTS, MESSAGE_TO_YOURSELF.format(name=recipient.name))
         hop = hop_of_last_turn(session.events()) + 1
         if hop > MAX_HOPS:
             return Failure(

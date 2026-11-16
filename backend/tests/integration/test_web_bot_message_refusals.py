@@ -35,6 +35,8 @@ async def test_a_bot_cannot_message_itself(tmp_path) -> None:
     (result,) = of_type(log, "tool/result")
     assert result["error"] == "INVALID_ARGUMENTS"
     assert "you cannot send a message to yourself" in result_text(result)
+    assert "you are Assistant" in result_text(result)
+    assert "ticket_route" in result_text(result)
     assert [e["bot_id"] for e in of_type(log, "turn/start")] == [ASSISTANT_ID]
 
 
