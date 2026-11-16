@@ -155,6 +155,7 @@ CONFIG: dict[str, Tool | NotATool] = {
         "where keys are kept and the key that locks them; neither ever passes the model"
     ),
     "files": NotATool("where each chat's files are kept and the upload limit; the person's"),
+    "ask": NotATool("how many model calls a jobs file makes at once; the model spends no more"),
 }
 
 

@@ -1,4 +1,4 @@
-"""`ask_about_images` asks the calling bot's model one question about images, with no history."""
+"""`ask_model` asks the calling bot's model one question about files, with no history."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from pathlib import Path
 from harness.llm import Completion, StreamFailure, ToolCall, UserMessage
 from harness.runtime.models import PICK_A_MODEL, NoModel
 from harness.tools import EXECUTION_ERROR, INVALID_ARGUMENTS, REFUSED, Failure, Ok, Pending
-from harness.tools.native.files import ASK_ABOUT_IMAGES, ask_about_images_tool
-from harness.web.runtime import NOT_CALLABLE_FROM_SCRIPTS
+from harness.tools.native.ask import ASK_MODEL, ask_model_tool
+from harness.web.runtime import NOT_CALLABLE_FROM_SCRIPTS, SIGHT_TOOLS
 from harness.web.tickets_wiring import WORKER_TOOLS
 from tests.unit.fakes import OneModel, ScriptedClient, completed
 from tests.unit.helpers import CONVERSATION_ID, ORIGIN, context_for, no_progress
@@ -47,9 +47,7 @@ def chat_folder(tmp_path: Path) -> Path:
 async def asked(
     tmp_path: Path, arguments: dict, client: ScriptedClient, *, vision: bool = True
 ) -> Ok | Failure:
-    tool = ask_about_images_tool(
-        files_in(tmp_path), images_in(tmp_path), OneModel(client, vision=vision)
-    )
+    tool = ask_model_tool(files_in(tmp_path), images_in(tmp_path), OneModel(client, vision=vision))
     outcome = await tool.invoke(json.dumps(arguments), context=context_for())
     assert isinstance(outcome, Ok | Failure)
     return outcome
@@ -63,7 +61,7 @@ async def test_a_json_reply_comes_back_as_an_object_and_as_its_text(tmp_path: Pa
     outcome = await asked(tmp_path, {"paths": [str(page)], "instructions": INSTRUCTIONS}, client)
 
     assert isinstance(outcome, Ok)
-    assert outcome.data == {"answer": {"bubbles": ["Hi"]}, "saved_to": None}
+    assert outcome.data == {"answer": {"bubbles": ["Hi"]}, "saved_to": None, "usage": None}
     assert outcome.text == '{"bubbles": ["Hi"]}'
 
 
@@ -91,7 +89,7 @@ async def test_a_reply_that_is_not_json_comes_back_as_text(tmp_path: Path) -> No
     outcome = await asked(tmp_path, {"paths": [str(page)], "instructions": INSTRUCTIONS}, client)
 
     assert isinstance(outcome, Ok)
-    assert outcome.data == {"answer": "The page is blank.", "saved_to": None}
+    assert outcome.data == {"answer": "The page is blank.", "saved_to": None, "usage": None}
     assert outcome.text == "The page is blank."
 
 
@@ -105,7 +103,7 @@ async def test_save_to_writes_the_reply_inside_the_chat_folder(tmp_path: Path) -
 
     assert isinstance(outcome, Ok)
     assert target.read_text(encoding="utf-8") == '{"n": 1}'
-    assert outcome.data == {"answer": {"n": 1}, "saved_to": str(target)}
+    assert outcome.data == {"answer": {"n": 1}, "saved_to": str(target), "usage": None}
     assert str(target) in outcome.text
     assert [path.name for path in target.parent.iterdir()] == ["page-001.json"]
 
@@ -144,23 +142,25 @@ async def test_a_path_outside_this_chat_is_refused(tmp_path: Path) -> None:
     assert client.calls == 0
 
 
-async def test_a_file_that_is_not_a_png_or_jpeg_is_refused(tmp_path: Path) -> None:
-    named = await page_in_the_chat(tmp_path, "page.png", b"GIF89a")
+async def test_a_file_that_is_neither_an_image_nor_text_is_refused(tmp_path: Path) -> None:
+    named = await page_in_the_chat(tmp_path, "page.gif", b"GIF89a\xff\xfe")
     client = ScriptedClient(completed("{}"))
 
     outcome = await asked(tmp_path, {"paths": [str(named)], "instructions": "Read."}, client)
 
-    assert outcome == Failure(INVALID_ARGUMENTS, f"{named} is not a PNG or JPEG image")
+    assert outcome == Failure(
+        INVALID_ARGUMENTS, f"{named} is neither a PNG or JPEG image nor UTF-8 text"
+    )
+    assert client.calls == 0
 
 
-async def test_no_paths_more_than_twelve_or_blank_instructions_are_refused(
+async def test_more_than_twelve_paths_or_blank_instructions_are_refused(
     tmp_path: Path,
 ) -> None:
     page = await page_in_the_chat(tmp_path)
     client = ScriptedClient(completed("{}"))
 
     for arguments in (
-        {"paths": [], "instructions": "Read."},
         {"paths": [str(page)] * 13, "instructions": "Read."},
         {"paths": [str(page)], "instructions": "  "},
     ):
@@ -170,7 +170,7 @@ async def test_no_paths_more_than_twelve_or_blank_instructions_are_refused(
     assert client.calls == 0
 
 
-async def test_a_model_that_cannot_see_is_refused_without_a_call(tmp_path: Path) -> None:
+async def test_a_model_that_cannot_see_is_refused_images_without_a_call(tmp_path: Path) -> None:
     page = await page_in_the_chat(tmp_path)
     client = ScriptedClient(completed("{}"))
 
@@ -184,7 +184,7 @@ async def test_a_model_that_cannot_see_is_refused_without_a_call(tmp_path: Path)
 
 async def test_a_bot_with_no_model_is_told_to_pick_one(tmp_path: Path) -> None:
     page = await page_in_the_chat(tmp_path)
-    tool = ask_about_images_tool(files_in(tmp_path), images_in(tmp_path), NoModels())
+    tool = ask_model_tool(files_in(tmp_path), images_in(tmp_path), NoModels())
 
     outcome = await tool.invoke(
         json.dumps({"paths": [str(page)], "instructions": "Read."}), context=context_for()
@@ -221,25 +221,26 @@ async def test_the_completion_s_text_is_the_reply(tmp_path: Path) -> None:
 
     outcome = await asked(tmp_path, {"paths": [str(page)], "instructions": "Read."}, client)
 
-    assert isinstance(outcome, Ok) and outcome.data == {"answer": {"a": [1, 2]}, "saved_to": None}
+    assert isinstance(outcome, Ok) and outcome.data["answer"] == {"a": [1, 2]}
 
 
 def test_the_description_says_one_call_and_no_history(tmp_path: Path) -> None:
-    spec = ask_about_images_tool(
+    spec = ask_model_tool(
         files_in(tmp_path), images_in(tmp_path), OneModel(ScriptedClient([]))
     ).spec()
 
-    assert spec.name == ASK_ABOUT_IMAGES == "ask_about_images"
+    assert spec.name == ASK_MODEL == "ask_model"
     assert "with no conversation history" in spec.description
     assert "it costs one model call" in spec.description
-    assert "Returns {answer, saved_to}" in spec.description
+    assert "Returns {answer, saved_to, usage}" in spec.description
     assert set(spec.input_schema["properties"]) == {"paths", "instructions", "save_to"}
-    assert spec.input_schema["required"] == ["paths", "instructions"]
+    assert spec.input_schema["required"] == ["instructions"]
 
 
-def test_workers_are_offered_it_and_scripts_may_call_it() -> None:
-    assert ASK_ABOUT_IMAGES in WORKER_TOOLS
-    assert ASK_ABOUT_IMAGES not in NOT_CALLABLE_FROM_SCRIPTS
+def test_workers_are_offered_it_scripts_may_call_it_and_it_needs_no_sight() -> None:
+    assert ASK_MODEL in WORKER_TOOLS
+    assert ASK_MODEL not in NOT_CALLABLE_FROM_SCRIPTS
+    assert ASK_MODEL not in SIGHT_TOOLS
 
 
 async def test_a_script_s_call_is_dispatched_without_asking_for_approval(tmp_path: Path) -> None:
@@ -248,7 +249,7 @@ async def test_a_script_s_call_is_dispatched_without_asking_for_approval(tmp_pat
     assert runtime.tools is not None
     call = ToolCall(
         id="sub:1",
-        name=ASK_ABOUT_IMAGES,
+        name=ASK_MODEL,
         arguments=json.dumps({"paths": [str(page)], "instructions": "Read."}),
     )
 

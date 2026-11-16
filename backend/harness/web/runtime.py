@@ -36,6 +36,7 @@ from harness.skills import SKILL, SkillService, skill_tool
 from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
 from harness.tools import ApprovalService, ToolService, Toolset
 from harness.tools.client import ClientToolCatalog, ClientToolService
+from harness.tools.native.ask import ask_model_jobs_tool, ask_model_tool
 from harness.tools.native.bots import BOT_CREATE, MESSAGE_BOT, bot_create_tool, message_bot_tool
 from harness.tools.native.clock import get_current_time_tool
 from harness.tools.native.code_mode import (
@@ -45,14 +46,10 @@ from harness.tools.native.code_mode import (
     code_mode_tools,
 )
 from harness.tools.native.files import (
-    ASK_ABOUT_IMAGE_JOBS,
-    ASK_ABOUT_IMAGES,
     EXTRACT_ARCHIVE,
     MAKE_ARCHIVE,
     SEND_FILE,
     VIEW_IMAGE,
-    ask_about_image_jobs_tool,
-    ask_about_images_tool,
     extract_archive_tool,
     make_archive_tool,
     send_file_tool,
@@ -107,7 +104,7 @@ DEFAULT_TOOLS = (
 )
 WORK_TOOLS = (FETCH_WITH_SECRET, EXTRACT_ARCHIVE, MAKE_ARCHIVE)
 CODE_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
-SIGHT_TOOLS = frozenset({VIEW_IMAGE, ASK_ABOUT_IMAGES, ASK_ABOUT_IMAGE_JOBS})
+SIGHT_TOOLS = frozenset({VIEW_IMAGE})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,
@@ -162,10 +159,8 @@ def build_runtime(
             extract_archive_tool(files, settings.files.max_bytes),
             make_archive_tool(files),
             view_image_tool(files),
-            ask_about_images_tool(files, images, models),
-            ask_about_image_jobs_tool(
-                files, images, models, at_once=settings.files.image_jobs_at_once
-            ),
+            ask_model_tool(files, images, models),
+            ask_model_jobs_tool(files, images, models, at_once=settings.ask.jobs_at_once),
             *CLIENT_TOOLS.tools(),
         ],
         approvals=approvals,

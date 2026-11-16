@@ -16,6 +16,7 @@ from pydantic_settings import (
 
 from harness.config.sections import (
     ApprovalSettings,
+    AskSettings,
     BotSettings,
     CodeModeSettings,
     CompactionSettings,
@@ -103,6 +104,7 @@ class Settings(BaseSettings):
     tickets: TicketSettings = Field(default_factory=TicketSettings)
     secrets: SecretSettings = Field(default_factory=SecretSettings)
     files: FileSettings = Field(default_factory=FileSettings)
+    ask: AskSettings = Field(default_factory=AskSettings)
 
     @classmethod
     def settings_customise_sources(

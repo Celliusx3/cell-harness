@@ -1,12 +1,10 @@
-"""What the file tools are called with."""
+"""What the four file tools are called with."""
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from harness.tools.native.files import _descriptions
-
-MAX_ASKED_IMAGES = 12
 
 
 class SendFileArgs(BaseModel):
@@ -40,23 +38,3 @@ class ViewImageArgs(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     path: str = Field(description=_descriptions.IMAGE_PATH)
-
-
-class AskAboutImagesArgs(BaseModel):
-    """What the model passes to `ask_about_images`."""
-
-    model_config = ConfigDict(frozen=True)
-
-    paths: list[str] = Field(
-        min_length=1, max_length=MAX_ASKED_IMAGES, description=_descriptions.ASK_PATHS
-    )
-    instructions: str = Field(pattern=r"\S", description=_descriptions.ASK_INSTRUCTIONS)
-    save_to: str | None = Field(default=None, description=_descriptions.ASK_SAVE_TO)
-
-
-class AskAboutImageJobsArgs(BaseModel):
-    """What the model passes to `ask_about_image_jobs`."""
-
-    model_config = ConfigDict(frozen=True)
-
-    jobs_path: str = Field(description=_descriptions.JOBS_PATH)

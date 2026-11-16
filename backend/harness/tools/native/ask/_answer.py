@@ -1,4 +1,4 @@
-"""A model's reply read as JSON when it is JSON, and what a script receives for it."""
+"""A model's reply read as JSON when it is JSON."""
 
 from __future__ import annotations
 
@@ -17,15 +17,6 @@ class ParsedReply(BaseModel):
 
     text: str
     value: JsonValue
-
-
-class ImageAnswer(BaseModel):
-    """What `ask_about_images` returns to a script: the answer, and where it was saved."""
-
-    model_config = ConfigDict(frozen=True)
-
-    answer: JsonValue
-    saved_to: str | None
 
 
 def parsed_reply(reply: str) -> ParsedReply:

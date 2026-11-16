@@ -1,14 +1,12 @@
-"""The model's file tools: hand files over, view or ask about images, pack or unpack archives."""
+"""The model's file tools: hand files over, view an image, and unpack or pack a .zip or .cbz."""
 
+from harness.tools.native.files._chat_paths import paths_in_chat
+from harness.tools.native.files._image import UnviewableImage, image_at, image_media_type
 from harness.tools.native.files.tools import (
-    ASK_ABOUT_IMAGE_JOBS,
-    ASK_ABOUT_IMAGES,
     EXTRACT_ARCHIVE,
     MAKE_ARCHIVE,
     SEND_FILE,
     VIEW_IMAGE,
-    ask_about_image_jobs_tool,
-    ask_about_images_tool,
     extract_archive_tool,
     make_archive_tool,
     send_file_tool,
@@ -16,16 +14,16 @@ from harness.tools.native.files.tools import (
 )
 
 __all__ = [
-    "ASK_ABOUT_IMAGE_JOBS",
-    "ASK_ABOUT_IMAGES",
     "EXTRACT_ARCHIVE",
     "MAKE_ARCHIVE",
     "SEND_FILE",
     "VIEW_IMAGE",
-    "ask_about_image_jobs_tool",
-    "ask_about_images_tool",
+    "UnviewableImage",
     "extract_archive_tool",
+    "image_at",
+    "image_media_type",
     "make_archive_tool",
+    "paths_in_chat",
     "send_file_tool",
     "view_image_tool",
 ]

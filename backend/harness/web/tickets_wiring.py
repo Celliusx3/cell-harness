@@ -22,7 +22,8 @@ from harness.tickets.repository.ticket_repository import TicketRepository
 from harness.tickets.service.ticket_service import TicketService
 from harness.tickets.service.worker import RuntimeTicketWorker
 from harness.tools import ChatGrants, ToolService, Toolset
-from harness.tools.native.files import ASK_ABOUT_IMAGE_JOBS, ASK_ABOUT_IMAGES, VIEW_IMAGE
+from harness.tools.native.ask import ASK_MODEL, ASK_MODEL_JOBS
+from harness.tools.native.files import VIEW_IMAGE
 from harness.tools.native.tickets import (
     TICKET_REPORT,
     ticket_note_tool,
@@ -37,8 +38,8 @@ WORKER_TOOLS = (
     *WORK_TOOLS,
     *SKILL_WRITE_TOOLS,
     VIEW_IMAGE,
-    ASK_ABOUT_IMAGES,
-    ASK_ABOUT_IMAGE_JOBS,
+    ASK_MODEL,
+    ASK_MODEL_JOBS,
     TICKET_REPORT,
 )
 

@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from harness.config import settings as settings_module
-from harness.config.sections import FileSettings, LLMSettings
+from harness.config.sections import AskSettings, FileSettings, LLMSettings
 from harness.config.settings import MissingConfigError, Settings, load_settings
 
 
@@ -222,16 +222,21 @@ def test_an_upload_limit_of_nothing_is_refused() -> None:
         FileSettings(max_bytes=0)
 
 
-def test_the_committed_config_sets_where_files_go_how_big_and_image_jobs_at_once(
-    config_file,
-) -> None:
+def test_the_committed_config_sets_where_files_go_and_how_big_one_may_be(config_file) -> None:
     committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
 
-    assert committed["files"] == {
-        "root": "~/.harness/files",
-        "max_bytes": 209715200,
-        "image_jobs_at_once": 3,
-    }
+    assert committed["files"] == {"root": "~/.harness/files", "max_bytes": 209715200}
+
+
+def test_the_committed_config_sets_how_many_model_calls_a_jobs_file_makes_at_once() -> None:
+    committed = json.loads((Path(__file__).parents[2] / "config.json").read_text())
+
+    assert committed["ask"] == {"jobs_at_once": 3}
+
+
+def test_ask_jobs_at_once_of_nothing_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        AskSettings(jobs_at_once=0)
 
 
 def test_the_committed_config_names_no_model_only_how_every_model_is_asked() -> None:

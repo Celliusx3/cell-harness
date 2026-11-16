@@ -1,4 +1,4 @@
-"""`ask_about_image_jobs` answers every call a jobs file lists, each saved where it says."""
+"""`ask_model_jobs` answers every call a jobs file lists, each saved where it says."""
 
 from __future__ import annotations
 
@@ -7,14 +7,15 @@ import json
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from harness.llm import LLMClient, StreamEvent, StreamFailure
+from harness.llm import Completion, LLMClient, StreamEvent, StreamFailure, Usage
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
-from harness.tools.native.files import ASK_ABOUT_IMAGE_JOBS, ask_about_image_jobs_tool
+from harness.tools.native.ask import ASK_MODEL_JOBS, ask_model_jobs_tool
+from harness.tools.native.ask._call import NO_SIGHT
 from harness.web.runtime import SIGHT_TOOLS
 from harness.web.tickets_wiring import WORKER_TOOLS
 from tests.unit.fakes import OneModel, ScriptedClient, SteppedClient, completed
 from tests.unit.helpers import context_for
-from tests.unit.test_ask_about_images import chat_folder, page_in_the_chat
+from tests.unit.test_ask_model import NoModels, chat_folder, page_in_the_chat
 from tests.webapp import files_in, images_in
 
 
@@ -28,7 +29,7 @@ async def jobs_file(tmp_path: Path, jobs: object, name: str = "jobs.json") -> Pa
 async def answered(
     tmp_path: Path, path: Path, client, *, vision: bool = True, at_once: int = 1
 ) -> Ok | Failure:
-    tool = ask_about_image_jobs_tool(
+    tool = ask_model_jobs_tool(
         files_in(tmp_path), images_in(tmp_path), OneModel(client, vision=vision), at_once=at_once
     )
     outcome = await tool.invoke(json.dumps({"jobs_path": str(path)}), context=context_for())
@@ -53,7 +54,7 @@ async def test_each_job_is_asked_once_and_its_reply_saved(tmp_path: Path) -> Non
     outcome = await answered(tmp_path, await jobs_file(tmp_path, jobs), client)
 
     assert isinstance(outcome, Ok)
-    assert outcome.data == {"answered": 2, "failed": []}
+    assert outcome.data["answered"] == 2 and outcome.data["failed"] == []
     assert client.calls == 2
     assert [m[0].content for m in client.seen_per_call] == ["Read 1.", "Read 2."]
     assert (folder / "a" / "1.json").read_text() == '{"n": 1}'
@@ -97,7 +98,7 @@ async def test_a_jobs_file_that_is_not_a_list_of_jobs_is_refused_before_any_call
         {"jobs": []},
         [],
         [{"paths": [str(page)], "instructions": "Read."}],
-        [{"paths": [], "instructions": "Read.", "save_to": str(folder / "1.json")}],
+        [{"paths": [str(page)] * 13, "instructions": "Read.", "save_to": str(folder / "1.json")}],
     )
 
     for index, jobs in enumerate(bad):
@@ -121,31 +122,71 @@ async def test_a_jobs_file_outside_this_chat_is_refused(tmp_path: Path) -> None:
     assert isinstance(outcome, Failure) and outcome.code == INVALID_ARGUMENTS
 
 
-async def test_a_model_that_cannot_see_is_refused_once_without_a_call(tmp_path: Path) -> None:
+async def test_a_model_that_cannot_see_answers_text_jobs_and_refuses_image_jobs(
+    tmp_path: Path,
+) -> None:
     page = await page_in_the_chat(tmp_path)
-    save_to = str(chat_folder(tmp_path) / "1.json")
-    jobs = [{"paths": [str(page)], "instructions": "Read.", "save_to": save_to}] * 3
+    note = await page_in_the_chat(tmp_path, "note.txt", b"Hello.")
+    folder = chat_folder(tmp_path)
+    jobs = [
+        {"paths": [str(page)], "instructions": "Read.", "save_to": str(folder / "1.json")},
+        {"paths": [str(note)], "instructions": "Read.", "save_to": str(folder / "2.json")},
+    ]
     client = ScriptedClient(completed("{}"))
 
     outcome = await answered(tmp_path, await jobs_file(tmp_path, jobs), client, vision=False)
 
+    assert isinstance(outcome, Ok) and outcome.data["answered"] == 1
+    assert outcome.data["failed"] == [{"save_to": str(folder / "1.json"), "error": NO_SIGHT}]
+    assert client.calls == 1
+
+
+async def test_a_bot_with_no_model_is_refused_once_without_a_call(tmp_path: Path) -> None:
+    save_to = str(chat_folder(tmp_path) / "1.json")
+    path = await jobs_file(tmp_path, [{"instructions": "Hi.", "save_to": save_to}])
+    tool = ask_model_jobs_tool(files_in(tmp_path), images_in(tmp_path), NoModels(), at_once=1)
+
+    outcome = await tool.invoke(json.dumps({"jobs_path": str(path)}), context=context_for())
+
     assert isinstance(outcome, Failure) and outcome.code == REFUSED
-    assert client.calls == 0
+
+
+async def test_the_tokens_of_every_answered_job_are_added_up(tmp_path: Path) -> None:
+    folder = chat_folder(tmp_path)
+    jobs = [{"instructions": "Hi.", "save_to": str(folder / f"{n}.json")} for n in range(3)]
+    client = SteppedClient(
+        [Completion(full_text="a", usage=Usage(input_tokens=10, output_tokens=2))],
+        [Completion(full_text="b")],
+        [
+            Completion(
+                full_text="c", usage=Usage(input_tokens=5, output_tokens=1, cached_input_tokens=4)
+            )
+        ],
+    )
+
+    outcome = await answered(tmp_path, await jobs_file(tmp_path, jobs), client)
+
+    assert isinstance(outcome, Ok) and outcome.data["answered"] == 3
+    assert outcome.data["usage"] == {
+        "input_tokens": 15,
+        "output_tokens": 3,
+        "cached_input_tokens": 4,
+    }
 
 
 def test_the_description_names_the_file_s_shape(tmp_path: Path) -> None:
-    spec = ask_about_image_jobs_tool(
+    spec = ask_model_jobs_tool(
         files_in(tmp_path), images_in(tmp_path), OneModel(ScriptedClient([])), at_once=1
     ).spec()
 
-    assert spec.name == ASK_ABOUT_IMAGE_JOBS == "ask_about_image_jobs"
+    assert spec.name == ASK_MODEL_JOBS == "ask_model_jobs"
     assert '"paths", "instructions" and "save_to"' in spec.description
     assert set(spec.input_schema["properties"]) == {"jobs_path"}
 
 
-def test_workers_are_offered_it_and_it_needs_sight() -> None:
-    assert ASK_ABOUT_IMAGE_JOBS in WORKER_TOOLS
-    assert ASK_ABOUT_IMAGE_JOBS in SIGHT_TOOLS
+def test_workers_are_offered_it_and_it_needs_no_sight() -> None:
+    assert ASK_MODEL_JOBS in WORKER_TOOLS
+    assert ASK_MODEL_JOBS not in SIGHT_TOOLS
 
 
 class OverlapClient(LLMClient):
@@ -177,7 +218,9 @@ async def test_jobs_run_at_most_at_once_together(tmp_path: Path) -> None:
 
     outcome = await answered(tmp_path, await jobs_file(tmp_path, jobs), client, at_once=3)
 
-    assert isinstance(outcome, Ok) and outcome.data == {"answered": 7, "failed": []}
+    assert (
+        isinstance(outcome, Ok) and outcome.data["answered"] == 7 and outcome.data["failed"] == []
+    )
     assert client.calls == 7
     assert client.most_open == 3
     assert sorted(p.name for p in folder.glob("[0-9].json")) == [f"{n}.json" for n in range(7)]

@@ -1,39 +1,18 @@
-"""The file tools — `send_file` to `ask_about_images` — as the model is offered them."""
+"""`send_file`, `extract_archive`, `make_archive` and `view_image`, as the model is offered them."""
 
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 from harness.files import ChatFileService
-from harness.images import ImageService
-from harness.llm import UserMessage
-from harness.runtime.models import BotModels
 from harness.tools.domain.context import ToolContext
-from harness.tools.domain.outcome import (
-    EXECUTION_ERROR,
-    INVALID_ARGUMENTS,
-    Failure,
-    Ok,
-    ToolOutcome,
-)
+from harness.tools.domain.outcome import INVALID_ARGUMENTS, Failure, Ok, ToolOutcome
 from harness.tools.domain.tool import Tool
 from harness.tools.native.files import _descriptions
-from harness.tools.native.files._answer import ImageAnswer, parsed_reply
 from harness.tools.native.files._archive import ArchiveError, extract_archive, pack_archive
-from harness.tools.native.files._ask import (
-    answer_target,
-    can_see,
-    images_to_send,
-    model_reply,
-    save_answer,
-)
 from harness.tools.native.files._chat_paths import paths_in_chat
 from harness.tools.native.files._image import UnviewableImage, image_at
-from harness.tools.native.files._jobs import ImageJob, JobFailure, JobsAnswered, jobs_in
 from harness.tools.native.files.models import (
-    AskAboutImageJobsArgs,
-    AskAboutImagesArgs,
     ExtractArchiveArgs,
     MakeArchiveArgs,
     SendFileArgs,
@@ -44,8 +23,6 @@ SEND_FILE = "send_file"
 EXTRACT_ARCHIVE = "extract_archive"
 MAKE_ARCHIVE = "make_archive"
 VIEW_IMAGE = "view_image"
-ASK_ABOUT_IMAGES = "ask_about_images"
-ASK_ABOUT_IMAGE_JOBS = "ask_about_image_jobs"
 
 
 def send_file_tool() -> Tool[SendFileArgs]:
@@ -125,99 +102,3 @@ def view_image_tool(files: ChatFileService) -> Tool[ViewImageArgs]:
         args_model=ViewImageArgs,
         execute=execute,
     )
-
-
-def ask_about_images_tool(
-    files: ChatFileService, images: ImageService, models: BotModels
-) -> Tool[AskAboutImagesArgs]:
-    """The tool that asks the calling bot's model one question about images of this chat's."""
-
-    async def execute(args: AskAboutImagesArgs, context: ToolContext) -> ToolOutcome:
-        return await _asked(files, images, models, args, context)
-
-    return Tool.from_model(
-        name=ASK_ABOUT_IMAGES,
-        description=_descriptions.ASK_ABOUT_IMAGES,
-        args_model=AskAboutImagesArgs,
-        execute=execute,
-    )
-
-
-def ask_about_image_jobs_tool(
-    files: ChatFileService, images: ImageService, models: BotModels, *, at_once: int
-) -> Tool[AskAboutImageJobsArgs]:
-    """The tool that makes every `ask_about_images` call a jobs file in this chat lists,
-    `at_once` of them at a time."""
-
-    async def execute(args: AskAboutImageJobsArgs, context: ToolContext) -> ToolOutcome:
-        found = paths_in_chat(files, context.origin.conversation_id, [args.jobs_path])
-        if isinstance(found, Failure):
-            return found
-        jobs = await asyncio.to_thread(jobs_in, found[0])
-        if isinstance(jobs, Failure):
-            return jobs
-        sight = await can_see(models, context.origin.bot_id)
-        if isinstance(sight, Failure):
-            return sight
-        gate = asyncio.Semaphore(at_once)
-
-        async def one(job: ImageJob) -> ToolOutcome:
-            async with gate:
-                return await _asked(files, images, models, job, context)
-
-        outcomes = await asyncio.gather(*(one(job) for job in jobs))
-        failed = [
-            JobFailure(save_to=job.save_to, error=outcome.message)
-            for job, outcome in zip(jobs, outcomes, strict=True)
-            if isinstance(outcome, Failure)
-        ]
-        done = JobsAnswered(answered=len(jobs) - len(failed), failed=failed)
-        return Ok(done.model_dump_json(), data=done.model_dump())
-
-    return Tool.from_model(
-        name=ASK_ABOUT_IMAGE_JOBS,
-        description=_descriptions.ASK_ABOUT_IMAGE_JOBS,
-        args_model=AskAboutImageJobsArgs,
-        execute=execute,
-    )
-
-
-async def _asked(
-    files: ChatFileService,
-    images: ImageService,
-    models: BotModels,
-    args: AskAboutImagesArgs,
-    context: ToolContext,
-) -> ToolOutcome:
-    """`args` asked of the calling bot's model, its reply saved when `args` says where."""
-    chat_id = context.origin.conversation_id
-    found = paths_in_chat(files, chat_id, args.paths)
-    if isinstance(found, Failure):
-        return found
-    target = None if args.save_to is None else answer_target(files.folder(chat_id), args.save_to)
-    if isinstance(target, Failure):
-        return target
-    try:
-        shown = await asyncio.to_thread(images_to_send, images, found)
-    except UnviewableImage as err:
-        return Failure(INVALID_ARGUMENTS, str(err))
-    if isinstance(shown, Failure):
-        return shown
-    question = UserMessage(content=args.instructions, images=shown)
-    reply = await model_reply(models, context.origin.bot_id, question)
-    if isinstance(reply, Failure):
-        return reply
-    return await _answered(reply, target)
-
-
-async def _answered(reply: str, target: Path | None) -> ToolOutcome:
-    """`reply` as the model and a script receive it, once written to `target` when there is one."""
-    parsed = parsed_reply(reply)
-    if target is None:
-        return Ok(parsed.text, data=ImageAnswer(answer=parsed.value, saved_to=None).model_dump())
-    try:
-        await asyncio.to_thread(save_answer, target, parsed.text)
-    except OSError as err:
-        return Failure(EXECUTION_ERROR, f"the reply could not be saved to {target}: {err}")
-    answer = ImageAnswer(answer=parsed.value, saved_to=str(target))
-    return Ok(f"{parsed.text}\n\nSaved to {target}", data=answer.model_dump())

@@ -68,6 +68,12 @@ The person then chose to keep one part per worker and cut each part's steps. A p
 | 81, 144 images, jobs file, one worker | 12 | 8.2M, 6.9M of it a loop before the worker found the shell |
 | 80, 129 images, shell offered from the start, jobs 3 at once | 7 | 1.0M |
 
-The token column counts the workers' own steps only. Each `ask_about_images` call is a model call of its own, and nothing logs its usage yet, so the chapter costs more than the column says. Episode 82's minutes run from the end of its download to the hand-over.
+The token column counts the workers' own steps only. Each `ask_about_images` call was a model call of its own, and nothing logged its usage, so the chapter cost more than the column says. Episode 82's minutes run from the end of its download to the hand-over.
 
 From episode 81 the skill writes each part's page calls to a jobs file and names no harness tool, and `ask_about_image_jobs` answers the whole file. In episode 81 the worker could not see the PC's shell and looped for 219 steps (#155). A server now names the tools a worker is offered from its first step, and `computer` offers `shell`. In episode 80 the worker's first call was the shell, and each part answered its pages three calls at a time.
+
+## A model call for any job
+
+The two tools are now `ask_model` and `ask_model_jobs`, in `tools/native/ask/`. Nothing in them is about images. A job may send no file, a PNG or JPEG as an image, or a UTF-8 text file as its text. A model that cannot see is refused only a job that sends an image. Each result carries the call's tokens, and a jobs file's result adds them up, so the session log holds what the calls cost. `ask.jobs_at_once` in `config.json` sets how many run at once.
+
+The bot also no longer starts a step that needs another step's file at the same time as that step. In the Lookism run, it started the translation while the download ran, and the worker polled the chat's files with `sleep`. `ORCHESTRATOR_INTRO` now says to accept such a step only once the ticket it needs reports ready.
