@@ -10,7 +10,7 @@ from pathlib import Path
 
 from harness.images import ImageService
 from harness.llm import Completion, Image, StreamFailure, UserMessage
-from harness.runtime.models import PICK_A_MODEL, BotModels, NoModel
+from harness.runtime.models import PICK_A_MODEL, BotModels, ModelChoice, NoModel
 from harness.tools.domain.outcome import EXECUTION_ERROR, INVALID_ARGUMENTS, REFUSED, Failure
 from harness.tools.native.files._image import image_at
 
@@ -51,13 +51,21 @@ def images_to_send(images: ImageService, files: Sequence[Path]) -> tuple[Image, 
     return shown
 
 
-async def model_reply(models: BotModels, bot_id: str, question: UserMessage) -> str | Failure:
-    """The text `bot_id`'s model replies to `question` alone, asked with no tools; else why not."""
+async def can_see(models: BotModels, bot_id: str) -> ModelChoice | Failure:
+    """`bot_id`'s model, when it has one that can see images; else why it cannot be asked."""
     choice = await models.model_for(bot_id)
     if isinstance(choice, NoModel):
         return Failure(REFUSED, PICK_A_MODEL)
     if not choice.has_vision:
         return Failure(REFUSED, NO_SIGHT)
+    return choice
+
+
+async def model_reply(models: BotModels, bot_id: str, question: UserMessage) -> str | Failure:
+    """The text `bot_id`'s model replies to `question` alone, asked with no tools; else why not."""
+    choice = await can_see(models, bot_id)
+    if isinstance(choice, Failure):
+        return choice
     completed: Completion | None = None
     async with aclosing(
         choice.client.stream_completion([question], choice.model, tools=None)

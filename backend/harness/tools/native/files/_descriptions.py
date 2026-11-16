@@ -33,7 +33,7 @@ IMAGE_PATH = "The image's absolute path, inside this chat's files."
 ASK_ABOUT_IMAGES = (
     "Asks the bot's own model one question about images in this chat's files, with no "
     "conversation history: only the instructions and the images are sent, and it costs one "
-    "model call. Use it inside execute_typescript to handle many pages, one call per page. "
+    "model call. For many sets of images, list the calls in a file for ask_about_image_jobs. "
     "Returns {answer, saved_to}: answer is the reply parsed as JSON when it is JSON, a ```json "
     "fence around it removed, else the reply's text; saved_to is the path the reply was "
     "written to, or null when save_to was not given."
@@ -47,3 +47,12 @@ ASK_SAVE_TO = (
     "Absolute path of a file inside this chat's folder to write the reply to, replacing it if it "
     "exists; leave it out to only return the reply."
 )
+
+ASK_ABOUT_IMAGE_JOBS = (
+    "Makes every ask_about_images call a jobs file lists, one after another, each with no "
+    "conversation history and saved to its own file. The file is a JSON list of jobs, each an "
+    'object with "paths", "instructions" and "save_to", as ask_about_images takes them. Returns '
+    "{answered, failed}: how many replies were saved, and each job that was not, by its save_to, "
+    "with why."
+)
+JOBS_PATH = "Absolute path of the jobs file, inside this chat's files."

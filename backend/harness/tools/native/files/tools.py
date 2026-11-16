@@ -23,13 +23,16 @@ from harness.tools.native.files._answer import ImageAnswer, parsed_reply
 from harness.tools.native.files._archive import ArchiveError, extract_archive, pack_archive
 from harness.tools.native.files._ask import (
     answer_target,
+    can_see,
     images_to_send,
     model_reply,
     save_answer,
 )
 from harness.tools.native.files._chat_paths import paths_in_chat
 from harness.tools.native.files._image import UnviewableImage, image_at
+from harness.tools.native.files._jobs import JobFailure, JobsAnswered, jobs_in
 from harness.tools.native.files.models import (
+    AskAboutImageJobsArgs,
     AskAboutImagesArgs,
     ExtractArchiveArgs,
     MakeArchiveArgs,
@@ -42,6 +45,7 @@ EXTRACT_ARCHIVE = "extract_archive"
 MAKE_ARCHIVE = "make_archive"
 VIEW_IMAGE = "view_image"
 ASK_ABOUT_IMAGES = "ask_about_images"
+ASK_ABOUT_IMAGE_JOBS = "ask_about_image_jobs"
 
 
 def send_file_tool() -> Tool[SendFileArgs]:
@@ -129,26 +133,7 @@ def ask_about_images_tool(
     """The tool that asks the calling bot's model one question about images of this chat's."""
 
     async def execute(args: AskAboutImagesArgs, context: ToolContext) -> ToolOutcome:
-        chat_id = context.origin.conversation_id
-        found = paths_in_chat(files, chat_id, args.paths)
-        if isinstance(found, Failure):
-            return found
-        target = (
-            None if args.save_to is None else answer_target(files.folder(chat_id), args.save_to)
-        )
-        if isinstance(target, Failure):
-            return target
-        try:
-            shown = await asyncio.to_thread(images_to_send, images, found)
-        except UnviewableImage as err:
-            return Failure(INVALID_ARGUMENTS, str(err))
-        if isinstance(shown, Failure):
-            return shown
-        question = UserMessage(content=args.instructions, images=shown)
-        reply = await model_reply(models, context.origin.bot_id, question)
-        if isinstance(reply, Failure):
-            return reply
-        return await _answered(reply, target)
+        return await _asked(files, images, models, args, context)
 
     return Tool.from_model(
         name=ASK_ABOUT_IMAGES,
@@ -156,6 +141,65 @@ def ask_about_images_tool(
         args_model=AskAboutImagesArgs,
         execute=execute,
     )
+
+
+def ask_about_image_jobs_tool(
+    files: ChatFileService, images: ImageService, models: BotModels
+) -> Tool[AskAboutImageJobsArgs]:
+    """The tool that makes every `ask_about_images` call a jobs file in this chat lists."""
+
+    async def execute(args: AskAboutImageJobsArgs, context: ToolContext) -> ToolOutcome:
+        found = paths_in_chat(files, context.origin.conversation_id, [args.jobs_path])
+        if isinstance(found, Failure):
+            return found
+        jobs = await asyncio.to_thread(jobs_in, found[0])
+        if isinstance(jobs, Failure):
+            return jobs
+        sight = await can_see(models, context.origin.bot_id)
+        if isinstance(sight, Failure):
+            return sight
+        failed: list[JobFailure] = []
+        for job in jobs:
+            outcome = await _asked(files, images, models, job, context)
+            if isinstance(outcome, Failure):
+                failed.append(JobFailure(save_to=job.save_to, error=outcome.message))
+        done = JobsAnswered(answered=len(jobs) - len(failed), failed=failed)
+        return Ok(done.model_dump_json(), data=done.model_dump())
+
+    return Tool.from_model(
+        name=ASK_ABOUT_IMAGE_JOBS,
+        description=_descriptions.ASK_ABOUT_IMAGE_JOBS,
+        args_model=AskAboutImageJobsArgs,
+        execute=execute,
+    )
+
+
+async def _asked(
+    files: ChatFileService,
+    images: ImageService,
+    models: BotModels,
+    args: AskAboutImagesArgs,
+    context: ToolContext,
+) -> ToolOutcome:
+    """`args` asked of the calling bot's model, its reply saved when `args` says where."""
+    chat_id = context.origin.conversation_id
+    found = paths_in_chat(files, chat_id, args.paths)
+    if isinstance(found, Failure):
+        return found
+    target = None if args.save_to is None else answer_target(files.folder(chat_id), args.save_to)
+    if isinstance(target, Failure):
+        return target
+    try:
+        shown = await asyncio.to_thread(images_to_send, images, found)
+    except UnviewableImage as err:
+        return Failure(INVALID_ARGUMENTS, str(err))
+    if isinstance(shown, Failure):
+        return shown
+    question = UserMessage(content=args.instructions, images=shown)
+    reply = await model_reply(models, context.origin.bot_id, question)
+    if isinstance(reply, Failure):
+        return reply
+    return await _answered(reply, target)
 
 
 async def _answered(reply: str, target: Path | None) -> ToolOutcome:

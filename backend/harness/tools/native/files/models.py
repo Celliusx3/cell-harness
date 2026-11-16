@@ -52,3 +52,11 @@ class AskAboutImagesArgs(BaseModel):
     )
     instructions: str = Field(pattern=r"\S", description=_descriptions.ASK_INSTRUCTIONS)
     save_to: str | None = Field(default=None, description=_descriptions.ASK_SAVE_TO)
+
+
+class AskAboutImageJobsArgs(BaseModel):
+    """What the model passes to `ask_about_image_jobs`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    jobs_path: str = Field(description=_descriptions.JOBS_PATH)

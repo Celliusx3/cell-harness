@@ -13,7 +13,7 @@ from harness.skills import SkillService
 from harness.tickets.service.ticket_service import TicketService
 from harness.tickets.service.worker import RuntimeTicketWorker
 from harness.tools import ChatGrants, ToolService
-from harness.tools.native.files import ASK_ABOUT_IMAGES, VIEW_IMAGE
+from harness.tools.native.files import ASK_ABOUT_IMAGE_JOBS, ASK_ABOUT_IMAGES, VIEW_IMAGE
 from harness.tools.native.tickets import (
     TICKET_REPORT,
     ticket_note_tool,
@@ -29,6 +29,7 @@ WORKER_TOOLS = (
     *SKILL_WRITE_TOOLS,
     VIEW_IMAGE,
     ASK_ABOUT_IMAGES,
+    ASK_ABOUT_IMAGE_JOBS,
     TICKET_REPORT,
 )
 

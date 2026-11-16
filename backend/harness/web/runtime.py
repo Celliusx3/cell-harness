@@ -47,11 +47,13 @@ from harness.tools.native.code_mode import (
     code_mode_tools,
 )
 from harness.tools.native.files import (
+    ASK_ABOUT_IMAGE_JOBS,
     ASK_ABOUT_IMAGES,
     EXTRACT_ARCHIVE,
     MAKE_ARCHIVE,
     SEND_FILE,
     VIEW_IMAGE,
+    ask_about_image_jobs_tool,
     ask_about_images_tool,
     extract_archive_tool,
     make_archive_tool,
@@ -107,7 +109,7 @@ DEFAULT_TOOLS = (
 )
 WORK_TOOLS = (FETCH_WITH_SECRET, EXTRACT_ARCHIVE, MAKE_ARCHIVE)
 CODE_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
-SIGHT_TOOLS = frozenset({VIEW_IMAGE, ASK_ABOUT_IMAGES})
+SIGHT_TOOLS = frozenset({VIEW_IMAGE, ASK_ABOUT_IMAGES, ASK_ABOUT_IMAGE_JOBS})
 NOT_CALLABLE_FROM_SCRIPTS = frozenset(
     {
         SKILL,
@@ -163,6 +165,7 @@ def build_runtime(
             make_archive_tool(files),
             view_image_tool(files),
             ask_about_images_tool(files, images, models),
+            ask_about_image_jobs_tool(files, images, models),
             *CLIENT_TOOLS.tools(),
         ],
         approvals=approvals,
