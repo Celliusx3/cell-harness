@@ -14,7 +14,7 @@ export function BotBlock({ speaker, continues, children }: BotBlockProps) {
   const named = speaker !== null && !continues;
   return (
     <div className={`flex gap-3 ${continues ? "-mt-2" : ""}`}>
-      {speaker !== null && (named ? <BotAvatar speaker={speaker} /> : <span className="w-7 shrink-0" />)}
+      {speaker !== null && (named ? <BotAvatar mood="awake" /> : <span className="w-7 shrink-0" />)}
       <div className="min-w-0 flex-1 space-y-3">
         {named && (
           <p className="text-sm font-semibold leading-7 text-ink">{speaker.name}</p>

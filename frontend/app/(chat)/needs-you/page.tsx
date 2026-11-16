@@ -106,7 +106,7 @@ function ChatItem({ chat, botName, onRetry, onStop }: ChatItemProps) {
         href={`/c/${encodeURIComponent(chat.botId)}`}
         className="flex items-center gap-2.5 font-semibold hover:text-accent"
       >
-        <BotAvatar speaker={{ id: chat.botId, name: botName }} />
+        <BotAvatar mood="awake" />
         <span className="min-w-0 break-words">{botName}</span>
       </Link>
       <ul className="flex flex-col gap-2 pl-[38px]">
