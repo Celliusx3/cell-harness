@@ -21,7 +21,7 @@ class DiskChatFileRepository:
 
     root: Path
 
-    def folder(self, chat_id: str) -> Path:
+    def old_folder(self, chat_id: str) -> Path:
         """This chat's folder from before workspaces, resolved; `ValueError` for an unplain id."""
         if not is_plain_name(chat_id):
             raise ValueError(f"{chat_id!r} cannot name a chat's folder")
@@ -40,7 +40,7 @@ class DiskChatFileRepository:
             return None
         try:
             resolved = candidate.resolve()
-            homes = (self.workspace(chat_id), self.folder(chat_id))
+            homes = (self.workspace(chat_id), self.old_folder(chat_id))
             inside = any(resolved.is_relative_to(home) for home in homes) and resolved.is_file()
         except (OSError, ValueError):
             return None

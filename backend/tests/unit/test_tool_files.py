@@ -112,7 +112,9 @@ async def test_a_file_outside_the_chat_s_folder_is_never_logged(tmp_path, caplog
 
 async def test_a_file_that_does_not_exist_is_never_logged(tmp_path) -> None:
     files = files_in(tmp_path)
-    missing = (DiskChatFileRepository(tmp_path / "files").folder("s") / "t" / "gone.png").as_posix()
+    missing = (
+        DiskChatFileRepository(tmp_path / "files").old_folder("s") / "t" / "gone.png"
+    ).as_posix()
 
     assert await logged_files(files, {FILES_META: [{"path": missing}]}) == []
 

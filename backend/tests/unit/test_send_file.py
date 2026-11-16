@@ -113,7 +113,7 @@ async def test_a_path_outside_this_chat_s_folder_is_not_handed_over_and_the_mode
 ) -> None:
     files = files_in(tmp_path)
     theirs = await files.save("other", "page.png", chunks_of(PNG_HEADER))
-    missing = str(DiskChatFileRepository(tmp_path / "files").folder("s") / "t" / "gone.png")
+    missing = str(DiskChatFileRepository(tmp_path / "files").old_folder("s") / "t" / "gone.png")
     refused = (theirs.path, "/etc/hosts", missing)
 
     session = await session_after(send_file_tool(), files, sending(*refused))

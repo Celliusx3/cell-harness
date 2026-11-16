@@ -107,7 +107,7 @@ async def test_the_chat_s_folder_itself_is_not_a_file(tmp_path) -> None:
     disk = disk_in(tmp_path)
     await disk.write("assistant", "page.png", chunks_of(PNG_HEADER))
 
-    assert disk.path_in("assistant", str(disk.folder("assistant"))) is None
+    assert disk.path_in("assistant", str(disk.old_folder("assistant"))) is None
 
 
 def test_the_files_folder_exists_before_any_upload_readable_by_us_alone(tmp_path) -> None:
@@ -125,4 +125,4 @@ def test_the_files_folder_exists_before_any_upload_readable_by_us_alone(tmp_path
 @pytest.mark.parametrize("chat_id", ["", ".", "..", "a/b"])
 def test_an_id_that_is_not_one_plain_name_has_no_folder(tmp_path, chat_id: str) -> None:
     with pytest.raises(ValueError, match="cannot name"):
-        disk_in(tmp_path).folder(chat_id)
+        disk_in(tmp_path).old_folder(chat_id)

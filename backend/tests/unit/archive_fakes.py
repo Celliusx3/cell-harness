@@ -42,7 +42,7 @@ def drawn_png(shade: int) -> bytes:
 
 def chat_folder(tmp_path: Path) -> Path:
     """An upload folder among the files of the conversation the tests call from."""
-    folder = DiskChatFileRepository(tmp_path / "files").folder(CONVERSATION_ID) / "upload"
+    folder = DiskChatFileRepository(tmp_path / "files").old_folder(CONVERSATION_ID) / "upload"
     folder.mkdir(parents=True)
     return folder
 
