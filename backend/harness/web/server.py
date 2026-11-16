@@ -31,6 +31,7 @@ from harness.channels.web.compact_router import CompactRouter
 from harness.channels.web.secret_card_router import SecretCardRouter
 from harness.config import Settings, SettingsRepository, SettingsService
 from harness.files import ChatFileService, DiskChatFileRepository
+from harness.files.router.workspace_router import WorkspaceRouter
 from harness.groups import GroupRepository, GroupService
 from harness.groups.router.group_router import GroupRouter
 from harness.images import BLOBS, DiskImageRepository, ImageService
@@ -291,6 +292,7 @@ def create_app(
     app.include_router(ScheduleRouter(bots, schedules, scheduler, runs).router)
     app.include_router(TicketRouter(tickets, secrets, bots, client_tools).router)
     app.include_router(TicketFileRouter(tickets, web.files, web.images).router)
+    app.include_router(WorkspaceRouter(web.files).router)
     app.include_router(GroupRouter(runs.groups).router)
     app.include_router(LinkCodeRouter(channels.link_codes, bots, secrets).router)
     return app

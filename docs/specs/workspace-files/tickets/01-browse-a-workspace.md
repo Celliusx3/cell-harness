@@ -1,6 +1,6 @@
 # 01 Browse and download a chat's workspace
 
-**Status.** open
+**Status.** done
 
 **What to build.**
 

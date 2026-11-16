@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, Monitor, Pencil } from "lucide-react";
+import { Ellipsis, FolderOpen, type LucideIcon, Monitor, Pencil } from "lucide-react";
 import Link from "next/link";
 
 import { DrawerButton } from "@/components/chat/Drawer";
@@ -30,16 +30,38 @@ interface ChatHeaderProps {
   waiting: boolean;
   ticketsAtWork: number;
   canCompact: boolean;
-  computer: ComputerToggle | null;
+  computer: DockToggle | null;
+  files: DockToggle;
   onCompact(): void;
   onClear(): void;
 }
 
-/** Whether the computer is docked beside the chat, and how to dock or close it. */
-export interface ComputerToggle {
+/** Whether a panel is docked beside the chat, and how to dock or close it. */
+export interface DockToggle {
   docked: boolean;
   onToggle(): void;
 }
+
+interface DockKind {
+  label: string;
+  icon: LucideIcon;
+  openTitle: string;
+  closeTitle: string;
+}
+
+const COMPUTER_DOCK: DockKind = {
+  label: "Computer",
+  icon: Monitor,
+  openTitle: "Show the computer beside the chat",
+  closeTitle: "Close the computer",
+};
+
+const FILES_DOCK: DockKind = {
+  label: "Files",
+  icon: FolderOpen,
+  openTitle: "Show this chat's workspace beside the chat",
+  closeTitle: "Close the files",
+};
 
 const DOCK_BUTTON =
   "hidden h-9 shrink-0 items-center gap-2 rounded-[10px] border px-3.5 text-[13px] font-medium transition lg:inline-flex";
@@ -53,6 +75,7 @@ export function ChatHeader({
   ticketsAtWork,
   canCompact,
   computer,
+  files,
   onCompact,
   onClear,
 }: ChatHeaderProps) {
@@ -65,7 +88,8 @@ export function ChatHeader({
         <ChatState elapsed={elapsed} waiting={waiting} ticketsAtWork={ticketsAtWork} />
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
-        {computer !== null && <DockButton computer={computer} />}
+        <DockButton kind={FILES_DOCK} toggle={files} />
+        {computer !== null && <DockButton kind={COMPUTER_DOCK} toggle={computer} />}
         {editHref !== null && (
           <Link href={editHref} aria-label="Edit bot" title="Edit bot" className={ICON_BUTTON}>
             <Pencil size={16} />
@@ -83,21 +107,22 @@ function moodOf(elapsed: string | null, waiting: boolean, ticketsAtWork: number)
   return "asleep";
 }
 
-function DockButton({ computer }: { computer: ComputerToggle }) {
+function DockButton({ kind, toggle }: { kind: DockKind; toggle: DockToggle }) {
+  const Icon = kind.icon;
   return (
     <button
       type="button"
-      aria-pressed={computer.docked}
-      title={computer.docked ? "Close the computer" : "Show the computer beside the chat"}
-      onClick={computer.onToggle}
+      aria-pressed={toggle.docked}
+      title={toggle.docked ? kind.closeTitle : kind.openTitle}
+      onClick={toggle.onToggle}
       className={
-        computer.docked
+        toggle.docked
           ? `${DOCK_BUTTON} border-accent bg-accent-soft text-accent`
           : `${DOCK_BUTTON} border-line text-ink-soft hover:bg-surface-sunken hover:text-ink`
       }
     >
-      <Monitor size={16} />
-      Computer
+      <Icon size={16} />
+      {kind.label}
     </button>
   );
 }

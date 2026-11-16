@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 import shutil
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
 
+from harness.files.domain.models import WorkspaceEntry, WorkspacePathError
 from harness.files.repository.file_repository import FOLDER_MODE, is_plain_name
 
 WORKSPACES = "workspaces"
@@ -46,6 +48,27 @@ class DiskChatFileRepository:
             return None
         return resolved if inside else None
 
+    def folder_in(self, chat_id: str, path: str) -> Path:
+        """The folder `path` names in this chat's workspace, resolved; else `WorkspacePathError`."""
+        workspace = self.workspace(chat_id)
+        if Path(path).is_absolute():
+            raise WorkspacePathError(f"{path!r} is not a path inside the workspace")
+        try:
+            folder = (workspace / path).resolve()
+            is_folder = folder.is_relative_to(workspace) and folder.is_dir()
+        except (OSError, ValueError):
+            is_folder = False
+        if not is_folder:
+            raise WorkspacePathError(f"{path!r} is not a folder in the workspace")
+        return folder
+
+    def entries_in(self, chat_id: str, folder: Path) -> tuple[WorkspaceEntry, ...]:
+        """What `folder` holds; a link leading outside the workspace, or to nothing, left out."""
+        workspace = self.workspace(chat_id)
+        with os.scandir(folder) as found:
+            entries = (_entry(item, workspace) for item in found)
+            return tuple(entry for entry in entries if entry is not None)
+
     async def write(self, chat_id: str, name: str, chunks: AsyncIterator[bytes]) -> Path:
         """`chunks` as the file `name` in a new upload folder; on any failure none stays."""
         if not is_plain_name(name):
@@ -80,3 +103,20 @@ class DiskChatFileRepository:
         fresh = uploads / secrets.token_urlsafe(TOKEN_BYTES)
         fresh.mkdir(mode=FOLDER_MODE)
         return fresh
+
+
+def _entry(item: os.DirEntry[str], workspace: Path) -> WorkspaceEntry | None:
+    """`item` as a listed entry; None for a link leading outside `workspace` or to nothing."""
+    try:
+        if item.is_symlink() and not _is_link_within(Path(item.path), workspace):
+            return None
+        if item.is_dir():
+            return WorkspaceEntry(name=item.name, kind="folder", size=0)
+        return WorkspaceEntry(name=item.name, kind="file", size=item.stat().st_size)
+    except OSError:
+        return None
+
+
+def _is_link_within(link: Path, workspace: Path) -> bool:
+    target = link.resolve()
+    return target.is_relative_to(workspace) and target.exists()
