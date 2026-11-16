@@ -9,8 +9,7 @@ import logging
 import httpx
 
 from harness.bots import BotService
-from harness.config.sections import CompactionSettings
-from harness.config.settings import Settings
+from harness.config import CompactionSettings, Settings
 from harness.files import ChatFileService
 from harness.groups import GroupService
 from harness.images import ImageService

@@ -11,7 +11,7 @@ import pytest
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotService
-from harness.config.sections import CompactionSettings, LLMSettings
+from harness.config import CompactionSettings, LLMSettings
 from harness.llm.adapters import OpenAIClient
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runs.service.run_service import RunService

@@ -97,7 +97,7 @@ arguments `-c`, `from phone.server import main; main()`, settings
 
 ### Three things that will bite you
 
-**The server id may not contain a hyphen.** `config/sections.py` and
+**The server id may not contain a hyphen.** `config/domain/sections.py` and
 `mcp/service/tool.py` both permit one, but `tools/native/code_mode/_typescript.py` emits
 `declare function {name}(...)` **unquoted** — so a server keyed `instagram`
 prints `declare function my-server__fetch_reels(...)`, which is not

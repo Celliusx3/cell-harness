@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.mcp import McpService
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository

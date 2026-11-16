@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from harness.bots import BotNotFound, BotService
-from harness.config.sections import LLMSettings
+from harness.config import LLMSettings
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAISettings
 from harness.runtime.models import ModelChoice, NoModel

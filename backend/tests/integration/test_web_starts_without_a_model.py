@@ -12,7 +12,7 @@ from fastapi import FastAPI
 
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID
-from harness.config import settings as settings_module
+from harness.config.repository import settings_repository as settings_module
 from harness.llm.adapters.openai import client as adapter_module
 from harness.runs.service.run_service import RunService
 from harness.web import server
@@ -76,7 +76,7 @@ def _config_with_no_model(tmp_path: Path) -> Path:
 def _started_app(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[FastAPI, list[RunService]]:
-    monkeypatch.setattr(settings_module, "_CONFIG_JSON", _config_with_no_model(tmp_path))
+    monkeypatch.setattr(settings_module, "CONFIG_JSON", _config_with_no_model(tmp_path))
     monkeypatch.setattr(server, "configure_logging", lambda: None)
     built: list[RunService] = []
 

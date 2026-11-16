@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.mcp import McpService
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime

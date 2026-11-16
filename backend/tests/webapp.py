@@ -19,8 +19,7 @@ from harness.channels.service.gateway import ChannelGateway
 from harness.channels.service.links import LinkCodes
 from harness.channels.service.platforms import PlatformChannelMaker, PlatformChannels
 from harness.channels.web.channel import WebChannel
-from harness.config.sections import FileSettings
-from harness.config.settings import Settings
+from harness.config import FileSettings, Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import (

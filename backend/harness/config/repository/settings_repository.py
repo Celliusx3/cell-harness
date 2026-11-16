@@ -1,9 +1,8 @@
-"""Settings: two JSON files, one committed and one not."""
+"""Settings read from two JSON files, one committed and one not, and the environment."""
 
 from __future__ import annotations
 
 import os
-import shutil
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -14,7 +13,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-from harness.config.sections import (
+from harness.config.domain.sections import (
     ApprovalSettings,
     AskSettings,
     BotSettings,
@@ -31,12 +30,12 @@ from harness.config.sections import (
     WebSettings,
 )
 
-_BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
-_CONFIG_JSON = Path(os.getenv("HARNESS_CONFIG", _BACKEND_ROOT / "config.json"))
-_LOCAL_JSON = Path(
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]
+CONFIG_JSON = Path(os.getenv("HARNESS_CONFIG", _BACKEND_ROOT / "config.json"))
+LOCAL_JSON = Path(
     os.getenv(
         "HARNESS_CONFIG_LOCAL",
-        _CONFIG_JSON.with_name(_CONFIG_JSON.stem + ".local" + _CONFIG_JSON.suffix),
+        CONFIG_JSON.with_name(CONFIG_JSON.stem + ".local" + CONFIG_JSON.suffix),
     )
 )
 
@@ -73,7 +72,7 @@ def _project_path(path: Path) -> Path:
 
 
 def _project_root() -> Path:
-    for candidate in (_CONFIG_JSON.parent, *_CONFIG_JSON.parent.parents):
+    for candidate in (CONFIG_JSON.parent, *CONFIG_JSON.parent.parents):
         if (candidate / ".git").exists():
             return candidate
     return _BACKEND_ROOT.parent
@@ -116,28 +115,24 @@ class Settings(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Highest priority first."""
-        local = JsonConfigSettingsSource(settings_cls, json_file=_LOCAL_JSON)
-        committed = JsonConfigSettingsSource(settings_cls, json_file=_CONFIG_JSON)
+        local = JsonConfigSettingsSource(settings_cls, json_file=LOCAL_JSON)
+        committed = JsonConfigSettingsSource(settings_cls, json_file=CONFIG_JSON)
         return (init_settings, env_settings, local, committed)
 
 
-class MissingConfigError(RuntimeError):
-    """A value with no possible default was not supplied anywhere."""
+class SettingsRepository:
+    """The settings in the two JSON files and the environment, read whole."""
 
+    @property
+    def committed_path(self) -> Path:
+        """The committed `config.json`."""
+        return CONFIG_JSON
 
-def load_settings() -> Settings:
-    """Settings for a real run, with Deno and the encryption key checked."""
-    settings = Settings()
-    if shutil.which(settings.code.deno_path) is None:
-        raise MissingConfigError(
-            f"{settings.code.deno_path!r} is not on PATH, and the harness runs "
-            "every tool call through a Deno sandbox. Install Deno "
-            f"(https://deno.com) or set code.deno_path in {_CONFIG_JSON}."
-        )
-    if not settings.secrets.encryption_key.strip():
-        raise MissingConfigError(
-            f"secrets.encryption_key is not set. It belongs in {_LOCAL_JSON} (gitignored) as "
-            f'{{"secrets": {{"encryption_key": "…"}}}}, or in HARNESS_SECRETS__ENCRYPTION_KEY. '
-            "Make one with `openssl rand -hex 32`. Changing it makes every saved key unreadable."
-        )
-    return settings
+    @property
+    def local_path(self) -> Path:
+        """The gitignored `config.local.json`, which wins over the committed file."""
+        return LOCAL_JSON
+
+    def read(self) -> Settings:
+        """Every setting, the environment first, then the local file, then the committed one."""
+        return Settings()

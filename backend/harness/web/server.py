@@ -29,7 +29,7 @@ from harness.channels.web.channel import WebChannel
 from harness.channels.web.client_router import ClientToolRouter
 from harness.channels.web.compact_router import CompactRouter
 from harness.channels.web.secret_card_router import SecretCardRouter
-from harness.config.settings import Settings, load_settings
+from harness.config import Settings, SettingsRepository, SettingsService
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.groups import GroupRepository, GroupService
 from harness.groups.router.group_router import GroupRouter
@@ -148,7 +148,7 @@ def build_channels(
 def create_web_app() -> FastAPI:
     """The application uvicorn starts."""
     configure_logging()
-    settings = load_settings()
+    settings = SettingsService(SettingsRepository()).load()
     secrets = build_keyring(settings)
     sessions = build_sessions(settings)
     disk = DiskChatFileRepository(settings.files.root)

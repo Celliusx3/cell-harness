@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.mcp import McpService
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.calls import Signature

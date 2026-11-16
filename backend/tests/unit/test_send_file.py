@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from harness.config.settings import Settings
+from harness.config import Settings
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.llm import ToolCall, ToolMessage, text_of
 from harness.mcp import McpService
