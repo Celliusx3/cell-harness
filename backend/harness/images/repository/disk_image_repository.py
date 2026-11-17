@@ -36,8 +36,8 @@ class DiskImageRepository:
 
     def file_of(self, sha256: str) -> ImageFile | None:
         """The kept file named `sha256`, whatever its extension; `None` when there is none."""
-        for media_type, extension in _EXTENSIONS.items():
-            path = self.root / f"{sha256}.{extension}"
+        for media_type in _EXTENSIONS:
+            path = self._path_of(sha256, media_type)
             if path.is_file():
                 return ImageFile(path=path, media_type=media_type)
         return None

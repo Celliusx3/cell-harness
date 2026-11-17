@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import re
 from pathlib import Path
 
 from harness.files import ChatFile
-from harness.images.domain.models import ImageFile, KeptMediaType
-from harness.images.repository.image_repository import ImageRepository, is_kept_media_type
+from harness.images.domain.models import ImageFile, KeptMediaType, is_kept_media_type, is_sha256
+from harness.images.repository.image_repository import ImageRepository
 from harness.llm import Block, Image, Text
 from harness.prompts import IMAGE_TOO_LARGE
 from harness.tools import ReturnedImage
@@ -17,12 +16,6 @@ from harness.tools import ReturnedImage
 logger = logging.getLogger("harness.images")
 
 IMAGE_MAX_BYTES = 5 * 1024 * 1024
-_SHA256 = re.compile(r"[0-9a-f]{64}")
-
-
-def is_sha256(text: str) -> bool:
-    """Whether `text` is a lowercase hex SHA-256."""
-    return _SHA256.fullmatch(text) is not None
 
 
 class ImageService:
@@ -44,7 +37,7 @@ class ImageService:
                 note = IMAGE_TOO_LARGE.format(size=len(image.data), limit=IMAGE_MAX_BYTES)
                 blocks.append(Text(text=note))
                 continue
-            kept = self._save(image.media_type, image.data)
+            kept = self._kept_image(image.media_type, image.data)
             if kept is not None:
                 blocks.append(kept)
         return tuple(blocks)
@@ -60,7 +53,7 @@ class ImageService:
             except OSError as err:
                 logger.warning("attached %s is not shown: %s", file.path, err)
                 continue
-            kept = self._save(file.media_type, data)
+            kept = self._kept_image(file.media_type, data)
             if kept is not None:
                 images.append(kept)
         return tuple(images)
@@ -84,7 +77,7 @@ class ImageService:
         """The kept file named `sha256`, whatever its extension; `None` when there is none."""
         return self._repository.file_of(sha256) if is_sha256(sha256) else None
 
-    def _save(self, media_type: KeptMediaType, data: bytes) -> Image | None:
+    def _kept_image(self, media_type: KeptMediaType, data: bytes) -> Image | None:
         """The image `data` is, once kept; `None`, with a warning, when it could not be written."""
         image = Image(
             media_type=media_type, sha256=hashlib.sha256(data).hexdigest(), size=len(data)
