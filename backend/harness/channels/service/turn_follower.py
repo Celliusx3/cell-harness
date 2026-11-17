@@ -12,7 +12,8 @@ from harness.channels.service.chats import open_chat_session, state_of
 from harness.channels.service.replies import ReplySender
 from harness.files import ChatFile
 from harness.groups import EmptyGroupError
-from harness.runs.service.run import Run, RunAlreadyActiveError
+from harness.runs.domain.errors import RunAlreadyActiveError
+from harness.runs.service.run import Run
 from harness.runs.service.run_service import RunService
 from harness.session.service.session_service import SessionService
 from harness.skills import SkillService, UnknownSkill
@@ -98,8 +99,7 @@ class TurnFollower:
 
     async def _wait_out(self, key: ChatKey, run: Run) -> None:
         """Wait, sending nothing, for `run` to settle, then start whatever queued behind it."""
-        async with run.condition:
-            await run.condition.wait_for(lambda: run.is_settled)
+        await run.wait_until_settled()
         await self._drain(*key)
 
     async def _drain(self, channel: str, chat_id: str) -> None:

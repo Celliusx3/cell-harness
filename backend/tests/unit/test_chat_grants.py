@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harness.runs.service.chat_grants import ChatGrantLog
+from harness.runs.service.chat_grant_service import ChatGrantService
 from harness.session.domain.models import ApprovalGrant, TurnStart
 from harness.tools import NO_CHAT_GRANTS
 from tests.unit.fakes import ScriptedClient
@@ -30,7 +30,7 @@ async def test_a_grant_written_in_one_chat_is_read_there_and_not_in_another(tmp_
         chat = await chats.create(chat_id)
         chat.append(TurnStart(turn=0, bot_id=bot_id))
         await chats.flush(chat)
-    grants = ChatGrantLog(run_service(chats, ScriptedClient([])), chats)
+    grants = ChatGrantService(run_service(chats, ScriptedClient([])), chats)
 
     await grants.grant("chat-b", "computer__shell")
 
@@ -41,7 +41,7 @@ async def test_a_grant_written_in_one_chat_is_read_there_and_not_in_another(tmp_
 
 async def test_a_chat_never_written_holds_no_grant(tmp_path) -> None:
     chats = durable_service(tmp_path)
-    grants = ChatGrantLog(run_service(chats, ScriptedClient([])), chats)
+    grants = ChatGrantService(run_service(chats, ScriptedClient([])), chats)
 
     await grants.grant("nowhere", "computer__shell")
 

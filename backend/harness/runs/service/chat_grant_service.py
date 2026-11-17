@@ -10,7 +10,7 @@ from harness.session.service.session_service import SessionService
 
 
 @dataclass(frozen=True)
-class ChatGrantLog:
+class ChatGrantService:
     """A chat's grants in its running turn's log, else in the stored one in `chats`."""
 
     runs: RunService

@@ -31,8 +31,7 @@ async def test_an_event_is_logged_durably_in_the_last_turn_and_opens_none(tmp_pa
     runs = run_service(sessions, model)
     session = await sessions.create(ASSISTANT_ID)
     run = runs.start(session, "hello")
-    async with run.condition:
-        await run.condition.wait_for(lambda: run.is_settled)
+    await run.wait_until_settled()
     published = runs.app_events.subscribe()
     told = asyncio.ensure_future(anext(published))
     await asyncio.sleep(0)

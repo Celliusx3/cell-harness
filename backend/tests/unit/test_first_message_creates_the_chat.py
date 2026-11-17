@@ -9,7 +9,7 @@ import pytest
 
 from harness.bots import ASSISTANT_ID, BUILDER_ID
 from harness.prompts import ASSISTANT_INSTRUCTIONS, BUILDER_INSTRUCTIONS
-from harness.runs.service.bot_messages import BotMessenger
+from harness.runs.service.bot_message_service import BotMessageService
 from harness.schedules import Scheduler
 from harness.session.domain.models import (
     AssistantMessageEvent,
@@ -72,7 +72,7 @@ async def test_a_bot_message_to_bot_builder_s_unwritten_chat_is_heard_and_answer
     _, gateway, runs, _, sessions = await build(
         tmp_path, ScriptedClient(completed("Made it.")), skills=no_skills()
     )
-    messages = BotMessenger(no_bots(sessions), runs, follow=gateway.follow)
+    messages = BotMessageService(no_bots(sessions), runs, follow=gateway.follow)
     assert await _is_unwritten(sessions, tmp_path, BUILDER_ID)
 
     run = await messages.deliver(BUILDER_ID, ASKED)
@@ -97,7 +97,7 @@ async def test_the_new_chat_logs_the_bot_s_instructions_before_its_first_turn(
     _, gateway, runs, _, sessions = await build(
         tmp_path, ScriptedClient(completed("Done.")), skills=no_skills()
     )
-    messages = BotMessenger(no_bots(sessions), runs, follow=gateway.follow)
+    messages = BotMessageService(no_bots(sessions), runs, follow=gateway.follow)
     assert await _is_unwritten(sessions, tmp_path, bot_id)
 
     await messages.deliver(bot_id, ASKED)
@@ -114,7 +114,7 @@ async def test_a_bot_message_for_a_bot_that_is_gone_is_dropped_and_saves_no_chat
     tmp_path: Path,
 ) -> None:
     _, gateway, runs, _, sessions = await build(tmp_path, ScriptedClient([]), skills=no_skills())
-    messages = BotMessenger(no_bots(sessions), runs, follow=gateway.follow)
+    messages = BotMessageService(no_bots(sessions), runs, follow=gateway.follow)
 
     run = await messages.deliver("gone", ASKED)
 

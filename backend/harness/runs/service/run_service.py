@@ -12,8 +12,9 @@ from harness.app_events import AppEventService, ChatLoggedAppEvent, TurnStartedA
 from harness.bots import BotService
 from harness.files import ChatFile
 from harness.groups import GroupService
-from harness.runs.service.discussion import discussion_events
-from harness.runs.service.run import Run, RunAlreadyActiveError, wait_until_settled
+from harness.runs.domain.errors import RunAlreadyActiveError
+from harness.runs.service.discussion_service import DiscussionService
+from harness.runs.service.run import Run
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
 from harness.session.domain.log import Session
@@ -49,6 +50,7 @@ class RunService:
         self._bots = bots
         self._groups = groups
         self._app_events = app_events
+        self._discussions = DiscussionService(runtime, groups)
         self._runs: dict[str, Run] = {}
 
     @property
@@ -105,7 +107,7 @@ class RunService:
         while True:
             running = self._runs.get(chat_id)
             if running is not None:
-                await wait_until_settled(running)
+                await running.wait_until_settled()
                 continue
             session = await self._resumed_or_new_session(chat_id)
             if chat_id not in self._runs:
@@ -126,15 +128,15 @@ class RunService:
             raise RunAlreadyActiveError(session.id)
         run = self._register_run(session)
         compaction = self._runtime.compact(session=session)
-        run._turn_task = turn_task = asyncio.create_task(self._drain_turn(run, compaction))
-        run._settle_task = asyncio.create_task(self._settle_when_done(run, turn_task))
+        run.turn_task = turn_task = asyncio.create_task(self._drain_turn(run, compaction))
+        run.settle_task = asyncio.create_task(self._settle_when_done(run, turn_task))
         return run
 
     def clear(self, session: Session) -> Run:
         """Begin wiping this chat as a run of its own, taking over from the turn in flight."""
         in_flight = self._runs.get(session.id)
         run = self._register_run(session)
-        run._settle_task = asyncio.create_task(self._end_then_wipe(in_flight, run))
+        run.settle_task = asyncio.create_task(self._end_then_wipe(in_flight, run))
         return run
 
     async def set_approval_mode(self, conversation_id: str, mode: ApprovalMode) -> None:
@@ -167,7 +169,7 @@ class RunService:
     ) -> bool:
         """`log_without_turn` once no turn runs in `chat_id`, never between a call and result."""
         while (running := self._runs.get(chat_id)) is not None:
-            await wait_until_settled(running)
+            await running.wait_until_settled()
         return await self.log_without_turn(chat_id, event_for_turn)
 
     async def approval_mode(self, conversation_id: str) -> ApprovalMode:
@@ -212,14 +214,14 @@ class RunService:
         await self._sessions.flush(session)
         run = self._runs.get(session.id)
         if run is not None:
-            await self._wake(run)
+            await run.wake()
 
     async def stop(self, conversation_id: str) -> bool:
         """End a turn early."""
         run = self._runs.get(conversation_id)
-        if run is None or run._turn_task is None:
+        if run is None or run.turn_task is None:
             return False
-        await self._end(run)
+        await run.end()
         return True
 
     async def aclose(self) -> None:
@@ -230,9 +232,9 @@ class RunService:
     def _converse(self, session: Session, opening: AsyncIterator[TurnEvent]) -> Run:
         """Run `opening` and the discussion after it on a task this service owns."""
         run = self._register_run(session)
-        discussion = discussion_events(self._runtime, self._groups, session, opening)
-        run._turn_task = turn_task = asyncio.create_task(self._drain_turn(run, discussion))
-        run._settle_task = asyncio.create_task(self._settle_when_done(run, turn_task))
+        discussion = self._discussions.events(session, opening)
+        run.turn_task = turn_task = asyncio.create_task(self._drain_turn(run, discussion))
+        run.settle_task = asyncio.create_task(self._settle_when_done(run, turn_task))
         return run
 
     def _register_run(self, session: Session) -> Run:
@@ -242,30 +244,23 @@ class RunService:
         self._app_events.publish(TurnStartedAppEvent(chat_id=session.id))
         return run
 
-    async def _end(self, run: Run) -> None:
-        """Cancel `run`'s turn, if it has begun, and wait for the run to settle."""
-        if run._turn_task is not None:
-            run._turn_task.cancel()
-        if run._settle_task is not None:
-            await asyncio.shield(run._settle_task)
-
     async def _end_then_wipe(self, in_flight: Run | None, clearing: Run) -> None:
         """Own the clear: the run in flight ended and settled, then the wipe run as its turn."""
         if in_flight is not None:
-            await self._end(in_flight)
-        clearing._turn_task = turn_task = asyncio.create_task(self._wipe(clearing))
+            await in_flight.end()
+        clearing.turn_task = turn_task = asyncio.create_task(self._wipe(clearing))
         await self._settle_when_done(clearing, turn_task)
 
     async def _wipe(self, run: Run) -> None:
         """Write the wiped log over the stored one, and show it to whoever watches `run`."""
         run.session = await self._sessions.clear(run.session.id)
-        await self._wake(run)
+        await run.wake()
 
     async def _drain_turn(self, run: Run, turn: AsyncIterator[object]) -> None:
         """Drive the turn, waking subscribers as the log grows."""
         async with aclosing(turn) as events:
             async for _ in events:
-                await self._wake(run)
+                await run.wake()
 
     async def _settle_when_done(self, run: Run, turn_task: asyncio.Task[None]) -> None:
         """Own the turn's ending. This task is never cancelled — see `stop`."""
@@ -283,15 +278,9 @@ class RunService:
         """Make the turn durable, then release everyone waiting on it."""
         with contextlib.suppress(Exception):
             await self._sessions.flush(run.session)
-        async with run.condition:
-            run.is_settled = True
-            run.condition.notify_all()
+        await run.mark_settled()
         if self._runs.get(run.session.id) is run:
             del self._runs[run.session.id]
-
-    async def _wake(self, run: Run) -> None:
-        async with run.condition:
-            run.condition.notify_all()
 
 
 def _has_call(session: Session, call_id: str) -> bool:

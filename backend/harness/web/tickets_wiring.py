@@ -11,8 +11,8 @@ from typing import Protocol
 
 from harness.bots import Bot, BotService
 from harness.prompts import CODE_PROMPT, GUIDANCE
-from harness.runs.service.bot_messages import Follow
-from harness.runs.service.chat_grants import ChatGrantLog
+from harness.runs.service.bot_message_service import Follow
+from harness.runs.service.chat_grant_service import ChatGrantService
 from harness.runs.service.run_service import RunService
 from harness.runtime.hooks.native.no_wait import NoWaitHook
 from harness.runtime.service import Runtime
@@ -130,7 +130,7 @@ def ticket_service(
         runtime,
         logs,
         bots,
-        chat_grants=ChatGrantLog(runs, sessions),
+        chat_grants=ChatGrantService(runs, sessions),
         skills=skills,
         offered_from_start=offered_from_start,
     )

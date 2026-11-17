@@ -97,10 +97,10 @@ async def test_a_compaction_is_prompted_as_the_turns_were_and_logs_no_edit(
     runtime = runtime_over(client, guidance="GUIDE", checkpoint=service.flush, context_tokens=None)
     runs = _runs(service, runtime, bots, app_events)
     session = await service.create(ASSISTANT_ID)
-    await asyncio.wait_for(runs.start(session, "hi")._settle_task, timeout=5)
+    await asyncio.wait_for(runs.start(session, "hi").settle_task, timeout=5)
     put_instructions(bots, ASSISTANT_ID, "Be brief.")
 
-    await asyncio.wait_for(runs.compact(session)._settle_task, timeout=5)
+    await asyncio.wait_for(runs.compact(session).settle_task, timeout=5)
 
     assert client.seen[0] == SystemMessage(content="Be kind. GUIDE")
     assert _logged(session) == ["Be kind."]
@@ -120,10 +120,10 @@ async def test_an_answer_resumes_the_turn_without_logging_an_edit(tmp_path: Path
         service, runtime_over(client, pending_tool(), checkpoint=service.flush), bots, app_events
     )
     session = await service.create(ASSISTANT_ID)
-    await asyncio.wait_for(runs.start(session, "near me?")._settle_task, timeout=5)
+    await asyncio.wait_for(runs.start(session, "near me?").settle_task, timeout=5)
     put_instructions(bots, ASSISTANT_ID, "Be brief.")
 
-    await asyncio.wait_for(runs.resume(session, "c1", Ok(content="here"))._settle_task, timeout=5)
+    await asyncio.wait_for(runs.resume(session, "c1", Ok(content="here")).settle_task, timeout=5)
 
     assert client.seen[0] == SystemMessage(content="Be kind.")
     assert _logged(session) == ["Be kind."]
@@ -144,7 +144,7 @@ async def test_a_chat_from_before_groups_logs_its_bot_s_instructions_no_second_t
     session = await service.create(ASSISTANT_ID)
     session.append(BotInstructionsEvent(name="Assistant", instructions="Be kind."))
 
-    await asyncio.wait_for(runs.start(session, "hi")._settle_task, timeout=5)
+    await asyncio.wait_for(runs.start(session, "hi").settle_task, timeout=5)
 
     assert _logged(session) == ["Be kind."]
     assert [e.bot_id for e in session.events() if isinstance(e, TurnStart)] == [ASSISTANT_ID]

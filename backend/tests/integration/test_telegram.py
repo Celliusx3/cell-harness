@@ -15,7 +15,7 @@ from harness.channels.domain.protocol import InboundMessage
 from harness.channels.repository.json_chat_repository import JsonChatRepository
 from harness.channels.service.gateway import ChannelGateway
 from harness.config import Settings
-from harness.runs.service.bot_messages import BotMessenger
+from harness.runs.service.bot_message_service import BotMessageService
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import Destination, SecretService
@@ -83,7 +83,7 @@ def build(tmp_path):
         no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
-        BotMessenger(no_bots(sessions), runs, follow=gateway.follow),
+        BotMessageService(no_bots(sessions), runs, follow=gateway.follow),
         no_tickets(tmp_path, no_bots(sessions), runs),
         schedules,
         scheduler_in(schedules, no_bots(sessions), runs, gateway),
@@ -161,7 +161,7 @@ async def test_an_app_with_only_the_browser_still_serves(tmp_path) -> None:
         no_approvals(),
         no_bots(sessions),
         secrets_in(tmp_path),
-        BotMessenger(no_bots(sessions), runs, follow=gateway.follow),
+        BotMessageService(no_bots(sessions), runs, follow=gateway.follow),
         no_tickets(tmp_path, no_bots(sessions), runs),
         schedules,
         scheduler_in(schedules, no_bots(sessions), runs, gateway),

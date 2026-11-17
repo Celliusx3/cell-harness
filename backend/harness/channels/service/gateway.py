@@ -19,7 +19,8 @@ from harness.channels.service.chat_tasks import ChatTasks
 from harness.channels.service.chats import state_of
 from harness.channels.service.replies import ReplySender
 from harness.channels.service.turn_follower import TurnFollower
-from harness.runs.service.run import Run, RunAlreadyActiveError
+from harness.runs.domain.errors import RunAlreadyActiveError
+from harness.runs.service.run import Run
 from harness.runs.service.run_service import RunService
 from harness.runtime.compaction import CompactionRefusedError, check_can_compact
 from harness.session.domain.log import Session
@@ -120,8 +121,7 @@ class ChannelGateway:
         except SessionNotFoundError:
             return
         clearing = self.runs.clear(session)
-        async with clearing.condition:
-            await clearing.condition.wait_for(lambda: clearing.is_settled)
+        await clearing.wait_until_settled()
         if clearing.error is not None:
             raise clearing.error
 

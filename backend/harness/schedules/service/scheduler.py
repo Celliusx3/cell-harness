@@ -9,8 +9,7 @@ from collections.abc import Callable, Coroutine, Iterable
 from datetime import datetime, timedelta
 
 from harness.bots import BotNotFound, BotService
-from harness.runs.service.bot_messages import Follow
-from harness.runs.service.run import wait_until_settled
+from harness.runs.service.bot_message_service import Follow
 from harness.runs.service.run_service import RunService
 from harness.schedules.domain.models import Schedule
 from harness.schedules.domain.timing import latest_at_or_before
@@ -160,7 +159,7 @@ class Scheduler:
         await self._follow(run)
         for reminder in heard.reminders:
             record(reminder.schedule_id, reminder.occurrence_at)
-        await wait_until_settled(run)
+        await run.wait_until_settled()
 
 
 def _due_at(schedule: Schedule) -> datetime:
