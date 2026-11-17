@@ -21,6 +21,7 @@ from harness.mcp import (
     McpTimeoutError,
     NotAnAppPage,
 )
+from harness.relay import RelayNotFound, RelayUpstreamDown
 from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
 from harness.secrets import RefusedSecretError, SecretNotFound
 from harness.session.repository.session_repository import (
@@ -63,6 +64,12 @@ PINNED = [
     pytest.param(AppToolRefused("'secret' is not callable by apps"), 403, id="AppToolRefused"),
     pytest.param(NotAnAppPage("'https://x' is not a ui:// resource"), 400, id="NotAnAppPage"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),
+    pytest.param(RelayNotFound(), 404, id="RelayNotFound"),
+    pytest.param(
+        RelayUpstreamDown("the relayed page did not answer: ConnectError('refused')"),
+        502,
+        id="RelayUpstreamDown",
+    ),
     pytest.param(
         ToolNotApproved("'memory__write_note' is not approved"), 404, id="ToolNotApproved"
     ),

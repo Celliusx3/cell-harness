@@ -4,8 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import NamedTuple
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict
+
+RELAY_META = "io.cell-harness/relay"
+RELAY_PREFIX = "/api/relay"
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost"})
 
 
 def with_query(url: str, query: str) -> str:
@@ -40,7 +45,25 @@ class RelayEntry(BaseModel):
     url: str
 
 
-class Target(NamedTuple):
+class LoopbackTarget(NamedTuple):
     upstream: Upstream
     path: str
     query: str
+
+
+@dataclass(frozen=True)
+class RelayedPage:
+    """What the upstream answered a page fetch with: its status, its bytes and their type."""
+
+    status_code: int
+    content: bytes
+    content_type: str | None
+
+
+def loopback_target(url: str) -> LoopbackTarget:
+    """The origin, path and query of a plain-http loopback url; anything else is a ValueError."""
+    parts = urlsplit(url)
+    if parts.scheme != "http" or parts.hostname not in LOOPBACK_HOSTS:
+        raise ValueError(f"{parts.scheme}://{parts.hostname} is not http on 127.0.0.1 or localhost")
+    upstream = Upstream(host=parts.hostname, port=parts.port or 80)
+    return LoopbackTarget(upstream=upstream, path=parts.path or "/", query=parts.query)
