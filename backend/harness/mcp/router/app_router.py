@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from harness.mcp.router.app_schemas import AppResource, AppToolCall, ServerList
 from harness.mcp.service.mcp_service import McpService
-from harness.relay import RelayService, with_relay_url
+from harness.relay import RelayService
 
 logger = logging.getLogger("harness.mcp")
 
@@ -38,5 +38,5 @@ class McpAppRouter:
     async def call_app_tool(self, server_id: str, name: str, body: AppToolCall) -> JSONResponse:
         logger.info("app %s on %s calls %s", body.resource_uri, server_id, name)
         result = await self._mcp.call_app_tool(server_id, name, body.arguments, body.resource_uri)
-        rewritten = with_relay_url(result, self._relays)
+        rewritten = self._relays.with_relay_url(result)
         return JSONResponse(rewritten.model_dump(mode="json", by_alias=True, exclude_none=True))

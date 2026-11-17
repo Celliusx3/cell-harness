@@ -21,6 +21,7 @@ from harness.mcp import (
     McpTimeoutError,
     NotAnAppPage,
 )
+from harness.relay import RelayNotFound, RelayUpstreamDown
 from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
 from harness.secrets import RefusedSecretError, SecretNotFound
 from harness.session.repository.session_repository import (
@@ -57,6 +58,8 @@ STATUS_BY_ERROR: Mapping[type[Exception], int] = MappingProxyType(
         McpServerTaken: status.HTTP_409_CONFLICT,
         McpTimeoutError: status.HTTP_502_BAD_GATEWAY,
         ToolNotApproved: status.HTTP_404_NOT_FOUND,
+        RelayNotFound: status.HTTP_404_NOT_FOUND,
+        RelayUpstreamDown: status.HTTP_502_BAD_GATEWAY,
         ScheduleBusyError: status.HTTP_409_CONFLICT,
         ScheduleNotFound: status.HTTP_404_NOT_FOUND,
         SecretNotFound: status.HTTP_404_NOT_FOUND,

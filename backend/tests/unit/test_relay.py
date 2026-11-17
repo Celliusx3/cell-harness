@@ -7,7 +7,7 @@ import logging
 import pytest
 from mcp.types import CallToolResult, TextContent
 
-from harness.relay import RELAY_TTL_SECONDS, RelayService, Upstream, with_relay_url
+from harness.relay import RELAY_TTL_SECONDS, RelayService, Upstream
 
 RELAY_META = "io.cell-harness/relay"
 PAGE = "/embed.html?path=websockify%3Ftoken%3DZk3_q-9x&view_only=1"
@@ -35,8 +35,8 @@ def relay_id_of(url: str) -> str:
 def test_a_loopback_entry_becomes_a_relay_url_with_the_same_path_and_query(host: str) -> None:
     relays = RelayService(now=Now())
 
-    rewritten = with_relay_url(
-        result_with({RELAY_META: {"url": f"http://{host}:62480{PAGE}"}}), relays
+    rewritten = relays.with_relay_url(
+        result_with({RELAY_META: {"url": f"http://{host}:62480{PAGE}"}})
     )
 
     assert rewritten.meta is not None
@@ -51,8 +51,8 @@ def test_every_entry_gets_its_own_relay() -> None:
     relays = RelayService(now=Now())
     entry = {RELAY_META: {"url": f"http://127.0.0.1:62480{PAGE}"}}
 
-    first = with_relay_url(result_with(entry), relays).meta
-    second = with_relay_url(result_with(entry), relays).meta
+    first = relays.with_relay_url(result_with(entry)).meta
+    second = relays.with_relay_url(result_with(entry)).meta
 
     assert first is not None and second is not None
     assert relay_id_of(first[RELAY_META]["url"]) != relay_id_of(second[RELAY_META]["url"])
@@ -62,7 +62,7 @@ def test_the_rest_of_the_result_is_left_as_it_was() -> None:
     relays = RelayService(now=Now())
     original = result_with({RELAY_META: {"url": f"http://127.0.0.1:1{PAGE}"}, "ts": 1})
 
-    rewritten = with_relay_url(original, relays)
+    rewritten = relays.with_relay_url(original)
 
     assert rewritten.content == original.content
     assert rewritten.meta is not None
@@ -90,7 +90,7 @@ def test_an_entry_that_is_not_http_on_loopback_is_dropped_and_no_relay_made(
     relays = RelayService(now=Now())
 
     with caplog.at_level(logging.WARNING, logger="harness.relay"):
-        rewritten = with_relay_url(result_with({RELAY_META: entry, "ts": 1}), relays)
+        rewritten = relays.with_relay_url(result_with({RELAY_META: entry, "ts": 1}))
 
     assert rewritten.meta == {"ts": 1}
     assert relays._relays == {}
@@ -101,8 +101,8 @@ def test_a_result_without_the_entry_is_unchanged() -> None:
     relays = RelayService(now=Now())
     plain = result_with({"ts": 1})
 
-    assert with_relay_url(plain, relays) is plain
-    assert with_relay_url(result_with(None), relays).meta is None
+    assert relays.with_relay_url(plain) is plain
+    assert relays.with_relay_url(result_with(None)).meta is None
     assert relays._relays == {}
 
 

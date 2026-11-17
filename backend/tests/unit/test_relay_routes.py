@@ -14,6 +14,7 @@ from websockets.sync.server import Server, ServerConnection, serve
 
 from harness.relay import RELAY_TTL_SECONDS, RelayService, Upstream
 from harness.relay.router.relay_router import RelayRouter
+from harness.web.http.errors import exception_handlers
 
 GREETING = b"RFB 003.008\n"
 
@@ -91,7 +92,7 @@ def relays(now: Now) -> RelayService:
 
 @pytest.fixture
 def client(relays: RelayService) -> Iterator[TestClient]:
-    app = FastAPI()
+    app = FastAPI(exception_handlers=exception_handlers())
     app.include_router(RelayRouter(relays).router)
     with TestClient(app) as client:
         yield client
@@ -122,7 +123,9 @@ def test_an_upstream_404_is_passed_on(
 
 
 def test_an_unknown_relay_is_not_found(client: TestClient, page: Upstream) -> None:
-    assert client.get("/api/relay/nope/core/rfb.js").status_code == 404
+    response = client.get("/api/relay/nope/core/rfb.js")
+
+    assert (response.status_code, response.json()) == (404, {"detail": "no such relay"})
     assert Page.asked == []
 
 
