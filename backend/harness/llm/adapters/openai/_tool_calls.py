@@ -6,8 +6,8 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
-from harness.llm.adapters.openai.models.tool_delta import ToolDelta
-from harness.llm.models.tools import ExtraContent, ToolCall
+from harness.llm.adapters.openai.schemas.tool_delta import ToolDelta
+from harness.llm.domain.tools import ExtraContent, ToolCall
 
 logger = logging.getLogger("harness.llm.openai")
 

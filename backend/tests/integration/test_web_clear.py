@@ -98,12 +98,12 @@ class HoldsFirstCall(SteppedClient):
         self._held = False
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         if not self._held:
             self._held = True
             await asyncio.Event().wait()
-        async for event in super().stream_completion(messages, model, tools=tools):
+        async for event in super().stream_completion(messages, tools=tools):
             yield event
 
 

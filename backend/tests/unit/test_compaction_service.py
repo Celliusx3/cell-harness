@@ -218,7 +218,7 @@ async def test_a_summary_request_that_ends_without_a_reply_is_a_failure() -> Non
 async def test_a_summarizer_that_raises_fails_open() -> None:
     class Broken(LLMClient):
         async def stream_completion(
-            self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+            self, messages: list[Message], *, tools: list[ToolSpec] | None = None
         ) -> AsyncIterator[StreamEvent]:
             raise RuntimeError("adapter bug")
             yield

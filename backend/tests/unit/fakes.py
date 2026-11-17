@@ -33,7 +33,7 @@ class ScriptedClient(LLMClient):
         self.calls = 0
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         self.seen = list(messages)
         self.seen_tools = tools
@@ -54,7 +54,7 @@ class SteppedClient(LLMClient):
         self.calls = 0
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         self.seen = list(messages)
         self.seen_per_call.append(list(messages))
@@ -74,7 +74,7 @@ class PerBotClient(LLMClient):
         self.seen_by: dict[str, list[list[Message]]] = {start: [] for start in scripts}
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         system = messages[0].content if isinstance(messages[0], SystemMessage) else ""
         start = next(start for start in self._scripts if system.startswith(start))
@@ -93,7 +93,7 @@ class HangingClient(LLMClient):
         self.closed = False
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         try:
             yield TextChunk(text=self._text)
@@ -111,12 +111,12 @@ class OneModel:
     context_tokens: int | None = None
 
     async def model_for(self, bot_id: str | None) -> ModelChoice:
-        return ModelChoice(self.client, "m", self.vision, self.context_tokens)
+        return ModelChoice(self.client, self.vision, self.context_tokens)
 
 
 def model_at(context_tokens: int | None) -> ModelChoice:
     """A model that answers nothing, at the window `context_tokens`."""
-    return ModelChoice(ScriptedClient([]), "m", False, context_tokens)
+    return ModelChoice(ScriptedClient([]), False, context_tokens)
 
 
 def completed(text: str) -> list[StreamEvent]:

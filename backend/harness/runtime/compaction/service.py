@@ -98,7 +98,7 @@ async def _summarize(runtime: Runtime, session: Session, *, turn: int | None) ->
         choice = await runtime.models.model_for(session.speaker_id())
         if isinstance(choice, NoModel):
             return CompactionEnd(turn=turn, error=PICK_A_MODEL)
-        async for event in choice.client.stream_completion(messages, choice.model, tools=None):
+        async for event in choice.client.stream_completion(messages, tools=None):
             if isinstance(event, StreamFailure):
                 return CompactionEnd(turn=turn, error=f"summary request failed: {event.reason}")
             if isinstance(event, Completion):

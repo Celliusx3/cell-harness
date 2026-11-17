@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from harness.llm.models.tools import ToolCall
+from harness.llm.domain.tools import ToolCall
 
 
 class Usage(BaseModel):

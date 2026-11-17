@@ -159,13 +159,13 @@ async def test_an_interrupted_second_step_is_stamped_with_its_own_step() -> None
             super().__init__("partial")
             self.calls = 0
 
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             self.calls += 1
             if self.calls == 1:
                 for event in calls_tool("echo", '{"value": "a"}'):
                     yield event
                 return
-            async with aclosing(super().stream_completion(messages, model, tools=tools)) as s:
+            async with aclosing(super().stream_completion(messages, tools=tools)) as s:
                 async for event in s:
                     yield event
 

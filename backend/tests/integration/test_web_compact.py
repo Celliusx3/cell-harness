@@ -82,7 +82,7 @@ async def test_a_failed_summary_leaves_the_conversation_unchanged(tmp_path) -> N
         def __init__(self):
             super().__init__(completed("reply"))
 
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             if tools is None:
                 yield StreamFailure(reason="boom")
                 return

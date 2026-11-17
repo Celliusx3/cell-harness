@@ -9,15 +9,15 @@ from typing import assert_never
 
 from pydantic import JsonValue
 
-from harness.llm.models.blocks import Block, Image, Text, ToolReference, text_of
-from harness.llm.models.messages import (
+from harness.llm.domain.blocks import Block, Image, Text, ToolReference, text_of
+from harness.llm.domain.messages import (
     AssistantMessage,
     Message,
     SystemMessage,
     ToolMessage,
     UserMessage,
 )
-from harness.llm.models.tools import ExtraContent, ToolSpec
+from harness.llm.domain.tools import ExtraContent, ToolSpec
 from harness.prompts import IMAGE_NOT_SHOWN, IMAGES_FOLLOW, REFERENCES_NOTE, TOOL_IMAGES
 
 JsonObject = dict[str, JsonValue]

@@ -10,8 +10,8 @@ from pydantic import JsonValue
 
 from harness.llm import Usage
 from harness.llm.adapters.openai._streaming import chunk_of, chunks_of
-from harness.llm.adapters.openai.models.chunk import Chunk
-from harness.llm.adapters.openai.models.tool_delta import ToolDelta
+from harness.llm.adapters.openai.schemas.chunk import Chunk
+from harness.llm.adapters.openai.schemas.tool_delta import ToolDelta
 
 EMPTY = Chunk(text="", tool_deltas=(), usage=None, error=None)
 SAID_A = Chunk(text="a", tool_deltas=(), usage=None, error=None)

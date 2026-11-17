@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from harness.llm.models.tools import ExtraContent
+from harness.llm.domain.tools import ExtraContent
 
 
 @dataclass(frozen=True)

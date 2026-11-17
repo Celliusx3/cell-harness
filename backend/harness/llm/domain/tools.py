@@ -26,4 +26,4 @@ class ToolSpec(BaseModel):
 
     name: str
     description: str
-    input_schema: dict
+    input_schema: dict[str, JsonValue]

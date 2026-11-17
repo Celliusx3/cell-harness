@@ -6,8 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from harness.llm.models.blocks import Block, Image, Text
-from harness.llm.models.tools import ToolCall
+from harness.llm.domain.blocks import Block, Image, Text
+from harness.llm.domain.tools import ToolCall
 
 
 class SystemMessage(BaseModel):

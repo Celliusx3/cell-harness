@@ -13,12 +13,11 @@ from harness.llm.adapters.openai._image_limit import image_lengths, images_to_hi
 from harness.llm.adapters.openai._request import openai_messages, request_body
 from harness.llm.adapters.openai._streaming import chunks_of
 from harness.llm.adapters.openai._tool_calls import ToolCallAssembler
-from harness.llm.adapters.openai.models.model_list import ModelList
+from harness.llm.adapters.openai.schemas.model_list import ModelList
 from harness.llm.adapters.openai.settings import OpenAISettings
-from harness.llm.client import LLMClient
-from harness.llm.models.blocks import Image
-from harness.llm.models.messages import Message, images_of
-from harness.llm.models.stream import (
+from harness.llm.domain.blocks import Image
+from harness.llm.domain.messages import Message, images_of
+from harness.llm.domain.stream import (
     IMAGES_OVER_LIMIT,
     Completion,
     StreamEvent,
@@ -27,7 +26,7 @@ from harness.llm.models.stream import (
     ToolCallChunk,
     Usage,
 )
-from harness.llm.models.tools import ToolSpec
+from harness.llm.domain.tools import ToolSpec
 
 logger = logging.getLogger("harness.llm.openai")
 
@@ -54,7 +53,7 @@ def _auth_headers(settings: OpenAISettings) -> dict[str, str]:
     return {"Authorization": f"Bearer {settings.api_key}"}
 
 
-class OpenAIClient(LLMClient):
+class OpenAIClient:
     """Streams completions from an OpenAI-compatible endpoint."""
 
     def __init__(self, settings: OpenAISettings, *, read_image: ImageReader) -> None:
@@ -62,11 +61,11 @@ class OpenAIClient(LLMClient):
         self._read_image = read_image
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None
     ) -> AsyncIterator[StreamEvent]:
         settings = self._settings
         body = request_body(
-            model,
+            settings.model,
             openai_messages(messages, _image_bytes(messages, self._read_image)),
             tools,
             settings.temperature,

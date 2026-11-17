@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from harness.llm.adapters.openai.models.tool_delta import ToolDelta
-from harness.llm.models.stream import Usage
+from harness.llm.adapters.openai.schemas.tool_delta import ToolDelta
+from harness.llm.domain.stream import Usage
 
 
 @dataclass(frozen=True)

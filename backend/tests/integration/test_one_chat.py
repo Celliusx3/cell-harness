@@ -53,11 +53,11 @@ class HeldClient(SteppedClient):
         self._release = release
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         if self.calls == 0:
             await self._release.wait()
-        async for event in super().stream_completion(messages, model, tools=tools):
+        async for event in super().stream_completion(messages, tools=tools):
             yield event
 
 
