@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Response, status
 from harness.bots import BotNotFound
 from harness.channels.web.channel import WebChannel
 from harness.channels.web.conversation_router import chat_router
-from harness.runs.service.run import RunAlreadyActiveError
+from harness.runs.domain.errors import RunAlreadyActiveError
 from harness.tools.client import ClientToolService, RefusalReason
 
 logger = logging.getLogger(__name__)

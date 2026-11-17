@@ -10,12 +10,8 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import AssistantMessage, UserMessage
-from harness.runs.service.bot_messages import (
-    MAX_HOPS,
-    BotMessenger,
-    final_reply,
-    hop_of_last_turn,
-)
+from harness.runs.domain.bot_message_log import MAX_HOPS, final_reply, hop_of_last_turn
+from harness.runs.service.bot_message_service import BotMessageService
 from harness.runs.service.run import Run
 from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
@@ -163,7 +159,7 @@ async def test_a_name_no_active_bot_has_is_refused_naming_it(tmp_path: Path) -> 
     session = await sessions.create(ASSISTANT_ID)
     runs.start(session, "go")
     await until(lambda: runs.session_of_call("c1") is not None, what="the call to be made")
-    messages = BotMessenger(no_bots(sessions), runs, follow=unfollowed)
+    messages = BotMessageService(no_bots(sessions), runs, follow=unfollowed)
 
     sent = await messages.send("c1", from_bot_id=ASSISTANT_ID, to_name="Gone", text="hi")
     await runs.stop(session.id)

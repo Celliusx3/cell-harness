@@ -16,7 +16,7 @@ from harness.images import ImageService
 from harness.llm import LLMClient
 from harness.llm.adapters import OpenAIClient, OpenAISettings, context_window_tokens
 from harness.mcp import McpService
-from harness.runs.service.bot_messages import BotMessenger, Follow
+from harness.runs.service.bot_message_service import BotMessageService, Follow
 from harness.runs.service.run_service import RunService
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
@@ -237,9 +237,9 @@ def attach_bot_messages(
     runs: RunService,
     *,
     follow: Follow,
-) -> BotMessenger:
-    """`message_bot` offered from `tool_service`, sending through the `BotMessenger` it returns."""
-    messages = BotMessenger(bots, runs, follow=follow)
+) -> BotMessageService:
+    """`message_bot` offered from `tool_service`, sent through the `BotMessageService` returned."""
+    messages = BotMessageService(bots, runs, follow=follow)
     tool_service.add_provider(lambda: [message_bot_tool(bots, messages)])
     return messages
 

@@ -11,7 +11,6 @@ from urllib.parse import quote
 from harness.channels.domain.protocol import PushChannel
 from harness.channels.repository.chat_repository import ChatRepository
 from harness.runs.service.run import Run
-from harness.runs.service.subscribe import subscribe
 from harness.session.domain.compaction import CompactionEnd
 from harness.session.domain.models import (
     AssistantMessageEvent,
@@ -91,7 +90,7 @@ class ReplySender:
         try:
             names: dict[str, str] = {}
             pending: tuple[PendingCall, ...] = ()
-            async for item in subscribe(run, after=run.first_event_number):
+            async for item in run.events_from(run.first_event_number):
                 event = item.event
                 pending = pending_calls_after(pending, event)
                 if isinstance(event, ToolCallEvent):

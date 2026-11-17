@@ -168,8 +168,7 @@ async def test_drained_waits_out_the_gap_between_turns(tmp_path, monkeypatch) ->
 
     monkeypatch.setattr(sessions, "resume", gated_resume)
     first.set()
-    async with watched.condition:
-        await watched.condition.wait_for(lambda: watched.is_settled)
+    await watched.wait_until_settled()
 
     waiting = asyncio.create_task(gateway.wait_until_drained("telegram", CHAT))
     await asyncio.sleep(0.05)

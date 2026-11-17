@@ -7,7 +7,6 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import suppress
 
 from harness.runs.service.run import Run
-from harness.runs.service.subscribe import subscribe
 from harness.session.domain.log import NumberedEvent, Session
 
 SSE_MEDIA_TYPE = "text/event-stream"
@@ -36,7 +35,7 @@ async def sse_frames(source: Source, *, after: int, after_drain: AfterDrain) -> 
     cursor = after
     while True:
         if isinstance(source, Run):
-            async for item in subscribe(source, after=cursor):
+            async for item in source.events_from(cursor):
                 yield session_frame(item)
             cursor = source.session.next_number()
         else:

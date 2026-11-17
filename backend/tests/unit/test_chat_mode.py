@@ -144,7 +144,7 @@ async def test_a_switch_during_a_turn_decides_its_next_call(tmp_path) -> None:
 
     await runs.set_approval_mode(ASSISTANT_ID, "auto")
     release.set()
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     events = (await service.read(ASSISTANT_ID)).events()
     assert ApprovalModeChange(mode="auto") in events

@@ -1,0 +1,40 @@
+"""A discussion: the turn that opens it, then each member the queue says is next, as one run."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import aclosing
+from dataclasses import dataclass
+
+from harness.groups import GroupService
+from harness.runtime.events import AgentCompleted, TurnEvent
+from harness.runtime.service import Runtime
+from harness.session.domain.log import Session
+
+
+@dataclass(frozen=True)
+class DiscussionService:
+    """The turns of one discussion, each next speaker's after the last one completes."""
+
+    runtime: Runtime
+    groups: GroupService
+
+    async def events(
+        self, session: Session, opening: AsyncIterator[TurnEvent]
+    ) -> AsyncIterator[TurnEvent]:
+        """`opening`'s events, then each next speaker's, until nobody is next or a turn stops."""
+        turn: AsyncIterator[TurnEvent] | None = opening
+        while turn is not None:
+            terminal: TurnEvent | None = None
+            async with aclosing(turn) as events:
+                async for event in events:
+                    terminal = event
+                    yield event
+            turn = self._next_turn(session) if isinstance(terminal, AgentCompleted) else None
+
+    def _next_turn(self, session: Session) -> AsyncIterator[TurnEvent] | None:
+        """The next speaker's turn, its instructions logged first; `None` when nobody is next."""
+        speaker = self.groups.next_speaker(session)
+        if speaker is None:
+            return None
+        return self.runtime.speak(session=session, bot_id=speaker.id)

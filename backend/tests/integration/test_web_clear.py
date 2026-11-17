@@ -119,7 +119,7 @@ async def test_a_message_sent_while_a_clear_stops_the_turn_lands_after_the_clear
             await asyncio.sleep(0.01)
 
         clearing = asyncio.create_task(c.post(f"/api/conversations/{cid}/clear"))
-        while not run._turn_task.done():
+        while not run.turn_task.done():
             await asyncio.sleep(0)
         sent = await c.post(f"/api/conversations/{cid}/messages", json={"prompt": "after"})
         assert (await clearing).status_code == 204

@@ -4,32 +4,23 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Coroutine, Sequence
+from collections.abc import Awaitable, Callable, Coroutine
 
 from harness.bots import Bot, BotNotFound, BotService
-from harness.prompts import BOT_DID_NOT_FINISH, BOT_WAITING_ON_USER, MESSAGE_TO_YOURSELF
-from harness.runs.service.run import Run, wait_until_settled
+from harness.prompts import MESSAGE_TO_YOURSELF
+from harness.runs.domain.bot_message_log import MAX_HOPS, final_reply, hop_of_last_turn
+from harness.runs.service.run import Run
 from harness.runs.service.run_service import RunService
-from harness.session.domain.models import (
-    AssistantMessageEvent,
-    BotMessage,
-    BotMessageEvent,
-    SessionEvent,
-    TurnEnd,
-    TurnEndReason,
-    TurnStart,
-)
+from harness.session.domain.models import BotMessage
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.tools import INVALID_ARGUMENTS, REFUSED, Failure, Ok
 
 logger = logging.getLogger("harness.runs")
 
-MAX_HOPS = 6
-
 Follow = Callable[[Run], Awaitable[None]]
 
 
-class BotMessenger:
+class BotMessageService:
     """Delivers each bot's message once the chat it is for is free, and each answer back."""
 
     def __init__(self, bots: BotService, runs: RunService, *, follow: Follow) -> None:
@@ -84,7 +75,7 @@ class BotMessenger:
         run = await self.deliver(recipient.id, request)
         if run is None:
             return
-        await wait_until_settled(run)
+        await run.wait_until_settled()
         result = BotMessage(
             from_bot_id=recipient.id,
             from_name=recipient.name,
@@ -104,32 +95,3 @@ class BotMessenger:
             return None
         await self._follow(run)
         return run
-
-
-def hop_of_last_turn(events: Sequence[SessionEvent]) -> int:
-    """The hop of the bot message that opened the last turn; 0 when no bot message did."""
-    hop = 0
-    for event in events:
-        if isinstance(event, TurnStart):
-            hop = 0
-        elif isinstance(event, BotMessageEvent):
-            hop = event.message.hop
-    return hop
-
-
-def final_reply(events: Sequence[SessionEvent], name: str) -> str:
-    """What the last turn ended by saying when it completed; else why `name` has no answer."""
-    said = ""
-    reason: TurnEndReason | None = None
-    for event in events:
-        if isinstance(event, TurnStart):
-            said, reason = "", None
-        elif isinstance(event, AssistantMessageEvent):
-            said = event.message.content
-        elif isinstance(event, TurnEnd):
-            reason = event.reason
-    if reason == "completed":
-        return said
-    if reason == "pending":
-        return BOT_WAITING_ON_USER.format(name=name)
-    return BOT_DID_NOT_FINISH.format(name=name)

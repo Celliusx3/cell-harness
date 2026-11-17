@@ -9,7 +9,6 @@ import pytest
 from harness.app_events import AppEventService
 from harness.bots import ASSISTANT_ID, BotDraft, BotRepository, BotService
 from harness.llm import LLMClient
-from harness.runs.service.subscribe import subscribe
 from harness.session.domain.model_history import derive_messages
 from harness.session.domain.models import (
     AssistantMessageEvent,
@@ -81,7 +80,7 @@ async def test_a_bug_in_the_loop_still_settles_the_run(service) -> None:
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     assert run.is_settled
     assert runs.active_run(session.id) is None
@@ -100,7 +99,7 @@ async def test_stop_releases_a_waiting_subscriber(service) -> None:
     runs = run_service(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
-    collected = asyncio.create_task(drain(subscribe(run, after=0)))
+    collected = asyncio.create_task(drain(run.events_from(0)))
     await until(
         lambda: any(isinstance(e, ToolCallEvent) for e in session.events()),
         what="the tool to be dispatched",
@@ -116,7 +115,7 @@ async def test_a_subscriber_hears_the_turn_while_it_is_still_running(service) ->
     runs = run_service(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
-    stream = subscribe(run, after=0)
+    stream = run.events_from(0)
     try:
         first = await asyncio.wait_for(anext(stream), timeout=2)
         running = not run.is_settled
@@ -125,6 +124,22 @@ async def test_a_subscriber_hears_the_turn_while_it_is_still_running(service) ->
         await runs.stop(session.id)
 
     assert (first.number, running) == (0, True)
+
+
+async def test_a_subscriber_is_woken_by_each_event_the_turn_logs(service) -> None:
+    runs = run_service(service, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool())
+    session = await service.create(ASSISTANT_ID)
+    run = runs.start(session, "go")
+    logged_at_start = session.next_number()
+    stream = run.events_from(logged_at_start)
+    try:
+        heard = await asyncio.wait_for(anext(stream), timeout=2)
+        running = not run.is_settled
+    finally:
+        await stream.aclose()
+        await runs.stop(session.id)
+
+    assert (heard.number, running) == (logged_at_start, True)
 
 
 async def test_aclose_stops_every_run_durably(service, tmp_path) -> None:
@@ -161,7 +176,7 @@ async def test_a_run_records_the_conversation_it_was_asked(service) -> None:
     runs = run_service(service, ScriptedClient(completed("hello")))
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "what is it?")
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     messages = derive_messages(session.events())
     assert [(m.role, m.content) for m in messages] == [
@@ -174,7 +189,7 @@ async def test_a_run_is_durable_without_anyone_subscribing(service) -> None:
     runs = run_service(service, ScriptedClient(completed("hello")))
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     stored = await service.read(session.id)
     assert any(isinstance(e, UserMessageEvent) for e in stored.events())
@@ -190,7 +205,7 @@ async def test_a_tool_using_turn_streams_through_to_a_subscriber(service) -> Non
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
-    items = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
+    items = await asyncio.wait_for(drain(run.events_from(0)), timeout=5)
 
     assert any(isinstance(item.event, ToolCallEvent) for item in items)
     assert any(isinstance(item.event, ToolResultEvent) for item in items)
@@ -204,4 +219,4 @@ async def test_the_conversation_id_is_the_session_id(service) -> None:
     run = runs.start(session, "go")
 
     assert run.session.id == session.id
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)

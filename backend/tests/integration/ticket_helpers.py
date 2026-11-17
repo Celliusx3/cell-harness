@@ -13,7 +13,7 @@ import httpx
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
 from harness.llm import StreamEvent
-from harness.runs.service.chat_grants import ChatGrantLog
+from harness.runs.service.chat_grant_service import ChatGrantService
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
 from harness.secrets import SecretService
@@ -105,7 +105,7 @@ def ticketing_app(
             runtime,
             worker_logs,
             bots,
-            chat_grants=ChatGrantLog(runs, service),
+            chat_grants=ChatGrantService(runs, service),
             skills=no_skills(),
             offered_from_start=no_tools_from_start,
         ),

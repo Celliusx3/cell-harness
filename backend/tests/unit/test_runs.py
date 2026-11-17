@@ -16,8 +16,7 @@ from harness.groups import (
     GroupService,
     JsonGroupRepository,
 )
-from harness.runs.service.run import RunAlreadyActiveError
-from harness.runs.service.subscribe import subscribe
+from harness.runs.domain.errors import RunAlreadyActiveError
 from harness.session.domain.log import Session
 from harness.session.domain.models import (
     ToolCallEvent,
@@ -56,11 +55,11 @@ async def test_a_subscriber_walking_away_does_not_end_the_run(service) -> None:
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
-    stream = subscribe(run, after=0)
+    stream = run.events_from(0)
     await anext(stream)
     await stream.aclose()
 
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
     assert run.is_settled
     assert [e.reason for e in run.session.events() if isinstance(e, TurnEnd)] == ["completed"]
 
@@ -74,11 +73,11 @@ async def test_a_reconnecting_subscriber_misses_nothing(service) -> None:
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
-    first = subscribe(run, after=0)
+    first = run.events_from(0)
     early = [await anext(first), await anext(first)]
     await first.aclose()
 
-    rest = await drain(subscribe(run, after=early[-1].number + 1))
+    rest = await drain(run.events_from(early[-1].number + 1))
 
     seen = [*early, *rest]
     assert seen == list(enumerate(run.session.events()))
@@ -91,19 +90,19 @@ async def test_subscribing_after_the_turn_ends_replays_everything(service) -> No
     runs = run_service(service, ScriptedClient(completed("hello")))
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
-    assert await drain(subscribe(run, after=0)) == list(enumerate(run.session.events()))
+    assert await drain(run.events_from(0)) == list(enumerate(run.session.events()))
 
 
 async def test_a_settled_run_still_yields_its_last_events(service) -> None:
     runs = run_service(service, ScriptedClient(completed("hello")))
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     last = len(run.session.events()) - 1
-    items = await drain(subscribe(run, after=last))
+    items = await drain(run.events_from(last))
 
     assert [(item.number, type(item.event)) for item in items] == [(last, TurnEnd)]
 
@@ -113,7 +112,7 @@ async def test_a_subscriber_waiting_when_the_run_settles_is_released(service) ->
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "go")
 
-    collected = await asyncio.wait_for(drain(subscribe(run, after=0)), timeout=5)
+    collected = await asyncio.wait_for(drain(run.events_from(0)), timeout=5)
 
     assert collected == list(enumerate(run.session.events()))
     assert run.is_settled
@@ -132,7 +131,7 @@ async def test_a_conversation_is_free_again_once_its_turn_settles(service) -> No
     runs = run_service(service, ScriptedClient(completed("hello")))
     session = await service.create(ASSISTANT_ID)
     run = runs.start(session, "first")
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     assert runs.active_run(session.id) is None
     runs.start(session, "second")
@@ -159,14 +158,14 @@ async def test_resume_runs_a_turn_that_starts_with_the_answer(service) -> None:
     runs = run_service(service, client, pending_tool())
     session = await service.create(ASSISTANT_ID)
     first = runs.start(session, "near me?")
-    await asyncio.wait_for(first._settle_task, timeout=5)
+    await asyncio.wait_for(first.settle_task, timeout=5)
 
     assert runs.active_run(session.id) is None
     run = runs.resume(session, "c1", Ok(content='{"lat": 3.1}'))
     assert runs.active_run(session.id) is run
     with pytest.raises(RunAlreadyActiveError):
         runs.resume(session, "c1", Ok(content="again"))
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     assert runs.active_run(session.id) is None
     stored = await service.read(session.id)
@@ -193,7 +192,7 @@ async def test_a_turn_runs_its_tools_for_the_bot_that_owns_the_chat(service) -> 
     client = SteppedClient(calls_tool("echo", '{"value": "hi"}'), completed("done"))
     runs = run_service(service, client, replace(echo_tool(), execute=execute), groups=groups)
     run = runs.start(await service.create(ASSISTANT_ID), "go")
-    await asyncio.wait_for(run._settle_task, timeout=5)
+    await asyncio.wait_for(run.settle_task, timeout=5)
 
     assert seen == ["notion"]
 
@@ -230,10 +229,10 @@ async def test_the_line_carries_on_once_the_person_answers_the_bot_that_asked(
         calls_tool("ask", '{"value": "?"}', id="c1"), completed("Got it."), completed("Draft.")
     )
     runs = run_service(service, client, pending_tool(), bots=bots, groups=groups)
-    await asyncio.wait_for(runs.start(chat, "go")._settle_task, timeout=5)
+    await asyncio.wait_for(runs.start(chat, "go").settle_task, timeout=5)
 
     assert _speakers(chat) == [researcher.id]
-    await asyncio.wait_for(runs.resume(chat, "c1", Ok(content="2024"))._settle_task, timeout=5)
+    await asyncio.wait_for(runs.resume(chat, "c1", Ok(content="2024")).settle_task, timeout=5)
 
     assert _speakers(chat) == [researcher.id, researcher.id, writer.id]
     assert [e.reason for e in chat.events() if isinstance(e, TurnEnd)] == [
