@@ -5,14 +5,12 @@ from __future__ import annotations
 from harness.app_events import AppEventService, BotsChangedAppEvent
 from harness.bots.domain.models import Bot, BotNotFound
 from harness.bots.service.bot_service import BotService, bot_instructions_event
-from harness.groups.domain.models import (
-    ChatMembers,
+from harness.groups.domain.errors import (
     EmptyGroupError,
-    Group,
-    GroupDraft,
     GroupMemberNotFound,
     NotAChatMemberError,
 )
+from harness.groups.domain.models import ChatMembers, Group, GroupDraft
 from harness.groups.domain.speaker_queue import SpeakerQueue
 from harness.groups.repository.group_repository import GroupRepository
 from harness.session.domain.log import Session
@@ -27,12 +25,12 @@ class GroupService:
         self,
         bots: BotService,
         sessions: SessionService,
-        groups: GroupRepository,
+        repository: GroupRepository,
         app_events: AppEventService,
     ) -> None:
         self._bots = bots
         self._sessions = sessions
-        self._repository = groups
+        self._repository = repository
         self._app_events = app_events
 
     async def create(self, draft: GroupDraft) -> Group:

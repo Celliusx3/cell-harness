@@ -32,7 +32,7 @@ from harness.channels.web.secret_card_router import SecretCardRouter
 from harness.config import Settings, SettingsRepository, SettingsService
 from harness.files import ChatFileService, DiskChatFileRepository
 from harness.files.router.workspace_router import WorkspaceRouter
-from harness.groups import GroupRepository, GroupService
+from harness.groups import GroupService, JsonGroupRepository
 from harness.groups.router.group_router import GroupRouter
 from harness.images import BLOBS, DiskImageRepository, ImageService
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
@@ -192,7 +192,7 @@ def create_web_app() -> FastAPI:
         sessions,
         runtime,
         bots,
-        GroupService(bots, sessions, GroupRepository(settings.groups.path), app_events),
+        GroupService(bots, sessions, JsonGroupRepository(settings.groups.path), app_events),
         app_events=app_events,
     )
     assert runtime.tools is not None
