@@ -1,9 +1,10 @@
-"""A file a tool hands back, named in its result's `_meta`."""
+"""The `_meta` keys the harness puts in a `tools/call` request and reads from its result."""
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
+WORKSPACE_META = "harness/workspace"
 FILES_META = "io.cell-harness/files"
 
 

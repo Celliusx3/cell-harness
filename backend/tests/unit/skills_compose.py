@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from harness.config import Settings
-from harness.mcp import McpServer, McpService
+from harness.mcp import McpServer, McpService, open_stdio_client
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
@@ -30,7 +30,9 @@ def compose(tmp_path: Path):
     def build() -> Runtime:
         settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path / "sessions"))
-        mcp = McpService({"stub": McpServer(command="does-not-run")})
+        mcp = McpService(
+            {"stub": McpServer(command="does-not-run")}, client_factory=open_stdio_client
+        )
         return build_runtime(
             settings,
             sessions,

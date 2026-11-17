@@ -1,4 +1,4 @@
-"""One MCP server as it is run, and the rules its id, command and key names follow."""
+"""One MCP server as it is run, the rules its id, command and key names follow, its missing keys."""
 
 from __future__ import annotations
 
@@ -76,3 +76,8 @@ def named_keys(value: tuple[str, ...]) -> tuple[str, ...]:
     if any(not name.strip() for name in value):
         raise ValueError("needs must name env variables, none blank")
     return value
+
+
+def missing_keys(server: McpServer) -> tuple[str, ...]:
+    """Each key `server` needs that its env lacks or leaves blank, in the order it lists them."""
+    return tuple(name for name in server.needs if not server.env.get(name, "").strip())

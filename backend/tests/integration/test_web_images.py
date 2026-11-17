@@ -12,7 +12,7 @@ import pytest
 
 from harness.bots import ASSISTANT_ID
 from harness.llm import Image, ToolMessage, UserMessage
-from harness.mcp import McpServer, McpService
+from harness.mcp import McpServer, McpService, open_stdio_client
 from harness.tools import ToolService
 from tests.integration.web_helpers import api, build, settle
 from tests.mcp_stub import DOT_PNG
@@ -30,6 +30,7 @@ DOT_SHA256 = hashlib.sha256(DOT).hexdigest()
 async def snapshot_tool():
     store = McpService(
         {"stub": McpServer(command=sys.executable, args=("-u", str(STUB)), env={})},
+        client_factory=open_stdio_client,
     )
     tool_service = ToolService((), approvals=no_approvals())
     tool_service.add_provider(store.tools)

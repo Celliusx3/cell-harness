@@ -1,8 +1,19 @@
-"""The Content-Security-Policy an MCP app's iframe renders under."""
+"""An MCP app's page: its HTML, and the Content-Security-Policy its iframe renders under."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass
 from urllib.parse import urlsplit
+
+
+@dataclass(frozen=True)
+class AppPage:
+    """The HTML an app's resource holds, and the policy its iframe renders under."""
+
+    html: str
+    content_security_policy: str
+
 
 _CSP_DEFAULT_SOURCES = {
     "script-src": ["'unsafe-inline'"],
@@ -20,10 +31,10 @@ _CSP_DOMAIN_KEYS = {
 }
 
 
-def build_csp(meta: dict | None) -> str:
+def app_content_security_policy(meta: Mapping[str, object] | None) -> str:
     """The Content-Security-Policy for one app's iframe, from the resource's `_meta`."""
     sources = {directive: list(values) for directive, values in _CSP_DEFAULT_SOURCES.items()}
-    ui = meta.get("ui") if isinstance(meta, dict) else None
+    ui = meta.get("ui") if meta is not None else None
     csp = ui.get("csp") if isinstance(ui, dict) else None
     if isinstance(csp, dict):
         for key, directives in _CSP_DOMAIN_KEYS.items():

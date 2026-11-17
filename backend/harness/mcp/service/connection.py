@@ -10,11 +10,16 @@ from dataclasses import dataclass, field
 from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
 
-from harness.mcp.domain.commands import Command, ResourceReadCommand, ToolCallCommand
-from harness.mcp.domain.errors import McpConnectionError, McpNotConnectedError, McpTimeoutError
-from harness.mcp.domain.server import McpServer
-from harness.mcp.domain.status import ServerStatus, Status
-from harness.mcp.service.client import McpClient, McpClientFactory
+from harness.mcp.domain.errors import (
+    McpConnectionError,
+    McpNotConnectedError,
+    McpTimeoutError,
+    describe_error,
+)
+from harness.mcp.domain.mcp_server import McpServer
+from harness.mcp.domain.server_status import ServerStatus, Status
+from harness.mcp.service.connection_commands import Command, ResourceReadCommand, ToolCallCommand
+from harness.mcp.service.mcp_client import McpClient, McpClientFactory
 from harness.mcp.service.tool import build_tools
 from harness.tools import Tool
 
@@ -209,11 +214,3 @@ def _fail(future: asyncio.Future, error: BaseException) -> None:
         # asyncio warns "exception was never retrieved" unless someone reads it.
         with contextlib.suppress(BaseException):
             future.exception()
-
-
-def describe_error(error: BaseException) -> str:
-    """A one-line cause an operator can act on."""
-    while isinstance(error, BaseExceptionGroup) and len(error.exceptions) == 1:
-        error = error.exceptions[0]
-    message = str(error).strip()
-    return message or type(error).__name__

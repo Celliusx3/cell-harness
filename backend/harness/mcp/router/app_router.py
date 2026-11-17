@@ -1,0 +1,42 @@
+"""What the browser needs of an MCP server directly: an app's HTML and its calls back."""
+
+from __future__ import annotations
+
+import logging
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+
+from harness.mcp.router.app_schemas import AppResource, AppToolCall, ServerList
+from harness.mcp.service.mcp_service import McpService
+from harness.relay import RelayService, with_relay_url
+
+logger = logging.getLogger("harness.mcp")
+
+
+class McpAppRouter:
+    """The configured servers, an app's HTML, and the calls an app makes back to its server."""
+
+    def __init__(self, mcp: McpService, relays: RelayService) -> None:
+        self._mcp = mcp
+        self._relays = relays
+        self.router: APIRouter = APIRouter(prefix="/api/mcp", tags=["mcp"])
+        self.router.add_api_route("", self.list_servers, methods=["GET"], response_model=ServerList)
+        self.router.add_api_route(
+            "/{server_id}/resources", self.read_app, methods=["GET"], response_model=AppResource
+        )
+        self.router.add_api_route("/{server_id}/tools/{name}", self.call_app_tool, methods=["POST"])
+
+    async def list_servers(self) -> ServerList:
+        """Every configured server, connected or not."""
+        return ServerList(servers=tuple(s.id for s in self._mcp.statuses()))
+
+    async def read_app(self, server_id: str, uri: str) -> AppResource:
+        page = await self._mcp.app_page(server_id, uri)
+        return AppResource(html=page.html, csp=page.content_security_policy)
+
+    async def call_app_tool(self, server_id: str, name: str, body: AppToolCall) -> JSONResponse:
+        logger.info("app %s on %s calls %s", body.resource_uri, server_id, name)
+        result = await self._mcp.call_app_tool(server_id, name, body.arguments, body.resource_uri)
+        rewritten = with_relay_url(result, self._relays)
+        return JSONResponse(rewritten.model_dump(mode="json", by_alias=True, exclude_none=True))

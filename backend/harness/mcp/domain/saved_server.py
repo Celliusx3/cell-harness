@@ -6,7 +6,7 @@ from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict, SecretStr, field_validator, model_validator
 
-from harness.mcp.domain.server import (
+from harness.mcp.domain.mcp_server import (
     McpServer,
     named_keys,
     named_tools,
@@ -15,7 +15,7 @@ from harness.mcp.domain.server import (
 )
 
 
-class ServerCommand(BaseModel):
+class ServerSetup(BaseModel):
     """How to run a server, its env, the names of the keys it needs, and the names of its tools
     a worker is offered from its first step; a file saved before `offered` existed has none."""
 
@@ -50,7 +50,7 @@ class ServerCommand(BaseModel):
         return value
 
 
-class ServerDraft(ServerCommand):
+class ServerDraft(ServerSetup):
     """A server as the screen sends it: plain settings in `env`; a key not in `keys` is kept."""
 
     model_config = ConfigDict(frozen=True, extra="forbid", hide_input_in_errors=True)
@@ -101,7 +101,7 @@ class NewServer(ServerDraft):
         return usable_server_id(value)
 
 
-class SavedServer(ServerCommand):
+class SavedServer(ServerSetup):
     """A saved server under its id, with the values of its keys in its env."""
 
     id: str

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from harness.config import Settings
 from harness.files import ChatFileService
 from harness.llm import ToolCall, ToolMessage, text_of
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.prompts import HANDED_OVER, NOT_HANDED_OVER
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
@@ -215,7 +215,7 @@ async def test_a_script_cannot_hand_over_a_file(tmp_path: Path) -> None:
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),

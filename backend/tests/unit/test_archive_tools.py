@@ -9,7 +9,7 @@ import pytest
 
 from harness.config import Settings
 from harness.llm import ToolCall
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
 from harness.tools import NO_CHAT_GRANTS, ApprovalService, Failure, Ok, no_tools_from_start
@@ -99,7 +99,7 @@ async def test_a_worker_is_offered_both_and_its_script_can_call_neither(tmp_path
     bot = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),

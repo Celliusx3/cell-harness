@@ -8,7 +8,7 @@ import pytest
 
 from harness.config import MissingConfigError, Settings, SettingsRepository, SettingsService
 from harness.llm import ToolCall
-from harness.mcp import McpServer, McpService
+from harness.mcp import McpServer, McpService, open_stdio_client
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.native.empty_reply import EmptyReplyHook
 from harness.runtime.hooks.native.exact_failure import ExactFailureHook
@@ -50,7 +50,9 @@ def compose(tmp_path: Path):
     def build() -> Runtime:
         settings = Settings()
         sessions = SessionService(JsonlSessionRepository(tmp_path))
-        mcp = McpService({"stub": McpServer(command="does-not-run")})
+        mcp = McpService(
+            {"stub": McpServer(command="does-not-run")}, client_factory=open_stdio_client
+        )
         return build_runtime(
             settings,
             sessions,

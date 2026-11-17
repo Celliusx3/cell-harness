@@ -5,17 +5,30 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 
-from mcp.types import CallToolResult, ReadResourceResult
+from mcp.server.apps import APP_MIME_TYPE
+from mcp.types import CallToolResult, ReadResourceResult, TextResourceContents
 from mcp.types import Tool as McpTool
 
-from harness.mcp.domain.errors import McpNotConnectedError, McpServerNotFound, McpServerTaken
-from harness.mcp.domain.keys import missing_keys
-from harness.mcp.domain.server import McpServer
-from harness.mcp.domain.status import ServerStatus
-from harness.mcp.service._connection import Connection
-from harness.mcp.service.client import McpClientFactory
-from harness.mcp.service.clients.stdio import open_stdio_client
-from harness.mcp.service.tool import can_write, namespaced_tool_name
+from harness.mcp.domain.app_policy import AppPage, app_content_security_policy
+from harness.mcp.domain.errors import (
+    AppToolNotFound,
+    AppToolRefused,
+    McpNotConnectedError,
+    McpServerNotFound,
+    McpServerTaken,
+    NotAnAppPage,
+)
+from harness.mcp.domain.mcp_server import McpServer, missing_keys
+from harness.mcp.domain.published_tool import (
+    UI_SCHEME,
+    can_write,
+    is_app_visible,
+    namespaced_tool_name,
+    ui_resource_uri,
+)
+from harness.mcp.domain.server_status import ServerStatus
+from harness.mcp.service.connection import Connection
+from harness.mcp.service.mcp_client import McpClientFactory
 from harness.tools import Tool
 
 
@@ -26,7 +39,7 @@ class McpService:
         self,
         servers: Mapping[str, McpServer],
         *,
-        client_factory: McpClientFactory = open_stdio_client,
+        client_factory: McpClientFactory,
     ) -> None:
         self._servers: Mapping[str, McpServer] = dict(servers)
         self._factory = client_factory
@@ -83,6 +96,34 @@ class McpService:
     async def read_resource(self, server_id: str, uri: str) -> ReadResourceResult:
         """One `resources/read` on one server — the browser fetching an app's HTML."""
         return await self._connection(server_id).read_resource(uri)
+
+    async def app_page(self, server_id: str, uri: str) -> AppPage:
+        """The app page `uri` names on `server_id`; `NotAnAppPage` for any other resource."""
+        self._refuse_unless_served(server_id)
+        if not uri.startswith(UI_SCHEME):
+            raise NotAnAppPage(f"{uri!r} is not a ui:// resource")
+        result = await self.read_resource(server_id, uri)
+        content = result.contents[0] if result.contents else None
+        if not isinstance(content, TextResourceContents) or content.mime_type != APP_MIME_TYPE:
+            raise NotAnAppPage(f"{uri!r} is not {APP_MIME_TYPE!r} text")
+        return AppPage(
+            html=content.text, content_security_policy=app_content_security_policy(content.meta)
+        )
+
+    async def call_app_tool(
+        self, server_id: str, tool_name: str, arguments: dict[str, object], app_uri: str
+    ) -> CallToolResult:
+        """`tool_name` called for the app at `app_uri`, when that app may call it; else refused."""
+        self._refuse_unless_served(server_id)
+        tool = next((t for t in self.published_tools(server_id) if t.name == tool_name), None)
+        if tool is None:
+            raise AppToolNotFound(f"{server_id} has no tool {tool_name!r}")
+        if not is_app_visible(tool):
+            raise AppToolRefused(f"{tool_name!r} is not callable by apps")
+        bound = ui_resource_uri(tool)
+        if bound is not None and bound != app_uri:
+            raise AppToolRefused(f"{tool_name!r} belongs to another app, {bound}")
+        return await self.call_tool(server_id, tool_name, arguments)
 
     def _connection(self, server_id: str) -> Connection:
         """The connection for a configured server; `KeyError` for one that is not."""

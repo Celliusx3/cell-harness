@@ -197,7 +197,7 @@ kept precise.
 
 A tool on `approval.tools` in `config.json` (`memory__write_note`,
 `skill_save`), or a connected server's tool whose name does not read, does not
-run when the model calls it. `can_write` in `mcp/service/tool.py` decides the second
+run when the model calls it. `can_write` in `mcp/domain/published_tool.py` decides the second
 from the tool's own name alone: a name with a read verb (get, list, search,
 find, read, fetch) runs, every other name asks. A server's annotations are not
 consulted, because a public server's marks cannot be trusted; honouring them

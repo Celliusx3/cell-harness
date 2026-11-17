@@ -6,8 +6,14 @@ import asyncio
 
 import pytest
 
-from harness.mcp import McpConnectionError, McpNotConnectedError, McpService, McpTimeoutError
-from harness.mcp.service import _connection as connection_module
+from harness.mcp import (
+    McpConnectionError,
+    McpNotConnectedError,
+    McpService,
+    McpTimeoutError,
+    open_stdio_client,
+)
+from harness.mcp.service import connection as connection_module
 from tests.unit.mcp_fakes import FakeFactory, html_resource, servers, tool
 
 
@@ -204,7 +210,7 @@ async def test_calling_a_closed_connection_raises_not_connected() -> None:
 
 
 async def test_a_store_with_no_configured_servers_offers_nothing() -> None:
-    store = McpService({})
+    store = McpService({}, client_factory=open_stdio_client)
     await store.start()
 
     assert store.tools() == []

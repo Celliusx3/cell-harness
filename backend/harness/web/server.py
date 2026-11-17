@@ -35,8 +35,8 @@ from harness.files.router.workspace_router import WorkspaceRouter
 from harness.groups import GroupService, JsonGroupRepository
 from harness.groups.router.group_router import GroupRouter
 from harness.images import BLOBS, DiskImageRepository, ImageService
-from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService
-from harness.mcp.router.mcp_router import McpRouter
+from harness.mcp import DiskSavedServerRepository, McpService, SavedServerService, open_stdio_client
+from harness.mcp.router.app_router import McpAppRouter
 from harness.mcp.router.server_router import ServerRouter
 from harness.prompts import ASSISTANT_INSTRUCTIONS
 from harness.relay import RelayService
@@ -92,7 +92,8 @@ def build_saved_servers(settings: Settings) -> SavedServerService:
 
 def build_mcp(saved: SavedServerService) -> McpService:
     """Connections to the person's saved servers, with their keys."""
-    return McpService({server.id: server.mcp_server() for server in saved.servers()})
+    servers = {server.id: server.mcp_server() for server in saved.servers()}
+    return McpService(servers, client_factory=open_stdio_client)
 
 
 def build_keyring(settings: Settings) -> SecretService:
@@ -277,7 +278,7 @@ def create_app(
     app.include_router(AppEventRouter(runs.app_events).router)
     app.include_router(SkillRouter(skills).router)
     app.include_router(ServerRouter(mcp, saved_servers).router)
-    app.include_router(McpRouter(mcp, relays).router)
+    app.include_router(McpAppRouter(mcp, relays).router)
     app.include_router(RelayRouter(relays).router)
     app.include_router(ClientToolRouter(web, client_tools).router)
     effects = CredentialEffects(bots, channels.platforms)

@@ -11,7 +11,7 @@ import pytest
 from harness.channels.web.channel import WebChannel
 from harness.config import Settings
 from harness.images import ImageService
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
@@ -35,7 +35,7 @@ def runtime_over(tmp_path: Path, images: ImageService) -> Runtime:
     return build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),
