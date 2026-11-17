@@ -8,6 +8,7 @@ import shutil
 import stat
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
 from harness.files.domain.models import WorkspaceEntry, WorkspacePathError
@@ -119,9 +120,11 @@ def _entry(item: os.DirEntry[str], workspace: Path) -> WorkspaceEntry | None:
     try:
         if item.is_symlink() and not _is_link_within(Path(item.path), workspace):
             return None
+        found = item.stat()
+        modified = datetime.fromtimestamp(found.st_mtime, tz=UTC)
         if item.is_dir():
-            return WorkspaceEntry(name=item.name, kind="folder", size=0)
-        return WorkspaceEntry(name=item.name, kind="file", size=item.stat().st_size)
+            return WorkspaceEntry(name=item.name, kind="folder", size=0, modified=modified)
+        return WorkspaceEntry(name=item.name, kind="file", size=found.st_size, modified=modified)
     except OSError:
         return None
 

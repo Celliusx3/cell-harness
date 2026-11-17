@@ -1,15 +1,13 @@
 import { z } from "zod";
 
-import { crumbs } from "@/components/computer/files";
 import { type Head, headOf } from "@/components/workspace/preview";
 import { request } from "@/lib/api";
-
-const ROOT_NAME = "Workspace";
 
 const WorkspaceEntry = z.object({
   name: z.string(),
   kind: z.enum(["file", "folder"]),
   size: z.number().int().nonnegative(),
+  modified: z.iso.datetime({ offset: true }).transform((text) => new Date(text)),
 });
 export type WorkspaceEntry = z.infer<typeof WorkspaceEntry>;
 
@@ -22,13 +20,21 @@ export type WorkspaceListing = z.infer<typeof WorkspaceListing>;
 
 const WorkspaceChanged = z.object({ type: z.literal("workspace/changed"), folder: z.string() });
 
-/** Calls `onChanged` with each folder of the chat's workspace that changes, until the returned close is called. */
-export function watchWorkspace(chatId: string, onChanged: (folder: string) => void): () => void {
+/** What a watcher of a chat's workspace is told. */
+export interface WorkspaceWatcher {
+  onChanged(folder: string): void;
+  onLive(isLive: boolean): void;
+}
+
+/** Tells `watcher` each folder of the chat's workspace that changes, and whether it is watched, until closed. */
+export function watchWorkspace(chatId: string, watcher: WorkspaceWatcher): () => void {
   const source = new EventSource(`/api/workspaces/${encodeURIComponent(chatId)}/changes`);
+  source.addEventListener("workspace/watching", () => watcher.onLive(true));
   source.addEventListener("workspace/changed", (message: MessageEvent<string>) => {
     const changed = WorkspaceChanged.safeParse(JSON.parse(message.data));
-    if (changed.success) onChanged(changed.data.folder);
+    if (changed.success) watcher.onChanged(changed.data.folder);
   });
+  source.addEventListener("error", () => watcher.onLive(false));
   return () => source.close();
 }
 
@@ -49,19 +55,25 @@ export function deleteQuestion(name: string): string {
   return `Delete ${name}? Bots lose it too, and past messages that link it will not open it.`;
 }
 
-/** The folder's path as crumbs back to the workspace's root. */
-export function workspaceCrumbs(path: string) {
-  return crumbs(path).map((crumb, at) => (at === 0 ? { ...crumb, name: ROOT_NAME } : crumb));
+/** A relative path's absolute path on disk, as the chat's file route takes it. */
+export function absolutePath(workspace: string, path: string): string {
+  return path === "" ? workspace : `${workspace}/${path}`;
 }
 
-/** An entry's absolute path on disk, as the chat's file route takes it. */
-export function entryPath(listing: WorkspaceListing, name: string): string {
-  return [listing.workspace, listing.path, name].filter((part) => part !== "").join("/");
-}
-
-/** A relative folder path one level into `name`. */
+/** A relative path one level into `name`. */
 export function childPath(folder: string, name: string): string {
   return folder === "" ? name : `${folder}/${name}`;
+}
+
+/** The relative folder holding `path`, "" for the root. */
+export function parentPath(path: string): string {
+  const cut = path.lastIndexOf("/");
+  return cut === -1 ? "" : path.slice(0, cut);
+}
+
+/** Whether `path` is `folder` itself or lies inside it. */
+export function isWithin(path: string, folder: string): boolean {
+  return path === folder || path.startsWith(`${folder}/`);
 }
 
 /** The first `limit` bytes the file route serves at `url`; the rest is never read. */

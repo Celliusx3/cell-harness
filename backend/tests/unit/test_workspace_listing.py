@@ -8,6 +8,10 @@ from harness.files import WorkspaceEntry, WorkspacePathError
 from tests.webapp import files_in
 
 
+def listed_without_time(entry: WorkspaceEntry) -> dict[str, str | int]:
+    return entry.model_dump(exclude={"modified"})
+
+
 def test_a_folder_is_listed_folders_first_then_by_name_with_sizes(tmp_path) -> None:
     files = files_in(tmp_path)
     workspace = files.workspace("bot-1")
@@ -18,20 +22,20 @@ def test_a_folder_is_listed_folders_first_then_by_name_with_sizes(tmp_path) -> N
     listing = files.listing("bot-1", "")
 
     assert listing.path == ""
-    assert listing.entries == (
-        WorkspaceEntry(name="uploads", kind="folder", size=0),
-        WorkspaceEntry(name="alpha.txt", kind="file", size=1),
-        WorkspaceEntry(name="zeta.txt", kind="file", size=5),
-    )
+    assert [listed_without_time(entry) for entry in listing.entries] == [
+        {"name": "uploads", "kind": "folder", "size": 0},
+        {"name": "alpha.txt", "kind": "file", "size": 1},
+        {"name": "zeta.txt", "kind": "file", "size": 5},
+    ]
 
 
 def test_a_folder_inside_is_listed_by_its_relative_path(tmp_path) -> None:
     files = files_in(tmp_path)
     (files.workspace("bot-1") / "out" / "pages").mkdir(parents=True)
 
-    assert files.listing("bot-1", "out").entries == (
-        WorkspaceEntry(name="pages", kind="folder", size=0),
-    )
+    (entry,) = files.listing("bot-1", "out").entries
+
+    assert listed_without_time(entry) == {"name": "pages", "kind": "folder", "size": 0}
 
 
 @pytest.mark.parametrize("path", ["..", "../bot-2", "out/../../bot-2", "/etc", "missing"])
@@ -58,3 +62,14 @@ def test_a_chat_with_no_workspace_yet_lists_empty_and_makes_no_folder(tmp_path) 
 
     assert listing.entries == ()
     assert not (tmp_path / "files" / "workspaces" / "bot-9").exists()
+
+
+def test_a_file_is_listed_with_its_change_time(tmp_path) -> None:
+    files = files_in(tmp_path)
+    made = files.workspace("bot-1") / "report.txt"
+    made.write_bytes(b"x")
+
+    (entry,) = files.listing("bot-1", "").entries
+
+    assert entry.modified.timestamp() == pytest.approx(made.stat().st_mtime, abs=1)
+    assert entry.modified.tzinfo is not None

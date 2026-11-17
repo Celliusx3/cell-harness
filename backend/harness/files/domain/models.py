@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime
 from pathlib import PurePath, PurePosixPath
 from typing import Literal
 
@@ -24,13 +25,14 @@ class ChatFile(BaseModel):
 
 
 class WorkspaceEntry(BaseModel):
-    """One entry of a workspace folder: its name, whether it is a folder, and its size."""
+    """One entry of a workspace folder: its name, kind, size and change time."""
 
     model_config = ConfigDict(frozen=True)
 
     name: str
     kind: Literal["file", "folder"]
     size: int
+    modified: datetime
 
 
 class WorkspaceListing(BaseModel):

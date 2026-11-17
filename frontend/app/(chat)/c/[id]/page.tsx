@@ -25,7 +25,9 @@ import { useChatTickets } from "@/components/conversation/useChatTickets";
 import { useElapsed } from "@/components/conversation/useElapsed";
 import { chatUsage } from "@/components/conversation/usage";
 import { useTimeline } from "@/components/conversation/useTimeline";
-import { WorkspaceDock } from "@/components/workspace/WorkspaceDock";
+import { FilesPane } from "@/components/workspace/FilesPane";
+import { ResizeHandle } from "@/components/workspace/ResizeHandle";
+import { useChatWidth } from "@/components/workspace/useChatWidth";
 import { listBots, listGroups } from "@/lib/api";
 import { type AppEvent, useAppEvent } from "@/lib/appEvents";
 
@@ -60,6 +62,7 @@ export default function ConversationPage({
   const tickets = useChatTickets(id);
   const [folded, setFolded] = useState<string | null>(null);
   const [dock, setDock] = useState<Dock | null>(null);
+  const chatWidth = useChatWidth();
   const computerAdded = useComputerAdded() === "yes";
   const wasRunning = useRef(false);
 
@@ -74,6 +77,8 @@ export default function ConversationPage({
   }, [id, conversation.running]);
 
   const host = speakerOf(bot);
+  const chat = host ?? speakerOf(group);
+  const isFilesDocked = dock === "files";
 
   if (bot.kind === "none" && group.kind === "none") {
     return <p className="px-6 py-6 text-sm text-danger">No bot or group has the id {id}.</p>;
@@ -81,9 +86,12 @@ export default function ConversationPage({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div
+        className={`flex min-w-0 flex-1 flex-col ${isFilesDocked ? "lg:min-w-[400px] lg:grow-0" : ""}`}
+        style={isFilesDocked ? { flexBasis: chatWidth.width } : undefined}
+      >
         <ChatHeader
-          chat={host ?? speakerOf(group)}
+          chat={chat}
           editHref={host === null ? null : `/bots/${id}`}
           elapsed={elapsed}
           waiting={waiting !== null || tickets.needsAnswer}
@@ -99,7 +107,7 @@ export default function ConversationPage({
           {conversation.loading ? (
             <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
           ) : items.length === 0 && conversation.sending === null ? (
-            <EmptyChat speaker={host ?? speakerOf(group)} />
+            <EmptyChat speaker={chat} />
           ) : (
             <Timeline
               items={items}
@@ -154,8 +162,16 @@ export default function ConversationPage({
         )}
       </div>
       {computerAdded && dock === "computer" && <ComputerDock />}
-      {dock === "files" && (
-        <WorkspaceDock key={id} chatId={id} group={group.kind === "found" ? group.item : null} />
+      {isFilesDocked && chat !== null && (
+        <>
+          <ResizeHandle width={chatWidth.width} onResize={chatWidth.resize} />
+          <FilesPane
+            key={id}
+            chatId={id}
+            chatName={chat.name}
+            group={group.kind === "found" ? group.item : null}
+          />
+        </>
       )}
     </div>
   );

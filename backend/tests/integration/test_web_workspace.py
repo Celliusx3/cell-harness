@@ -16,11 +16,12 @@ async def test_a_workspace_folder_is_listed(simple, tmp_path) -> None:
     listed = await client.get(LISTING, params={"path": ""})
 
     assert listed.status_code == 200, listed.text
-    assert listed.json() == {
-        "path": "",
-        "workspace": str(workspace),
-        "entries": [{"name": "report.pdf", "kind": "file", "size": 4}],
-    }
+    body = listed.json()
+    (entry,) = body["entries"]
+    assert body["path"] == ""
+    assert body["workspace"] == str(workspace)
+    assert entry.pop("modified").endswith("Z")
+    assert entry == {"name": "report.pdf", "kind": "file", "size": 4}
 
 
 async def test_a_path_outside_the_workspace_is_not_found(simple) -> None:
