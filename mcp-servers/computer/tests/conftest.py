@@ -21,7 +21,7 @@ from computer.services.host_services import PreparedHostService, command_variabl
 NAME = "cell-harness-computer"
 IMAGE = (
     "ghcr.io/celliusx3/cell-harness/pc"
-    "@sha256:50c6c9f7c0aad1fb369f44d532a3c19f62c732a08f12b953b44664f3af21e9e3"
+    "@sha256:704d0422f0020e4d395d0c9639383560871f2bb225a4da4fd0afdd64fa1ab62f"
 )
 IDLE_SECONDS = 600
 API_HOST_PORT = 62477
