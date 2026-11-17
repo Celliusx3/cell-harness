@@ -1,9 +1,19 @@
-"""The Content-Security-Policy an MCP app's iframe renders under."""
+"""An MCP app's page: its HTML, and the Content-Security-Policy its iframe renders under."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from urllib.parse import urlsplit
+
+
+@dataclass(frozen=True)
+class AppPage:
+    """The HTML an app's resource holds, and the policy its iframe renders under."""
+
+    html: str
+    content_security_policy: str
+
 
 _CSP_DEFAULT_SOURCES = {
     "script-src": ["'unsafe-inline'"],

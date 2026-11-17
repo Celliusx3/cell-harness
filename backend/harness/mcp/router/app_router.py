@@ -4,19 +4,14 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from mcp.server.apps import APP_MIME_TYPE
-from mcp.types import TextResourceContents
 
-from harness.mcp import McpService, is_app_visible, ui_resource_uri
-from harness.mcp.domain.app_policy import app_content_security_policy
 from harness.mcp.router.app_schemas import AppResource, AppToolCall, ServerList
+from harness.mcp.service.mcp_service import McpService
 from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")
-
-UI_SCHEME = "ui://"
 
 
 class McpAppRouter:
@@ -37,41 +32,11 @@ class McpAppRouter:
         return ServerList(servers=tuple(s.id for s in self._mcp.statuses()))
 
     async def read_app(self, server_id: str, uri: str) -> AppResource:
-        self._refuse_unknown_server(server_id)
-        if not uri.startswith(UI_SCHEME):
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, detail=f"{uri!r} is not a ui:// resource"
-            )
-        result = await self._mcp.read_resource(server_id, uri)
-        content = result.contents[0] if result.contents else None
-        if not isinstance(content, TextResourceContents) or content.mime_type != APP_MIME_TYPE:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, detail=f"{uri!r} is not {APP_MIME_TYPE!r} text"
-            )
-        return AppResource(html=content.text, csp=app_content_security_policy(content.meta))
+        page = await self._mcp.app_page(server_id, uri)
+        return AppResource(html=page.html, csp=page.content_security_policy)
 
     async def call_app_tool(self, server_id: str, name: str, body: AppToolCall) -> JSONResponse:
-        self._refuse_unknown_server(server_id)
-        published = self._mcp.published_tools(server_id)
-        tool = next((t for t in published if t.name == name), None)
-        if tool is None:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND, detail=f"{server_id} has no tool {name!r}"
-            )
-        if not is_app_visible(tool):
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, detail=f"{name!r} is not callable by apps"
-            )
-        bound = ui_resource_uri(tool)
-        if bound is not None and bound != body.resource_uri:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN, detail=f"{name!r} belongs to another app, {bound}"
-            )
         logger.info("app %s on %s calls %s", body.resource_uri, server_id, name)
-        result = await self._mcp.call_tool(server_id, name, body.arguments)
+        result = await self._mcp.call_app_tool(server_id, name, body.arguments, body.resource_uri)
         rewritten = with_relay_url(result, self._relays)
         return JSONResponse(rewritten.model_dump(mode="json", by_alias=True, exclude_none=True))
-
-    def _refuse_unknown_server(self, server_id: str) -> None:
-        if server_id not in {s.id for s in self._mcp.statuses()}:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"no MCP server {server_id!r}")

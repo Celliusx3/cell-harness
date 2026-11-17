@@ -12,11 +12,14 @@ from harness.bots import BotNotFound, BuiltInBotError, UnsavedModelError
 from harness.files import FileTooLargeError, UnsafeFileNameError
 from harness.groups import EmptyGroupError, GroupMemberNotFound
 from harness.mcp import (
+    AppToolNotFound,
+    AppToolRefused,
     McpConnectionError,
     McpNotConnectedError,
     McpServerNotFound,
     McpServerTaken,
     McpTimeoutError,
+    NotAnAppPage,
 )
 from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
 from harness.secrets import RefusedSecretError, SecretNotFound
@@ -45,6 +48,9 @@ STATUS_BY_ERROR: Mapping[type[Exception], int] = MappingProxyType(
         GroupMemberNotFound: status.HTTP_422_UNPROCESSABLE_CONTENT,
         InvalidSchedule: status.HTTP_422_UNPROCESSABLE_CONTENT,
         InvalidSkill: status.HTTP_422_UNPROCESSABLE_CONTENT,
+        AppToolNotFound: status.HTTP_404_NOT_FOUND,
+        AppToolRefused: status.HTTP_403_FORBIDDEN,
+        NotAnAppPage: status.HTTP_400_BAD_REQUEST,
         McpConnectionError: status.HTTP_502_BAD_GATEWAY,
         McpNotConnectedError: status.HTTP_503_SERVICE_UNAVAILABLE,
         McpServerNotFound: status.HTTP_404_NOT_FOUND,

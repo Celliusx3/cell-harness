@@ -10,6 +10,8 @@ from harness.tools import NAMESPACE_SEPARATOR
 
 _WORD_BREAK = re.compile(r"[_-]|(?<=[a-z0-9])(?=[A-Z])")
 
+UI_SCHEME = "ui://"
+
 _READ_VERBS = frozenset({"get", "list", "search", "find", "read", "fetch"})
 
 
@@ -35,4 +37,4 @@ def ui_resource_uri(tool: McpTool) -> str | None:
     """The `ui://` resource an MCP App binds to this tool, if it declares one."""
     ui = (tool.meta or {}).get("ui")
     uri = ui.get("resourceUri") if isinstance(ui, dict) else None
-    return uri if isinstance(uri, str) and uri.startswith("ui://") else None
+    return uri if isinstance(uri, str) and uri.startswith(UI_SCHEME) else None

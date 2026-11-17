@@ -12,11 +12,14 @@ from harness.bots import ASSISTANT_ID, BotNotFound, BuiltInBotError, UnsavedMode
 from harness.files import FileTooLargeError, UnsafeFileNameError
 from harness.groups import EmptyGroupError, GroupMemberNotFound
 from harness.mcp import (
+    AppToolNotFound,
+    AppToolRefused,
     McpConnectionError,
     McpNotConnectedError,
     McpServerNotFound,
     McpServerTaken,
     McpTimeoutError,
+    NotAnAppPage,
 )
 from harness.schedules import InvalidSchedule, ScheduleBusyError, ScheduleNotFound
 from harness.secrets import RefusedSecretError, SecretNotFound
@@ -56,6 +59,9 @@ PINNED = [
     pytest.param(McpNotConnectedError("stub is not connected"), 503, id="McpNotConnectedError"),
     pytest.param(McpServerNotFound("no MCP server 'exa'"), 404, id="McpServerNotFound"),
     pytest.param(McpServerTaken("a server is already named 'exa'"), 409, id="McpServerTaken"),
+    pytest.param(AppToolNotFound("srv has no tool 'nope'"), 404, id="AppToolNotFound"),
+    pytest.param(AppToolRefused("'secret' is not callable by apps"), 403, id="AppToolRefused"),
+    pytest.param(NotAnAppPage("'https://x' is not a ui:// resource"), 400, id="NotAnAppPage"),
     pytest.param(McpTimeoutError("stub stopped answering"), 502, id="McpTimeoutError"),
     pytest.param(
         ToolNotApproved("'memory__write_note' is not approved"), 404, id="ToolNotApproved"
