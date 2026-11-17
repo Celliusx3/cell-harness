@@ -2,16 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Protocol, TypeIs, get_args
+from typing import Protocol
 
 from harness.images.domain.models import ImageFile, KeptMediaType
-
-KEPT_MEDIA_TYPES: frozenset[str] = frozenset(get_args(KeptMediaType))
-
-
-def is_kept_media_type(media_type: str) -> TypeIs[KeptMediaType]:
-    """Whether an image of `media_type` is one a model can be sent, so one we keep."""
-    return media_type in KEPT_MEDIA_TYPES
 
 
 class ImageRepository(Protocol):
