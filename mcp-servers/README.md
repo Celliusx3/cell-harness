@@ -169,6 +169,11 @@ connection serves **one call at a time** — so `Promise.all` over several calls
 the same server serializes them. A server that can be slow should batch
 internally and return partial results rather than hoping.
 
+The harness sends `_meta["harness/workspace"]` on every `tools/call`: the chat's
+workspace folder, an absolute path the PC sees at the same path. It is absent when
+the harness keeps no chat files. `computer`'s `shell` starts there when the call gives
+no `cwd`.
+
 A tool description says what one call does. **How to compose several — across
 servers, in what order, with what judgement — is a skill**: a `SKILL.md` under
 `.agents/skills/` that the model loads when a request matches it.

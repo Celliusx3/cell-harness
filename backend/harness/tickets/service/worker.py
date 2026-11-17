@@ -25,7 +25,7 @@ from harness.session.domain.models import (
 from harness.session.service.session_service import SessionService
 from harness.skills import Skill, SkillService
 from harness.skills.service.prompt import instructions
-from harness.tickets.domain.models import ReportState, Ticket
+from harness.tickets.domain.models import ReportState, Ticket, ticket_chat_id
 from harness.tickets.domain.named_skills import named_skills
 from harness.tickets.domain.prompts import (
     APPROVAL_QUESTION,
@@ -37,6 +37,7 @@ from harness.tickets.domain.prompts import (
     WORKER_FILES_FOLDER,
     WORKER_INTRO,
     WORKER_LIMIT,
+    WORKER_OWN_WORKSPACE,
     WORKER_TICKET_TITLE,
 )
 from harness.tickets.domain.result_files import reported_files
@@ -98,6 +99,8 @@ class RuntimeTicketWorker:
     worker_limit_of: Callable[[str], int]
     """How many workers a bot runs at once, read as its ticket's first turn starts."""
     skills: SkillService
+    chat_of: Callable[[str], str]
+    """The chat a bot answers in on its own, where its worker's shell starts."""
 
     async def start(self, ticket: Ticket, *, mode: ApprovalMode) -> WorkerEnd:
         """Run `ticket`'s task for its bot in `mode`, in a new session, and report its end."""
@@ -105,9 +108,7 @@ class RuntimeTicketWorker:
         session.append(ApprovalModeChange(mode=mode))
         title = WORKER_TICKET_TITLE.format(title=ticket.title)
         limit = WORKER_LIMIT.format(limit=self.worker_limit_of(ticket.bot_id))
-        task = self._with_files_folder(
-            f"{title}\n\n{ticket.task}\n\n{limit}", self._chat_id(session, ticket)
-        )
+        task = self._with_files_folder(f"{title}\n\n{ticket.task}\n\n{limit}", ticket)
         prompt = "\n\n".join((task, *self._named_skill_texts(ticket.task)))
         return await self._run_turn(ticket, prompt, session, ticket.files)
 
@@ -133,10 +134,7 @@ class RuntimeTicketWorker:
         turn = HelperTurn(intro=WORKER_INTRO, prompt=prompt, bot_id=ticket.bot_id, files=files)
         last = await run_to_end(self.runtime, self.sessions, session, turn)
         end = worker_end(last, last_accepted_report(session.events()))
-        return self._with_result_files(end, self._chat_id(session, ticket))
-
-    def _chat_id(self, session: Session, ticket: Ticket) -> str:
-        return self.runtime.chat_id_for(session, ticket.bot_id)
+        return self._with_result_files(end, ticket)
 
     def _named_skill_texts(self, task: str) -> tuple[str, ...]:
         """What `skill` returns for each skill `task` names, so the worker starts with it loaded."""
@@ -144,20 +142,26 @@ class RuntimeTicketWorker:
         loaded = (_skill_text(offered[name]) for name in named_skills(task, tuple(offered)))
         return tuple(text for text in loaded if text is not None)
 
-    def _with_files_folder(self, task: str, chat_id: str) -> str:
-        """`task`, then where the person's files go, when this runtime keeps chats' files."""
+    def _with_files_folder(self, task: str, ticket: Ticket) -> str:
+        """`task`, then the ticket's chat's workspace for the person's files, and its bot's own."""
         if self.runtime.files is None:
             return task
-        folder = self.runtime.files.folder(chat_id)
-        return f"{task}\n\n{WORKER_FILES_FOLDER.format(folder=folder)}"
+        workspace = self.runtime.files.workspace(ticket_chat_id(ticket, chat_of=self.chat_of))
+        own = self.runtime.files.workspace(self.chat_of(ticket.bot_id))
+        lines = (
+            task,
+            WORKER_FILES_FOLDER.format(folder=workspace),
+            *(() if own == workspace else (WORKER_OWN_WORKSPACE.format(workspace=own),)),
+        )
+        return "\n\n".join(lines)
 
-    def _with_result_files(self, end: WorkerEnd, chat_id: str) -> WorkerEnd:
+    def _with_result_files(self, end: WorkerEnd, ticket: Ticket) -> WorkerEnd:
         """A ready `end` told which files it names can reach the person, and which cannot."""
         if end.state != "ready" or self.runtime.files is None:
             return end
-        folder = self.runtime.files.folder(chat_id)
-        chat_files = [str(path) for path in folder.rglob("*") if path.is_file()]
-        found = reported_files(end.text, str(folder), chat_files)
+        workspace = self.runtime.files.workspace(ticket_chat_id(ticket, chat_of=self.chat_of))
+        chat_files = [str(path) for path in workspace.rglob("*") if path.is_file()]
+        found = reported_files(end.text, str(workspace), chat_files)
         notes = [
             template.format(paths=", ".join(paths))
             for template, paths in (

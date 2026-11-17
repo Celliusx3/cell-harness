@@ -67,9 +67,10 @@ def ticket_workers(
         delegate_runtime(tool_service, runtime, WORKER_TOOLS, chat_grants, offered_from_start),
         guidance=GUIDANCE,
         chat_id_for=lambda _session, bot_id: bots.chat_of(bot_id),
+        own_chat_of=bots.chat_of,
     )
     return RuntimeTicketWorker(
-        worker, logs, lambda bot_id: bots.active_bot(bot_id).max_workers, skills
+        worker, logs, lambda bot_id: bots.active_bot(bot_id).max_workers, skills, bots.chat_of
     )
 
 

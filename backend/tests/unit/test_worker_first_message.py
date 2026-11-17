@@ -42,7 +42,10 @@ def worker_over(
     client = SteppedClient(completed("Done."))
     sessions = SessionService(JsonlSessionRepository(tmp_path / "workers"))
     runtime = runtime_over(client, guidance="BASE")
-    return RuntimeTicketWorker(runtime, sessions, lambda _bot_id: 3, skills), client, sessions
+    worker = RuntimeTicketWorker(
+        runtime, sessions, lambda _bot_id: 3, skills, lambda bot_id: bot_id
+    )
+    return worker, client, sessions
 
 
 async def first_message(sessions: SessionService, ticket_id: str) -> str:

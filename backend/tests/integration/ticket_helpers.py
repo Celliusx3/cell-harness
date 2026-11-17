@@ -28,7 +28,7 @@ from harness.web.runtime import CLIENT_TOOLS
 from harness.web.tickets_wiring import attach_tickets, ticket_workers
 from tests.integration.web_helpers import ASSISTANT_START
 from tests.unit.fakes import OneModel, PerBotClient
-from tests.unit.group_helpers import group_service
+from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import (
     durable_service,
     heard_nowhere,
@@ -92,7 +92,7 @@ def ticketing_app(
         service,
         runtime,
         bots,
-        group_service(bots, service),
+        groups_in(tmp_path, bots, service, app_events),
         app_events=app_events,
     )
     worker_logs = SessionService(JsonlSessionRepository(tmp_path / "workers"))

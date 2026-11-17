@@ -154,3 +154,15 @@ async def test_a_server_that_explains_itself_on_stderr_and_exits_is_named_with_i
     assert status.status == "failed"
     assert "Turn on virtualization." in status.error
     await store.aclose()
+
+
+async def test_a_call_names_its_chats_workspace_to_the_server(live) -> None:
+    _, tool_service = await live(stub())
+    tool = tool_service.get("stub__workspace")
+    assert tool is not None
+
+    named = await tool.invoke("{}", context=context_for(workspace=Path("/files/workspaces/bot-1")))
+    unnamed = await tool.invoke("{}", context=context_for(workspace=None))
+
+    assert isinstance(named, Ok) and "/files/workspaces/bot-1" in named.text
+    assert isinstance(unnamed, Ok) and "none" in unnamed.text

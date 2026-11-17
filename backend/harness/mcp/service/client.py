@@ -20,7 +20,11 @@ class McpClient(Protocol):
     async def list_tools(self, *, cursor: str | None = None) -> ListToolsResult: ...
 
     async def call_tool(
-        self, server_tool_name: str, arguments: dict[str, object]
+        self,
+        server_tool_name: str,
+        arguments: dict[str, object],
+        *,
+        meta: dict[str, str] | None,
     ) -> CallToolResult: ...
 
     async def read_resource(self, uri: str) -> ReadResourceResult: ...

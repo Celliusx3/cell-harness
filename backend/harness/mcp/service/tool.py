@@ -10,6 +10,7 @@ from mcp.types import CallToolResult
 from mcp.types import Tool as McpTool
 
 from harness.mcp.domain.errors import McpNotConnectedError, McpTimeoutError
+from harness.mcp.domain.meta import WORKSPACE_META
 from harness.mcp.service._result import tool_outcome
 from harness.tools import (
     EXECUTION_ERROR,
@@ -32,7 +33,13 @@ _READ_VERBS = frozenset({"get", "list", "search", "find", "read", "fetch"})
 # Some providers reject a bare `{}` or null schema.
 _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 
-CallTool = Callable[[str, dict[str, object]], Awaitable[CallToolResult]]
+CallTool = Callable[[str, dict[str, object], dict[str, str] | None], Awaitable[CallToolResult]]
+
+
+def call_meta(context: ToolContext) -> dict[str, str] | None:
+    """The `_meta` a call sends: the workspace of the chat it is made for, when it has one."""
+    workspace = context.origin.workspace
+    return None if workspace is None else {WORKSPACE_META: str(workspace)}
 
 
 def namespaced_tool_name(server_id: str, server_tool_name: str) -> str:
@@ -92,9 +99,9 @@ def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict[
     tool_name = namespaced_tool_name(server_id, published.name)
     resource_uri = ui_resource_uri(published)
 
-    async def execute(arguments: dict[str, object], _context: ToolContext) -> ToolOutcome:
+    async def execute(arguments: dict[str, object], context: ToolContext) -> ToolOutcome:
         try:
-            result = await call(published.name, arguments)
+            result = await call(published.name, arguments, call_meta(context))
         except McpNotConnectedError:
             return Failure(
                 UNKNOWN_TOOL, f"{tool_name} is no longer available: {server_id} is disconnected"

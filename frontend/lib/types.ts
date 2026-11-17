@@ -180,6 +180,8 @@ export type SessionEvent =
   | { type: "bot/instructions"; name: string; instructions: string; bot_id?: string | null }
   /** What a connected MCP server tells the model from here on; empty once it tells nothing. */
   | { type: "server/instructions"; server: string; instructions: string }
+  /** The folder a bot's turns here work in, and its own when that is another one. */
+  | { type: "workspace/named"; bot_id: string; workspace: string; own_workspace: string | null }
   /** The group this chat belongs to, and its members' names. */
   | { type: "group/members"; name: string; members: string[] }
   | { type: "chat/cleared" };

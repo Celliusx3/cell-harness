@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 from harness.bots.domain.models import Bot, BotDraft, BotEdit, UnsavedModelError
 from harness.bots.service.bot_service import BotService
+from harness.files import ChatFileService
+from harness.groups import groups_left_without_members
 from harness.runs.service.run_service import RunService
 from harness.schedules import ScheduleService
 from harness.secrets import SecretName, SecretNotFound, SecretService
@@ -13,12 +15,13 @@ from harness.secrets import SecretName, SecretNotFound, SecretService
 
 @dataclass(frozen=True)
 class BotLifecycleService:
-    """A bot made, edited, archived or deleted, with its model, keys, turns and schedules."""
+    """A bot made, edited, archived or deleted, with its model, keys, turns, schedules, files."""
 
     bots: BotService
     runs: RunService
     secrets: SecretService
     schedules: ScheduleService
+    files: ChatFileService
 
     async def create(self, draft: BotDraft) -> Bot:
         """A new bot on the saved LLM credential `draft` names; `UnsavedModelError` otherwise."""
@@ -44,17 +47,26 @@ class BotLifecycleService:
         await self._stop_speaking(bot_id)
 
     async def delete(self, bot_id: str) -> None:
-        """Stop the bot's turns, then remove it, its chat and its schedules for good."""
+        """Stop the bot's turns, then delete it, its chat, schedules and workspaces for good."""
         self.bots.archive(bot_id)
         await self._stop_speaking(bot_id)
         await self.bots.delete(bot_id)
         self.schedules.delete_of_bot(bot_id)
+        self._delete_workspaces_of(bot_id)
 
     def _refuse_unsaved_model(self, name: SecretName | None) -> None:
         """Raise when `name` is not a saved LLM credential; `None` is no model, and passes."""
         reason = None if name is None else self.secrets.not_a_model_reason(name)
         if reason is not None:
             raise UnsavedModelError(reason)
+
+    def _delete_workspaces_of(self, bot_id: str) -> None:
+        """The deleted bot's workspace, and each of its groups' once no member is stored."""
+        self.files.delete_workspace(self.bots.chat_of(bot_id))
+        stored = {bot.id for bot in (*self.bots.active_bots(), *self.bots.archived_bots())}
+        groups = tuple(g for g in self.runs.groups.all() if bot_id in g.member_ids)
+        for group in groups_left_without_members(groups, stored_bot_ids=stored):
+            self.files.delete_workspace(self.runs.groups.chat_of_group(group.id))
 
     async def _stop_speaking(self, bot_id: str) -> None:
         """End the bot's own chat's turn, and the discussion of any group it is speaking in."""

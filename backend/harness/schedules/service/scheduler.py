@@ -72,7 +72,7 @@ class Scheduler:
         now = self._now()
         for chat_id, due in self._due_by_chat(now).items():
             heard = ScheduleReminders(reminders=tuple(_latest_due_reminder(s, now) for s in due))
-            self._start(chat_id, heard, self._schedules.record_delivery)
+            self._start(chat_id, heard, self._schedules.record_delivery, speaker_id=due[0].bot_id)
 
     def run_now(self, schedule_id: str) -> None:
         """Deliver the schedule at once, whatever its status, its next time left where it was."""
@@ -82,7 +82,7 @@ class Scheduler:
             raise ScheduleBusyError(schedule_id)
         reminder = _reminder_at(schedule, self._now())
         heard = ScheduleReminders(reminders=(reminder,))
-        self._start(chat_id, heard, self._schedules.record_run_now)
+        self._start(chat_id, heard, self._schedules.record_run_now, speaker_id=schedule.bot_id)
 
     async def _loop(self) -> None:
         while True:
@@ -119,20 +119,24 @@ class Scheduler:
         left = (min(due) - self._now()).total_seconds()
         return min(max(left, 0.0), MAX_WAIT_SECONDS)
 
-    def _start(self, chat_id: str, heard: ScheduleReminders, record: Record) -> None:
-        """Take `chat_id`'s slot and deliver `heard` in it, each delivery kept by `record`."""
+    def _start(
+        self, chat_id: str, heard: ScheduleReminders, record: Record, *, speaker_id: str
+    ) -> None:
+        """Take `chat_id`'s slot and deliver `heard` in it to `speaker_id`, kept by `record`."""
         self._chats_in_flight.add(chat_id)
-        self._spawn(self._deliver(chat_id, heard, record))
+        self._spawn(self._deliver(chat_id, heard, record, speaker_id=speaker_id))
 
     def _spawn(self, delivery: Coroutine[None, None, None]) -> None:
         task = asyncio.create_task(delivery)
         self._deliveries.add(task)
         task.add_done_callback(self._deliveries.discard)
 
-    async def _deliver(self, chat_id: str, heard: ScheduleReminders, record: Record) -> None:
+    async def _deliver(
+        self, chat_id: str, heard: ScheduleReminders, record: Record, *, speaker_id: str
+    ) -> None:
         """Hold `chat_id`'s slot while its schedules are delivered and their turn runs."""
         try:
-            await self._deliver_in(chat_id, heard, record)
+            await self._deliver_in(chat_id, heard, record, speaker_id=speaker_id)
         except Exception:
             logger.exception("delivering schedules into chat %s raised; paused them", chat_id)
             for reminder in heard.reminders:
@@ -142,10 +146,12 @@ class Scheduler:
             self._chats_in_flight.discard(chat_id)
             self._schedules.changed.set()
 
-    async def _deliver_in(self, chat_id: str, heard: ScheduleReminders, record: Record) -> None:
-        """Open the turn once the chat is free, have its chat apps hear it, save, then wait."""
+    async def _deliver_in(
+        self, chat_id: str, heard: ScheduleReminders, record: Record, *, speaker_id: str
+    ) -> None:
+        """Open `speaker_id`'s turn once the chat is free, have its apps hear it, save, wait."""
         try:
-            run = await self._runs.hear_when_free(chat_id, heard)
+            run = await self._runs.hear_when_free(chat_id, heard, speaker_id=speaker_id)
         except (BotNotFound, SessionNotFoundError) as err:
             logger.warning("schedules in chat %s ended, its bot is gone: %s", chat_id, err)
             for reminder in heard.reminders:

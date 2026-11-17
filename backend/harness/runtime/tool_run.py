@@ -60,7 +60,7 @@ class FileHandOver:
 def _files_handed_over(
     files: ChatFileService | None, chat_id: str, outcome: Ok | Failure
 ) -> FileHandOver:
-    """Each path a result names: kept when it is a file in this chat's folder, else refused."""
+    """Each path a result names: kept when it is a file in this chat's workspace, else refused."""
     paths = outcome.paths_to_send if isinstance(outcome, Ok) else ()
     kept: list[ChatFile] = []
     lines: list[str] = []
@@ -251,10 +251,12 @@ async def _execute(
 ) -> AsyncIterator[ToolProgress | ToolOutcome]:
     """Run the tool: its progress as it reports it, then its outcome, last."""
     assert runtime.tools is not None
+    chat_id = runtime.chat_id_for(run.session, run.bot_id)
     origin = CallOrigin(
         bot_id=run.bot_id,
-        conversation_id=runtime.chat_id_for(run.session, run.bot_id),
+        conversation_id=chat_id,
         mode=runtime.tools.approval_mode(run.session),
+        workspace=None if runtime.files is None else runtime.files.workspace(chat_id),
     )
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 

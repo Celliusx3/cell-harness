@@ -57,6 +57,13 @@ async def env_value(name: str) -> str:
 
 
 @server.tool()
+async def workspace(ctx: Context) -> str:
+    """The workspace the call's `_meta` names under `harness/workspace`, or "none"."""
+    meta = ctx.request_context.meta or {}
+    return str(meta.get("harness/workspace", "none"))
+
+
+@server.tool()
 async def whoami() -> int:
     """This server's pid, so a test can prove the process is gone."""
     return os.getpid()

@@ -11,6 +11,7 @@ from harness.groups.domain.models import (
     Group,
     GroupDraft,
     GroupMemberNotFound,
+    NotAChatMemberError,
 )
 from harness.groups.domain.speaker_queue import SpeakerQueue
 from harness.groups.repository.group_repository import GroupRepository
@@ -91,6 +92,19 @@ class GroupService:
             raise EmptyGroupError(session.id)
         _log_speaker_and_members_if_changed(session, members, speakers[0])
         return speakers[0]
+
+    def is_member(self, chat_id: str, bot_id: str) -> bool:
+        """Whether `bot_id` is an active bot answering in `chat_id`; `BotNotFound` for no chat."""
+        return any(bot.id == bot_id for bot in self.chat_members(chat_id).bots)
+
+    def named_speaker(self, session: Session, bot_id: str) -> Bot:
+        """`bot_id` to answer, its instructions and group logged; else `NotAChatMemberError`."""
+        members = self.chat_members(session.id)
+        speaker = next((bot for bot in members.bots if bot.id == bot_id), None)
+        if speaker is None:
+            raise NotAChatMemberError(session.id, bot_id)
+        _log_speaker_and_members_if_changed(session, members, speaker)
+        return speaker
 
     def next_speaker(self, session: Session) -> Bot | None:
         """Who the queue says is next, its instructions and group logged; `None` when nobody is."""

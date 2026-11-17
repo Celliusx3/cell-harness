@@ -33,7 +33,7 @@ def image_result(data: str = DOT_PNG, *, mime_type: str = "image/png") -> CallTo
 async def result_seen(images: ImageService | None, result: CallToolResult) -> ToolMessage:
     """The tool message the model's next request carries once a tool returned `result`."""
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, meta: dict[str, str] | None) -> CallToolResult:
         return result
 
     model = SteppedClient(calls_tool("srv__snap"), completed("seen"))

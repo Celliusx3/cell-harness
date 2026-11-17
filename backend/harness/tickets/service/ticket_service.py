@@ -11,10 +11,9 @@ from datetime import datetime
 from harness.app_events import TicketsChangedAppEvent
 from harness.bots import BotNotFound, BotService
 from harness.files import ChatFile
-from harness.runs.service.run import Run
 from harness.runs.service.run_service import RunService
 from harness.session.domain.log import Session
-from harness.session.domain.models import SessionEvent, TicketReport, TicketReportEvent
+from harness.session.domain.models import SessionEvent
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
 from harness.tickets.domain.models import (
@@ -28,6 +27,7 @@ from harness.tickets.domain.models import (
     TicketsFile,
     TicketState,
     UnretryableTicketError,
+    ticket_chat_id,
     ticket_state,
 )
 from harness.tickets.domain.prompts import (
@@ -36,6 +36,7 @@ from harness.tickets.domain.prompts import (
     TICKET_RETRY_HEARD,
 )
 from harness.tickets.repository.ticket_repository import TicketRepository
+from harness.tickets.service.delivery import Follow, ReportDelivery
 from harness.tickets.service.places import Places
 from harness.tickets.service.worker import (
     TicketWorker,
@@ -49,7 +50,6 @@ from harness.tools.domain.decision import ApprovalMode
 
 logger = logging.getLogger("harness.tickets")
 
-Follow = Callable[[Run], Awaitable[None]]
 WorkerTurn = Callable[[], Awaitable[WorkerEnd]]
 
 
@@ -73,7 +73,7 @@ class TicketService:
         self._runs = runs
         self._worker = worker
         self._logs = logs
-        self._follow = follow
+        self._delivery = ReportDelivery(bots, runs, follow)
         self._now = now
         self._ids = ids
         self._locks: dict[str, asyncio.Lock] = {}
@@ -98,8 +98,8 @@ class TicketService:
         return found
 
     def worker_chat_id(self, ticket_id: str) -> str:
-        """The chat whose files `ticket_id`'s worker works with, its bot's; `TicketNotFound`."""
-        return self._bots.chat_of(self.get(ticket_id).bot_id)
+        """The chat whose files `ticket_id`'s worker works with, the ticket's; `TicketNotFound`."""
+        return ticket_chat_id(self.get(ticket_id), chat_of=self._bots.chat_of)
 
     def is_running(self, ticket_id: str) -> bool:
         """Whether `ticket_id`'s worker is in flight now."""
@@ -113,8 +113,10 @@ class TicketService:
             return ()
         return tuple(session.events())
 
-    def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket:
-        """A new `working` ticket for `bot_id`, saved, its worker started in the background."""
+    def accept(
+        self, *, bot_id: str, chat_id: str, title: str, task: str, mode: ApprovalMode
+    ) -> Ticket:
+        """A new `working` ticket for `bot_id` from `chat_id`, saved, its worker started."""
         ticket = Ticket(
             id=self._ids(),
             bot_id=bot_id,
@@ -123,15 +125,16 @@ class TicketService:
             state="working",
             created_at=self._now(),
             mode=mode,
-            files=self._files_attached_now(bot_id),
+            files=self._files_attached_now(chat_id),
+            chat_id=chat_id,
         )
         stored = self._repository.read()
         self._save(TicketsFile(tickets=(*stored.tickets, ticket)))
         self._start_first_turn(ticket)
         return ticket
 
-    def _files_attached_now(self, bot_id: str) -> tuple[ChatFile, ...]:
-        run = self._runs.active_run(self._bots.chat_of(bot_id))
+    def _files_attached_now(self, chat_id: str) -> tuple[ChatFile, ...]:
+        run = self._runs.active_run(chat_id)
         return run.session.files_attached_this_turn() if run is not None else ()
 
     def recover(self) -> None:
@@ -229,7 +232,7 @@ class TicketService:
         end = await self._locked_turn(ticket, turn, is_answer=is_answer)
         if end is None or end.state == "dropped":
             return
-        await self._deliver(ticket.bot_id, end.report(ticket))
+        await self._delivery.deliver(ticket, end.report(ticket))
 
     async def _locked_turn(
         self, ticket: Ticket, turn: WorkerTurn, *, is_answer: bool
@@ -282,18 +285,3 @@ class TicketService:
         """Write every ticket, and tell the app's pages that tickets changed."""
         self._repository.write(stored)
         self._runs.app_events.publish(TicketsChangedAppEvent())
-
-    async def _deliver(self, bot_id: str, report: TicketReport) -> None:
-        """The turn `report` opens in `bot_id`'s chat once free; an approval is logged, no turn."""
-        try:
-            chat_id = self._bots.chat_of(bot_id)
-            if report.ask == "approval":
-                await self._runs.log_when_free(
-                    chat_id, lambda turn: TicketReportEvent(turn=turn, report=report)
-                )
-                return
-            run = await self._runs.hear_when_free(chat_id, report)
-        except (BotNotFound, SessionNotFoundError) as err:
-            logger.warning("ticket report dropped, nobody is left to hear it: %s", err)
-            return
-        await self._follow(run)

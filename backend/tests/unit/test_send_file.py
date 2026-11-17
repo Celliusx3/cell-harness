@@ -1,4 +1,4 @@
-"""`send_file`: files in this chat's folder reach the person, and the model hears which did not."""
+"""`send_file`: files in this chat's workspace reach the person; the model hears which did not."""
 
 from __future__ import annotations
 
@@ -113,7 +113,7 @@ async def test_a_path_outside_this_chat_s_folder_is_not_handed_over_and_the_mode
 ) -> None:
     files = files_in(tmp_path)
     theirs = await files.save("other", "page.png", chunks_of(PNG_HEADER))
-    missing = str(DiskChatFileRepository(tmp_path / "files").folder("s") / "t" / "gone.png")
+    missing = str(DiskChatFileRepository(tmp_path / "files").old_folder("s") / "t" / "gone.png")
     refused = (theirs.path, "/etc/hosts", missing)
 
     session = await session_after(send_file_tool(), files, sending(*refused))
@@ -183,13 +183,13 @@ def test_the_description_and_the_paths_field_are_exactly_the_given_text() -> Non
     spec = send_file_tool().spec()
 
     assert spec.description == (
-        "Hand the person files from this chat's folder, such as a page a tool saved next to a "
+        "Hand the person files from this chat's workspace, such as a page a tool saved next to a "
         "file they attached. Each file appears under this call: a picture as a thumbnail they "
         "can open full size, anything else as a download. Returns the paths handed over, and "
-        "each path that was not, because it is not a file in this chat's folder."
+        "each path that was not, because it is not a file in this chat's workspace."
     )
     assert spec.input_schema["properties"]["paths"]["description"] == (
-        "Absolute paths of the files to hand over, each a file inside this chat's folder."
+        "Absolute paths of the files to hand over, each a file inside this chat's workspace."
     )
     assert spec.input_schema["required"] == ["paths"]
 

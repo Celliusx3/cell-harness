@@ -28,7 +28,7 @@ async def test_a_reports_question_reaches_the_chat_before_the_bots_reply(tmp_pat
     )
     session = await sessions.create(ASSISTANT_ID)
 
-    await gateway.follow(runs.hear(session, ASKING))
+    await gateway.follow(runs.hear(session, ASKING, speaker_id=ASSISTANT_ID))
     await settle(runs, gateway)
 
     assert bot.sent == [
@@ -43,7 +43,7 @@ async def test_a_report_without_a_question_sends_only_the_bots_reply(tmp_path) -
     )
     session = await sessions.create(ASSISTANT_ID)
 
-    await gateway.follow(runs.hear(session, READY))
+    await gateway.follow(runs.hear(session, READY, speaker_id=ASSISTANT_ID))
     await settle(runs, gateway)
 
     assert bot.sent == [(CHAT, "Here are the flights.")]
@@ -55,7 +55,7 @@ async def first_line_for(tmp_path, report: TicketReport) -> str:
     )
     session = await sessions.create(ASSISTANT_ID)
 
-    await gateway.follow(runs.hear(session, report))
+    await gateway.follow(runs.hear(session, report, speaker_id=ASSISTANT_ID))
     await settle(runs, gateway)
 
     return bot.sent[0][1]

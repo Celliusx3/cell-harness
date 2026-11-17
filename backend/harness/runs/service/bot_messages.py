@@ -81,7 +81,7 @@ class BotMessenger:
 
     async def _ask(self, recipient: Bot, request: BotMessage) -> None:
         """Deliver `request` to `recipient`, then its final reply back to the sender."""
-        run = await self.deliver(self._bots.chat_of(recipient.id), request)
+        run = await self.deliver(recipient.id, request)
         if run is None:
             return
         await wait_until_settled(run)
@@ -92,12 +92,13 @@ class BotMessenger:
             hop=request.hop + 1,
             intent="result",
         )
-        await self.deliver(self._bots.chat_of(request.from_bot_id), result)
+        await self.deliver(request.from_bot_id, result)
 
-    async def deliver(self, chat_id: str, message: BotMessage) -> Run | None:
-        """The turn `message` opens in `chat_id` once it is free, heard by its chat apps."""
+    async def deliver(self, bot_id: str, message: BotMessage) -> Run | None:
+        """The turn `message` opens in `bot_id`'s own chat once free, heard by its chat apps."""
         try:
-            run = await self._runs.hear_when_free(chat_id, message)
+            chat_id = self._bots.chat_of(bot_id)
+            run = await self._runs.hear_when_free(chat_id, message, speaker_id=bot_id)
         except (BotNotFound, SessionNotFoundError) as err:
             logger.warning("bot message dropped, nobody is left to answer it: %s", err)
             return None

@@ -30,7 +30,9 @@ class Router:
     told: list[str] = field(default_factory=list)
     stopped: list[str] = field(default_factory=list)
 
-    def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket:
+    def accept(
+        self, *, bot_id: str, chat_id: str, title: str, task: str, mode: ApprovalMode
+    ) -> Ticket:
         return ticket("t9").model_copy(update={"title": title})
 
     def of_bot(self, bot_id: str) -> tuple[Ticket, ...]:

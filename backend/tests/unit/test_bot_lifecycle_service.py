@@ -21,7 +21,7 @@ from tests.bot_models import save_chat_of
 from tests.unit.fakes import SteppedClient, calls_tool, hanging_tool
 from tests.unit.helpers import durable_service, run_service, until
 from tests.unit.schedule_helpers import START, Clock, schedules_in
-from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, bots_in
+from tests.webapp import MODEL_CREDENTIAL, a_model_saved_in, bots_in, files_in
 
 UNSAVED_MODEL = "unsaved_model"
 HOURLY = "DTSTART:20261112T060100Z\nRRULE:FREQ=HOURLY"
@@ -39,7 +39,11 @@ def changes(tmp_path, sessions) -> BotLifecycleService:
         sessions, SteppedClient(calls_tool("hang", '{"value": "x"}')), hanging_tool(), bots=bots
     )
     return BotLifecycleService(
-        bots, runs, a_model_saved_in(tmp_path), schedules_in(tmp_path, Clock(START))
+        bots,
+        runs,
+        a_model_saved_in(tmp_path),
+        schedules_in(tmp_path, Clock(START)),
+        files_in(tmp_path),
     )
 
 

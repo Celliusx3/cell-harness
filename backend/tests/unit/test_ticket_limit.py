@@ -76,7 +76,9 @@ async def test_five_tickets_on_a_limit_of_three_run_three_and_queue_two(tmp_path
     workers = HeldWorkers()
     tickets = tickets_with(tmp_path, workers)
     for n in range(5):
-        tickets.accept(bot_id=ASSISTANT_ID, title=f"T{n}", task="do it", mode="auto")
+        tickets.accept(
+            bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title=f"T{n}", task="do it", mode="auto"
+        )
     await settle()
 
     assert workers.started == ["t1", "t2", "t3"]
@@ -99,11 +101,15 @@ async def test_five_tickets_on_a_limit_of_three_run_three_and_queue_two(tmp_path
 async def test_an_answer_runs_even_when_every_place_is_taken(tmp_path) -> None:
     workers = HeldWorkers(first_ends={"t1": ASKING})
     tickets = tickets_with(tmp_path, workers)
-    tickets.accept(bot_id=ASSISTANT_ID, title="Asks", task="do it", mode="auto")
+    tickets.accept(
+        bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title="Asks", task="do it", mode="auto"
+    )
     await settle()
     assert states(tickets)["t1"] == "needs_answer"
     for n in range(3):
-        tickets.accept(bot_id=ASSISTANT_ID, title=f"T{n}", task="do it", mode="auto")
+        tickets.accept(
+            bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title=f"T{n}", task="do it", mode="auto"
+        )
     await settle()
 
     tickets.answer("t1", "the first one")

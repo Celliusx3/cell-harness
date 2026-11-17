@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence, Set
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from harness.bots.domain.models import Bot, BotNotFound, NonBlankText
@@ -63,3 +65,17 @@ class EmptyGroupError(LookupError):
 
     def __init__(self, group_id: str) -> None:
         super().__init__(f"every member of group {group_id!r} is archived or deleted")
+
+
+class NotAChatMemberError(LookupError):
+    """The bot named to speak is no active bot answering in this chat."""
+
+    def __init__(self, chat_id: str, bot_id: str) -> None:
+        super().__init__(f"bot {bot_id!r} is no active member of chat {chat_id!r}")
+
+
+def groups_left_without_members(
+    groups: Sequence[Group], *, stored_bot_ids: Set[str]
+) -> tuple[Group, ...]:
+    """The groups none of whose members is a stored bot any more; an archived one still is."""
+    return tuple(g for g in groups if not any(m in stored_bot_ids for m in g.member_ids))

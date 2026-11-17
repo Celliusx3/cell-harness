@@ -59,7 +59,7 @@ async def test_a_worker_that_breaks_fails_its_ticket_and_a_gone_bot_hears_nothin
         raise RuntimeError("kaboom")
 
     tickets = tickets_on(tmp_path, broken)
-    tickets.accept(bot_id=ASSISTANT_ID, title="T", task="do it", mode="auto")
+    tickets.accept(bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title="T", task="do it", mode="auto")
 
     assert (await until_ended(tickets, ASSISTANT_ID)).state == "failed"
     await tickets.aclose()
@@ -76,7 +76,7 @@ async def test_shutting_down_cancels_a_running_worker_and_leaves_its_ticket_work
         raise AssertionError("unreachable")
 
     tickets = tickets_on(tmp_path, hangs)
-    tickets.accept(bot_id=ASSISTANT_ID, title="T", task="do it", mode="auto")
+    tickets.accept(bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title="T", task="do it", mode="auto")
     await started.wait()
     await tickets.aclose()
 
@@ -112,7 +112,9 @@ async def test_a_worker_that_has_written_nothing_has_no_steps(tmp_path) -> None:
         raise AssertionError("unreachable")
 
     tickets = tickets_on(tmp_path, hangs)
-    ticket = tickets.accept(bot_id=ASSISTANT_ID, title="T", task="do it", mode="auto")
+    ticket = tickets.accept(
+        bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title="T", task="do it", mode="auto"
+    )
     await asyncio.sleep(0)
 
     assert await tickets.worker_events(ticket.id) == ()
@@ -129,7 +131,9 @@ async def test_stopping_a_ticket_cancels_its_worker_and_it_takes_nothing_more(tm
         raise AssertionError("unreachable")
 
     tickets = tickets_on(tmp_path, hangs)
-    ticket = tickets.accept(bot_id=ASSISTANT_ID, title="T", task="do it", mode="auto")
+    ticket = tickets.accept(
+        bot_id=ASSISTANT_ID, chat_id=ASSISTANT_ID, title="T", task="do it", mode="auto"
+    )
     await started.wait()
     tickets.stop(ticket.id)
     await asyncio.sleep(0)
@@ -151,7 +155,7 @@ async def test_a_ticket_whose_bot_is_gone_fails_without_running(tmp_path) -> Non
         raise AssertionError("unreachable")
 
     tickets = tickets_on(tmp_path, runs)
-    tickets.accept(bot_id="gone", title="T", task="do it", mode="auto")
+    tickets.accept(bot_id="gone", chat_id="gone", title="T", task="do it", mode="auto")
 
     assert (await until_ended(tickets, "gone")).state == "failed"
     assert ran == []

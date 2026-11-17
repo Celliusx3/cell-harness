@@ -42,7 +42,7 @@ async def chunks_of(body: bytes) -> AsyncIterator[bytes]:
 async def logged_files(files: ChatFileService | None, meta: dict[str, object]) -> list[ChatFile]:
     """What the log records of a result with `meta`, from an MCP tool called in chat `s`."""
 
-    async def call(name: str, arguments: dict) -> CallToolResult:
+    async def call(name: str, arguments: dict, sent: dict[str, str] | None) -> CallToolResult:
         return result_with(meta)
 
     runtime = Runtime(
@@ -112,7 +112,9 @@ async def test_a_file_outside_the_chat_s_folder_is_never_logged(tmp_path, caplog
 
 async def test_a_file_that_does_not_exist_is_never_logged(tmp_path) -> None:
     files = files_in(tmp_path)
-    missing = (DiskChatFileRepository(tmp_path / "files").folder("s") / "t" / "gone.png").as_posix()
+    missing = (
+        DiskChatFileRepository(tmp_path / "files").old_folder("s") / "t" / "gone.png"
+    ).as_posix()
 
     assert await logged_files(files, {FILES_META: [{"path": missing}]}) == []
 

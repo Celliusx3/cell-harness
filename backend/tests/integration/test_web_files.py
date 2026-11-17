@@ -31,6 +31,10 @@ async def chunks_of(body: bytes) -> AsyncIterator[bytes]:
     yield body
 
 
+def uploads_of(tmp_path: Path) -> Path:
+    return (tmp_path / "files" / "workspaces" / ASSISTANT_ID / "uploads").resolve()
+
+
 async def test_an_upload_is_saved_in_the_chat_s_folder_and_returned(simple, tmp_path) -> None:
     client, _, _ = simple
 
@@ -40,8 +44,21 @@ async def test_an_upload_is_saved_in_the_chat_s_folder_and_returned(simple, tmp_
     stored = sent.json()
     path = Path(stored["path"])
     assert path.read_bytes() == PNG_HEADER
-    assert path.parent.parent == (tmp_path / "files" / ASSISTANT_ID).resolve()
+    assert path.parent.parent == uploads_of(tmp_path)
     assert stored == {"path": str(path), "name": "page.png", "media_type": "image/png", "size": 8}
+    assert (await client.get(FILE, params={"path": str(path)})).content == PNG_HEADER
+
+
+async def test_an_upload_kept_in_the_chats_old_folder_still_downloads(simple, tmp_path) -> None:
+    client, _, _ = simple
+    old = tmp_path / "files" / ASSISTANT_ID / "token" / "page.png"
+    old.parent.mkdir(parents=True)
+    old.write_bytes(PNG_HEADER)
+
+    read = await client.get(FILE, params={"path": str(old)})
+
+    assert read.status_code == 200
+    assert read.content == PNG_HEADER
 
 
 async def test_an_upload_to_a_chat_no_bot_has_is_a_404(simple, tmp_path) -> None:
@@ -64,7 +81,9 @@ async def test_an_upload_over_the_limit_is_a_413_and_leaves_nothing(tmp_path) ->
 
     assert sent.status_code == 413
     assert "big.png" in sent.json()["detail"]
-    assert list((tmp_path / "files").rglob("*")) == [tmp_path / "files" / ASSISTANT_ID]
+    workspaces = tmp_path / "files" / "workspaces"
+    kept = [workspaces, workspaces / ASSISTANT_ID, workspaces / ASSISTANT_ID / "uploads"]
+    assert sorted((tmp_path / "files").rglob("*")) == kept
 
 
 async def test_a_name_that_climbs_is_saved_as_its_last_part(simple, tmp_path) -> None:
@@ -75,7 +94,7 @@ async def test_a_name_that_climbs_is_saved_as_its_last_part(simple, tmp_path) ->
     assert sent.status_code == 201
     path = Path(sent.json()["path"])
     assert path.name == "x.png"
-    assert path.parent.parent == (tmp_path / "files" / ASSISTANT_ID).resolve()
+    assert path.parent.parent == uploads_of(tmp_path)
 
 
 async def test_a_name_with_nothing_to_save_under_is_a_422(simple) -> None:
@@ -114,7 +133,8 @@ async def test_a_path_outside_the_chat_s_folder_is_a_404(simple, tmp_path) -> No
     other_chat = files_in(tmp_path)
     theirs = await other_chat.save("other", "page.png", chunks_of(PNG_HEADER))
     mine = (await upload(client, "page.png", PNG_HEADER)).json()
-    climbing = f"{Path(mine['path']).parent}/../../other/{Path(theirs.path).parent.name}/page.png"
+    token = Path(theirs.path).parent.name
+    climbing = f"{Path(mine['path']).parent}/../../../other/uploads/{token}/page.png"
 
     for path in (theirs.path, "/etc/hosts", climbing, "page.png"):
         read = await client.get(FILE, params={"path": path})

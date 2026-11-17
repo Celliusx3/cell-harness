@@ -78,7 +78,7 @@ class McpService:
         self, server_id: str, server_tool_name: str, arguments: dict[str, object]
     ) -> CallToolResult:
         """One `tools/call` on one server, answered verbatim, proxied for an MCP App."""
-        return await self._connection(server_id).call_tool(server_tool_name, arguments)
+        return await self._connection(server_id).call_tool(server_tool_name, arguments, None)
 
     async def read_resource(self, server_id: str, uri: str) -> ReadResourceResult:
         """One `resources/read` on one server — the browser fetching an app's HTML."""

@@ -1,16 +1,27 @@
-"""The system message: the speaker's instructions, a group's note, the runtime's own, servers'."""
+"""The system message: the speaker's instructions and notes, the runtime's, servers'."""
 
 from __future__ import annotations
 
-from harness.prompts import GROUP_NOTE
+from harness.prompts import GROUP_NOTE, GROUP_WORKSPACE_NOTE, WORKSPACE_NOTE
 from harness.session.domain.log import Session
-from harness.session.domain.models import GroupMembersEvent
+from harness.session.domain.models import GroupMembersEvent, WorkspaceEvent
 
 
 def system_text(session: Session, guidance: str) -> str:
-    """The speaker's prompt, then each server's last logged instructions as a paragraph."""
+    """The speaker's prompt, its workspace, then each server's last logged instructions."""
     servers = (text for text in session.server_instructions().values() if text)
-    return "\n\n".join(part for part in (_speaker_text(session, guidance), *servers) if part)
+    workspace = _workspace_note(session.workspace_of(session.speaker_id()))
+    parts = (_speaker_text(session, guidance), workspace, *servers)
+    return "\n\n".join(part for part in parts if part)
+
+
+def _workspace_note(named: WorkspaceEvent | None) -> str:
+    """What the speaker is told of where it works; nothing when no workspace was logged."""
+    if named is None:
+        return ""
+    if named.own_workspace is None:
+        return WORKSPACE_NOTE.format(workspace=named.workspace)
+    return GROUP_WORKSPACE_NOTE.format(workspace=named.workspace, own=named.own_workspace)
 
 
 def _speaker_text(session: Session, guidance: str) -> str:

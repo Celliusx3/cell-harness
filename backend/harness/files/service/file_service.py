@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import asyncio
 import mimetypes
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
 
-from harness.files.domain.models import ChatFile
-from harness.files.repository.file_repository import ChatFileRepository, is_plain_name
+from harness.files.domain.models import (
+    ChatFile,
+    WorkspaceEvent,
+    WorkspaceListing,
+    deletion_target,
+    relative_path,
+    sorted_entries,
+)
+from harness.files.repository.file_repository import (
+    FOLDER_MODE,
+    ChatFileRepository,
+    is_plain_name,
+)
+from harness.files.service.workspace_watch import workspace_events
 
 UNKNOWN_MEDIA_TYPE = "application/octet-stream"
 
@@ -69,14 +82,40 @@ class ChatFileService:
         self._repository = repository
         self._max_bytes = max_bytes
 
-    def folder(self, chat_id: str) -> Path:
-        """This chat's folder, made when it is missing, where a file the person can get is saved."""
-        folder = self._repository.folder(chat_id)
-        folder.mkdir(parents=True, exist_ok=True)
-        return folder
+    def workspace(self, chat_id: str) -> Path:
+        """This chat's workspace folder, made readable by us alone when it is missing."""
+        workspace = self._repository.workspace(chat_id)
+        self._repository.create_root()
+        workspace.parent.mkdir(mode=FOLDER_MODE, exist_ok=True)
+        workspace.mkdir(mode=FOLDER_MODE, exist_ok=True)
+        return workspace
+
+    def delete_workspace(self, chat_id: str) -> None:
+        """Delete this chat's workspace and everything in it; nothing when it is missing."""
+        self._repository.delete_workspace(chat_id)
+
+    def listing(self, chat_id: str, path: str) -> WorkspaceListing:
+        """The folder `path` names in this chat's workspace, folders first; refused outside it."""
+        workspace = self._repository.workspace(chat_id)
+        if path == "" and not workspace.exists():
+            return WorkspaceListing(path="", workspace=str(workspace), entries=())
+        folder = self._repository.folder_in(chat_id, path)
+        return WorkspaceListing(
+            path=relative_path(workspace, folder),
+            workspace=str(workspace),
+            entries=sorted_entries(self._repository.entries_in(chat_id, folder)),
+        )
+
+    def delete_path(self, chat_id: str, path: str) -> None:
+        """Delete the file, folder or link `path` names in this chat's workspace; else refused."""
+        self._repository.delete_in(chat_id, deletion_target(path))
+
+    def changes(self, chat_id: str) -> AsyncGenerator[WorkspaceEvent]:
+        """This chat's workspace watched, made first when missing, until the caller closes it."""
+        return workspace_events(self.workspace(chat_id), asyncio.Event())
 
     def file_at(self, chat_id: str, path: str) -> ChatFile | None:
-        """The file at absolute `path` when it is one in this chat's folder; else `None`."""
+        """The file at absolute `path` when it is one in this chat's workspace or old folder."""
         found = self._repository.path_in(chat_id, path)
         return _chat_file(found) if found is not None else None
 

@@ -1,4 +1,4 @@
-"""A file from a chat's folder and an image from a chat's log, as a page reads them."""
+"""A file from a chat's workspace and an image from a chat's log, as a page reads them."""
 
 from __future__ import annotations
 

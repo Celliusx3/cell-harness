@@ -41,7 +41,7 @@ async def page_in_the_chat(tmp_path: Path, name: str = "page.png", data: bytes =
 
 
 def chat_folder(tmp_path: Path) -> Path:
-    return files_in(tmp_path).folder(CONVERSATION_ID)
+    return files_in(tmp_path).workspace(CONVERSATION_ID)
 
 
 async def asked(

@@ -183,6 +183,7 @@ def build_runtime(
         files=files,
         server_instructions=mcp.instructions,
         chat_id_for=session_chat_id,
+        own_chat_of=bots.chat_of,
     )
     return runtime
 

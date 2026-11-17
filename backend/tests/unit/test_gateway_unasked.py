@@ -18,7 +18,7 @@ async def test_a_turn_a_bot_s_answer_opens_is_heard_on_the_linked_chat(tmp_path)
     )
     session = await sessions.create(ASSISTANT_ID)
 
-    await gateway.follow(runs.hear(session, ANSWERED))
+    await gateway.follow(runs.hear(session, ANSWERED, speaker_id=ASSISTANT_ID))
     await settle(runs, gateway)
 
     assert bot.sent == [(CHAT, "Researcher says yes.")]

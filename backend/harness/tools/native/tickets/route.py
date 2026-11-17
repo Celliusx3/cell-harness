@@ -39,7 +39,9 @@ _DESCRIPTION = (
 class TicketDesk(Protocol):
     """Starts, finds, tells and stops tickets."""
 
-    def accept(self, *, bot_id: str, title: str, task: str, mode: ApprovalMode) -> Ticket: ...
+    def accept(
+        self, *, bot_id: str, chat_id: str, title: str, task: str, mode: ApprovalMode
+    ) -> Ticket: ...
 
     def of_bot(self, bot_id: str) -> tuple[Ticket, ...]: ...
 
@@ -83,7 +85,13 @@ def _do_item(tickets: TicketDesk, item: RouteItem, context: ToolContext) -> str:
     match item:
         case AcceptItem(title=title, task=task):
             _refuse_a_repeat(tickets, bot_id, task)
-            ticket = tickets.accept(bot_id=bot_id, title=title, task=task, mode=context.origin.mode)
+            ticket = tickets.accept(
+                bot_id=bot_id,
+                chat_id=context.origin.conversation_id,
+                title=title,
+                task=task,
+                mode=context.origin.mode,
+            )
             return f"accepted ticket {ticket.id}, titled {ticket.title}"
         case AttachItem(ticket=ticket_id, text=text):
             ticket = _own_ticket(tickets, ticket_id, bot_id)

@@ -6,7 +6,7 @@ import json
 from collections.abc import AsyncIterator
 
 from harness.bots import ASSISTANT_ID
-from harness.session.domain.models import UserMessageEvent
+from harness.session.domain.models import UserMessageEvent, WorkspaceEvent
 from harness.tools.native.tickets import TICKET_REPORT, TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
@@ -55,7 +55,7 @@ async def test_a_worker_is_told_the_folder_the_person_can_get_files_from(tmp_pat
 
     events = await world.tickets.worker_events(row["id"])
     first = next(e for e in events if isinstance(e, UserMessageEvent))
-    folder = (tmp_path / "files" / ASSISTANT_ID).resolve()
+    folder = (tmp_path / "files" / "workspaces" / ASSISTANT_ID).resolve()
     assert str(folder) in first.message.content
 
 
@@ -85,3 +85,16 @@ async def test_a_worker_is_told_how_many_workers_its_bot_can_run(tmp_path) -> No
     events = await world.tickets.worker_events(row["id"])
     first = next(e for e in events if isinstance(e, UserMessageEvent))
     assert "Your bot can run 3 workers at once." in first.message.content
+
+
+async def test_a_worker_is_told_only_its_bots_workspace(tmp_path) -> None:
+    world = ticketing_app(tmp_path, _scripts("Done."))
+    async with world.client as client:
+        await send(client, ASSISTANT_ID, "download the chapter")
+        await once_said(client, ASSISTANT_ID, "Here it is.")
+        (row,) = (await client.get("/api/tickets", params={"bot_id": ASSISTANT_ID})).json()
+
+    events = await world.tickets.worker_events(row["id"])
+    workspace = str((tmp_path / "files" / "workspaces" / ASSISTANT_ID).resolve())
+    named = [e for e in events if isinstance(e, WorkspaceEvent)]
+    assert named == [WorkspaceEvent(bot_id=ASSISTANT_ID, workspace=workspace, own_workspace=None)]

@@ -13,7 +13,7 @@ import { type Found, useFound } from "@/components/chat/useFound";
 import { announceWorking } from "@/components/chat/workingChat";
 import { ComputerDock } from "@/components/computer/ComputerDock";
 import { useComputerAdded } from "@/components/computer/useComputerAdded";
-import { ChatHeader } from "@/components/conversation/ChatHeader";
+import { ChatHeader, type DockToggle } from "@/components/conversation/ChatHeader";
 import { Composer } from "@/components/conversation/Composer";
 import { EmptyChat } from "@/components/conversation/EmptyChat";
 import { ModePicker } from "@/components/conversation/ModePicker";
@@ -25,8 +25,13 @@ import { useChatTickets } from "@/components/conversation/useChatTickets";
 import { useElapsed } from "@/components/conversation/useElapsed";
 import { chatUsage } from "@/components/conversation/usage";
 import { useTimeline } from "@/components/conversation/useTimeline";
+import { FilesPane } from "@/components/workspace/FilesPane";
+import { ResizeHandle } from "@/components/workspace/ResizeHandle";
+import { useChatWidth } from "@/components/workspace/useChatWidth";
 import { listBots, listGroups } from "@/lib/api";
 import { type AppEvent, useAppEvent } from "@/lib/appEvents";
+
+type Dock = "computer" | "files";
 
 type Waiting =
   | { kind: "question"; item: ToolItem }
@@ -56,7 +61,8 @@ export default function ConversationPage({
   const elapsed = useElapsed(conversation.running || conversation.sending !== null);
   const tickets = useChatTickets(id);
   const [folded, setFolded] = useState<string | null>(null);
-  const [docked, setDocked] = useState(false);
+  const [dock, setDock] = useState<Dock | null>(null);
+  const chatWidth = useChatWidth();
   const computerAdded = useComputerAdded() === "yes";
   const wasRunning = useRef(false);
 
@@ -71,6 +77,8 @@ export default function ConversationPage({
   }, [id, conversation.running]);
 
   const host = speakerOf(bot);
+  const chat = host ?? speakerOf(group);
+  const isFilesDocked = dock === "files";
 
   if (bot.kind === "none" && group.kind === "none") {
     return <p className="px-6 py-6 text-sm text-danger">No bot or group has the id {id}.</p>;
@@ -78,17 +86,19 @@ export default function ConversationPage({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div
+        className={`flex min-w-0 flex-1 flex-col ${isFilesDocked ? "lg:min-w-[400px] lg:grow-0" : ""}`}
+        style={isFilesDocked ? { flexBasis: chatWidth.width } : undefined}
+      >
         <ChatHeader
-          chat={host ?? speakerOf(group)}
+          chat={chat}
           editHref={host === null ? null : `/bots/${id}`}
           elapsed={elapsed}
           waiting={waiting !== null || tickets.needsAnswer}
           ticketsAtWork={tickets.atWork}
           canCompact={!conversation.running}
-          computer={
-            computerAdded ? { docked, onToggle: () => setDocked((open) => !open) } : null
-          }
+          computer={computerAdded ? dockToggle("computer", dock, setDock) : null}
+          files={dockToggle("files", dock, setDock)}
           onCompact={() => void conversation.compact()}
           onClear={() => void conversation.clear()}
         />
@@ -97,7 +107,7 @@ export default function ConversationPage({
           {conversation.loading ? (
             <p className="px-6 py-6 text-sm text-ink-soft">Loading…</p>
           ) : items.length === 0 && conversation.sending === null ? (
-            <EmptyChat speaker={host ?? speakerOf(group)} />
+            <EmptyChat speaker={chat} />
           ) : (
             <Timeline
               items={items}
@@ -151,7 +161,18 @@ export default function ConversationPage({
           </>
         )}
       </div>
-      {computerAdded && docked && <ComputerDock />}
+      {computerAdded && dock === "computer" && <ComputerDock />}
+      {isFilesDocked && chat !== null && (
+        <>
+          <ResizeHandle width={chatWidth.width} onResize={chatWidth.resize} />
+          <FilesPane
+            key={id}
+            chatId={id}
+            chatName={chat.name}
+            group={group.kind === "found" ? group.item : null}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -160,6 +181,10 @@ function followAppEvent(event: AppEvent, id: string, conversation: Conversation)
   if (event.type === "chat/turn-started" && event.chat_id === id) conversation.wake();
   if (event.type === "chat/logged" && event.chat_id === id) conversation.catchUp();
   if (event.type === "app/connected") conversation.catchUp();
+}
+
+function dockToggle(kind: Dock, dock: Dock | null, setDock: (dock: Dock | null) => void): DockToggle {
+  return { docked: dock === kind, onToggle: () => setDock(dock === kind ? null : kind) };
 }
 
 function speakerOf(found: Found<Speaker>): Speaker | null {
