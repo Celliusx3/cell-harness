@@ -59,6 +59,9 @@ ROUTES: dict[str, Tool | NotATool] = {
     ),
     "PUT /api/skills/{name}": Tool(SKILL_SAVE),
     "DELETE /api/skills/{name}": Tool(SKILL_DELETE),
+    "DELETE /api/workspaces/{chat_id}": NotATool(
+        "the person's tidy-up from the Files panel; a bot deletes its own files with its PC's shell"
+    ),
     "DELETE /api/approvals/{tool}": NotATool(
         "not yet: taking back an 'Always allow' from chat is the next piece"
     ),

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Protocol
+
+from harness.files.domain.models import WorkspaceEntry
 
 FOLDER_MODE = 0o700
 NOT_A_NAME = frozenset({"", ".", ".."})
@@ -28,6 +30,18 @@ class ChatFileRepository(Protocol):
 
     def path_in(self, chat_id: str, path: str) -> Path | None:
         """`path` resolved, when absolute and a file in this chat's workspace or old folder."""
+        ...
+
+    def folder_in(self, chat_id: str, path: str) -> Path:
+        """The folder `path` names in this chat's workspace, resolved; else `WorkspacePathError`."""
+        ...
+
+    def entries_in(self, chat_id: str, folder: Path) -> tuple[WorkspaceEntry, ...]:
+        """What `folder` holds; a link leading outside the workspace, or to nothing, left out."""
+        ...
+
+    def delete_in(self, chat_id: str, target: PurePosixPath) -> None:
+        """Delete the entry `target` names, a link as a link; else `WorkspacePathError`."""
         ...
 
     def delete_workspace(self, chat_id: str) -> None:
