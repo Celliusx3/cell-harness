@@ -11,9 +11,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
-from harness.files.domain.models import WorkspaceEntry, WorkspacePathError
-from harness.files.repository.file_repository import FOLDER_MODE, is_plain_name
+from harness.files.domain.errors import WorkspacePathError
+from harness.files.domain.models import ChatFile, WorkspaceEntry
+from harness.files.domain.names import is_plain_name, media_type_of
 
+FOLDER_MODE = 0o700
 WORKSPACES = "workspaces"
 UPLOADS = "uploads"
 TOKEN_BYTES = 16
@@ -25,11 +27,8 @@ class DiskChatFileRepository:
 
     root: Path
 
-    def old_folder(self, chat_id: str) -> Path:
-        """This chat's folder from before workspaces, resolved; `ValueError` for an unplain id."""
-        if not is_plain_name(chat_id):
-            raise ValueError(f"{chat_id!r} cannot name a chat's folder")
-        return (self.root / chat_id).resolve()
+    def __post_init__(self) -> None:
+        self._create_root()
 
     def workspace(self, chat_id: str) -> Path:
         """This chat's workspace folder, resolved; `ValueError` for an id not one plain name."""
@@ -37,18 +36,18 @@ class DiskChatFileRepository:
             raise ValueError(f"{chat_id!r} cannot name a chat's workspace")
         return (self.root / WORKSPACES / chat_id).resolve()
 
-    def path_in(self, chat_id: str, path: str) -> Path | None:
-        """`path` resolved, when absolute and a file in this chat's workspace or old folder."""
-        candidate = Path(path)
-        if not candidate.is_absolute():
-            return None
-        try:
-            resolved = candidate.resolve()
-            homes = (self.workspace(chat_id), self.old_folder(chat_id))
-            inside = any(resolved.is_relative_to(home) for home in homes) and resolved.is_file()
-        except (OSError, ValueError):
-            return None
-        return resolved if inside else None
+    def create_workspace(self, chat_id: str) -> Path:
+        """This chat's workspace folder, made readable by us alone when it is missing."""
+        workspace = self.workspace(chat_id)
+        self._create_root()
+        workspace.parent.mkdir(mode=FOLDER_MODE, exist_ok=True)
+        workspace.mkdir(mode=FOLDER_MODE, exist_ok=True)
+        return workspace
+
+    def file_at(self, chat_id: str, path: str) -> ChatFile | None:
+        """The file at absolute `path` when it is one in this chat's workspace or old folder."""
+        found = self._path_in(chat_id, path)
+        return _chat_file_at(found) if found is not None else None
 
     def folder_in(self, chat_id: str, path: str) -> Path:
         """The folder `path` names in this chat's workspace, resolved; else `WorkspacePathError`."""
@@ -71,11 +70,11 @@ class DiskChatFileRepository:
             entries = (_entry(item, workspace) for item in found)
             return tuple(entry for entry in entries if entry is not None)
 
-    async def write(self, chat_id: str, name: str, chunks: AsyncIterator[bytes]) -> Path:
+    async def write(self, chat_id: str, name: str, chunks: AsyncIterator[bytes]) -> ChatFile:
         """`chunks` as the file `name` in a new upload folder; on any failure none stays."""
         if not is_plain_name(name):
             raise ValueError(f"{name!r} cannot name a file")
-        folder = self._create_upload_folder(chat_id)
+        folder = self._new_upload_folder(chat_id)
         target = folder / name
         try:
             with target.open("xb") as handle:
@@ -84,7 +83,7 @@ class DiskChatFileRepository:
         except BaseException:
             shutil.rmtree(folder, ignore_errors=True)
             raise
-        return target
+        return _chat_file_at(target)
 
     def delete_in(self, chat_id: str, target: PurePosixPath) -> None:
         """Delete the entry `target` names, a link as a link; else `WorkspacePathError`."""
@@ -100,19 +99,46 @@ class DiskChatFileRepository:
         if workspace.exists():
             shutil.rmtree(workspace)
 
-    def create_root(self) -> None:
+    def _create_root(self) -> None:
         """The folder every chat's files live under, readable by us alone, made if missing."""
         self.root.mkdir(mode=FOLDER_MODE, parents=True, exist_ok=True)
 
-    def _create_upload_folder(self, chat_id: str) -> Path:
+    def _old_folder(self, chat_id: str) -> Path:
+        """This chat's folder from before workspaces, resolved; `ValueError` for an unplain id."""
+        if not is_plain_name(chat_id):
+            raise ValueError(f"{chat_id!r} cannot name a chat's folder")
+        return (self.root / chat_id).resolve()
+
+    def _path_in(self, chat_id: str, path: str) -> Path | None:
+        """`path` resolved, when absolute and a file in this chat's workspace or old folder."""
+        candidate = Path(path)
+        if not candidate.is_absolute():
+            return None
+        try:
+            resolved = candidate.resolve()
+            homes = (self.workspace(chat_id), self._old_folder(chat_id))
+            inside = any(resolved.is_relative_to(home) for home in homes) and resolved.is_file()
+        except (OSError, ValueError):
+            return None
+        return resolved if inside else None
+
+    def _new_upload_folder(self, chat_id: str) -> Path:
         """A fresh folder in the workspace's `uploads/`, named by a random token, ours alone."""
-        self.create_root()
-        uploads = self.workspace(chat_id) / UPLOADS
-        for folder in (uploads.parent.parent, uploads.parent, uploads):
-            folder.mkdir(mode=FOLDER_MODE, exist_ok=True)
+        uploads = self.create_workspace(chat_id) / UPLOADS
+        uploads.mkdir(mode=FOLDER_MODE, exist_ok=True)
         fresh = uploads / secrets.token_urlsafe(TOKEN_BYTES)
         fresh.mkdir(mode=FOLDER_MODE)
         return fresh
+
+
+def _chat_file_at(path: Path) -> ChatFile:
+    """The file on disk at `path`, as the log records it."""
+    return ChatFile(
+        path=str(path),
+        name=path.name,
+        media_type=media_type_of(path.name),
+        size=path.stat().st_size,
+    )
 
 
 def _entry(item: os.DirEntry[str], workspace: Path) -> WorkspaceEntry | None:

@@ -9,7 +9,8 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from harness.channels.web.sse import SSE_MEDIA_TYPE, frame, kept_alive
-from harness.files.domain.models import WorkspaceEvent, WorkspaceListing, WorkspacePathError
+from harness.files.domain.errors import WorkspacePathError
+from harness.files.domain.models import WorkspaceEvent, WorkspaceListing
 from harness.files.service.file_service import ChatFileService
 
 

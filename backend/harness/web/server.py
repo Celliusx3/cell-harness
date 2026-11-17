@@ -152,9 +152,9 @@ def create_web_app() -> FastAPI:
     settings = SettingsService(SettingsRepository()).load()
     secrets = build_keyring(settings)
     sessions = build_sessions(settings)
-    disk = DiskChatFileRepository(settings.files.root)
-    disk.create_root()
-    files = ChatFileService(disk, max_bytes=settings.files.max_bytes)
+    files = ChatFileService(
+        DiskChatFileRepository(settings.files.root), max_bytes=settings.files.max_bytes
+    )
     images = ImageService(DiskImageRepository(settings.sessions.root / BLOBS))
     saved_servers = build_saved_servers(settings)
     mcp = build_mcp(saved_servers)
