@@ -105,7 +105,7 @@ class OverTheLimit(LLMClient):
         self.refusals = refusals
         self.seen: list[list[Message]] = []
 
-    async def stream_completion(self, messages, model, *, tools=None):
+    async def stream_completion(self, messages, *, tools=None):
         self.seen.append(list(messages))
         if len(self.seen) <= self.refusals:
             yield StreamFailure(reason="too many", code=IMAGES_OVER_LIMIT, images_to_hide=1)

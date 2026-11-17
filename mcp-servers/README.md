@@ -142,7 +142,7 @@ Two rules that fell out of doing it:
 - **`models.py` is top-level, not under `tools/`.** It looks like an API concern,
   but putting it there makes the packages it feeds import *upward* from the
   surface. Shared vocabulary belongs where everything can reach it — the same
-  place `llm/models/` sits in the harness.
+  place `llm/domain/` sits in the harness.
 
 ## Writing one
 

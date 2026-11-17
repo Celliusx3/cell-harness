@@ -1,4 +1,4 @@
-"""Which model a bot's turns ask: a client and the model to name to it, or none picked."""
+"""Which model a bot's turns ask: a client set up for it, or none picked."""
 
 from __future__ import annotations
 
@@ -12,10 +12,9 @@ PICK_A_MODEL = "Pick a model for this bot in Edit bot."
 
 @dataclass(frozen=True)
 class ModelChoice:
-    """The client a request goes through, the model it names there, whether it sees, its window."""
+    """The client a request goes through, whether its model sees, and its window."""
 
     client: LLMClient
-    model: str
     has_vision: bool
     context_tokens: int | None
     """The window compaction works to; `None` when unknown, and only an overflow compacts."""

@@ -86,8 +86,6 @@ class CredentialModels:
         settings = client_settings_for(credential, self._base)
         window = await asyncio.to_thread(self._endpoint.blocking_window_for, settings)
         details = credential.details
-        choice = ModelChoice(
-            self._endpoint.client_for(settings), details.model, details.vision, window
-        )
+        choice = ModelChoice(self._endpoint.client_for(settings), details.vision, window)
         self._by_credential[name] = CachedChoice(version=version, choice=choice)
         return choice

@@ -46,7 +46,7 @@ async def collect(
 ) -> list:
     factory, client = client_over(handler, read_image)
     monkeypatch.setattr(adapter_module.httpx, "AsyncClient", factory)
-    stream = client.stream_completion(messages or [UserMessage(content="hi")], "m", tools=tools)
+    stream = client.stream_completion(messages or [UserMessage(content="hi")], tools=tools)
     return [event async for event in stream]
 
 

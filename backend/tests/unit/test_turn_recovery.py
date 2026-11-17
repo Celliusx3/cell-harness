@@ -94,7 +94,7 @@ async def test_a_retried_step_leaves_the_refused_one_without_an_end() -> None:
         def __init__(self) -> None:
             self.refused = False
 
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             if asks_for_a_summary(messages, tools):
                 yield Completion(full_text="SUMMARY")
                 return
@@ -128,7 +128,7 @@ async def test_a_retried_step_leaves_the_refused_one_without_an_end() -> None:
 
 async def test_cancelling_during_recovery_logs_the_text_the_person_saw() -> None:
     class OverflowsThenHangs(LLMClient):
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             if asks_for_a_summary(messages, tools):
                 await asyncio.Event().wait()
             yield TextChunk(text="par")
@@ -157,7 +157,7 @@ async def test_cancelling_during_recovery_logs_the_text_the_person_saw() -> None
 
 async def test_a_failure_without_a_code_is_not_retried_even_with_compaction() -> None:
     class Refuses(LLMClient):
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             yield StreamFailure(reason="502 upstream")
 
     session = seeded()
@@ -173,7 +173,7 @@ async def test_an_overflow_recovered_by_a_prune_retries_the_step() -> None:
         def __init__(self) -> None:
             self.refused = False
 
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             if not self.refused:
                 self.refused = True
                 yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
@@ -192,7 +192,7 @@ async def test_an_overflow_recovered_by_a_prune_retries_the_step() -> None:
 
 async def test_an_overflow_whose_summary_fails_fails_the_turn() -> None:
     class SummaryBreaks(LLMClient):
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             if asks_for_a_summary(messages, tools):
                 yield StreamFailure(reason="summary broke")
                 return

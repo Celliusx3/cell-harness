@@ -1,20 +1,20 @@
-"""The `LLMClient` base class every adapter implements."""
+"""The `LLMClient` every adapter is: one model call, streamed event by event."""
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
+from typing import Protocol
 
-from harness.llm.models.messages import Message
-from harness.llm.models.stream import StreamEvent
-from harness.llm.models.tools import ToolSpec
+from harness.llm.domain.messages import Message
+from harness.llm.domain.stream import StreamEvent
+from harness.llm.domain.tools import ToolSpec
 
 
-class LLMClient(ABC):
+class LLMClient(Protocol):
     """Streams a completion event by event."""
 
-    @abstractmethod
     def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None
     ) -> AsyncIterator[StreamEvent]:
-        """Stream one model call."""
+        """Stream one call to the model this client is set up for."""
+        ...

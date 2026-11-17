@@ -8,10 +8,10 @@ from collections.abc import AsyncIterator, Mapping
 
 from pydantic import JsonValue, TypeAdapter, ValidationError
 
-from harness.llm.adapters.openai.models.chunk import Chunk
-from harness.llm.adapters.openai.models.tool_delta import ToolDelta
-from harness.llm.models.stream import Usage
-from harness.llm.models.tools import ExtraContent
+from harness.llm.adapters.openai.schemas.chunk import Chunk
+from harness.llm.adapters.openai.schemas.tool_delta import ToolDelta
+from harness.llm.domain.stream import Usage
+from harness.llm.domain.tools import ExtraContent
 
 logger = logging.getLogger("harness.llm.openai")
 

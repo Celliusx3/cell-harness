@@ -145,7 +145,7 @@ class SlowToLetGo(LLMClient):
     """Streams a chunk and hangs; once cancelled, takes a few loop turns to let go."""
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         try:
             yield TextChunk(text="thinking")

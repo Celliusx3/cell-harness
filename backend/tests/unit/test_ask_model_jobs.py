@@ -197,7 +197,7 @@ class OverlapClient(LLMClient):
         self.most_open = 0
         self.calls = 0
 
-    async def stream_completion(self, messages, model, *, tools=None) -> AsyncIterator[StreamEvent]:
+    async def stream_completion(self, messages, *, tools=None) -> AsyncIterator[StreamEvent]:
         self.calls += 1
         self.open += 1
         self.most_open = max(self.most_open, self.open)

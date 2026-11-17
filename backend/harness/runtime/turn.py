@@ -168,9 +168,7 @@ async def _stream_reply(
     failed: StreamFailure | None = None
     partial = ""
     try:
-        async with aclosing(
-            choice.client.stream_completion(messages, choice.model, tools=specs)
-        ) as stream:
+        async with aclosing(choice.client.stream_completion(messages, tools=specs)) as stream:
             async for event in stream:
                 _log_chunk(session, event, at=at)
                 if isinstance(event, TextChunk):

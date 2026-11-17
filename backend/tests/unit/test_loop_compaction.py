@@ -44,7 +44,7 @@ class SizedClient(LLMClient):
         self.seen: list[Message] = []
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         self.seen = list(messages)
         if tools is None and any(
@@ -133,7 +133,7 @@ class OverflowingClient(LLMClient):
         self.answered = False
 
     async def stream_completion(
-        self, messages: list[Message], model: str, *, tools: list[ToolSpec] | None = None
+        self, messages: list[Message], *, tools: list[ToolSpec] | None = None
     ) -> AsyncIterator[StreamEvent]:
         if tools is None and any(
             "compaction engine" in m.content for m in messages if isinstance(m, UserMessage)
@@ -174,9 +174,7 @@ async def test_an_overflow_is_recovered_and_the_step_retried() -> None:
 
 async def test_an_overflow_with_nothing_to_shrink_fails_the_turn() -> None:
     class AlwaysOverflows(LLMClient):
-        async def stream_completion(
-            self, messages, model, *, tools=None
-        ) -> AsyncIterator[StreamEvent]:
+        async def stream_completion(self, messages, *, tools=None) -> AsyncIterator[StreamEvent]:
             yield StreamFailure(reason="too long", code=CONTEXT_WINDOW_EXCEEDED)
 
     client = AlwaysOverflows()

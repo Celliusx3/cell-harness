@@ -52,7 +52,7 @@ class ChoicePerBot:
 
 def _trader_client() -> tuple[ScriptedClient, ChoicePerBot]:
     trader = ScriptedClient(completed("trader"))
-    return trader, ChoicePerBot({"trader": ModelChoice(trader, "big", False, None)})
+    return trader, ChoicePerBot({"trader": ModelChoice(trader, False, None)})
 
 
 async def _reply(runtime: Runtime, bot_id: str, tmp_path: Path) -> None:
@@ -94,11 +94,11 @@ async def test_a_bot_with_no_model_asks_nothing_and_ends_with_the_line(tmp_path:
 
 async def test_a_changed_choice_applies_to_the_next_turn(tmp_path: Path) -> None:
     first, second = ScriptedClient(completed("one")), ScriptedClient(completed("two"))
-    models = ChoicePerBot({"trader": ModelChoice(first, "big", False, None)})
+    models = ChoicePerBot({"trader": ModelChoice(first, False, None)})
     runtime = Runtime(models=models, images=no_images())
     await _reply(runtime, "trader", tmp_path)
 
-    models.per_bot["trader"] = ModelChoice(second, "bigger", False, None)
+    models.per_bot["trader"] = ModelChoice(second, False, None)
     await _reply(runtime, "trader", tmp_path / "again")
 
     assert (first.calls, second.calls) == (1, 1)
@@ -183,7 +183,6 @@ async def test_a_bot_on_a_credential_gets_its_endpoint_model_and_key(keyring, bo
 
     assert isinstance(choice, ModelChoice)
     made_from = clients.settings_of(choice.client)
-    assert choice.model == "big"
     assert (made_from.base_url, made_from.model) == (TRADER_URL, "big")
     assert made_from.api_key == TRADER_KEY
     assert made_from.temperature == BASE.temperature
@@ -245,5 +244,5 @@ async def test_the_key_is_unsealed_once_until_the_credential_changes(keyring, bo
     assert clients.made_for(TRADER_URL) == 2
     assert [asked.model for asked in clients.windows_asked] == ["big", "bigger"]
     assert isinstance(changed, ModelChoice)
-    assert changed.model == "bigger"
+    assert clients.settings_of(changed.client).model == "bigger"
     assert changed.context_tokens == WINDOW

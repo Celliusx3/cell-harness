@@ -106,9 +106,7 @@ async def model_reply(choice: ModelChoice, question: UserMessage) -> ModelReply 
     if question.images and not choice.has_vision:
         return Failure(REFUSED, NO_SIGHT)
     completed: Completion | None = None
-    async with aclosing(
-        choice.client.stream_completion([question], choice.model, tools=None)
-    ) as stream:
+    async with aclosing(choice.client.stream_completion([question], tools=None)) as stream:
         async for event in stream:
             if isinstance(event, StreamFailure):
                 return Failure(EXECUTION_ERROR, f"the model call failed: {event.reason}")

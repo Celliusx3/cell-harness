@@ -73,7 +73,7 @@ async def test_a_bug_in_the_loop_still_settles_the_run(service) -> None:
     class RaisingClient(LLMClient):
         """A bug on the far side of the seam, not a provider error."""
 
-        async def stream_completion(self, messages, model, *, tools=None):
+        async def stream_completion(self, messages, *, tools=None):
             raise RuntimeError("kaboom")
             yield
 
