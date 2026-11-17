@@ -11,7 +11,7 @@ import httpx
 import pytest
 from mcp.types import CallToolResult, ImageContent, TextContent
 
-from harness.mcp.domain.csp import build_csp
+from harness.mcp.domain.app_policy import app_content_security_policy
 from tests.integration.web_helpers import build
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import no_skills
@@ -105,7 +105,7 @@ async def test_an_apps_html_is_read_with_the_default_policy(api) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["html"] == "<html><body>app</body></html>"
-    assert body["csp"] == build_csp(None)
+    assert body["csp"] == app_content_security_policy(None)
     assert "connect-src 'none'" in body["csp"]
     assert client.reads == [APP]
 
@@ -226,14 +226,14 @@ async def test_calling_a_server_that_is_down_is_unavailable(api) -> None:
 
 
 def test_the_default_policy_allows_inline_and_no_network() -> None:
-    csp = build_csp(None)
+    csp = app_content_security_policy(None)
     assert csp.startswith("default-src 'none'; object-src 'none'; base-uri 'none'")
     assert "script-src 'unsafe-inline'" in csp
     assert "connect-src 'none'" in csp
 
 
 def test_only_https_origins_survive_into_the_policy() -> None:
-    csp = build_csp(
+    csp = app_content_security_policy(
         {
             "ui": {
                 "csp": {

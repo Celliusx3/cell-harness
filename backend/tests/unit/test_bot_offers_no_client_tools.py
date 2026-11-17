@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from harness.config import Settings
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.prompts import GUIDANCE
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
@@ -41,7 +41,7 @@ def test_neither_the_bot_nor_its_workers_offer_a_client_tool_yet_each_stays_regi
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),

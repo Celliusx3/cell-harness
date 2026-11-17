@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from harness.mcp.domain.errors import McpServerNotFound, McpServerTaken
-from harness.mcp.domain.saved import SavedServer, ServerDraft
+from harness.mcp.domain.saved_server import SavedServer, ServerDraft
 from harness.mcp.repository.saved_server_repository import SavedServerRepository
 
 

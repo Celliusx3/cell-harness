@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.config import Settings
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.prompts import CODE_PROMPT
 from harness.runtime.hooks.calls import Signature
 from harness.runtime.hooks.native.no_wait import NoWaitHook, is_waiting_call
@@ -64,7 +64,7 @@ def test_only_the_bots_own_runtime_routes_and_refuses_waits(tmp_path: Path) -> N
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),

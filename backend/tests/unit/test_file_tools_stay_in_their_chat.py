@@ -13,7 +13,7 @@ import pytest
 
 from harness.bots import ASSISTANT_ID
 from harness.config import Settings
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.session.domain.models import ToolResultEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
@@ -60,7 +60,7 @@ async def worker_call_result(
     bot = build_runtime(
         Settings(),
         sessions,
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),

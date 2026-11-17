@@ -10,8 +10,8 @@ from mcp.server.apps import APP_MIME_TYPE
 from mcp.types import TextResourceContents
 
 from harness.mcp import McpService, is_app_visible, ui_resource_uri
-from harness.mcp.domain.csp import build_csp
-from harness.mcp.router.schemas import AppResource, AppToolCall, ServerList
+from harness.mcp.domain.app_policy import app_content_security_policy
+from harness.mcp.router.app_schemas import AppResource, AppToolCall, ServerList
 from harness.relay import RelayService, with_relay_url
 
 logger = logging.getLogger("harness.mcp")
@@ -19,7 +19,7 @@ logger = logging.getLogger("harness.mcp")
 UI_SCHEME = "ui://"
 
 
-class McpRouter:
+class McpAppRouter:
     """The configured servers, an app's HTML, and the calls an app makes back to its server."""
 
     def __init__(self, mcp: McpService, relays: RelayService) -> None:
@@ -48,7 +48,7 @@ class McpRouter:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, detail=f"{uri!r} is not {APP_MIME_TYPE!r} text"
             )
-        return AppResource(html=content.text, csp=build_csp(content.meta))
+        return AppResource(html=content.text, csp=app_content_security_policy(content.meta))
 
     async def call_app_tool(self, server_id: str, name: str, body: AppToolCall) -> JSONResponse:
         self._refuse_unknown_server(server_id)

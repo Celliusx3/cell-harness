@@ -15,7 +15,7 @@ from harness.bots import ASSISTANT_ID
 from harness.bots.domain.models import DEFAULT_MAX_WORKERS
 from harness.config import Settings
 from harness.llm.adapters.openai import client as adapter_module
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.runs.service.run_service import RunService
 from harness.tools.native.files import VIEW_IMAGE
 from harness.web.runtime import build_runtime
@@ -51,7 +51,7 @@ async def app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     runtime = build_runtime(
         Settings(),
         service,
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),

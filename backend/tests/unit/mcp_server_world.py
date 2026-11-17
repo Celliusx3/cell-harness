@@ -11,7 +11,7 @@ import httpx
 from fastapi import FastAPI
 
 from harness.mcp import DiskSavedServerRepository, McpService, SavedServer, SavedServerService
-from harness.mcp.router.mcp_router import McpRouter
+from harness.mcp.router.app_router import McpAppRouter
 from harness.mcp.router.server_router import ServerRouter
 from harness.relay import RelayService
 from harness.web.http.errors import exception_handlers
@@ -52,7 +52,7 @@ class ServerWorld:
         )
         app = FastAPI(exception_handlers=exception_handlers())
         app.include_router(ServerRouter(self.mcp, self.saved).router)
-        app.include_router(McpRouter(self.mcp, RelayService(now=time.monotonic)).router)
+        app.include_router(McpAppRouter(self.mcp, RelayService(now=time.monotonic)).router)
         self.app = app
 
     async def send(

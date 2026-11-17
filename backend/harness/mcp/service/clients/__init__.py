@@ -1,1 +1,1 @@
-"""Concrete MCP sessions, each implementing `harness.mcp.service.client.McpClient`."""
+"""Concrete MCP sessions, each implementing `harness.mcp.service.mcp_client.McpClient`."""

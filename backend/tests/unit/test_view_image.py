@@ -11,7 +11,7 @@ from pathlib import Path
 from harness.config import Settings
 from harness.images import IMAGE_MAX_BYTES
 from harness.llm import Image, ToolCall
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.runtime.service import Runtime
 from harness.session.domain.models import ToolResultEvent
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
@@ -64,7 +64,7 @@ def composed(tmp_path: Path) -> Runtime:
     return build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path / "sessions")),
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),

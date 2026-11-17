@@ -1,4 +1,4 @@
-"""What can go wrong talking to an MCP server."""
+"""What can go wrong talking to an MCP server, and the one line that says why."""
 
 from __future__ import annotations
 
@@ -21,3 +21,11 @@ class McpServerTaken(ValueError):
 
 class McpServerNotFound(LookupError):
     """No server has this id."""
+
+
+def describe_error(error: BaseException) -> str:
+    """A one-line cause an operator can act on."""
+    while isinstance(error, BaseExceptionGroup) and len(error.exceptions) == 1:
+        error = error.exceptions[0]
+    message = str(error).strip()
+    return message or type(error).__name__

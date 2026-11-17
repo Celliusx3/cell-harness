@@ -9,13 +9,11 @@ from mcp.types import CallToolResult, ReadResourceResult
 from mcp.types import Tool as McpTool
 
 from harness.mcp.domain.errors import McpNotConnectedError, McpServerNotFound, McpServerTaken
-from harness.mcp.domain.keys import missing_keys
-from harness.mcp.domain.server import McpServer
-from harness.mcp.domain.status import ServerStatus
-from harness.mcp.service._connection import Connection
-from harness.mcp.service.client import McpClientFactory
-from harness.mcp.service.clients.stdio import open_stdio_client
-from harness.mcp.service.tool import can_write, namespaced_tool_name
+from harness.mcp.domain.mcp_server import McpServer, missing_keys
+from harness.mcp.domain.published_tool import can_write, namespaced_tool_name
+from harness.mcp.domain.server_status import ServerStatus
+from harness.mcp.service.connection import Connection
+from harness.mcp.service.mcp_client import McpClientFactory
 from harness.tools import Tool
 
 
@@ -26,7 +24,7 @@ class McpService:
         self,
         servers: Mapping[str, McpServer],
         *,
-        client_factory: McpClientFactory = open_stdio_client,
+        client_factory: McpClientFactory,
     ) -> None:
         self._servers: Mapping[str, McpServer] = dict(servers)
         self._factory = client_factory

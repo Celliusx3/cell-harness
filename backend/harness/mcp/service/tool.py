@@ -10,11 +10,11 @@ from mcp.types import CallToolResult
 from mcp.types import Tool as McpTool
 
 from harness.mcp.domain.errors import McpNotConnectedError, McpTimeoutError
-from harness.mcp.domain.meta import WORKSPACE_META
-from harness.mcp.service._result import tool_outcome
+from harness.mcp.domain.meta_keys import WORKSPACE_META
+from harness.mcp.domain.published_tool import namespaced_tool_name, ui_resource_uri
+from harness.mcp.domain.tool_result import tool_outcome
 from harness.tools import (
     EXECUTION_ERROR,
-    NAMESPACE_SEPARATOR,
     UNKNOWN_TOOL,
     Failure,
     Tool,
@@ -26,10 +26,6 @@ logger = logging.getLogger("harness.mcp")
 
 _TS_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 
-_WORD_BREAK = re.compile(r"[_-]|(?<=[a-z0-9])(?=[A-Z])")
-
-_READ_VERBS = frozenset({"get", "list", "search", "find", "read", "fetch"})
-
 # Some providers reject a bare `{}` or null schema.
 _EMPTY_SCHEMA = {"type": "object", "properties": {}}
 
@@ -40,11 +36,6 @@ def call_meta(context: ToolContext) -> dict[str, str] | None:
     """The `_meta` a call sends: the workspace of the chat it is made for, when it has one."""
     workspace = context.origin.workspace
     return None if workspace is None else {WORKSPACE_META: str(workspace)}
-
-
-def namespaced_tool_name(server_id: str, server_tool_name: str) -> str:
-    """`yt` + `get_subtitles` -> `yt__get_subtitles`."""
-    return f"{server_id}{NAMESPACE_SEPARATOR}{server_tool_name.replace('-', '_')}"
 
 
 def build_tools(
@@ -72,26 +63,6 @@ def build_tools(
         seen.add(tool_name)
         built.append(as_tool(server_id=server_id, published=tool, call=call))
     return built
-
-
-def is_app_visible(tool: McpTool) -> bool:
-    """Whether an app may call this tool — `_meta.ui.visibility` includes `app`."""
-    ui = (tool.meta or {}).get("ui")
-    visibility = ui.get("visibility") if isinstance(ui, dict) else None
-    return "app" in visibility if isinstance(visibility, list) else True
-
-
-def can_write(tool: McpTool) -> bool:
-    """Yes unless its name has a read verb."""
-    words = {word.lower() for word in _WORD_BREAK.split(tool.name) if word}
-    return _READ_VERBS.isdisjoint(words)
-
-
-def ui_resource_uri(tool: McpTool) -> str | None:
-    """The `ui://` resource an MCP App binds to this tool, if it declares one."""
-    ui = (tool.meta or {}).get("ui")
-    uri = ui.get("resourceUri") if isinstance(ui, dict) else None
-    return uri if isinstance(uri, str) and uri.startswith("ui://") else None
 
 
 def as_tool(*, server_id: str, published: McpTool, call: CallTool) -> Tool[dict[str, object]]:

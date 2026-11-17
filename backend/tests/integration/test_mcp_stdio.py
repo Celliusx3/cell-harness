@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 from mcp.server.apps import APP_MIME_TYPE
 
-from harness.mcp import McpServer, McpService
-from harness.mcp.service import _connection as connection_module
+from harness.mcp import McpServer, McpService, open_stdio_client
+from harness.mcp.service import connection as connection_module
 from harness.tools import Failure, Ok, ToolService, ToolUi
 from tests.unit.helpers import context_for, no_approvals
 
@@ -29,7 +29,7 @@ async def live():
     made: list[McpService] = []
 
     async def start(servers: dict[str, McpServer]):
-        store = McpService(servers)
+        store = McpService(servers, client_factory=open_stdio_client)
         tool_service = ToolService((), approvals=no_approvals())
         tool_service.add_provider(store.tools)
         made.append(store)
@@ -129,7 +129,7 @@ async def settled(store: McpService) -> None:
 
 async def test_a_server_that_exits_before_the_handshake_fails_and_the_start_goes_on() -> None:
     refusing = McpServer(command=sys.executable, args=("-c", "raise SystemExit(2)"))
-    store = McpService({"computer": refusing})
+    store = McpService({"computer": refusing}, client_factory=open_stdio_client)
 
     await asyncio.wait_for(store.start(), TIMEOUT)
     await settled(store)
@@ -145,7 +145,7 @@ async def test_a_server_that_explains_itself_on_stderr_and_exits_is_named_with_i
         "print('Turn on virtualization.', file=sys.stderr); raise SystemExit(2)"
     )
     refusing = McpServer(command=sys.executable, args=("-c", script))
-    store = McpService({"computer": refusing})
+    store = McpService({"computer": refusing}, client_factory=open_stdio_client)
 
     await asyncio.wait_for(store.start(), TIMEOUT)
     await settled(store)

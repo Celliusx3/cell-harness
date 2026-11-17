@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from harness.config import Settings
-from harness.mcp import McpService
+from harness.mcp import McpService, open_stdio_client
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
@@ -39,7 +39,7 @@ def test_a_worker_offers_its_report_and_no_helpers(
     runtime = build_runtime(
         Settings(),
         SessionService(JsonlSessionRepository(tmp_path)),
-        McpService({}),
+        McpService({}, client_factory=open_stdio_client),
         no_skills(),
         client_tools(),
         no_approvals(),
