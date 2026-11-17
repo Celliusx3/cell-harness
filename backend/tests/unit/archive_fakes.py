@@ -11,7 +11,6 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple
 
-from harness.files import DiskChatFileRepository
 from tests.unit.helpers import CONVERSATION_ID
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -42,7 +41,7 @@ def drawn_png(shade: int) -> bytes:
 
 def chat_folder(tmp_path: Path) -> Path:
     """An upload folder among the files of the conversation the tests call from."""
-    folder = DiskChatFileRepository(tmp_path / "files").old_folder(CONVERSATION_ID) / "upload"
+    folder = (tmp_path / "files" / CONVERSATION_ID).resolve() / "upload"
     folder.mkdir(parents=True)
     return folder
 

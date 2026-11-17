@@ -9,6 +9,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from harness.files.domain.errors import WorkspacePathError
+
 ROOT_PATH = ""
 NOT_AN_ENTRY_NAME = frozenset({"", ".."})
 
@@ -61,10 +63,6 @@ class WorkspaceChanged(BaseModel):
 
 
 WorkspaceEvent = WorkspaceWatching | WorkspaceChanged
-
-
-class WorkspacePathError(LookupError):
-    """A workspace path that leaves the workspace, is missing, or is not a folder."""
 
 
 def sorted_entries(entries: Iterable[WorkspaceEntry]) -> tuple[WorkspaceEntry, ...]:
