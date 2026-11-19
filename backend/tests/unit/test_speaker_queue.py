@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harness.bots import Bot
-from harness.groups.domain.speaker_queue import MAX_TURNS_FROM_MENTIONS, SpeakerQueue
+from harness.groups.domain.speaker_queue import SpeakerQueue
 from harness.llm import AssistantMessage, UserMessage
 from harness.session.domain.models import (
     AssistantMessageEvent,
@@ -109,16 +109,35 @@ def test_a_bot_never_queues_itself_nor_a_member_already_waiting() -> None:
     assert SpeakerQueue.next_in([*log, *turn(1, W, "Done.")], TEAM, None) is None
 
 
-def test_mentions_add_at_most_six_turns_per_message_of_the_person_s() -> None:
+def test_a_bot_brought_in_by_a_mention_brings_in_nobody() -> None:
+    log = [
+        *opened_by("@Researcher", turn(0, R, "Over to you @Writer.")),
+        *turn(1, W, "Back to you @Researcher, and @Copy Editor too."),
+    ]
+
+    assert SpeakerQueue.next_in(log, TEAM, None) is None
+
+
+def test_two_bots_naming_each_other_speak_once_each() -> None:
     pair = (R, W)
-    log = opened_by("go", turn(0, R, "Over to you @Researcher @Writer."))
+    log = opened_by("@Researcher", turn(0, R, "Over to you @Writer."))
     speakers = [R]
     while (speaker := SpeakerQueue.next_in(log, pair, None)) is not None:
         speakers.append(speaker)
         log = [*log, *turn(len(speakers) - 1, speaker, "Over to you @Researcher @Writer.")]
 
-    assert len(speakers) == 2 + MAX_TURNS_FROM_MENTIONS
-    assert speakers == [R, W] * 4
+    assert speakers == [R, W]
+
+
+def test_two_asked_bots_naming_each_other_bring_each_other_back_once() -> None:
+    pair = (R, W)
+    log = opened_by("@Researcher @Writer", turn(0, R, "Over to you @Writer."))
+    speakers = [R]
+    while (speaker := SpeakerQueue.next_in(log, pair, None)) is not None:
+        speakers.append(speaker)
+        log = [*log, *turn(len(speakers) - 1, speaker, "Over to you @Researcher @Writer.")]
+
+    assert speakers == [R, W, R, W]
 
 
 def test_a_new_message_from_the_person_starts_a_new_queue() -> None:

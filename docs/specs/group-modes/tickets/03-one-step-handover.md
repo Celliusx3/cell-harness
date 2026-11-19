@@ -1,6 +1,6 @@
 # 03 A bot's @mention brings another bot in once
 
-**Status.** open
+**Status.** done
 
 **What to build.** In `SpeakerQueue`, a bot's reply adds the members it
 names only when that bot was queued by the person's message. A bot

@@ -1,4 +1,4 @@
-"""The speaker queue of a chat: the person's mentions fill it, and a speaker's join it."""
+"""The speaker queue of a chat: the person's message fills it, and those it asks bring others in."""
 
 from __future__ import annotations
 
@@ -18,14 +18,14 @@ from harness.session.domain.models import (
 from harness.skills.domain.invocation import typed_invocation
 
 EVERYONE_MENTION = re.compile(MENTION_PATTERN.format(name="everyone"), re.IGNORECASE)
-MAX_TURNS_FROM_MENTIONS = 6
 
 
 class SpeakerQueue(NamedTuple):
-    """The members waiting to speak, in order, and how many turns mentions have added."""
+    """Who waits to speak, who the person's message asked, and who a mention already brought in."""
 
     waiting: tuple[Bot, ...]
-    turns_from_mentions: int
+    asked_ids: frozenset[str]
+    joined_ids: frozenset[str]
 
     @classmethod
     def after_message(cls, text: str, members: Sequence[Bot], group: Group | None) -> SpeakerQueue:
@@ -33,16 +33,16 @@ class SpeakerQueue(NamedTuple):
         invoked = typed_invocation(text)
         typed = text if invoked is None else invoked.typed
         if EVERYONE_MENTION.search(typed) is not None:
-            return cls(tuple(members), 0)
+            return cls._asking(tuple(members))
         named = tuple(bot for bot in members if bot.is_mentioned_in(typed))
-        return cls(named or _answering_unnamed(members, group), 0)
+        return cls._asking(named or _answering_unnamed(members, group))
 
     @classmethod
     def next_in(
         cls, events: Sequence[SessionEvent], members: Sequence[Bot], group: Group | None
     ) -> Bot | None:
         """The member who speaks once the log's last turn completed; `None` when nobody is next."""
-        queue = cls((), 0)
+        queue = cls((), frozenset(), frozenset())
         speaker_id: str | None = None
         replies: tuple[str, ...] = ()
         completed = False
@@ -60,13 +60,19 @@ class SpeakerQueue(NamedTuple):
                     replies = ()
         return queue.waiting[0] if completed and queue.waiting else None
 
+    @classmethod
+    def _asking(cls, members: tuple[Bot, ...]) -> SpeakerQueue:
+        return cls(members, frozenset(bot.id for bot in members), frozenset())
+
     def after_turn(self, speaker_id: str | None, said: str, members: Sequence[Bot]) -> SpeakerQueue:
-        """This queue once the speaker has left it and the members `said` mentions have joined."""
+        """This queue without the speaker; if the person asked it, those it names join once each."""
         waiting = tuple(bot for bot in self.waiting if bot.id != speaker_id)
-        ids = {bot.id for bot in waiting} | {speaker_id}
+        if speaker_id not in self.asked_ids:
+            return self._replace(waiting=waiting)
+        ids = {bot.id for bot in waiting} | {speaker_id} | self.joined_ids
         joining = tuple(bot for bot in members if bot.is_mentioned_in(said) and bot.id not in ids)
-        taken = joining[: MAX_TURNS_FROM_MENTIONS - self.turns_from_mentions]
-        return SpeakerQueue((*waiting, *taken), self.turns_from_mentions + len(taken))
+        joined = self.joined_ids | {bot.id for bot in joining}
+        return SpeakerQueue((*waiting, *joining), self.asked_ids, joined)
 
 
 def _answering_unnamed(members: Sequence[Bot], group: Group | None) -> tuple[Bot, ...]:

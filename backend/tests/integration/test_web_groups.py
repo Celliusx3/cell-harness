@@ -94,14 +94,14 @@ async def test_every_member_takes_a_turn_and_a_mention_brings_one_back(tmp_path)
     )
 
 
-async def test_bots_that_keep_mentioning_each_other_stop_after_six(tmp_path) -> None:
+async def test_bots_that_keep_mentioning_each_other_bring_each_other_back_once(tmp_path) -> None:
     client, model, runs, chat, _, _ = await _group(
         tmp_path, completed("Over to you @Researcher @Writer.")
     )
     async with client:
         await _send(client, runs, chat, "go")
 
-    assert model.calls == 2 + 6
+    assert model.calls == 2 + 2
 
 
 async def test_a_member_with_nothing_to_add_is_not_shown_to_the_others(tmp_path) -> None:
