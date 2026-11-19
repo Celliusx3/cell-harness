@@ -18,6 +18,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionStart
+from harness.session.domain.goal import GoalEndEvent, GoalStartEvent, GoalStepEvent
 from harness.session.domain.heard import BotMessage as BotMessage
 from harness.session.domain.heard import BotMessageEvent, ScheduleReminderEvent, TicketReportEvent
 from harness.session.domain.heard import BotMessageIntent as BotMessageIntent
@@ -267,5 +268,8 @@ SessionEvent = (
     | WorkspaceEvent
     | GroupMembersEvent
     | GroupAutoPickEvent
+    | GoalStartEvent
+    | GoalStepEvent
+    | GoalEndEvent
     | ChatCleared
 )

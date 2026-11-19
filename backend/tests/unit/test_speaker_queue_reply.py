@@ -7,7 +7,7 @@ import pytest
 from harness.groups import Group
 from harness.groups.domain.models import ReplySetting
 from harness.groups.domain.speaker_queue import SpeakerQueue, picks_by_auto
-from harness.session.domain.models import GroupAutoPickEvent
+from harness.session.domain.models import GoalStartEvent, GroupAutoPickEvent
 from tests.unit.test_speaker_queue import TEAM, E, R, W, opened_by, turn
 
 
@@ -108,3 +108,10 @@ def test_the_replayed_log_follows_the_pick_logged_for_the_message_s_turn() -> No
     assert SpeakerQueue.next_in(everyone, TEAM, desk("auto", "w")) == W
     assert SpeakerQueue.next_in(researcher, TEAM, desk("auto", "w")) is None
     assert SpeakerQueue.next_in(stale, TEAM, desk("auto", "w")) is None
+
+
+def test_nobody_the_goal_or_a_reply_names_is_queued_after_a_goal_message() -> None:
+    start = GoalStartEvent(turn=0, goal="@Writer ship it", lead_id="r", max_turns=13)
+    events = [start, *opened_by("/goal @Writer ship it", turn(0, R, "@Copy Editor go."))]
+
+    assert SpeakerQueue.next_in(events, TEAM, desk("everyone")) is None

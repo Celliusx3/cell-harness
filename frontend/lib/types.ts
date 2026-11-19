@@ -1,4 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/client";
+import type { GoalStatus } from "./groupTypes";
 import type { TicketReport } from "./tickets";
 
 /** The wire types, mirroring `backend/harness/session/models.py`. */
@@ -185,6 +186,17 @@ export type SessionEvent =
   /** The group this chat belongs to, and its members' names. */
   | { type: "group/members"; name: string; members: string[] }
   | { type: "group/auto_pick"; turn: number; bot_id: string | null; confidence: number; fallback: boolean }
+  | { type: "goal/start"; turn: number; goal: string; lead_id: string; max_turns: number }
+  | {
+      type: "goal/step";
+      turn: number;
+      bot_id: string;
+      role: "lead" | "member";
+      step: number;
+      task: string | null;
+      note: string | null;
+    }
+  | { type: "goal/end"; turn: number; status: GoalStatus; detail: string; turns_used: number }
   | { type: "chat/cleared" };
 
 /** Ask shows an approval card before a protected call; Auto runs it with none. */
@@ -216,21 +228,7 @@ export interface BotEdit {
   max_workers: number;
 }
 
-/** Who answers a message that names no member: every member, the lead, nobody, or Auto's pick. */
-export type ReplySetting = "everyone" | "lead" | "mentions" | "auto";
-
-/** Two to six bots sharing one chat, whose id is the group's; they take turns in member order. */
-export interface Group {
-  id: string;
-  name: string;
-  member_ids: string[];
-  lead_id: string | null;
-  reply: ReplySetting;
-  auto_model: string | null;
-}
-
-export type GroupDraft = Pick<Group, "name" | "member_ids">;
-export type GroupEdit = Pick<Group, "name" | "member_ids" | "lead_id" | "reply" | "auto_model">;
+export type { Group, GroupDraft, GroupEdit, ReplySetting } from "./groupTypes";
 
 /** `GET /api/secrets`: one saved key, its site, and the bots allowed to use it; never its value. */
 export interface SecretSummary {

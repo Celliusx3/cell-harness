@@ -1,6 +1,6 @@
 # 05 /goal runs the lead and its members in turn until the lead ends it
 
-**Status.** open
+**Status.** done
 
 **What to build.** In a group, a message starting `/goal ` starts a
 goal run, checked before skill expansion. A new goal-run module, not

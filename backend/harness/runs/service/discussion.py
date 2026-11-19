@@ -9,8 +9,10 @@ from contextlib import aclosing
 from harness.bots import Bot
 from harness.files import ChatFile
 from harness.groups import Group, GroupService
+from harness.groups.domain.goal import goal_lead, goal_text
 from harness.groups.domain.speaker_queue import picks_by_auto
 from harness.runs.service.auto_pick import auto_pick
+from harness.runs.service.goal_run import GoalOpening, goal_run
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
@@ -39,9 +41,13 @@ def opening_turn(
     text: str,
     files: tuple[ChatFile, ...],
 ) -> AsyncIterator[TurnEvent]:
-    """The turn answering the person's `text`, Auto's pick first; `EmptyGroupError` raised now."""
+    """A group's `/goal` run, else the turn answering `text`; `EmptyGroupError` raised now."""
     members = groups.answering(session.id)
     group = members.group
+    goal = goal_text(text)
+    lead = None if group is None or goal is None else goal_lead(goal, members.bots, group)
+    if goal is not None and lead is not None:
+        return goal_run(runtime, groups, session, GoalOpening(text, files, goal, lead))
     if group is not None and picks_by_auto(text, members.bots, group):
         return _auto_picked_turn(runtime, groups, session, group, text, files)
     return _answered(runtime, session, groups.first_speaker(session, text, None), text, files)

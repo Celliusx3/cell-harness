@@ -1,5 +1,6 @@
 /** A chat's items as rows: each turn's work folded behind one line, its reply and asks left out. */
 
+import { withoutGoalBlocks } from "@/components/conversation/goalBlock";
 import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
 
 const NO_RESPONSE = "NO_RESPONSE";
@@ -111,7 +112,7 @@ function isAsk(item: TimelineItem): boolean {
 /** Whether anything of `item` reaches the screen. */
 function isShown(item: TimelineItem, inGroup: boolean): boolean {
   if (item.kind !== "assistant") return true;
-  const text = item.content.trim();
+  const text = withoutGoalBlocks(item.content);
   if (!text) return false;
   return !inGroup || !couldBeNoResponse(text, item.streaming);
 }

@@ -10,6 +10,7 @@ from harness.bots.domain.models import MENTION_PATTERN, Bot
 from harness.groups.domain.models import Group
 from harness.session.domain.models import (
     AssistantMessageEvent,
+    GoalStartEvent,
     GroupAutoPickEvent,
     SessionEvent,
     TurnEnd,
@@ -47,18 +48,17 @@ class SpeakerQueue(NamedTuple):
     def next_in(
         cls, events: Sequence[SessionEvent], members: Sequence[Bot], group: Group | None
     ) -> Bot | None:
-        """The member who speaks once the log's last turn completed; `None` when nobody is next."""
+        """The member who speaks once the log's last turn completed; nobody after a `/goal`."""
         queue = cls((), frozenset(), frozenset())
         speaker_id: str | None = None
         replies: tuple[str, ...] = ()
         completed = False
-        picks: dict[int, GroupAutoPickEvent] = {}
+        choices: dict[int, GroupAutoPickEvent | GoalStartEvent] = {}
         for event in events:
-            if isinstance(event, GroupAutoPickEvent):
-                picks[event.turn] = event
+            if isinstance(event, (GroupAutoPickEvent, GoalStartEvent)):
+                choices[event.turn] = event
             elif isinstance(event, UserMessageEvent):
-                pick = picks.get(event.turn)
-                queue, replies = cls.after_message(event.message.content, members, group, pick), ()
+                queue, replies = cls._after(event, members, group, choices.get(event.turn)), ()
             elif isinstance(event, TurnStart):
                 speaker_id, completed = event.bot_id, False
             elif isinstance(event, AssistantMessageEvent):
@@ -69,6 +69,19 @@ class SpeakerQueue(NamedTuple):
                     queue = queue.after_turn(speaker_id, "\n\n".join(replies), members)
                     replies = ()
         return queue.waiting[0] if completed and queue.waiting else None
+
+    @classmethod
+    def _after(
+        cls,
+        message: UserMessageEvent,
+        members: Sequence[Bot],
+        group: Group | None,
+        pick: GroupAutoPickEvent | GoalStartEvent | None,
+    ) -> SpeakerQueue:
+        """The queue the person's `message` starts; empty when it started a goal run."""
+        if isinstance(pick, GoalStartEvent):
+            return cls._asking(())
+        return cls.after_message(message.message.content, members, group, pick)
 
     @classmethod
     def _asking(cls, members: tuple[Bot, ...]) -> SpeakerQueue:

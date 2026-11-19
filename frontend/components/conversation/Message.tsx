@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { CodeBlock } from "@/components/conversation/CodeBlock";
 import { FileList } from "@/components/conversation/FileList";
+import { withoutGoalBlocks } from "@/components/conversation/goalBlock";
 import type { Invocation } from "@/components/conversation/invocation";
 import type { AssistantItem, UserItem } from "@/components/conversation/timelineItems";
 import type { FileSource } from "@/lib/api";
@@ -122,7 +123,7 @@ export function MarkdownBody({ content, streaming }: { content: string; streamin
 export function AssistantBubble({ item }: { item: AssistantItem }) {
   return (
     <div className="flex flex-col gap-1">
-      <MarkdownBody content={item.content} streaming={item.streaming} />
+      <MarkdownBody content={withoutGoalBlocks(item.content)} streaming={item.streaming} />
       {item.interrupted && (
         <p className="text-xs italic text-ink-soft">
           Stopped part-way — this is the text that had arrived.
