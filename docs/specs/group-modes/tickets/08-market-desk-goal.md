@@ -1,6 +1,6 @@
 # 08 Market Desk runs as a goal, with Judge as lead
 
-**Status.** open
+**Status.** done
 
 **What to build.** In the skills repo, Market Desk's instruction files
 drop the @hand-over lines and the NO_RESPONSE order. Judge leads. It
