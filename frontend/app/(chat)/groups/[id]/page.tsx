@@ -8,14 +8,17 @@ import { refreshSidebar } from "@/components/chat/Sidebar";
 import { useFound } from "@/components/chat/useFound";
 import { GroupFields, groupIsReady } from "@/components/groups/GroupFields";
 import { ApiError, BUILDER_ID, listBots, listGroups, updateGroup } from "@/lib/api";
+import { listCredentials, modelOptions, type ModelOption } from "@/lib/credentials";
 import type { Bot, Group, ReplySetting } from "@/lib/types";
 
 const FIRST_MEMBER = "";
+const NO_MODEL = "";
 
 const REPLY_CHOICES: { value: ReplySetting; label: string }[] = [
   { value: "everyone", label: "Everyone (every member in turn)" },
   { value: "lead", label: "Lead only" },
   { value: "mentions", label: "Only bots you @mention" },
+  { value: "auto", label: "Auto (a model picks who answers)" },
 ];
 
 /** A group's settings: its name, its members in turn order, its lead, and who answers. */
@@ -23,14 +26,18 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const group = useFound(listGroups, id, "Could not load groups.");
   const [bots, setBots] = useState<Bot[] | null>(null);
+  const [models, setModels] = useState<ModelOption[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const failed = (fallback: string) => (err: unknown) =>
+      setError(err instanceof ApiError ? err.message : fallback);
     listBots()
       .then((listed) => setBots(listed.filter((bot) => bot.id !== BUILDER_ID)))
-      .catch((err: unknown) =>
-        setError(err instanceof ApiError ? err.message : "Could not load bots."),
-      );
+      .catch(failed("Could not load bots."));
+    listCredentials()
+      .then((listed) => setModels(modelOptions(listed.credentials)))
+      .catch(failed("Could not load models."));
   }, []);
 
   return (
@@ -44,12 +51,20 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
       {group.kind === "none" && (
         <p className="px-6 py-5 text-sm text-danger">No group has the id {id}.</p>
       )}
-      {group.kind === "found" && bots !== null && <GroupSettingsForm group={group.item} bots={bots} />}
+      {group.kind === "found" && bots !== null && models !== null && (
+        <GroupSettingsForm group={group.item} bots={bots} models={models} />
+      )}
     </>
   );
 }
 
-function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
+interface GroupSettingsFormProps {
+  group: Group;
+  bots: Bot[];
+  models: ModelOption[];
+}
+
+function GroupSettingsForm({ group, bots, models }: GroupSettingsFormProps) {
   const router = useRouter();
   const [name, setName] = useState(group.name);
   const [picked, setPicked] = useState(() =>
@@ -57,6 +72,7 @@ function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
   );
   const [lead, setLead] = useState(group.lead_id ?? FIRST_MEMBER);
   const [reply, setReply] = useState<ReplySetting>(group.reply);
+  const [autoModel, setAutoModel] = useState(group.auto_model ?? models[0]?.name ?? NO_MODEL);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const leadId = picked.includes(lead) ? lead : null;
@@ -66,7 +82,8 @@ function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
     setBusy(true);
     setError(null);
     try {
-      await updateGroup(group.id, { name, member_ids: picked, lead_id: leadId, reply });
+      const auto_model = reply === "auto" && autoModel !== NO_MODEL ? autoModel : null;
+      await updateGroup(group.id, { name, member_ids: picked, lead_id: leadId, reply, auto_model });
       refreshSidebar();
       router.push(`/c/${group.id}`);
     } catch (err: unknown) {
@@ -124,6 +141,8 @@ function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
         </select>
       </div>
 
+      {reply === "auto" && <AutoModelSelect models={models} value={autoModel} onChange={setAutoModel} />}
+
       {error && (
         <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
           {error}
@@ -133,12 +152,42 @@ function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
       <div className="flex items-center">
         <button
           type="submit"
-          disabled={busy || !groupIsReady(name, picked)}
+          disabled={busy || !groupIsReady(name, picked) || (reply === "auto" && autoModel === NO_MODEL)}
           className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1 text-xs font-medium text-on-action transition hover:opacity-90 disabled:opacity-35"
         >
           Save
         </button>
       </div>
     </form>
+  );
+}
+
+interface AutoModelSelectProps {
+  models: ModelOption[];
+  value: string;
+  onChange: (value: string) => void;
+}
+
+/** The saved LLM credential Auto asks who answers each message. */
+function AutoModelSelect({ models, value, onChange }: AutoModelSelectProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs text-ink-soft" htmlFor="group-auto-model">
+        Model that picks who answers
+      </label>
+      <select
+        id="group-auto-model"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+      >
+        {models.length === 0 && <option value={NO_MODEL}>No model saved</option>}
+        {models.map((option) => (
+          <option key={option.name} value={option.name}>
+            {`${option.name} — ${option.model} at ${option.host}`}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

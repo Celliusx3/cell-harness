@@ -86,8 +86,8 @@ class RunService:
         """Begin the discussion the person's message opens; `EmptyGroupError` if none can answer."""
         if session.id in self._runs:
             raise RunAlreadyActiveError(session.id)
-        speaker = self._groups.first_speaker(session, prompt)
-        return self._converse(session, opening_turn(self._runtime, session, speaker, prompt, files))
+        opening = opening_turn(self._runtime, self._groups, session, prompt, files)
+        return self._converse(session, opening)
 
     def hear(self, session: Session, message: HeardMessage, *, speaker_id: str) -> Run:
         """Begin the turn in which `speaker_id` answers a bot's message, a schedule or a ticket."""

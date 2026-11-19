@@ -30,6 +30,9 @@ class NoModels:
     async def model_for(self, bot_id: str | None) -> NoModel:
         return NoModel()
 
+    async def model_named(self, name: str) -> NoModel:
+        return NoModel()
+
 
 async def chunks_of(data: bytes) -> AsyncIterator[bytes]:
     yield data

@@ -138,6 +138,14 @@ export interface Timeline {
   openTurn: number | null;
   /** In a group's chat, the bot that spoke each turn. */
   speakers: ReadonlyMap<number, Speaker>;
+  /** In a group on Auto, how sure its pick was for each turn the pick opened. */
+  autoPicks: ReadonlyMap<number, AutoPick>;
+}
+
+/** Auto's pick of who answers: how sure the model was, and whether the lead answered instead. */
+export interface AutoPick {
+  confidence: number;
+  fallback: boolean;
 }
 
 export interface Speaker {

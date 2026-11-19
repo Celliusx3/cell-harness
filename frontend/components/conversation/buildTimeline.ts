@@ -160,6 +160,10 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         draft.onGroupMembers();
         break;
 
+      case "group/auto_pick":
+        draft.onAutoPick(event.turn, { confidence: event.confidence, fallback: event.fallback });
+        break;
+
       case "turn/start":
         draft.onTurnStart(event.turn, event.bot_id ?? null);
         break;

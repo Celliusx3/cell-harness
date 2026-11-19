@@ -49,7 +49,7 @@ export default function ConversationPage({
   useAppEvent((event) => followAppEvent(event, id, conversation));
   const bot = useFound(listBots, id, "Could not load bots.");
   const group = useFound(listGroups, id, "Could not load groups.");
-  const { items, openTurn, speakers } = useTimeline(conversation.events);
+  const { items, openTurn, speakers, autoPicks } = useTimeline(conversation.events);
   const waiting = useMemo(
     () => (conversation.running ? null : waitingCall(items, openTurn)),
     [conversation.running, items, openTurn],
@@ -114,6 +114,7 @@ export default function ConversationPage({
               items={items}
               openTurn={openTurn}
               speakers={speakers}
+              autoPicks={autoPicks}
               host={host}
               sending={conversation.sending}
               queued={conversation.queued}

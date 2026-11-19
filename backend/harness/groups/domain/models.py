@@ -8,11 +8,12 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from harness.bots.domain.models import Bot, NonBlankText
+from harness.secrets import SecretName
 
 MIN_GROUP_MEMBERS = 2
 MAX_GROUP_MEMBERS = 6
 
-ReplySetting = Literal["everyone", "lead", "mentions"]
+ReplySetting = Literal["everyone", "lead", "mentions", "auto"]
 
 
 class GroupDraft(BaseModel):
@@ -33,16 +34,24 @@ class GroupDraft(BaseModel):
 
 
 class GroupEdit(GroupDraft):
-    """A group's new name and members, its lead (`None` for the first) and its reply setting."""
+    """A group's new name and members, its lead (`None` for the first), reply and Auto's model."""
 
     lead_id: str | None
     reply: ReplySetting
+    auto_model: SecretName | None = None
 
     @model_validator(mode="after")
     def _refuse_outside_lead(self) -> GroupEdit:
         """Refuse a lead who is not one of the members."""
         if self.lead_id is not None and self.lead_id not in self.member_ids:
             raise ValueError("the lead must be one of the members")
+        return self
+
+    @model_validator(mode="after")
+    def _refuse_auto_without_model(self) -> GroupEdit:
+        """Refuse Auto with no model to pick who answers."""
+        if self.reply == "auto" and self.auto_model is None:
+            raise ValueError("Auto needs a model to pick who answers")
         return self
 
 
@@ -56,6 +65,7 @@ class Group(BaseModel):
     member_ids: tuple[str, ...]
     lead_id: str | None = None
     reply: ReplySetting = "everyone"
+    auto_model: SecretName | None = None
 
 
 class ChatMembers(BaseModel):

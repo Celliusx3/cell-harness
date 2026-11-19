@@ -15,7 +15,7 @@ from harness.groups.domain.models import ChatMembers, Group, GroupDraft, GroupEd
 from harness.groups.domain.speaker_queue import SpeakerQueue
 from harness.groups.repository.group_repository import GroupRepository
 from harness.session.domain.log import Session
-from harness.session.domain.models import GroupMembersEvent
+from harness.session.domain.models import GroupAutoPickEvent, GroupMembersEvent
 from harness.session.service.session_service import SessionService
 
 
@@ -57,6 +57,7 @@ class GroupService:
             member_ids=edit.member_ids,
             lead_id=edit.lead_id,
             reply=edit.reply,
+            auto_model=edit.auto_model,
         )
         self._repository.update(group)
         self._app_events.publish(BotsChangedAppEvent())
@@ -100,12 +101,19 @@ class GroupService:
             raise BotNotFound(bot_id if bot_id is not None else session.id)
         return matches[0]
 
-    def first_speaker(self, session: Session, text: str) -> Bot | None:
-        """Who answers `text` first, logged; `None` if nobody is asked; else `EmptyGroupError`."""
-        members = self.chat_members(session.id)
+    def answering(self, chat_id: str) -> ChatMembers:
+        """The chat's members, at least one active; else `EmptyGroupError`."""
+        members = self.chat_members(chat_id)
         if not members.bots:
-            raise EmptyGroupError(session.id)
-        speakers = SpeakerQueue.after_message(text, members.bots, members.group).waiting
+            raise EmptyGroupError(chat_id)
+        return members
+
+    def first_speaker(
+        self, session: Session, text: str, pick: GroupAutoPickEvent | None
+    ) -> Bot | None:
+        """Who answers `text` first, logged; `None` if nobody is asked; else `EmptyGroupError`."""
+        members = self.answering(session.id)
+        speakers = SpeakerQueue.after_message(text, members.bots, members.group, pick).waiting
         if not speakers:
             return None
         _log_speaker_and_members_if_changed(session, members, speakers[0])

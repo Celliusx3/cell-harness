@@ -58,6 +58,7 @@ def test_the_file_written_holds_only_groups(tmp_path: Path) -> None:
                 "member_ids": ["r1", "w1"],
                 "lead_id": None,
                 "reply": "everyone",
+                "auto_model": None,
             }
         ]
     }

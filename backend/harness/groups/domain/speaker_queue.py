@@ -10,6 +10,7 @@ from harness.bots.domain.models import MENTION_PATTERN, Bot
 from harness.groups.domain.models import Group
 from harness.session.domain.models import (
     AssistantMessageEvent,
+    GroupAutoPickEvent,
     SessionEvent,
     TurnEnd,
     TurnStart,
@@ -28,14 +29,19 @@ class SpeakerQueue(NamedTuple):
     joined_ids: frozenset[str]
 
     @classmethod
-    def after_message(cls, text: str, members: Sequence[Bot], group: Group | None) -> SpeakerQueue:
+    def after_message(
+        cls,
+        text: str,
+        members: Sequence[Bot],
+        group: Group | None,
+        pick: GroupAutoPickEvent | None,
+    ) -> SpeakerQueue:
         """The queue `text` starts: all for @everyone, else those it names, else `group`'s reply."""
-        invoked = typed_invocation(text)
-        typed = text if invoked is None else invoked.typed
+        typed = _typed(text)
         if EVERYONE_MENTION.search(typed) is not None:
             return cls._asking(tuple(members))
         named = tuple(bot for bot in members if bot.is_mentioned_in(typed))
-        return cls._asking(named or _answering_unnamed(members, group))
+        return cls._asking(named or _answering_unnamed(members, group, pick))
 
     @classmethod
     def next_in(
@@ -46,9 +52,13 @@ class SpeakerQueue(NamedTuple):
         speaker_id: str | None = None
         replies: tuple[str, ...] = ()
         completed = False
+        picks: dict[int, GroupAutoPickEvent] = {}
         for event in events:
-            if isinstance(event, UserMessageEvent):
-                queue, replies = cls.after_message(event.message.content, members, group), ()
+            if isinstance(event, GroupAutoPickEvent):
+                picks[event.turn] = event
+            elif isinstance(event, UserMessageEvent):
+                pick = picks.get(event.turn)
+                queue, replies = cls.after_message(event.message.content, members, group, pick), ()
             elif isinstance(event, TurnStart):
                 speaker_id, completed = event.bot_id, False
             elif isinstance(event, AssistantMessageEvent):
@@ -75,11 +85,37 @@ class SpeakerQueue(NamedTuple):
         return SpeakerQueue((*waiting, *joining), self.asked_ids, joined)
 
 
-def _answering_unnamed(members: Sequence[Bot], group: Group | None) -> tuple[Bot, ...]:
-    """Who answers a message naming nobody: every member, the lead or else the first, or none."""
+def picks_by_auto(text: str, members: Sequence[Bot], group: Group) -> bool:
+    """Whether `group` is on Auto and `text` names neither a member nor everyone."""
+    if group.reply != "auto":
+        return False
+    typed = _typed(text)
+    named = any(bot.is_mentioned_in(typed) for bot in members)
+    return not named and EVERYONE_MENTION.search(typed) is None
+
+
+def lead_of(members: Sequence[Bot], group: Group) -> Bot | None:
+    """`group`'s lead while it is an active member, else the first member; `None` for none."""
+    lead = next((bot for bot in members if bot.id == group.lead_id), None)
+    return lead if lead is not None else next(iter(members), None)
+
+
+def _typed(text: str) -> str:
+    invoked = typed_invocation(text)
+    return text if invoked is None else invoked.typed
+
+
+def _answering_unnamed(
+    members: Sequence[Bot], group: Group | None, pick: GroupAutoPickEvent | None
+) -> tuple[Bot, ...]:
+    """Who answers a message naming nobody: everyone, nobody, Auto's pick, else the lead."""
     if group is None or group.reply == "everyone":
         return tuple(members)
     if group.reply == "mentions":
         return ()
-    lead = next((bot for bot in members if bot.id == group.lead_id), None)
-    return (lead,) if lead is not None else tuple(members[:1])
+    if group.reply == "auto" and pick is not None:
+        picked = tuple(bot for bot in members if pick.bot_id in (None, bot.id))
+        if picked:
+            return picked
+    lead = lead_of(members, group)
+    return () if lead is None else (lead,)

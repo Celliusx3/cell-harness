@@ -72,14 +72,16 @@ def test_no_mention_inside_a_word_or_a_longer_name(text: str, name: str) -> None
 
 
 def test_the_person_queues_the_members_they_mention_in_member_order() -> None:
-    assert SpeakerQueue.after_message("@Copy Editor then @Researcher", TEAM, None).waiting == (R, E)
+    assert SpeakerQueue.after_message(
+        "@Copy Editor then @Researcher", TEAM, None, None
+    ).waiting == (R, E)
 
 
 @pytest.mark.parametrize(
     "text", ["what now?", "@everyone what now?", "@Writer and @everyone, go", "@Nobody here?"]
 )
 def test_mentioning_everyone_or_no_member_queues_every_member(text: str) -> None:
-    assert SpeakerQueue.after_message(text, TEAM, None).waiting == TEAM
+    assert SpeakerQueue.after_message(text, TEAM, None, None).waiting == TEAM
 
 
 def test_each_member_in_the_queue_speaks_in_turn() -> None:
@@ -170,7 +172,7 @@ def test_nobody_is_next_while_a_turn_is_open_or_before_anyone_spoke() -> None:
 
 
 def test_a_bot_s_own_chat_is_a_group_of_one_that_ends_after_its_turn() -> None:
-    assert SpeakerQueue.after_message("hi @Writer", (R,), None).waiting == (R,)
+    assert SpeakerQueue.after_message("hi @Writer", (R,), None, None).waiting == (R,)
     assert (
         SpeakerQueue.next_in(opened_by("hi", turn(0, R, "Hello @Researcher.")), (R,), None) is None
     )
@@ -179,7 +181,7 @@ def test_a_bot_s_own_chat_is_a_group_of_one_that_ends_after_its_turn() -> None:
 def test_a_skill_message_is_answered_by_whom_the_person_typed_not_by_the_skill_text() -> None:
     expanded = f'/brief{MARKER}brief">Hand the draft to @Writer.</skill>'
 
-    assert SpeakerQueue.after_message(expanded, TEAM, None).waiting == TEAM
+    assert SpeakerQueue.after_message(expanded, TEAM, None, None).waiting == TEAM
     assert SpeakerQueue.after_message(
-        f'/brief @Copy Editor{MARKER}brief">@Writer</skill>', TEAM, None
+        f'/brief @Copy Editor{MARKER}brief">@Writer</skill>', TEAM, None, None
     ).waiting == (E,)

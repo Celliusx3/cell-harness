@@ -128,6 +128,7 @@ async def test_a_group_made_is_listed_and_kept_in_the_groups_file_not_the_bots_f
         "member_ids": [researcher, writer],
         "lead_id": None,
         "reply": "everyone",
+        "auto_model": None,
     }
     assert listed == [launch]
     assert json.loads((tmp_path / "groups.json").read_text()) == {"groups": [launch]}
@@ -154,7 +155,7 @@ async def test_an_edited_group_is_listed_with_its_new_name_members_lead_and_repl
         listed = (await client.get("/api/groups")).json()
 
     assert patched.status_code == 200, patched.text
-    assert listed == [{"id": chat, **edit}]
+    assert listed == [{"id": chat, **edit, "auto_model": None}]
 
 
 async def test_a_lead_outside_the_members_is_refused(tmp_path) -> None:

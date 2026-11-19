@@ -2,6 +2,7 @@
 
 import { display } from "@/components/conversation/invocation";
 import type {
+  AutoPick,
   NoticeItem,
   Reminder,
   ScheduleChange,
@@ -54,6 +55,7 @@ export class TimelineDraft {
   private readonly instructed = new Set<string>();
   private readonly names = new Map<string, string>();
   private readonly speakers = new Map<number, string>();
+  private readonly autoPicks = new Map<number, AutoPick>();
   private inGroup = false;
 
   rememberTurn(turn: number): void {
@@ -66,6 +68,10 @@ export class TimelineDraft {
 
   onGroupMembers(): void {
     this.inGroup = true;
+  }
+
+  onAutoPick(turn: number, pick: AutoPick): void {
+    this.autoPicks.set(turn, pick);
   }
 
   onUserMessage({ key, turn, content, files }: PersonMessage): void {
@@ -223,6 +229,7 @@ export class TimelineDraft {
     return {
       items: this.items,
       speakers: this.spokenBy(),
+      autoPicks: this.autoPicks,
       openTurn:
         this.lastTurn !== null && !this.closed.has(this.lastTurn)
           ? this.lastTurn

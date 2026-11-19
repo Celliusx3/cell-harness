@@ -1,6 +1,6 @@
 # 04 Auto picks who answers, and the reply says so
 
-**Status.** open
+**Status.** done
 
 **What to build.** `reply` gains `auto`, and `Group` gains
 `auto_model: SecretName | None`, required with `auto`. For a message

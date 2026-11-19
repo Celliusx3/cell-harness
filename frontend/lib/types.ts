@@ -184,6 +184,7 @@ export type SessionEvent =
   | { type: "workspace/named"; bot_id: string; workspace: string; own_workspace: string | null }
   /** The group this chat belongs to, and its members' names. */
   | { type: "group/members"; name: string; members: string[] }
+  | { type: "group/auto_pick"; turn: number; bot_id: string | null; confidence: number; fallback: boolean }
   | { type: "chat/cleared" };
 
 /** Ask shows an approval card before a protected call; Auto runs it with none. */
@@ -215,8 +216,8 @@ export interface BotEdit {
   max_workers: number;
 }
 
-/** Who answers a message that names no member: every member, the lead, or nobody. */
-export type ReplySetting = "everyone" | "lead" | "mentions";
+/** Who answers a message that names no member: every member, the lead, nobody, or Auto's pick. */
+export type ReplySetting = "everyone" | "lead" | "mentions" | "auto";
 
 /** Two to six bots sharing one chat, whose id is the group's; they take turns in member order. */
 export interface Group {
@@ -225,11 +226,11 @@ export interface Group {
   member_ids: string[];
   lead_id: string | null;
   reply: ReplySetting;
+  auto_model: string | null;
 }
 
 export type GroupDraft = Pick<Group, "name" | "member_ids">;
-
-export type GroupEdit = Pick<Group, "name" | "member_ids" | "lead_id" | "reply">;
+export type GroupEdit = Pick<Group, "name" | "member_ids" | "lead_id" | "reply" | "auto_model">;
 
 /** `GET /api/secrets`: one saved key, its site, and the bots allowed to use it; never its value. */
 export interface SecretSummary {

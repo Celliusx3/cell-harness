@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from harness.llm import LLMClient
+from harness.secrets import SecretName
 
 PICK_A_MODEL = "Pick a model for this bot in Edit bot."
 
@@ -30,4 +31,8 @@ class BotModels(Protocol):
 
     async def model_for(self, bot_id: str | None) -> ModelChoice | NoModel:
         """The model `bot_id` asks; `NoModel` for no bot, an unknown one, or one with none."""
+        ...
+
+    async def model_named(self, name: SecretName) -> ModelChoice | NoModel:
+        """The saved LLM credential `name` as a model; `NoModel` when none is saved by it."""
         ...
