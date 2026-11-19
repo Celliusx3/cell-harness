@@ -1,6 +1,6 @@
 # 06 A goal run waits for a member's workers, and stops on a loop
 
-**Status.** open
+**Status.** done
 
 **What to build.** A member's turn in a goal run ends only when that
 bot's tickets from this chat are finished and their reports are heard.

@@ -28,9 +28,11 @@ class ReportDelivery:
     follow: Follow
 
     async def deliver(self, ticket: Ticket, report: TicketReport) -> None:
-        """The turn `report` opens for `ticket`'s bot once its chat is free; an approval, logged."""
+        """Heard in the goal run waiting for it, else in a turn once the chat is free; or logged."""
         try:
             chat_id = self._chat_heard_in(ticket)
+            if await self.runs.inboxes.hand_over(chat_id, report):
+                return
             if report.ask == "approval":
                 await self.runs.log_when_free(
                     chat_id, lambda turn: TicketReportEvent(turn=turn, report=report)

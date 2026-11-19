@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from typing import Annotated, Literal
+from typing import Annotated, Literal, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
@@ -13,6 +13,9 @@ from harness.groups.domain.models import Group
 from harness.groups.domain.speaker_queue import lead_of
 
 GOAL_MAX_TURNS = 13
+GOAL_WAIT_SECONDS = 600.0
+GOAL_MAX_BUSY_WAITS = 3
+GOAL_MAX_REPEATS = 3
 GOAL_COMMAND = "/goal "
 BLOCK_OPEN = "<goal>"
 BLOCK_CLOSE = "</goal>"
@@ -41,6 +44,28 @@ class GoalFinish(BaseModel):
 _DECISION: TypeAdapter[GoalContinue | GoalFinish] = TypeAdapter(
     Annotated[GoalContinue | GoalFinish, Field(discriminator="status")]
 )
+
+
+class GoalTally(NamedTuple):
+    """A run's counts: team turns, waits past the limit, assignments given, the lead's note."""
+
+    used: int = 0
+    busy_waits: int = 0
+    assignments: tuple[str, ...] = ()
+    note: str | None = None
+
+    def assigned(self, bot_id: str, task: str) -> GoalTally:
+        """This tally with `task` given to `bot_id` once more."""
+        return self._replace(assignments=(*self.assignments, assignment_key(bot_id, task)))
+
+    def repeats(self, bot_id: str, task: str) -> int:
+        """How many times `task` has been given to `bot_id`, case and spacing aside."""
+        return self.assignments.count(assignment_key(bot_id, task))
+
+
+def assignment_key(bot_id: str, task: str) -> str:
+    """`task` for `bot_id`, the same however it is cased or spaced."""
+    return f"{bot_id}:{' '.join(task.split()).casefold()}"
 
 
 def goal_text(text: str) -> str | None:

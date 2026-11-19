@@ -12,7 +12,7 @@ import httpx
 
 from harness.app_events import AppEventService
 from harness.bots import BotRepository, BotService
-from harness.llm import StreamEvent
+from harness.llm import LLMClient, StreamEvent
 from harness.runs.service.chat_grants import ChatGrantLog
 from harness.runs.service.run_service import RunService
 from harness.runtime.service import Runtime
@@ -56,6 +56,7 @@ class Ticketing:
     model: PerBotClient
     tickets: TicketService
     worker_logs: SessionService
+    runs: RunService
 
 
 def ticketing_app(
@@ -64,6 +65,7 @@ def ticketing_app(
     *,
     bot_tools: BotTools = no_bot_tools,
     approvals: ApprovalService | None = None,
+    around: Callable[[PerBotClient], LLMClient] = lambda model: model,
 ) -> Ticketing:
     """Bots offered `ticket_route` and `bot_tools`, they and their workers answered by `scripts`."""
     model = PerBotClient(scripts)
@@ -81,7 +83,7 @@ def ticketing_app(
     tool_service = ToolService(extra, approvals=approvals)
     offered = (TICKET_ROUTE, TICKET_NOTE, *(tool.name for tool in extra))
     runtime = Runtime(
-        models=OneModel(model),
+        models=OneModel(around(model)),
         images=no_images(),
         tools=Toolset(tool_service, offered, sight_tools=frozenset(), can_reach_servers=True),
         guidance="GUIDE",
@@ -127,4 +129,4 @@ def ticketing_app(
         tickets=tickets,
     )
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t")
-    return Ticketing(client, model, tickets, worker_logs)
+    return Ticketing(client, model, tickets, worker_logs, runs)

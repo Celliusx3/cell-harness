@@ -13,6 +13,7 @@ from harness.groups.domain.goal import goal_lead, goal_text
 from harness.groups.domain.speaker_queue import picks_by_auto
 from harness.runs.service.auto_pick import auto_pick
 from harness.runs.service.goal_run import GoalOpening, goal_run
+from harness.runs.service.report_inbox import ReportInboxes
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
 from harness.session.domain.log import Session
@@ -37,6 +38,7 @@ async def discussion_events(
 def opening_turn(
     runtime: Runtime,
     groups: GroupService,
+    inboxes: ReportInboxes,
     session: Session,
     text: str,
     files: tuple[ChatFile, ...],
@@ -47,7 +49,7 @@ def opening_turn(
     goal = goal_text(text)
     lead = None if group is None or goal is None else goal_lead(goal, members.bots, group)
     if goal is not None and lead is not None:
-        return goal_run(runtime, groups, session, GoalOpening(text, files, goal, lead))
+        return goal_run(runtime, groups, inboxes, session, GoalOpening(text, files, goal, lead))
     if group is not None and picks_by_auto(text, members.bots, group):
         return _auto_picked_turn(runtime, groups, session, group, text, files)
     return _answered(runtime, session, groups.first_speaker(session, text, None), text, files)

@@ -76,9 +76,9 @@ async def test_a_lead_reply_with_no_block_ends_the_run_blocked(tmp_path) -> None
 
 
 async def test_a_lead_that_always_continues_stops_at_the_turn_limit(tmp_path) -> None:
-    client, model, runs, chat, researcher, writer = await _group(
-        tmp_path, _lead("Again.", "continue", next="writer", task=TASK)
-    )
+    leads = [_lead("Again.", "continue", next="writer", task=f"Step {n}.") for n in range(7)]
+    scripts = [step for lead in leads for step in (lead, completed("Done."))]
+    client, model, runs, chat, researcher, writer = await _group(tmp_path, *scripts)
     async with client:
         events = await _send(client, runs, chat, "/goal never finish")
 

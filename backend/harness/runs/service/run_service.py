@@ -13,7 +13,14 @@ from harness.bots import BotService
 from harness.files import ChatFile
 from harness.groups import GroupService
 from harness.runs.service.discussion import discussion_events, opening_turn
-from harness.runs.service.run import Run, RunAlreadyActiveError, wait_until_settled
+from harness.runs.service.report_inbox import ReportInboxes
+from harness.runs.service.run import (
+    Run,
+    RunAlreadyActiveError,
+    has_call,
+    wait_until_settled,
+    wake,
+)
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
 from harness.session.domain.log import Session
@@ -23,7 +30,6 @@ from harness.session.domain.models import (
     ScheduleChange,
     ScheduleChangeEvent,
     SessionEvent,
-    ToolCallEvent,
 )
 from harness.session.repository.session_repository import SessionNotFoundError
 from harness.session.service.session_service import SessionService
@@ -50,6 +56,7 @@ class RunService:
         self._groups = groups
         self._app_events = app_events
         self._runs: dict[str, Run] = {}
+        self._inboxes = ReportInboxes()
 
     @property
     def bots(self) -> BotService:
@@ -66,6 +73,11 @@ class RunService:
         """The app's publisher, for the route that streams it."""
         return self._app_events
 
+    @property
+    def inboxes(self) -> ReportInboxes:
+        """Where a chat's goal run hears its team's ticket reports, for the tickets' delivery."""
+        return self._inboxes
+
     def active_run(self, conversation_id: str) -> Run | None:
         """The run in flight for this conversation, if any."""
         return self._runs.get(conversation_id)
@@ -79,14 +91,14 @@ class RunService:
     def session_of_call(self, call_id: str) -> Session | None:
         """The log of the run in flight that asked for call `call_id`; `None` when none did."""
         return next(
-            (run.session for run in self._runs.values() if _has_call(run.session, call_id)), None
+            (run.session for run in self._runs.values() if has_call(run.session, call_id)), None
         )
 
     def start(self, session: Session, prompt: str, *, files: tuple[ChatFile, ...] = ()) -> Run:
         """Begin the discussion the person's message opens; `EmptyGroupError` if none can answer."""
         if session.id in self._runs:
             raise RunAlreadyActiveError(session.id)
-        opening = opening_turn(self._runtime, self._groups, session, prompt, files)
+        opening = opening_turn(self._runtime, self._groups, self._inboxes, session, prompt, files)
         return self._converse(session, opening)
 
     def hear(self, session: Session, message: HeardMessage, *, speaker_id: str) -> Run:
@@ -210,7 +222,7 @@ class RunService:
         await self._sessions.flush(session)
         run = self._runs.get(session.id)
         if run is not None:
-            await self._wake(run)
+            await wake(run)
 
     async def stop(self, conversation_id: str) -> bool:
         """End a turn early."""
@@ -257,13 +269,13 @@ class RunService:
     async def _wipe(self, run: Run) -> None:
         """Write the wiped log over the stored one, and show it to whoever watches `run`."""
         run.session = await self._sessions.clear(run.session.id)
-        await self._wake(run)
+        await wake(run)
 
     async def _drain_turn(self, run: Run, turn: AsyncIterator[object]) -> None:
         """Drive the turn, waking subscribers as the log grows."""
         async with aclosing(turn) as events:
             async for _ in events:
-                await self._wake(run)
+                await wake(run)
 
     async def _settle_when_done(self, run: Run, turn_task: asyncio.Task[None]) -> None:
         """Own the turn's ending. This task is never cancelled — see `stop`."""
@@ -286,13 +298,3 @@ class RunService:
             run.condition.notify_all()
         if self._runs.get(run.session.id) is run:
             del self._runs[run.session.id]
-
-    async def _wake(self, run: Run) -> None:
-        async with run.condition:
-            run.condition.notify_all()
-
-
-def _has_call(session: Session, call_id: str) -> bool:
-    return any(
-        isinstance(event, ToolCallEvent) and event.call.id == call_id for event in session.events()
-    )

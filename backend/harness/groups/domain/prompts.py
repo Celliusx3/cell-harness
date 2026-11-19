@@ -25,6 +25,7 @@ GOAL_LAST_TURN = (
     "This is the last turn: end the run now with done, needs_you or blocked, not continue.\n"
 )
 GOAL_NOTE = "Note: {note}\n"
+GOAL_BUSY = "{member} is still busy with its worker; pick another member or end the run."
 GOAL_MEMBER = (
     "You are working on a team goal run led by {lead}. Goal: {goal}\n"
     "Your task: {task}\n"
