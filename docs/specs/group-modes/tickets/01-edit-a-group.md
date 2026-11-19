@@ -1,6 +1,6 @@
 # 01 You can edit a group's name, members and lead
 
-**Status.** open
+**Status.** done
 
 **What to build.** `Group` gains `lead_id: str | None`. A new
 `GroupEdit` (name, member_ids, lead_id) is saved through

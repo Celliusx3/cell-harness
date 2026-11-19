@@ -120,6 +120,9 @@ ROUTES: dict[str, Tool | NotATool] = {
         "trying again from Needs you is the person's call; ticket_route attaches the bot's own"
     ),
     "POST /api/groups": NotATool("not yet: making a group from chat is the next piece"),
+    "PATCH /api/groups/{group_id}": NotATool(
+        "not yet: editing a group from chat follows making one"
+    ),
     "PUT /api/bots/{bot_id}/secrets": NotATool(
         "which keys a bot may use is the person's call; a bot never gives itself a key"
     ),

@@ -26,6 +26,7 @@ const MENU_ITEM = "px-2.5 py-2 focus:bg-surface-sunken focus:text-ink";
 interface ChatHeaderProps {
   chat: Speaker | null;
   editHref: string | null;
+  settingsHref: string | null;
   elapsed: string | null;
   waiting: boolean;
   ticketsAtWork: number;
@@ -70,6 +71,7 @@ const DOCK_BUTTON =
 export function ChatHeader({
   chat,
   editHref,
+  settingsHref,
   elapsed,
   waiting,
   ticketsAtWork,
@@ -84,7 +86,15 @@ export function ChatHeader({
       <DrawerButton />
       {chat !== null && <BotAvatar speaker={chat} mood={moodOf(elapsed, waiting, ticketsAtWork)} size="chat" />}
       <div className="flex min-w-0 flex-col">
-        <h1 className="truncate text-sm font-semibold leading-tight">{chat?.name ?? ""}</h1>
+        <h1 className="truncate text-sm font-semibold leading-tight">
+          {settingsHref === null ? (
+            (chat?.name ?? "")
+          ) : (
+            <Link href={settingsHref} title="Group settings" className="hover:underline">
+              {chat?.name ?? ""}
+            </Link>
+          )}
+        </h1>
         <ChatState elapsed={elapsed} waiting={waiting} ticketsAtWork={ticketsAtWork} />
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">

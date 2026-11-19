@@ -122,7 +122,7 @@ async def test_a_group_made_is_listed_and_kept_in_the_groups_file_not_the_bots_f
     async with client:
         listed = (await client.get("/api/groups")).json()
 
-    launch = {"id": chat, "name": "Launch", "member_ids": [researcher, writer]}
+    launch = {"id": chat, "name": "Launch", "member_ids": [researcher, writer], "lead_id": None}
     assert listed == [launch]
     assert json.loads((tmp_path / "groups.json").read_text()) == {"groups": [launch]}
     assert set(json.loads((tmp_path / "bots.json").read_text())) == {"bots"}
@@ -137,6 +137,36 @@ async def test_a_group_needs_two_bots_that_exist(tmp_path, members) -> None:
         )
 
     assert response.status_code == 422
+
+
+async def test_an_edited_group_is_listed_with_its_new_name_members_and_lead(tmp_path) -> None:
+    client, _, _, chat, researcher, writer = await _group(tmp_path, completed("hi"))
+    async with client:
+        editor = (await client.post("/api/bots", json={**WRITER, "name": "Editor"})).json()["id"]
+        edit = {"name": "Desk", "member_ids": [writer, editor], "lead_id": editor}
+        patched = await client.patch(f"/api/groups/{chat}", json=edit)
+        listed = (await client.get("/api/groups")).json()
+
+    assert patched.status_code == 200, patched.text
+    assert listed == [{"id": chat, **edit}]
+
+
+async def test_a_lead_outside_the_members_is_refused(tmp_path) -> None:
+    client, _, _, chat, researcher, writer = await _group(tmp_path, completed("hi"))
+    edit = {"name": "Desk", "member_ids": [researcher, writer], "lead_id": "nope"}
+    async with client:
+        patched = await client.patch(f"/api/groups/{chat}", json=edit)
+
+    assert patched.status_code == 422
+
+
+async def test_editing_an_unknown_group_is_a_404(tmp_path) -> None:
+    client, _, _, _, researcher, writer = await _group(tmp_path, completed("hi"))
+    edit = {"name": "Desk", "member_ids": [researcher, writer], "lead_id": None}
+    async with client:
+        patched = await client.patch("/api/groups/nope", json=edit)
+
+    assert patched.status_code == 404
 
 
 async def test_a_group_whose_bots_are_all_archived_keeps_its_chat_but_takes_no_message(

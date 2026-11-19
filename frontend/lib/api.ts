@@ -11,6 +11,7 @@ import type {
   Decision,
   Group,
   GroupDraft,
+  GroupEdit,
   MessageAccepted,
   SecretSummary,
   ServerList,
@@ -180,6 +181,10 @@ export const listGroups = () => request<Group[]>("/groups");
 /** Make a group of two to six bots; its chat's id is the group's id. */
 export const createGroup = (draft: GroupDraft) =>
   request<Group>("/groups", { method: "POST", body: JSON.stringify(draft) });
+
+/** Save a group's new name, members and lead; its id and chat stay. */
+export const updateGroup = (id: string, edit: GroupEdit) =>
+  request<Group>(`/groups/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(edit) });
 
 /** Every saved key, by name, with the bots allowed to use it. */
 export const listSecrets = () => request<SecretSummary[]>("/secrets");

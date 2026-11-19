@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence, Set
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from harness.bots.domain.models import Bot, NonBlankText
 
@@ -29,6 +29,19 @@ class GroupDraft(BaseModel):
         return value
 
 
+class GroupEdit(GroupDraft):
+    """A group's new name and members, and its lead: one of them, or `None` for the first."""
+
+    lead_id: str | None
+
+    @model_validator(mode="after")
+    def _refuse_outside_lead(self) -> GroupEdit:
+        """Refuse a lead who is not one of the members."""
+        if self.lead_id is not None and self.lead_id not in self.member_ids:
+            raise ValueError("the lead must be one of the members")
+        return self
+
+
 class Group(BaseModel):
     """Bots sharing one chat, whose id is the group's id; they answer in `member_ids` order."""
 
@@ -37,6 +50,7 @@ class Group(BaseModel):
     id: str
     name: str
     member_ids: tuple[str, ...]
+    lead_id: str | None = None
 
 
 class ChatMembers(BaseModel):

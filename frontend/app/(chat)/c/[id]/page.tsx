@@ -93,6 +93,7 @@ export default function ConversationPage({
         <ChatHeader
           chat={chat}
           editHref={host === null ? null : `/bots/${id}`}
+          settingsHref={host === null && group.kind === "found" ? `/groups/${id}` : null}
           elapsed={elapsed}
           waiting={waiting !== null || tickets.needsAnswer}
           ticketsAtWork={tickets.atWork}

@@ -8,9 +8,10 @@ from harness.bots.service.bot_service import BotService, bot_instructions_event
 from harness.groups.domain.errors import (
     EmptyGroupError,
     GroupMemberNotFound,
+    GroupNotFound,
     NotAChatMemberError,
 )
-from harness.groups.domain.models import ChatMembers, Group, GroupDraft
+from harness.groups.domain.models import ChatMembers, Group, GroupDraft, GroupEdit
 from harness.groups.domain.speaker_queue import SpeakerQueue
 from harness.groups.repository.group_repository import GroupRepository
 from harness.session.domain.log import Session
@@ -41,6 +42,17 @@ class GroupService:
         session.append(_group_members_event(group, members))
         await self._sessions.flush(session)
         self._repository.add(group)
+        self._app_events.publish(BotsChangedAppEvent())
+        return group
+
+    def update(self, group_id: str, edit: GroupEdit) -> Group:
+        """The group saved with `edit`; `GroupNotFound`, or `GroupMemberNotFound` for a lost bot."""
+        if not any(group.id == group_id for group in self._repository.all()):
+            raise GroupNotFound(group_id)
+        for bot_id in edit.member_ids:
+            self._active_member(bot_id)
+        group = Group(id=group_id, name=edit.name, member_ids=edit.member_ids, lead_id=edit.lead_id)
+        self._repository.update(group)
         self._app_events.publish(BotsChangedAppEvent())
         return group
 

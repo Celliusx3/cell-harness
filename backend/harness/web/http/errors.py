@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from harness.bots import BotNotFound, BuiltInBotError, UnsavedModelError
 from harness.files import FileTooLargeError, UnsafeFileNameError
-from harness.groups import EmptyGroupError, GroupMemberNotFound
+from harness.groups import EmptyGroupError, GroupMemberNotFound, GroupNotFound
 from harness.mcp import (
     AppToolNotFound,
     AppToolRefused,
@@ -47,6 +47,7 @@ STATUS_BY_ERROR: Mapping[type[Exception], int] = MappingProxyType(
         FileTooLargeError: status.HTTP_413_CONTENT_TOO_LARGE,
         EmptyGroupError: status.HTTP_409_CONFLICT,
         GroupMemberNotFound: status.HTTP_422_UNPROCESSABLE_CONTENT,
+        GroupNotFound: status.HTTP_404_NOT_FOUND,
         InvalidSchedule: status.HTTP_422_UNPROCESSABLE_CONTENT,
         InvalidSkill: status.HTTP_422_UNPROCESSABLE_CONTENT,
         AppToolNotFound: status.HTTP_404_NOT_FOUND,
