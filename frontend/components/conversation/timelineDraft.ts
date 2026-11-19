@@ -3,6 +3,7 @@
 import { display } from "@/components/conversation/invocation";
 import type {
   AutoPick,
+  GoalItem,
   NoticeItem,
   Reminder,
   ScheduleChange,
@@ -208,6 +209,10 @@ export class TimelineDraft {
 
   onScheduleChange(key: string, change: ScheduleChange): void {
     this.items.push({ kind: "scheduleChange", key, change });
+  }
+
+  onGoal(item: GoalItem | undefined): void {
+    if (item !== undefined) this.items.push(item);
   }
 
   /** In a group's chat, each turn's bot; empty in a bot's own chat. */

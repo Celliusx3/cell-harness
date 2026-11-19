@@ -141,6 +141,8 @@ function isKept(
     case "mode":
     case "scheduleChange":
     case "ticketQuestion":
+    case "goalStart":
+    case "goalEnd":
       return true;
   }
 }

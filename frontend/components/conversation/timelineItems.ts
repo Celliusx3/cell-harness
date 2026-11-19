@@ -1,6 +1,7 @@
 /** The shapes `buildTimeline` produces */
 
 import type { Invocation } from "@/components/conversation/invocation";
+import type { GoalStatus } from "@/lib/groupTypes";
 import type { TicketAsk } from "@/lib/tickets";
 import type {
   ApprovalMode,
@@ -120,6 +121,28 @@ export interface TicketQuestionItem {
   latest: boolean;
 }
 
+/** A goal run started here, led by `lead` when its name is known. */
+export interface GoalStartItem {
+  kind: "goalStart";
+  key: string;
+  goal: string;
+  lead: string | null;
+}
+
+/** A goal run ended here: after how many of its turns, for what, and why. */
+export interface GoalEndItem {
+  kind: "goalEnd";
+  key: string;
+  goal: string;
+  lead: string | null;
+  turnsUsed: number;
+  maxTurns: number;
+  status: GoalStatus;
+  detail: string;
+}
+
+export type GoalItem = GoalStartItem | GoalEndItem;
+
 export type TimelineItem =
   | UserItem
   | ScheduledItem
@@ -130,7 +153,8 @@ export type TimelineItem =
   | InstructionsItem
   | ModeItem
   | ScheduleChangeItem
-  | TicketQuestionItem;
+  | TicketQuestionItem
+  | GoalItem;
 
 export interface Timeline {
   items: TimelineItem[];

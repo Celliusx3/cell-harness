@@ -1,6 +1,6 @@
 # 07 A card shows how a goal run ended, and Stop ends it
 
-**Status.** open
+**Status.** done
 
 **What to build.** The `goal/end` event shows as a card in the chat.
 The card has the goal, the lead, the turns used out of 13, the status

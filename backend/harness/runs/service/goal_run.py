@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Sequence
 from contextlib import aclosing
 from typing import NamedTuple
@@ -34,6 +35,7 @@ LEAD_FAILED = "{lead} could not finish its turn."
 MEMBER_FAILED = "{member} could not return a result to {lead}."
 STAYED_BUSY = "Members stayed busy past the wait limit {times} times."
 REPEATED = "The team repeated the same assignment three times without finishing."
+STOPPED = "Stopped by you."
 
 
 class GoalOpening(NamedTuple):
@@ -92,32 +94,41 @@ async def _team_turns(
     lead = opening.lead
     step: TeamTurn | GoalEnding = TeamTurn(lead, None)
     tally = GoalTally()
-    while isinstance(step, TeamTurn):
-        tally = tally._replace(used=tally.used + 1)
-        is_lead = step.speaker.id == lead.id
-        groups.named_speaker(session, step.speaker.id)
-        logged = GoalStepEvent(
-            turn=session.next_turn(),
-            bot_id=step.speaker.id,
-            role="lead" if is_lead else "member",
-            step=tally.used,
-            task=step.task,
-            note=tally.note if is_lead else None,
-        )
-        tally = tally._replace(note=None) if is_lead else tally
-        ended = TeamTurnEnd()
-        first = _turn(runtime, session, opening, step.speaker, tally.used)
-        async with aclosing(team_turn(runtime, session, inbox, logged, first, ended)) as events:
-            async for event in events:
-                yield event
-        members = groups.chat_members(session.id).bots
-        step, tally = _next_step(ended, step.speaker, lead, members, tally)
+    try:
+        while isinstance(step, TeamTurn):
+            tally = tally._replace(used=tally.used + 1)
+            is_lead = step.speaker.id == lead.id
+            groups.named_speaker(session, step.speaker.id)
+            logged = GoalStepEvent(
+                turn=session.next_turn(),
+                bot_id=step.speaker.id,
+                role="lead" if is_lead else "member",
+                step=tally.used,
+                task=step.task,
+                note=tally.note if is_lead else None,
+            )
+            tally = tally._replace(note=None) if is_lead else tally
+            ended = TeamTurnEnd()
+            first = _turn(runtime, session, opening, step.speaker, tally.used)
+            async with aclosing(team_turn(runtime, session, inbox, logged, first, ended)) as events:
+                async for event in events:
+                    yield event
+            members = groups.chat_members(session.id).bots
+            step, tally = _next_step(ended, step.speaker, lead, members, tally)
+    except (asyncio.CancelledError, GeneratorExit):
+        _log_end(session, GoalEnding("stopped", STOPPED), tally.used)
+        raise
+    _log_end(session, step, tally.used)
+
+
+def _log_end(session: Session, ending: GoalEnding, turns_used: int) -> None:
+    """Log how the run ended, in its last turn."""
     session.append(
         GoalEndEvent(
             turn=session.next_turn() - 1,
-            status=step.status,
-            detail=step.detail,
-            turns_used=tally.used,
+            status=ending.status,
+            detail=ending.detail,
+            turns_used=turns_used,
         )
     )
 

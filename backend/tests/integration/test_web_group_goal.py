@@ -175,7 +175,7 @@ async def test_a_lead_turn_that_fails_ends_the_run_failed(tmp_path) -> None:
     assert (end["status"], end["detail"]) == ("failed", "Researcher could not finish its turn.")
 
 
-async def test_a_stopped_goal_run_logs_no_ending_of_its_own(tmp_path) -> None:
+async def test_a_stopped_goal_run_logs_one_stopped_ending(tmp_path) -> None:
     client, _, runs, chat, _, writer = await _group(
         tmp_path,
         _lead("Writer, go.", "continue", next="Writer", task=TASK),
@@ -194,5 +194,7 @@ async def test_a_stopped_goal_run_logs_no_ending_of_its_own(tmp_path) -> None:
         events = (await client.get(f"/api/conversations/{chat}")).json()["events"]
 
     assert stopped.status_code == 204
-    assert _of_type(events, "goal/end") == []
+    [end] = _of_type(events, "goal/end")
+    assert (end["status"], end["detail"], end["turns_used"]) == ("stopped", "Stopped by you.", 2)
+    assert events[-1] == end
     assert runs.active_run(chat) is None

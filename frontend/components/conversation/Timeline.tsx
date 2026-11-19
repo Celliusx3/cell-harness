@@ -10,6 +10,8 @@ import { Activity } from "@/components/conversation/Activity";
 import { AutoPickLine } from "@/components/conversation/AutoPickLine";
 import { BotBlock } from "@/components/conversation/BotBlock";
 import { Compaction } from "@/components/conversation/Compaction";
+import { GoalCard } from "@/components/conversation/GoalCard";
+import { GoalStartLine } from "@/components/conversation/GoalStartLine";
 import {
   AssistantBubble,
   PlainBubble,
@@ -195,6 +197,10 @@ function Item({ item, openTurn, conversationId, source, onAnswered, reports }: I
       return <ScheduleChangeLine change={item.change} />;
     case "ticketQuestion":
       return <TicketQuestionPanel item={item} />;
+    case "goalStart":
+      return <GoalStartLine item={item} />;
+    case "goalEnd":
+      return <GoalCard item={item} />;
   }
 }
 
