@@ -122,7 +122,13 @@ async def test_a_group_made_is_listed_and_kept_in_the_groups_file_not_the_bots_f
     async with client:
         listed = (await client.get("/api/groups")).json()
 
-    launch = {"id": chat, "name": "Launch", "member_ids": [researcher, writer], "lead_id": None}
+    launch = {
+        "id": chat,
+        "name": "Launch",
+        "member_ids": [researcher, writer],
+        "lead_id": None,
+        "reply": "everyone",
+    }
     assert listed == [launch]
     assert json.loads((tmp_path / "groups.json").read_text()) == {"groups": [launch]}
     assert set(json.loads((tmp_path / "bots.json").read_text())) == {"bots"}
@@ -139,11 +145,11 @@ async def test_a_group_needs_two_bots_that_exist(tmp_path, members) -> None:
     assert response.status_code == 422
 
 
-async def test_an_edited_group_is_listed_with_its_new_name_members_and_lead(tmp_path) -> None:
+async def test_an_edited_group_is_listed_with_its_new_name_members_lead_and_reply(tmp_path) -> None:
     client, _, _, chat, researcher, writer = await _group(tmp_path, completed("hi"))
     async with client:
         editor = (await client.post("/api/bots", json={**WRITER, "name": "Editor"})).json()["id"]
-        edit = {"name": "Desk", "member_ids": [writer, editor], "lead_id": editor}
+        edit = {"name": "Desk", "member_ids": [writer, editor], "lead_id": editor, "reply": "lead"}
         patched = await client.patch(f"/api/groups/{chat}", json=edit)
         listed = (await client.get("/api/groups")).json()
 
@@ -162,7 +168,7 @@ async def test_a_lead_outside_the_members_is_refused(tmp_path) -> None:
 
 async def test_editing_an_unknown_group_is_a_404(tmp_path) -> None:
     client, _, _, _, researcher, writer = await _group(tmp_path, completed("hi"))
-    edit = {"name": "Desk", "member_ids": [researcher, writer], "lead_id": None}
+    edit = {"name": "Desk", "member_ids": [researcher, writer], "lead_id": None, "reply": "lead"}
     async with client:
         patched = await client.patch("/api/groups/nope", json=edit)
 
@@ -231,3 +237,26 @@ async def test_removing_a_bot_stops_the_discussion_it_is_speaking_in(
 
     assert removed.status_code == 204
     assert runs.active_run(chat) is None
+
+
+async def test_a_mentions_group_logs_a_plain_message_and_answers_only_a_named_bot(
+    tmp_path,
+) -> None:
+    client, model, runs, chat, researcher, writer = await _group(tmp_path, completed("Bull here."))
+    edit = {
+        "name": "Launch",
+        "member_ids": [researcher, writer],
+        "lead_id": None,
+        "reply": "mentions",
+    }
+    async with client:
+        patched = await client.patch(f"/api/groups/{chat}", json=edit)
+        plain = await _send(client, runs, chat, "anyone?")
+        named = await _send(client, runs, chat, "@Writer, anyone?")
+
+    assert patched.status_code == 200, patched.text
+    messages = [e["message"]["content"] for e in plain if e["type"] == "user/message"]
+    assert messages == ["anyone?"]
+    assert not any(e["type"] == "turn/start" for e in plain)
+    assert [e["bot_id"] for e in named if e["type"] == "turn/start"] == [writer]
+    assert model.calls == 1

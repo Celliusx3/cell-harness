@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 
+from harness.bots import Bot
+from harness.files import ChatFile
 from harness.groups import GroupService
 from harness.runtime.events import AgentCompleted, TurnEvent
 from harness.runtime.service import Runtime
@@ -25,6 +27,25 @@ async def discussion_events(
         turn = (
             _next_turn(runtime, groups, session) if isinstance(terminal, AgentCompleted) else None
         )
+
+
+def opening_turn(
+    runtime: Runtime, session: Session, speaker: Bot | None, text: str, files: tuple[ChatFile, ...]
+) -> AsyncIterator[TurnEvent]:
+    """The turn `speaker` answers the person's `text` in; just `text` logged if nobody is asked."""
+    if speaker is None:
+        return _unanswered_message(runtime, session, text, files)
+    return runtime.run(text, session=session, bot_id=speaker.id, files=files)
+
+
+async def _unanswered_message(
+    runtime: Runtime, session: Session, text: str, files: tuple[ChatFile, ...]
+) -> AsyncIterator[TurnEvent]:
+    """The person's `text` logged in the last turn, opening none: nobody was asked to answer it."""
+    turn = max(session.next_turn() - 1, 0)
+    runtime.log_person_message(session, text, files, turn=turn, sees_images=False)
+    return
+    yield
 
 
 def _next_turn(

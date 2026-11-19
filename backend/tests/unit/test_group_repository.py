@@ -51,5 +51,13 @@ def test_the_file_written_holds_only_groups(tmp_path: Path) -> None:
     written = json.loads((tmp_path / "groups.json").read_text())
 
     assert written == {
-        "groups": [{"id": "g1", "name": "Desk", "member_ids": ["r1", "w1"], "lead_id": None}]
+        "groups": [
+            {
+                "id": "g1",
+                "name": "Desk",
+                "member_ids": ["r1", "w1"],
+                "lead_id": None,
+                "reply": "everyone",
+            }
+        ]
     }

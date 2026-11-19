@@ -8,11 +8,17 @@ import { refreshSidebar } from "@/components/chat/Sidebar";
 import { useFound } from "@/components/chat/useFound";
 import { GroupFields, groupIsReady } from "@/components/groups/GroupFields";
 import { ApiError, BUILDER_ID, listBots, listGroups, updateGroup } from "@/lib/api";
-import type { Bot, Group } from "@/lib/types";
+import type { Bot, Group, ReplySetting } from "@/lib/types";
 
 const FIRST_MEMBER = "";
 
-/** A group's settings: its name, its members in turn order, and its lead. */
+const REPLY_CHOICES: { value: ReplySetting; label: string }[] = [
+  { value: "everyone", label: "Everyone (every member in turn)" },
+  { value: "lead", label: "Lead only" },
+  { value: "mentions", label: "Only bots you @mention" },
+];
+
+/** A group's settings: its name, its members in turn order, its lead, and who answers. */
 export default function GroupSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const group = useFound(listGroups, id, "Could not load groups.");
@@ -50,6 +56,7 @@ function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
     group.member_ids.filter((member) => bots.some((bot) => bot.id === member)),
   );
   const [lead, setLead] = useState(group.lead_id ?? FIRST_MEMBER);
+  const [reply, setReply] = useState<ReplySetting>(group.reply);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const leadId = picked.includes(lead) ? lead : null;
@@ -59,7 +66,7 @@ function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
     setBusy(true);
     setError(null);
     try {
-      await updateGroup(group.id, { name, member_ids: picked, lead_id: leadId });
+      await updateGroup(group.id, { name, member_ids: picked, lead_id: leadId, reply });
       refreshSidebar();
       router.push(`/c/${group.id}`);
     } catch (err: unknown) {
@@ -93,6 +100,27 @@ function GroupSettingsForm({ group, bots }: { group: Group; bots: Bot[] }) {
                 {bot.name}
               </option>
             ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs text-ink-soft" htmlFor="group-reply">
+          Who answers a plain message
+        </label>
+        <select
+          id="group-reply"
+          value={reply}
+          onChange={(event) => {
+            const chosen = REPLY_CHOICES.find((choice) => choice.value === event.target.value);
+            if (chosen) setReply(chosen.value);
+          }}
+          className="rounded-lg border border-line bg-surface-sunken px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+        >
+          {REPLY_CHOICES.map((choice) => (
+            <option key={choice.value} value={choice.value}>
+              {choice.label}
+            </option>
+          ))}
         </select>
       </div>
 

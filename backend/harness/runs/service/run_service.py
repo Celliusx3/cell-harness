@@ -12,7 +12,7 @@ from harness.app_events import AppEventService, ChatLoggedAppEvent, TurnStartedA
 from harness.bots import BotService
 from harness.files import ChatFile
 from harness.groups import GroupService
-from harness.runs.service.discussion import discussion_events
+from harness.runs.service.discussion import discussion_events, opening_turn
 from harness.runs.service.run import Run, RunAlreadyActiveError, wait_until_settled
 from harness.runtime.events import TurnEvent
 from harness.runtime.service import MODE_WITHOUT_TOOLSET, Runtime
@@ -87,9 +87,7 @@ class RunService:
         if session.id in self._runs:
             raise RunAlreadyActiveError(session.id)
         speaker = self._groups.first_speaker(session, prompt)
-        return self._converse(
-            session, self._runtime.run(prompt, session=session, bot_id=speaker.id, files=files)
-        )
+        return self._converse(session, opening_turn(self._runtime, session, speaker, prompt, files))
 
     def hear(self, session: Session, message: HeardMessage, *, speaker_id: str) -> Run:
         """Begin the turn in which `speaker_id` answers a bot's message, a schedule or a ticket."""

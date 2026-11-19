@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence, Set
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -10,6 +11,8 @@ from harness.bots.domain.models import Bot, NonBlankText
 
 MIN_GROUP_MEMBERS = 2
 MAX_GROUP_MEMBERS = 6
+
+ReplySetting = Literal["everyone", "lead", "mentions"]
 
 
 class GroupDraft(BaseModel):
@@ -30,9 +33,10 @@ class GroupDraft(BaseModel):
 
 
 class GroupEdit(GroupDraft):
-    """A group's new name and members, and its lead: one of them, or `None` for the first."""
+    """A group's new name and members, its lead (`None` for the first) and its reply setting."""
 
     lead_id: str | None
+    reply: ReplySetting
 
     @model_validator(mode="after")
     def _refuse_outside_lead(self) -> GroupEdit:
@@ -51,6 +55,7 @@ class Group(BaseModel):
     name: str
     member_ids: tuple[str, ...]
     lead_id: str | None = None
+    reply: ReplySetting = "everyone"
 
 
 class ChatMembers(BaseModel):

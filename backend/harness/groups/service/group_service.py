@@ -51,7 +51,13 @@ class GroupService:
             raise GroupNotFound(group_id)
         for bot_id in edit.member_ids:
             self._active_member(bot_id)
-        group = Group(id=group_id, name=edit.name, member_ids=edit.member_ids, lead_id=edit.lead_id)
+        group = Group(
+            id=group_id,
+            name=edit.name,
+            member_ids=edit.member_ids,
+            lead_id=edit.lead_id,
+            reply=edit.reply,
+        )
         self._repository.update(group)
         self._app_events.publish(BotsChangedAppEvent())
         return group
@@ -94,12 +100,14 @@ class GroupService:
             raise BotNotFound(bot_id if bot_id is not None else session.id)
         return matches[0]
 
-    def first_speaker(self, session: Session, text: str) -> Bot:
-        """Who answers `text` first, its instructions and group logged; else `EmptyGroupError`."""
+    def first_speaker(self, session: Session, text: str) -> Bot | None:
+        """Who answers `text` first, logged; `None` if nobody is asked; else `EmptyGroupError`."""
         members = self.chat_members(session.id)
-        speakers = SpeakerQueue.after_message(text, members.bots).waiting
-        if not speakers:
+        if not members.bots:
             raise EmptyGroupError(session.id)
+        speakers = SpeakerQueue.after_message(text, members.bots, members.group).waiting
+        if not speakers:
+            return None
         _log_speaker_and_members_if_changed(session, members, speakers[0])
         return speakers[0]
 
@@ -119,7 +127,7 @@ class GroupService:
     def next_speaker(self, session: Session) -> Bot | None:
         """Who the queue says is next, its instructions and group logged; `None` when nobody is."""
         members = self.chat_members(session.id)
-        speaker = SpeakerQueue.next_in(session.events(), members.bots)
+        speaker = SpeakerQueue.next_in(session.events(), members.bots, members.group)
         if speaker is None:
             return None
         _log_speaker_and_members_if_changed(session, members, speaker)

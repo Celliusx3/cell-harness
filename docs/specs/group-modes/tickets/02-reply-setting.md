@@ -1,6 +1,6 @@
 # 02 A group answers by its reply setting: Everyone, Lead or Mentions
 
-**Status.** open
+**Status.** done
 
 **What to build.** `Group` gains `reply: Literal["everyone", "lead",
 "mentions"]`, `everyone` by default, so older groups files still load.
