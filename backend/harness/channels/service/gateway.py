@@ -19,6 +19,7 @@ from harness.channels.service.chat_tasks import ChatTasks
 from harness.channels.service.chats import state_of
 from harness.channels.service.replies import ReplySender
 from harness.channels.service.turn_follower import TurnFollower
+from harness.groups.domain.goal import goal_text
 from harness.runs.service.run import Run, RunAlreadyActiveError
 from harness.runs.service.run_service import RunService
 from harness.runtime.compaction import CompactionRefusedError, check_can_compact
@@ -97,7 +98,9 @@ class ChannelGateway:
         state = await self._state(message.channel, message.chat_id)
         if _is_unlinked(state):
             return None
-        content = self.skills.expand(message.text)
+        content = (
+            message.text if self._is_goal(state, message.text) else self.skills.expand(message.text)
+        )
         if self.runs.active_run(state.conversation_id) is not None:
             await self._follower.queue(state, message.text, message.files)
             return None
@@ -162,6 +165,12 @@ class ChannelGateway:
         for supervised in tuple(self._channels.values()):
             await supervised.aclose()
         await self._tasks.aclose()
+
+    def _is_goal(self, state: ChatState, text: str) -> bool:
+        """Whether `text` starts a goal run, which only a group's chat has, before any skill."""
+        if goal_text(text) is None:
+            return False
+        return self.runs.groups.chat_members(state.conversation_id).group is not None
 
     def _require_registered(self, channel: str) -> None:
         if channel not in self._channels:

@@ -24,6 +24,7 @@ from harness.prompts import (
 )
 from harness.session.domain.change_notes import change_message, with_changes_after_owed_results
 from harness.session.domain.compaction import boundary, pruned_ids
+from harness.session.domain.goal import without_goal_blocks
 from harness.session.domain.images import ImagesHidden, first_images_noted, hidden_image_count
 from harness.session.domain.models import (
     ApplicationMessageEvent,
@@ -161,8 +162,8 @@ def _heard_messages(
             other = voices.other_speaker_name(event.turn)
             if other is None:
                 yield _own_message(event, pruned)
-            elif isinstance(event, AssistantMessageEvent) and _is_said(event.message.content):
-                speaker, heard = other, (*heard, event.message.content.strip())
+            elif isinstance(event, AssistantMessageEvent) and _is_said(_said(event)):
+                speaker, heard = other, (*heard, _said(event).strip())
     if heard:
         yield _speaker_message(speaker, heard)
 
@@ -173,7 +174,7 @@ def _own_message(
     if isinstance(event, ApplicationMessageEvent):
         return UserMessage(content=event.message.content)
     if isinstance(event, AssistantMessageEvent):
-        return event.message
+        return event.message.model_copy(update={"content": _said(event)})
     if event.message.tool_call_id in pruned:
         return ToolMessage(tool_call_id=event.message.tool_call_id, content=PRUNED)
     return _limited(event.message)
@@ -237,6 +238,11 @@ def _bot_message(message: BotMessage) -> UserMessage:
     """Another bot's message as the listener hears it, worded for why it was sent."""
     template = BOT_MESSAGE_TEMPLATES[message.intent]
     return UserMessage(content=template.format(name=message.from_name, text=message.text))
+
+
+def _said(event: AssistantMessageEvent) -> str:
+    """What a reply said, without the goal block only a goal run reads."""
+    return without_goal_blocks(event.message.content)
 
 
 def _is_said(text: str) -> bool:

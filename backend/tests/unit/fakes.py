@@ -113,6 +113,9 @@ class OneModel:
     async def model_for(self, bot_id: str | None) -> ModelChoice:
         return ModelChoice(self.client, self.vision, self.context_tokens)
 
+    async def model_named(self, name: str) -> ModelChoice:
+        return ModelChoice(self.client, self.vision, self.context_tokens)
+
 
 def model_at(context_tokens: int | None) -> ModelChoice:
     """A model that answers nothing, at the window `context_tokens`."""

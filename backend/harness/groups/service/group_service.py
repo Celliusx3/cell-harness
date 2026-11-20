@@ -8,13 +8,14 @@ from harness.bots.service.bot_service import BotService, bot_instructions_event
 from harness.groups.domain.errors import (
     EmptyGroupError,
     GroupMemberNotFound,
+    GroupNotFound,
     NotAChatMemberError,
 )
-from harness.groups.domain.models import ChatMembers, Group, GroupDraft
+from harness.groups.domain.models import ChatMembers, Group, GroupDraft, GroupEdit
 from harness.groups.domain.speaker_queue import SpeakerQueue
 from harness.groups.repository.group_repository import GroupRepository
 from harness.session.domain.log import Session
-from harness.session.domain.models import GroupMembersEvent
+from harness.session.domain.models import GroupAutoPickEvent, GroupMembersEvent
 from harness.session.service.session_service import SessionService
 
 
@@ -41,6 +42,24 @@ class GroupService:
         session.append(_group_members_event(group, members))
         await self._sessions.flush(session)
         self._repository.add(group)
+        self._app_events.publish(BotsChangedAppEvent())
+        return group
+
+    def update(self, group_id: str, edit: GroupEdit) -> Group:
+        """The group saved with `edit`; `GroupNotFound`, or `GroupMemberNotFound` for a lost bot."""
+        if not any(group.id == group_id for group in self._repository.all()):
+            raise GroupNotFound(group_id)
+        for bot_id in edit.member_ids:
+            self._active_member(bot_id)
+        group = Group(
+            id=group_id,
+            name=edit.name,
+            member_ids=edit.member_ids,
+            lead_id=edit.lead_id,
+            reply=edit.reply,
+            auto_model=edit.auto_model,
+        )
+        self._repository.update(group)
         self._app_events.publish(BotsChangedAppEvent())
         return group
 
@@ -82,12 +101,21 @@ class GroupService:
             raise BotNotFound(bot_id if bot_id is not None else session.id)
         return matches[0]
 
-    def first_speaker(self, session: Session, text: str) -> Bot:
-        """Who answers `text` first, its instructions and group logged; else `EmptyGroupError`."""
-        members = self.chat_members(session.id)
-        speakers = SpeakerQueue.after_message(text, members.bots).waiting
+    def answering(self, chat_id: str) -> ChatMembers:
+        """The chat's members, at least one active; else `EmptyGroupError`."""
+        members = self.chat_members(chat_id)
+        if not members.bots:
+            raise EmptyGroupError(chat_id)
+        return members
+
+    def first_speaker(
+        self, session: Session, text: str, pick: GroupAutoPickEvent | None
+    ) -> Bot | None:
+        """Who answers `text` first, logged; `None` if nobody is asked; else `EmptyGroupError`."""
+        members = self.answering(session.id)
+        speakers = SpeakerQueue.after_message(text, members.bots, members.group, pick).waiting
         if not speakers:
-            raise EmptyGroupError(session.id)
+            return None
         _log_speaker_and_members_if_changed(session, members, speakers[0])
         return speakers[0]
 
@@ -107,7 +135,7 @@ class GroupService:
     def next_speaker(self, session: Session) -> Bot | None:
         """Who the queue says is next, its instructions and group logged; `None` when nobody is."""
         members = self.chat_members(session.id)
-        speaker = SpeakerQueue.next_in(session.events(), members.bots)
+        speaker = SpeakerQueue.next_in(session.events(), members.bots, members.group)
         if speaker is None:
             return None
         _log_speaker_and_members_if_changed(session, members, speaker)

@@ -1,4 +1,4 @@
-"""Where the groups are kept: every group read in stored order, and a new one added after them."""
+"""Where the groups are kept: every group read in stored order, one added after them or replaced."""
 
 from __future__ import annotations
 
@@ -16,4 +16,8 @@ class GroupRepository(Protocol):
 
     def add(self, group: Group) -> None:
         """Store a new group after every stored group."""
+        ...
+
+    def update(self, group: Group) -> None:
+        """Replace the stored group with `group`'s id, in its place."""
         ...

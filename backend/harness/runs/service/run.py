@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 
 from harness.session.domain.log import Session
+from harness.session.domain.models import ToolCallEvent
 
 
 class RunAlreadyActiveError(RuntimeError):
@@ -28,3 +29,16 @@ async def wait_until_settled(run: Run) -> None:
     """Wait until `run` has settled."""
     async with run.condition:
         await run.condition.wait_for(lambda: run.is_settled)
+
+
+async def wake(run: Run) -> None:
+    """Wake whoever watches `run`."""
+    async with run.condition:
+        run.condition.notify_all()
+
+
+def has_call(session: Session, call_id: str) -> bool:
+    """Whether `session` holds the call `call_id`."""
+    return any(
+        isinstance(event, ToolCallEvent) and event.call.id == call_id for event in session.events()
+    )

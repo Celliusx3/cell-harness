@@ -21,3 +21,10 @@ class NotAChatMemberError(LookupError):
 
     def __init__(self, chat_id: str, bot_id: str) -> None:
         super().__init__(f"bot {bot_id!r} is no active member of chat {chat_id!r}")
+
+
+class GroupNotFound(LookupError):
+    """No group has this id."""
+
+    def __init__(self, group_id: str) -> None:
+        super().__init__(f"no group {group_id!r}")

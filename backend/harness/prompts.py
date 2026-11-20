@@ -281,3 +281,13 @@ TICKET_QUESTION_HEARD = (
     "paste a key in the chat."
 )
 ASKED_TEXT_FILE = '<file path="{path}">\n{text}\n</file>'
+
+AUTO_PICK = (
+    'Pick who in the group chat "{group}" answers the new message. The members, each with the '
+    "start of its instructions:\n{members}\n\nRecent lines, oldest first:\n{recent}\n\n"
+    "The person's new message:\n{message}\n\n"
+    'Pick "everyone" only when the message needs answers from several members. Reply with only '
+    'this JSON: {{"pick": "<one member\'s name>" or "everyone", "confidence": <how sure you are, '
+    "from 0 to 1>}}"
+)
+NO_RECENT_LINES = "(none)"

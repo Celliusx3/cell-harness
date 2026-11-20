@@ -1,4 +1,4 @@
-"""`groups.json`: its groups, read whole and added one at a time, the file replaced whole."""
+"""`groups.json`: its groups, read whole, added or replaced one at a time, the file rewritten."""
 
 from __future__ import annotations
 
@@ -22,6 +22,11 @@ class JsonGroupRepository:
     def add(self, group: Group) -> None:
         """Store a new group after every stored group."""
         self._write(GroupsFile(groups=(*self._read().groups, group)))
+
+    def update(self, group: Group) -> None:
+        """Replace the stored group with `group`'s id, in its place."""
+        stored = self._read().groups
+        self._write(GroupsFile(groups=tuple(group if g.id == group.id else g for g in stored)))
 
     def _read(self) -> GroupsFile:
         if not self._path.exists():

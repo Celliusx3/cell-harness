@@ -130,6 +130,7 @@ class TicketService:
         )
         stored = self._repository.read()
         self._save(TicketsFile(tickets=(*stored.tickets, ticket)))
+        self._runs.inboxes.expect(chat_id, ticket.id, bot_id)
         self._start_first_turn(ticket)
         return ticket
 
@@ -208,6 +209,7 @@ class TicketService:
         if self.get(ticket_id).state == "stopped":
             raise StoppedTicketError(ticket_id)
         self._set_state(ticket_id, "stopped")
+        self._runs.inboxes.withdraw(ticket_id)
         for task in list(self._worker_tasks):
             if task.get_name() == ticket_id:
                 task.cancel()
@@ -231,6 +233,7 @@ class TicketService:
         """One turn of `ticket`'s worker, its end told to the bot, unless stopped or dropped."""
         end = await self._locked_turn(ticket, turn, is_answer=is_answer)
         if end is None or end.state == "dropped":
+            self._runs.inboxes.withdraw(ticket.id)
             return
         await self._delivery.deliver(ticket, end.report(ticket))
 

@@ -11,7 +11,7 @@ One file per thing a person can see in the browser chat. Add a file when a featu
 - [settings.md](settings.md): the Settings screen, its menu and its way back to the chat you left
 - [skills.md](skills.md): the Skills page
 - [bots.md](bots.md): bots, each with its own instructions, model (picked in Edit bot) and one chat, made by describing one to Bot builder or by asking any bot
-- [groups.md](groups.md): two to six bots in one chat, taking turns, each turn under the bot's name with its tool calls folded
+- [groups.md](groups.md): two to six bots in one chat, taking turns by the group's reply setting, its settings page, Auto, and `/goal` runs with their card
 - [bot-messages.md](bot-messages.md): a bot messages another with `message_bot`, and the answer wakes it in its own chat
 - [secrets.md](secrets.md): a card that saves a website key, a model's key or a chat bot's token the model never sees, each bot's keys, and the fetch that uses one
 - [setup.md](setup.md): the setup screen every chat page shows until an LLM credential is saved, and the note on another device

@@ -1,3 +1,4 @@
+import { goalItems } from "@/components/conversation/goalRun";
 import { TimelineDraft } from "@/components/conversation/timelineDraft";
 import type { Timeline } from "@/components/conversation/timelineItems";
 import { humanise } from "@/lib/toolName";
@@ -9,6 +10,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
   const draft = new TimelineDraft();
   const start = events.map((event) => event.type).lastIndexOf("chat/cleared") + 1;
   const lastReports = lastReportOfEachTicket(events);
+  const goals = goalItems(events);
 
   for (const [index, event] of events.entries()) {
     if (index < start) continue;
@@ -160,6 +162,15 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
         draft.onGroupMembers();
         break;
 
+      case "group/auto_pick":
+        draft.onAutoPick(event.turn, { confidence: event.confidence, fallback: event.fallback });
+        break;
+
+      case "goal/start":
+      case "goal/end":
+        draft.onGoal(goals.get(index));
+        break;
+
       case "turn/start":
         draft.onTurnStart(event.turn, event.bot_id ?? null);
         break;
@@ -169,6 +180,7 @@ export function buildTimeline(events: SessionEvent[]): Timeline {
       case "server/instructions":
       case "workspace/named":
       case "chat/cleared":
+      case "goal/step":
         break;
     }
   }

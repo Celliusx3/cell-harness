@@ -49,6 +49,9 @@ class ChoicePerBot:
         choice = None if bot_id is None else self.per_bot.get(bot_id)
         return NoModel() if choice is None else choice
 
+    async def model_named(self, name: str) -> NoModel:
+        return NoModel()
+
 
 def _trader_client() -> tuple[ScriptedClient, ChoicePerBot]:
     trader = ScriptedClient(completed("trader"))
@@ -208,6 +211,16 @@ async def test_no_bot_or_an_unknown_one_has_no_model(keyring, bots, bot_id) -> N
     choice = await CredentialModels(keyring, bots, BASE, ClientsMade().endpoint()).model_for(bot_id)
 
     assert choice == NoModel()
+
+
+async def test_a_credential_is_a_model_by_its_name_and_an_unknown_name_is_none(
+    keyring, bots
+) -> None:
+    await _trader_on_its_model(keyring, bots)
+    models = CredentialModels(keyring, bots, BASE, ClientsMade().endpoint())
+
+    assert isinstance(await models.model_named("trader_model"), ModelChoice)
+    assert await models.model_named("no_such_model") == NoModel()
 
 
 async def test_clearing_a_bots_model_leaves_its_next_turn_with_no_model(keyring, bots) -> None:

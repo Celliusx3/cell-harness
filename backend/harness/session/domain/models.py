@@ -18,6 +18,7 @@ from harness.llm import (
     UserMessage,
 )
 from harness.session.domain.compaction import CompactionEnd, CompactionPrune, CompactionStart
+from harness.session.domain.goal import GoalEndEvent, GoalStartEvent, GoalStepEvent
 from harness.session.domain.heard import BotMessage as BotMessage
 from harness.session.domain.heard import BotMessageEvent, ScheduleReminderEvent, TicketReportEvent
 from harness.session.domain.heard import BotMessageIntent as BotMessageIntent
@@ -221,6 +222,18 @@ class GroupMembersEvent(BaseModel):
     members: tuple[str, ...]
 
 
+class GroupAutoPickEvent(BaseModel):
+    """Who Auto had answer the person's message in `turn`: a member, `None` for every member."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["group/auto_pick"] = "group/auto_pick"
+    turn: int
+    bot_id: str | None
+    confidence: float
+    fallback: bool
+
+
 class ChatCleared(BaseModel):
     """The person cleared this chat: the model's history and the timeline start after it."""
 
@@ -254,5 +267,9 @@ SessionEvent = (
     | ServerInstructionsEvent
     | WorkspaceEvent
     | GroupMembersEvent
+    | GroupAutoPickEvent
+    | GoalStartEvent
+    | GoalStepEvent
+    | GoalEndEvent
     | ChatCleared
 )

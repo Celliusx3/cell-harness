@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 
 from harness.bots import ASSISTANT_ID, BotNotFound, BuiltInBotError, UnsavedModelError
 from harness.files import FileTooLargeError, UnsafeFileNameError
-from harness.groups import EmptyGroupError, GroupMemberNotFound
+from harness.groups import EmptyGroupError, GroupMemberNotFound, GroupNotFound
 from harness.mcp import (
     AppToolNotFound,
     AppToolRefused,
@@ -54,6 +54,7 @@ PINNED = [
     pytest.param(FileTooLargeError("notes.txt", 1024), 413, id="FileTooLargeError"),
     pytest.param(EmptyGroupError("team"), 409, id="EmptyGroupError"),
     pytest.param(GroupMemberNotFound("nope"), 422, id="GroupMemberNotFound"),
+    pytest.param(GroupNotFound("nope"), 404, id="GroupNotFound"),
     pytest.param(InvalidSchedule("rrule: no occurrence after now"), 422, id="InvalidSchedule"),
     pytest.param(InvalidSkill("description is required"), 422, id="InvalidSkill"),
     pytest.param(McpConnectionError("connection refused"), 502, id="McpConnectionError"),

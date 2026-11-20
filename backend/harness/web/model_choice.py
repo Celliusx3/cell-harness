@@ -61,8 +61,7 @@ class CredentialModels:
     async def model_for(self, bot_id: str | None) -> ModelChoice | NoModel:
         """`bot_id`'s LLM credential; `NoModel` for no bot, an unknown one, or one with none."""
         name = self._model_credential_name(bot_id)
-        own = None if name is None else await self._model_choice(name)
-        return NoModel() if own is None else own
+        return NoModel() if name is None else await self.model_named(name)
 
     def _model_credential_name(self, bot_id: str | None) -> SecretName | None:
         if bot_id is None:
@@ -72,17 +71,17 @@ class CredentialModels:
         except BotNotFound:
             return None
 
-    async def _model_choice(self, name: SecretName) -> ModelChoice | None:
+    async def model_named(self, name: SecretName) -> ModelChoice | NoModel:
         """The LLM credential `name` as a model, unsealed and asked its window per version."""
         version = self._secrets.model_credential_version(name)
         if version is None:
-            return None
+            return NoModel()
         cached = self._by_credential.get(name)
         if cached is not None and cached.version == version:
             return cached.choice
         credential = await asyncio.to_thread(self._secrets.model_credential_named, name)
         if credential is None:
-            return None
+            return NoModel()
         settings = client_settings_for(credential, self._base)
         window = await asyncio.to_thread(self._endpoint.blocking_window_for, settings)
         details = credential.details

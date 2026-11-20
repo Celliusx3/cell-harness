@@ -7,8 +7,11 @@ import { ApprovalRecord } from "@/components/answer/ApprovalPanel";
 import { TicketQuestionPanel } from "@/components/answer/TicketQuestionPanel";
 import { CLIENT_TOOLS } from "@/components/answer/clientTools";
 import { Activity } from "@/components/conversation/Activity";
+import { AutoPickLine } from "@/components/conversation/AutoPickLine";
 import { BotBlock } from "@/components/conversation/BotBlock";
 import { Compaction } from "@/components/conversation/Compaction";
+import { GoalCard } from "@/components/conversation/GoalCard";
+import { GoalStartLine } from "@/components/conversation/GoalStartLine";
 import {
   AssistantBubble,
   PlainBubble,
@@ -21,7 +24,12 @@ import { ScheduledBubble } from "@/components/conversation/ScheduledBubble";
 import { ThinkingRow } from "@/components/conversation/ThinkingRow";
 import { acceptedTickets, TicketLines } from "@/components/conversation/TicketLines";
 import { ticketReports, type TicketReports } from "@/components/conversation/ticketReports";
-import type { Speaker, TimelineItem, ToolItem } from "@/components/conversation/timelineItems";
+import type {
+  AutoPick,
+  Speaker,
+  TimelineItem,
+  ToolItem,
+} from "@/components/conversation/timelineItems";
 import type { FileSource } from "@/lib/api";
 import type { ApprovalMode } from "@/lib/types";
 import { ToolCard } from "@/components/conversation/ToolCard";
@@ -52,6 +60,7 @@ export function Timeline({
   items,
   openTurn,
   speakers,
+  autoPicks,
   host,
   sending,
   queued,
@@ -62,6 +71,7 @@ export function Timeline({
   items: TimelineItem[];
   openTurn: number | null;
   speakers: ReadonlyMap<number, Speaker>;
+  autoPicks: ReadonlyMap<number, AutoPick>;
   host: Speaker | null;
   sending: string | null;
   queued: string[];
@@ -112,6 +122,7 @@ export function Timeline({
     <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6">
       {rows.map((row) => {
         if (row.kind === "item") return <Item key={row.item.key} item={row.item} {...shared} />;
+        const pick = autoPicks.get(row.turn);
         return (
           <BotBlock
             key={row.key}
@@ -137,6 +148,7 @@ export function Timeline({
                 </Activity>
               ),
             )}
+            {pick !== undefined && <AutoPickLine pick={pick} />}
           </BotBlock>
         );
       })}
@@ -185,6 +197,10 @@ function Item({ item, openTurn, conversationId, source, onAnswered, reports }: I
       return <ScheduleChangeLine change={item.change} />;
     case "ticketQuestion":
       return <TicketQuestionPanel item={item} />;
+    case "goalStart":
+      return <GoalStartLine item={item} />;
+    case "goalEnd":
+      return <GoalCard item={item} />;
   }
 }
 

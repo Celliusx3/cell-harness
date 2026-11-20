@@ -2,6 +2,8 @@
 
 import { display } from "@/components/conversation/invocation";
 import type {
+  AutoPick,
+  GoalItem,
   NoticeItem,
   Reminder,
   ScheduleChange,
@@ -54,6 +56,7 @@ export class TimelineDraft {
   private readonly instructed = new Set<string>();
   private readonly names = new Map<string, string>();
   private readonly speakers = new Map<number, string>();
+  private readonly autoPicks = new Map<number, AutoPick>();
   private inGroup = false;
 
   rememberTurn(turn: number): void {
@@ -66,6 +69,10 @@ export class TimelineDraft {
 
   onGroupMembers(): void {
     this.inGroup = true;
+  }
+
+  onAutoPick(turn: number, pick: AutoPick): void {
+    this.autoPicks.set(turn, pick);
   }
 
   onUserMessage({ key, turn, content, files }: PersonMessage): void {
@@ -204,6 +211,10 @@ export class TimelineDraft {
     this.items.push({ kind: "scheduleChange", key, change });
   }
 
+  onGoal(item: GoalItem | undefined): void {
+    if (item !== undefined) this.items.push(item);
+  }
+
   /** In a group's chat, each turn's bot; empty in a bot's own chat. */
   private spokenBy(): ReadonlyMap<number, Speaker> {
     const named = new Map<number, Speaker>();
@@ -223,6 +234,7 @@ export class TimelineDraft {
     return {
       items: this.items,
       speakers: this.spokenBy(),
+      autoPicks: this.autoPicks,
       openTurn:
         this.lastTurn !== null && !this.closed.has(this.lastTurn)
           ? this.lastTurn

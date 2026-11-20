@@ -3,12 +3,14 @@
 from harness.groups.domain.errors import (
     EmptyGroupError,
     GroupMemberNotFound,
+    GroupNotFound,
     NotAChatMemberError,
 )
 from harness.groups.domain.models import (
     ChatMembers,
     Group,
     GroupDraft,
+    GroupEdit,
     groups_left_without_members,
 )
 from harness.groups.repository.group_repository import GroupRepository
@@ -20,7 +22,9 @@ __all__ = [
     "EmptyGroupError",
     "Group",
     "GroupDraft",
+    "GroupEdit",
     "GroupMemberNotFound",
+    "GroupNotFound",
     "GroupRepository",
     "GroupService",
     "JsonGroupRepository",

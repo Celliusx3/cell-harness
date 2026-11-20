@@ -19,7 +19,7 @@ export default function TicketPage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params);
   const load = useTicket(id);
   const detail = load.kind === "found" ? load.detail : null;
-  const { items, openTurn, speakers } = useTimeline(detail?.events ?? NO_EVENTS);
+  const { items, openTurn, speakers, autoPicks } = useTimeline(detail?.events ?? NO_EVENTS);
 
   if (load.kind === "failed") {
     return <p className="px-6 py-6 text-sm text-danger">{load.message}</p>;
@@ -59,6 +59,7 @@ export default function TicketPage({ params }: { params: Promise<{ id: string }>
             items={items}
             openTurn={openTurn}
             speakers={speakers}
+            autoPicks={autoPicks}
             host={null}
             sending={null}
             queued={[]}
