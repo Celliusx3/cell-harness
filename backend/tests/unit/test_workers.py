@@ -11,7 +11,8 @@ from harness.session.service.session_service import SessionService
 from harness.tickets.domain.models import Ticket
 from harness.tickets.service.worker import RuntimeTicketWorker, WorkerEnd, worker_session_id
 from harness.tools import ApprovalService, Ok, Tool
-from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, completed
+from harness.tools.native.tickets import ticket_report_tool
+from tests.unit.fakes import EchoArgs, SteppedClient, calls_tool, reports_ready
 from tests.unit.helpers import no_skills, runtime_over
 
 SAVE = "save_note"
@@ -37,10 +38,14 @@ def workers(
         frozenset({SAVE}), frozenset, tmp_path / "approvals.json", default_mode="ask"
     )
     client = SteppedClient(
-        completed("Waiting."), calls_tool(SAVE, '{"value": "Kopi"}'), completed("Saved.")
+        reports_ready("Waiting."),
+        calls_tool(SAVE, '{"value": "Kopi"}'),
+        reports_ready("Saved.", id="r2"),
     )
     sessions = SessionService(JsonlSessionRepository(tmp_path / "workers"))
-    runtime = runtime_over(client, saver, approvals=approvals, guidance="BASE")
+    runtime = runtime_over(
+        client, saver, ticket_report_tool(), approvals=approvals, guidance="BASE"
+    )
     return (
         RuntimeTicketWorker(
             runtime, sessions, lambda _bot_id: 3, no_skills(), lambda bot_id: bot_id

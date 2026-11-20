@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import AsyncIterator, Mapping, Sequence
 from dataclasses import dataclass
 
@@ -21,6 +22,7 @@ from harness.llm import (
 )
 from harness.runtime.models import ModelChoice
 from harness.tools import Ok, Pending, Tool, ToolContext, ToolOutcome
+from harness.tools.native.tickets import TICKET_REPORT
 
 
 class ScriptedClient(LLMClient):
@@ -138,6 +140,11 @@ def calls_tool(
         ToolCallChunk(call=call),
         Completion(full_text=text, tool_calls=(call,)),
     ]
+
+
+def reports_ready(summary: str, *, id: str = "r1") -> list[StreamEvent]:
+    """A worker's step that reports `summary` as its ready result, which ends its turn."""
+    return calls_tool(TICKET_REPORT, json.dumps({"state": "ready", "summary": summary}), id=id)
 
 
 class EchoArgs(BaseModel):

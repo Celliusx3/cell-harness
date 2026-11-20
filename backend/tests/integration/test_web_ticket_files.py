@@ -17,7 +17,7 @@ from harness.tools.native.tickets import TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, Ticketing, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, once_said, send
 from tests.mcp_stub import DOT_PNG
-from tests.unit.fakes import calls_tool, completed
+from tests.unit.fakes import calls_tool, completed, reports_ready
 from tests.webapp import files_in, images_in
 
 DOT = base64.b64decode(DOT_PNG)
@@ -26,7 +26,7 @@ ACCEPTED = json.dumps(
     {"items": [{"kind": "accept", "title": "Write the report", "task": "Write it."}]}
 )
 SCRIPTS = {
-    WORKER_START: [completed("Report written.")],
+    WORKER_START: [reports_ready("Report written.")],
     ASSISTANT_START: [
         calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
         completed("On it."),

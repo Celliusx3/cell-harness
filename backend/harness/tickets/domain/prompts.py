@@ -25,6 +25,15 @@ TICKET_FINISHED = (
     "To give it more work, attach to it with ticket_route."
 )
 TICKET_DID_NOT_FINISH = "The worker's turn did not finish, so this ticket has no result."
+TICKET_NOT_REPORTED = (
+    "You ended your turn without calling ticket_report, so the orchestrator has no result. If the "
+    "work is done, call ticket_report with the state ready and the whole result. If it is not, do "
+    "it with your tools, or call ticket_report with what stopped you."
+)
+TICKET_NEVER_REPORTED = (
+    "The worker ended its turn without a report, so this ticket may not be done. Check its last "
+    "reply before you use any of it: {reply}"
+)
 TICKET_TURN_FAILED = (
     "The worker's turn failed, so this ticket has no result. Tell the user this reason as it is, "
     "and do not guess at another: {reason}"

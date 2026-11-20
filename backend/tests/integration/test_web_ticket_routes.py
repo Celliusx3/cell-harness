@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from harness.bots import ASSISTANT_ID
-from harness.tools.native.tickets import TICKET_ROUTE
+from harness.tools.native.tickets import TICKET_REPORT, TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
 from tests.unit.fakes import calls_tool, completed
@@ -21,8 +21,9 @@ ACCEPTED = json.dumps(
         ]
     }
 )
+READY = json.dumps({"state": "ready", "summary": "Three flights found."})
 SCRIPTS = {
-    WORKER_START: [completed("Three flights found.")],
+    WORKER_START: [calls_tool(TICKET_REPORT, READY, text="Three flights found.", id="r1")],
     ASSISTANT_START: [
         calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
         completed("On it."),

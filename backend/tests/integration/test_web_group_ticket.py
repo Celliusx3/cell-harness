@@ -22,7 +22,7 @@ from harness.tools.native.files.tools import EXTRACT_ARCHIVE
 from harness.tools.native.tickets import TICKET_REPORT, TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
-from tests.unit.fakes import EchoArgs, calls_tool, completed
+from tests.unit.fakes import EchoArgs, calls_tool, completed, reports_ready
 from tests.unit.group_helpers import groups_in
 from tests.unit.helpers import durable_service
 from tests.webapp import MODEL_CREDENTIAL
@@ -137,7 +137,10 @@ def _queued(tmp_path: Path, **chat: str) -> None:
 def _assistant_world(tmp_path: Path):
     return ticketing_app(
         tmp_path,
-        {WORKER_START: [completed("Wrote it.")], ASSISTANT_START: [completed("Here it is.")]},
+        {
+            WORKER_START: [reports_ready("Wrote it.")],
+            ASSISTANT_START: [completed("Here it is.")],
+        },
     )
 
 

@@ -10,7 +10,7 @@ from harness.llm import UserMessage
 from harness.tools.native.tickets import TICKET_REPORT, TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, once_said, send
-from tests.unit.fakes import calls_tool, completed
+from tests.unit.fakes import calls_tool, completed, reports_ready
 
 FLIGHTS = {"kind": "accept", "title": "Flights to Tokyo", "task": "Find 3 cheap flights."}
 RETRY = (
@@ -92,7 +92,7 @@ async def test_only_a_blocked_or_failed_ticket_can_be_retried(tmp_path) -> None:
     world = ticketing_app(
         tmp_path,
         {
-            WORKER_START: [completed("Three flights found.")],
+            WORKER_START: [reports_ready("Three flights found.")],
             ASSISTANT_START: [
                 route(FLIGHTS, call_id="r1"),
                 completed("On it."),

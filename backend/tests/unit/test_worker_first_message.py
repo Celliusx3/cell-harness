@@ -14,7 +14,8 @@ from harness.tickets.domain.models import Ticket
 from harness.tickets.domain.named_skills import named_skills
 from harness.tickets.domain.prompts import WORKER_INTRO
 from harness.tickets.service.worker import RuntimeTicketWorker, worker_session_id
-from tests.unit.fakes import SteppedClient, completed
+from harness.tools.native.tickets import ticket_report_tool
+from tests.unit.fakes import SteppedClient, reports_ready
 from tests.unit.helpers import runtime_over, skills_at
 
 
@@ -39,9 +40,9 @@ def write_skill(root: Path, name: str) -> None:
 def worker_over(
     tmp_path: Path, skills: SkillService
 ) -> tuple[RuntimeTicketWorker, SteppedClient, SessionService]:
-    client = SteppedClient(completed("Done."))
+    client = SteppedClient(reports_ready("Done."))
     sessions = SessionService(JsonlSessionRepository(tmp_path / "workers"))
-    runtime = runtime_over(client, guidance="BASE")
+    runtime = runtime_over(client, ticket_report_tool(), guidance="BASE")
     worker = RuntimeTicketWorker(
         runtime, sessions, lambda _bot_id: 3, skills, lambda bot_id: bot_id
     )

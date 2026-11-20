@@ -10,7 +10,7 @@ from harness.llm import UserMessage
 from harness.tools.native.tickets import TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
-from tests.unit.fakes import calls_tool, completed
+from tests.unit.fakes import calls_tool, completed, reports_ready
 
 FLIGHTS = {"kind": "accept", "title": "Flights to Tokyo", "task": "Find 3 cheap flights."}
 HOTELS = {"kind": "accept", "title": "Hotels in Tokyo", "task": "Find 3 cheap hotels."}
@@ -41,7 +41,7 @@ async def test_one_message_with_two_requests_starts_two_tickets(tmp_path) -> Non
     world = ticketing_app(
         tmp_path,
         {
-            WORKER_START: [completed("Found them.")],
+            WORKER_START: [reports_ready("Found them.")],
             ASSISTANT_START: [
                 route(FLIGHTS, HOTELS, call_id="r1"),
                 completed("Started flights and hotels."),
@@ -85,7 +85,10 @@ async def test_attach_resumes_a_done_ticket_with_the_users_message(tmp_path) -> 
     world = ticketing_app(
         tmp_path,
         {
-            WORKER_START: [completed("Three flights found."), completed("Business class too.")],
+            WORKER_START: [
+                reports_ready("Three flights found."),
+                reports_ready("Business class too.", id="r2"),
+            ],
             ASSISTANT_START: [
                 route(FLIGHTS, call_id="r1"),
                 completed("On it."),
@@ -118,7 +121,10 @@ async def test_a_stopped_ticket_refuses_an_attach_without_stopping_the_batch(tmp
     world = ticketing_app(
         tmp_path,
         {
-            WORKER_START: [completed("Three flights found."), completed("Hotels found.")],
+            WORKER_START: [
+                reports_ready("Three flights found."),
+                reports_ready("Hotels found.", id="r2"),
+            ],
             ASSISTANT_START: [
                 route(FLIGHTS, call_id="r1"),
                 completed("On it."),

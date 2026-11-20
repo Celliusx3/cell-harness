@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from harness.runtime.events import AgentFailed
+from harness.runtime.events import AgentCompleted, AgentFailed
 from harness.tickets.domain.prompts import TICKET_DID_NOT_FINISH
 from harness.tickets.service.worker import worker_end
 
+TOOL_CALL_AS_TEXT = "<|tool_call>call:computer__shell{command:detect}"
 RATE_LIMITED = "provider returned 429: qwen/qwen3.8-27b is temporarily rate-limited upstream"
 
 
@@ -21,3 +22,10 @@ def test_a_turn_that_ended_with_no_event_still_says_it_did_not_finish() -> None:
 
     assert end.state == "failed"
     assert end.text == TICKET_DID_NOT_FINISH
+
+
+def test_a_turn_that_completed_without_a_report_fails_and_keeps_its_last_reply() -> None:
+    end = worker_end(AgentCompleted(text=TOOL_CALL_AS_TEXT), None)
+
+    assert end.state == "failed"
+    assert TOOL_CALL_AS_TEXT in end.text
