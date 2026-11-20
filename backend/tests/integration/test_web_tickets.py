@@ -10,7 +10,7 @@ from harness.tickets.domain.prompts import TICKET_TURN_FAILED
 from harness.tools.native.tickets import TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
-from tests.unit.fakes import calls_tool, completed
+from tests.unit.fakes import calls_tool, completed, reports_ready
 
 ACCEPTED = json.dumps(
     {
@@ -29,7 +29,7 @@ async def test_a_ticket_runs_in_the_background_and_its_result_wakes_the_bot(tmp_
     world = ticketing_app(
         tmp_path,
         {
-            WORKER_START: [completed("Three flights found.")],
+            WORKER_START: [reports_ready("Three flights found.")],
             ASSISTANT_START: [
                 calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),

@@ -33,6 +33,8 @@ from harness.tickets.domain.prompts import (
     RESULT_FILES_OUT_OF_REACH,
     RESULT_FILES_TO_HAND_OVER,
     TICKET_DID_NOT_FINISH,
+    TICKET_NEVER_REPORTED,
+    TICKET_NOT_REPORTED,
     TICKET_TURN_FAILED,
     WORKER_FILES_FOLDER,
     WORKER_INTRO,
@@ -126,6 +128,7 @@ class RuntimeTicketWorker:
             intro=WORKER_INTRO, call_id=call_id, outcome=outcome, bot_id=ticket.bot_id
         )
         last = await resume_to_end(self.runtime, self.sessions, session, answer)
+        last = await self._reported(ticket, session, last)
         return worker_end(last, last_accepted_report(session.events()))
 
     async def _run_turn(
@@ -133,8 +136,20 @@ class RuntimeTicketWorker:
     ) -> WorkerEnd:
         turn = HelperTurn(intro=WORKER_INTRO, prompt=prompt, bot_id=ticket.bot_id, files=files)
         last = await run_to_end(self.runtime, self.sessions, session, turn)
+        last = await self._reported(ticket, session, last)
         end = worker_end(last, last_accepted_report(session.events()))
         return self._with_result_files(end, ticket)
+
+    async def _reported(
+        self, ticket: Ticket, session: Session, last: TurnEvent | None
+    ) -> TurnEvent | None:
+        """`last`, or the end of one reminder turn when `last` completed with no report."""
+        if not isinstance(last, AgentCompleted) or last_accepted_report(session.events()):
+            return last
+        turn = HelperTurn(
+            intro=WORKER_INTRO, prompt=TICKET_NOT_REPORTED, bot_id=ticket.bot_id, files=()
+        )
+        return await run_to_end(self.runtime, self.sessions, session, turn)
 
     def _named_skill_texts(self, task: str) -> tuple[str, ...]:
         """What `skill` returns for each skill `task` names, so the worker starts with it loaded."""
@@ -205,7 +220,7 @@ def last_accepted_report(events: Sequence[SessionEvent]) -> TicketReportArgs | N
 
 
 def worker_end(ending: TurnEvent | None, kept: TicketReportArgs | None) -> WorkerEnd:
-    """The kept report when the turn completed, else `ready` with its reply; `failed` otherwise.
+    """The kept report when the turn completed; `failed` otherwise, keeping an unreported reply.
 
     A worker is offered no client tool, so a turn of its that waits waits for an approval.
     """
@@ -225,7 +240,9 @@ def worker_end(ending: TurnEvent | None, kept: TicketReportArgs | None) -> Worke
     if not isinstance(ending, AgentCompleted):
         return WorkerEnd(state="failed", text=TICKET_DID_NOT_FINISH, question=None)
     if kept is None:
-        return WorkerEnd(state="ready", text=ending.text, question=None)
+        return WorkerEnd(
+            state="failed", text=TICKET_NEVER_REPORTED.format(reply=ending.text), question=None
+        )
     return WorkerEnd(
         state=kept.state,
         text=kept.summary,

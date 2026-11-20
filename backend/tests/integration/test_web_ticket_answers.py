@@ -10,7 +10,7 @@ from harness.llm import UserMessage
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
 from tests.integration.ticket_helpers import WORKER_START, ticketing_app
 from tests.integration.web_helpers import ASSISTANT_START, of_type, once_said, send
-from tests.unit.fakes import calls_tool, completed
+from tests.unit.fakes import calls_tool, completed, reports_ready
 
 ACCEPTED = json.dumps(
     {
@@ -82,7 +82,7 @@ async def test_an_answer_to_a_ticket_that_asked_nothing_is_refused(tmp_path) -> 
     world = ticketing_app(
         tmp_path,
         {
-            WORKER_START: [completed("Three flights found.")],
+            WORKER_START: [reports_ready("Three flights found.")],
             ASSISTANT_START: [
                 calls_tool(TICKET_ROUTE, ACCEPTED, id="c1"),
                 completed("On it."),

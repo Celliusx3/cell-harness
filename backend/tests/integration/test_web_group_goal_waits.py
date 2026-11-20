@@ -15,7 +15,7 @@ from tests.integration.test_web_group_goal import TASK, _lead, _of_type, _speake
 from tests.integration.test_web_groups import RESEARCHER, WRITER
 from tests.integration.ticket_helpers import WORKER_START, Ticketing, ticketing_app
 from tests.integration.web_helpers import settle
-from tests.unit.fakes import PerBotClient, calls_tool, completed
+from tests.unit.fakes import PerBotClient, calls_tool, completed, reports_ready
 
 LEAD = RESEARCHER["instructions"]
 MEMBER = WRITER["instructions"]
@@ -91,7 +91,7 @@ async def test_the_lead_speaks_only_after_the_member_heard_its_worker_s_report(t
                 completed("My worker is on it."),
                 completed("Writer: rain, staff, servers."),
             ],
-            WORKER_START: [completed("Rain, staff, servers.")],
+            WORKER_START: [reports_ready("Rain, staff, servers.")],
         },
     )
     events = await _goal(world, chat, "/goal decide whether to launch on Friday")
