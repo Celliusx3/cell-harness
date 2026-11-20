@@ -11,14 +11,13 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 from harness.bots.domain.models import MENTION_PATTERN, Bot, NonBlankText
 from harness.groups.domain.models import Group
 from harness.groups.domain.speaker_queue import lead_of
+from harness.session.domain.goal import BLOCK_CLOSE, BLOCK_OPEN
 
 GOAL_MAX_TURNS = 13
 GOAL_WAIT_SECONDS = 600.0
 GOAL_MAX_BUSY_WAITS = 3
 GOAL_MAX_REPEATS = 3
 GOAL_COMMAND = "/goal "
-BLOCK_OPEN = "<goal>"
-BLOCK_CLOSE = "</goal>"
 
 
 class GoalContinue(BaseModel):
