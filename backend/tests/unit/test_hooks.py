@@ -21,7 +21,7 @@ from harness.runtime.hooks import (
     completed_calls,
 )
 from harness.runtime.hooks import service as service_module
-from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart
+from harness.session.domain.models import ToolCallEvent, ToolResultEvent, TurnStart, WorkspaceEvent
 from harness.tools import BLOCKED, Ok, ToolOutcome
 from tests.unit.helpers import new_session
 
@@ -69,12 +69,12 @@ class SaysAtStepEnd(StepHook):
 class SaysAtStepStart(StepHook):
     text: str | None = None
 
-    async def start_of_step(self) -> str | None:
+    async def start_of_step(self, named: WorkspaceEvent | None) -> str | None:
         return self.text
 
 
 class RaisesAtStepStart(StepHook):
-    async def start_of_step(self) -> str | None:
+    async def start_of_step(self, named: WorkspaceEvent | None) -> str | None:
         raise RuntimeError("bug in a step hook")
 
 
@@ -234,7 +234,7 @@ async def test_every_step_hook_s_text_is_kept_in_order() -> None:
         )
     )
 
-    assert await chain.start_of_step() == ("one", "two")
+    assert await chain.start_of_step(None) == ("one", "two")
 
 
 async def test_a_raising_step_hook_adds_nothing_and_the_rest_still_speak(
@@ -243,6 +243,6 @@ async def test_a_raising_step_hook_adds_nothing_and_the_rest_still_speak(
     chain = HookChain(step_hooks=(RaisesAtStepStart(), SaysAtStepStart("after")))
 
     with caplog.at_level(logging.ERROR, logger="harness.runtime"):
-        assert await chain.start_of_step() == ("after",)
+        assert await chain.start_of_step(None) == ("after",)
 
     assert "RaisesAtStepStart.start_of_step raised" in caplog.text

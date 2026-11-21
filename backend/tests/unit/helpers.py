@@ -8,7 +8,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable, Sequence
 from contextlib import aclosing
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -71,7 +71,14 @@ async def no_progress(*, percent: float | None, message: str | None) -> None:
 
 CONVERSATION_ID = "s"
 NO_LINK_STORAGE = Path("/nonexistent/cell-harness-links")
-ORIGIN = CallOrigin(bot_id="s", conversation_id=CONVERSATION_ID, mode="ask", workspace=None)
+ORIGIN = CallOrigin(
+    bot_id="s",
+    conversation_id=CONVERSATION_ID,
+    mode="ask",
+    workspace=None,
+    own_workspace=None,
+    history_id="s@0",
+)
 
 
 def context_for(
@@ -82,9 +89,7 @@ def context_for(
     workspace: Path | None = None,
 ) -> ToolContext:
     """A context for invoking a tool directly, outside the dispatcher."""
-    origin = CallOrigin(
-        bot_id=bot_id, conversation_id=conversation_id, mode="ask", workspace=workspace
-    )
+    origin = replace(ORIGIN, bot_id=bot_id, conversation_id=conversation_id, workspace=workspace)
     return ToolContext(call_id=call_id, progress=no_progress, origin=origin)
 
 

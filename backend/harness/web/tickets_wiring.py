@@ -30,6 +30,7 @@ from harness.tools.native.tickets import (
     ticket_report_tool,
     ticket_route_tool,
 )
+from harness.tools.native.workspace import WORKSPACE_TOOLS
 from harness.tools.service.tool_service import Disposer
 from harness.web.runtime import CODE_TOOLS, SIGHT_TOOLS, SKILL_WRITE_TOOLS, WORK_TOOLS
 
@@ -41,6 +42,7 @@ WORKER_TOOLS = (
     ASK_MODEL,
     ASK_MODEL_JOBS,
     TICKET_REPORT,
+    *WORKSPACE_TOOLS,
 )
 
 

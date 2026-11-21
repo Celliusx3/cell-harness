@@ -7,13 +7,19 @@ from dataclasses import replace
 
 from harness.llm import Completion, Text, ToolCall, ToolCallChunk, text_of
 from harness.runtime.events import AgentCompleted, ToolResult, TurnEvent
-from harness.runtime.hooks import CompletedCall, HookChain, Signature, ToolHook
+from harness.runtime.hooks import CompletedCall, HookChain, Signature, StepHook, ToolHook
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT, ExactFailureHook
 from harness.session.domain.model_history import derive_messages
-from harness.session.domain.models import ApplicationMessageEvent, ToolCallEvent, ToolResultEvent
+from harness.session.domain.models import (
+    ApplicationMessageEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    WorkspaceEvent,
+)
 from harness.tools import BLOCKED, Ok, ToolOutcome
 from tests.unit.fakes import SteppedClient, calls_tool, completed, echo_tool, raising_tool
 from tests.unit.helpers import drain, new_session, runtime_over, unanswered_calls
+from tests.webapp import files_in
 
 
 class Stub(ToolHook):
@@ -178,3 +184,34 @@ async def test_a_note_is_logged_but_never_yielded_to_the_caller() -> None:
 
     assert any(isinstance(e, ApplicationMessageEvent) for e in session.events())
     assert all(isinstance(e, TurnEvent) for e in events)
+
+
+class Asked(StepHook):
+    """A step hook that records the workspaces it was told the turn's bot works in."""
+
+    def __init__(self) -> None:
+        self.told: list[WorkspaceEvent | None] = []
+
+    async def start_of_step(self, named: WorkspaceEvent | None) -> str | None:
+        self.told.append(named)
+        return None
+
+
+async def test_a_step_hook_is_told_the_workspaces_logged_for_the_turn_s_bot(tmp_path) -> None:
+    hook, session, files = Asked(), new_session("group-1"), files_in(tmp_path)
+    runtime = replace(
+        runtime_over(SteppedClient(completed("hi"))),
+        hooks=HookChain(step_hooks=(hook,)),
+        files=files,
+        own_chat_of=lambda bot_id: bot_id,
+    )
+
+    await drain(runtime.run("hello", session=session, bot_id="b"))
+
+    assert hook.told == [
+        WorkspaceEvent(
+            bot_id="b",
+            workspace=str(files.workspace("group-1")),
+            own_workspace=str(files.workspace("b")),
+        )
+    ]

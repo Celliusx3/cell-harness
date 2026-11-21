@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from harness.files import WorkspaceTextRepository, WorkspaceTextService
 from harness.llm import ToolCall, ToolMessage
 from harness.runtime.hooks import HookChain
 from harness.runtime.hooks.native.exact_failure import EXACT_FAILURE_BLOCK_AT
@@ -15,7 +16,7 @@ from harness.tools import BLOCKED, EXECUTION_ERROR, REFUSED, Failure, Ok
 from harness.web.runtime import default_hooks
 from tests.unit.helpers import new_session, no_skills
 
-GUARD = default_hooks(no_skills())
+GUARD = default_hooks(no_skills(), WorkspaceTextService(WorkspaceTextRepository()))
 
 
 def call(name: str = "read", arguments: str = '{"a": 1}', *, id: str = "c") -> ToolCall:

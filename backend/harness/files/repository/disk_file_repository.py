@@ -67,7 +67,7 @@ class DiskChatFileRepository:
         """What `folder` holds; a link leading outside the workspace, or to nothing, left out."""
         workspace = self.workspace(chat_id)
         with os.scandir(folder) as found:
-            entries = (_entry(item, workspace) for item in found)
+            entries = (workspace_entry(item, workspace) for item in found)
             return tuple(entry for entry in entries if entry is not None)
 
     async def write(self, chat_id: str, name: str, chunks: AsyncIterator[bytes]) -> ChatFile:
@@ -141,7 +141,7 @@ def _chat_file_at(path: Path) -> ChatFile:
     )
 
 
-def _entry(item: os.DirEntry[str], workspace: Path) -> WorkspaceEntry | None:
+def workspace_entry(item: os.DirEntry[str], workspace: Path) -> WorkspaceEntry | None:
     """`item` as a listed entry; None for a link leading outside `workspace` or to nothing."""
     try:
         if item.is_symlink() and not _is_link_within(Path(item.path), workspace):

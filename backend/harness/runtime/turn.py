@@ -159,7 +159,7 @@ async def _stream_reply(
         return
     selected = session.tools_selected()
     specs = runtime.tools.specs(selected, sees_images=choice.has_vision) if runtime.tools else None
-    context = await runtime.hooks.start_of_step()
+    context = await runtime.hooks.start_of_step(session.workspace_of(bot_id))
     messages = runtime.request_messages(session, context, sees_images=choice.has_vision)
     if runtime.checkpoint is not None:
         await runtime.checkpoint(session)

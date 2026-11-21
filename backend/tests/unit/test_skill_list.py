@@ -104,10 +104,10 @@ async def test_the_hook_lists_the_skills_at_the_start_of_every_step(tmp_path: Pa
     (tmp_path / "pdf").mkdir()
     (tmp_path / "pdf" / "SKILL.md").write_text("---\ndescription: PDF work.\n---\nDo it.\n")
 
-    listed = await SkillListHook(skills_at(tmp_path)).start_of_step()
+    listed = await SkillListHook(skills_at(tmp_path)).start_of_step(None)
 
     assert listed == f"{SKILL_LIST_INTRO}\n\n- pdf: PDF work."
 
 
 async def test_with_no_skills_the_hook_says_nothing() -> None:
-    assert await SkillListHook(no_skills()).start_of_step() is None
+    assert await SkillListHook(no_skills()).start_of_step(None) is None

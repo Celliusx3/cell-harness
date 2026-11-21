@@ -7,7 +7,14 @@ from harness.tools import REFUSED, CallOrigin, Failure
 from tests.unit.helpers import new_session, toolset_for
 
 SHELL = ToolCall(id="c1", name="computer__shell", arguments="{}")
-ORIGIN = CallOrigin(bot_id="b", conversation_id="s", mode="ask", workspace=None)
+ORIGIN = CallOrigin(
+    bot_id="b",
+    conversation_id="s",
+    mode="ask",
+    workspace=None,
+    own_workspace=None,
+    history_id="s@0",
+)
 
 
 async def refusal_text(*, can_reach_servers: bool) -> str:

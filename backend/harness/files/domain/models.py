@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime
-from pathlib import PurePath, PurePosixPath
+from pathlib import Path, PurePath, PurePosixPath
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -44,6 +44,24 @@ class WorkspaceListing(BaseModel):
 
     path: str
     workspace: str
+    entries: tuple[WorkspaceEntry, ...]
+
+
+class FileText(BaseModel):
+    """A workspace text file as a tool read it: its resolved path, and its text."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: Path
+    text: str
+
+
+class FolderEntries(BaseModel):
+    """A workspace folder as a tool read it: its resolved path, and what it holds, folders first."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: Path
     entries: tuple[WorkspaceEntry, ...]
 
 

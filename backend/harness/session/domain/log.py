@@ -53,6 +53,11 @@ class Session:
         """The session's identity, read from the header."""
         return self.header.id
 
+    @property
+    def history_id(self) -> str:
+        """The model history since the last clear, which a clear moves `numbered_from` past."""
+        return f"{self.header.id}@{self.header.numbered_from}"
+
     def append(self, event: SessionEvent) -> int:
         """Record one event."""
         self._events.append(event)

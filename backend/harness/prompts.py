@@ -88,12 +88,7 @@ CODE_PROMPT = (
     "the user you lack a capability without listing the functions first."
 )
 
-GUIDANCE = (
-    "When a tool can answer the user's question, "
-    "call it instead of guessing. You have a long-term memory in the memory "
-    "functions: search it before answering about anything the user told you in "
-    "an earlier conversation, and save what they ask you to remember."
-) + CODE_PROMPT
+GUIDANCE = "When a tool can answer the user's question, call it instead of guessing." + CODE_PROMPT
 
 SKILL_LIST_INTRO = "The following skills are available for use with the skill tool:"
 SYSTEM_REMINDER = "<system-reminder>\n{text}\n</system-reminder>"

@@ -8,6 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import aclosing
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from harness.files import ChatFile, ChatFileService
@@ -252,11 +253,15 @@ async def _execute(
     """Run the tool: its progress as it reports it, then its outcome, last."""
     assert runtime.tools is not None
     chat_id = runtime.chat_id_for(run.session, run.bot_id)
+    named = run.session.workspace_of(run.bot_id)
+    own = None if named is None or named.own_workspace is None else Path(named.own_workspace)
     origin = CallOrigin(
         bot_id=run.bot_id,
         conversation_id=chat_id,
         mode=runtime.tools.approval_mode(run.session),
         workspace=None if runtime.files is None else runtime.files.workspace(chat_id),
+        own_workspace=own,
+        history_id=run.session.history_id,
     )
     queue: asyncio.Queue[ToolProgress | None] = asyncio.Queue()
 
