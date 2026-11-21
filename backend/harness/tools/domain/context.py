@@ -18,12 +18,14 @@ class ToolProgressReporter(Protocol):
 
 @dataclass(frozen=True)
 class CallOrigin:
-    """Who a call comes from: the bot, its conversation, that chat's mode, and its workspace."""
+    """Who a call comes from: bot, conversation, mode, workspaces, and its model history."""
 
     bot_id: str
     conversation_id: str
     mode: ApprovalMode
     workspace: Path | None
+    own_workspace: Path | None
+    history_id: str
 
 
 @dataclass(frozen=True)

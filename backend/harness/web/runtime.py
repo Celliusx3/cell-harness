@@ -10,7 +10,7 @@ import httpx
 
 from harness.bots import BotService
 from harness.config import CompactionSettings, Settings
-from harness.files import ChatFileService
+from harness.files import ChatFileService, WorkspaceTextRepository, WorkspaceTextService
 from harness.groups import GroupService
 from harness.images import ImageService
 from harness.llm import LLMClient
@@ -26,6 +26,7 @@ from harness.runtime.hooks.native.no_wait import NoWaitHook
 from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
+from harness.runtime.hooks.native.workspace_memory import WorkspaceMemoryHook
 from harness.runtime.service import Runtime, session_chat_id
 from harness.sandbox import DenoRunner
 from harness.schedules import ScheduleService
@@ -81,6 +82,7 @@ from harness.tools.native.skills import (
     skill_write_file_tool,
 )
 from harness.tools.native.tickets import TICKET_NOTE, TICKET_REPORT, TICKET_ROUTE
+from harness.tools.native.workspace import WORKSPACE_TOOLS, workspace_tools
 from harness.tools.service.tool_service import Disposer
 from harness.web.model_choice import CredentialModels, ModelEndpoint
 
@@ -100,6 +102,7 @@ DEFAULT_TOOLS = (
     TICKET_NOTE,
     SEND_FILE,
     VIEW_IMAGE,
+    *WORKSPACE_TOOLS,
 )
 WORK_TOOLS = (FETCH_WITH_SECRET, EXTRACT_ARCHIVE, MAKE_ARCHIVE)
 CODE_TOOLS = (LIST_FUNCTIONS, GET_FUNCTION_DETAILS, EXECUTE_TYPESCRIPT, SKILL)
@@ -147,6 +150,7 @@ def build_runtime(
             blocking_window_for=functools.partial(compaction_window_tokens, settings.compaction),
         ),
     )
+    texts = WorkspaceTextService(WorkspaceTextRepository())
     tool_service = ToolService(
         [
             get_current_time_tool(),
@@ -161,6 +165,7 @@ def build_runtime(
             ask_model_tool(files, images, models),
             ask_model_jobs_tool(files, images, models, at_once=settings.ask.jobs_at_once),
             *CLIENT_TOOLS.tools(),
+            *workspace_tools(texts),
         ],
         approvals=approvals,
     )
@@ -179,7 +184,7 @@ def build_runtime(
         ),
         guidance=ORCHESTRATOR_INTRO,
         checkpoint=sessions.flush,
-        hooks=orchestrator_hooks(skills),
+        hooks=orchestrator_hooks(skills, texts),
         files=files,
         server_instructions=mcp.instructions,
         chat_id_for=session_chat_id,
@@ -258,15 +263,15 @@ def attach_schedules(
     )
 
 
-def default_hooks(skills: SkillService) -> HookChain:
-    """The loop detectors, specific before general, then the empty-reply and skill-list hooks."""
+def default_hooks(skills: SkillService, texts: WorkspaceTextService) -> HookChain:
+    """The loop detectors, specific before general, then the empty-reply, skill and memory hooks."""
     return HookChain(
         (ExactFailureHook(), SameToolFailureHook(), NoProgressHook(), RepeatedCallHook()),
-        step_hooks=(EmptyReplyHook(), SkillListHook(skills)),
+        step_hooks=(EmptyReplyHook(), SkillListHook(skills), WorkspaceMemoryHook(texts)),
     )
 
 
-def orchestrator_hooks(skills: SkillService) -> HookChain:
+def orchestrator_hooks(skills: SkillService, texts: WorkspaceTextService) -> HookChain:
     """`default_hooks` behind the no-wait guard, which only the bot's own turns get."""
-    hooks = default_hooks(skills)
+    hooks = default_hooks(skills, texts)
     return dataclasses.replace(hooks, tool_hooks=(NoWaitHook(), *hooks.tool_hooks))

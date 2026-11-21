@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from harness.runtime.hooks.service import StepHook
+from harness.session.domain.models import WorkspaceEvent
 from harness.skills import SkillService
 from harness.skills.service.prompt import skill_list_text
 
@@ -15,5 +16,5 @@ class SkillListHook(StepHook):
 
     skills: SkillService
 
-    async def start_of_step(self) -> str | None:
+    async def start_of_step(self, named: WorkspaceEvent | None) -> str | None:
         return skill_list_text(self.skills.model_invocable_skills()) or None

@@ -1,74 +1,36 @@
-# Memory — insertion 9, "it remembers"
+# Memory — each bot's and each group's workspace
 
-The model keeps notes across conversations and finds them again: "remember
-this cafe", "remember my dentist's number", and in a later chat "which cafe
-did I like in Petaling Jaya?". The notes are Markdown files a person can open
-in Obsidian. There is no limit on how many.
+A bot keeps what it learns in its own workspace, and a group keeps what its
+members learn in the group's. "The client only accepts PDFs", said once in one
+chat, is in front of the bot in every later chat. The workspace itself is
+[specs/agent-workspace/spec.md](./specs/agent-workspace/spec.md).
 
-Memory is a capability, so it is an MCP server declared in `config.json`
-(`mcp.servers.memory`); `backend/harness/` gained
-one sentence of system prompt and nothing else. The server is
-[Basic Memory](https://github.com/basicmachines-co/basic-memory). A skill,
-`remember` (`git show db9b326:.agents/skills/remember/SKILL.md`, since removed),
-told the model when to save and when to search.
+## How it works
 
-## The three shapes, and why this one
+A workspace is a chat's folder under the files root, `workspaces/<chat id>/`.
+A bot's own chat gives the bot's workspace, and a group's chat gives the
+group's. It holds any files, like a Claude Code project, and
+`memory/MEMORY.md` in it is that bot's or that group's memory. You can open
+the folder in Obsidian.
 
-Seven read-only researchers over two rounds (this project, GitHub three times,
-library docs, the web twice), 2026-09-19.
+On every step the bot is shown the first 200 lines of its own
+`memory/MEMORY.md`, read from disk like the skill list. In a group's chat it
+is also shown the group's. Every other file is read, searched or edited with
+the `workspace_*` tools when the bot needs it. Claude Code's
+auto-memory, Letta's memory blocks and LobeHub's agent documents keep a short
+part always in view in the same way.
 
-| Shape | Who builds it | The line that defines it |
-|---|---|---|
-| **A store of notes plus search on demand** | Basic Memory, mcp-obsidian, mem0, langmem, Letta archival, OpenClaw daily notes | "archival memory fragments cannot be pinned to the context window, and must be queried on-demand via tools" ([Letta](https://docs.letta.com/guides/agents/archival-memory)) |
-| A file tree with an index always in view, bodies read on demand | Anthropic API memory tool, Claude Code auto-memory | "it is an index, not a memory container" ([Claude Code](https://github.com/Windy3f3f3f3f/how-claude-code-works/blob/main/en/docs/08-memory-system.md)) |
-| Blocks always in context with a character limit | Letta core memory, Hermes, ChatGPT saved memories | "They are always visible - no retrieval needed" ([Letta](https://docs.letta.com/guides/agents/memory-blocks)) |
+The bot keeps its memory itself, without being asked: the rule is the last
+part of `ORCHESTRATOR_INTRO`. It never saves health, money, religion or
+politics unless the person asks.
 
-The first shape is the pick because the person expects many things in memory
-over time (places, contacts, whatever comes) and wants to ask it to search; the
-other two are bounded by what fits in a prompt. The cost, from every source
-that has run one for long: the model has to decide to search, and "the setup
-breaks around a few hundred notes: retrieval gets noisy, the vault goes stale,
-and nothing prunes or reconciles it"
-([a year-long user](https://theaioperator.io/p/claude-code-as-a-second-brain-what)).
-The system-prompt sentence and the skill are the answer to the first; the
-second is a known follow-up, not solved here.
+## Why not Basic Memory any more
 
-## Why Basic Memory, and not our own server
+Until this change, memory was [Basic Memory](https://github.com/basicmachines-co/basic-memory),
+one MCP server with one notes folder that every bot shared, searched on
+demand. The person wanted memory per bot and per group, in the same folder as
+the bot's other work. The old page, with the research behind Basic Memory, is
+`git show 47b764ca:docs/memory.md`.
 
-| Candidate | What it is | Why or why not |
-|---|---|---|
-| **Basic Memory** (4.0k stars, AGPL-3.0, pushed 2026-09-16) | Markdown notes with frontmatter in a folder, SQLite index, "Hybrid full-text + vector ranking with FastEmbed embeddings"; `write_note`, `search_notes`, `read_note`, `edit_note`, `delete_note`; "Notes created by your AI ... automatically appear in Obsidian since they share the same markdown files" | Picked: proven, Obsidian-native, search built in, every tool declares an `outputSchema` (checked 2026-09-19, the README's test for a third-party server), zero harness code |
-| `mcp-servers/memory/`, ours | A folder of notes plus SQLite FTS5, five tools, ~300 lines | The fallback if Basic Memory fails; not needed |
-| mcp-obsidian (4.4k stars) | Search and patch over a live vault through the Local REST API plugin | The assistant would search every private note; needs Obsidian running |
-
-AGPL is fine because it runs as a separate process over MCP. It phones home
-with anonymous telemetry by default; `BASIC_MEMORY_NO_PROMOS=1` in the
-committed `env` turns that off.
-
-## Setup
-
-`uvx` is on PATH wherever `uv` is. The first start downloads the package and
-an embedding model; later starts are quick. Notes live in `~/basic-memory`
-(`~/.basic-memory/config.json` holds the project path; `basic-memory project
-add` points it elsewhere, a subfolder of an Obsidian vault included). Open
-that folder in Obsidian to see and edit what the model remembers.
-
-## What the model is told
-
-`GUIDANCE` (`prompts.py`): search before answering about anything the
-person said in an earlier conversation, and save what they ask to remember.
-The `remember` skill names the four functions, the `directory` for each kind
-of note (`places`, `people`, `notes`), what never to save unasked (health,
-finances, religion, politics), and what to say on an empty search. Both
-wordings have their observed failures in
-[prompt-failures.md](./prompt-failures.md).
-
-## Verified 2026-09-19
-
-Through the API, model gemma-4-e4b (a 4B-class model on LM Studio; `config.local.json` overrides the committed `llm`): a cafe saved (`places/Nadi Kopi.md`), a contact
-saved (`people/Dr Lim.md`), the cafe recalled in a new conversation with its
-cash-only detail, "what is my mum's birthday?" answered "I have nothing saved
-about that" after three searches, and a diabetes remark left unsaved. The model
-tried a direct call before reading the schema on two of four runs and recovered
-from the refusal each time; one wasted call per turn, the shape phase 7's
-"registered is not offered" intends.
+`~/basic-memory` is left untouched. Remove the `memory` server on
+Settings → MCP servers if it is still added.

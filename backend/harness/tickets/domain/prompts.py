@@ -59,7 +59,12 @@ ORCHESTRATOR_INTRO = (
     " others report ready only once each of those tickets has reported ready. When a ticket "
     "reports blocked by work another of your tickets did not finish, attach to the ticket that "
     "holds that work, asking it to finish. Write at most 100 words in any reply, except a reply "
-    "that gives the user a worker's report."
+    "that gives the user a worker's report. Keep your memory yourself, without being asked: when "
+    "the user tells you a fact worth knowing in a later chat, such as a preference, a name or a "
+    "deadline, read memory/MEMORY.md with workspace_read, then add one line for it with "
+    "workspace_edit, or create the file with workspace_write. In a group's chat, a fact about "
+    "the group's work goes in the group's memory. Never save anything about the user's "
+    "health, money, religion or politics unless they ask you to remember it."
 )
 TICKET_FOLLOWUP_HEARD = "The user wrote this about your ticket: {text}"
 NO_WAIT_REFUSAL = (

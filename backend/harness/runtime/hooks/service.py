@@ -17,6 +17,7 @@ from harness.runtime.hooks.calls import (
     empty_replies_in_a_row,
 )
 from harness.session.domain.log import Session
+from harness.session.domain.models import WorkspaceEvent
 from harness.tools import ToolOutcome
 
 logger = logging.getLogger("harness.runtime")
@@ -58,8 +59,8 @@ StepDecision = Tell | GiveUp
 class StepHook:
     """Something consulted at the start of each step, and when one ends without a tool call."""
 
-    async def start_of_step(self) -> str | None:
-        """Text the model should have in front of it on this step's request, or `None`."""
+    async def start_of_step(self, named: WorkspaceEvent | None) -> str | None:
+        """Text for this step's request, `named` the speaker's workspaces; or `None`."""
         return None
 
     async def end_of_step(self, empties: int) -> StepDecision | None:
@@ -92,10 +93,10 @@ class HookChain:
             self.tool_hooks, lambda hook: hook.post_call_note(sig, outcome, calls), "post_call_note"
         )
 
-    async def start_of_step(self) -> tuple[str, ...]:
+    async def start_of_step(self, named: WorkspaceEvent | None) -> tuple[str, ...]:
         """Every step hook's text for this step's request, in registration order."""
         texts = [
-            await _answer(hook, lambda each: each.start_of_step(), "start_of_step")
+            await _answer(hook, lambda each: each.start_of_step(named), "start_of_step")
             for hook in self.step_hooks
         ]
         return tuple(text for text in texts if text)

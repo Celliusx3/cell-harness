@@ -83,7 +83,9 @@ async def request_of(runtime: Runtime) -> list[Message]:
     session = new_session()
     session.append(TurnStart(turn=0, bot_id="b"))
     session.append(UserMessageEvent(turn=0, message=UserMessage(content="hi")))
-    return runtime.request_messages(session, await runtime.hooks.start_of_step(), sees_images=False)
+    return runtime.request_messages(
+        session, await runtime.hooks.start_of_step(None), sees_images=False
+    )
 
 
 async def test_the_tool_dispatches_and_returns_the_body(compose) -> None:

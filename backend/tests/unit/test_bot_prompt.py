@@ -30,14 +30,13 @@ from harness.session.domain.models import (
     TurnStart,
     UserMessageEvent,
 )
+from harness.tickets.domain.prompts import ORCHESTRATOR_INTRO
 from tests.unit.fakes import ScriptedClient, completed
 from tests.unit.helpers import runtime_over
 
 PROMPT_BEFORE_BOTS = (
     "You are a helpful assistant. When a tool can answer the user's question, "
-    "call it instead of guessing. You have a long-term memory in the memory "
-    "functions: search it before answering about anything the user told you in "
-    "an earlier conversation, and save what they ask you to remember."
+    "call it instead of guessing."
 ) + CODE_PROMPT
 
 
@@ -125,3 +124,10 @@ def test_a_bot_s_own_chat_sends_the_same_request_once_its_events_carry_its_id() 
     assert (
         with_ids.speaker_granted_tools() == before_groups.speaker_granted_tools() == {"fs__write"}
     )
+
+
+def test_the_bot_keeps_its_own_memory_and_never_the_four_subjects_unasked() -> None:
+    assert "without being asked" in ORCHESTRATOR_INTRO
+    assert "read memory/MEMORY.md with workspace_read, then add one line" in ORCHESTRATOR_INTRO
+    assert "or create the file with workspace_write" in ORCHESTRATOR_INTRO
+    assert "health, money, religion or politics" in ORCHESTRATOR_INTRO

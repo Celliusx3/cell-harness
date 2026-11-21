@@ -17,6 +17,7 @@ from harness.runtime.hooks.native.no_wait import NoWaitHook
 from harness.runtime.hooks.native.repeated_call import RepeatedCallHook
 from harness.runtime.hooks.native.same_tool_failure import SameToolFailureHook
 from harness.runtime.hooks.native.skill_list import SkillListHook
+from harness.runtime.hooks.native.workspace_memory import WorkspaceMemoryHook
 from harness.runtime.service import Runtime
 from harness.session.repository.jsonl_session_repository import JsonlSessionRepository
 from harness.session.service.session_service import SessionService
@@ -140,7 +141,11 @@ def test_the_guardrail_is_installed_in_precedence_order(compose) -> None:
         NoProgressHook,
         RepeatedCallHook,
     ]
-    assert [type(hook) for hook in runtime.hooks.step_hooks] == [EmptyReplyHook, SkillListHook]
+    assert [type(hook) for hook in runtime.hooks.step_hooks] == [
+        EmptyReplyHook,
+        SkillListHook,
+        WorkspaceMemoryHook,
+    ]
 
 
 async def test_every_client_tool_is_registered_not_offered_and_kept_from_scripts(compose) -> None:

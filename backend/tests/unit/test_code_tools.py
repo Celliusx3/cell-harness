@@ -266,5 +266,12 @@ async def test_a_tool_a_script_calls_runs_for_the_calling_bot_in_its_conversatio
     )
 
     assert seen == [
-        CallOrigin(bot_id="bot-7", conversation_id="chat-7", mode="ask", workspace=None)
+        CallOrigin(
+            bot_id="bot-7",
+            conversation_id="chat-7",
+            mode="ask",
+            workspace=None,
+            own_workspace=None,
+            history_id="s@0",
+        )
     ]
